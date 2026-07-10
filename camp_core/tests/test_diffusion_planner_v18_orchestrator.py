@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import importlib
 import json
 
@@ -425,6 +426,312 @@ def test_materialize_canonical_14d_excludes_all_k_infeasible_without_fallback() 
     assert not result["physical_feasible_mask"].any()
     assert not bool(result["physical_feasible_mask"][0])
     assert result["progress_reference"] is None
+
+
+def _materialization_output_fixture(tmp_path, module):
+    candidate_root = tmp_path / "candidates"
+    candidate_root.mkdir()
+    causal_input = _causal_input()
+    input_hash = module.causal_input_sha256(causal_input)
+    splits = ("calibration", "holdout", "train")
+    source_rows = []
+    candidate_rows = []
+    sha_lines = []
+    for index, split in enumerate(splits):
+        source = {
+            "split": split,
+            "log_token": f"log_{index}",
+            "scene_token": f"scene_{index}",
+            "decision_token": f"decision_{index}",
+            "db_path": f"db_{index}",
+            "map_path": f"map_{index}",
+            "causal_input_sha256": input_hash,
+            "causal_source_schema_version": module.CAUSAL_SOURCE_SCHEMA_VERSION,
+        }
+        source_rows.append(source)
+        relative = f"{split}/log_{index}/scene_{index}.npz"
+        path = candidate_root / relative
+        path.parent.mkdir(parents=True)
+        candidates = np.zeros((8, 80, 4), dtype=np.float32)
+        candidates[..., 0] = index
+        candidates[..., 2] = 1.0
+        neighbors = np.zeros((8, 32, 80, 4), dtype=np.float32)
+        neighbors[..., 2] = 1.0
+        valid = np.zeros(32, dtype=bool)
+        signal = np.ones(8, dtype=bool)
+        np.savez(
+            path,
+            candidate_tensor=candidates,
+            neighbor_prediction_tensor=neighbors,
+            neighbor_valid_mask=valid,
+            candidate_signal_source_available_mask=signal,
+            eligible_for_canonical_14d=np.array(True),
+            dp_top1_index=np.array(0, dtype=np.int64),
+            candidate_count=np.array(8, dtype=np.int64),
+            causal_input_sha256=np.array(input_hash),
+            causal_source_schema_version=np.array(
+                module.CAUSAL_SOURCE_SCHEMA_VERSION
+            ),
+        )
+        file_hash = module._sha256(path)
+        sha_lines.append(f"{file_hash}  ./{relative}")
+        candidate_rows.append(
+            {
+                **{
+                    key: source[key]
+                    for key in (
+                        "split",
+                        "log_token",
+                        "scene_token",
+                        "decision_token",
+                    )
+                },
+                "DP_HEAD": module.FIXED_DP_HEAD,
+                "K": 8,
+                "candidate_count": 8,
+                "dp_top1_index": 0,
+                "causal_input_sha256": input_hash,
+                "causal_source_schema_version": module.CAUSAL_SOURCE_SCHEMA_VERSION,
+                "candidate_tensor_sha256": module._array_sha256(candidates),
+                "neighbor_prediction_tensor_sha256": module._array_sha256(
+                    neighbors
+                ),
+                "neighbor_valid_mask_sha256": module._array_sha256(valid),
+                "candidate_signal_source_available_mask_sha256": (
+                    module._array_sha256(signal)
+                ),
+                "output_npz": relative,
+                "output_npz_sha256": file_hash,
+            }
+        )
+    manifest = tmp_path / "manifest.jsonl"
+    manifest.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in source_rows),
+        encoding="utf-8",
+    )
+    (candidate_root / "records.jsonl").write_text(
+        "".join(
+            json.dumps(row, sort_keys=True) + "\n" for row in candidate_rows
+        ),
+        encoding="utf-8",
+    )
+    (candidate_root / "summary.json").write_text(
+        json.dumps(
+            {
+                "manifest": str(manifest),
+                "manifest_sha256": module._sha256(manifest),
+                "record_count": len(source_rows),
+                "candidate_generation_executed": True,
+                "dp_head": module.FIXED_DP_HEAD,
+                "k": 8,
+            },
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (candidate_root / "SHA256SUMS").write_text(
+        "\n".join(sha_lines) + "\n", encoding="utf-8"
+    )
+    root_hash = module._sha256(candidate_root / "SHA256SUMS")
+    (candidate_root / "ROOT_SHA256SUMS").write_text(
+        f"{root_hash}  SHA256SUMS\n", encoding="utf-8"
+    )
+    args = argparse.Namespace(
+        candidate_root=candidate_root,
+        expected_candidate_root_sha256=root_hash,
+        materialize_output_dir=tmp_path / "canonical",
+        current_status=tmp_path / "status.md",
+        v18_audit=tmp_path / "audit.md",
+        dp_repo=tmp_path / "dp",
+    )
+    return args, causal_input
+
+
+def test_run_materialization_seals_holdout_and_excludes_all_k(
+    tmp_path, monkeypatch
+) -> None:
+    module = _orchestrator()
+    args, causal_input = _materialization_output_fixture(tmp_path, module)
+    monkeypatch.setattr(module, "EXPECTED_MINI_RECORD_COUNT", 3)
+    pointer_calls = []
+    monkeypatch.setattr(
+        module,
+        "read_v18_status_pointer",
+        lambda status, audit: pointer_calls.append((status, audit)) or {"gate": "ok"},
+    )
+    monkeypatch.setattr(
+        module,
+        "_verify_fixed_dp_repo",
+        lambda _path: module.FIXED_DP_HEAD,
+    )
+    monkeypatch.setattr(
+        module,
+        "materialize_nuplan_decision",
+        lambda *_args: type("Result", (), {"dp_input": causal_input})(),
+    )
+    monkeypatch.setattr(
+        module,
+        "_fixed_dp_red_cost",
+        lambda *_args, **_kwargs: np.arange(8, dtype=np.float64),
+    )
+
+    def fake_canonical(*, candidates, **_kwargs):
+        index = int(candidates[0, 0, 0])
+        eligible = index < 2
+        physical = np.full(8, eligible, dtype=bool)
+        reasons = tuple(() if eligible else ("obb_collision",) for _ in range(8))
+        return {
+            "atom_names": tuple(causal_atoms.DP_CAMP_ATOM_NAMES_V10),
+            "atom_matrix": (
+                np.full((8, 14), index, dtype=np.float64)
+                if eligible
+                else None
+            ),
+            "canonical_eligible": eligible,
+            "exclusion_reason": (
+                None if eligible else "all_candidates_physically_infeasible"
+            ),
+            "signal_mask": np.ones(8, dtype=bool),
+            "lane_feasible_mask": np.ones(8, dtype=bool),
+            "obb_collision_free_mask": physical,
+            "physical_feasible_mask": physical,
+            "candidate_reasons": reasons,
+            "route_progress": np.arange(8, dtype=np.float64),
+            "minimum_obb_clearance": np.full((8, 80), 3.0),
+            "minimum_obb_clearance_clip_m": 3.0,
+            "progress_reference": (7.0 if eligible else None),
+            "baseline_semantics": module.BASELINE_SEMANTICS,
+            "baseline_equivalence_verified": False,
+            "native_ranked_top1": False,
+            "feasibility_scope": module.FEASIBILITY_SCOPE,
+            "closed_loop_safety_claim": False,
+        }
+
+    monkeypatch.setattr(module, "materialize_canonical_14d", fake_canonical)
+    label_calls = []
+
+    def fake_label(_db_path, decision_token, **_kwargs):
+        label_calls.append(decision_token)
+        return np.full((80, 3), len(label_calls), dtype=np.float64)
+
+    monkeypatch.setattr(module, "load_nuplan_expert_ego_future", fake_label)
+    source_paths = sorted(path for path in args.candidate_root.rglob("*") if path.is_file())
+    source_before = {str(path.relative_to(args.candidate_root)): module._sha256(path) for path in source_paths}
+    real_snapshot = module._candidate_source_snapshot
+    promotion_state = []
+
+    def tracked_snapshot(*snapshot_args, **snapshot_kwargs):
+        promotion_state.append(args.materialize_output_dir.exists())
+        return real_snapshot(*snapshot_args, **snapshot_kwargs)
+
+    monkeypatch.setattr(module, "_candidate_source_snapshot", tracked_snapshot)
+
+    report = module.run_materialization(args)
+
+    source_after = {str(path.relative_to(args.candidate_root)): module._sha256(path) for path in source_paths}
+    assert source_after == source_before
+    assert report["model_calls"] == 0
+    assert report["candidate_generation_executed"] is False
+    assert report["baseline_semantics"] == module.BASELINE_SEMANTICS
+    assert report["native_ranked_top1"] is False
+    assert report["feasibility_scope"] == module.FEASIBILITY_SCOPE
+    assert report["closed_loop_safety_claim"] is False
+    assert report["holdout_labels_read"] == 0
+    assert label_calls == ["decision_0"]
+    assert pointer_calls == [(args.current_status, args.v18_audit)]
+    assert promotion_state == [False, False]
+
+    rows = [
+        json.loads(line)
+        for line in (args.materialize_output_dir / "records.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
+    assert len(rows) == 3
+    assert rows[0]["label_read"] is True
+    assert rows[1]["label_read"] is False
+    assert rows[2]["canonical_output_npz"] is None
+    assert rows[2]["exclusion_reason"] == "all_candidates_physically_infeasible"
+    assert rows[2]["physical_feasible_mask"] == [False] * 8
+    assert rows[2]["candidate_reasons"] == [["obb_collision"]] * 8
+    summary = json.loads(
+        (args.materialize_output_dir / "summary.json").read_text(encoding="utf-8")
+    )
+    assert summary["counts"]["overall"]["materialized"] == 2
+    assert summary["counts"]["overall"]["labelled"] == 1
+    assert summary["counts"]["overall"]["all_k_infeasible"] == 1
+    assert summary["counts"]["by_split"]["holdout"]["holdout_sealed"] == 1
+    with np.load(
+        args.materialize_output_dir / rows[0]["canonical_output_npz"],
+        allow_pickle=False,
+    ) as calibration:
+        assert "expert_ego_future_xyh" in calibration.files
+    with np.load(
+        args.materialize_output_dir / rows[1]["canonical_output_npz"],
+        allow_pickle=False,
+    ) as holdout:
+        assert "expert_ego_future_xyh" not in holdout.files
+        assert holdout["atom_matrix"].shape == (8, 14)
+
+    with pytest.raises(FileExistsError):
+        module.run_materialization(args)
+    assert label_calls == ["decision_0"]
+
+
+def test_run_materialization_rejects_candidate_root_sha_mismatch(
+    tmp_path, monkeypatch
+) -> None:
+    module = _orchestrator()
+    args, _ = _materialization_output_fixture(tmp_path, module)
+    args.expected_candidate_root_sha256 = "0" * 64
+    monkeypatch.setattr(
+        module, "read_v18_status_pointer", lambda *_args: {"gate": "ok"}
+    )
+
+    with pytest.raises(ValueError, match="candidate root SHA256 mismatch"):
+        module.run_materialization(args)
+
+
+def test_materialization_cli_mode_is_mutually_exclusive() -> None:
+    module = _orchestrator()
+    args = module.parse_args(
+        [
+            "--dp_repo",
+            "dp",
+            "--candidate_root",
+            "candidates",
+            "--expected_candidate_root_sha256",
+            "a" * 64,
+            "--materialize_output_dir",
+            "canonical",
+            "--current_status",
+            "status.md",
+            "--v18_audit",
+            "audit.md",
+        ]
+    )
+
+    assert args.candidate_root.name == "candidates"
+    with pytest.raises(SystemExit):
+        module.parse_args(
+            [
+                "--dp_repo",
+                "dp",
+                "--candidate_root",
+                "candidates",
+                "--expected_candidate_root_sha256",
+                "a" * 64,
+                "--materialize_output_dir",
+                "canonical",
+                "--current_status",
+                "status.md",
+                "--v18_audit",
+                "audit.md",
+                "--manifest",
+                "manifest.jsonl",
+            ]
+        )
 
 
 def test_v18_pointer_reader_ignores_historical_file_tail(tmp_path) -> None:
