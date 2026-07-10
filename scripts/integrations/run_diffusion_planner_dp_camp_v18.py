@@ -272,14 +272,22 @@ def _verify_fixed_dp_repo(dp_repo: Path) -> str:
     return head
 
 
+def _fixed_dp_python_paths(dp_repo: Path) -> tuple[Path, Path]:
+    package_root = dp_repo / "diffusion_planner"
+    if not package_root.is_dir():
+        raise ValueError("fixed DP nested Python package root is missing")
+    return package_root, dp_repo
+
+
 def _fixed_dp_red_cost(
     candidates: np.ndarray,
     causal_input: Mapping[str, Any],
     dp_repo: Path,
     dt: float,
 ) -> np.ndarray:
-    if str(dp_repo) not in sys.path:
-        sys.path.insert(0, str(dp_repo))
+    for path in reversed(_fixed_dp_python_paths(dp_repo)):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
     import torch
     from rlvr.reward import RewardConfig, compute_red_light_score_batch
 

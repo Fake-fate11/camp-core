@@ -789,6 +789,18 @@ def test_candidate_zero_metadata_is_deterministic_map_not_native_ranking() -> No
     assert module.CLOSED_LOOP_SAFETY_CLAIM is False
 
 
+def test_fixed_dp_python_paths_include_nested_package_root(tmp_path) -> None:
+    module = _orchestrator()
+    dp_repo = tmp_path / "Diffusion-Planner"
+    package_root = dp_repo / "diffusion_planner"
+    package_root.mkdir(parents=True)
+
+    assert module._fixed_dp_python_paths(dp_repo) == (
+        package_root,
+        dp_repo,
+    )
+
+
 def test_prepare_causal_arrays_pads_only_neighbor_history() -> None:
     module = _orchestrator()
 
