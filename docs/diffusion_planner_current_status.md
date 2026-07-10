@@ -16,17 +16,27 @@ V18 starts a new public-data path from nuPlan mini to a fresh causal nuPlan
 canonical `dp_camp_v10_14d` atom order, affine score, nonnegative simplex, and
 convex CVaR/L2/master constraints remain unchanged.
 
-The v18 bootstrap checkpoint was verified tracked-clean on local, GitHub, and
-AutoDL CAMP at `b43bae6eb559c6185e2702386c0aa7dd8167489b`. AutoDL Diffusion
-Planner is tracked-clean at the fixed commit
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`; no v17/v18 job is active. No
-nuPlan source, candidate corpus, training, holdout access, evaluation, claim,
-promotion, deployment, or activation is asserted by this bootstrap.
+The bootstrap checkpoint was verified across local, GitHub, and AutoDL. The
+nuPlan mini source inventory then passed at CAMP
+`eff4f89a872e3e4cf897ecefc1c59a5fcc131afe`, with AutoDL Diffusion Planner
+tracked-clean at fixed commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4` and no v17/v18 job active. The
+fixed DP commit has no native nuPlan loader or config; it consumes JSON-listed
+NPZ records through `DiffusionPlannerData`. No existing nuPlan source was found
+under the bounded AutoDL roots.
 
-current_v18_status=v18_nuplan_mini_source_inventory_pending
-current_v18_artifact_scope=v17_supersession_and_v18_nuplan_bootstrap
-current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
-next_work_target=v18_nuplan_mini_source_inventory_and_acquisition_preflight_only
+Official Motional AWS Open Data maps and mini archives are anonymously
+reachable and total `9521657670` compressed bytes. Acquisition did not start:
+Motional Dataset Terms govern downloads from the website or elsewhere,
+non-commercial eligibility and acceptance are not established, and commercial
+use requires license authorization. No source data, candidate corpus, split,
+training, holdout access, evaluation, claim, promotion, deployment, or
+activation occurred.
+
+current_v18_status=v18_nuplan_mini_source_inventory_passed_acquisition_blocked_pending_license_authorization
+current_v18_artifact_scope=nuplan_mini_source_inventory_and_acquisition_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_source_inventory_preflight_eff4f89a_20260710T142636CST
+next_work_target=user_confirmation_of_noncommercial_terms_acceptance_or_commercial_nuplan_license_before_acquisition
 
 ## Historical V17 Closeout
 

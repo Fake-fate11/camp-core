@@ -81,3 +81,52 @@ current_v18_status=v18_nuplan_mini_source_inventory_pending
 current_v18_artifact_scope=v17_supersession_and_v18_nuplan_bootstrap_verified
 current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
 next_work_target=v18_nuplan_mini_source_inventory_and_acquisition_preflight_only
+
+## Gate 1: nuPlan Mini Source Inventory and Acquisition Preflight
+
+Status: source inventory passed; acquisition stopped before download at the
+manual license-authorization boundary.
+
+- Evidence artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_source_inventory_preflight_eff4f89a_20260710T142636CST`
+- Artifact root SHA256:
+  `1cdae5c6a7543f8575abca44d25b9a552dca88eb1add9757654add33a0df41c0`
+- JSON / MD SHA256:
+  `8f47fe1f735f6bd2f3f18a2d1e49467dbe627ee60cdaf56b9fdca9639741666d` /
+  `c736fffcfd91193355df6051ab250ef6fa08c0d2e19a58ced208acdd826d7531`.
+- `SHA256SUMS` and `ROOT_SHA256SUMS` verification: passed; all preflight
+  checks passed and `run.exit=0`.
+- CAMP HEAD / origin:
+  `eff4f89a872e3e4cf897ecefc1c59a5fcc131afe`; tracked clean.
+- Fixed DP HEAD / tracked status:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / clean`.
+- Fixed DP native nuPlan references, loader, and config: `0 / none / none`.
+  Its native dataset surface is a JSON list, or a `files` dict, of NPZ paths
+  loaded by `DiffusionPlannerData`.
+- Bounded source search under `/root/autodl-tmp` and `/autodl-pub/data`, to
+  depth 5, found zero nuPlan-named source paths. Available data-disk space was
+  `45045547008` bytes. No v17/v18 job was active.
+- Official source inventory:
+  - registry: `https://registry.opendata.aws/motional-nuplan/`
+  - maps archive: `971557640` bytes, HTTP `200`
+  - mini archive: `8550100030` bytes, HTTP `200`
+  - compressed total: `9521657670` bytes
+- The official website/setup path requires an account and agreement to the
+  Motional Dataset Terms. The official AWS Open Data copy requires no AWS
+  account, but anonymous access does not remove those terms. The terms apply to
+  downloads from the website or elsewhere, allow eligible non-commercial use,
+  and require a commercial license for commercial use.
+- Non-commercial eligibility, user acceptance, and commercial-license
+  authorization are all unconfirmed. No agent may accept that legal boundary
+  on the user's behalf, so no archive was downloaded or extracted.
+- Data records / split / K: `0 / none / 8` (contract only). Weights, metrics,
+  training time, selector latency, and reranking overhead: not applicable.
+- No adapter implementation, candidate generation, atom materialization,
+  training, holdout access, evaluation, claim, promotion, deployment, or
+  activation occurred.
+
+current_v18_status=v18_nuplan_mini_source_inventory_passed_acquisition_blocked_pending_license_authorization
+current_v18_artifact_scope=nuplan_mini_source_inventory_and_acquisition_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_source_inventory_preflight_eff4f89a_20260710T142636CST
+current_v18_artifact_root_sha256=1cdae5c6a7543f8575abca44d25b9a552dca88eb1add9757654add33a0df41c0
+next_work_target=user_confirmation_of_noncommercial_terms_acceptance_or_commercial_nuplan_license_before_acquisition
