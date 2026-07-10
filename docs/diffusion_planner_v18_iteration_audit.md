@@ -406,3 +406,78 @@ current_v18_artifact_scope=nuplan_mini_official_archives_extraction_result_revie
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
 current_v18_artifact_root_sha256=25edf589f115bcda2a24937d5b64d8ea317b5ee61d75a0429b506e58a1806dbd
 next_work_target=v18_nuplan_mini_causal_adapter_source_contract_inventory_and_test_preflight_only
+
+## Gate 5: Causal-Adapter Source-Contract Inventory and Test Preflight
+
+Status: passed; test-driven adapter implementation is the only next gate.
+
+- Evidence artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_source_contract_preflight_397ea2c8_20260710T205550CST`
+- Source dataset manifest root SHA256:
+  `43d09389dafd53f8486e9305fca005dede2ae8ba5aa97d908953a7084c435c72`.
+- All 64 mini databases share one schema fingerprint and expose real
+  decision-time tables for scene mission goal/route, lidar ticks, ego pose,
+  lidar boxes/tracks/categories, and traffic-light state.
+- Scene contract totals:
+  - total / route present / route mapped / strict connected:
+    `1364 / 1338 / 1338 / 1090`
+  - mission goal present and resolvable: `662 / 662`
+  - full route speed / boundary / baseline: `1141 / 1338 / 1338`
+  - fully eligible: `526` scenes across `48` logs
+  - eligible by location: Las Vegas `488`, Pittsburgh `38`, Singapore `0`,
+    Boston `0`
+  - eligible scenario-tag rows / distinct decision ticks:
+    `345490 / 154291`.
+- Mission route lengths are `0..47`; eligible routes are `6..39`, and 266
+  eligible scenes exceed the fixed 25 route slots. The adapter must anchor a
+  connected at-most-25-roadblock mission-route window at the current roadblock;
+  it must not truncate from the route start or construct a nearby-lane route.
+- Map roadblock contracts with complete speed sources:
+  Singapore `0/2001`, Boston `220/2413`, Las Vegas `1883/1883`, Pittsburgh
+  `814/814`. Missing `speed_limit_mps` is ineligible; `min_speed`, current ego
+  speed, statutory defaults, and `100 m/s` are forbidden fallbacks.
+- Boundary and baseline geometry cover every mapped route roadblock. Mission
+  goal comes from `scene.goal_ego_pose_token -> ego_pose`, never the route
+  endpoint. Traffic state comes only from `traffic_light_status` for the exact
+  current `lidar_pc_token`; the table contains `4513257` resolved red/green
+  rows. Ego pose x/y, timestamps, velocity, acceleration, and orientation have
+  zero missing values. Lidar dt is derived from linked timestamps near 50 ms,
+  never hardcoded.
+- Current environments have no nuPlan devkit, Shapely, Fiona, GeoPandas, GDAL,
+  or OGR. The official devkit setup targets a Python 3.9/full dependency stack,
+  while fixed DP runs Python 3.12. The minimum adapter dependency is therefore
+  optional `Shapely>=2.0`; raw table and GeoPackage metadata access remains
+  standard-library `sqlite3`.
+- Fixed DP still has zero native nuPlan references. Its `DiffusionPlannerData`
+  accepts an arbitrary JSON-listed NPZ dictionary, so the existing causal
+  materializer remains the input boundary.
+- Minimum implementation scope:
+  `camp_core/pyproject.toml`, new
+  `camp_core/camp_core/integrations/nuplan_causal_adapter.py`, the existing
+  causal materializer, and one new v18 adapter test file. No new runner or
+  abstraction layer is authorized.
+- Required RED/GREEN tests: future sentinel, future perturbation invariance,
+  mission-route connectivity and current-roadblock 25-slot anchoring,
+  `speed_limit_mps` projection/missing-speed fail closed, exact traffic-light
+  tick timestamp, left/right boundary semantics, dt from timestamps, global
+  SE(2) invariance, and mission goal distinct from route endpoint.
+- Candidate-neighbor predictions and candidate-0 DP Top-1 semantic remain
+  unavailable/fail-closed until the same fixed-DP execution exports and verifies
+  them. No 14D availability claim is made at this gate.
+- Result JSON / MD / artifact-root SHA256:
+  `f86dda4b89925c904e35e41f4161c197312a67c7fa798b44471525b264c99327` /
+  `8e8bca63edb3357cfbb43db45e37d1459dc40c577e72032bbf88a5bcebd64245` /
+  `ddb955794808c28610fe55830eec18d500e693eb0751714879bee46819fcc465`.
+- CAMP HEAD / origin / fixed DP HEAD:
+  `397ea2c898205546d8fd022c5360728c23d91db1` /
+  `397ea2c898205546d8fd022c5360728c23d91db1` /
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- No adapter code, dependency installation, candidate generation, atom
+  materialization, split, training, evaluation, claim, promotion, deployment,
+  activation, or raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_causal_adapter_source_contract_preflight_complete
+current_v18_artifact_scope=nuplan_mini_causal_adapter_source_contract_inventory_and_test_plan
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_source_contract_preflight_397ea2c8_20260710T205550CST
+current_v18_artifact_root_sha256=ddb955794808c28610fe55830eec18d500e693eb0751714879bee46819fcc465
+next_work_target=v18_nuplan_mini_causal_adapter_test_driven_implementation_only

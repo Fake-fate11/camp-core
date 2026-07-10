@@ -70,14 +70,24 @@ verified `run.exit=0`, all 72 extracted-file SHA256 entries, the dataset
 manifest root, all SQLite headers and schemas, and a consistent 12-table schema
 in every mini database.
 
+Causal-adapter source-contract preflight then passed without implementing the
+adapter. It found 526 eligible scenes across 48 logs and 154291 distinct tagged
+decision ticks after requiring a resolvable mission goal, nonempty mapped
+mission route, strict roadblock connectivity, real baseline/boundary geometry,
+and full route `speed_limit_mps`. Las Vegas contributes 488 eligible scenes and
+Pittsburgh 38; Singapore and Boston fail closed because canonical speed inputs
+are incomplete. The implementation is limited to a CAMP-side SQLite/Shapely
+adapter plus the existing materializer and tests; the full nuPlan devkit stack
+is not required.
+
 No adapter, candidate corpus, split, training, holdout access, evaluation,
 claim, promotion, deployment, or activation has occurred.
 
-current_v18_status=v18_nuplan_mini_official_archives_extraction_complete_verified
-current_v18_artifact_scope=nuplan_mini_official_archives_extraction_result_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
-current_v18_artifact_root_sha256=25edf589f115bcda2a24937d5b64d8ea317b5ee61d75a0429b506e58a1806dbd
-next_work_target=v18_nuplan_mini_causal_adapter_source_contract_inventory_and_test_preflight_only
+current_v18_status=v18_nuplan_mini_causal_adapter_source_contract_preflight_complete
+current_v18_artifact_scope=nuplan_mini_causal_adapter_source_contract_inventory_and_test_plan
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_source_contract_preflight_397ea2c8_20260710T205550CST
+current_v18_artifact_root_sha256=ddb955794808c28610fe55830eec18d500e693eb0751714879bee46819fcc465
+next_work_target=v18_nuplan_mini_causal_adapter_test_driven_implementation_only
 
 ## Historical V17 Closeout
 
