@@ -34,6 +34,11 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_K = 8
 FIXED_DP_NEIGHBOR_COUNT = 320
 DEFAULT_SEED = 3407
+_WHITE_CHANNEL = 11
+_SIGNAL_PROXIMITY_M = 3.0
+_SIGNAL_HEADING_THRESHOLD = 0.5
+_MOVING_THRESHOLD_MPS = 0.5
+_TARGET_DT_S = 0.1
 
 
 def prepare_causal_arrays(data: Mapping[str, Any]) -> dict[str, np.ndarray]:
@@ -51,19 +56,6 @@ def prepare_causal_arrays(data: Mapping[str, Any]) -> dict[str, np.ndarray]:
     return prepared
 
 
-def combine_candidates(top1: np.ndarray, stochastic: np.ndarray) -> np.ndarray:
-    top1 = np.asarray(top1)
-    stochastic = np.asarray(stochastic)
-    if top1.shape != (1, 80, 4) or stochastic.shape != (7, 80, 4):
-        raise ValueError("fixed DP candidates must have exact K=8 shape (8, 80, 4)")
-    candidates = np.ascontiguousarray(
-        np.concatenate([top1, stochastic], axis=0), dtype=np.float32
-    )
-    if not np.isfinite(candidates).all():
-        raise ValueError("fixed DP candidates must be finite")
-    return candidates
-
-
 def causal_input_sha256(data: Mapping[str, Any]) -> str:
     digest = hashlib.sha256()
     for key in sorted(data):
@@ -78,9 +70,14 @@ def causal_input_sha256(data: Mapping[str, Any]) -> str:
     return digest.hexdigest()
 
 
-def sample_fixed_dp_candidates(
-    data: Mapping[str, Any], context: Mapping[str, Any], *, noise_scale: float = 1.0
-) -> np.ndarray:
+def sample_fixed_dp_sources(
+    data: Mapping[str, Any],
+    context: Mapping[str, Any],
+    *,
+    noise_scale: float = 1.0,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    raw_neighbors = np.asarray(data["neighbor_agents_past"])
+    neighbor_valid_mask = np.any(np.abs(raw_neighbors) > 1e-8, axis=(1, 2))
     arrays = prepare_causal_arrays(data)
     torch = context["torch"]
     device = context["device"]
@@ -98,26 +95,77 @@ def sample_fixed_dp_candidates(
         dtype=torch.float32,
         device=device,
     )
-    generate = context["generate_samples"]
-    top1 = generate(
-        model=context["model"],
-        model_args=context["config"],
-        data=normalized,
-        noise_scale=0.0,
-        n_samples=1,
-        composer=None,
-        device=device,
+    model = context["model"]
+    original_fn = model.decoder._guidance_fn
+    original_scale = model.decoder._guidance_scale
+    model.decoder._guidance_fn = None
+    model.decoder._guidance_scale = 0.5
+
+    def draw(scale: float, count: int) -> np.ndarray:
+        results = []
+        for _ in range(count):
+            normalized["sampled_trajectories"] = context["make_initial_latent"](
+                1,
+                1 + context["config"].predicted_neighbor_num,
+                context["config"].future_len,
+                device,
+                scale,
+            )
+            _, output = model(normalized)
+            prediction = output["prediction"]
+            if tuple(prediction.shape) != (1, 321, 80, 4):
+                raise ValueError("fixed DP full prediction must have shape [1,321,80,4]")
+            value = prediction[0, :33].detach().cpu().numpy().astype(np.float32)
+            if not np.isfinite(value).all():
+                raise ValueError("fixed DP full prediction must be finite")
+            results.append(value)
+        return np.stack(results)
+
+    try:
+        full = np.concatenate([draw(0.0, 1), draw(noise_scale, 7)], axis=0)
+    finally:
+        model.decoder._guidance_fn = original_fn
+        model.decoder._guidance_scale = original_scale
+    candidates = np.ascontiguousarray(full[:, 0], dtype=np.float32)
+    neighbors = np.ascontiguousarray(full[:, 1:33], dtype=np.float32)
+    return candidates, neighbors, neighbor_valid_mask.astype(bool, copy=False)
+
+
+def candidate_signal_source_available_mask(
+    candidates: np.ndarray,
+    route_lanes: np.ndarray,
+) -> np.ndarray:
+    trajectories = np.array(candidates, dtype=np.float64, copy=True)
+    route = np.asarray(route_lanes, dtype=np.float64)
+    white = route[
+        (route[..., _WHITE_CHANNEL] > 0.5)
+        & (np.linalg.norm(route[..., :2], axis=-1) > 0.1)
+    ]
+    if white.size == 0:
+        return np.ones(trajectories.shape[0], dtype=bool)
+    white_xy = white[:, :2]
+    white_direction = white[:, 2:4]
+    white_direction /= np.maximum(
+        np.linalg.norm(white_direction, axis=1, keepdims=True), 1e-6
     )
-    stochastic = generate(
-        model=context["model"],
-        model_args=context["config"],
-        data=normalized,
-        noise_scale=noise_scale,
-        n_samples=EXPECTED_K - 1,
-        composer=None,
-        device=device,
+    heading = trajectories[:, :, 2:4].copy()
+    heading /= np.maximum(np.linalg.norm(heading, axis=2, keepdims=True), 1e-6)
+    distance = np.linalg.norm(
+        trajectories[:, :, None, :2] - white_xy[None, None, :, :],
+        axis=3,
     )
-    return combine_candidates(top1, stochastic)
+    aligned = (
+        np.einsum("kti,ri->ktr", heading, white_direction)
+        > _SIGNAL_HEADING_THRESHOLD
+    )
+    speed = (
+        np.linalg.norm(np.diff(trajectories[:, :, :2], axis=1), axis=2)
+        / _TARGET_DT_S
+    )
+    speed = np.concatenate([speed, speed[:, -1:]], axis=1)
+    reaches = ((distance < _SIGNAL_PROXIMITY_M) & aligned).any(axis=2)
+    reaches &= speed > _MOVING_THRESHOLD_MPS
+    return ~reaches.any(axis=1)
 
 
 def _load_context(
@@ -127,12 +175,16 @@ def _load_context(
         load_fixed_dp_export_context,
     )
 
-    return load_fixed_dp_export_context(
+    context = load_fixed_dp_export_context(
         dp_repo=dp_repo,
         checkpoint=checkpoint,
         args_json=args_json,
         device=device,
     )
+    from rlvr.closed_loop.batched_rollout import make_initial_latent
+
+    context["make_initial_latent"] = make_initial_latent
+    return context
 
 
 def _sha256(path: Path) -> str:
