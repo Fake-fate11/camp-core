@@ -16,9 +16,9 @@ V18 starts a new public-data path from nuPlan mini to a fresh causal nuPlan
 canonical `dp_camp_v10_14d` atom order, affine score, nonnegative simplex, and
 convex CVaR/L2/master constraints remain unchanged.
 
-Local, GitHub, and AutoDL CAMP are tracked-clean at
-`db3376866181fdcd97c926c6c1d6e28e516c2fcd`. AutoDL Diffusion Planner is
-tracked-clean at the fixed commit
+The v18 bootstrap checkpoint was verified tracked-clean on local, GitHub, and
+AutoDL CAMP at `b43bae6eb559c6185e2702386c0aa7dd8167489b`. AutoDL Diffusion
+Planner is tracked-clean at the fixed commit
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no v17/v18 job is active. No
 nuPlan source, candidate corpus, training, holdout access, evaluation, claim,
 promotion, deployment, or activation is asserted by this bootstrap.
