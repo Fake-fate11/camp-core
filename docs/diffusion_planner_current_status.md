@@ -392,6 +392,33 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_full_can
 current_v18_artifact_root_sha256=c8c7aa07a59ca6a3b460e51fbba775f4c59dfc721e1b73e3303cf623692929c5
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
 
+Physical-feasibility / canonical-atom / expert-label preflight then passed at
+CAMP local/GitHub/AutoDL `6651dfae02b321cdcf6091ad66202417e5be08ff`; fixed DP
+remained clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. All 22 tests passed.
+Signal qualification leaves 354 source-complete and 13 preserved fail-closed
+records; eligible train/calibration/holdout counts are `217/66/71` scenes and
+`25/9/12` logs.
+
+The sample record converts 32 same-slot neighbor predictions and five static
+boxes to a finite combined `[8,37,80,5]` OBB source. Its real route widths vary
+from `1.1316393613815308` to `3.897575855255127` m and speed limits from
+`2.2351362705230713` to `13.410818099975586` m/s. Therefore the existing
+first-speed/median-width/current-speed-fallback scene helper and scalar atom
+bank cannot be used.
+
+The implementation must combine saved signal availability, variable-boundary
+lane corridor, and exact OBB collision; compute all atoms from per-segment
+sources; and interpolate expert labels only for the 283 eligible train+cal
+records through 8 seconds without extrapolation. Holdout labels remain sealed.
+No materialization or model call occurred, so `materialization_ready=false`.
+Test-driven implementation is the only next gate.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_preflight_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_preflight_20260711T003754CST
+current_v18_artifact_root_sha256=0032427b9950572cba0ce1c4cdfe0b9a59e93a135810120a62e8305eaf1b9b36
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_test_driven_implementation_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

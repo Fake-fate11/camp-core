@@ -1222,3 +1222,59 @@ current_v18_artifact_scope=nuplan_mini_refreshed_causal_manifest_full_candidate_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_refreshed_full_candidate_regeneration_result_review_20260711T003105CST
 current_v18_artifact_root_sha256=c8c7aa07a59ca6a3b460e51fbba775f4c59dfc721e1b73e3303cf623692929c5
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
+
+## Gate 21: Physical-Feasibility / Canonical-Atom / Expert-Label Preflight
+
+Status: passed; test-driven implementation of the exact materialization path
+is the only next gate.
+
+- Preflight artifact / root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_preflight_20260711T003754CST`
+  / `0032427b9950572cba0ce1c4cdfe0b9a59e93a135810120a62e8305eaf1b9b36`.
+  All `22` target tests passed; stderr is empty, `run.exit=0`, and the complete
+  SHA chain reverified.
+- CAMP local/GitHub/AutoDL was
+  `6651dfae02b321cdcf6091ad66202417e5be08ff`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- Candidate-output and semantic-review SHA chains reverified. The regenerated
+  signal mask leaves `354` source-complete records and `13` preserved
+  fail-closed records. Eligible train/calibration/holdout scene counts are
+  `217 / 66 / 71`; log counts remain `25 / 9 / 12`.
+- The sample calibration record converts its `32` valid same-slot neighbor
+  predictions plus `5` real static boxes into finite OBB source tensors with
+  shapes `[8,32,80,5]`, `[8,5,80,5]`, and combined `[8,37,80,5]`.
+  Neighbor width/length come from current causal history indices `6 / 7`;
+  static width/length come from the fixed ten-field schema.
+- The sample route contains `400` real points, boundary half-widths from
+  `1.1316393613815308` to `3.897575855255127` m, and actual segment speed
+  limits from `2.2351362705230713` to `13.410818099975586` m/s. These varying
+  sources cannot be replaced by one scalar.
+- Reusable low-level paths are canonical availability/matrix validation,
+  CAMP's dynamic OBB collision branch, red-stopping cost, and the frozen
+  fixed-DP red-light reward formula. No complete existing materializer is
+  directly reusable.
+- Existing `build_context_from_scene` and `compute_atom_bank_vector` paths are
+  forbidden or insufficient here: they use first/median scalar speed or lane
+  values, a current-speed desired fallback, static point distances, and a
+  zero-feasible progress fallback. Those would violate the registered
+  per-segment and fail-closed contracts.
+- The required physical mask is saved signal-source availability AND exact
+  variable-boundary lane corridor AND exact OBB collision over same-call
+  neighbors plus real static objects. Canonical atoms require per-segment
+  speed/boundary projection, OBB clearance, feasible-set progress, fixed-DP
+  red cost, lateral/red-stopping costs, and DP-prior jerk excess.
+- Prior immutable evidence covers expert timestamp brackets for all `294`
+  train+calibration records. The implementation may materialize labels only
+  for the `283` source-complete train+calibration records, in the decision
+  SE(2) frame on the 0.1-second grid through 8 seconds, with interpolation but
+  no extrapolation. Holdout label values remain sealed.
+- `materialization_ready=false` and `implementation_required=true`. This gate
+  invoked the model zero times and did not generate candidates, materialize
+  feasibility/atoms/labels, train, access holdout labels, evaluate, claim,
+  promote, deploy, activate, modify DP, or redistribute raw data.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_preflight_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_preflight_20260711T003754CST
+current_v18_artifact_root_sha256=0032427b9950572cba0ce1c4cdfe0b9a59e93a135810120a62e8305eaf1b9b36
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_test_driven_implementation_only
