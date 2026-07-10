@@ -15,6 +15,14 @@ class NuPlanCausalSourceError(ValueError):
     """Raised when nuPlan source data cannot satisfy the causal DP contract."""
 
 
+_STATIC_OBJECT_TYPES = {
+    "czone_sign": (1.0, 0.0, 0.0, 0.0),
+    "barrier": (0.0, 1.0, 0.0, 0.0),
+    "traffic_cone": (0.0, 0.0, 1.0, 0.0),
+    "generic_object": (0.0, 0.0, 0.0, 1.0),
+}
+
+
 @dataclass(frozen=True)
 class EncodedRouteLane:
     tensor: np.ndarray
@@ -239,7 +247,7 @@ def materialize_nuplan_decision(
         "route_lanes_has_speed_limit": snapshot.route_has_speed_limit,
         "line_strings": np.zeros((60, 20, 4), dtype=np.float32),
         "polygons": np.zeros((10, 40, 3), dtype=np.float32),
-        "static_objects": np.zeros((5, 10), dtype=np.float32),
+        "static_objects": batch.static_objects,
         "turn_indicators": np.zeros(31, dtype=np.int32),
         "turn_indicators_available": False,
         "traffic_light_state_available": snapshot.traffic_light_state_available,
@@ -301,6 +309,11 @@ def _load_nuplan_batch(
                 math.cos(yaw),
             ]
         current = lidar_rows[-1]
+        static_objects = _load_static_objects(
+            db,
+            token,
+            np.asarray(current[2:4], dtype=np.float64),
+        )
         current_yaw = headings[-1]
         rotation = np.array(
             [
@@ -344,9 +357,62 @@ def _load_nuplan_batch(
         batch.neigh_hist_extents = neighbor_extents[None]
         batch.neigh_types = neighbor_types[None]
         batch.agents_from_world_tf = transform[None]
+        batch.static_objects = static_objects
         return batch
     finally:
         db.close()
+
+
+def _load_static_objects(
+    db: sqlite3.Connection,
+    lidar_pc_token: bytes,
+    current_ego_xy: np.ndarray,
+) -> np.ndarray:
+    rows = db.execute(
+        """
+        SELECT b.track_token, b.x, b.y, b.yaw, b.width, b.length, c.name
+        FROM lidar_box AS b
+        JOIN track AS t ON t.token = b.track_token
+        JOIN category AS c ON c.token = t.category_token
+        WHERE b.lidar_pc_token = ?
+        """,
+        (lidar_pc_token,),
+    ).fetchall()
+    encoded = []
+    ego_xy = np.asarray(current_ego_xy, dtype=np.float64).reshape(2)
+    for track_token, x, y, yaw, width, length, category in rows:
+        name = str(category).lower()
+        if name not in _STATIC_OBJECT_TYPES:
+            continue
+        values = np.asarray([x, y, yaw, width, length], dtype=np.float64)
+        if (
+            not np.isfinite(values).all()
+            or float(width) <= 0.0
+            or float(length) <= 0.0
+        ):
+            raise NuPlanCausalSourceError(
+                "static object pose and dimensions must be finite and positive"
+            )
+        row = np.array(
+            [
+                x,
+                y,
+                math.cos(yaw),
+                math.sin(yaw),
+                width,
+                length,
+                *_STATIC_OBJECT_TYPES[name],
+            ],
+            dtype=np.float32,
+        )
+        encoded.append(
+            (float(np.linalg.norm(row[:2] - ego_xy)), bytes(track_token), row)
+        )
+    encoded.sort(key=lambda item: (item[0], item[1]))
+    result = np.zeros((5, 10), dtype=np.float32)
+    for index, (_, _, row) in enumerate(encoded[:5]):
+        result[index] = row
+    return result
 
 
 def _load_neighbor_histories(

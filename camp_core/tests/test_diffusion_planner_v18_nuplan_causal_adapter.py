@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 import os
 from pathlib import Path
+import sqlite3
 import struct
 
 import numpy as np
@@ -14,6 +15,7 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 )
 from camp_core.integrations.nuplan_causal_adapter import (
     NuPlanCausalSourceError,
+    _load_static_objects,
     causal_history,
     decode_projected_gpkg_geometry,
     derive_source_dt_s,
@@ -22,6 +24,79 @@ from camp_core.integrations.nuplan_causal_adapter import (
     materialize_nuplan_decision,
     select_mission_route_window,
 )
+
+
+def _static_object_db() -> sqlite3.Connection:
+    db = sqlite3.connect(":memory:")
+    db.executescript(
+        """
+        CREATE TABLE category(token BLOB PRIMARY KEY, name TEXT NOT NULL);
+        CREATE TABLE track(token BLOB PRIMARY KEY, category_token BLOB NOT NULL);
+        CREATE TABLE lidar_box(
+            lidar_pc_token BLOB NOT NULL,
+            track_token BLOB NOT NULL,
+            x REAL NOT NULL,
+            y REAL NOT NULL,
+            yaw REAL NOT NULL,
+            width REAL NOT NULL,
+            length REAL NOT NULL
+        );
+        """
+    )
+    names = (
+        "czone_sign",
+        "barrier",
+        "traffic_cone",
+        "generic_object",
+        "vehicle",
+    )
+    for index, name in enumerate(names):
+        category = bytes([index + 1])
+        track = bytes([index + 11])
+        db.execute("INSERT INTO category VALUES (?, ?)", (category, name))
+        db.execute("INSERT INTO track VALUES (?, ?)", (track, category))
+        db.execute(
+            "INSERT INTO lidar_box VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                b"decision",
+                track,
+                float(5 - index),
+                0.0,
+                0.1 * index,
+                1.0,
+                2.0,
+            ),
+        )
+    return db
+
+
+def test_static_objects_use_exact_fixed_dp_schema_and_ignore_dynamic() -> None:
+    db = _static_object_db()
+    try:
+        actual = _load_static_objects(db, b"decision", np.array([0.0, 0.0]))
+    finally:
+        db.close()
+
+    assert actual.shape == (5, 10)
+    assert actual.dtype == np.float32
+    assert np.count_nonzero(np.any(actual != 0.0, axis=1)) == 4
+    np.testing.assert_array_equal(
+        actual[:4, 6:], np.eye(4, dtype=np.float32)[::-1]
+    )
+    assert not np.any(actual[4])
+    assert np.all(np.diff(np.linalg.norm(actual[:4, :2], axis=1)) >= 0.0)
+
+
+def test_static_objects_fail_closed_on_nonpositive_dimensions() -> None:
+    db = _static_object_db()
+    db.execute(
+        "UPDATE lidar_box SET width = 0 WHERE track_token = ?", (bytes([11]),)
+    )
+    try:
+        with pytest.raises(NuPlanCausalSourceError, match="dimensions"):
+            _load_static_objects(db, b"decision", np.array([0.0, 0.0]))
+    finally:
+        db.close()
 
 
 def test_gpkg_geometry_is_projected_from_header_crs_to_map_crs() -> None:
@@ -79,6 +154,8 @@ def test_real_nuplan_mini_route_snapshot_is_causal_and_connected() -> None:
     assert not any("future" in key for key in materialized.dp_input)
     assert np.any(materialized.dp_input["ego_agent_past"] != 0.0)
     assert np.any(materialized.dp_input["neighbor_agents_past"] != 0.0)
+    assert np.any(materialized.dp_input["static_objects"] != 0.0)
+    assert materialized.dp_input["static_objects"].shape == (5, 10)
     assert materialized.metadata["source_dt_s"] == pytest.approx(0.05, abs=2e-4)
 
 
