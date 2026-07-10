@@ -1353,6 +1353,56 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_physical_feasibili
 current_v18_artifact_root_sha256=20dd71a8c7c03a87e9b2a633c708901f345287677e61c6ac7017d936a30a2361
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
 
+## Gate 24: Canonical Materialization Execution Preflight
+
+Status: passed after bounded harness/import remediation; execution only is next.
+
+- After the Gate 23 SHA-count fix, preflight retry 1 failed before execution
+  because the fixed-DP reward import did not add the repository's nested
+  `diffusion_planner/` package root. Its artifact/root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry_20260711T014306CST`
+  / `ae0ffcd0265a14e3e9ef4e84a1114c8005c5daf9a3e13fb52f6e0a9fd23fa6aa`.
+  TDD added only that real package root at commit
+  `a0ba0938cb5e382782d5959e4d201661bafba704`; reward math was unchanged.
+- Retry 2's parent had not ff-only synchronized before the child imported the
+  orchestrator, so the child retained the old module in memory. Its
+  artifact/root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry2_20260711T014513CST`
+  / `0ce3a18e940d5e4fd6be97223af3fdbf3bda9860388658cc97e253b9bf1f6ded`.
+  No code or data change was required; the parent now ff-only synchronizes
+  before starting the validation Python process.
+- Retry 3 then passed every functional check and `52 passed, 2 skipped`, but
+  its only stderr was the exact already classified upstream
+  `timm.models.layers` deprecation FutureWarning. The artifact/root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry3_20260711T014651CST`
+  / `cde6f9380511ce4a9d7bfa0639b608b89fb76157fcc35f17046ea49f3b304076`.
+  Retry 4 suppressed only that exact message and `FutureWarning` category;
+  all other stderr remained visible.
+- Passed retry-4 artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry4_20260711T014741CST`
+  / `8e0bf08a5259e1ec9bf41c5d580f5a69250b4f65b99167bea85e733a18c90ffb`.
+  Independent review reverified the complete SHA chain, empty stderr,
+  `run.exit=0`, and `52 passed, 2 skipped`.
+- CAMP/GitHub/AutoDL was
+  `a0ba0938cb5e382782d5959e4d201661bafba704`; fixed DP was tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The preflight verified all
+  `369` frozen source entries / `367` NPZ files and identities, split counts
+  `226/68/73`, fixed-DP red reward import/formula on CPU, live EOF, and
+  `19951403008` free bytes versus `125104061` source NPZ bytes.
+- Planned output
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_92b2c989`
+  and its `.tmp` staging root remain absent. Model calls, candidate generation
+  or mutation, corpus materialization, expert-label reads, holdout access,
+  training, evaluation, and claims remain zero. Candidate 0 remains the
+  deterministic/MAP baseline with `equivalence_verified=false`; OBB scope is
+  frozen 32+5 observable only with no closed-loop safety claim.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_execution_preflight_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_execution_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry4_20260711T014741CST
+current_v18_artifact_root_sha256=8e0bf08a5259e1ec9bf41c5d580f5a69250b4f65b99167bea85e733a18c90ffb
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
+
 ## Gate 23: Execution-Preflight SHA-Contract Failure Review and Remediation
 
 Status: passed remediation; execution preflight retry is the only next gate.
@@ -1386,3 +1436,19 @@ current_v18_artifact_scope=nuplan_mini_canonical_materialization_execution_prefl
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_candidate_root_sha_contract_remediation_20260711T014134CST
 current_v18_artifact_root_sha256=708e5f854de825132f88200a1f5e9ffe76dd120cacbe9d5bc7f5826a4e1eb718
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
+
+## Gate 25: Gate-24 EOF Placement Correction (Record Only)
+
+Status: Gate 24 remains passed; no preflight or earlier gate was rerun.
+
+The Gate 24 block was inserted before the Gate 23 remediation block because
+both historical pointers used the same preflight target. This record restores
+the approved controller contract by placing the already-reviewed Gate 24
+five-field pointer at the actual audit EOF. It changes no artifact, result,
+code, data, candidate, label, baseline, feasibility, or claim semantics.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_execution_preflight_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_execution_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry4_20260711T014741CST
+current_v18_artifact_root_sha256=8e0bf08a5259e1ec9bf41c5d580f5a69250b4f65b99167bea85e733a18c90ffb
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only

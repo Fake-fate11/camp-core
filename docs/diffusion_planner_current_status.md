@@ -457,6 +457,41 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_candidate_root_sha_contract_re
 current_v18_artifact_root_sha256=708e5f854de825132f88200a1f5e9ffe76dd120cacbe9d5bc7f5826a4e1eb718
 next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_preflight_only
 
+The next preflight retry exposed a second implementation-only path defect:
+the fixed-DP reward import added the repository root but not its nested
+`diffusion_planner/` Python package root. That retry failed before execution at
+artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry_20260711T014306CST`
+/ `ae0ffcd0265a14e3e9ef4e84a1114c8005c5daf9a3e13fb52f6e0a9fd23fa6aa`.
+TDD fixed only the import path at commit
+`a0ba0938cb5e382782d5959e4d201661bafba704`. A following retry imported the
+old in-memory module because its harness performed ff-only after import; its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry2_20260711T014513CST`
+/ `0ce3a18e940d5e4fd6be97223af3fdbf3bda9860388658cc97e253b9bf1f6ded`.
+After parent ff-only occurred before module import, every check exited zero;
+the only stderr was the already classified exact upstream timm FutureWarning,
+retained at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry3_20260711T014651CST`
+/ `cde6f9380511ce4a9d7bfa0639b608b89fb76157fcc35f17046ea49f3b304076`.
+
+The final preflight suppressed only that exact message/category and passed
+with empty stderr and `52 passed, 2 skipped`. It reverified all 369 source
+hashes / 367 candidate NPZs, fixed-DP red-reward import and formula on CPU,
+the live EOF, fixed DP, split counts, and `19951403008` free bytes versus
+`125104061` source NPZ bytes. The planned output/staging roots remain absent;
+model calls, corpus materialization, expert-label reads, and holdout access are
+zero. The passed artifact/root SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry4_20260711T014741CST`
+/ `8e0bf08a5259e1ec9bf41c5d580f5a69250b4f65b99167bea85e733a18c90ffb`.
+Materialization execution is the only next gate.
+
+current_v18_status=v18_nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_execution_preflight_passed
+current_v18_artifact_scope=nuplan_mini_physical_feasibility_canonical_atom_expert_label_materialization_execution_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_canonical_14d_materialization_execution_preflight_retry4_20260711T014741CST
+current_v18_artifact_root_sha256=8e0bf08a5259e1ec9bf41c5d580f5a69250b4f65b99167bea85e733a18c90ffb
+next_work_target=v18_nuplan_mini_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
