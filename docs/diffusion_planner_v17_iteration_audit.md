@@ -309,3 +309,126 @@ current_v17_status=v17_phase1a_observable_only_causal_materializer_boundary_pass
 current_v17_artifact_scope=causal_materializer_and_fixed_dp_loader_normalizer_contract
 current_v17_artifact=camp_core/camp_core/integrations/diffusion_planner_causal_materializer.py
 next_work_target=v17_phase1b_phase2_candidate_route_speed_and_shared_canonical_atom_handoff
+
+### Phase 2: Canonical Atom Provenance and Missing-Input Stop Review
+
+Status: fail-closed no-claim stop. This is a true stop condition, not a failed
+pilot and not an invitation to substitute constants.
+
+The shared availability gate and canonical contract table were committed at
+`7d90abdc3957d3855bea026e80c16ca6b7178c81`. It requires exact K=8,
+explicit boolean source evidence, complete route-speed coverage, current
+feasibility/static-obstacle/signal inputs, exact schema keys, and a finite
+nonnegative `[8,D]` atom matrix. An unavailable atom raises instead of becoming
+zero or inheriting the legacy `100 m/s` fallback.
+
+#### Live nuScenes Source Audit
+
+The full trainval source was inspected read-only before any corpus generation.
+Across all four nuScenes expansion-map JSON files and every
+`v1.0-trainval/*.json` metadata table, the number of files containing a JSON
+key with `speed` or `limit` was `0`. The trajdata live batch exposed no vector
+map or alternate speed-limit field. The four expansion-map SHA256 values are:
+
+- Boston Seaport:
+  `fc33712481efd763be39ce7edca0ec924d2d1fe20e1c89d52e21bf43d86e6b59`
+- Singapore Holland Village:
+  `0c9209c277686e367b06ab5bbe2547ba357f7f790365cb4927f44ae0f78266b2`
+- Singapore One North:
+  `17939122b940d7faff50fa7ff623ded7f739549a781c32dff1ecd1ac7bebca02`
+- Singapore Queenstown:
+  `c7e75f5a5643c4831aae1c99a0fdcc61e9ba3c01f98d922f0fafa34ea1062927`
+
+The combined four-file SHA listing hashes to
+`9906ad0698054e2fa7bcd55552a25ca16cd820410627faa6bbed1d4511c866c8`.
+
+Traffic-light tables exist only as static map geometry. Their union of fields
+is `from_road_block_token`, `items`, `line_token`, `pose`, `token`, and
+`traffic_light_type`; there is no current phase/state or sample timestamp.
+Record counts are 307, 119, 127, and 81 for the four maps respectively.
+NuScenes also supplies no mission route; a topology-successor corridor would
+be causal but is not an actual mission route and cannot repair the absent
+segment speed rule.
+
+The synthetic `[8, 12] m/s` values in the materializer unit fixture are contract
+tests only. They are not nuScenes observations and are not eligible inputs.
+Likewise, statutory defaults, a current-speed proxy, `100 m/s`, and zero-filled
+availability are forbidden.
+
+#### Canonical 14D Atom Ledger
+
+| # | Atom | Inputs and formula | Unit | Decision-time / nuScenes status | Test evidence |
+|---:|---|---|---|---|---|
+| 1 | `jerk_early` | fixed-DP candidate xy; `dt*sum(||jerk||^2)` over first third | `m^2/s^5` | causal after candidate generation; no GT future | component benchmark + v17 contract |
+| 2 | `jerk_late` | fixed-DP candidate xy; same cost after first third | `m^2/s^5` | causal after candidate generation; no GT future | component benchmark + v17 contract |
+| 3 | `jerk_full` | fixed-DP candidate xy; same cost over full horizon | `m^2/s^5` | causal after candidate generation; no GT future | component benchmark + v17 contract |
+| 4 | `rms_acceleration` | fixed-DP candidate xy; `sqrt(mean(||acc||^2))` | `m/s^2` | causal after candidate generation; no GT future | component benchmark + v17 contract |
+| 5 | `speed_limit_margin_0_0` | candidate speed and projected actual route-segment limit; squared hinge | `m^2/s` | **unavailable:** no nuScenes speed-limit source | component benchmark + fail-closed gate |
+| 6 | `speed_limit_margin_0_5` | same with `0.5 m/s` margin | `m^2/s` | **unavailable:** no nuScenes speed-limit source | component benchmark + fail-closed gate |
+| 7 | `speed_limit_margin_1_0` | same with `1.0 m/s` margin | `m^2/s` | **unavailable:** no nuScenes speed-limit source | component benchmark + fail-closed gate |
+| 8 | `lane_deviation` | candidate/ordered route/explicit boundaries; lateral hinge integral | `m^2*s` | conditional geometry exists; no mission route; not materialized | component benchmark + materializer geometry tests |
+| 9 | `clearance` | candidate plus same-call fixed-DP neighbor predictions and current static obstacles | `m^2*s` | causal path exists but new neighbor export was not run | clearance hinge + materializer leakage tests |
+| 10 | `progress_shortfall` | route progress vs feasible K-set reference | `m` | conditional on actual route and frozen feasibility; not materialized | selector progress test + v17 gate |
+| 11 | `planned_red_light_cost` | `max(-planned_DP_red_reward,0)` with current route phase | dimensionless DP cost | **unavailable:** no current nuScenes signal phase | v8 selector assembly + fail-closed gate |
+| 12 | `planned_lateral_acceleration_cost` | mean absolute candidate lateral acceleration | `m/s^2` | causal after candidate generation | lateral comfort tests + v17 contract |
+| 13 | `red_stopping_margin_cost` | proximity-weighted comfortable-stopping speed excess | `m^2/s` | **unavailable:** no current nuScenes signal phase | red stopping formula tests + fail-closed gate |
+| 14 | `dp_prior_jerk_excess_cost` | `max(mean_jerk_k-mean_jerk_candidate0,0)` | `m/s^3` | causal after candidate-0 Top-1 semantic verification | DP-prior comfort tests + v17 contract |
+
+All atoms require finite nonnegative values and are independent of `w`, rank,
+and the selected index. Atom 14 alone depends on candidate index 0 as the fixed
+DP-prior reference. Progress depends on the candidate set and feasibility mask,
+not on ranking. No atom permits GT future, holdout labels, or closed-loop
+outcomes as runtime inputs.
+
+#### Schema Decision
+
+| Schema | Status | First blocking input |
+|---|---|---|
+| legacy 9D | unavailable | actual route-segment speed limits for atoms 5-7 |
+| corrected 10D | unavailable | inherits 9D; actual route also unresolved |
+| corrected 12D | unavailable | inherits prefix; current signal phase also absent |
+| corrected 13D | unavailable | same; red stopping input absent |
+| canonical `dp_camp_v10_14d` | unavailable | inherits all preceding missing inputs |
+
+The user-authorized red-light exception would permit a 9D/10D causal subset if
+real route speed limits existed. They do not, so no approved schema remains.
+The unregistered candidate-only diagnostics (atoms 1-4, 12, and conditionally
+14) may be described as diagnostics but must not carry a canonical schema name,
+train weights/scales, or drive selection. No new partial schema is introduced.
+
+#### Verification and Stop Boundary
+
+- AutoDL target suite, including the real fixed-DP loader/normalizer contract:
+  `24 passed`.
+- Local target suite: `23 passed, 1 environment-gated skip`.
+- Directly related formula/assembly regressions: `6 passed`.
+- `py_compile` and diff checks: passed.
+- AutoDL SHA256:
+  - canonical contract/gate:
+    `b26024162999f0824d9eae5e5be25d826ff592229e8c9ac432a8a69d3cbe0d30`
+  - availability tests:
+    `cfb442e0aa2d88de5ef6a9abd97572b6485bc85ab679701f79f5048e261d1783`
+- Local/GitHub/AutoDL implementation HEAD:
+  `7d90abdc3957d3855bea026e80c16ca6b7178c81`; CAMP and fixed DP tracked
+  states were clean. Fixed DP remains
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+- `/root/autodl-tmp` available space: `10 GiB`; no v17 job is active.
+
+Because the minimum approved 9D prefix cannot be materialized, no projected
+corpus-size calculation, candidate generation, 1024-record pilot, split,
+training, calibration, holdout opening, independent paired evaluation, 10k
+scale-up, evidence package, runtime selector integration, claim, promotion,
+deployment, or activation was executed. There are therefore no method metrics,
+paired confidence intervals, training times, selector latencies, or DP
+generation timings to report. This preserves the one-shot holdout unopened.
+
+The only accurate claim is: the v17 causal materializer boundary and fixed-DP
+loader/normalizer compatibility passed, and the canonical atom availability
+gate correctly blocks all approved nuScenes CAMP schemas because real
+route-segment speed limits are absent (with current signal phase and mission
+route also absent). No CAMP-over-DP performance or safety claim is allowed.
+
+current_v17_status=v17_no_claim_stop_missing_causal_nuscenes_atom_inputs
+current_v17_artifact_scope=canonical_14d_provenance_availability_and_fail_closed_stop_evidence
+current_v17_artifact=camp_core/camp_core/integrations/diffusion_planner_causal_atoms.py
+next_work_target=stop_until_real_decision_time_route_speed_limit_signal_and_route_sources_are_provided

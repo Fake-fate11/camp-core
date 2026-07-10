@@ -9,23 +9,26 @@ qualifications.
 
 ## Current V17 Status
 
-The user selected the v17 causal-materializer, canonical-14D, and independent
-paired-evaluation remediation path instead of a v16 32k expansion. Phase 0 and
-the Phase 1A observable-only materializer boundary passed. Local/GitHub/AutoDL
-CAMP are tracked-clean on `main` at
-`07bf33784ae168e72f0b0a7bab5376e5012610bc`; AutoDL Diffusion Planner remains
-tracked-clean at the fixed commit
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`; `/root/autodl-tmp` has `10 GiB`
-available; and no candidate-generation, training, or evaluation job is active.
+Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
+reached a true no-claim stop before corpus generation: the full nuScenes map
+and metadata source contains no speed-limit key, so canonical atoms 5-7 have no
+actual route-segment input. Traffic-light tables contain static geometry but no
+current phase, and nuScenes supplies no mission route. Constants, statutory
+defaults, current-speed proxies, `100 m/s`, and zero-filled unavailable atoms
+are forbidden.
 
-The materializer excludes ego/neighbor future and label fields, derives the
-goal from an explicitly provenance-tagged ordered route, preserves boundary and
-route speed-limit slots, uses physical `batch.dt`, validates frames and
-availability, and fails closed on malformed inputs. AutoDL passed all 18 target
-tests including the real fixed-DP loader/normalizer contract. The actual
-nuScenes topology route builder, candidate-route speed projection, and shared
-train/runtime canonical atom assembly remain the next gate; no candidate corpus
-or performance result exists yet.
+The fail-closed canonical gate therefore blocks legacy 9D and corrected
+10D/12D/13D/14D, including `dp_camp_v10_14d`. AutoDL passed all 24 target tests,
+including the real fixed-DP loader/normalizer contract. No candidate corpus,
+training, calibration, holdout access, paired evaluation, selector integration,
+claim, promotion, deployment, or activation occurred. The holdout remains
+unopened.
+
+The verified implementation checkpoint is
+`7d90abdc3957d3855bea026e80c16ca6b7178c81`; local/GitHub/AutoDL CAMP and fixed
+DP were tracked-clean, fixed DP remains
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, `/root/autodl-tmp` has `10 GiB`
+available, and no v17 job is active.
 
 The v16 3737-row result is corrected to selector self-score sanity evidence
 only. The same CAMP score supplied both `argmin` selection and the reported
@@ -33,13 +36,15 @@ comparison metric, while proxy training labels were derived from the same atom
 family. It is not independent CAMP-over-DP Top-1 performance evidence and
 authorizes no claim, promotion, deployment, or online activation.
 
-No v17 corpus, training, evaluation, runtime integration, or DP change has been
-executed.
+The only accurate claim is that the causal input boundary and fixed-DP
+loader/normalizer compatibility passed and the availability gate correctly
+prevented invalid canonical CAMP execution. There is no CAMP-over-DP
+performance or safety result.
 
-current_v17_status=v17_phase1a_observable_only_causal_materializer_boundary_passed
-current_v17_artifact_scope=causal_materializer_and_fixed_dp_loader_normalizer_contract
-current_v17_artifact=camp_core/camp_core/integrations/diffusion_planner_causal_materializer.py
-next_work_target=v17_phase1b_phase2_candidate_route_speed_and_shared_canonical_atom_handoff
+current_v17_status=v17_no_claim_stop_missing_causal_nuscenes_atom_inputs
+current_v17_artifact_scope=canonical_14d_provenance_availability_and_fail_closed_stop_evidence
+current_v17_artifact=camp_core/camp_core/integrations/diffusion_planner_causal_atoms.py
+next_work_target=stop_until_real_decision_time_route_speed_limit_signal_and_route_sources_are_provided
 
 ## Historical V16 Closeout
 
