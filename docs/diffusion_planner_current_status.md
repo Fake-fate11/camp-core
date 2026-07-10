@@ -3,11 +3,32 @@
 Last verified: 2026-07-10, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v17_iteration_audit.md`. V14-v16 audits
+new writes is `docs/diffusion_planner_v18_iteration_audit.md`. V14-v17 audits
 are historical evidence and remain frozen except for explicit corrections or
 qualifications.
 
-## Current V17 Status
+## Current V18 Status
+
+The user formally superseded the v17 nuScenes path after its fail-closed
+no-claim stop and deletion of the old v12-v17 artifacts and nuScenes source.
+V18 starts a new public-data path from nuPlan mini to a fresh causal nuPlan
+10k corpus. The fixed Diffusion Planner boundary, K=8 candidate tensors,
+canonical `dp_camp_v10_14d` atom order, affine score, nonnegative simplex, and
+convex CVaR/L2/master constraints remain unchanged.
+
+Local, GitHub, and AutoDL CAMP are tracked-clean at
+`db3376866181fdcd97c926c6c1d6e28e516c2fcd`. AutoDL Diffusion Planner is
+tracked-clean at the fixed commit
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`; no v17/v18 job is active. No
+nuPlan source, candidate corpus, training, holdout access, evaluation, claim,
+promotion, deployment, or activation is asserted by this bootstrap.
+
+current_v18_status=v18_nuplan_mini_source_inventory_pending
+current_v18_artifact_scope=v17_supersession_and_v18_nuplan_bootstrap
+current_v18_artifact=docs/diffusion_planner_v18_iteration_audit.md
+next_work_target=v18_nuplan_mini_source_inventory_and_acquisition_preflight_only
+
+## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
 reached a true no-claim stop before corpus generation: the full nuScenes map
