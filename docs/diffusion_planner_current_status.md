@@ -748,6 +748,33 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_selector_freeze_review_gate_re
 current_v18_artifact_root_sha256=e2705016a6c490ed051f4a7f7f4f8e96df33ec01556ba997d0def7e669d33312
 next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_preflight_only
 
+The final no-label-read paired-evaluation preflight passed at CAMP/GitHub/
+AutoDL `3d720141f16d79da8814cc6326db1a81301e8254`. It jointly reverified the
+immutable candidate/canonical/equivalence roots, selector freeze
+`b09a81f94776a59ad6ac8fe93ec27f610d4b74859efa1b10f7f4d0160596a058`,
+and independent freeze review
+`de5a90b7ac5e4295b58f11f48ddbb519646130129644c7cbc8d7b559051b29ea`.
+
+Exactly 71 materialized holdout identities are label-free and ready; two
+source holdout rows remain fail-closed excluded and split overlap is zero. The
+predeclared one-shot output
+`/root/autodl-tmp/camp_dp_v18_nuplan_mini_one_shot_paired_eval_b09a81f9_3d720141`
+and its `.tmp` staging root are absent, and no evaluation job is active. Raw
+labels persisted, label reads, model calls, training/model/scale updates, and
+candidate changes all remain zero.
+
+Preflight artifact/root SHA256:
+`/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_preflight_20260711T030625CST`
+/ `a3727459ab405eab2214c3fe24e80e56c202527ba323fc32ceeba2f78932f4bf`.
+Independent review reverified its full hash chain, empty stderr, reviewed
+freeze pair, 71/2 counts, zero overlap/label reads, and absent roots.
+
+current_v18_status=v18_nuplan_mini_one_shot_holdout_paired_evaluation_preflight_passed
+current_v18_artifact_scope=nuplan_mini_reviewed_frozen_static_14d_one_shot_holdout_paired_evaluation_no_label_read_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_preflight_20260711T030625CST
+current_v18_artifact_root_sha256=a3727459ab405eab2214c3fe24e80e56c202527ba323fc32ceeba2f78932f4bf
+next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

@@ -1784,3 +1784,39 @@ current_v18_artifact_scope=nuplan_mini_static_14d_training_calibration_freeze_in
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_selector_freeze_review_gate_remediation_f64ef70d_20260711T030239CST
 current_v18_artifact_root_sha256=e2705016a6c490ed051f4a7f7f4f8e96df33ec01556ba997d0def7e669d33312
 next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_preflight_only
+
+## Gate 33: One-Shot Holdout Paired-Evaluation Final Preflight
+
+Status: passed with zero label reads; one-shot execution only is next.
+
+- CAMP local/GitHub/AutoDL is
+  `3d720141f16d79da8814cc6326db1a81301e8254`; fixed DP is tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no v18 evaluation job is active.
+- Artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_preflight_20260711T030625CST`
+  / `a3727459ab405eab2214c3fe24e80e56c202527ba323fc32ceeba2f78932f4bf`.
+  Independent review reverified every hash, empty stderr, and `run.exit=0`.
+- The gate jointly verified candidate root `92b2c989...`, canonical root
+  `7c89f73e...`, equivalence review `25f8e3f3...`, frozen selector
+  `b09a81f94776a59ad6ac8fe93ec27f610d4b74859efa1b10f7f4d0160596a058`,
+  and mandatory independent freeze review
+  `de5a90b7ac5e4295b58f11f48ddbb519646130129644c7cbc8d7b559051b29ea`.
+- Exactly 71 canonical holdout NPZs are label-free and map to unique immutable
+  source identities. Two source holdout rows remain fail-closed excluded;
+  train/calibration/holdout overlap is zero.
+- Planned one-shot output
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_one_shot_paired_eval_b09a81f9_3d720141`
+  and its `.tmp` root are absent. Label reads, raw-label persistence, model
+  calls, training/model/scale updates, candidate changes, and claims remain
+  zero.
+- The frozen execution will query each of the 71 expert futures once, persist
+  only label SHA receipts and derived candidate metrics, and cannot be rerun
+  because either final or staging root blocks entry. Candidate-0 wording,
+  native-ranking false, mini directional-only, 32+5, and no-safety boundaries
+  are unchanged.
+
+current_v18_status=v18_nuplan_mini_one_shot_holdout_paired_evaluation_preflight_passed
+current_v18_artifact_scope=nuplan_mini_reviewed_frozen_static_14d_one_shot_holdout_paired_evaluation_no_label_read_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_preflight_20260711T030625CST
+current_v18_artifact_root_sha256=a3727459ab405eab2214c3fe24e80e56c202527ba323fc32ceeba2f78932f4bf
+next_work_target=v18_nuplan_mini_one_shot_holdout_paired_evaluation_execution_only
