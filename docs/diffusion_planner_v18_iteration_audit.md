@@ -546,3 +546,44 @@ current_v18_artifact_scope=nuplan_mini_causal_adapter_test_driven_implementation
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_implementation_19d007ff_20260710T213816CST
 current_v18_artifact_root_sha256=8dda1bab94afccfbd154c339f2fe16b00c6558dd230870e09e96989c957844ad
 next_work_target=v18_nuplan_mini_causal_adapter_unused_dependency_target_cleanup_and_result_review_only
+
+## Gate 7: Unused Dependency Target Cleanup Result Review
+
+Status: passed; mini split and fixed-DP K=8 candidate-generation preflight is
+the only next gate.
+
+- Evidence artifact:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_cleanup_20260710T214851CST`.
+- The user explicitly authorized deletion of
+  `/root/autodl-tmp/camp_v18_site` while preserving
+  `/root/autodl-tmp/camp_v18_shapely`.
+- Before deletion, the target was reverified as a real direct child of
+  `/root/autodl-tmp`, not a symlink, with exactly the seven expected NumPy
+  2.5.1 / Shapely 2.1.2 pip-target entries. One literal-path recursive delete
+  removed `81275412` bytes; the target is now absent.
+- The preserved dependency target imports exactly Shapely `2.1.2` and pyproj
+  `3.7.2`. Without its explicit `PYTHONPATH`, the fixed DP Python environment
+  still resolves neither package, proving that the fixed DP venv was not
+  modified.
+- AutoDL reran the v17 causal materializer and v18 adapter suite after cleanup:
+  `22 passed in 2.24s`. CAMP tracked files and fixed DP were clean at
+  `a58e94551d489dc5d4576a9a2c0f1a03a3973f9d` and
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4` respectively.
+- The nuPlan tree contains zero `.part` and `.partial` files. The transient
+  cleanup runner was removed by exact name; unrelated untracked files and all
+  referenced evidence artifacts were preserved.
+- Result JSON / MD / artifact-root SHA256:
+  `df06983c0fb763b618dbdd312e916de003300caa1b67bc603ff3a7e6af8551c6` /
+  `3c1b3f1ce6d40351981f4f1e3781db3a253fa48c0d6e9836afc2a47ba712a022` /
+  `06e900fc79ce3872673670eeb289b57bf237725022c839d102e90a32d87042b9`.
+- `SHA256SUMS` and `ROOT_SHA256SUMS` both reverified with every entry passing;
+  stderr is empty and `run.exit=0`.
+- No candidate generation, candidate corpus, split, atom materialization,
+  training, calibration, holdout access, evaluation, claim, promotion,
+  deployment, activation, or raw-data redistribution occurred.
+
+current_v18_status=v18_nuplan_mini_causal_adapter_implementation_complete_verified
+current_v18_artifact_scope=nuplan_mini_causal_adapter_unused_dependency_target_cleanup_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_cleanup_20260710T214851CST
+current_v18_artifact_root_sha256=06e900fc79ce3872673670eeb289b57bf237725022c839d102e90a32d87042b9
+next_work_target=v18_nuplan_mini_smoke_split_and_fixed_dp_candidate_generation_preflight_only

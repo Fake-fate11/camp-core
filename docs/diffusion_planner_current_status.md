@@ -94,17 +94,19 @@ optional `pyproj>=3.6`; it still does not install the full nuPlan devkit stack.
 
 No candidate generation, candidate corpus, split, atom materialization,
 training, holdout access, evaluation, claim, promotion, deployment, or
-activation has occurred. One unused failed dependency target remains at
-`/root/autodl-tmp/camp_v18_site`; it contains a pip-installed NumPy incompatible
-with the fixed environment, was never placed on `PYTHONPATH`, and requires
-explicit recursive-cleanup authorization before removal. The active isolated
-dependency directory is `/root/autodl-tmp/camp_v18_shapely`.
+activation has occurred. The user authorized removal of the unused failed
+dependency target `/root/autodl-tmp/camp_v18_site`; exact-path cleanup removed
+`81275412` bytes. The active isolated dependency directory
+`/root/autodl-tmp/camp_v18_shapely` was preserved and reverified with Shapely
+2.1.2 and pyproj 3.7.2, while the fixed DP venv remained unchanged. AutoDL
+again passed `22` focused tests, and the nuPlan tree contains zero `.part` or
+`.partial` files.
 
-current_v18_status=v18_nuplan_mini_causal_adapter_implementation_passed_cleanup_pending
-current_v18_artifact_scope=nuplan_mini_causal_adapter_test_driven_implementation_and_real_decision_materialization
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_implementation_19d007ff_20260710T213816CST
-current_v18_artifact_root_sha256=8dda1bab94afccfbd154c339f2fe16b00c6558dd230870e09e96989c957844ad
-next_work_target=v18_nuplan_mini_causal_adapter_unused_dependency_target_cleanup_and_result_review_only
+current_v18_status=v18_nuplan_mini_causal_adapter_implementation_complete_verified
+current_v18_artifact_scope=nuplan_mini_causal_adapter_unused_dependency_target_cleanup_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_causal_adapter_cleanup_20260710T214851CST
+current_v18_artifact_root_sha256=06e900fc79ce3872673670eeb289b57bf237725022c839d102e90a32d87042b9
+next_work_target=v18_nuplan_mini_smoke_split_and_fixed_dp_candidate_generation_preflight_only
 
 ## Historical V17 Closeout
 
