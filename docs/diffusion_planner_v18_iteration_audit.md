@@ -370,3 +370,39 @@ current_v18_artifact_scope=nuplan_mini_official_archives_official_hierarchy_extr
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
 current_v18_launch_root_sha256=ab340899aab8f5714559328499e7e11926160291d2815501f4ace2bf05d0e42f
 next_work_target=stop_while_v18_nuplan_mini_official_archives_extraction_job_running_monitor_only
+
+### Gate 4 Extraction Result Review
+
+Status: passed; causal-adapter source-contract inventory/test preflight is the
+only next gate.
+
+- Extraction completed at `2026-07-10T20:43:14+08:00` with `run.exit=0` and
+  empty stderr.
+- Dataset root: `/root/autodl-tmp/nuplan/dataset`.
+- Extracted files / unique bytes / map files / mini SQLite databases:
+  `72 / 15777787771 / 7 / 64`.
+- All 64 SQLite headers and schemas were readable; every database exposed
+  exactly 12 tables.
+- Extracted-file SHA256 verification: `72 / 72` passed.
+- Dataset manifest root SHA256:
+  `43d09389dafd53f8486e9305fca005dede2ae8ba5aa97d908953a7084c435c72`.
+- Result JSON / MD SHA256:
+  `1d24d652a774fc3df24984a90f5c5fd89b507de1985433805a7f30ca5279d4e2` /
+  `8552c6d7fea739a7d7a128a0a4cb79e5ac3c3fdd2050fcdb6a108e0b63ccb768`.
+- Final extraction artifact root SHA256:
+  `25edf589f115bcda2a24937d5b64d8ea317b5ee61d75a0429b506e58a1806dbd`.
+- Available data-disk bytes after extraction: `19744247808`.
+- CAMP HEAD / origin / tracked changes at result review:
+  `d8f29b37fc16c472c203c80d4b0680d429b5569b` /
+  `d8f29b37fc16c472c203c80d4b0680d429b5569b` / `0`.
+- Fixed DP HEAD / tracked changes:
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4 / 0`.
+- No adapter implementation, candidate generation, atom materialization,
+  split, training, evaluation, claim, promotion, deployment, activation, or
+  raw-data redistribution occurred in this result review.
+
+current_v18_status=v18_nuplan_mini_official_archives_extraction_complete_verified
+current_v18_artifact_scope=nuplan_mini_official_archives_extraction_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
+current_v18_artifact_root_sha256=25edf589f115bcda2a24937d5b64d8ea317b5ee61d75a0429b506e58a1806dbd
+next_work_target=v18_nuplan_mini_causal_adapter_source_contract_inventory_and_test_preflight_only

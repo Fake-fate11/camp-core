@@ -61,23 +61,23 @@ verified exact sizes `971557640 / 8550100030`, archive SHA256, and both ZIPs.
 The download directory now contains exactly the two final archives and zero
 partial files.
 
-One official-hierarchy extraction job is now running under an exclusive lock.
-It extracts the identical-license archives into
+The official-hierarchy extraction completed under an exclusive lock into
 `/root/autodl-tmp/nuplan/dataset`, where the ZIP roots naturally provide
 `maps/` and `data/cache/mini/`. The preflight proved safe relative paths,
 `15777787771` unique uncompressed bytes versus `35522355200` available bytes,
-and expected counts of 7 map files plus 64 mini SQLite databases. The first
-observation found PID `450283` alive with approximately `1182928415` dataset
-bytes written and no `run.exit`.
+and expected counts of 7 map files plus 64 mini SQLite databases. Result review
+verified `run.exit=0`, all 72 extracted-file SHA256 entries, the dataset
+manifest root, all SQLite headers and schemas, and a consistent 12-table schema
+in every mini database.
 
-No extraction, adapter, candidate corpus, split, training, holdout access,
-evaluation, claim, promotion, deployment, or activation has occurred.
+No adapter, candidate corpus, split, training, holdout access, evaluation,
+claim, promotion, deployment, or activation has occurred.
 
-current_v18_status=v18_nuplan_mini_official_archives_extraction_running
-current_v18_artifact_scope=nuplan_mini_official_archives_official_hierarchy_extraction
+current_v18_status=v18_nuplan_mini_official_archives_extraction_complete_verified
+current_v18_artifact_scope=nuplan_mini_official_archives_extraction_result_review
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_official_archives_extraction_29eee9c9_20260710T204004CST
-current_v18_launch_root_sha256=ab340899aab8f5714559328499e7e11926160291d2815501f4ace2bf05d0e42f
-next_work_target=stop_while_v18_nuplan_mini_official_archives_extraction_job_running_monitor_only
+current_v18_artifact_root_sha256=25edf589f115bcda2a24937d5b64d8ea317b5ee61d75a0429b506e58a1806dbd
+next_work_target=v18_nuplan_mini_causal_adapter_source_contract_inventory_and_test_preflight_only
 
 ## Historical V17 Closeout
 
