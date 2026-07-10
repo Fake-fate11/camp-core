@@ -509,13 +509,15 @@ def _materialization_output_fixture(tmp_path, module):
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in source_rows),
         encoding="utf-8",
     )
-    (candidate_root / "records.jsonl").write_text(
+    records_path = candidate_root / "records.jsonl"
+    records_path.write_text(
         "".join(
             json.dumps(row, sort_keys=True) + "\n" for row in candidate_rows
         ),
         encoding="utf-8",
     )
-    (candidate_root / "summary.json").write_text(
+    summary_path = candidate_root / "summary.json"
+    summary_path.write_text(
         json.dumps(
             {
                 "manifest": str(manifest),
@@ -529,6 +531,12 @@ def _materialization_output_fixture(tmp_path, module):
         )
         + "\n",
         encoding="utf-8",
+    )
+    sha_lines.extend(
+        [
+            f"{module._sha256(records_path)}  ./records.jsonl",
+            f"{module._sha256(summary_path)}  ./summary.json",
+        ]
     )
     (candidate_root / "SHA256SUMS").write_text(
         "\n".join(sha_lines) + "\n", encoding="utf-8"

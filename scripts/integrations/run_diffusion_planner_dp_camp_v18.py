@@ -363,11 +363,22 @@ def _candidate_source_snapshot(
         raise ValueError("candidate root SHA256 mismatch")
     entries = _read_sha256sums(sums)
     _verify_hash_entries(candidate_root, entries)
+    npz_entries = {
+        relative: digest
+        for relative, digest in entries.items()
+        if relative.endswith(".npz")
+    }
+    metadata_entries = set(entries) - set(npz_entries)
+    if metadata_entries != {"records.jsonl", "summary.json"}:
+        raise ValueError(
+            "candidate SHA256SUMS must contain NPZ files plus records/summary"
+        )
     snapshot: dict[str, Any] = {
         "candidate_root_sha256": actual_root,
         "candidate_records_sha256": _sha256(candidate_root / "records.jsonl"),
         "candidate_summary_sha256": _sha256(candidate_root / "summary.json"),
-        "candidate_npz_hashes": dict(entries),
+        "candidate_source_hashes": dict(entries),
+        "candidate_npz_hashes": npz_entries,
     }
     if manifest is not None:
         snapshot["manifest_sha256"] = _sha256(manifest)
