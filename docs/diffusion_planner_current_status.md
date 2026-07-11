@@ -3,9 +3,40 @@
 Last verified: 2026-07-11, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v18_iteration_audit.md`. V14-v17 audits
-are historical evidence and remain frozen except for explicit corrections or
+new writes is `docs/diffusion_planner_v19_iteration_audit.md`. V18 and earlier
+audits are historical evidence and remain frozen except for explicit
 qualifications.
+
+## Current V19 Status
+
+Reader contract: this named section is the only v19 pointer source in this
+file. The actual file EOF intentionally remains historical v14 content, so a
+controller must never read the last generic `next_work_target` from the whole
+file. The EOF of `docs/diffusion_planner_v19_iteration_audit.md` is the sole
+current-gate authority. The latest tuple in this section must match that EOF
+exactly.
+
+V19 continues from the v18 terminal user-decision boundary with safety as the
+primary scientific objective. The claim taxonomy is now explicitly split:
+
+- `performance_claim=no_claim`
+- `bounded_offline_safety_proxy_improvement=supported`
+- `closed_loop_safety_claim=not_yet_supported`
+- `broad_CAMP_over_native_DP_Top1_claim=not_supported`
+
+Candidate 0 remains the fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; it is not native Top-1 provenance. The next gate is
+a read-only audit of fixed-DP native/default selection provenance and the gap
+between the frozen 32+5 bounded proxy and matched closed-loop SafetyCost v1 /
+official nuPlan metrics. No v18 holdout reopening, DP modification, simulator
+execution, promotion, deployment, activation, or broad safety claim is
+authorized by this pointer.
+
+current_v19_status=v19_safety_first_claim_taxonomy_and_controller_bootstrap_passed
+current_v19_artifact_scope=v19_safety_first_design_plan_claim_taxonomy_and_controller_bootstrap
+current_v19_artifact=docs/superpowers/specs/2026-07-11-v19-safety-first-evidence-extension-design.md
+current_v19_artifact_root_sha256=c4ec98ea736d1cc2fcf8d3394d56f037f67f92899c83ecea79da5288037cddbe
+next_work_target=v19_native_baseline_provenance_and_safety_evidence_gap_read_only_audit_only
 
 ## Current V18 Status
 
