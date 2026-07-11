@@ -54,3 +54,32 @@ current_v19_artifact_scope=v19_safety_first_design_plan_claim_taxonomy_and_contr
 current_v19_artifact=docs/superpowers/specs/2026-07-11-v19-safety-first-evidence-extension-design.md
 current_v19_artifact_root_sha256=c4ec98ea736d1cc2fcf8d3394d56f037f67f92899c83ecea79da5288037cddbe
 next_work_target=v19_native_baseline_provenance_and_safety_evidence_gap_read_only_audit_only
+
+## Safety-first Controller Bootstrap AutoDL Verification
+
+The bootstrap gate was independently reproduced on AutoDL after an ff-only
+update to CAMP `35226fcfff6ab3aa5c32764e50a7c1ef1006ec59`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The immutable verification artifact is:
+
+`/root/autodl-tmp/camp_dp_v19_safety_first_controller_bootstrap_35226fcf_20260711T225917CST`
+
+Its root SHA256 is
+`d323414e252f1c122865a5ead7e0b7c5b94dff5c70b4671dc95ca11e1ecc3d3b`.
+`py_compile`, the complete v18/v19 orchestrator suites, and `git diff --check`
+exited `0`; pytest reported `28 passed in 2.51s` with empty stderr. The artifact
+contains `HEADS`, `COMMAND`, stdout/stderr, exit code, JSON/Markdown claim
+qualification, and `SHA256SUMS`. No simulator ran and no holdout label was
+opened.
+
+The local full v18 suite could not import torch because the machine-local
+Anaconda environment aborts on duplicate Intel OpenMP runtimes. The unaffected
+local pointer/status subset passed `5 passed`; the complete suite passed in the
+fixed AutoDL environment above. No unsafe OpenMP bypass was used.
+
+current_v19_status=v19_safety_first_claim_taxonomy_and_controller_bootstrap_passed
+current_v19_artifact_scope=v19_safety_first_claim_taxonomy_controller_bootstrap_and_autodl_verification
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_safety_first_controller_bootstrap_35226fcf_20260711T225917CST
+current_v19_artifact_root_sha256=d323414e252f1c122865a5ead7e0b7c5b94dff5c70b4671dc95ca11e1ecc3d3b
+next_work_target=v19_native_baseline_provenance_and_safety_evidence_gap_read_only_audit_only
