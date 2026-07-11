@@ -2613,3 +2613,46 @@ current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_t
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_result_review_retry4_64279091_20260711T212844CST
 current_v18_artifact_root_sha256=098d8af6511674b6ff00bb27d6927a1b30a26b61747d824f7074844a5580dace
 next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_preflight_only
+
+## Causal-10k One-shot Holdout Paired-evaluation Preflight
+
+At CAMP local/GitHub/AutoDL
+`3d24cf28e9df1591f3c0aa0e2d63c2cd7e238dbd`, with fixed DP tracked-clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the final no-label-read paired
+evaluation preflight and independent result review passed.
+
+- The immutable training result-review compatibility receipt is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_freeze_review_receipt_3d24cf28_20260711T213832CST`
+  / `1567d99c0958ca65586e4a4d97624e9dd15ea39e0f84c54e8dc6d5d4058e6d30`.
+  It fully reverified freeze `afec0dd1...` and source review `098d8af6...`
+  and only supplies the already-frozen nested review receipt required by the
+  evaluator. Label/model/optimizer/training calls were zero.
+- Preflight artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_3d24cf28_20260711T213911CST`
+  / `8689abd00561847fedd558b5f0748f5db0132bac3ab9a80b6becc47f91abcf1a`.
+  It exited `0` with empty stderr in `10.835399389s`. All 1,931 materialized
+  holdout records were label-free; 69 source-holdout rows remained excluded,
+  log/scene overlap was zero, and the planned output
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_eval_afec0dd1_3d24cf28`
+  plus `.tmp` was absent.
+- Independent read-only result-review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_result_review_3d24cf28_20260711T214005CST`
+  / `6403ba39ec0536aaf7752b8dfb7409792bc8bdf54015249849b1cbc6929cf41f`.
+  It exited `0` with empty stderr in `3.546455383s`, reopened all 1,931
+  holdout NPZs with label presence zero, reverified the receipt/preflight SHA
+  chains, output absence, split contract, CAMP/DP heads, no mutation, and
+  `16231821312` free bytes above the 10 GiB floor. Paired-evaluation calls and
+  holdout-label reads remained zero.
+
+All models, scales, selectors, metrics, CI/bootstrap settings, claim criteria,
+and the bounded-safety protocol remain frozen. Candidate 0 remains the proven
+fixed-DP deterministic/MAP baseline with `native_ranked_top1=false`; exactness
+remains limited to the frozen 32+5 observable source. No performance,
+complete-scene, closed-loop, or safety claim is made by this gate. The only
+next action is the already authorized one-shot 1,931-label paired evaluation.
+
+current_v18_status=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_reviewed_frozen_selector_family_one_shot_holdout_paired_evaluation_no_label_read_preflight_and_independent_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_result_review_3d24cf28_20260711T214005CST
+current_v18_artifact_root_sha256=6403ba39ec0536aaf7752b8dfb7409792bc8bdf54015249849b1cbc6929cf41f
+next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_execution_only

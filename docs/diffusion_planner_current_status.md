@@ -1219,6 +1219,37 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_train
 current_v18_artifact_root_sha256=098d8af6511674b6ff00bb27d6927a1b30a26b61747d824f7074844a5580dace
 next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_preflight_only
 
+The final causal-10k one-shot paired-evaluation no-label-read preflight then
+passed at CAMP local/GitHub/AutoDL
+`3d24cf28e9df1591f3c0aa0e2d63c2cd7e238dbd`; fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. A compatibility receipt/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_freeze_review_receipt_3d24cf28_20260711T213832CST`
+/ `1567d99c0958ca65586e4a4d97624e9dd15ea39e0f84c54e8dc6d5d4058e6d30`
+reverified the immutable training freeze/review SHA chains without modifying
+them or calling labels/models/optimizers.
+
+Preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_3d24cf28_20260711T213911CST`
+/ `8689abd00561847fedd558b5f0748f5db0132bac3ab9a80b6becc47f91abcf1a`.
+Independent review artifact/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_result_review_3d24cf28_20260711T214005CST`
+/ `6403ba39ec0536aaf7752b8dfb7409792bc8bdf54015249849b1cbc6929cf41f`.
+All 1,931 materialized holdout NPZs remained label-free, 69 source rows stayed
+excluded, split overlap was zero, free bytes were `16231821312`, and the
+planned one-shot output/staging roots were absent. Holdout-label and paired-
+evaluation calls remained zero.
+
+All selectors/protocols/metrics/CI/claim criteria remain frozen. Candidate 0
+is still only the proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; exactness remains within the frozen 32+5
+observable source and no performance/closed-loop/safety claim is made.
+
+current_v18_status=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_reviewed_frozen_selector_family_one_shot_holdout_paired_evaluation_no_label_read_preflight_and_independent_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_result_review_3d24cf28_20260711T214005CST
+current_v18_artifact_root_sha256=6403ba39ec0536aaf7752b8dfb7409792bc8bdf54015249849b1cbc6929cf41f
+next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
