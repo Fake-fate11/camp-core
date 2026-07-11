@@ -797,7 +797,7 @@ def test_checked_in_current_v18_pointer_matches_v18_audit_eof() -> None:
         module.ROOT / "docs" / "diffusion_planner_v18_iteration_audit.md",
     )
 
-    assert pointer["next_work_target"].startswith("v18_nuplan_mini_")
+    assert "v18_nuplan_" in pointer["next_work_target"]
 
 
 def test_candidate_zero_metadata_is_deterministic_map_not_native_ranking() -> None:

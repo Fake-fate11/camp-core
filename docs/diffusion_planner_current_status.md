@@ -826,6 +826,39 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evalua
 current_v18_artifact_root_sha256=92a40093ca9baa7b15df4bfab7dfc1dd5166c2f61969703ad0d62d225f4ee2f1
 next_work_target=v18_nuplan_mini_user_decision_required_after_paired_evaluation_result_review_before_any_claim_promotion_deployment_activation_or_next_stage
 
+The user then approved one independent bounded offline safety score. Its design
+and implementation were frozen before calculation, and it never consumes CAMP
+weights or expert labels. At CAMP/GitHub/AutoDL
+`14e2d637a8f3b3fc5e2e7b78b5161784595bacbe`, AutoDL evaluated and independently
+reviewed all 71 immutable mini holdout selections against candidate 0, the
+fixed-DP deterministic/MAP baseline. CAMP/baseline mean
+`camp_dp_bounded_offline_safety_score_v1` values are
+`70.95353279308563 / 66.46842980722468`, with paired mean CAMP-minus-baseline
+`+4.485102985860949` and better/tie/worse `29/4/38`. The log-cluster CI95
+`[-0.07595822706974112, 9.381716511565719]` crosses zero; the scene-cluster
+CI95 is `[0.41603823107015686, 9.407383252056999]`.
+
+CAMP/baseline physical-feasibility rates are `1.0 / 0.9295774647887324`,
+collision-free rates `1.0 / 0.9577464788732394`, and lane-compliance rates
+`1.0 / 0.971830985915493`. Both red-light-compliance rates are `1.0`, both
+comfort-pass rates are `0.028169014084507043`, and both making-progress rates
+are `1.0`. The score remains exact only inside the frozen 32-dynamic plus
+5-static observable source. It is post-hoc descriptive mini smoke evidence;
+there is no closed-loop or real-world safety claim.
+
+The result review made zero label queries and reverified every upstream hash,
+record, component, aggregate, and 10,000-replicate cluster interval. Protocol
+SHA256 `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`
+freezes the same formula and causal-10k pass criteria before any future 10k
+training or holdout access. No causal-10k generation or training is authorized
+by this record.
+
+current_v18_status=v18_nuplan_mini_bounded_offline_safety_score_result_review_passed_causal_10k_protocol_preregistered_no_claim
+current_v18_artifact_scope=nuplan_mini_bounded_offline_safety_score_v1_result_review_and_causal_10k_protocol_preregistration
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_result_review_14e2d637a8_20260711T110313CST
+current_v18_artifact_root_sha256=047dd5090407a9c5c28f5313c822e88c17104ba485e2986b2bc721ed75e744c3
+next_work_target=user_decision_required_before_v18_nuplan_causal_10k_source_generation_training_evaluation_or_closed_loop_safety_stage
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

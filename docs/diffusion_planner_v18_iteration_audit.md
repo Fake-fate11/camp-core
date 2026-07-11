@@ -1876,3 +1876,67 @@ current_v18_artifact_scope=nuplan_mini_reviewed_frozen_static_14d_one_shot_paire
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_one_shot_holdout_paired_evaluation_result_review_20260711T031321CST
 current_v18_artifact_root_sha256=92a40093ca9baa7b15df4bfab7dfc1dd5166c2f61969703ad0d62d225f4ee2f1
 next_work_target=v18_nuplan_mini_user_decision_required_after_paired_evaluation_result_review_before_any_claim_promotion_deployment_activation_or_next_stage
+
+## Gate 35: Bounded Offline Safety Evaluation, Review, and 10k Protocol Freeze
+
+Status: passed as post-hoc descriptive mini evidence; causal-10k protocol is
+preregistered and a new user decision is required before any 10k execution.
+
+- The approved design is
+  `docs/superpowers/specs/2026-07-11-v18-bounded-offline-safety-score-design.md`.
+  The implementation adds one read-only evaluate/review runner and one focused
+  test file. It reuses the immutable v18 loader, SHA verifier, and clustered
+  bootstrap. Learned CAMP weights are not an evaluator input.
+- Evaluation ran at CAMP/GitHub/AutoDL
+  `14e2d637a8f3b3fc5e2e7b78b5161784595bacbe`; fixed DP remained tracked-clean
+  at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Candidate, canonical, and paired
+  roots remained `92b2c989187d58387e3310579cc9d3ea9695b2b369684d807020c98f6885b028`,
+  `7c89f73e2b26308a42fbd453fff7e0ece4c7d0b49e219a9c56f99bdb2a65d1cc`,
+  and `6ca6bdd70497173356277ce4cb6ed5ba23420a99c381c68f44c5e446c3ffd366`.
+- Evaluation artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_evaluation_14e2d637a8_20260711T110239CST`
+  / `c8cf0f5436bd8e238acf4bf29f8acf84e20723b7193cd6cb880dddeff9d9b794`.
+  Its immutable score output/root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_score_14e2d637a8_20260711T110239CST`
+  / `29344e4d27d8e431c74df63a6587cdc25dad25a25d20fb2850bb2c972a75d049`.
+  Exit was zero, stderr empty, wall time `1.255990s`, and all nine artifact plus
+  three output SHA entries passed.
+- Review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_result_review_14e2d637a8_20260711T110313CST`
+  / `047dd5090407a9c5c28f5313c822e88c17104ba485e2986b2bc721ed75e744c3`.
+  Its review output/root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_review_14e2d637a8_20260711T110313CST`
+  / `c9723b3e24779f95dca2f688f6f1c289b3ad4d01a4bfcdaf53427683c0482efc`.
+  It independently recomputed all 71 records, components, aggregates, and
+  cluster intervals in `1.276000s`; exit was zero and stderr empty.
+- CAMP/baseline mean bounded offline scores are
+  `70.95353279308563 / 66.46842980722468`; paired mean CAMP-minus-baseline is
+  `+4.485102985860949`; better/tie/worse is `29/4/38`. Log-cluster CI95 is
+  `[-0.07595822706974112, 9.381716511565719]`; scene-cluster CI95 is
+  `[0.41603823107015686, 9.407383252056999]`. The log interval crosses zero and
+  better does not exceed worse, so the preregistered future 10k claim gate
+  would not pass on mini.
+- CAMP/baseline component rates are: collision-free
+  `1.0 / 0.9577464788732394`, lane-compliant `1.0 / 0.971830985915493`,
+  physical-feasible `1.0 / 0.9295774647887324`, red-compliant `1.0 / 1.0`,
+  making-progress `1.0 / 1.0`, and comfort-pass
+  `0.028169014084507043 / 0.028169014084507043`. Mean minimum OBB clearance is
+  `1.4640747403813987 / 1.5160045691442083m`; mean speed score is
+  `0.9972206271566082 / 0.9983483579219914`; mean progress score is
+  `0.9734440285591844 / 0.9579868940236971`.
+- Protocol SHA256 is
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`.
+  It freezes the hard multipliers, supported nuPlan-style soft weights,
+  thresholds, score tolerance, seed 3410, 10,000 log/scene bootstrap
+  replicates, and causal-10k criteria before any future 10k training or
+  holdout access.
+- Label reads, DB queries, model calls, candidate generation/mutation,
+  training, and selector updates were all zero. This is post-hoc descriptive
+  bounded-offline smoke evidence with no closed-loop or real-world safety claim,
+  no performance/CAMP-over-DP claim, and no promotion/deployment/activation.
+
+current_v18_status=v18_nuplan_mini_bounded_offline_safety_score_result_review_passed_causal_10k_protocol_preregistered_no_claim
+current_v18_artifact_scope=nuplan_mini_bounded_offline_safety_score_v1_result_review_and_causal_10k_protocol_preregistration
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_result_review_14e2d637a8_20260711T110313CST
+current_v18_artifact_root_sha256=047dd5090407a9c5c28f5313c822e88c17104ba485e2986b2bc721ed75e744c3
+next_work_target=user_decision_required_before_v18_nuplan_causal_10k_source_generation_training_evaluation_or_closed_loop_safety_stage

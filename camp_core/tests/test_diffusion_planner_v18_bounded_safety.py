@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -324,3 +325,55 @@ def test_review_cli_requires_source_safety_root(tmp_path) -> None:
     assert evaluate.mode == "evaluate"
     with pytest.raises(SystemExit):
         module.parse_args(["--mode", "review", *common])
+
+
+def _latest_value(text: str, key: str) -> str:
+    prefix = f"{key}="
+    values = [line[len(prefix) :] for line in text.splitlines() if line.startswith(prefix)]
+    if not values:
+        raise AssertionError(f"missing {key}")
+    return values[-1]
+
+
+def test_v18_docs_record_reviewed_bounded_safety_and_preregistered_10k() -> None:
+    root = Path(__file__).resolve().parents[2]
+    current = (root / "docs/diffusion_planner_current_status.md").read_text(
+        encoding="utf-8"
+    )
+    audit = (root / "docs/diffusion_planner_v18_iteration_audit.md").read_text(
+        encoding="utf-8"
+    )
+    expected = {
+        "current_v18_status": (
+            "v18_nuplan_mini_bounded_offline_safety_score_result_review_passed_"
+            "causal_10k_protocol_preregistered_no_claim"
+        ),
+        "current_v18_artifact_scope": (
+            "nuplan_mini_bounded_offline_safety_score_v1_result_review_and_"
+            "causal_10k_protocol_preregistration"
+        ),
+        "current_v18_artifact": (
+            "/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_"
+            "result_review_14e2d637a8_20260711T110313CST"
+        ),
+        "current_v18_artifact_root_sha256": (
+            "047dd5090407a9c5c28f5313c822e88c17104ba485e2986b2bc721ed75e744c3"
+        ),
+        "next_work_target": (
+            "user_decision_required_before_v18_nuplan_causal_10k_source_"
+            "generation_training_evaluation_or_closed_loop_safety_stage"
+        ),
+    }
+    for key, value in expected.items():
+        assert _latest_value(current[: current.index("## Historical V17 Closeout")], key) == value
+        assert _latest_value(audit, key) == value
+    for evidence in (
+        "70.95353279308563",
+        "66.46842980722468",
+        "4.485102985860949",
+        "29/4/38",
+        "54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b",
+        "post-hoc descriptive",
+        "no closed-loop or real-world safety claim",
+    ):
+        assert evidence in audit
