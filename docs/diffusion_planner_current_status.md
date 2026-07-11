@@ -56,11 +56,19 @@ latency freeze, conda availability, disk gate, and no-install/no-promotion
 boundaries. The next gate is dependency/source/disk dry-run preflight only; it
 cannot create the environment or run a simulator.
 
-current_v19_status=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_passed
-current_v19_artifact_scope=official_nuplan_v12_process_isolated_capability_plan_static_review_and_failure_harness_audit
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231818CST
-current_v19_artifact_root_sha256=9ed9c42deef58fd8dca3cc90a63af9b8bbcb53df63871c84da49d48b3e75d0da
-next_work_target=v19_nuplan_v12_isolated_dependency_and_disk_preflight_only
+The dependency/disk preflight has passed. The official v1.2 tag and metadata
+were captured, a command-local conda-forge Python 3.9 dry-run succeeded, and a
+5,000,000,000-byte peak reserve leaves `11221544448` projected free bytes,
+above the 10 GiB floor. A failed staging root preserves the malformed machine
+TUNA channel cause; global conda config was not changed. No environment/source
+was materialized and no simulator ran. The next gate may create only the
+isolated env and fixed-tag source, with the disk floor rechecked throughout.
+
+current_v19_status=v19_nuplan_v12_isolated_dependency_and_disk_preflight_passed
+current_v19_artifact_scope=official_nuplan_v12_dependency_metadata_conda_dry_run_and_10gib_disk_preflight
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_disk_preflight_bfca4fa3_20260711T232437CST
+current_v19_artifact_root_sha256=0a61e0f050a97f91aa59e2697ed125fe1db77ec1d9a92755c1260beb2c973a27
+next_work_target=v19_nuplan_v12_isolated_dependency_and_source_materialization_only
 
 ## Current V18 Status
 

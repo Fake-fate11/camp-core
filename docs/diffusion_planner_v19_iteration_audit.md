@@ -235,3 +235,41 @@ current_v19_artifact_scope=official_nuplan_v12_process_isolated_capability_plan_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231818CST
 current_v19_artifact_root_sha256=9ed9c42deef58fd8dca3cc90a63af9b8bbcb53df63871c84da49d48b3e75d0da
 next_work_target=v19_nuplan_v12_isolated_dependency_and_disk_preflight_only
+
+## nuPlan v1.2 Isolated Dependency and Disk Preflight
+
+The dependency/source/disk preflight passed on AutoDL at CAMP
+`bfca4fa391e52be830b1bd7f95ee93074bdbbc10`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Successful artifact/root SHA256:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_disk_preflight_bfca4fa3_20260711T232437CST`
+- `0a61e0f050a97f91aa59e2697ed125fe1db77ec1d9a92755c1260beb2c973a27`
+
+The official tag resolved to
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`. Official environment,
+requirements, lock, torch-requirements, torch-lock, and license metadata were
+captured. A fresh-prefix Python 3.9/pip 21.2.4 conda dry-run succeeded with a
+base download estimate of `38365428` bytes.
+
+Free bytes were `16221544448`. The frozen environment/source/failed-plus-
+successful-smoke reserve is `5000000000` bytes, leaving projected free bytes
+`11221544448`, above the `10737418240`-byte 10 GiB hard floor.
+
+The first retained preflight staging root failed only because machine-level
+conda configuration pointed at a malformed TUNA `pkgs/free/noarch` repodata
+source:
+
+`/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_disk_preflight_bfca4fa3_20260711T232029CST.tmp`
+
+The successful retry used command-local `--override-channels -c conda-forge`;
+it did not modify global conda configuration. The isolated environment and
+devkit roots remain absent. No package was installed, source cloned, simulator
+run, or holdout label read.
+
+current_v19_status=v19_nuplan_v12_isolated_dependency_and_disk_preflight_passed
+current_v19_artifact_scope=official_nuplan_v12_dependency_metadata_conda_dry_run_and_10gib_disk_preflight
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_disk_preflight_bfca4fa3_20260711T232437CST
+current_v19_artifact_root_sha256=0a61e0f050a97f91aa59e2697ed125fe1db77ec1d9a92755c1260beb2c973a27
+next_work_target=v19_nuplan_v12_isolated_dependency_and_source_materialization_only
