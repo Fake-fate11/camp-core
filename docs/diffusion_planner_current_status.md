@@ -853,11 +853,29 @@ freezes the same formula and causal-10k pass criteria before any future 10k
 training or holdout access. No causal-10k generation or training is authorized
 by this record.
 
-current_v18_status=v18_nuplan_mini_bounded_offline_safety_score_result_review_passed_causal_10k_protocol_preregistered_no_claim
-current_v18_artifact_scope=nuplan_mini_bounded_offline_safety_score_v1_result_review_and_causal_10k_protocol_preregistration
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_result_review_14e2d637a8_20260711T110313CST
-current_v18_artifact_root_sha256=047dd5090407a9c5c28f5313c822e88c17104ba485e2986b2bc721ed75e744c3
-next_work_target=user_decision_required_before_v18_nuplan_causal_10k_source_generation_training_evaluation_or_closed_loop_safety_stage
+The user then resumed the persistent v18 goal and authorized causal-10k source
+selection. At CAMP/GitHub/AutoDL
+`c7f3e7f3ccf095c7853da1716bc82df48d2082f7`, the label-free selection inherited
+the frozen mini whole-log split, excluded all 367 parent decisions, and accepted
+exactly `6000 / 2000 / 2000` train/calibration/sealed-holdout records. The new
+manifest covers 46 logs and 364 scenes with zero split overlap; observed maxima
+are 490/log and 56/scene under frozen caps 500/64. Manifest SHA256 is
+`703a47bec14d9ee4605184618e6bb61b6a4ce4ed73bee4173df508d6a6dfa5e5`.
+
+Independent review verified all 10,000 official scenario-tag identities and
+timestamps directly from read-only SQLite, plus parent exclusion, priority,
+split/order/caps, 529 retained adapter failures, source SHA chains, fixed DP,
+and the frozen safety-protocol SHA. The immutable source wrapper's failed
+convenience result alias remains recorded in `launcher.out`; canonical source
+outputs were valid and were not changed or rerun. Label reads, model calls,
+candidate generation/mutation, atom materialization, training, calibration,
+evaluation, and claims remain zero.
+
+current_v18_status=v18_nuplan_causal_10k_source_selection_result_review_passed_label_free
+current_v18_artifact_scope=nuplan_causal_10k_source_selection_manifest_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_source_selection_result_review_c7f3e7f3_20260711T121411CST
+current_v18_artifact_root_sha256=cf141780c48ab3c02516916a028073dbedb9812e17613076f40451dae3e630d6
+next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight_only
 
 ## Historical V17 Closeout
 

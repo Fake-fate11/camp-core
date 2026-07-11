@@ -1940,3 +1940,62 @@ current_v18_artifact_scope=nuplan_mini_bounded_offline_safety_score_v1_result_re
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_mini_bounded_offline_safety_result_review_14e2d637a8_20260711T110313CST
 current_v18_artifact_root_sha256=047dd5090407a9c5c28f5313c822e88c17104ba485e2986b2bc721ed75e744c3
 next_work_target=user_decision_required_before_v18_nuplan_causal_10k_source_generation_training_evaluation_or_closed_loop_safety_stage
+
+## Gate 36: Causal-10k Source Selection and Independent Result Review
+
+Status: passed label-free; fixed-DP K=8 candidate-generation preflight is the
+only next gate.
+
+- The user explicitly resumed the persistent v18 goal and authorized the
+  causal-10k small-gate sequence. The selection design and implementation plan
+  are
+  `docs/superpowers/specs/2026-07-11-v18-causal-10k-source-selection-design.md`
+  and
+  `docs/superpowers/plans/2026-07-11-v18-causal-10k-source-selection.md`.
+- CAMP local/GitHub/AutoDL is
+  `c7f3e7f3ccf095c7853da1716bc82df48d2082f7`; fixed DP is tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL passed the complete v18
+  orchestrator suite (`25 passed`) and causal adapter/atom suites
+  (`17 passed, 1 skipped`).
+- The frozen parent is the 367-scene refreshed v2 mini manifest at SHA256
+  `bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2`.
+  The 10k selection inherits its 25/9/12 whole-log train/calibration/holdout
+  assignment, excludes every parent decision identity, and uses seed-3407
+  SHA256 order with accepted caps of 500/log and 64/scene.
+- Source-selection artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_source_selection_c7f3e7f3_20260711T113655CST`
+  / `83adf157e12fdd944f9a3ebfc645b65387e54df0e6ab063dc724c8d6e9b29379`.
+  The source run took `2078.400522s` (`2080s` wrapper), accepted exactly
+  `10000` of `10529` attempted decision ticks, and retained `529` complete
+  adapter failure records. Stderr and preflight stderr are empty and
+  `run.exit=0`.
+- The immutable source wrapper expected `causal_10k_summary.json` while the
+  committed runner correctly wrote `causal_10k_manifest_summary.json`, so its
+  `launcher.out` retains the failed convenience alias/Markdown creation. The
+  manifest, canonical summary, rejection sidecar, exit evidence, and complete
+  SHA chain are valid; the source artifact was neither modified nor rerun.
+- Independent result-review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_source_selection_result_review_c7f3e7f3_20260711T121411CST`
+  / `cf141780c48ab3c02516916a028073dbedb9812e17613076f40451dae3e630d6`.
+  It verified all `10000 / 10000` selected tokens directly against read-only
+  SQLite lidar/scenario-tag rows, recomputed timestamps, buffered coverage,
+  parent membership/exclusion, seed priorities, split/order/caps, all source
+  and protocol SHA chains, and all `529` rejection identities without calling
+  the adapter, labels, model, or candidate generator.
+- The frozen manifest SHA256 is
+  `703a47bec14d9ee4605184618e6bb61b6a4ce4ed73bee4173df508d6a6dfa5e5`.
+  Counts are train/calibration/sealed-holdout `6000 / 2000 / 2000`, covering
+  `46` logs and `364` scenes with zero log/scene overlap. Observed maxima are
+  `490` records/log and `56` records/scene, both below their frozen caps.
+- Expert-future value reads, model calls, DP candidate generation/mutation,
+  atom materialization, training, calibration, evaluation, and claims are all
+  zero. The bounded-offline protocol remains unchanged at SHA256
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`.
+  Candidate 0 remains the fixed-DP deterministic/MAP baseline; the 32+5
+  observable and no-closed-loop-safety-claim boundaries remain unchanged.
+
+current_v18_status=v18_nuplan_causal_10k_source_selection_result_review_passed_label_free
+current_v18_artifact_scope=nuplan_causal_10k_source_selection_manifest_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_source_selection_result_review_c7f3e7f3_20260711T121411CST
+current_v18_artifact_root_sha256=cf141780c48ab3c02516916a028073dbedb9812e17613076f40451dae3e630d6
+next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight_only
