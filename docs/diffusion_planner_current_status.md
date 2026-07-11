@@ -948,6 +948,43 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14
 current_v18_artifact_root_sha256=d691834900f9980c6d7f6ac3df8bdd54be5b05787b06030d2e3e74df45da0730
 next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
 
+The causal-10k canonical-14D materializer completed once at unchanged
+CAMP local/GitHub/AutoDL `4f46417fe279e7b2c2c553efb70dc5f159b6b3e0`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_execution_4f46417f_20260711T143711CST`
+/ `3538472ab79727a3c230f68077ed33374a9196e1924f1f4c1a6a40b8994fbb66`.
+The immutable canonical root/SHA256 is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_3febcd4de182`
+/ `79c9570bf04088ff05aea30a1e251738742e3648742044be724b662ff5329a3c`.
+
+All 10,000 audit rows were retained; 9,458 canonical NPZ files materialized.
+Train/calibration/holdout materialized counts are `5631 / 1896 / 1931`.
+The 243 signal-source-incomplete and 299 all-K-infeasible rows remain
+fail-closed with no NPZ or label, no candidate-0 forcing, and no all-K progress
+fallback. Holdout label reads are zero and log/scene overlap is zero.
+
+Independent full semantic recomputation passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_result_review_4f46417f_20260711T163719CST`
+/ `ba29ab195879ff486214c186506725ec453ef239bb5b7c91d48408ef0d29e4f5`.
+It reviewed all 10,000 records and 9,458 NPZ files in `6679.302245s` with
+exit `0`, empty stderr, unchanged candidate root, and zero model/train/eval
+calls. A linked all-row provenance metadata adjunct passed in `5.030341s` at
+artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_metadata_adjunct_4f46417f_20260711T183035CST`
+/ `fb8bbcecb5401874b72f7b202e26500018ee381c7f21b7e13a110f5f4e40f5f8`.
+
+Candidate 0 remains the fixed-DP deterministic/MAP baseline with
+`equivalence_verified=false` and `native_ranked_top1=false`. OBB exactness
+remains limited to the frozen 32+5 observable source; no complete-scene,
+closed-loop, performance, or safety claim is made. Independent same-input
+fixed-DP deterministic/MAP equivalence preflight is the only next gate.
+
+current_v18_status=v18_nuplan_causal_10k_canonical_14d_materialization_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_physical_feasibility_canonical_14d_expert_label_materialization_execution_independent_result_review_and_provenance_metadata_adjunct
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_metadata_adjunct_4f46417f_20260711T183035CST
+current_v18_artifact_root_sha256=fb8bbcecb5401874b72f7b202e26500018ee381c7f21b7e13a110f5f4e40f5f8
+next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

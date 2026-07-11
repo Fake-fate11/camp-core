@@ -2171,3 +2171,64 @@ current_v18_artifact_scope=nuplan_causal_10k_physical_feasibility_canonical_atom
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_retry_f5c903d6_20260711T143309CST
 current_v18_artifact_root_sha256=d691834900f9980c6d7f6ac3df8bdd54be5b05787b06030d2e3e74df45da0730
 next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
+
+## Gate 40: Causal-10k Canonical-14D Materialization Execution and Independent Result Review
+
+Status: passed; fixed-DP deterministic/MAP same-input equivalence preflight is
+the only next gate.
+
+- The single materialization execution completed at unchanged CAMP
+  local/GitHub/AutoDL HEAD
+  `4f46417fe279e7b2c2c553efb70dc5f159b6b3e0`; fixed DP remained
+  tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The execution
+  artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_execution_4f46417f_20260711T143711CST`
+  / `3538472ab79727a3c230f68077ed33374a9196e1924f1f4c1a6a40b8994fbb66`.
+  It exited `0`, retained only the classified 292-byte upstream `timm`
+  deprecation warning on stderr, and atomically promoted the immutable output
+  root
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_3febcd4de182`
+  at SHA256
+  `79c9570bf04088ff05aea30a1e251738742e3648742044be724b662ff5329a3c`.
+- The output contains all 10,000 audit rows and 9,458 canonical NPZ files.
+  Materialized train/calibration/holdout counts are exactly
+  `5631 / 1896 / 1931`. The remaining 542 rows are retained fail-closed:
+  243 have incomplete signal sources and 299 are all-K physically infeasible.
+  Every excluded row has no canonical NPZ or label; candidate 0 remains false
+  in every all-K-infeasible row and every such row has null progress reference,
+  so neither candidate-0 forcing nor an all-K progress fallback occurred.
+- Train and calibration labels number `5631 / 1896`. All 2,000 holdout rows
+  remained sealed during materialization and review; the 1,931 materialized
+  holdout NPZ files contain atoms and masks but no expert future. Log and scene
+  overlap across the exact `6000 / 2000 / 2000` source split is zero.
+- The independent full semantic review recomputed causal inputs, fixed-DP red
+  costs, bounded physical masks, canonical atoms, and permitted train/calibration
+  labels for all 10,000 records. It opened all 9,458 canonical NPZ files with
+  `allow_pickle=False`, reverified the candidate, execution, and output roots,
+  and passed with `run.exit=0`, empty stderr, and wall time `6679.302245s`.
+  Its artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_result_review_4f46417f_20260711T163719CST`
+  / `ba29ab195879ff486214c186506725ec453ef239bb5b7c91d48408ef0d29e4f5`.
+- A linked lightweight metadata adjunct then checked all 10,000 saved rows and
+  all 9,458 NPZ files against the five frozen candidate/neighbor/signal/causal
+  provenance SHA fields, all saved DP HEAD values, the execution exit/root,
+  summary roots, and the manifest SHA without repeating canonical computation.
+  It passed in `5.030341s` with exit `0` and empty stderr at artifact/root
+  SHA256
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_metadata_adjunct_4f46417f_20260711T183035CST`
+  / `fb8bbcecb5401874b72f7b202e26500018ee381c7f21b7e13a110f5f4e40f5f8`.
+  Both review artifacts contain JSON/MD, HEADS, COMMAND, stdout/stderr, and
+  freshly verified SHA256SUMS/ROOT_SHA256SUMS.
+- The frozen candidate root remains unchanged at
+  `3febcd4de182598e69d3420900c996eb37dc3f54d0a8a4a1f221d6ab3c648515`.
+  Reviewer model, training, calibration, and evaluation calls were zero.
+  Candidate 0 remains described only as the fixed-DP deterministic/MAP
+  baseline with `equivalence_verified=false` and `native_ranked_top1=false`.
+  Exactness remains limited to the frozen 32-dynamic plus 5-static observable
+  source; no complete-scene, closed-loop, performance, or safety claim is made.
+
+current_v18_status=v18_nuplan_causal_10k_canonical_14d_materialization_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_physical_feasibility_canonical_14d_expert_label_materialization_execution_independent_result_review_and_provenance_metadata_adjunct
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_metadata_adjunct_4f46417f_20260711T183035CST
+current_v18_artifact_root_sha256=fb8bbcecb5401874b72f7b202e26500018ee381c7f21b7e13a110f5f4e40f5f8
+next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
