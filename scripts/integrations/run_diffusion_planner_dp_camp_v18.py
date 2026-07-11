@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import hashlib
 import json
 import os
 import random
+import sqlite3
 import subprocess
 import sys
 import time
@@ -23,6 +25,7 @@ for path in (ROOT, ROOT / "camp_core"):
         sys.path.insert(0, str(path))
 
 from camp_core.integrations.diffusion_planner_causal_materializer import (  # noqa: E402
+    CAUSAL_DP_INPUT_SCHEMA,
     validate_causal_dp_input,
 )
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
@@ -57,6 +60,24 @@ BASELINE_SEMANTICS = "fixed_dp_deterministic_map_baseline"
 NATIVE_RANKED_TOP1 = False
 FEASIBILITY_SCOPE = "frozen_observable_32_dynamic_plus_5_static_only"
 CLOSED_LOOP_SAFETY_CLAIM = False
+CAUSAL_10K_PARENT_MANIFEST_SHA256 = (
+    "bcf19b29b9c3654f41502d494a441858142d2d9c3b77bd686b5a764c1107d7a2"
+)
+CAUSAL_10K_PARENT_RECORD_COUNT = 367
+CAUSAL_10K_SPLIT_TARGETS = {
+    "train": 6000,
+    "calibration": 2000,
+    "holdout": 2000,
+}
+CAUSAL_10K_MAX_PER_LOG = 500
+CAUSAL_10K_MAX_PER_SCENE = 64
+CAUSAL_10K_MIN_LOGS = 30
+CAUSAL_10K_MIN_SCENES = 30
+CAUSAL_10K_SELECTION_POLICY = (
+    "sha256(3407:split:log_token:scene_token:decision_token); "
+    "inherit parent whole-log split; exclude parent decisions; causal adapter "
+    "fail closed; max 500/log and 64/scene"
+)
 
 
 def _latest_pointer(lines: list[str]) -> dict[str, str]:
@@ -329,6 +350,14 @@ def _identity(row: Mapping[str, Any]) -> tuple[str, str, str, str]:
     )
 
 
+def _record_npz_relative(row: Mapping[str, Any]) -> Path:
+    return (
+        Path(str(row["split"]))
+        / str(row["log_token"])
+        / f'{row["scene_token"]}__{row["decision_token"]}.npz'
+    )
+
+
 def _read_sha256sums(path: Path) -> dict[str, str]:
     entries = {}
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -590,6 +619,287 @@ def refresh_manifest(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def run_causal_10k_selection(args: argparse.Namespace) -> dict[str, Any]:
+    pointer = read_v18_status_pointer(args.current_status, args.v18_audit)
+    if args.expected_manifest_sha256 != CAUSAL_10K_PARENT_MANIFEST_SHA256:
+        raise ValueError("causal-10k parent manifest SHA256 mismatch")
+    parent_rows = _read_manifest(args.manifest, args.expected_manifest_sha256)
+    if len(parent_rows) != CAUSAL_10K_PARENT_RECORD_COUNT:
+        raise ValueError("causal-10k parent manifest record count mismatch")
+    if any(
+        row.get("causal_source_schema_version") != CAUSAL_SOURCE_SCHEMA_VERSION
+        for row in parent_rows
+    ):
+        raise ValueError("causal-10k parent must use the refreshed v2 schema")
+
+    output = args.causal_10k_manifest_output
+    summary_path = output.with_name(f"{output.stem}_summary.json")
+    rejected_path = output.with_name(f"{output.stem}_rejected.jsonl")
+    for path in (output, summary_path, rejected_path):
+        if path.exists() or path.with_suffix(path.suffix + ".tmp").exists():
+            raise FileExistsError(path)
+    if not output.parent.is_dir():
+        raise FileNotFoundError(output.parent)
+
+    log_splits: dict[str, str] = {}
+    parent_decisions = set()
+    for parent in parent_rows:
+        split = str(parent["split"])
+        if split not in CAUSAL_10K_SPLIT_TARGETS:
+            raise ValueError(f"unsupported parent split: {split}")
+        log_token = str(parent["log_token"])
+        previous = log_splits.setdefault(log_token, split)
+        if previous != split:
+            raise ValueError("parent log crosses splits")
+        identity = (
+            log_token,
+            str(parent["scene_token"]),
+            str(parent["decision_token"]),
+        )
+        if identity in parent_decisions:
+            raise ValueError("duplicate parent decision identity")
+        parent_decisions.add(identity)
+
+    candidates: list[dict[str, Any]] = []
+    for parent in parent_rows:
+        split = str(parent["split"])
+        log_token = str(parent["log_token"])
+        scene_token = bytes.fromhex(str(parent["scene_token"]))
+        db_path = Path(str(parent["db_path"]))
+        with sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True) as db:
+            bounds = db.execute(
+                "SELECT min(timestamp), max(timestamp) FROM lidar_pc "
+                "WHERE scene_token=?",
+                (scene_token,),
+            ).fetchone()
+            if bounds is None or bounds[0] is None or bounds[1] is None:
+                raise ValueError("parent scene has no lidar timestamps")
+            start_us, end_us = map(int, bounds)
+            ticks = db.execute(
+                "SELECT l.token, l.timestamp FROM scenario_tag t "
+                "JOIN lidar_pc l ON l.token=t.lidar_pc_token "
+                "WHERE l.scene_token=? AND l.timestamp>=? AND l.timestamp<=? "
+                "GROUP BY l.token,l.timestamp ORDER BY l.timestamp,hex(l.token)",
+                (scene_token, start_us + 3_000_000, end_us - 8_000_000),
+            ).fetchall()
+            for decision_bytes, timestamp in ticks:
+                decision_token = bytes(decision_bytes).hex()
+                if (log_token, str(parent["scene_token"]), decision_token) in parent_decisions:
+                    continue
+                scenario_types = [
+                    row[0]
+                    for row in db.execute(
+                        "SELECT DISTINCT type FROM scenario_tag "
+                        "WHERE lidar_pc_token=? ORDER BY type",
+                        (decision_bytes,),
+                    )
+                ]
+                priority = hashlib.sha256(
+                    f"{DEFAULT_SEED}:{split}:{log_token}:"
+                    f"{parent['scene_token']}:{decision_token}".encode()
+                ).hexdigest()
+                candidates.append(
+                    {
+                        "parent": parent,
+                        "decision_token": decision_token,
+                        "decision_timestamp_us": int(timestamp),
+                        "history_span_s": round((int(timestamp) - start_us) / 1e6, 6),
+                        "future_span_s": round((end_us - int(timestamp)) / 1e6, 6),
+                        "scenario_types": scenario_types,
+                        "selection_priority_sha256": priority,
+                    }
+                )
+
+    candidates.sort(key=lambda row: row["selection_priority_sha256"])
+    split_counts = collections.Counter()
+    log_counts = collections.Counter()
+    scene_counts = collections.Counter()
+    accepted: list[dict[str, Any]] = []
+    rejected: list[dict[str, Any]] = []
+    attempted = 0
+    started = time.time()
+    dp_head = _verify_fixed_dp_repo(args.dp_repo)
+    for candidate in candidates:
+        parent = candidate["parent"]
+        split = str(parent["split"])
+        if split_counts[split] >= CAUSAL_10K_SPLIT_TARGETS[split]:
+            continue
+        log_key = str(parent["log_token"])
+        scene_key = (log_key, str(parent["scene_token"]))
+        if (
+            log_counts[log_key] >= CAUSAL_10K_MAX_PER_LOG
+            or scene_counts[scene_key] >= CAUSAL_10K_MAX_PER_SCENE
+        ):
+            continue
+        attempted += 1
+        try:
+            materialized = materialize_nuplan_decision(
+                parent["db_path"], parent["map_path"], candidate["decision_token"]
+            )
+            arrays = {key: np.asarray(value) for key, value in materialized.dp_input.items()}
+            errors = validate_causal_dp_input(arrays)
+            if errors:
+                raise ValueError("; ".join(errors))
+            if set(arrays) != set(CAUSAL_DP_INPUT_SCHEMA):
+                raise ValueError("causal schema key mismatch")
+            future_keys = sorted(key for key in arrays if "future" in key.lower())
+            if future_keys:
+                raise ValueError("future keys present: " + ",".join(future_keys))
+            source_dt_s = float(materialized.metadata["source_dt_s"])
+            if not 0.0 < source_dt_s <= 0.2:
+                raise ValueError("source dt is outside (0, 0.2]")
+        except Exception as exc:
+            rejected.append(
+                {
+                    "split": split,
+                    "log_token": log_key,
+                    "scene_token": parent["scene_token"],
+                    "decision_token": candidate["decision_token"],
+                    "failure_class": type(exc).__name__,
+                    "failure_reason": str(exc).replace("\n", " "),
+                }
+            )
+            continue
+
+        row = {
+            key: value
+            for key, value in parent.items()
+            if key
+            not in {
+                "causal_input_sha256",
+                "causal_input_shapes",
+                "decision_timestamp_us",
+                "decision_token",
+                "future_span_s",
+                "history_span_s",
+                "neighbor_valid_count",
+                "scenario_types",
+                "source_dt_s",
+                "static_object_count",
+            }
+        }
+        row.update(
+            {
+                "decision_token": candidate["decision_token"],
+                "decision_timestamp_us": candidate["decision_timestamp_us"],
+                "scenario_types": candidate["scenario_types"],
+                "history_span_s": candidate["history_span_s"],
+                "future_span_s": candidate["future_span_s"],
+                "source_dt_s": source_dt_s,
+                "causal_input_sha256": causal_input_sha256(arrays),
+                "causal_input_shapes": {
+                    key: list(value.shape) for key, value in sorted(arrays.items())
+                },
+                "causal_source_schema_version": CAUSAL_SOURCE_SCHEMA_VERSION,
+                "static_object_count": _nonzero_row_count(arrays["static_objects"]),
+                "neighbor_valid_count": _nonzero_row_count(
+                    arrays["neighbor_agents_past"]
+                ),
+                "parent_manifest_sha256": args.expected_manifest_sha256,
+                "parent_decision_token": parent["decision_token"],
+                "selection_seed": DEFAULT_SEED,
+                "selection_policy": CAUSAL_10K_SELECTION_POLICY,
+                "selection_priority_sha256": candidate[
+                    "selection_priority_sha256"
+                ],
+            }
+        )
+        accepted.append(row)
+        split_counts[split] += 1
+        log_counts[log_key] += 1
+        scene_counts[scene_key] += 1
+        if len(accepted) % 500 == 0:
+            print(
+                "causal_10k_selection_progress="
+                f"{len(accepted)}/{sum(CAUSAL_10K_SPLIT_TARGETS.values())} "
+                f"attempted={attempted} rejected={len(rejected)}",
+                flush=True,
+            )
+        if all(
+            split_counts[name] == target
+            for name, target in CAUSAL_10K_SPLIT_TARGETS.items()
+        ):
+            break
+
+    actual_split_counts = {
+        name: split_counts[name] for name in CAUSAL_10K_SPLIT_TARGETS
+    }
+    if actual_split_counts != CAUSAL_10K_SPLIT_TARGETS:
+        raise ValueError(
+            f"causal-10k split targets not met: {actual_split_counts}"
+        )
+    identities = [_identity(row) for row in accepted]
+    if len(set(identities)) != len(identities):
+        raise ValueError("causal-10k selected identities are not unique")
+    selected_logs = {row["log_token"] for row in accepted}
+    selected_scenes = {row["scene_token"] for row in accepted}
+    if len(selected_logs) < CAUSAL_10K_MIN_LOGS:
+        raise ValueError("causal-10k selected fewer than the minimum logs")
+    if len(selected_scenes) < CAUSAL_10K_MIN_SCENES:
+        raise ValueError("causal-10k selected fewer than the minimum scenes")
+    for left, right in (
+        ("train", "calibration"),
+        ("train", "holdout"),
+        ("calibration", "holdout"),
+    ):
+        left_logs = {row["log_token"] for row in accepted if row["split"] == left}
+        right_logs = {row["log_token"] for row in accepted if row["split"] == right}
+        left_scenes = {row["scene_token"] for row in accepted if row["split"] == left}
+        right_scenes = {row["scene_token"] for row in accepted if row["split"] == right}
+        if left_logs & right_logs or left_scenes & right_scenes:
+            raise ValueError("causal-10k split overlap detected")
+    if max(log_counts.values()) > CAUSAL_10K_MAX_PER_LOG:
+        raise ValueError("causal-10k per-log cap exceeded")
+    if max(scene_counts.values()) > CAUSAL_10K_MAX_PER_SCENE:
+        raise ValueError("causal-10k per-scene cap exceeded")
+
+    split_order = {name: index for index, name in enumerate(CAUSAL_10K_SPLIT_TARGETS)}
+    accepted.sort(
+        key=lambda row: (split_order[row["split"]], row["selection_priority_sha256"])
+    )
+    if _sha256(args.manifest) != args.expected_manifest_sha256:
+        raise RuntimeError("causal-10k parent manifest changed during selection")
+    if _verify_fixed_dp_repo(args.dp_repo) != dp_head:
+        raise RuntimeError("fixed DP changed during causal-10k selection")
+    manifest_text = "".join(
+        json.dumps(row, sort_keys=True) + "\n" for row in accepted
+    )
+    manifest_sha256 = hashlib.sha256(manifest_text.encode()).hexdigest()
+    report = {
+        "schema_version": "dp_camp_v18_nuplan_causal_10k_source_manifest_v1",
+        "record_count": len(accepted),
+        "split_counts": actual_split_counts,
+        "log_count": len(selected_logs),
+        "scene_count": len(selected_scenes),
+        "max_records_per_log": max(log_counts.values()),
+        "max_records_per_scene": max(scene_counts.values()),
+        "attempted_count": attempted,
+        "adapter_failure_count": len(rejected),
+        "parent_manifest": str(args.manifest),
+        "parent_manifest_sha256": args.expected_manifest_sha256,
+        "manifest": str(output),
+        "manifest_sha256": manifest_sha256,
+        "selection_seed": DEFAULT_SEED,
+        "selection_policy": CAUSAL_10K_SELECTION_POLICY,
+        "controller_pointer": pointer,
+        "dp_head": dp_head,
+        "expert_future_value_reads": 0,
+        "model_calls": 0,
+        "candidate_generation_executed": False,
+        "source_verified_after_run": True,
+        "wall_clock_seconds": round(time.time() - started, 6),
+    }
+    _atomic_write_text(
+        rejected_path,
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rejected),
+    )
+    _atomic_write_text(
+        summary_path, json.dumps(report, indent=2, sort_keys=True) + "\n"
+    )
+    _atomic_write_text(output, manifest_text)
+    return report
+
+
 def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
     if args.refresh_manifest_output is not None:
         if args.execute:
@@ -651,7 +961,7 @@ def run_manifest(args: argparse.Namespace) -> dict[str, Any]:
             signal_available = candidate_signal_source_available_mask(
                 candidates, materialized.dp_input["route_lanes"]
             )
-            relative = Path(row["split"]) / row["log_token"] / f"{row['scene_token']}.npz"
+            relative = _record_npz_relative(row)
             output = args.output_dir / relative
             output.parent.mkdir(parents=True, exist_ok=True)
             temporary = output.with_suffix(".npz.tmp")
@@ -828,11 +1138,7 @@ def run_materialization(args: argparse.Namespace) -> dict[str, Any]:
                 relative = None
                 canonical_hash = None
                 if canonical["canonical_eligible"]:
-                    relative_path = (
-                        Path(split)
-                        / str(row["log_token"])
-                        / f"{row['scene_token']}.npz"
-                    )
+                    relative_path = _record_npz_relative(row)
                     target = staging_root / relative_path
                     npz_values: dict[str, Any] = {
                         "atom_matrix": canonical["atom_matrix"],
@@ -1037,6 +1343,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--expected_manifest_sha256")
     parser.add_argument("--refresh_manifest_output", type=Path)
+    parser.add_argument("--causal_10k_manifest_output", type=Path)
     parser.add_argument("--output_dir", type=Path)
     parser.add_argument("--dp_repo", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path)
@@ -1053,7 +1360,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max_records", type=int, default=0)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args(argv)
-    if args.candidate_root is not None:
+    if args.causal_10k_manifest_output is not None:
+        required = ("manifest", "expected_manifest_sha256", "current_status", "v18_audit")
+        missing = [name for name in required if getattr(args, name) is None]
+        conflicting = (
+            args.refresh_manifest_output is not None
+            or args.output_dir is not None
+            or args.checkpoint is not None
+            or args.args_json is not None
+            or args.candidate_root is not None
+            or args.expected_candidate_root_sha256 is not None
+            or args.materialize_output_dir is not None
+            or args.execute
+        )
+        if missing or conflicting:
+            parser.error(
+                "causal-10k selection requires manifest/SHA/status/audit and is "
+                "mutually exclusive with candidate/materialization inputs"
+            )
+    elif args.candidate_root is not None:
         required = (
             "expected_candidate_root_sha256",
             "materialize_output_dir",
@@ -1094,9 +1419,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     try:
         report = (
-            run_materialization(args)
-            if args.candidate_root is not None
-            else run_manifest(args)
+            run_causal_10k_selection(args)
+            if args.causal_10k_manifest_output is not None
+            else (
+                run_materialization(args)
+                if args.candidate_root is not None
+                else run_manifest(args)
+            )
         )
     except Exception as exc:
         print(json.dumps({"failure_class": type(exc).__name__, "message": str(exc)}))

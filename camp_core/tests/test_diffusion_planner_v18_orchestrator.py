@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import json
+import sqlite3
 
 import numpy as np
 import pytest
@@ -972,6 +973,163 @@ def test_refresh_manifest_preserves_identity_and_replaces_causal_provenance(
         module.refresh_manifest(args)
 
 
+def test_record_npz_path_is_unique_per_decision() -> None:
+    module = _orchestrator()
+    common = {
+        "split": "train",
+        "log_token": "log",
+        "scene_token": "scene",
+    }
+
+    first = module._record_npz_relative(
+        {**common, "decision_token": "decision_a"}
+    )
+    second = module._record_npz_relative(
+        {**common, "decision_token": "decision_b"}
+    )
+
+    assert first.as_posix() == "train/log/scene__decision_a.npz"
+    assert second.as_posix() == "train/log/scene__decision_b.npz"
+    assert first != second
+
+
+def test_causal_10k_selection_excludes_parent_decisions_and_inherits_split(
+    tmp_path, monkeypatch
+) -> None:
+    module = _orchestrator()
+    parent_rows = []
+    new_decisions = {}
+    for index, split in enumerate(("train", "calibration", "holdout"), 1):
+        scene_token = f"{index:032x}"
+        parent_decision = f"{index + 10:032x}"
+        new_decision = f"{index + 20:032x}"
+        later_parent_decision = f"{index + 50:032x}"
+        db_path = tmp_path / f"{split}.db"
+        with sqlite3.connect(db_path) as db:
+            db.execute(
+                "CREATE TABLE lidar_pc ("
+                "token BLOB PRIMARY KEY, scene_token BLOB, timestamp INTEGER)"
+            )
+            db.execute(
+                "CREATE TABLE scenario_tag (lidar_pc_token BLOB, type TEXT)"
+            )
+            rows = [
+                (bytes.fromhex(f"{index + 30:032x}"), 0),
+                (bytes.fromhex(parent_decision), 3_500_000),
+                (bytes.fromhex(new_decision), 4_000_000),
+                (bytes.fromhex(f"{index + 40:032x}"), 12_000_000),
+            ]
+            if split == "train":
+                rows.insert(
+                    2, (bytes.fromhex(later_parent_decision), 3_750_000)
+                )
+            db.executemany(
+                "INSERT INTO lidar_pc VALUES (?, ?, ?)",
+                [(token, bytes.fromhex(scene_token), timestamp) for token, timestamp in rows],
+            )
+            db.executemany(
+                "INSERT INTO scenario_tag VALUES (?, ?)",
+                [
+                    (bytes.fromhex(parent_decision), "parent"),
+                    *(
+                        [(bytes.fromhex(later_parent_decision), "parent_later")]
+                        if split == "train"
+                        else []
+                    ),
+                    (bytes.fromhex(new_decision), "new"),
+                ],
+            )
+        parent_row = {
+            "split": split,
+            "log_token": f"log_{split}",
+            "scene_token": scene_token,
+            "decision_token": parent_decision,
+            "db_path": str(db_path),
+            "map_path": str(tmp_path / "map.gpkg"),
+            "causal_input_sha256": "parent",
+            "causal_source_schema_version": module.CAUSAL_SOURCE_SCHEMA_VERSION,
+        }
+        parent_rows.append(parent_row)
+        if split == "train":
+            parent_rows.append(
+                {**parent_row, "decision_token": later_parent_decision}
+            )
+        new_decisions[split] = new_decision
+
+    parent = tmp_path / "parent.jsonl"
+    parent.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in parent_rows),
+        encoding="utf-8",
+    )
+    output = tmp_path / "causal_10k.jsonl"
+    causal_input = _causal_input()
+    monkeypatch.setattr(module, "CAUSAL_10K_PARENT_MANIFEST_SHA256", module._sha256(parent))
+    monkeypatch.setattr(module, "CAUSAL_10K_PARENT_RECORD_COUNT", len(parent_rows))
+    monkeypatch.setattr(
+        module,
+        "CAUSAL_10K_SPLIT_TARGETS",
+        {"train": 1, "calibration": 1, "holdout": 1},
+    )
+    monkeypatch.setattr(module, "CAUSAL_10K_MAX_PER_LOG", 1)
+    monkeypatch.setattr(module, "CAUSAL_10K_MAX_PER_SCENE", 1)
+    monkeypatch.setattr(module, "CAUSAL_10K_MIN_LOGS", 3)
+    monkeypatch.setattr(module, "CAUSAL_10K_MIN_SCENES", 3)
+    monkeypatch.setattr(
+        module,
+        "read_v18_status_pointer",
+        lambda *_args: {"next_work_target": "authorized"},
+    )
+    dp_checks = []
+    monkeypatch.setattr(
+        module,
+        "_verify_fixed_dp_repo",
+        lambda *_args: dp_checks.append(module.FIXED_DP_HEAD) or module.FIXED_DP_HEAD,
+    )
+    monkeypatch.setattr(
+        module,
+        "materialize_nuplan_decision",
+        lambda *_args: type(
+            "Result",
+            (),
+            {"dp_input": causal_input, "metadata": {"source_dt_s": 0.05}},
+        )(),
+    )
+    monkeypatch.setattr(
+        module,
+        "load_nuplan_expert_ego_future",
+        lambda *_args, **_kwargs: pytest.fail("selection read an expert label"),
+    )
+    args = argparse.Namespace(
+        manifest=parent,
+        expected_manifest_sha256=module._sha256(parent),
+        causal_10k_manifest_output=output,
+        current_status=tmp_path / "status.md",
+        v18_audit=tmp_path / "audit.md",
+        dp_repo=tmp_path / "dp",
+    )
+
+    report = module.run_causal_10k_selection(args)
+
+    selected = [json.loads(line) for line in output.read_text().splitlines()]
+    assert report["record_count"] == 3
+    assert report["split_counts"] == {
+        "train": 1,
+        "calibration": 1,
+        "holdout": 1,
+    }
+    assert {row["split"]: row["decision_token"] for row in selected} == new_decisions
+    assert all(row["causal_input_sha256"] == module.causal_input_sha256(causal_input) for row in selected)
+    assert all(row["parent_manifest_sha256"] == module._sha256(parent) for row in selected)
+    assert all(row["decision_token"] != row["parent_decision_token"] for row in selected)
+    assert not {
+        row["decision_token"] for row in selected
+    } & {row["decision_token"] for row in parent_rows}
+    assert report["expert_future_value_reads"] == 0
+    assert report["model_calls"] == 0
+    assert report["source_verified_after_run"] is True
+    assert dp_checks == [module.FIXED_DP_HEAD, module.FIXED_DP_HEAD]
+
+
 def test_run_manifest_writes_single_record_v2_source_provenance(
     tmp_path, monkeypatch
 ) -> None:
@@ -1044,7 +1202,7 @@ def test_run_manifest_writes_single_record_v2_source_provenance(
     )()
 
     report = module.run_manifest(args)
-    output_npz = args.output_dir / "train" / "log" / "scene.npz"
+    output_npz = args.output_dir / "train" / "log" / "scene__decision.npz"
     with np.load(output_npz, allow_pickle=False) as payload:
         assert set(payload.files) == {
             "candidate_tensor",
