@@ -525,7 +525,9 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     monkeypatch.setattr(
         module,
         "read_v18_status_pointer",
-        lambda *_args: {"next_work_target": "implementation-test"},
+        lambda *_args: {
+            "next_work_target": module.TRAIN_CALIBRATE_EXECUTION_TARGET
+        },
     )
     monkeypatch.setattr(
         module,
@@ -641,6 +643,25 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     for name in comparison["models"]:
         assert (tmp_path / "freeze" / "models" / f"{name}_weights.npy").is_file()
         assert (tmp_path / "freeze" / "models" / f"{name}_scales.json").is_file()
+
+
+def test_train_calibrate_rejects_stale_eof_before_loading(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setattr(module, "_verify_training_inputs", lambda _args: {})
+    monkeypatch.setattr(
+        module,
+        "read_v18_status_pointer",
+        lambda *_args: {"next_work_target": "stale_gate"},
+    )
+    monkeypatch.setattr(
+        module,
+        "load_materialized_split",
+        lambda *_args, **_kwargs: pytest.fail("data loaded before EOF gate"),
+    )
+
+    with pytest.raises(RuntimeError, match="live v18 EOF"):
+        module.run_train_calibrate(_training_args(tmp_path))
 
 
 def test_train_calibrate_preflight_is_label_safe_and_execution_free(
@@ -878,7 +899,13 @@ def test_train_calibrate_fail_closed_before_checkpoint_promotion(
         "_verify_training_inputs",
         lambda _args: {"mini_trained14d": {"paths_verified": True}},
     )
-    monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_args: {})
+    monkeypatch.setattr(
+        module,
+        "read_v18_status_pointer",
+        lambda *_args: {
+            "next_work_target": module.TRAIN_CALIBRATE_EXECUTION_TARGET
+        },
+    )
     monkeypatch.setattr(
         module,
         "load_materialized_split",

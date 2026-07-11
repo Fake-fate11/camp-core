@@ -64,6 +64,9 @@ MIN_FREE_BYTES = 10 * 1024**3
 TRAIN_CALIBRATE_PREFLIGHT_TARGET = (
     "v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_only"
 )
+TRAIN_CALIBRATE_EXECUTION_TARGET = (
+    "v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only"
+)
 
 BASELINE_INDEX = 0
 BASELINE_SEMANTICS = "fixed_dp_deterministic_map_baseline"
@@ -1031,6 +1034,8 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         raise FileExistsError(output if output.exists() else staging)
     input_review = _verify_training_inputs(args)
     pointer = read_v18_status_pointer(args.current_status, args.v18_audit)
+    if pointer.get("next_work_target") != TRAIN_CALIBRATE_EXECUTION_TARGET:
+        raise RuntimeError("live v18 EOF does not authorize training execution")
     train = load_materialized_split(
         args.canonical_root, args.candidate_root, "train", labels_required=True
     )
