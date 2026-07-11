@@ -199,3 +199,39 @@ current_v19_artifact_scope=official_nuplan_v12_process_isolated_native_default_c
 current_v19_artifact=docs/superpowers/plans/2026-07-11-v19-native-default-nuplan-closed-loop-capability.md
 current_v19_artifact_root_sha256=9c7c0ce43e8117e1ee9223ababf2a2e75687eb9fa89a9c821fe01d60757b07c7
 next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_only
+
+## Native-default nuPlan Capability Plan Static Review
+
+The plan static review passed on AutoDL at CAMP
+`f4a3b699ba5cc21ef8360828b085c15a642135a4`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Successful artifact/root SHA256:
+
+- `/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231818CST`
+- `9ed9c42deef58fd8dca3cc90a63af9b8bbcb53df63871c84da49d48b3e75d0da`
+
+All 26 static checks passed. The v18/v19 suites reported `30 passed in 2.73s`.
+The review reverified the plan SHA, official nuPlan v1.2 tag commit, isolated
+Python 3.9 boundary, unchanged DP environment, file bridge, default-baseline
+naming, native-Top-1 limit, K=8/no-mutation/all-K failure behavior, selector
+root/scales/weights hashes, zero overlap, simulator scope, seeds, SafetyCost
+claim rule, official metrics, total-path latency, conda availability, disk
+threshold, and no-install/no-promotion limits.
+
+Two retained failed review artifacts record exact-string harness false
+negatives before whitespace-normalized semantic matching passed:
+
+- `/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231611CST.tmp`
+- `/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231727CST.tmp`
+
+The plan did not change. No dependency was installed, no devkit source was
+cloned, no simulator ran, and no holdout label was read. The next gate may
+perform only dependency/source/disk dry-run preflight; it may not materialize
+the environment or execute the adapter.
+
+current_v19_status=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_passed
+current_v19_artifact_scope=official_nuplan_v12_process_isolated_capability_plan_static_review_and_failure_harness_audit
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231818CST
+current_v19_artifact_root_sha256=9ed9c42deef58fd8dca3cc90a63af9b8bbcb53df63871c84da49d48b3e75d0da
+next_work_target=v19_nuplan_v12_isolated_dependency_and_disk_preflight_only

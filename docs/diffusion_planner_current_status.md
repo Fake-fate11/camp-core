@@ -49,11 +49,18 @@ default equivalence before any closed-loop run. The planned smoke is official
 `closed_loop_nonreactive_agents` on two zero-overlap mini scenarios; no install
 or execution has occurred. The next gate is static review only.
 
-current_v19_status=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_passed
-current_v19_artifact_scope=official_nuplan_v12_process_isolated_native_default_capability_and_smoke_plan
-current_v19_artifact=docs/superpowers/plans/2026-07-11-v19-native-default-nuplan-closed-loop-capability.md
-current_v19_artifact_root_sha256=9c7c0ce43e8117e1ee9223ababf2a2e75687eb9fa89a9c821fe01d60757b07c7
-next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_only
+The plan static review has now passed all 26 checks on AutoDL with `30 passed`.
+It reverified the official tag, environment separation, selector hashes,
+baseline naming, no-mutation/all-K behavior, zero-overlap rule, metric/seed/
+latency freeze, conda availability, disk gate, and no-install/no-promotion
+boundaries. The next gate is dependency/source/disk dry-run preflight only; it
+cannot create the environment or run a simulator.
+
+current_v19_status=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_passed
+current_v19_artifact_scope=official_nuplan_v12_process_isolated_capability_plan_static_review_and_failure_harness_audit
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_default_nuplan_capability_plan_static_review_f4a3b699_20260711T231818CST
+current_v19_artifact_root_sha256=9ed9c42deef58fd8dca3cc90a63af9b8bbcb53df63871c84da49d48b3e75d0da
+next_work_target=v19_nuplan_v12_isolated_dependency_and_disk_preflight_only
 
 ## Current V18 Status
 

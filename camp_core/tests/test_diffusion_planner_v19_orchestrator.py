@@ -73,9 +73,8 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
 
     assert pointer["current_v19_status"] == (
         "v19_native_default_executable_provenance_and_nuplan_closed_loop_"
-        "capability_plan_passed"
+        "capability_plan_static_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_native_default_executable_provenance_and_nuplan_closed_loop_"
-        "capability_plan_static_review_only"
+        "v19_nuplan_v12_isolated_dependency_and_disk_preflight_only"
     )
