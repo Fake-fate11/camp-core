@@ -2716,3 +2716,47 @@ current_v18_artifact_scope=nuplan_causal_10k_reviewed_frozen_selector_family_one
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_result_review_be938d3e_20260711T215608CST
 current_v18_artifact_root_sha256=843c600c15f76d89b98fe6d43cfe8ad5f6463a2859db08aff78ae11a8c6db7fa
 next_work_target=v18_nuplan_causal_10k_bounded_offline_safety_preflight_only
+
+## Causal-10k Bounded-offline Safety Count Remediation and Preflight
+
+Static preflight inspection found that the existing byte-identical safety
+formula runner incorrectly reused the mini-only holdout constant `71`. TDD
+removed that dataset-size coupling: the runner now obtains a positive count
+from the already SHA-verified paired summary and requires exact equality with
+canonical holdout rows and paired records. No formula, threshold, component
+weight, seed, CI, pass criterion, selected index, or candidate tensor changed.
+
+- The remediation is CAMP local/GitHub/AutoDL
+  `747d3ecde695c15b0fa0388445e384e7463b0f9d`; fixed DP remains tracked-clean
+  at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Runner SHA256 is
+  `b46fc493ef04923cdd5614cdc5eae2f205770c1168d2a326f9a22a3a595346ea`.
+  Local and AutoDL causal suites passed `104 passed, 2 skipped`; the focused
+  safety suite passed 14 tests. The serialized safety protocol remained
+  byte-identical at
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`.
+- Preflight artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_preflight_747d3ecd_20260711T221151CST`
+  / `128cf8d7a8f28db8b22beee153ec4a3dce5b52f708a2ef2aa300415b253b7147`.
+  It exited `0` with empty stderr in `3.390000820s`. It verified paired output
+  `5c2e45d2...`, paired result review `843c600c...`, all 1,931 label-free
+  canonical rows and immutable selected indices, seed `3410`, 10,000
+  bootstrap replicates, no learned selector weights as evaluation weights,
+  and absent safety output/staging roots. Free bytes were `16226258944`.
+- Independent read-only preflight review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_preflight_result_review_747d3ecd_20260711T221230CST`
+  / `72222ef122424eccdc18cb147705d3eab52978d6e529a8715fc0c0de1a7b995e`.
+  It exited `0` with empty stderr in `3.374069691s`, reopened all 1,931 NPZs
+  with label presence/reads zero, reverified the preflight manifest, protocol,
+  disk floor, and output absence, and made zero safety-evaluation calls.
+
+The paired performance result remains `no_claim` and cannot be changed by the
+post-hoc bounded score. Candidate 0 remains the proven fixed-DP
+deterministic/MAP baseline with `native_ranked_top1=false`. Bounded exactness
+remains within the frozen 32+5 observable source; this gate makes no
+complete-scene, closed-loop, or real-world safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_bounded_offline_safety_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_byte_identical_bounded_offline_safety_count_contract_preflight_and_independent_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_preflight_result_review_747d3ecd_20260711T221230CST
+current_v18_artifact_root_sha256=72222ef122424eccdc18cb147705d3eab52978d6e529a8715fc0c0de1a7b995e
+next_work_target=v18_nuplan_causal_10k_bounded_offline_safety_execution_only
