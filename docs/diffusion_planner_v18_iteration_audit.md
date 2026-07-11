@@ -2045,3 +2045,66 @@ current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_k8_candidate_generation_pr
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_preflight_retry_2ed4823f_20260711T121930CST
 current_v18_artifact_root_sha256=5fa489bc1810bffe9fd3237735b7705d5ba6f2bbd3913bdd7c213de86bd26d6e
 next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_execution_only
+
+## Gate 38: Causal-10k Fixed-DP K=8 Candidate Generation and Independent Result Review
+
+Status: passed; physical-feasibility / canonical-14D / expert-label
+materialization preflight is the only next gate.
+
+- Candidate generation completed once at unchanged CAMP local/GitHub/AutoDL
+  `ec2adff27f3c41a74d563f9a5e752df7b65d3c5c`; fixed DP remained
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Execution artifact/root
+  SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_execution_ec2adff2_20260711T122152CST`
+  / `d97303fbd9aeab65d888ff97dae7dce303363e628d18578492bd349fa14f85c4`.
+  `run.exit=0`; the run took `6587.689316s`, wrote exactly 10,000 records and
+  10,000 NPZ files, and stderr contains only the existing 292-byte `timm`
+  deprecation warning.
+- The immutable candidate root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidates_703a47bec14d`
+  at SHA256
+  `3febcd4de182598e69d3420900c996eb37dc3f54d0a8a4a1f221d6ab3c648515`.
+  Its `SHA256SUMS` contains exactly 10,002 entries: 10,000 NPZ files plus
+  `records.jsonl` and `summary.json`. Every entry and the root digest were
+  independently reverified.
+- The first review wrapper failed locally before the remote verifier started
+  because `pathlib` was not imported. Its preserved artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_ec2adff2_20260711T141720CST`
+  / `27007e534ce944f71b237965429474632ce2a38a3c9cf11c110333e004a134c0`.
+  The first verifier retry then failed only because it incorrectly expected
+  10,000 total `SHA256SUMS` entries rather than the correct 10,002. Its
+  preserved artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_retry_ec2adff2_20260711T141824CST`
+  / `0c44c25f827ec82ad749d54e7aead845ffb911afba2546231838356f3ebe3f0a`.
+  Neither failure modified candidates or started materialization, training,
+  calibration, or evaluation.
+- The corrected independent result review passed at artifact/root SHA256
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_retry2_ec2adff2_20260711T141923CST`
+  / `2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c`.
+  It opened all 10,000 NPZ files with `allow_pickle=False` and verified exact
+  `6000 / 2000 / 2000` split order and identities, unique output paths, file
+  and four stored-array SHA256 values, finite float32 candidate shape
+  `[8,80,4]`, finite float32 neighbor shape `[8,32,80,4]`, boolean masks,
+  scalar provenance, K=8, seed 3407, noise scale 1.0, manifest/checkpoint/args
+  hashes, and both upstream roots.
+- Exactly 9,757 records are eligible for canonical 14D materialization. The
+  other 243 retain their candidate files and signal-source failure evidence
+  but remain fail-closed excluded from canonical materialization, training,
+  calibration, and evaluation; no candidate-0 forcing or all-K fallback is
+  allowed.
+- Expert-future value reads by generation and review are zero; the sealed
+  holdout labels remain unopened. Candidate tensors were not modified and no
+  atom materialization, training, calibration, evaluation, or claim occurred.
+  Candidate 0 remains only the fixed-DP deterministic/MAP baseline position;
+  this review does not establish the required independent same-input
+  equivalence and does not support a native ranked Top-1 statement.
+  Feasibility remains exact only within the frozen 32-dynamic plus 5-static
+  observable source, and no complete-scene, closed-loop, performance, or
+  safety claim is made. Free bytes after review are `16463179776`, above the
+  hard 10 GiB floor.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_k8_candidate_generation_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_retry2_ec2adff2_20260711T141923CST
+current_v18_artifact_root_sha256=2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c
+next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only

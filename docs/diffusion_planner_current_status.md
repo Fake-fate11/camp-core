@@ -885,6 +885,41 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_ge
 current_v18_artifact_root_sha256=5fa489bc1810bffe9fd3237735b7705d5ba6f2bbd3913bdd7c213de86bd26d6e
 next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_execution_only
 
+The causal-10k fixed-DP K=8 generation then completed once at unchanged
+CAMP/GitHub/AutoDL
+`ec2adff27f3c41a74d563f9a5e752df7b65d3c5c`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It wrote exactly 10,000 records
+and NPZ files in `6587.689316s`, with execution artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_execution_ec2adff2_20260711T122152CST`
+/ `d97303fbd9aeab65d888ff97dae7dce303363e628d18578492bd349fa14f85c4`
+and candidate root/SHA256
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidates_703a47bec14d`
+/ `3febcd4de182598e69d3420900c996eb37dc3f54d0a8a4a1f221d6ab3c648515`.
+
+Independent full review passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_retry2_ec2adff2_20260711T141923CST`
+/ `2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c`.
+It reverified all 10,002 candidate SHA entries, opened every NPZ with
+`allow_pickle=False`, and proved the 10,000 identities/order, exact
+`6000 / 2000 / 2000` split, K=8 shapes/dtypes/finiteness, stored array hashes,
+and frozen provenance. Two review-harness failures are preserved separately:
+one missing-`pathlib` launcher failure before verifier start and one incorrect
+10,000-versus-10,002 SHA-entry expectation. Neither touched the candidates.
+
+Exactly 9,757 records are canonical-14D eligible; 243 retain their candidate
+and failure evidence but are fail-closed excluded downstream. Label reads are
+zero and holdout labels remain sealed. Candidate 0 is still only the fixed-DP
+deterministic/MAP baseline position pending independent same-input equivalence,
+not native ranked Top-1. Exactness remains limited to the frozen 32+5
+observable source, with no complete-scene, closed-loop, performance, or safety
+claim.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_k8_candidate_generation_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_retry2_ec2adff2_20260711T141923CST
+current_v18_artifact_root_sha256=2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c
+next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
