@@ -100,7 +100,7 @@ COMPARISON_FAMILY = (
     "mini_trained14d",
     "feasible_best_of_k_oracle",
 )
-LEGACY9D_STATUS = "unavailable_pending_distinct_causal_contract"
+LEGACY9D_STATUS = "unavailable"
 LEGACY9D_UNAVAILABLE_REASON = (
     "no_distinct_approved_causal_legacy_contract_without_the_forbidden_v16_"
     "epoch_trainer_or_noncausal_sources"
@@ -413,6 +413,27 @@ def _verify_artifact_root(root: Path, expected_root: str) -> dict[str, Any]:
     return json.loads(summary_path.read_text(encoding="utf-8"))
 
 
+def _verify_mini_selector_inputs(args: Any) -> dict[str, Any]:
+    if args.mini_selector_freeze is None or args.mini_selector_review is None:
+        raise ValueError("frozen mini selector and review paths are required")
+    _verify_sha_list(
+        args.mini_selector_freeze,
+        args.mini_selector_freeze / "SHA256SUMS",
+        EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+    )
+    verify_freeze_review(
+        args.mini_selector_review,
+        EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256,
+        EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+    )
+    return {
+        "freeze_path": str(args.mini_selector_freeze),
+        "freeze_root_sha256": EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+        "review_path": str(args.mini_selector_review),
+        "review_root_sha256": EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256,
+    }
+
+
 def _verify_training_inputs(args: Any) -> dict[str, Any]:
     if (
         args.expected_canonical_root_sha256 != EXPECTED_CANONICAL_ROOT_SHA256
@@ -444,11 +465,13 @@ def _verify_training_inputs(args: Any) -> dict[str, Any]:
         and equivalence.get("records_reviewed") == len(source_rows)
     ):
         raise ValueError("fixed-DP deterministic/MAP equivalence review failed")
+    mini_selector = _verify_mini_selector_inputs(args)
     return {
         "canonical_manifest_entries": canonical_entries,
         "candidate_record_count": len(candidate_records),
         "candidate_source_count": len(source_rows),
         "equivalence_verified": True,
+        "mini_trained14d": mini_selector,
     }
 
 
@@ -665,12 +688,12 @@ def _accepted_weights_and_violations(
         raise RuntimeError("exact optimal solver status is required")
     if not result.converged:
         raise RuntimeError("cutting-plane master must be converged")
-    if result.final_master_gap > TOLERANCE:
+    if not np.isfinite(result.final_master_gap) or result.final_master_gap > TOLERANCE:
         raise RuntimeError("final master gap exceeds tolerance")
     if not result.history or result.history[-1].get("new_cuts") != 0:
         raise RuntimeError("final master has new cuts")
     raw = np.asarray(result.static_weights, dtype=np.float64).reshape(-1)
-    if raw.shape != (EXPECTED_ATOMS,) or not np.all(np.isfinite(raw)):
+    if raw.shape != (normalized_atoms.shape[2],) or not np.all(np.isfinite(raw)):
         raise RuntimeError("static weights have invalid shape or values")
     if np.any(raw < -1e-8) or not np.isclose(raw.sum(), 1.0, atol=1e-8, rtol=0.0):
         raise RuntimeError("static weights violate nonnegative simplex")
@@ -684,6 +707,163 @@ def _accepted_weights_and_violations(
     ):
         raise RuntimeError("independent complete-master violation review failed")
     return weights, violations
+
+
+def _fit_static_selector(
+    atoms: np.ndarray,
+    feasible: np.ndarray,
+    ade: np.ndarray,
+    fde: np.ndarray,
+    *,
+    priority: np.ndarray,
+) -> dict[str, Any]:
+    dimension = atoms.shape[2]
+    atom_schema_for_dimension(dimension)
+    oracle = oracle_indices(ade, fde, feasible, priority=priority)
+    margins = ade_margins(ade, oracle, feasible)
+    scales = train_atom_scales(atoms, feasible)
+    normalized = atoms / scales.reshape(1, 1, -1)
+    config = RobustMarginConfig(
+        mode="static",
+        risk_type="cvar",
+        alpha=CVAR_ALPHA,
+        l2_reg=L2_REG,
+        max_iter=MAX_ITER,
+        tolerance=TOLERANCE,
+        solver=SOLVER,
+        static_weight_lower_bounds=tuple(np.zeros(dimension).tolist()),
+    )
+    np.random.seed(TRAINING_SEED)
+    result = solve_robust_margin_cutting_plane(
+        normalized,
+        oracle,
+        margins,
+        feasible,
+        config=config,
+        features=None,
+    )
+    weights, violations = _accepted_weights_and_violations(
+        result, normalized, oracle, margins, feasible
+    )
+    selected, _ = select_indices(
+        normalized, weights, feasible, priority=priority
+    )
+    return {
+        "weights": weights,
+        "scales": scales,
+        "train_metrics": _paired_metric_summary(
+            ade, fde, feasible, selected, priority=priority
+        ),
+        "solver": {
+            "name": result.solver_name,
+            "status": result.solver_status,
+            "converged": bool(result.converged),
+            "final_master_gap": float(result.final_master_gap),
+            "final_new_cuts": int(result.history[-1]["new_cuts"]),
+            "maximum_independent_violation": float(np.max(violations)),
+            "history": result.history,
+            "cuts_per_scene": list(result.cuts_per_scene),
+        },
+    }
+
+
+def _fit_comparison_family(
+    train: SplitData,
+    calibration: SplitData,
+    *,
+    priority: np.ndarray,
+) -> dict[str, Any]:
+    train_ade, train_fde = _split_errors(train)
+    calibration_ade, calibration_fde = _split_errors(calibration)
+    models: dict[str, dict[str, Any]] = {}
+    for dimension in CORRECTED_SCHEMA_DIMS:
+        name = f"corrected{dimension}d"
+        fitted = _fit_static_selector(
+            train.atoms[:, :, :dimension],
+            train.feasible_mask,
+            train_ade,
+            train_fde,
+            priority=priority,
+        )
+        calibration_selected, _ = select_indices(
+            calibration.atoms[:, :, :dimension]
+            / fitted["scales"].reshape(1, 1, -1),
+            fitted["weights"],
+            calibration.feasible_mask,
+            priority=priority,
+        )
+        fitted["schema_version"] = atom_schema_for_dimension(dimension)[0]
+        fitted["calibration_metrics"] = _paired_metric_summary(
+            calibration_ade,
+            calibration_fde,
+            calibration.feasible_mask,
+            calibration_selected,
+            priority=priority,
+        )
+        models[name] = fitted
+
+    if (
+        not LEARNING_CURVE_TRAIN_COUNTS
+        or LEARNING_CURVE_TRAIN_COUNTS[-1] != train.atoms.shape[0]
+        or any(
+            count <= 0 or count > train.atoms.shape[0]
+            for count in LEARNING_CURVE_TRAIN_COUNTS
+        )
+    ):
+        raise ValueError("learning-curve train counts do not match frozen train")
+    learning_curve = []
+    for count in LEARNING_CURVE_TRAIN_COUNTS:
+        fitted = (
+            models["corrected14d"]
+            if count == train.atoms.shape[0]
+            else _fit_static_selector(
+                train.atoms[:count],
+                train.feasible_mask[:count],
+                train_ade[:count],
+                train_fde[:count],
+                priority=priority,
+            )
+        )
+        learning_curve.append(
+            {
+                "train_records": count,
+                "fit": fitted,
+                "train_metrics": fitted["train_metrics"],
+                "solver": fitted["solver"],
+            }
+        )
+    primary = models["corrected14d"]
+    uniform_weights = np.full(EXPECTED_ATOMS, 1.0 / EXPECTED_ATOMS)
+    uniform_selected, _ = select_indices(
+        calibration.atoms / primary["scales"].reshape(1, 1, -1),
+        uniform_weights,
+        calibration.feasible_mask,
+        priority=priority,
+    )
+    return {
+        "models": models,
+        "learning_curve": learning_curve,
+        "uniform14d": {
+            "weights": uniform_weights,
+            "scales": primary["scales"],
+            "calibration_metrics": _paired_metric_summary(
+                calibration_ade,
+                calibration_fde,
+                calibration.feasible_mask,
+                uniform_selected,
+                priority=priority,
+            ),
+        },
+        "mini_trained14d": {
+            "freeze_root_sha256": EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+            "review_root_sha256": EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256,
+        },
+        "legacy9d": {
+            "status": LEGACY9D_STATUS,
+            "reason": LEGACY9D_UNAVAILABLE_REASON,
+        },
+        "oracle": {"role": "feasible_best_of_k_headroom_only"},
+    }
 
 
 def run_train_calibrate(args: Any) -> dict[str, Any]:
@@ -708,65 +888,75 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         raise ValueError("unexpected materialized calibration count")
 
     priority = tie_priority(EXPECTED_CANDIDATES)
-    train_ade, train_fde = _split_errors(train)
-    train_oracle = oracle_indices(
-        train_ade, train_fde, train.feasible_mask, priority=priority
+    family = _fit_comparison_family(train, calibration, priority=priority)
+    family["mini_trained14d"].update(input_review["mini_trained14d"])
+    mini_selector = load_frozen_selector(
+        args.mini_selector_freeze, EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256
     )
-    margins = ade_margins(train_ade, train_oracle, train.feasible_mask)
-    scales = train_atom_scales(train.atoms, train.feasible_mask)
-    normalized_train = train.atoms / scales.reshape(1, 1, -1)
-    config = RobustMarginConfig(
-        mode="static",
-        risk_type="cvar",
-        alpha=CVAR_ALPHA,
-        l2_reg=L2_REG,
-        max_iter=MAX_ITER,
-        tolerance=TOLERANCE,
-        solver=SOLVER,
-        static_weight_lower_bounds=tuple(np.zeros(EXPECTED_ATOMS).tolist()),
-    )
-    np.random.seed(TRAINING_SEED)
-    result = solve_robust_margin_cutting_plane(
-        normalized_train,
-        train_oracle,
-        margins,
-        train.feasible_mask,
-        config=config,
-        features=None,
-    )
-    weights, independent_violations = _accepted_weights_and_violations(
-        result,
-        normalized_train,
-        train_oracle,
-        margins,
-        train.feasible_mask,
-    )
-    train_selected, _ = select_indices(
-        normalized_train, weights, train.feasible_mask, priority=priority
-    )
-    calibration_ade, calibration_fde = _split_errors(calibration)
-    calibration_selected, _ = select_indices(
-        calibration.atoms / scales.reshape(1, 1, -1),
-        weights,
+    mini_calibration_selected, _ = select_indices(
+        calibration.atoms / mini_selector["scales"].reshape(1, 1, -1),
+        mini_selector["weights"],
         calibration.feasible_mask,
         priority=priority,
     )
-    train_metrics = _paired_metric_summary(
-        train_ade,
-        train_fde,
-        train.feasible_mask,
-        train_selected,
-        priority=priority,
-    )
-    calibration_metrics = _paired_metric_summary(
-        calibration_ade,
-        calibration_fde,
+    mini_calibration_ade, mini_calibration_fde = _split_errors(calibration)
+    family["mini_trained14d"]["calibration_metrics"] = _paired_metric_summary(
+        mini_calibration_ade,
+        mini_calibration_fde,
         calibration.feasible_mask,
-        calibration_selected,
+        mini_calibration_selected,
         priority=priority,
     )
+    primary = family["models"]["corrected14d"]
+    weights = primary["weights"]
+    scales = primary["scales"]
+    train_metrics = primary["train_metrics"]
+    calibration_metrics = primary["calibration_metrics"]
+    solver = primary["solver"]
 
     staging.mkdir(parents=True)
+    models_dir = staging / "models"
+    models_dir.mkdir()
+    model_manifest = {}
+    for name, fitted in family["models"].items():
+        dimension = int(fitted["weights"].size)
+        schema_version, atom_names = atom_schema_for_dimension(dimension)
+        weights_path = models_dir / f"{name}_weights.npy"
+        scales_path = models_dir / f"{name}_scales.json"
+        summary_path = models_dir / f"{name}_summary.json"
+        np.save(weights_path, fitted["weights"])
+        _write_json(
+            scales_path,
+            {
+                "schema_version": schema_version,
+                "atom_names": list(atom_names),
+                "fit_scope": "train_feasible_candidate_rows_only",
+                "percentile": SCALE_PERCENTILE,
+                "scales": fitted["scales"].tolist(),
+            },
+        )
+        _write_json(
+            summary_path,
+            {
+                "status": "passed",
+                "dimension": dimension,
+                "schema_version": schema_version,
+                "train_metrics": fitted["train_metrics"],
+                "calibration_metrics": fitted["calibration_metrics"],
+                "solver": fitted["solver"],
+            },
+        )
+        model_manifest[name] = {
+            "dimension": dimension,
+            "schema_version": schema_version,
+            "weights": weights_path.relative_to(staging).as_posix(),
+            "weights_sha256": _sha256(weights_path),
+            "scales": scales_path.relative_to(staging).as_posix(),
+            "scales_sha256": _sha256(scales_path),
+            "summary": summary_path.relative_to(staging).as_posix(),
+            "summary_sha256": _sha256(summary_path),
+        }
+
     np.save(staging / "static_weights.npy", weights)
     _write_json(
         staging / "atom_scales.json",
@@ -778,12 +968,82 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
             "scales": scales.tolist(),
         },
     )
+    uniform_weights_path = staging / "uniform14d_weights.npy"
+    np.save(uniform_weights_path, family["uniform14d"]["weights"])
+    curve_dir = staging / "learning_curve"
+    curve_dir.mkdir()
+    learning_curve = []
+    for row in family["learning_curve"]:
+        count = int(row["train_records"])
+        fitted = row["fit"]
+        if count == EXPECTED_TRAIN_COUNT:
+            weights_relative = model_manifest["corrected14d"]["weights"]
+            scales_relative = model_manifest["corrected14d"]["scales"]
+            weights_sha = model_manifest["corrected14d"]["weights_sha256"]
+            scales_sha = model_manifest["corrected14d"]["scales_sha256"]
+        else:
+            curve_weights = curve_dir / f"train_{count}_weights.npy"
+            curve_scales = curve_dir / f"train_{count}_scales.json"
+            np.save(curve_weights, fitted["weights"])
+            _write_json(
+                curve_scales,
+                {
+                    "schema_version": "dp_camp_v10_14d",
+                    "atom_names": list(DP_CAMP_ATOM_NAMES_V10),
+                    "fit_scope": "nested_train_prefix_feasible_candidate_rows_only",
+                    "train_records": count,
+                    "percentile": SCALE_PERCENTILE,
+                    "scales": fitted["scales"].tolist(),
+                },
+            )
+            weights_relative = curve_weights.relative_to(staging).as_posix()
+            scales_relative = curve_scales.relative_to(staging).as_posix()
+            weights_sha = _sha256(curve_weights)
+            scales_sha = _sha256(curve_scales)
+        learning_curve.append(
+            {
+                "train_records": count,
+                "weights": weights_relative,
+                "weights_sha256": weights_sha,
+                "scales": scales_relative,
+                "scales_sha256": scales_sha,
+                "train_metrics": row["train_metrics"],
+                "solver": row["solver"],
+            }
+        )
+    comparison_family = {
+        "status": "frozen",
+        "comparison_family": list(COMPARISON_FAMILY),
+        "model_order": list(family["models"]),
+        "models": model_manifest,
+        "uniform14d": {
+            "weights": uniform_weights_path.relative_to(staging).as_posix(),
+            "weights_sha256": _sha256(uniform_weights_path),
+            "scales": "atom_scales.json",
+            "scales_sha256": _sha256(staging / "atom_scales.json"),
+            "calibration_metrics": family["uniform14d"]["calibration_metrics"],
+        },
+        "mini_trained14d": family["mini_trained14d"],
+        "legacy9d": family["legacy9d"],
+        "oracle": family["oracle"],
+        "learning_curve": learning_curve,
+    }
+    _write_json(staging / "comparison_family.json", comparison_family)
     calibration_summary = {
         "status": "passed",
         "mode": "tuning_free_diagnostics_only",
         "model_or_scale_updates": 0,
         "records": EXPECTED_CALIBRATION_COUNT,
-        "metrics": calibration_metrics,
+        "metrics": {
+            **{
+                name: fitted["calibration_metrics"]
+                for name, fitted in family["models"].items()
+            },
+            "uniform14d": family["uniform14d"]["calibration_metrics"],
+            "mini_trained14d": family["mini_trained14d"][
+                "calibration_metrics"
+            ],
+        },
     }
     _write_json(staging / "calibration_summary.json", calibration_summary)
     protocol = {
@@ -820,6 +1080,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         ),
         "weights_sha256": _sha256(staging / "static_weights.npy"),
         "atom_scales_sha256": _sha256(staging / "atom_scales.json"),
+        "comparison_family_sha256": _sha256(staging / "comparison_family.json"),
     }
     _write_json(staging / "paired_eval_protocol.json", protocol)
     summary = {
@@ -839,19 +1100,27 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "max_iter": MAX_ITER,
         "tolerance": TOLERANCE,
         "solver": SOLVER,
-        "solver_name": result.solver_name,
-        "solver_status": result.solver_status,
-        "converged": bool(result.converged),
-        "final_master_gap": float(result.final_master_gap),
-        "final_new_cuts": int(result.history[-1]["new_cuts"]),
-        "maximum_independent_violation": float(np.max(independent_violations)),
+        "solver_name": solver["name"],
+        "solver_status": solver["status"],
+        "converged": solver["converged"],
+        "final_master_gap": solver["final_master_gap"],
+        "final_new_cuts": solver["final_new_cuts"],
+        "maximum_independent_violation": solver[
+            "maximum_independent_violation"
+        ],
         "weights": weights.tolist(),
         "simplex_sum": float(weights.sum()),
         "minimum_weight": float(weights.min()),
         "train_metrics": train_metrics,
         "calibration_metrics": calibration_metrics,
-        "history": result.history,
-        "cuts_per_scene": list(result.cuts_per_scene),
+        "history": solver["history"],
+        "cuts_per_scene": solver["cuts_per_scene"],
+        "comparison_family_sha256": _sha256(staging / "comparison_family.json"),
+        "comparison_models": list(model_manifest),
+        "learning_curve_train_counts": [
+            row["train_records"] for row in learning_curve
+        ],
+        "legacy9d": family["legacy9d"],
         "controller_pointer": pointer,
         "input_review": input_review,
         "baseline_semantics": BASELINE_SEMANTICS,
@@ -1308,6 +1577,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--expected_equivalence_review_root_sha256", required=True
     )
+    parser.add_argument("--mini_selector_freeze", type=Path, required=True)
+    parser.add_argument("--mini_selector_review", type=Path, required=True)
     parser.add_argument("--freeze_root", type=Path)
     parser.add_argument("--expected_freeze_root_sha256")
     parser.add_argument("--freeze_review", type=Path)

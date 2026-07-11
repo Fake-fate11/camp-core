@@ -82,7 +82,7 @@ def test_frozen_training_and_evaluation_constants() -> None:
     assert module.SAFETY_CLAIM_SCOPE == (
         "no_complete_scene_closed_loop_or_real_world_safety_claim"
     )
-    assert module.LEGACY9D_STATUS == "unavailable_pending_distinct_causal_contract"
+    assert module.LEGACY9D_STATUS == "unavailable"
     assert module.CORRECTED_SCHEMA_NAMES == (
         "camp_legacy_v1_9d",
         "dp_camp_v7_10d",
@@ -277,6 +277,8 @@ def _training_args(tmp_path) -> argparse.Namespace:
         expected_candidate_root_sha256="b" * 64,
         equivalence_review=tmp_path / "equivalence_review",
         expected_equivalence_review_root_sha256="c" * 64,
+        mini_selector_freeze=tmp_path / "mini_selector_freeze",
+        mini_selector_review=tmp_path / "mini_selector_review",
         output_dir=tmp_path / "freeze",
         current_status=tmp_path / "status.md",
         v18_audit=tmp_path / "audit.md",
@@ -308,6 +310,16 @@ def test_training_inputs_accept_causal_10k_top_level_equivalence_review(
             "records_reviewed": 10_000,
         },
     )
+    monkeypatch.setattr(
+        module,
+        "_verify_mini_selector_inputs",
+        lambda _args: {
+            "freeze_path": str(args.mini_selector_freeze),
+            "freeze_root_sha256": module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+            "review_path": str(args.mini_selector_review),
+            "review_root_sha256": module.EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256,
+        },
+    )
 
     result = module._verify_training_inputs(args)
 
@@ -316,6 +328,12 @@ def test_training_inputs_accept_causal_10k_top_level_equivalence_review(
         "candidate_record_count": 10_000,
         "candidate_source_count": 10_000,
         "equivalence_verified": True,
+        "mini_trained14d": {
+            "freeze_path": str(args.mini_selector_freeze),
+            "freeze_root_sha256": module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+            "review_path": str(args.mini_selector_review),
+            "review_root_sha256": module.EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256,
+        },
     }
 
 
@@ -357,9 +375,47 @@ def test_training_inputs_reject_nested_mini_equivalence_schema(
             },
         },
     )
+    monkeypatch.setattr(module, "_verify_mini_selector_inputs", lambda _args: {})
 
     with pytest.raises(ValueError, match="equivalence review failed"):
         module._verify_training_inputs(args)
+
+
+def test_mini_selector_inputs_verify_frozen_freeze_and_review(
+    tmp_path, monkeypatch
+) -> None:
+    args = _training_args(tmp_path)
+    observed = {}
+
+    def fake_sha_list(root, manifest, expected_root):
+        observed["freeze"] = (root, manifest, expected_root)
+        return 7
+
+    def fake_review(root, expected_root, expected_freeze_root):
+        observed["review"] = (root, expected_root, expected_freeze_root)
+        return {"status": "passed"}
+
+    monkeypatch.setattr(module, "_verify_sha_list", fake_sha_list)
+    monkeypatch.setattr(module, "verify_freeze_review", fake_review)
+
+    result = module._verify_mini_selector_inputs(args)
+
+    assert observed["freeze"] == (
+        args.mini_selector_freeze,
+        args.mini_selector_freeze / "SHA256SUMS",
+        module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+    )
+    assert observed["review"] == (
+        args.mini_selector_review,
+        module.EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256,
+        module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256,
+    )
+    assert result["freeze_root_sha256"] == (
+        module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256
+    )
+    assert result["review_root_sha256"] == (
+        module.EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256
+    )
 
 
 def _accepted_master_result(atoms, oracle, margins, feasible, config):
@@ -458,7 +514,12 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     calibration = _split_data("calibration", 1, atom_offset=10_000.0)
     monkeypatch.setattr(module, "EXPECTED_TRAIN_COUNT", 2)
     monkeypatch.setattr(module, "EXPECTED_CALIBRATION_COUNT", 1)
-    monkeypatch.setattr(module, "_verify_training_inputs", lambda _args: {"ok": True})
+    monkeypatch.setattr(module, "LEARNING_CURVE_TRAIN_COUNTS", (1, 2))
+    monkeypatch.setattr(
+        module,
+        "_verify_training_inputs",
+        lambda _args: {"mini_trained14d": {"paths_verified": True}},
+    )
     monkeypatch.setattr(
         module,
         "read_v18_status_pointer",
@@ -471,28 +532,41 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
             train if split == "train" else calibration
         ),
     )
-    observed = {}
+    monkeypatch.setattr(
+        module,
+        "load_frozen_selector",
+        lambda root, expected: {
+            "weights": np.full(14, 1.0 / 14.0),
+            "scales": np.ones(14),
+        },
+    )
+    observed = []
 
     def fake_master(atoms, oracle, margins, feasible, *, config, features=None):
-        observed["config"] = config
-        observed["features"] = features
-        observed["records"] = atoms.shape[0]
+        observed.append((atoms.shape, config, features))
         return _accepted_master_result(atoms, oracle, margins, feasible, config)
 
     monkeypatch.setattr(module, "solve_robust_margin_cutting_plane", fake_master)
 
     summary = module.run_train_calibrate(_training_args(tmp_path))
 
-    assert observed["records"] == 2
-    assert observed["features"] is None
-    config = observed["config"]
-    assert config.mode == "static"
-    assert config.risk_type == "cvar"
-    assert config.alpha == 0.9
-    assert config.l2_reg == 1e-4
-    assert config.max_iter == 20
-    assert config.tolerance == 1e-6
-    assert config.solver == "CLARABEL"
+    assert [shape for shape, _config, _features in observed] == [
+        (2, 8, 9),
+        (2, 8, 10),
+        (2, 8, 12),
+        (2, 8, 13),
+        (2, 8, 14),
+        (1, 8, 14),
+    ]
+    for _shape, config, features in observed:
+        assert features is None
+        assert config.mode == "static"
+        assert config.risk_type == "cvar"
+        assert config.alpha == 0.9
+        assert config.l2_reg == 1e-4
+        assert config.max_iter == 20
+        assert config.tolerance == 1e-6
+        assert config.solver == "CLARABEL"
     assert summary["holdout_label_reads"] == 0
     assert summary["train_records"] == 2
     assert summary["calibration_records"] == 1
@@ -518,6 +592,109 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     assert protocol["bootstrap_replicates"] == 10_000
     assert protocol["miss_threshold_m"] == 2.0
     assert protocol["native_ranked_top1"] is False
+    assert protocol["comparison_family_sha256"] == module._sha256(
+        tmp_path / "freeze" / "comparison_family.json"
+    )
+    comparison = json.loads(
+        (tmp_path / "freeze" / "comparison_family.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert tuple(comparison["model_order"]) == (
+        "corrected9d",
+        "corrected10d",
+        "corrected12d",
+        "corrected13d",
+        "corrected14d",
+    )
+    assert comparison["legacy9d"]["status"] == module.LEGACY9D_STATUS
+    assert comparison["mini_trained14d"]["paths_verified"] is True
+    assert comparison["mini_trained14d"]["calibration_metrics"]["records"] == 1
+    assert comparison["uniform14d"]["scales_sha256"] == module._sha256(
+        tmp_path / "freeze" / "atom_scales.json"
+    )
+    assert [row["train_records"] for row in comparison["learning_curve"]] == [
+        1,
+        2,
+    ]
+    for name in comparison["models"]:
+        assert (tmp_path / "freeze" / "models" / f"{name}_weights.npy").is_file()
+        assert (tmp_path / "freeze" / "models" / f"{name}_scales.json").is_file()
+
+
+def test_fit_static_selector_uses_dimension_specific_convex_master(
+    monkeypatch,
+) -> None:
+    train = _split_data("train", 2)
+    ade, fde = module._split_errors(train)
+    priority = module.tie_priority(8)
+    observed = {}
+
+    def fake_master(atoms, oracle, margins, feasible, *, config, features=None):
+        observed["shape"] = atoms.shape
+        observed["lower_bounds"] = config.static_weight_lower_bounds
+        observed["features"] = features
+        return _accepted_master_result(atoms, oracle, margins, feasible, config)
+
+    monkeypatch.setattr(module, "solve_robust_margin_cutting_plane", fake_master)
+
+    fitted = module._fit_static_selector(
+        train.atoms[:, :, :9], train.feasible_mask, ade, fde, priority=priority
+    )
+
+    assert observed == {
+        "shape": (2, 8, 9),
+        "lower_bounds": (0.0,) * 9,
+        "features": None,
+    }
+    assert fitted["weights"].shape == (9,)
+    assert fitted["scales"].shape == (9,)
+    assert fitted["solver"]["status"] == "optimal"
+    assert fitted["solver"]["final_new_cuts"] == 0
+
+
+def test_comparison_family_fits_prefixes_and_nested_14d_curve(
+    monkeypatch,
+) -> None:
+    train = _split_data("train", 4)
+    calibration = _split_data("calibration", 2)
+    monkeypatch.setattr(module, "LEARNING_CURVE_TRAIN_COUNTS", (1, 2, 4))
+    calls = []
+
+    def fake_fit(atoms, feasible, ade, fde, *, priority):
+        calls.append((atoms.shape[2], atoms.shape[0]))
+        dimension = atoms.shape[2]
+        return {
+            "weights": np.full(dimension, 1.0 / dimension),
+            "scales": np.ones(dimension),
+            "train_metrics": {"records": atoms.shape[0]},
+            "solver": {"status": "optimal", "final_new_cuts": 0},
+        }
+
+    monkeypatch.setattr(module, "_fit_static_selector", fake_fit)
+
+    result = module._fit_comparison_family(
+        train, calibration, priority=module.tie_priority(8)
+    )
+
+    assert calls == [
+        (9, 4),
+        (10, 4),
+        (12, 4),
+        (13, 4),
+        (14, 4),
+        (14, 1),
+        (14, 2),
+    ]
+    assert tuple(result["models"]) == (
+        "corrected9d",
+        "corrected10d",
+        "corrected12d",
+        "corrected13d",
+        "corrected14d",
+    )
+    assert [row["train_records"] for row in result["learning_curve"]] == [1, 2, 4]
+    assert result["legacy9d"]["status"] == module.LEGACY9D_STATUS
 
 
 @pytest.mark.parametrize(
@@ -527,6 +704,8 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
         ("CLARABEL", "optimal_inaccurate", True, 0.0, 0, "exact optimal"),
         ("CLARABEL", "optimal", False, 0.0, 0, "converged"),
         ("CLARABEL", "optimal", True, 1e-4, 0, "master gap"),
+        ("CLARABEL", "optimal", True, float("nan"), 0, "master gap"),
+        ("CLARABEL", "optimal", True, float("-inf"), 0, "master gap"),
         ("CLARABEL", "optimal", True, 0.0, 1, "new cuts"),
     ],
 )
@@ -544,7 +723,12 @@ def test_train_calibrate_fail_closed_before_checkpoint_promotion(
     calibration = _split_data("calibration", 1)
     monkeypatch.setattr(module, "EXPECTED_TRAIN_COUNT", 1)
     monkeypatch.setattr(module, "EXPECTED_CALIBRATION_COUNT", 1)
-    monkeypatch.setattr(module, "_verify_training_inputs", lambda _args: {})
+    monkeypatch.setattr(module, "LEARNING_CURVE_TRAIN_COUNTS", (1,))
+    monkeypatch.setattr(
+        module,
+        "_verify_training_inputs",
+        lambda _args: {"mini_trained14d": {"paths_verified": True}},
+    )
     monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_args: {})
     monkeypatch.setattr(
         module,
@@ -552,6 +736,14 @@ def test_train_calibrate_fail_closed_before_checkpoint_promotion(
         lambda _canonical, _candidate, split, **_kwargs: (
             train if split == "train" else calibration
         ),
+    )
+    monkeypatch.setattr(
+        module,
+        "load_frozen_selector",
+        lambda *_args: {
+            "weights": np.full(14, 1.0 / 14.0),
+            "scales": np.ones(14),
+        },
     )
 
     def fake_master(atoms, oracle, margins, feasible, *, config, features=None):
@@ -570,6 +762,7 @@ def test_train_calibrate_fail_closed_before_checkpoint_promotion(
         module.run_train_calibrate(args)
 
     assert not args.output_dir.exists()
+    assert not args.output_dir.with_name(args.output_dir.name + ".tmp").exists()
 
 
 def _evaluation_args(tmp_path) -> argparse.Namespace:
