@@ -2656,3 +2656,63 @@ current_v18_artifact_scope=nuplan_causal_10k_reviewed_frozen_selector_family_one
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_preflight_result_review_3d24cf28_20260711T214005CST
 current_v18_artifact_root_sha256=6403ba39ec0536aaf7752b8dfb7409792bc8bdf54015249849b1cbc6929cf41f
 next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_execution_only
+
+## Causal-10k One-shot Holdout Paired-evaluation Result Review
+
+The one authorized 1,931-record holdout label opening completed once at CAMP
+local/GitHub/AutoDL `be938d3ea1c81b313963bb4e5054eb06f283c487`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+- Execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_execution_be938d3e_20260711T214259CST`
+  / `603f39bcccb861324ae62197687698140157c1d18aec9e759bfc6fb32fe18869`.
+  Exit was `0`, stderr was empty, and wall time was `609.520589828s`.
+  Immutable paired output/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_eval_afec0dd1_3d24cf28`
+  / `5c2e45d266b698006deed6cd23ae8c9d4fa50b88b1760e5df1e7d69b4fa5697a`.
+  Exactly 1,931 label queries produced 1,931 distinct SHA receipts and derived
+  candidate ADE/FDE rows; raw expert futures were not persisted. Model/scale
+  updates, candidate generation/mutation, and fallback were zero.
+- Independent result-review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_result_review_be938d3e_20260711T215608CST`
+  / `843c600c15f76d89b98fe6d43cfe8ad5f6463a2859db08aff78ae11a8c6db7fa`.
+  All 10 entries passed; exit was `0`, stderr was empty, and wall time was
+  `602.880421162s`. Without requerying labels, it recomputed every persisted
+  identity/receipt, feasible selector/oracle index, primary score, per-selector
+  aggregate, 10,000-replicate log/scene CI, and claim criterion. It also
+  independently reran the complete label-free seven-selector latency protocol.
+- The fixed-DP deterministic/MAP baseline mean ADE/FDE/miss was
+  `2.3024889615 m / 6.4687269243 m / 0.5525634386`; feasible best-of-K oracle
+  was `1.7976461125 m / 5.1757558386 m / 0.4665976178`.
+  Primary corrected14D-minus-baseline ADE/FDE/miss deltas were
+  `+0.0800496653 m / +0.1018118077 m / -0.0129466598` with ADE
+  better/tie/worse `915 / 68 / 948`, non-baseline selection rate
+  `0.9647850854`, and selection-oracle ADE gap `0.5848925143 m`.
+  Scene-cluster CI95 was ADE `[-0.0413972708, +0.1977703305]`, FDE
+  `[-0.2302660821, +0.4205314800]`, and miss
+  `[-0.0318183044, +0.0059495036]`.
+- Original and independently repeated corrected14D selector p99 latency were
+  `0.046465 ms` and `0.047768 ms`, both below the frozen `1 ms` gate.
+  Corrected9D ADE/FDE/miss deltas were
+  `+0.0236146482 m / -0.0146529357 m / -0.0186431901`; primary corrected14D
+  therefore also failed the zero-slack ADE non-inferiority check. Uniform14D
+  diagnostics had ADE/FDE/miss deltas
+  `-0.0149230876 m / -0.1048163328 m / -0.0129466598`, but uniform14D is a
+  frozen comparator, not the preregistered trained primary, and cannot be
+  substituted after seeing holdout results.
+
+The preregistered performance result is `no_claim`: corrected14D ADE mean was
+not negative, its scene-CI upper bound was not negative, FDE non-regression
+failed, corrected14D was not ADE-noninferior to corrected9D, and a distinct
+causal legacy9D was unavailable. Miss non-regression, latency, and evidence
+completeness passed. No threshold, selector, metric, CI, or model may now be
+changed, and the holdout may not be reopened for tuning. Candidate 0 remains
+the proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; exactness remains within the frozen 32+5
+observable source, with no complete-scene, closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_result_review_completed_no_claim
+current_v18_artifact_scope=nuplan_causal_10k_reviewed_frozen_selector_family_one_shot_holdout_paired_evaluation_offline_no_claim
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_result_review_be938d3e_20260711T215608CST
+current_v18_artifact_root_sha256=843c600c15f76d89b98fe6d43cfe8ad5f6463a2859db08aff78ae11a8c6db7fa
+next_work_target=v18_nuplan_causal_10k_bounded_offline_safety_preflight_only

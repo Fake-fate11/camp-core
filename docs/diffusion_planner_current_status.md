@@ -1250,6 +1250,43 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_pai
 current_v18_artifact_root_sha256=6403ba39ec0536aaf7752b8dfb7409792bc8bdf54015249849b1cbc6929cf41f
 next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_execution_only
 
+The one authorized 1,931-record holdout opening completed at CAMP
+local/GitHub/AutoDL `be938d3ea1c81b313963bb4e5054eb06f283c487`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_execution_be938d3e_20260711T214259CST`
+/ `603f39bcccb861324ae62197687698140157c1d18aec9e759bfc6fb32fe18869`.
+Immutable paired output/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_eval_afec0dd1_3d24cf28`
+/ `5c2e45d266b698006deed6cd23ae8c9d4fa50b88b1760e5df1e7d69b4fa5697a`.
+Exactly 1,931 distinct label SHA receipts were retained; raw futures were not.
+
+Independent result review passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_result_review_be938d3e_20260711T215608CST`
+/ `843c600c15f76d89b98fe6d43cfe8ad5f6463a2859db08aff78ae11a8c6db7fa`.
+It requeried zero labels and recomputed every receipt, selector/oracle choice,
+aggregate, 10k log/scene bootstrap, claim criterion, and the full label-free
+latency protocol.
+
+Primary corrected14D ADE/FDE/miss deltas were
+`+0.0800496653 m / +0.1018118077 m / -0.0129466598`; scene ADE CI95 was
+`[-0.0413972708, +0.1977703305]`, better/tie/worse was `915/68/948`, and
+original/review p99 latency was `0.046465/0.047768 ms`. The preregistered
+result is `no_claim`: ADE mean and CI, FDE non-regression, corrected14D versus
+corrected9D ADE non-inferiority, and distinct causal legacy9D evidence failed.
+Uniform14D's directional result cannot replace the frozen trained primary.
+No post-holdout model/threshold/metric/CI change or tuning rerun is permitted.
+
+Candidate 0 remains the fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; exactness remains within the frozen 32+5
+observable source. This remains offline fixed-candidate evidence, not a
+complete-scene, closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_result_review_completed_no_claim
+current_v18_artifact_scope=nuplan_causal_10k_reviewed_frozen_selector_family_one_shot_holdout_paired_evaluation_offline_no_claim
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_one_shot_paired_evaluation_result_review_be938d3e_20260711T215608CST
+current_v18_artifact_root_sha256=843c600c15f76d89b98fe6d43cfe8ad5f6463a2859db08aff78ae11a8c6db7fa
+next_work_target=v18_nuplan_causal_10k_bounded_offline_safety_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
