@@ -258,6 +258,7 @@ def _split_data(split: str, count: int, *, atom_offset: float = 0.0):
                 "log_token": f"{split}_log_{index // 2}",
                 "scene_token": f"{split}_scene_{index}",
                 "decision_token": f"{split}_decision_{index}",
+                "canonical_output_npz": f"{split}/{index}.npz",
             }
             for index in range(count)
         ),
@@ -515,6 +516,7 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     monkeypatch.setattr(module, "EXPECTED_TRAIN_COUNT", 2)
     monkeypatch.setattr(module, "EXPECTED_CALIBRATION_COUNT", 1)
     monkeypatch.setattr(module, "LEARNING_CURVE_TRAIN_COUNTS", (1, 2))
+    monkeypatch.setattr(module, "LATENCY_REPETITIONS_PER_RECORD", 2)
     monkeypatch.setattr(
         module,
         "_verify_training_inputs",
@@ -534,7 +536,7 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     )
     monkeypatch.setattr(
         module,
-        "load_frozen_selector",
+        "_load_primary_frozen_selector",
         lambda root, expected: {
             "weights": np.full(14, 1.0 / 14.0),
             "scales": np.ones(14),
@@ -612,6 +614,25 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     assert comparison["mini_trained14d"]["calibration_metrics"]["records"] == 1
     assert comparison["uniform14d"]["scales_sha256"] == module._sha256(
         tmp_path / "freeze" / "atom_scales.json"
+    )
+    calibration_summary = json.loads(
+        (tmp_path / "freeze" / "calibration_summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert set(calibration_summary["metrics"]) == {
+        "corrected9d",
+        "corrected10d",
+        "corrected12d",
+        "corrected13d",
+        "corrected14d",
+        "uniform14d",
+        "mini_trained14d",
+    }
+    assert all(
+        set(metrics["selector_latency_ms"])
+        == {"mean", "p50", "p95", "p99", "max"}
+        for metrics in calibration_summary["metrics"].values()
     )
     assert [row["train_records"] for row in comparison["learning_curve"]] == [
         1,
@@ -775,7 +796,13 @@ def _evaluation_args(tmp_path) -> argparse.Namespace:
     return args
 
 
-def _write_test_freeze(root, *, latency_repetitions=2, bootstrap_replicates=50):
+def _write_test_freeze(
+    root,
+    *,
+    latency_repetitions=2,
+    bootstrap_replicates=50,
+    include_comparison=True,
+):
     root.mkdir(parents=True)
     weights = np.full(14, 1.0 / 14.0)
     np.save(root / "static_weights.npy", weights)
@@ -806,6 +833,74 @@ def _write_test_freeze(root, *, latency_repetitions=2, bootstrap_replicates=50):
         "weights_sha256": module._sha256(root / "static_weights.npy"),
         "atom_scales_sha256": module._sha256(root / "atom_scales.json"),
     }
+    if include_comparison:
+        models = root / "models"
+        models.mkdir()
+        model_order = [
+            "corrected9d",
+            "corrected10d",
+            "corrected12d",
+            "corrected13d",
+            "corrected14d",
+        ]
+        model_manifest = {}
+        for name, dimension in zip(model_order, module.CORRECTED_SCHEMA_DIMS):
+            model_weights = np.full(dimension, 1.0 / dimension)
+            weights_path = models / f"{name}_weights.npy"
+            scales_path = models / f"{name}_scales.json"
+            np.save(weights_path, model_weights)
+            scales_path.write_text(
+                json.dumps({"scales": [1.0] * dimension}), encoding="utf-8"
+            )
+            model_manifest[name] = {
+                "dimension": dimension,
+                "weights": weights_path.relative_to(root).as_posix(),
+                "weights_sha256": module._sha256(weights_path),
+                "scales": scales_path.relative_to(root).as_posix(),
+                "scales_sha256": module._sha256(scales_path),
+            }
+        uniform_path = root / "uniform14d_weights.npy"
+        mini_weights_path = models / "mini_trained14d_weights.npy"
+        mini_scales_path = models / "mini_trained14d_scales.json"
+        np.save(uniform_path, weights)
+        np.save(mini_weights_path, weights)
+        mini_scales_path.write_text(
+            json.dumps({"scales": [1.0] * 14}), encoding="utf-8"
+        )
+        comparison = {
+            "status": "frozen",
+            "comparison_family": list(module.COMPARISON_FAMILY),
+            "model_order": model_order,
+            "models": model_manifest,
+            "uniform14d": {
+                "weights": uniform_path.relative_to(root).as_posix(),
+                "weights_sha256": module._sha256(uniform_path),
+                "scales": "atom_scales.json",
+                "scales_sha256": module._sha256(root / "atom_scales.json"),
+            },
+        "mini_trained14d": {
+            "weights": mini_weights_path.relative_to(root).as_posix(),
+            "weights_sha256": module._sha256(mini_weights_path),
+            "scales": mini_scales_path.relative_to(root).as_posix(),
+            "scales_sha256": module._sha256(mini_scales_path),
+            "freeze_root_sha256": (
+                module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256
+            ),
+            "review_root_sha256": (
+                module.EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256
+            ),
+            },
+            "legacy9d": {
+                "status": module.LEGACY9D_STATUS,
+                "reason": module.LEGACY9D_UNAVAILABLE_REASON,
+            },
+        }
+        (root / "comparison_family.json").write_text(
+            json.dumps(comparison), encoding="utf-8"
+        )
+        protocol["comparison_family_sha256"] = module._sha256(
+            root / "comparison_family.json"
+        )
     (root / "paired_eval_protocol.json").write_text(
         json.dumps(protocol), encoding="utf-8"
     )
@@ -830,6 +925,7 @@ def test_paired_eval_preflight_does_not_read_holdout_labels(
     )
     args = _evaluation_args(tmp_path)
     monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 1)
+    monkeypatch.setattr(module, "EXPECTED_EXCLUDED_HOLDOUT_COUNT", 0)
     monkeypatch.setattr(
         module,
         "_verify_evaluation_inputs",
@@ -865,6 +961,10 @@ def test_paired_eval_preflight_does_not_read_holdout_labels(
     assert not args.output_dir.exists()
     assert not args.output_dir.with_name(args.output_dir.name + ".tmp").exists()
 
+    monkeypatch.setattr(module, "EXPECTED_EXCLUDED_HOLDOUT_COUNT", 1)
+    with pytest.raises(ValueError, match="excluded holdout"):
+        module.run_paired_eval_preflight(args)
+
 
 def test_paired_eval_reads_each_label_once_and_persists_only_derived_metrics(
     tmp_path, monkeypatch
@@ -888,6 +988,7 @@ def test_paired_eval_reads_each_label_once_and_persists_only_derived_metrics(
         for index, row in enumerate(holdout.rows)
     }
     monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 2)
+    monkeypatch.setattr(module, "EXPECTED_EXCLUDED_HOLDOUT_COUNT", 0)
     monkeypatch.setattr(
         module,
         "_verify_evaluation_inputs",
@@ -905,6 +1006,14 @@ def test_paired_eval_reads_each_label_once_and_persists_only_derived_metrics(
     monkeypatch.setattr(module, "_canonical_rows", lambda _root: list(holdout.rows))
     monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_args: {})
     calls = []
+    bootstrap_seeds = []
+    real_bootstrap = module.paired_cluster_bootstrap
+
+    def recording_bootstrap(*args, **kwargs):
+        bootstrap_seeds.append(kwargs["seed"])
+        return real_bootstrap(*args, **kwargs)
+
+    monkeypatch.setattr(module, "paired_cluster_bootstrap", recording_bootstrap)
 
     def label_loader(db_path, decision_token, **_kwargs):
         calls.append((db_path, decision_token))
@@ -919,7 +1028,42 @@ def test_paired_eval_reads_each_label_once_and_persists_only_derived_metrics(
     assert summary["fallback_count"] == 0
     assert summary["native_ranked_top1"] is False
     assert set(summary["paired_ci95"]) == {"log_cluster", "scene_cluster"}
-    assert set(summary["selector_latency_ms"]) == {"p50", "p95", "p99", "max"}
+    assert set(summary["selector_latency_ms"]) == {
+        "mean",
+        "p50",
+        "p95",
+        "p99",
+        "max",
+    }
+    expected_selectors = {
+        "uniform14d",
+        "corrected9d",
+        "corrected10d",
+        "corrected12d",
+        "corrected13d",
+        "corrected14d",
+        "mini_trained14d",
+    }
+    assert summary["primary_selector"] == "corrected14d"
+    assert set(summary["selector_results"]) == expected_selectors
+    expected_child_seeds = [
+        int(child.generate_state(1, dtype=np.uint64)[0])
+        for child in np.random.SeedSequence(module.BOOTSTRAP_SEED).spawn(
+            len(expected_selectors)
+        )
+    ]
+    assert bootstrap_seeds == expected_child_seeds
+    assert all(
+        set(result["selector_latency_ms"])
+        == {"mean", "p50", "p95", "p99", "max"}
+        for result in summary["selector_results"].values()
+    )
+    assert summary["legacy9d"] == {
+        "status": module.LEGACY9D_STATUS,
+        "reason": module.LEGACY9D_UNAVAILABLE_REASON,
+    }
+    assert summary["feasible_best_of_k_oracle"]["mean_ade_m"] == 0.0
+    assert summary["aggregate"]["non_top1_rate"] == 0.0
     rows = [
         json.loads(line)
         for line in (args.output_dir / "records.jsonl")
@@ -930,6 +1074,7 @@ def test_paired_eval_reads_each_label_once_and_persists_only_derived_metrics(
     assert all("expert_future_sha256" in row for row in rows)
     assert all("candidate_ade_m" in row and "candidate_fde_m" in row for row in rows)
     assert all("expert_ego_future_xyh" not in row for row in rows)
+    assert all(set(row["selector_indices"]) == expected_selectors for row in rows)
     assert (args.output_dir / "ROOT_SHA256SUMS").is_file()
 
 
@@ -960,12 +1105,48 @@ def test_paired_eval_existing_output_or_staging_blocks_before_label_read(
 def test_frozen_selector_root_rejects_post_freeze_mutation(tmp_path) -> None:
     freeze = tmp_path / "freeze"
     root_sha = _write_test_freeze(freeze)
-    module.load_frozen_selector(freeze, root_sha)
+    loaded = module.load_frozen_selector(freeze, root_sha)
+    assert set(loaded["selectors"]) == {
+        "uniform14d",
+        "corrected9d",
+        "corrected10d",
+        "corrected12d",
+        "corrected13d",
+        "corrected14d",
+        "mini_trained14d",
+    }
 
     with (freeze / "static_weights.npy").open("ab") as stream:
         stream.write(b"mutation")
 
     with pytest.raises(ValueError, match="SHA256"):
+        module.load_frozen_selector(freeze, root_sha)
+
+
+def test_primary_frozen_selector_accepts_mini_single_model_layout(tmp_path) -> None:
+    freeze = tmp_path / "mini_freeze"
+    root_sha = _write_test_freeze(freeze, include_comparison=False)
+
+    loaded = module._load_primary_frozen_selector(freeze, root_sha)
+
+    np.testing.assert_allclose(loaded["weights"], np.full(14, 1.0 / 14.0))
+    np.testing.assert_allclose(loaded["scales"], np.ones(14))
+
+
+def test_frozen_selector_requires_exact_legacy_reason(tmp_path) -> None:
+    freeze = tmp_path / "freeze"
+    _write_test_freeze(freeze)
+    comparison_path = freeze / "comparison_family.json"
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    comparison["legacy9d"]["reason"] = "wrong"
+    comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+    protocol_path = freeze / "paired_eval_protocol.json"
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    protocol["comparison_family_sha256"] = module._sha256(comparison_path)
+    protocol_path.write_text(json.dumps(protocol), encoding="utf-8")
+    root_sha = module._write_root_manifest(freeze)
+
+    with pytest.raises(ValueError, match="comparison-family"):
         module.load_frozen_selector(freeze, root_sha)
 
 

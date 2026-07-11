@@ -58,6 +58,7 @@ MISS_THRESHOLD_M = 2.0
 ADE_TIE_TOLERANCE_M = 1e-9
 SCORE_TIE_TOLERANCE = 1e-12
 BOOTSTRAP_REPLICATES = 10_000
+LATENCY_REPETITIONS_PER_RECORD = 1_000
 
 BASELINE_INDEX = 0
 BASELINE_SEMANTICS = "fixed_dp_deterministic_map_baseline"
@@ -611,10 +612,12 @@ def _paired_metric_summary(
     baseline_ade = ade[:, BASELINE_INDEX]
     baseline_fde = fde[:, BASELINE_INDEX]
     oracle_ade = ade[rows, oracle]
+    oracle_fde = fde[rows, oracle]
     delta_ade = selected_ade - baseline_ade
     delta_fde = selected_fde - baseline_fde
     selected_miss = selected_fde > MISS_THRESHOLD_M
     baseline_miss = baseline_fde > MISS_THRESHOLD_M
+    oracle_miss = oracle_fde > MISS_THRESHOLD_M
     return {
         "records": int(ade.shape[0]),
         "camp": {
@@ -627,6 +630,12 @@ def _paired_metric_summary(
             "mean_ade_m": float(np.mean(baseline_ade)),
             "mean_fde_m": float(np.mean(baseline_fde)),
             "miss_rate": float(np.mean(baseline_miss)),
+        },
+        "oracle": {
+            "role": "external_metric_feasible_best_of_k_headroom_only",
+            "mean_ade_m": float(np.mean(oracle_ade)),
+            "mean_fde_m": float(np.mean(oracle_fde)),
+            "miss_rate": float(np.mean(oracle_miss)),
         },
         "paired_delta_camp_minus_baseline": {
             "mean_ade_m": float(np.mean(delta_ade)),
@@ -644,7 +653,23 @@ def _paired_metric_summary(
         "baseline_oracle_gap_mean_ade_m": float(
             np.mean(baseline_ade - oracle_ade)
         ),
+        "selection_oracle_gap": {
+            "mean_ade_m": float(np.mean(selected_ade - oracle_ade)),
+            "mean_fde_m": float(np.mean(selected_fde - oracle_fde)),
+            "miss_rate": float(
+                np.mean(selected_miss.astype(float) - oracle_miss)
+            ),
+        },
+        "baseline_oracle_gap": {
+            "mean_ade_m": float(np.mean(baseline_ade - oracle_ade)),
+            "mean_fde_m": float(np.mean(baseline_fde - oracle_fde)),
+            "miss_rate": float(
+                np.mean(baseline_miss.astype(float) - oracle_miss)
+            ),
+        },
         "selected_baseline_index_count": int(np.sum(selected == BASELINE_INDEX)),
+        "non_top1_count": int(np.sum(selected != BASELINE_INDEX)),
+        "non_top1_rate": float(np.mean(selected != BASELINE_INDEX)),
         "fallback_count": 0,
         "fallback_policy": "none_all_k_infeasible_records_excluded_fail_closed",
         "native_ranked_top1": False,
@@ -890,7 +915,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
     priority = tie_priority(EXPECTED_CANDIDATES)
     family = _fit_comparison_family(train, calibration, priority=priority)
     family["mini_trained14d"].update(input_review["mini_trained14d"])
-    mini_selector = load_frozen_selector(
+    mini_selector = _load_primary_frozen_selector(
         args.mini_selector_freeze, EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256
     )
     mini_calibration_selected, _ = select_indices(
@@ -907,6 +932,32 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         mini_calibration_selected,
         priority=priority,
     )
+    calibration_selectors = {
+        **{
+            name: (fitted["weights"], fitted["scales"])
+            for name, fitted in family["models"].items()
+        },
+        "uniform14d": (
+            family["uniform14d"]["weights"],
+            family["uniform14d"]["scales"],
+        ),
+        "mini_trained14d": (mini_selector["weights"], mini_selector["scales"]),
+    }
+    for name, (selector_weights, selector_scales) in calibration_selectors.items():
+        dimension = int(selector_weights.size)
+        metrics = (
+            family["models"][name]["calibration_metrics"]
+            if name in family["models"]
+            else family[name]["calibration_metrics"]
+        )
+        metrics["selector_latency_ms"] = _measure_selector_latency_ms(
+            calibration.atoms[:, :, :dimension],
+            selector_scales,
+            selector_weights,
+            calibration.feasible_mask,
+            priority,
+            repetitions_per_record=LATENCY_REPETITIONS_PER_RECORD,
+        )
     primary = family["models"]["corrected14d"]
     weights = primary["weights"]
     scales = primary["scales"]
@@ -970,6 +1021,25 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
     )
     uniform_weights_path = staging / "uniform14d_weights.npy"
     np.save(uniform_weights_path, family["uniform14d"]["weights"])
+    mini_weights_path = models_dir / "mini_trained14d_weights.npy"
+    mini_scales_path = models_dir / "mini_trained14d_scales.json"
+    np.save(mini_weights_path, mini_selector["weights"])
+    _write_json(
+        mini_scales_path,
+        {
+            "schema_version": "dp_camp_v10_14d",
+            "atom_names": list(DP_CAMP_ATOM_NAMES_V10),
+            "fit_scope": "frozen_nuplan_mini_train_only",
+            "scales": mini_selector["scales"].tolist(),
+        },
+    )
+    mini_manifest = {
+        **family["mini_trained14d"],
+        "weights": mini_weights_path.relative_to(staging).as_posix(),
+        "weights_sha256": _sha256(mini_weights_path),
+        "scales": mini_scales_path.relative_to(staging).as_posix(),
+        "scales_sha256": _sha256(mini_scales_path),
+    }
     curve_dir = staging / "learning_curve"
     curve_dir.mkdir()
     learning_curve = []
@@ -1023,7 +1093,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
             "scales_sha256": _sha256(staging / "atom_scales.json"),
             "calibration_metrics": family["uniform14d"]["calibration_metrics"],
         },
-        "mini_trained14d": family["mini_trained14d"],
+        "mini_trained14d": mini_manifest,
         "legacy9d": family["legacy9d"],
         "oracle": family["oracle"],
         "learning_curve": learning_curve,
@@ -1064,7 +1134,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "ade_tie_tolerance_m": ADE_TIE_TOLERANCE_M,
         "score_tie_tolerance": SCORE_TIE_TOLERANCE,
         "non_regression_slack": 0.0,
-        "latency_repetitions_per_record": 1000,
+        "latency_repetitions_per_record": LATENCY_REPETITIONS_PER_RECORD,
         "expected_holdout_records": EXPECTED_HOLDOUT_COUNT,
         "raw_holdout_labels_persisted": False,
         "claim_scope": CLAIM_SCOPE,
@@ -1140,7 +1210,9 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
     return summary
 
 
-def load_frozen_selector(root: Path, expected_root: str) -> dict[str, Any]:
+def _load_primary_frozen_selector(
+    root: Path, expected_root: str
+) -> dict[str, Any]:
     manifest = root / "SHA256SUMS"
     _verify_sha_list(root, manifest, expected_root)
     protocol = json.loads(
@@ -1189,6 +1261,80 @@ def load_frozen_selector(root: Path, expected_root: str) -> dict[str, Any]:
         "protocol": protocol,
         "training": training,
         "root_sha256": expected_root,
+    }
+
+
+def load_frozen_selector(root: Path, expected_root: str) -> dict[str, Any]:
+    primary = _load_primary_frozen_selector(root, expected_root)
+    weights = primary["weights"]
+    scales = primary["scales"]
+    protocol = primary["protocol"]
+    comparison_path = root / "comparison_family.json"
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    if (
+        protocol.get("comparison_family_sha256") != _sha256(comparison_path)
+        or comparison.get("status") != "frozen"
+        or tuple(comparison.get("comparison_family", ())) != COMPARISON_FAMILY
+        or tuple(comparison.get("model_order", ()))
+        != tuple(f"corrected{dimension}d" for dimension in CORRECTED_SCHEMA_DIMS)
+        or (comparison.get("legacy9d") or {}).get("status") != LEGACY9D_STATUS
+        or (comparison.get("legacy9d") or {}).get("reason")
+        != LEGACY9D_UNAVAILABLE_REASON
+        or (comparison.get("mini_trained14d") or {}).get("freeze_root_sha256")
+        != EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256
+        or (comparison.get("mini_trained14d") or {}).get("review_root_sha256")
+        != EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256
+    ):
+        raise ValueError("frozen comparison-family contract mismatch")
+
+    def load_selector(name: str, payload: Mapping[str, Any], dimension: int):
+        weights_path = root / str(payload["weights"])
+        scales_path = root / str(payload["scales"])
+        if (
+            _sha256(weights_path) != payload["weights_sha256"]
+            or _sha256(scales_path) != payload["scales_sha256"]
+        ):
+            raise ValueError(f"frozen {name} SHA256 mismatch")
+        selector_weights = np.asarray(np.load(weights_path), dtype=np.float64)
+        selector_scales = np.asarray(
+            json.loads(scales_path.read_text(encoding="utf-8"))["scales"],
+            dtype=np.float64,
+        )
+        if (
+            selector_weights.shape != (dimension,)
+            or selector_scales.shape != (dimension,)
+            or not np.all(np.isfinite(selector_weights))
+            or not np.all(np.isfinite(selector_scales))
+            or np.any(selector_weights < 0.0)
+            or np.any(selector_scales <= 0.0)
+            or not np.isclose(
+                selector_weights.sum(), 1.0, atol=1e-8, rtol=0.0
+            )
+        ):
+            raise ValueError(f"frozen {name} weights/scales contract mismatch")
+        return {"weights": selector_weights, "scales": selector_scales}
+
+    selectors = {
+        name: load_selector(name, comparison["models"][name], dimension)
+        for name, dimension in zip(
+            comparison["model_order"], CORRECTED_SCHEMA_DIMS
+        )
+    }
+    selectors["uniform14d"] = load_selector(
+        "uniform14d", comparison["uniform14d"], EXPECTED_ATOMS
+    )
+    selectors["mini_trained14d"] = load_selector(
+        "mini_trained14d", comparison["mini_trained14d"], EXPECTED_ATOMS
+    )
+    if not (
+        np.array_equal(selectors["corrected14d"]["weights"], weights)
+        and np.array_equal(selectors["corrected14d"]["scales"], scales)
+    ):
+        raise ValueError("primary corrected14d alias mismatch")
+    return {
+        **primary,
+        "comparison": comparison,
+        "selectors": selectors,
     }
 
 
@@ -1291,6 +1437,8 @@ def run_paired_eval_preflight(args: Any) -> dict[str, Any]:
     by_split, excluded_holdout = _materialized_identity_sets(args.canonical_root)
     if len(by_split["holdout"]) != EXPECTED_HOLDOUT_COUNT:
         raise ValueError("holdout identity count mismatch")
+    if excluded_holdout != EXPECTED_EXCLUDED_HOLDOUT_COUNT:
+        raise ValueError("excluded holdout source-row count mismatch")
     missing_sources = [
         _identity(row)
         for row in holdout.rows
@@ -1353,6 +1501,7 @@ def _measure_selector_latency_ms(
             samples[sample_index] = (time.perf_counter_ns() - started) / 1e6
             sample_index += 1
     return {
+        "mean": float(np.mean(samples)),
         "p50": float(np.percentile(samples, 50.0)),
         "p95": float(np.percentile(samples, 95.0)),
         "p99": float(np.percentile(samples, 99.0)),
@@ -1381,23 +1530,38 @@ def run_paired_eval(
     if int(protocol["expected_holdout_records"]) != EXPECTED_HOLDOUT_COUNT:
         raise ValueError("frozen protocol holdout count mismatch")
     priority = np.asarray(protocol["tie_priority"], dtype=np.int64)
-    weights = selector["weights"]
-    scales = selector["scales"]
-    selected, scores = select_indices(
-        holdout.atoms / scales.reshape(1, 1, -1),
-        weights,
-        holdout.feasible_mask,
-        priority=priority,
-        score_tolerance=float(protocol["score_tie_tolerance"]),
-    )
-    latency = _measure_selector_latency_ms(
-        holdout.atoms,
-        scales,
-        weights,
-        holdout.feasible_mask,
-        priority,
-        repetitions_per_record=int(protocol["latency_repetitions_per_record"]),
-    )
+    selector_indices = {}
+    selector_scores = {}
+    for name, frozen in selector["selectors"].items():
+        dimension = int(frozen["weights"].size)
+        indices, scores = select_indices(
+            holdout.atoms[:, :, :dimension]
+            / frozen["scales"].reshape(1, 1, -1),
+            frozen["weights"],
+            holdout.feasible_mask,
+            priority=priority,
+            score_tolerance=float(protocol["score_tie_tolerance"]),
+        )
+        selector_indices[name] = indices
+        selector_scores[name] = scores
+    selected = selector_indices["corrected14d"]
+    scores = selector_scores["corrected14d"]
+    weights = selector["selectors"]["corrected14d"]["weights"]
+    scales = selector["selectors"]["corrected14d"]["scales"]
+    selector_latencies = {
+        name: _measure_selector_latency_ms(
+            holdout.atoms[:, :, : frozen["weights"].size],
+            frozen["scales"],
+            frozen["weights"],
+            holdout.feasible_mask,
+            priority,
+            repetitions_per_record=int(
+                protocol["latency_repetitions_per_record"]
+            ),
+        )
+        for name, frozen in selector["selectors"].items()
+    }
+    latency = selector_latencies["corrected14d"]
 
     staging.mkdir(parents=True)
     records_path = staging / "records.jsonl"
@@ -1453,6 +1617,18 @@ def run_paired_eval(
                     for candidate_index in range(EXPECTED_CANDIDATES)
                 ],
                 "selected_index": selected_index,
+                "selector_indices": {
+                    name: int(indices[index])
+                    for name, indices in selector_indices.items()
+                },
+                "selector_selected_ade_m": {
+                    name: float(ade[indices[index]])
+                    for name, indices in selector_indices.items()
+                },
+                "selector_selected_fde_m": {
+                    name: float(fde[indices[index]])
+                    for name, indices in selector_indices.items()
+                },
                 "baseline_index": BASELINE_INDEX,
                 "oracle_index": oracle,
                 "selected_ade_m": float(ade[selected_index]),
@@ -1479,31 +1655,51 @@ def run_paired_eval(
             receipt_stream.write(json.dumps(receipt, sort_keys=True) + "\n")
             receipt_stream.flush()
 
-    aggregate = _paired_metric_summary(
-        all_ade,
-        all_fde,
-        holdout.feasible_mask,
-        selected,
-        priority=priority,
-    )
     rows = np.arange(EXPECTED_HOLDOUT_COUNT)
-    selected_ade = all_ade[rows, selected]
-    selected_fde = all_fde[rows, selected]
     baseline_ade = all_ade[:, BASELINE_INDEX]
     baseline_fde = all_fde[:, BASELINE_INDEX]
-    deltas = {
-        "ade": selected_ade - baseline_ade,
-        "fde": selected_fde - baseline_fde,
-        "miss": (selected_fde > MISS_THRESHOLD_M).astype(float)
-        - (baseline_fde > MISS_THRESHOLD_M).astype(float),
-    }
-    ci95 = paired_cluster_bootstrap(
-        deltas,
-        log_ids=np.asarray([row["log_token"] for row in holdout.rows]),
-        scene_ids=np.asarray([row["scene_token"] for row in holdout.rows]),
-        replicates=int(protocol["bootstrap_replicates"]),
-        seed=int(protocol["bootstrap_seed"]),
-    )
+    selector_results = {}
+    bootstrap_children = np.random.SeedSequence(
+        int(protocol["bootstrap_seed"])
+    ).spawn(len(selector_indices))
+    for (name, indices), bootstrap_child in zip(
+        selector_indices.items(), bootstrap_children
+    ):
+        selected_ade = all_ade[rows, indices]
+        selected_fde = all_fde[rows, indices]
+        aggregate = _paired_metric_summary(
+            all_ade,
+            all_fde,
+            holdout.feasible_mask,
+            indices,
+            priority=priority,
+        )
+        deltas = {
+            "ade": selected_ade - baseline_ade,
+            "fde": selected_fde - baseline_fde,
+            "miss": (selected_fde > MISS_THRESHOLD_M).astype(float)
+            - (baseline_fde > MISS_THRESHOLD_M).astype(float),
+        }
+        bootstrap_seed = int(
+            bootstrap_child.generate_state(1, dtype=np.uint64)[0]
+        )
+        selector_results[name] = {
+            "aggregate": aggregate,
+            "bootstrap_seed": bootstrap_seed,
+            "paired_ci95": paired_cluster_bootstrap(
+                deltas,
+                log_ids=np.asarray([row["log_token"] for row in holdout.rows]),
+                scene_ids=np.asarray(
+                    [row["scene_token"] for row in holdout.rows]
+                ),
+                replicates=int(protocol["bootstrap_replicates"]),
+                seed=bootstrap_seed,
+            ),
+            "selector_latency_ms": selector_latencies[name],
+        }
+    primary_result = selector_results["corrected14d"]
+    aggregate = primary_result["aggregate"]
+    ci95 = primary_result["paired_ci95"]
     paired_delta = aggregate["paired_delta_camp_minus_baseline"]
     summary = {
         "status": "passed",
@@ -1517,6 +1713,12 @@ def run_paired_eval(
         "raw_holdout_labels_persisted": False,
         "aggregate": aggregate,
         "paired_ci95": ci95,
+        "primary_selector": "corrected14d",
+        "selector_results": selector_results,
+        "fixed_dp_deterministic_map_baseline": aggregate["baseline"],
+        "feasible_best_of_k_oracle": aggregate["oracle"],
+        "legacy9d": selector["comparison"]["legacy9d"],
+        "comparison_family": selector["comparison"]["comparison_family"],
         "non_regression": {
             "fde": bool(paired_delta["mean_fde_m"] <= 0.0),
             "miss": bool(paired_delta["miss_rate"] <= 0.0),
