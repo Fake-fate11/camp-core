@@ -571,6 +571,7 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
         assert config.max_iter == 20
         assert config.tolerance == 1e-6
         assert config.solver == "CLARABEL"
+        assert config.solver_options == module.CLARABEL_SOLVER_OPTIONS
     assert summary["holdout_label_reads"] == 0
     assert summary["train_records"] == 2
     assert summary["calibration_records"] == 1
@@ -595,6 +596,7 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
     assert protocol["bootstrap_seed"] == 3410
     assert protocol["bootstrap_replicates"] == 10_000
     assert protocol["miss_threshold_m"] == 2.0
+    assert protocol["solver_options"] == dict(module.CLARABEL_SOLVER_OPTIONS)
     assert protocol["native_ranked_top1"] is False
     assert protocol["comparison_family_sha256"] == module._sha256(
         tmp_path / "freeze" / "comparison_family.json"
@@ -823,6 +825,31 @@ def test_fit_static_selector_uses_dimension_specific_convex_master(
     assert fitted["solver"]["final_new_cuts"] == 0
 
 
+def test_saved_simplex_projection_must_preserve_master_gap() -> None:
+    atoms = np.array([[[10_000_000.0, 0.0], [0.0, 0.0]]])
+    feasible = np.ones((1, 2), dtype=bool)
+    oracle = np.array([0], dtype=np.int64)
+    margins = np.array([[0.0, 2e-6]])
+    raw = np.array([-1e-13, 1.0 + 1e-13])
+    _, recorded, _ = module.candidate_ranking_violations(
+        atoms, raw, oracle, margins, feasible
+    )
+    result = SimpleNamespace(
+        solver_name="CLARABEL",
+        solver_status="optimal",
+        converged=True,
+        final_master_gap=5e-7,
+        history=[{"new_cuts": 0}],
+        static_weights=raw,
+        train_violations=recorded,
+    )
+
+    with pytest.raises(RuntimeError, match="projected master gap"):
+        module._accepted_weights_and_violations(
+            result, atoms, oracle, margins, feasible
+        )
+
+
 def test_comparison_family_fits_prefixes_and_nested_14d_curve(
     monkeypatch,
 ) -> None:
@@ -985,6 +1012,8 @@ def _write_test_freeze(
         "expected_holdout_records": 2,
         "raw_holdout_labels_persisted": False,
         "claim_scope": module.CLAIM_SCOPE,
+        "solver": module.SOLVER,
+        "solver_options": dict(module.CLARABEL_SOLVER_OPTIONS),
         "weights_sha256": module._sha256(root / "static_weights.npy"),
         "atom_scales_sha256": module._sha256(root / "atom_scales.json"),
     }

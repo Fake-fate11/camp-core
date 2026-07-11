@@ -89,3 +89,37 @@ def test_robust_margin_master_rejects_negative_atom_coefficients() -> None:
             feasible_mask,
             config=RobustMarginConfig(mode="static", max_iter=1),
         )
+
+
+def test_robust_margin_master_forwards_frozen_solver_options(monkeypatch) -> None:
+    cp = pytest.importorskip("cvxpy")
+
+    observed = []
+    original = cp.Problem.solve
+
+    def recording_solve(problem, *args, **kwargs):
+        observed.append(dict(kwargs))
+        return original(problem, *args, **kwargs)
+
+    monkeypatch.setattr(cp.Problem, "solve", recording_solve)
+    solve_robust_margin_cutting_plane(
+        np.array([[[0.0, 0.0], [1.0, 1.0]]], dtype=np.float64),
+        np.array([0], dtype=np.int64),
+        np.zeros((1, 2), dtype=np.float64),
+        np.ones((1, 2), dtype=bool),
+        config=RobustMarginConfig(
+            mode="static",
+            max_iter=1,
+            solver_options=(("tol_feas", 1e-10),),
+        ),
+    )
+
+    assert observed
+    assert all(call["tol_feas"] == 1e-10 for call in observed)
+
+
+def test_robust_margin_master_rejects_non_string_solver_option_key() -> None:
+    with pytest.raises(ValueError, match="solver_options"):
+        RobustMarginConfig(
+            mode="static", solver_options=((1, 1e-10),)
+        ).validate()

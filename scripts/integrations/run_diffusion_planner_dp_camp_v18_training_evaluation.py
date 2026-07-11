@@ -54,6 +54,11 @@ L2_REG = 1e-4
 MAX_ITER = 20
 TOLERANCE = 1e-6
 SOLVER = "CLARABEL"
+CLARABEL_SOLVER_OPTIONS = (
+    ("tol_gap_abs", 1e-10),
+    ("tol_gap_rel", 1e-10),
+    ("tol_feas", 1e-10),
+)
 
 MISS_THRESHOLD_M = 2.0
 ADE_TIE_TOLERANCE_M = 1e-9
@@ -714,7 +719,7 @@ def _accepted_weights_and_violations(
     oracle: np.ndarray,
     margins: np.ndarray,
     feasible: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, float]:
     if result.solver_name != SOLVER:
         raise RuntimeError(f"the frozen {SOLVER} solver is required")
     if result.solver_status != "optimal":
@@ -735,11 +740,13 @@ def _accepted_weights_and_violations(
         normalized_atoms, weights, oracle, margins, feasible
     )
     recorded = np.asarray(result.train_violations, dtype=np.float64).reshape(-1)
-    if recorded.shape != violations.shape or not np.allclose(
-        recorded, violations, atol=TOLERANCE, rtol=0.0
-    ):
+    if recorded.shape != violations.shape:
         raise RuntimeError("independent complete-master violation review failed")
-    return weights, violations
+    projection_increase = float(np.max(np.maximum(violations - recorded, 0.0)))
+    projected_master_gap = float(result.final_master_gap) + projection_increase
+    if not np.isfinite(projected_master_gap) or projected_master_gap > TOLERANCE:
+        raise RuntimeError("saved simplex projected master gap exceeds tolerance")
+    return weights, violations, projected_master_gap
 
 
 def _fit_static_selector(
@@ -765,6 +772,7 @@ def _fit_static_selector(
         tolerance=TOLERANCE,
         solver=SOLVER,
         static_weight_lower_bounds=tuple(np.zeros(dimension).tolist()),
+        solver_options=CLARABEL_SOLVER_OPTIONS,
     )
     np.random.seed(TRAINING_SEED)
     result = solve_robust_margin_cutting_plane(
@@ -775,7 +783,7 @@ def _fit_static_selector(
         config=config,
         features=None,
     )
-    weights, violations = _accepted_weights_and_violations(
+    weights, violations, projected_master_gap = _accepted_weights_and_violations(
         result, normalized, oracle, margins, feasible
     )
     selected, _ = select_indices(
@@ -791,7 +799,9 @@ def _fit_static_selector(
             "name": result.solver_name,
             "status": result.solver_status,
             "converged": bool(result.converged),
-            "final_master_gap": float(result.final_master_gap),
+            "final_master_gap": projected_master_gap,
+            "raw_solver_master_gap": float(result.final_master_gap),
+            "solver_options": dict(CLARABEL_SOLVER_OPTIONS),
             "final_new_cuts": int(result.history[-1]["new_cuts"]),
             "maximum_independent_violation": float(np.max(violations)),
             "history": result.history,
@@ -1011,6 +1021,7 @@ def run_train_calibrate_preflight(args: Any) -> dict[str, Any]:
         "candidate_generation_executed": False,
         "candidate_tensor_mutation": False,
         "solver": SOLVER,
+        "solver_options": dict(CLARABEL_SOLVER_OPTIONS),
         "installed_solvers": list(installed_solvers),
         "free_bytes": free_bytes,
         "minimum_free_bytes": MIN_FREE_BYTES,
@@ -1262,6 +1273,8 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "feasibility_scope": FEASIBILITY_SCOPE,
         "closed_loop_safety_claim": False,
         "holdout_label_reads": 0,
+        "solver": SOLVER,
+        "solver_options": dict(CLARABEL_SOLVER_OPTIONS),
         "training_seed": TRAINING_SEED,
         "tie_seed": TIE_SEED,
         "tie_priority": priority.tolist(),
@@ -1308,6 +1321,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "max_iter": MAX_ITER,
         "tolerance": TOLERANCE,
         "solver": SOLVER,
+        "solver_options": dict(CLARABEL_SOLVER_OPTIONS),
         "solver_name": solver["name"],
         "solver_status": solver["status"],
         "converged": solver["converged"],
@@ -1411,6 +1425,8 @@ def load_frozen_selector(root: Path, expected_root: str) -> dict[str, Any]:
     comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
     if (
         protocol.get("comparison_family_sha256") != _sha256(comparison_path)
+        or protocol.get("solver") != SOLVER
+        or protocol.get("solver_options") != dict(CLARABEL_SOLVER_OPTIONS)
         or comparison.get("status") != "frozen"
         or tuple(comparison.get("comparison_family", ())) != COMPARISON_FAMILY
         or tuple(comparison.get("model_order", ()))

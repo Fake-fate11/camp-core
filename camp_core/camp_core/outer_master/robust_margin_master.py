@@ -17,6 +17,7 @@ class RobustMarginConfig:
     solver: str = "CLARABEL"
     verbose: bool = False
     static_weight_lower_bounds: Optional[tuple[float, ...]] = None
+    solver_options: Optional[tuple[tuple[str, Any], ...]] = None
 
     def validate(self) -> None:
         if self.mode not in {"static", "theta"}:
@@ -51,6 +52,14 @@ class RobustMarginConfig:
                     "static_weight_lower_bounds must be finite, nonnegative, "
                     "and sum to at most one."
                 )
+        if self.solver_options is not None:
+            keys = [key for key, _value in self.solver_options]
+            if (
+                any(not isinstance(key, str) or not key for key in keys)
+                or len(keys) != len(set(keys))
+                or {"solver", "verbose"} & set(keys)
+            ):
+                raise ValueError("solver_options contain invalid or duplicate keys.")
 
 
 @dataclass
@@ -317,7 +326,16 @@ def _solve_master(
     last_error: Optional[Exception] = None
     for solver_name in solver_candidates:
         try:
-            problem.solve(solver=solver_name, verbose=config.verbose)
+            solver_options = (
+                dict(config.solver_options or ())
+                if solver_name == config.solver.upper()
+                else {}
+            )
+            problem.solve(
+                solver=solver_name,
+                verbose=config.verbose,
+                **solver_options,
+            )
         except cp.SolverError as exc:
             last_error = exc
             continue
