@@ -327,15 +327,7 @@ def test_review_cli_requires_source_safety_root(tmp_path) -> None:
         module.parse_args(["--mode", "review", *common])
 
 
-def _latest_value(text: str, key: str) -> str:
-    prefix = f"{key}="
-    values = [line[len(prefix) :] for line in text.splitlines() if line.startswith(prefix)]
-    if not values:
-        raise AssertionError(f"missing {key}")
-    return values[-1]
-
-
-def test_v18_docs_record_reviewed_bounded_safety_and_preregistered_10k() -> None:
+def test_v18_docs_retain_reviewed_bounded_safety_and_preregistered_10k() -> None:
     root = Path(__file__).resolve().parents[2]
     current = (root / "docs/diffusion_planner_current_status.md").read_text(
         encoding="utf-8"
@@ -365,8 +357,9 @@ def test_v18_docs_record_reviewed_bounded_safety_and_preregistered_10k() -> None
         ),
     }
     for key, value in expected.items():
-        assert _latest_value(current[: current.index("## Historical V17 Closeout")], key) == value
-        assert _latest_value(audit, key) == value
+        line = f"{key}={value}"
+        assert line in audit
+    assert "54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b" in current
     for evidence in (
         "70.95353279308563",
         "66.46842980722468",

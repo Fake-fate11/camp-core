@@ -2540,3 +2540,76 @@ current_v18_artifact_scope=nuplan_causal_10k_static_training_calibration_failed_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_ccf2f393_20260711T204736CST
 current_v18_artifact_root_sha256=2a834b14316bd3467c400df4f1893bc8188becfa43e851aec60189455666fbd5
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
+
+## Causal-10k Static Training/Calibration Execution and Result Review
+
+The solver-precision-remediated training/calibration retry completed once at
+unchanged CAMP local/GitHub/AutoDL
+`642790917872ddbf16f4cb4698b0ec4c82e9f105`; fixed Diffusion Planner remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+- Execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_retry_64279091_20260711T210343CST`
+  / `ba338151345fedf6528d54e9da192c9bdfc39ba3c6ac913cf1ac0ab051513db5`.
+  It completed with exit `0` in `703.37648284s`. Stderr contained only the
+  CVXPY `Solution may be inaccurate` warning from an intermediate solve; all
+  five saved models and all four learning-curve checkpoints independently
+  satisfied exact `solver_status=optimal`, `converged=true`, final new cuts
+  zero, and saved projected `final_master_gap <= 1e-6`.
+- Immutable selector freeze/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e`
+  / `afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7`.
+  Its 30 payload entries passed. The primary corrected14D weights are
+  `[0.10947278201682221, 4.5339121051258635e-14,
+  4.436657731585812e-14, 0.33777087074295037,
+  7.284723165939581e-10, 0, 0, 0, 0.34158690923521606,
+  0.10033962151340078, 0, 0.1108291578563568,
+  6.579066917788303e-07, 0]`; their sum is one and minimum is zero.
+  Its saved gap is `1.9760927894019176e-09`.
+- Independent result-review artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_result_review_retry4_64279091_20260711T212844CST`
+  / `098d8af6511674b6ff00bb27d6927a1b30a26b61747d824f7074844a5580dace`.
+  All 12 review entries passed; exit was `0`, stderr was empty, and wall time
+  was `17.117777348s`. The review opened all materialized
+  `5631 / 1896 / 1931` train/calibration/label-free holdout records, verified
+  69 excluded holdout source rows and zero log/scene overlap, and independently
+  recomputed train-only p95 scales, expert ADE/FDE oracle and margins, all-K
+  violations, CVaR, selector choices, train/calibration aggregates, model
+  hashes, learning curves, and comparator evidence. Optimizer, training,
+  model, candidate-generation, and holdout-label calls were all zero.
+- Four reviewer-harness failures are retained as audit evidence. Roots
+  `46493e5a...`, `159dc8c6...`, `cf70dde5...`, and `655339b2...` respectively
+  record an incorrect candidate path, an over-specific root-receipt label,
+  an over-tight `2.31e-12` raw/projected mean-violation comparison, and an
+  over-tight raw/projected corrected12D max-violation comparison. Each failed
+  closed before promotion; the first two occurred before any NPZ/label read.
+  The accepted reviewer bounds raw/projected history differences by the
+  already frozen `final_master_gap - raw_solver_master_gap` while retaining
+  the original `1e-6` acceptance threshold.
+- Tuning-free calibration diagnostics are not a holdout claim. Corrected14D
+  versus the fixed-DP deterministic/MAP baseline had ADE/FDE/miss deltas
+  `+0.04833081594 m / +0.13218734753 m / 0.0`, non-baseline selection rate
+  `0.9546413502`, and selector p99 `0.045666 ms`. Corrected9D had calibration
+  deltas `+0.04216547308 m / -0.02705913133 m / -0.00896624473`.
+  Uniform14D and mini-trained14D diagnostic ADE deltas were
+  `-0.01324629843 m` and `-0.02025075600 m`; these observations caused no
+  model, scale, protocol, threshold, or selector-family update.
+- The frozen learning-curve train counts `564 / 1408 / 2816 / 5631` all
+  passed with saved gaps from `9.42e-10` to `1.98e-09`. Legacy9D remains
+  unavailable for the exact frozen causal reason rather than being aliased to
+  corrected9D. The byte-identical bounded-safety protocol remains
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`.
+
+Holdout labels remain sealed and have never been used for scaling, training,
+calibration, or post-result tuning. Candidate 0 remains the independently
+proven fixed-DP deterministic/MAP baseline with `native_ranked_top1=false`.
+Feasibility exactness remains limited to the frozen 32 dynamic plus 5 static
+observable source; no complete-scene, performance, closed-loop, or safety
+claim is made. The only next gate is a no-label-read preflight against this
+reviewed immutable freeze.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_training_calibration_execution_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_result_review_retry4_64279091_20260711T212844CST
+current_v18_artifact_root_sha256=098d8af6511674b6ff00bb27d6927a1b30a26b61747d824f7074844a5580dace
+next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_preflight_only

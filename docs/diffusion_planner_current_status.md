@@ -1179,6 +1179,46 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_train
 current_v18_artifact_root_sha256=2a834b14316bd3467c400df4f1893bc8188becfa43e851aec60189455666fbd5
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
 
+The solver-precision-remediated causal-10k training/calibration retry then
+completed at CAMP local/GitHub/AutoDL
+`642790917872ddbf16f4cb4698b0ec4c82e9f105`; fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_retry_64279091_20260711T210343CST`
+/ `ba338151345fedf6528d54e9da192c9bdfc39ba3c6ac913cf1ac0ab051513db5`.
+The immutable selector freeze/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e`
+/ `afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7`.
+Execution exited `0` in `703.37648284s`; its only stderr was an intermediate
+CVXPY inaccuracy warning, while every saved model and learning-curve point
+independently passed exact optimal/converged/no-new-cut and projected-gap
+acceptance.
+
+Independent review passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_result_review_retry4_64279091_20260711T212844CST`
+/ `098d8af6511674b6ff00bb27d6927a1b30a26b61747d824f7074844a5580dace`.
+It independently recomputed every train-only scale, oracle/margin, all-K
+violation, CVaR, selector choice, train/calibration aggregate, learning-curve
+point, comparator hash, and exact legacy9D-unavailable reason across the
+frozen `5631 / 1896 / 1931` materialized split. Holdout label reads,
+optimizer/training/model calls, and candidate mutations were zero. Four
+earlier fail-closed review-harness artifacts preserve wrong-path, receipt-label,
+and raw-versus-projected numerical-comparison failures; none changed the
+freeze or formal `1e-6` gate.
+
+Corrected14D's tuning-free calibration ADE/FDE/miss deltas versus the fixed-DP
+deterministic/MAP baseline were `+0.04833081594 m / +0.13218734753 m / 0.0`;
+selector p99 was `0.045666 ms`. These pre-holdout diagnostics caused no model,
+scale, protocol, threshold, or comparator update. Holdout labels remain
+sealed. Candidate 0 still has `native_ranked_top1=false`; exact feasibility
+remains only within the frozen 32+5 observable source, with no complete-scene,
+performance, closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_training_calibration_execution_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_result_review_retry4_64279091_20260711T212844CST
+current_v18_artifact_root_sha256=098d8af6511674b6ff00bb27d6927a1b30a26b61747d824f7074844a5580dace
+next_work_target=v18_nuplan_causal_10k_one_shot_holdout_paired_evaluation_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
