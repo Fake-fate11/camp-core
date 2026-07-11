@@ -22,6 +22,7 @@ for _path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner import (  # noqa: E402
     DP_CAMP_ATOM_NAMES_V10,
+    atom_schema_for_dimension,
 )
 from camp_core.outer_master.robust_margin_master import (  # noqa: E402
     RobustMarginConfig,
@@ -62,11 +63,76 @@ BASELINE_INDEX = 0
 BASELINE_SEMANTICS = "fixed_dp_deterministic_map_baseline"
 NATIVE_RANKED_TOP1 = False
 
-EXPECTED_TRAIN_COUNT = 214
-EXPECTED_CALIBRATION_COUNT = 65
-EXPECTED_HOLDOUT_COUNT = 71
+EXPECTED_SOURCE_COUNT = 10_000
+EXPECTED_MATERIALIZED_COUNT = 9_458
+EXPECTED_CANONICAL_MANIFEST_ENTRIES = EXPECTED_MATERIALIZED_COUNT + 2
+EXPECTED_SOURCE_SPLIT_COUNTS = {
+    "train": 6_000,
+    "calibration": 2_000,
+    "holdout": 2_000,
+}
+EXPECTED_MATERIALIZED_SPLIT_COUNTS = {
+    "train": 5_631,
+    "calibration": 1_896,
+    "holdout": 1_931,
+}
+EXPECTED_SOURCE_INCOMPLETE_COUNT = 243
+EXPECTED_ALL_K_INFEASIBLE_COUNT = 299
+EXPECTED_TRAIN_COUNT = 5_631
+EXPECTED_CALIBRATION_COUNT = 1_896
+EXPECTED_HOLDOUT_COUNT = 1_931
+EXPECTED_EXCLUDED_HOLDOUT_COUNT = 69
 EXPECTED_CANDIDATES = 8
 EXPECTED_ATOMS = 14
+LEARNING_CURVE_TRAIN_COUNTS = (564, 1_408, 2_816, 5_631)
+CORRECTED_SCHEMA_DIMS = (9, 10, 12, 13, 14)
+CORRECTED_SCHEMA_NAMES = tuple(
+    atom_schema_for_dimension(dimension)[0] for dimension in CORRECTED_SCHEMA_DIMS
+)
+COMPARISON_FAMILY = (
+    "fixed_dp_deterministic_map_baseline",
+    "uniform14d",
+    "corrected9d",
+    "corrected10d",
+    "corrected12d",
+    "corrected13d",
+    "corrected14d",
+    "mini_trained14d",
+    "feasible_best_of_k_oracle",
+)
+LEGACY9D_STATUS = "unavailable_pending_distinct_causal_contract"
+LEGACY9D_UNAVAILABLE_REASON = (
+    "no_distinct_approved_causal_legacy_contract_without_the_forbidden_v16_"
+    "epoch_trainer_or_noncausal_sources"
+)
+TRAIN_SCHEMA_VERSION = (
+    "dp_camp_v18_nuplan_causal_10k_static_14d_train_calibrate_v1"
+)
+EVAL_SCHEMA_VERSION = "dp_camp_v18_nuplan_causal_10k_one_shot_paired_eval_v1"
+CLAIM_SCOPE = "causal_10k_offline_fixed_candidate_comparison_only"
+EVIDENCE_SCOPE = "causal_10k_offline_fixed_candidate_comparison"
+PRE_HOLDOUT_CLAIM_STATUS = (
+    "pending_no_performance_claim_before_one_shot_result_review"
+)
+SAFETY_CLAIM_SCOPE = "no_complete_scene_closed_loop_or_real_world_safety_claim"
+BOUNDED_OFFLINE_SAFETY_PROTOCOL_SHA256 = (
+    "54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b"
+)
+EXPECTED_CANDIDATE_ROOT_SHA256 = (
+    "3febcd4de182598e69d3420900c996eb37dc3f54d0a8a4a1f221d6ab3c648515"
+)
+EXPECTED_CANONICAL_ROOT_SHA256 = (
+    "79c9570bf04088ff05aea30a1e251738742e3648742044be724b662ff5329a3c"
+)
+EXPECTED_EQUIVALENCE_REVIEW_ROOT_SHA256 = (
+    "aacbab7f5b64bdec369435309a3530b4cec6d704c031be6c8d8322b2a4ff6446"
+)
+EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256 = (
+    "b09a81f94776a59ad6ac8fe93ec27f610d4b74859efa1b10f7f4d0160596a058"
+)
+EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256 = (
+    "de5a90b7ac5e4295b58f11f48ddbb519646130129644c7cbc8d7b559051b29ea"
+)
 
 
 @dataclass(frozen=True)
@@ -348,6 +414,13 @@ def _verify_artifact_root(root: Path, expected_root: str) -> dict[str, Any]:
 
 
 def _verify_training_inputs(args: Any) -> dict[str, Any]:
+    if (
+        args.expected_canonical_root_sha256 != EXPECTED_CANONICAL_ROOT_SHA256
+        or args.expected_candidate_root_sha256 != EXPECTED_CANDIDATE_ROOT_SHA256
+        or args.expected_equivalence_review_root_sha256
+        != EXPECTED_EQUIVALENCE_REVIEW_ROOT_SHA256
+    ):
+        raise ValueError("frozen causal-10k roots do not match")
     canonical_entries = _verify_sha_list(
         args.canonical_root,
         args.canonical_sha256s,
@@ -361,12 +434,14 @@ def _verify_training_inputs(args: Any) -> dict[str, Any]:
         args.equivalence_review,
         args.expected_equivalence_review_root_sha256,
     )
-    review = equivalence.get("review") or {}
     if not (
-        equivalence.get("status") == "passed"
-        and review.get("equivalence_verified") is True
-        and review.get("native_ranked_top1") is False
-        and review.get("record_count") == 367
+        canonical_entries == EXPECTED_CANONICAL_MANIFEST_ENTRIES
+        and len(candidate_records) == EXPECTED_SOURCE_COUNT
+        and len(source_rows) == EXPECTED_SOURCE_COUNT
+        and equivalence.get("status") == "passed"
+        and equivalence.get("equivalence_verified") is True
+        and equivalence.get("native_ranked_top1") is False
+        and equivalence.get("records_reviewed") == len(source_rows)
     ):
         raise ValueError("fixed-DP deterministic/MAP equivalence review failed")
     return {
@@ -732,7 +807,12 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "latency_repetitions_per_record": 1000,
         "expected_holdout_records": EXPECTED_HOLDOUT_COUNT,
         "raw_holdout_labels_persisted": False,
-        "claim_scope": "nuplan_mini_smoke_directional_only_no_performance_or_safety_claim",
+        "claim_scope": CLAIM_SCOPE,
+        "pre_holdout_claim_status": PRE_HOLDOUT_CLAIM_STATUS,
+        "safety_claim_scope": SAFETY_CLAIM_SCOPE,
+        "bounded_offline_safety_protocol_sha256": (
+            BOUNDED_OFFLINE_SAFETY_PROTOCOL_SHA256
+        ),
         "canonical_root_sha256": args.expected_canonical_root_sha256,
         "candidate_root_sha256": args.expected_candidate_root_sha256,
         "equivalence_review_root_sha256": (
@@ -744,7 +824,7 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
     _write_json(staging / "paired_eval_protocol.json", protocol)
     summary = {
         "status": "passed",
-        "schema_version": "dp_camp_v18_static_14d_train_calibrate_v1",
+        "schema_version": TRAIN_SCHEMA_VERSION,
         "mode": "static",
         "score": "a_scaled_k_transpose_w",
         "train_records": EXPECTED_TRAIN_COUNT,
@@ -781,7 +861,9 @@ def run_train_calibrate(args: Any) -> dict[str, Any]:
         "closed_loop_safety_claim": False,
         "candidate_generation_executed": False,
         "candidate_tensor_mutation": False,
-        "mini_evidence_scope": "smoke_directional_only",
+        "evidence_scope": EVIDENCE_SCOPE,
+        "pre_holdout_claim_status": PRE_HOLDOUT_CLAIM_STATUS,
+        "safety_claim_scope": SAFETY_CLAIM_SCOPE,
     }
     _write_json(staging / "training_summary.json", summary)
     _write_root_manifest(staging)
@@ -1156,7 +1238,7 @@ def run_paired_eval(
     paired_delta = aggregate["paired_delta_camp_minus_baseline"]
     summary = {
         "status": "passed",
-        "schema_version": "dp_camp_v18_nuplan_mini_one_shot_paired_eval_v1",
+        "schema_version": EVAL_SCHEMA_VERSION,
         "holdout_records": EXPECTED_HOLDOUT_COUNT,
         "holdout_label_reads": EXPECTED_HOLDOUT_COUNT,
         "holdout_label_receipts": len(evaluation_rows),
@@ -1182,7 +1264,12 @@ def run_paired_eval(
         "native_ranked_top1": False,
         "feasibility_scope": FEASIBILITY_SCOPE,
         "closed_loop_safety_claim": False,
-        "mini_evidence_scope": "smoke_directional_only_no_performance_or_safety_claim",
+        "evidence_scope": EVIDENCE_SCOPE,
+        "claim_scope": CLAIM_SCOPE,
+        "safety_claim_scope": SAFETY_CLAIM_SCOPE,
+        "bounded_offline_safety_protocol_sha256": (
+            BOUNDED_OFFLINE_SAFETY_PROTOCOL_SHA256
+        ),
         "candidate_generation_executed": False,
         "candidate_tensor_mutation": False,
         "model_or_scale_updates": 0,
@@ -1204,7 +1291,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Train/freeze the v18 static 14D CAMP selector or run its frozen "
-            "one-shot nuPlan-mini paired evaluation."
+            "one-shot causal nuPlan-10k paired evaluation."
         )
     )
     parser.add_argument(

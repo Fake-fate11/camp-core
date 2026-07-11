@@ -30,6 +30,77 @@ def test_frozen_training_and_evaluation_constants() -> None:
     assert module.FORBIDDEN_SEEDS == (11, 12, 13)
     assert module.BASELINE_SEMANTICS == "fixed_dp_deterministic_map_baseline"
     assert module.NATIVE_RANKED_TOP1 is False
+    assert module.EXPECTED_SOURCE_COUNT == 10_000
+    assert module.EXPECTED_MATERIALIZED_COUNT == 9_458
+    assert module.EXPECTED_CANONICAL_MANIFEST_ENTRIES == 9_460
+    assert module.EXPECTED_SOURCE_SPLIT_COUNTS == {
+        "train": 6_000,
+        "calibration": 2_000,
+        "holdout": 2_000,
+    }
+    assert module.EXPECTED_MATERIALIZED_SPLIT_COUNTS == {
+        "train": 5_631,
+        "calibration": 1_896,
+        "holdout": 1_931,
+    }
+    assert module.EXPECTED_SOURCE_INCOMPLETE_COUNT == 243
+    assert module.EXPECTED_ALL_K_INFEASIBLE_COUNT == 299
+    assert module.EXPECTED_TRAIN_COUNT == 5_631
+    assert module.EXPECTED_CALIBRATION_COUNT == 1_896
+    assert module.EXPECTED_HOLDOUT_COUNT == 1_931
+    assert module.EXPECTED_EXCLUDED_HOLDOUT_COUNT == 69
+    assert module.LEARNING_CURVE_TRAIN_COUNTS == (564, 1_408, 2_816, 5_631)
+    assert module.CORRECTED_SCHEMA_DIMS == (9, 10, 12, 13, 14)
+    assert module.TRAIN_SCHEMA_VERSION == (
+        "dp_camp_v18_nuplan_causal_10k_static_14d_train_calibrate_v1"
+    )
+    assert module.EVAL_SCHEMA_VERSION == (
+        "dp_camp_v18_nuplan_causal_10k_one_shot_paired_eval_v1"
+    )
+    assert module.CLAIM_SCOPE == "causal_10k_offline_fixed_candidate_comparison_only"
+    assert module.BOUNDED_OFFLINE_SAFETY_PROTOCOL_SHA256 == (
+        "54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b"
+    )
+    assert module.EXPECTED_CANDIDATE_ROOT_SHA256 == (
+        "3febcd4de182598e69d3420900c996eb37dc3f54d0a8a4a1f221d6ab3c648515"
+    )
+    assert module.EXPECTED_CANONICAL_ROOT_SHA256 == (
+        "79c9570bf04088ff05aea30a1e251738742e3648742044be724b662ff5329a3c"
+    )
+    assert module.EXPECTED_EQUIVALENCE_REVIEW_ROOT_SHA256 == (
+        "aacbab7f5b64bdec369435309a3530b4cec6d704c031be6c8d8322b2a4ff6446"
+    )
+    assert module.EXPECTED_MINI_SELECTOR_FREEZE_ROOT_SHA256 == (
+        "b09a81f94776a59ad6ac8fe93ec27f610d4b74859efa1b10f7f4d0160596a058"
+    )
+    assert module.EXPECTED_MINI_SELECTOR_REVIEW_ROOT_SHA256 == (
+        "de5a90b7ac5e4295b58f11f48ddbb519646130129644c7cbc8d7b559051b29ea"
+    )
+    assert module.PRE_HOLDOUT_CLAIM_STATUS == (
+        "pending_no_performance_claim_before_one_shot_result_review"
+    )
+    assert module.SAFETY_CLAIM_SCOPE == (
+        "no_complete_scene_closed_loop_or_real_world_safety_claim"
+    )
+    assert module.LEGACY9D_STATUS == "unavailable_pending_distinct_causal_contract"
+    assert module.CORRECTED_SCHEMA_NAMES == (
+        "camp_legacy_v1_9d",
+        "dp_camp_v7_10d",
+        "dp_camp_v8_12d",
+        "dp_camp_v9_13d",
+        "dp_camp_v10_14d",
+    )
+    assert module.COMPARISON_FAMILY == (
+        "fixed_dp_deterministic_map_baseline",
+        "uniform14d",
+        "corrected9d",
+        "corrected10d",
+        "corrected12d",
+        "corrected13d",
+        "corrected14d",
+        "mini_trained14d",
+        "feasible_best_of_k_oracle",
+    )
 
 
 def test_candidate_errors_use_xy_ade_and_final_xy_fde() -> None:
@@ -210,6 +281,85 @@ def _training_args(tmp_path) -> argparse.Namespace:
         current_status=tmp_path / "status.md",
         v18_audit=tmp_path / "audit.md",
     )
+
+
+def test_training_inputs_accept_causal_10k_top_level_equivalence_review(
+    tmp_path, monkeypatch
+) -> None:
+    args = _training_args(tmp_path)
+    args.expected_canonical_root_sha256 = module.EXPECTED_CANONICAL_ROOT_SHA256
+    args.expected_candidate_root_sha256 = module.EXPECTED_CANDIDATE_ROOT_SHA256
+    args.expected_equivalence_review_root_sha256 = (
+        module.EXPECTED_EQUIVALENCE_REVIEW_ROOT_SHA256
+    )
+    monkeypatch.setattr(module, "_verify_sha_list", lambda *_args: 9_460)
+    monkeypatch.setattr(
+        module,
+        "_verified_candidate_source",
+        lambda *_args: ([None] * 10_000, [None] * 10_000, None, None),
+    )
+    monkeypatch.setattr(
+        module,
+        "_verify_artifact_root",
+        lambda *_args: {
+            "status": "passed",
+            "equivalence_verified": True,
+            "native_ranked_top1": False,
+            "records_reviewed": 10_000,
+        },
+    )
+
+    result = module._verify_training_inputs(args)
+
+    assert result == {
+        "canonical_manifest_entries": 9_460,
+        "candidate_record_count": 10_000,
+        "candidate_source_count": 10_000,
+        "equivalence_verified": True,
+    }
+
+
+def test_training_inputs_reject_nonfrozen_causal_10k_root(tmp_path) -> None:
+    args = _training_args(tmp_path)
+
+    with pytest.raises(ValueError, match="frozen causal-10k roots"):
+        module._verify_training_inputs(args)
+
+
+def test_training_inputs_reject_nested_mini_equivalence_schema(
+    tmp_path, monkeypatch
+) -> None:
+    args = _training_args(tmp_path)
+    args.expected_canonical_root_sha256 = module.EXPECTED_CANONICAL_ROOT_SHA256
+    args.expected_candidate_root_sha256 = module.EXPECTED_CANDIDATE_ROOT_SHA256
+    args.expected_equivalence_review_root_sha256 = (
+        module.EXPECTED_EQUIVALENCE_REVIEW_ROOT_SHA256
+    )
+    monkeypatch.setattr(
+        module,
+        "_verify_sha_list",
+        lambda *_args: module.EXPECTED_CANONICAL_MANIFEST_ENTRIES,
+    )
+    monkeypatch.setattr(
+        module,
+        "_verified_candidate_source",
+        lambda *_args: ([None] * 10_000, [None] * 10_000, None, None),
+    )
+    monkeypatch.setattr(
+        module,
+        "_verify_artifact_root",
+        lambda *_args: {
+            "status": "passed",
+            "review": {
+                "equivalence_verified": True,
+                "native_ranked_top1": False,
+                "record_count": 10_000,
+            },
+        },
+    )
+
+    with pytest.raises(ValueError, match="equivalence review failed"):
+        module._verify_training_inputs(args)
 
 
 def _accepted_master_result(atoms, oracle, margins, feasible, config):
@@ -459,7 +609,7 @@ def _write_test_freeze(root, *, latency_repetitions=2, bootstrap_replicates=50):
         "latency_repetitions_per_record": latency_repetitions,
         "expected_holdout_records": 2,
         "raw_holdout_labels_persisted": False,
-        "claim_scope": "nuplan_mini_smoke_directional_only_no_performance_or_safety_claim",
+        "claim_scope": module.CLAIM_SCOPE,
         "weights_sha256": module._sha256(root / "static_weights.npy"),
         "atom_scales_sha256": module._sha256(root / "atom_scales.json"),
     }
