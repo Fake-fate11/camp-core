@@ -2232,3 +2232,62 @@ current_v18_artifact_scope=nuplan_causal_10k_physical_feasibility_canonical_14d_
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_metadata_adjunct_4f46417f_20260711T183035CST
 current_v18_artifact_root_sha256=fb8bbcecb5401874b72f7b202e26500018ee381c7f21b7e13a110f5f4e40f5f8
 next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
+
+## Gate 41: Causal-10k Fixed-DP Deterministic/MAP Baseline Equivalence Preflight
+
+Status: passed; the frozen 10,000-call equivalence execution is the only next
+gate.
+
+- The preflight reused the previously reviewed mini native fixed-DP
+  deterministic/MAP execution path and generalized only the frozen corpus
+  roots and record count. Its immutable execution script SHA256 is
+  `1ee98c6bc8f2a5234a2147859d0d6cb372ba27f8980a2f5c476a03ab7fca8dad`.
+  For each of the 10,000 same causal inputs, the planned execution makes one
+  direct native fixed-DP `noise_scale=0` call, then compares its ego output
+  against saved candidate 0 both elementwise and by array SHA256. Record count
+  is taken from the verified frozen candidate source rather than a mini-only
+  constant.
+- Preflight artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_b32d6231_20260711T183711CST`
+  / `969c0a4c119181634992ff2fc1b7a5f14c101363521a785c9c52d901ee8fa5db`.
+  It passed script compilation, all `25` v18 orchestrator tests, the live EOF
+  contract, `git diff --check`, and fresh candidate/canonical/heavy-review/
+  metadata-adjunct/checkpoint/args hashes at CAMP local/GitHub/AutoDL
+  `b32d62313ae9d64ab7f8d787ce1486dc016baf43` and fixed DP
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Exit was `0`, stderr was
+  empty, and preflight model/label calls were zero.
+- Planned immutable output
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_7a1d33da_3febcd4d`
+  and its `.tmp` staging peer are absent. No equivalence process was active,
+  and free bytes were `16240582656`, above the hard 10 GiB floor.
+- The first independent review failed only because its verifier counted two
+  transient `__pycache__` files that are intentionally outside the sealed
+  top-level preflight manifest. The preserved read-only artifact/root is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_result_review_b32d6231_20260711T184008CST`
+  / `ff0404ca726bd5712e74190282b379156cd3d9438cb4a9c2cc7b55672728cffb`.
+  Retry 1 then failed only because its static token string omitted the
+  `context[...]` receiver used by `make_initial_latent`; artifact/root
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_result_review_retry_b32d6231_20260711T184049CST`
+  / `cb754e4f39a5de88598c4ca2894089b414bd66479ea52ef4c9982fcd8c366b28`.
+  Neither verifier failure invoked the model or equivalence script.
+- Corrected independent review passed at artifact/root SHA256
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_result_review_retry2_b32d6231_20260711T184110CST`
+  / `22fb92e062411a1ffb57dac8a43c88084141ef10800973091d61d11c0f51ae4c`.
+  It freshly verified all preflight files and roots, 25 tests, three-surface
+  HEAD alignment, target/staging absence, free `16240414720` bytes, dynamic
+  10k count, direct same-input noise-zero candidate-0 comparison, atomic new
+  output, and candidate before/after snapshot. Exit was `0`, stderr was empty,
+  and model/equivalence/label/canonical/selector/train/eval calls were all zero.
+- Candidate 0 therefore remains only the fixed-DP deterministic/MAP baseline
+  with `equivalence_verified=false` until execution and result review pass.
+  `native_ranked_top1=false`; this preflight does not establish native K=8
+  ranking. Holdout labels remain sealed, the frozen candidate/canonical roots
+  are unchanged, OBB exactness remains limited to the frozen 32+5 observable
+  source, and no complete-scene, closed-loop, performance, or safety claim is
+  made.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_and_independent_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_result_review_retry2_b32d6231_20260711T184110CST
+current_v18_artifact_root_sha256=22fb92e062411a1ffb57dac8a43c88084141ef10800973091d61d11c0f51ae4c
+next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_execution_only

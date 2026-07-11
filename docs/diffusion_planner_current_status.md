@@ -985,6 +985,37 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14
 current_v18_artifact_root_sha256=fb8bbcecb5401874b72f7b202e26500018ee381c7f21b7e13a110f5f4e40f5f8
 next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_only
 
+The causal-10k fixed-DP deterministic/MAP equivalence preflight passed at
+CAMP local/GitHub/AutoDL `b32d62313ae9d64ab7f8d787ce1486dc016baf43`; fixed DP remains
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The frozen execution script
+SHA256 is `1ee98c6bc8f2a5234a2147859d0d6cb372ba27f8980a2f5c476a03ab7fca8dad`.
+It plans 10,000 direct native same-input `noise_scale=0` calls and exact
+elementwise/SHA comparison against saved candidate 0.
+
+Preflight artifact/root SHA256:
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_b32d6231_20260711T183711CST`
+/ `969c0a4c119181634992ff2fc1b7a5f14c101363521a785c9c52d901ee8fa5db`.
+It passed 25 tests, every upstream root, target/staging absence, and the hard
+10 GiB floor with model/label calls zero. Two read-only reviewer harness
+failures are preserved: root `ff0404ca726bd5712e74190282b379156cd3d9438cb4a9c2cc7b55672728cffb`
+for transient `__pycache__` manifest counting, and root
+`cb754e4f39a5de88598c4ca2894089b414bd66479ea52ef4c9982fcd8c366b28`
+for an incomplete static token string. Neither invoked the model.
+
+The corrected independent review passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_result_review_retry2_b32d6231_20260711T184110CST`
+/ `22fb92e062411a1ffb57dac8a43c88084141ef10800973091d61d11c0f51ae4c`.
+Free bytes were `16240414720`; output and `.tmp` remain absent. Candidate 0
+remains the fixed-DP deterministic/MAP baseline with
+`equivalence_verified=false` and `native_ranked_top1=false`; holdout labels
+remain sealed and no performance or safety claim is made.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_preflight_and_independent_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_preflight_result_review_retry2_b32d6231_20260711T184110CST
+current_v18_artifact_root_sha256=22fb92e062411a1ffb57dac8a43c88084141ef10800973091d61d11c0f51ae4c
+next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
