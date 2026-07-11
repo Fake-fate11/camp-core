@@ -232,3 +232,95 @@ def test_existing_output_blocks_evaluate_before_source_access(
         module.run_evaluate(args)
 
     assert touched == []
+
+
+def test_review_recomputes_source_artifact_without_labels(tmp_path, monkeypatch) -> None:
+    holdout = _holdout_data()
+    paired_root, paired_sha = _paired_root(tmp_path)
+    evaluate_args = _evaluation_args(tmp_path, paired_root, paired_sha)
+    monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 2)
+    monkeypatch.setattr(module, "BOOTSTRAP_REPLICATES", 50)
+    monkeypatch.setattr(module, "_verify_sources", lambda _args: None)
+    monkeypatch.setattr(module, "load_materialized_split", lambda *_a, **_k: holdout)
+    monkeypatch.setattr(
+        module, "load_candidate_component_inputs", lambda *_a, **_k: _component_inputs()
+    )
+    monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_a: {"ok": True})
+    module.run_evaluate(evaluate_args)
+    safety_root_sha = base._sha256(evaluate_args.output_dir / "SHA256SUMS")
+    review_args = argparse.Namespace(
+        **{
+            **vars(evaluate_args),
+            "safety_root": evaluate_args.output_dir,
+            "expected_safety_root_sha256": safety_root_sha,
+            "output_dir": tmp_path / "review",
+        }
+    )
+
+    review = module.run_review(review_args)
+
+    assert review["status"] == "passed"
+    assert review["source_safety_root_sha256"] == safety_root_sha
+    assert review["recomputed_records"] == 2
+    assert review["holdout_label_reads"] == 0
+    assert review["closed_loop_safety_claim"] is False
+    assert (review_args.output_dir / "ROOT_SHA256SUMS").is_file()
+
+
+def test_review_rejects_changed_source_artifact(tmp_path, monkeypatch) -> None:
+    holdout = _holdout_data()
+    paired_root, paired_sha = _paired_root(tmp_path)
+    evaluate_args = _evaluation_args(tmp_path, paired_root, paired_sha)
+    monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 2)
+    monkeypatch.setattr(module, "BOOTSTRAP_REPLICATES", 50)
+    monkeypatch.setattr(module, "_verify_sources", lambda _args: None)
+    monkeypatch.setattr(module, "load_materialized_split", lambda *_a, **_k: holdout)
+    monkeypatch.setattr(
+        module, "load_candidate_component_inputs", lambda *_a, **_k: _component_inputs()
+    )
+    monkeypatch.setattr(module, "read_v18_status_pointer", lambda *_a: {"ok": True})
+    module.run_evaluate(evaluate_args)
+    safety_root_sha = base._sha256(evaluate_args.output_dir / "SHA256SUMS")
+    with (evaluate_args.output_dir / "records.jsonl").open("a", encoding="utf-8") as stream:
+        stream.write("{}\n")
+    review_args = argparse.Namespace(
+        **{
+            **vars(evaluate_args),
+            "safety_root": evaluate_args.output_dir,
+            "expected_safety_root_sha256": safety_root_sha,
+            "output_dir": tmp_path / "review",
+        }
+    )
+
+    with pytest.raises(ValueError, match="SHA256"):
+        module.run_review(review_args)
+
+
+def test_review_cli_requires_source_safety_root(tmp_path) -> None:
+    common = [
+        "--canonical_root",
+        str(tmp_path / "canonical"),
+        "--canonical_sha256s",
+        str(tmp_path / "canonical.sha256s"),
+        "--expected_canonical_root_sha256",
+        "a" * 64,
+        "--candidate_root",
+        str(tmp_path / "candidates"),
+        "--expected_candidate_root_sha256",
+        "b" * 64,
+        "--paired_eval_root",
+        str(tmp_path / "paired"),
+        "--expected_paired_eval_root_sha256",
+        "c" * 64,
+        "--output_dir",
+        str(tmp_path / "output"),
+        "--current_status",
+        str(tmp_path / "status.md"),
+        "--v18_audit",
+        str(tmp_path / "audit.md"),
+    ]
+
+    evaluate = module.parse_args(["--mode", "evaluate", *common])
+    assert evaluate.mode == "evaluate"
+    with pytest.raises(SystemExit):
+        module.parse_args(["--mode", "review", *common])

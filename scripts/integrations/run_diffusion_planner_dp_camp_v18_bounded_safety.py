@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -528,3 +529,94 @@ def run_evaluate(args: Any) -> dict[str, Any]:
     _write_root_manifest(staging)
     os.replace(staging, output)
     return summary
+
+
+def run_review(args: Any) -> dict[str, Any]:
+    output = Path(args.output_dir)
+    staging = output.with_name(output.name + ".tmp")
+    if output.exists() or staging.exists():
+        raise FileExistsError(output if output.exists() else staging)
+    source_summary = _verify_artifact_root(
+        args.safety_root, args.expected_safety_root_sha256
+    )
+    source_protocol_path = args.safety_root / "protocol.json"
+    source_protocol = json.loads(source_protocol_path.read_text(encoding="utf-8"))
+    if source_protocol != _protocol():
+        raise ValueError("bounded safety protocol does not match frozen constants")
+    if source_summary.get("protocol_sha256") != _sha256(source_protocol_path):
+        raise ValueError("bounded safety protocol SHA256 mismatch")
+    _verify_sources(args)
+    recomputed_summary, recomputed_records = _compute_evaluation(args)
+    source_core = {
+        key: value
+        for key, value in source_summary.items()
+        if key not in {"controller_pointer", "protocol_sha256"}
+    }
+    if source_core != recomputed_summary:
+        raise ValueError("bounded safety summary recomputation mismatch")
+    source_records = [
+        json.loads(line)
+        for line in (args.safety_root / "records.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+    if source_records != recomputed_records:
+        raise ValueError("bounded safety record recomputation mismatch")
+    pointer = read_v18_status_pointer(args.current_status, args.v18_audit)
+    review = {
+        "status": "passed",
+        "schema_version": "camp_dp_bounded_offline_safety_score_v1_review",
+        "source_safety_root_sha256": args.expected_safety_root_sha256,
+        "source_summary_sha256": _sha256(args.safety_root / "summary.json"),
+        "source_protocol_sha256": _sha256(source_protocol_path),
+        "recomputed_records": len(recomputed_records),
+        "holdout_label_reads": 0,
+        "learned_selector_weights_used": False,
+        "candidate_generation_executed": False,
+        "candidate_tensor_mutation": False,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "closed_loop_safety_claim": False,
+        "mini_evidence_scope": "post_hoc_descriptive_smoke_only_no_claim",
+        "controller_pointer": pointer,
+    }
+    staging.mkdir(parents=True)
+    _write_json(staging / "summary.json", review)
+    _write_root_manifest(staging)
+    os.replace(staging, output)
+    return review
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Evaluate or review the v18 bounded offline safety score."
+    )
+    parser.add_argument("--mode", choices=("evaluate", "review"), required=True)
+    parser.add_argument("--canonical_root", type=Path, required=True)
+    parser.add_argument("--canonical_sha256s", type=Path, required=True)
+    parser.add_argument("--expected_canonical_root_sha256", required=True)
+    parser.add_argument("--candidate_root", type=Path, required=True)
+    parser.add_argument("--expected_candidate_root_sha256", required=True)
+    parser.add_argument("--paired_eval_root", type=Path, required=True)
+    parser.add_argument("--expected_paired_eval_root_sha256", required=True)
+    parser.add_argument("--safety_root", type=Path)
+    parser.add_argument("--expected_safety_root_sha256")
+    parser.add_argument("--output_dir", type=Path, required=True)
+    parser.add_argument("--current_status", type=Path, required=True)
+    parser.add_argument("--v18_audit", type=Path, required=True)
+    args = parser.parse_args(argv)
+    if args.mode == "review" and (
+        args.safety_root is None or args.expected_safety_root_sha256 is None
+    ):
+        parser.error("review mode requires safety root and root SHA256")
+    return args
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    report = run_evaluate(args) if args.mode == "evaluate" else run_review(args)
+    print(json.dumps(report, indent=2, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
