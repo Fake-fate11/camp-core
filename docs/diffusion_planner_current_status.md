@@ -1053,6 +1053,42 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_det
 current_v18_artifact_root_sha256=aacbab7f5b64bdec369435309a3530b4cec6d704c031be6c8d8322b2a4ff6446
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only
 
+The causal-10k static training, one-shot paired-evaluation, and bounded-safety
+combined spec/plan is frozen at
+`docs/superpowers/plans/2026-07-11-v18-causal-10k-static-training-calibration-paired-evaluation.md`
+/ SHA256 `482e4c07501e7d24d8117ccc920d1d76b74887e64d7cb10e7f015b9ea582ef5b`.
+It reuses the existing v18 runner, bounded-safety evaluator, canonical schema
+prefixes, and convex robust-margin master without adding another runner or
+optimizer.
+
+The frozen materialized counts are `5631/1896/1931`; all 243 source-incomplete
+and 299 all-K-infeasible rows remain audit-only and excluded. The primary model
+is corrected static canonical14D. Uniform14D, corrected 9D/10D/12D/13D/14D,
+mini-trained14D, and oracle comparisons must also freeze before holdout. A
+distinct causal legacy9D must be proven or recorded unavailable; it may not be
+aliased to corrected9D or trained with the forbidden legacy epoch path.
+
+The approved affine/simplex/CVaR/L2 master, train-only scaling, expert ADE/FDE
+label, seeds, strict convergence gate, and `564/1408/2816/5631` corrected14D
+learning curve are unchanged. All models, metrics, thresholds, CI settings,
+claim criteria, and roots require independent review before the 1,931 holdout
+labels are opened once. Raw expert futures remain non-persistent.
+
+Bounded safety remains byte-identical to protocol SHA256
+`54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`
+and cannot use learned CAMP weights as evaluation weights. Candidate 0 remains
+the proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`. OBB exactness remains limited to the frozen 32+5
+observable source, with no complete-scene, closed-loop, performance, or safety
+claim from this documentation gate. Model/label/train/eval/safety calls are all
+zero and immutable roots are unchanged.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_spec_plan_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_one_shot_paired_evaluation_and_bounded_safety_frozen_spec_plan
+current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-causal-10k-static-training-calibration-paired-evaluation.md
+current_v18_artifact_root_sha256=482e4c07501e7d24d8117ccc920d1d76b74887e64d7cb10e7f015b9ea582ef5b
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

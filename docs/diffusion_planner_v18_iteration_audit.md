@@ -2334,3 +2334,47 @@ current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_deterministic_map_baseline
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_result_review_a5f38464_20260711T193330CST
 current_v18_artifact_root_sha256=aacbab7f5b64bdec369435309a3530b4cec6d704c031be6c8d8322b2a4ff6446
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only
+
+## Gate 43: Causal-10k Static Training, Paired Evaluation, and Bounded Safety Spec/Plan
+
+Status: frozen design; inline TDD implementation is next without another
+approval checkpoint.
+
+- Frozen combined spec/plan:
+  `docs/superpowers/plans/2026-07-11-v18-causal-10k-static-training-calibration-paired-evaluation.md`
+  / SHA256 `482e4c07501e7d24d8117ccc920d1d76b74887e64d7cb10e7f015b9ea582ef5b`.
+- The plan reuses the existing v18 training/evaluation runner, bounded-safety
+  runner, atom-schema prefixes, and robust-margin cutting-plane master. It
+  adds no runner, optimizer, non-affine selector, scene-conditioned `Theta`,
+  legacy epoch trainer, random restart, or candidate mutation path.
+- Frozen causal-10k materialized counts are `5631/1896/1931`; the 243
+  source-incomplete and 299 all-K-infeasible rows remain audit-only and
+  fail-closed excluded. Holdout labels remain sealed.
+- The primary selector is corrected static canonical14D. Before the one-shot
+  holdout, the plan also freezes uniform14D, corrected 9D/10D/12D/13D/14D,
+  mini-trained14D, and oracle comparisons. A distinct causal legacy9D is
+  required for that named comparator; if unavailable, it is recorded with the
+  complete reason and the formal claim fails closed rather than aliasing
+  corrected9D or invoking the forbidden legacy trainer.
+- Training retains train-only p95 scaling, ADE-primary/FDE-secondary labels,
+  seeded priority, affine nonnegative simplex scoring, CVaR `0.9`, L2 `1e-4`,
+  CLARABEL, max 20 cutting-plane iterations, tolerance `1e-6`, and strict
+  optimal/gap/no-new-cut acceptance. Corrected14D learning-curve counts are
+  frozen at `564/1408/2816/5631`.
+- Every comparison model, metric, threshold, seed, CI, claim criterion, and
+  safety protocol must pass independent freeze review before any of the 1,931
+  materialized holdout labels are queried once. Raw expert futures are never
+  persisted.
+- Bounded safety reuses protocol SHA256
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`
+  byte-for-byte and never uses learned CAMP weights as evaluation weights.
+  OBB exactness stays limited to frozen 32+5 observable objects; there is no
+  full-scene, closed-loop, real-world, promotion, deployment, or safety claim.
+- This documentation-only gate made zero model, label, training, calibration,
+  evaluation, or safety calls and changed no immutable root.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_spec_plan_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_one_shot_paired_evaluation_and_bounded_safety_frozen_spec_plan
+current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-causal-10k-static-training-calibration-paired-evaluation.md
+current_v18_artifact_root_sha256=482e4c07501e7d24d8117ccc920d1d76b74887e64d7cb10e7f015b9ea582ef5b
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
