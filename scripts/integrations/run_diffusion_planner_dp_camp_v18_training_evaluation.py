@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import time
 from typing import Any, Mapping
@@ -59,6 +60,10 @@ ADE_TIE_TOLERANCE_M = 1e-9
 SCORE_TIE_TOLERANCE = 1e-12
 BOOTSTRAP_REPLICATES = 10_000
 LATENCY_REPETITIONS_PER_RECORD = 1_000
+MIN_FREE_BYTES = 10 * 1024**3
+TRAIN_CALIBRATE_PREFLIGHT_TARGET = (
+    "v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_only"
+)
 
 BASELINE_INDEX = 0
 BASELINE_SEMANTICS = "fixed_dp_deterministic_map_baseline"
@@ -891,6 +896,134 @@ def _fit_comparison_family(
     }
 
 
+def _free_bytes_for_path(path: Path) -> int:
+    probe = Path(path)
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    return int(shutil.disk_usage(probe).free)
+
+
+def _active_peer_gate_processes(proc: Path = Path("/proc")) -> list[str]:
+    if not proc.is_dir():
+        return []
+    script_name = Path(__file__).name
+    peers = []
+    for entry in proc.iterdir():
+        if not entry.name.isdigit() or int(entry.name) == os.getpid():
+            continue
+        try:
+            comm = (entry / "comm").read_text(encoding="utf-8").strip()
+            argv = [
+                value.decode()
+                for value in (entry / "cmdline").read_bytes().split(b"\0")
+                if value
+            ]
+        except (OSError, UnicodeDecodeError):
+            continue
+        if comm.startswith("python") and any(
+            Path(argument).name == script_name for argument in argv[1:]
+        ):
+            peers.append(" ".join(argv))
+    return peers
+
+
+def _installed_solvers() -> tuple[str, ...]:
+    import cvxpy as cp
+
+    return tuple(cp.installed_solvers())
+
+
+def run_train_calibrate_preflight(args: Any) -> dict[str, Any]:
+    output = Path(args.output_dir)
+    staging = output.with_name(output.name + ".tmp")
+    if output.exists() or staging.exists():
+        raise FileExistsError(output if output.exists() else staging)
+    peers = _active_peer_gate_processes()
+    if peers:
+        raise RuntimeError("another v18 training/evaluation gate is active")
+    free_bytes = _free_bytes_for_path(output.parent)
+    if free_bytes < MIN_FREE_BYTES:
+        raise RuntimeError("free space is below the hard 10 GiB gate")
+    installed_solvers = _installed_solvers()
+    if SOLVER not in installed_solvers:
+        raise RuntimeError(f"the frozen {SOLVER} solver is unavailable")
+
+    input_review = _verify_training_inputs(args)
+    pointer = read_v18_status_pointer(args.current_status, args.v18_audit)
+    if pointer.get("next_work_target") != TRAIN_CALIBRATE_PREFLIGHT_TARGET:
+        raise RuntimeError("live v18 EOF does not authorize training preflight")
+    train = load_materialized_split(
+        args.canonical_root, args.candidate_root, "train", labels_required=True
+    )
+    calibration = load_materialized_split(
+        args.canonical_root,
+        args.candidate_root,
+        "calibration",
+        labels_required=True,
+    )
+    holdout = load_materialized_split(
+        args.canonical_root,
+        args.candidate_root,
+        "holdout",
+        labels_required=False,
+    )
+    by_split, excluded_holdout = _materialized_identity_sets(args.canonical_root)
+    expected_counts = {
+        "train": EXPECTED_TRAIN_COUNT,
+        "calibration": EXPECTED_CALIBRATION_COUNT,
+        "holdout": EXPECTED_HOLDOUT_COUNT,
+    }
+    observed_counts = {
+        "train": train.atoms.shape[0],
+        "calibration": calibration.atoms.shape[0],
+        "holdout": holdout.atoms.shape[0],
+    }
+    if observed_counts != expected_counts or {
+        split: len(identities) for split, identities in by_split.items()
+    } != expected_counts:
+        raise ValueError("materialized split count mismatch")
+    if excluded_holdout != EXPECTED_EXCLUDED_HOLDOUT_COUNT:
+        raise ValueError("excluded holdout source-row count mismatch")
+    if (
+        train.labels is None
+        or calibration.labels is None
+        or holdout.labels is not None
+    ):
+        raise RuntimeError("train/calibration/holdout label boundary mismatch")
+
+    return {
+        "status": "passed",
+        "mode": "train_calibrate_preflight_only",
+        "materialized_split_counts": observed_counts,
+        "excluded_holdout_source_rows": excluded_holdout,
+        "split_overlap": 0,
+        "train_label_records": EXPECTED_TRAIN_COUNT,
+        "calibration_label_records": EXPECTED_CALIBRATION_COUNT,
+        "holdout_label_reads": 0,
+        "raw_holdout_labels_persisted": False,
+        "model_calls": 0,
+        "training_executed": False,
+        "calibration_executed": False,
+        "paired_evaluation_executed": False,
+        "candidate_generation_executed": False,
+        "candidate_tensor_mutation": False,
+        "solver": SOLVER,
+        "installed_solvers": list(installed_solvers),
+        "free_bytes": free_bytes,
+        "minimum_free_bytes": MIN_FREE_BYTES,
+        "active_peer_gate_processes": 0,
+        "output_absent": True,
+        "staging_absent": True,
+        "input_review": input_review,
+        "controller_pointer": pointer,
+        "baseline_semantics": BASELINE_SEMANTICS,
+        "equivalence_verified": True,
+        "native_ranked_top1": False,
+        "feasibility_scope": FEASIBILITY_SCOPE,
+        "closed_loop_safety_claim": False,
+    }
+
+
 def run_train_calibrate(args: Any) -> dict[str, Any]:
     output = Path(args.output_dir)
     staging = output.with_name(output.name + ".tmp")
@@ -1397,13 +1530,26 @@ def _materialized_identity_sets(
         "calibration": set(),
         "holdout": set(),
     }
+    logs_by_split = {split: set() for split in by_split}
+    scenes_by_split = {split: set() for split in by_split}
     excluded_holdout = 0
     for row in _canonical_rows(canonical_root):
         split = str(row["split"])
+        logs_by_split.setdefault(split, set()).add(str(row["log_token"]))
+        scenes_by_split.setdefault(split, set()).add(str(row["scene_token"]))
         if split == "holdout" and row.get("canonical_output_npz") is None:
             excluded_holdout += 1
         if row.get("canonical_output_npz", True) is not None:
             by_split.setdefault(split, set()).add(_identity(row))
+    if (
+        logs_by_split["train"] & logs_by_split["calibration"]
+        or logs_by_split["train"] & logs_by_split["holdout"]
+        or logs_by_split["calibration"] & logs_by_split["holdout"]
+        or scenes_by_split["train"] & scenes_by_split["calibration"]
+        or scenes_by_split["train"] & scenes_by_split["holdout"]
+        or scenes_by_split["calibration"] & scenes_by_split["holdout"]
+    ):
+        raise ValueError("materialized log/scene split overlap detected")
     if (
         by_split["train"] & by_split["calibration"]
         or by_split["train"] & by_split["holdout"]
@@ -1767,7 +1913,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--mode",
-        choices=("train-calibrate", "paired-eval-preflight", "paired-eval"),
+        choices=(
+            "train-calibrate-preflight",
+            "train-calibrate",
+            "paired-eval-preflight",
+            "paired-eval",
+        ),
         required=True,
     )
     parser.add_argument("--canonical_root", type=Path, required=True)
@@ -1789,7 +1940,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--current_status", type=Path, required=True)
     parser.add_argument("--v18_audit", type=Path, required=True)
     args = parser.parse_args(argv)
-    if args.mode != "train-calibrate" and (
+    if args.mode not in {"train-calibrate-preflight", "train-calibrate"} and (
         args.freeze_root is None
         or args.expected_freeze_root_sha256 is None
         or args.freeze_review is None
@@ -1804,7 +1955,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
-    if args.mode == "train-calibrate":
+    if args.mode == "train-calibrate-preflight":
+        report = run_train_calibrate_preflight(args)
+    elif args.mode == "train-calibrate":
         report = run_train_calibrate(args)
     elif args.mode == "paired-eval-preflight":
         report = run_paired_eval_preflight(args)

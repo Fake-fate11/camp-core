@@ -643,6 +643,134 @@ def test_train_calibrate_uses_train_only_scales_and_exact_master_contract(
         assert (tmp_path / "freeze" / "models" / f"{name}_scales.json").is_file()
 
 
+def test_train_calibrate_preflight_is_label_safe_and_execution_free(
+    tmp_path, monkeypatch
+) -> None:
+    train = _split_data("train", 2)
+    calibration = _split_data("calibration", 1)
+    source_holdout = _split_data("holdout", 1)
+    holdout = module.SplitData(
+        split=source_holdout.split,
+        rows=source_holdout.rows,
+        atoms=source_holdout.atoms,
+        feasible_mask=source_holdout.feasible_mask,
+        candidates=source_holdout.candidates,
+        labels=None,
+    )
+    args = _training_args(tmp_path)
+    monkeypatch.setattr(module, "EXPECTED_TRAIN_COUNT", 2)
+    monkeypatch.setattr(module, "EXPECTED_CALIBRATION_COUNT", 1)
+    monkeypatch.setattr(module, "EXPECTED_HOLDOUT_COUNT", 1)
+    monkeypatch.setattr(module, "EXPECTED_EXCLUDED_HOLDOUT_COUNT", 0)
+    monkeypatch.setattr(module, "_verify_training_inputs", lambda _args: {})
+    monkeypatch.setattr(
+        module,
+        "read_v18_status_pointer",
+        lambda *_args: {
+            "next_work_target": module.TRAIN_CALIBRATE_PREFLIGHT_TARGET
+        },
+    )
+    observed = []
+
+    def load_split(_canonical, _candidate, split, *, labels_required):
+        observed.append((split, labels_required))
+        return {"train": train, "calibration": calibration, "holdout": holdout}[
+            split
+        ]
+
+    monkeypatch.setattr(module, "load_materialized_split", load_split)
+    monkeypatch.setattr(
+        module,
+        "_materialized_identity_sets",
+        lambda _root: (
+            {
+                "train": {module._identity(row) for row in train.rows},
+                "calibration": {
+                    module._identity(row) for row in calibration.rows
+                },
+                "holdout": {module._identity(row) for row in holdout.rows},
+            },
+            0,
+        ),
+    )
+    monkeypatch.setattr(module, "_free_bytes_for_path", lambda _path: 11 << 30)
+    monkeypatch.setattr(module, "_active_peer_gate_processes", lambda: [])
+    monkeypatch.setattr(module, "_installed_solvers", lambda: ("CLARABEL",))
+
+    report = module.run_train_calibrate_preflight(args)
+
+    assert observed == [
+        ("train", True),
+        ("calibration", True),
+        ("holdout", False),
+    ]
+    assert report["status"] == "passed"
+    assert report["holdout_label_reads"] == 0
+    assert report["training_executed"] is False
+    assert report["model_calls"] == 0
+    assert report["free_bytes"] == 11 << 30
+    assert not args.output_dir.exists()
+    assert not args.output_dir.with_name(args.output_dir.name + ".tmp").exists()
+
+    monkeypatch.setattr(
+        module,
+        "read_v18_status_pointer",
+        lambda *_args: {"next_work_target": "stale_gate"},
+    )
+    with pytest.raises(RuntimeError, match="live v18 EOF"):
+        module.run_train_calibrate_preflight(args)
+
+    args.output_dir.mkdir()
+    with pytest.raises(FileExistsError):
+        module.run_train_calibrate_preflight(args)
+
+
+def test_materialized_identity_sets_reject_log_or_scene_overlap(
+    tmp_path, monkeypatch
+) -> None:
+    rows = [
+        {
+            "split": "train",
+            "log_token": "shared_log",
+            "scene_token": "train_scene",
+            "decision_token": "train_decision",
+            "canonical_output_npz": "train.npz",
+        },
+        {
+            "split": "calibration",
+            "log_token": "shared_log",
+            "scene_token": "calibration_scene",
+            "decision_token": "calibration_decision",
+            "canonical_output_npz": "calibration.npz",
+        },
+    ]
+    monkeypatch.setattr(module, "_canonical_rows", lambda _root: rows)
+
+    with pytest.raises(ValueError, match="log/scene split overlap"):
+        module._materialized_identity_sets(tmp_path)
+
+
+def test_active_peer_detector_ignores_shell_wrapper(tmp_path) -> None:
+    script_name = module.Path(module.__file__).name
+    shell = tmp_path / "1001"
+    shell.mkdir()
+    (shell / "comm").write_text("bash\n", encoding="utf-8")
+    (shell / "cmdline").write_bytes(
+        f"bash\0-c\0python {script_name} --mode train-calibrate\0".encode()
+    )
+    python = tmp_path / "1002"
+    python.mkdir()
+    (python / "comm").write_text("python3\n", encoding="utf-8")
+    (python / "cmdline").write_bytes(
+        f"python3\0/runner/{script_name}\0--mode\0train-calibrate\0".encode()
+    )
+
+    peers = module._active_peer_gate_processes(tmp_path)
+
+    assert len(peers) == 1
+    assert peers[0].startswith("python3 ")
+
+
 def test_fit_static_selector_uses_dimension_specific_convex_master(
     monkeypatch,
 ) -> None:
