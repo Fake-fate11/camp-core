@@ -1150,6 +1150,35 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_train
 current_v18_artifact_root_sha256=6c88f59ca9bc71bf7cc2cadba3728079591b5e86bdd8093bd9cd86c78b2626d9
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
 
+The first causal-10k training/calibration execution failed closed without
+creating the planned freeze or `.tmp`. Failed artifact/root:
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_ccf2f393_20260711T204736CST`
+/ `2a834b14316bd3467c400df4f1893bc8188becfa43e851aec60189455666fbd5`;
+`run.exit=1`, wall `70.616658585s`. The failure occurred at corrected12D:
+default CLARABEL's tiny raw negative weight (`-1.72e-13`) was amplified by an
+unclipped scaled outlier when projected to the saved strict simplex, producing
+a projected gap upper bound `1.744420516924805e-06 > 1e-6`.
+
+The math and acceptance threshold were not relaxed. A same-master diagnostic
+proved that CLARABEL numerical options
+`tol_gap_abs=tol_gap_rel=tol_feas=1e-10` reduce the projected 12D gap upper
+bound to `1.3556273825710008e-08`. CAMP/GitHub/AutoDL
+`b7948641d8e7cee4a85ae17efb99f87c1220199f` now freezes and persists those
+exact options through the existing master and checks the final gap for the
+saved projected weights. Independent review is clean; local/AutoDL suites
+passed `95 passed, 3 skipped` / `96 passed, 2 skipped`.
+
+The failed artifact is retained. Holdout reads and candidate mutation remain
+zero, the planned output remains absent, candidate 0 is still the fixed-DP
+deterministic/MAP baseline with `native_ranked_top1=false`, and the frozen
+32+5/no-closed-loop-safety boundary is unchanged.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_failed_closed_solver_precision_remediated
+current_v18_artifact_scope=nuplan_causal_10k_static_training_calibration_failed_execution_numeric_root_cause_and_solver_precision_remediation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_ccf2f393_20260711T204736CST
+current_v18_artifact_root_sha256=2a834b14316bd3467c400df4f1893bc8188becfa43e851aec60189455666fbd5
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

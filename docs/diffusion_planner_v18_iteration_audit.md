@@ -2485,3 +2485,58 @@ current_v18_artifact_scope=nuplan_causal_10k_static_14d_convex_training_calibrat
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_preflight_0c22f85e_20260711T203734CST
 current_v18_artifact_root_sha256=6c88f59ca9bc71bf7cc2cadba3728079591b5e86bdd8093bd9cd86c78b2626d9
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
+
+## Causal-10k Static Training Numerical Fail-Closed and Solver-Precision Remediation
+
+The first causal-10k training/calibration execution failed closed without a
+selector freeze at unchanged CAMP/GitHub/AutoDL
+`ccf2f393a6d6232fb3ffe5728ef9f40f874e6a69`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4` and tracked-clean.
+
+- Failed execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_ccf2f393_20260711T204736CST`
+  / `2a834b14316bd3467c400df4f1893bc8188becfa43e851aec60189455666fbd5`.
+  Its 10 manifest entries passed, `run.exit=1`, wall time was
+  `70.616658585s`, and the traceback ended at
+  `independent complete-master violation review failed`. The planned freeze
+  and `.tmp` roots remained absent; no checkpoint was promoted.
+- Independent dimension diagnostics showed corrected9D and corrected10D
+  passed the saved-simplex check. Corrected12D was the first failure: default
+  CLARABEL returned an otherwise optimal/converged raw solution with
+  `final_master_gap=2.8750340608230118e-08`, final new cuts zero, raw minimum
+  weight `-1.7177454446138758e-13`, and projection L1
+  `3.5032336749504644e-13`. Unclipped p95-scaled outliers amplified that tiny
+  numerical correction to maximum positive violation delta
+  `1.715670176316575e-06`, giving a projected saved-model gap upper bound
+  `1.744420516924805e-06 > 1e-6`. The fail-closed rejection was correct.
+- A read-only same-master diagnostic tightened only CLARABEL numerical
+  tolerances to `tol_gap_abs=tol_gap_rel=tol_feas=1e-10`. The 12D raw minimum
+  became `-1.728796606445729e-15`, projection L1
+  `3.0937848965441773e-15`, raw master gap `5.96586058332349e-10`, and saved
+  projected gap upper bound `1.3556273825710008e-08`, satisfying the original
+  `1e-6` acceptance without changing data, atoms, margins, affine/simplex
+  constraints, CVaR, L2, solver family, max iterations, or candidate tensors.
+- TDD at CAMP/GitHub/AutoDL
+  `b7948641d8e7cee4a85ae17efb99f87c1220199f` added immutable solver-option
+  forwarding to the existing robust-margin master. The v18 runner now freezes,
+  validates, and persists the exact three CLARABEL options above. It computes
+  the evaluable `final_master_gap` for the saved projected nonnegative-simplex
+  weights as raw solver gap plus the maximum positive recomputed violation
+  delta; it still fails closed above `1e-6`.
+- Runner/master SHA256 values are
+  `0ff9e48217b494485bf3164235e87a527393d736132cd6480bf8ee3c7de9aaa1`
+  / `1c9f3518c6337bb954727c443624dbd88f21b07267dbdee395fd284c2f86a94b`.
+  Independent code review reported zero remaining Critical, Important, or
+  Minor findings. Local verification passed `95 passed, 3 skipped`; AutoDL,
+  with real cvxpy/CLARABEL option forwarding, passed `96 passed, 2 skipped`,
+  plus py_compile and diff check.
+- The failed artifact is retained as immutable audit evidence. No holdout label
+  was read, no candidate was generated or mutated, and the planned output
+  remains absent. Candidate 0, frozen 32+5 feasibility scope, and no
+  complete-scene/closed-loop/safety-claim boundaries are unchanged.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_failed_closed_solver_precision_remediated
+current_v18_artifact_scope=nuplan_causal_10k_static_training_calibration_failed_execution_numeric_root_cause_and_solver_precision_remediation
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_execution_ccf2f393_20260711T204736CST
+current_v18_artifact_root_sha256=2a834b14316bd3467c400df4f1893bc8188becfa43e851aec60189455666fbd5
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
