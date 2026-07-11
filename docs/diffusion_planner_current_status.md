@@ -41,11 +41,19 @@ therefore not ready. The next gate is plan-only and must freeze an executable
 DP-default provenance check plus an isolated CAMP-side nuPlan capability path
 before any dependency install or smoke.
 
-current_v19_status=v19_native_baseline_provenance_and_safety_evidence_gap_audit_complete_execution_not_ready
-current_v19_artifact_scope=fixed_dp_native_default_source_provenance_and_nuplan_closed_loop_capability_read_only_audit_and_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_baseline_safety_evidence_gap_5a6a0976_20260711T230539CST
-current_v19_artifact_root_sha256=8d860e61165f77cc0893ad17199970f833b41be2a4d2696dd168d789f929a791
-next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_only
+That plan is now frozen. It pins official nuPlan devkit v1.2 at commit
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`, separates an official Python 3.9
+simulator from the unchanged Python 3.12 fixed-DP worker with an auditable file
+bridge, freezes the v18 corrected14D selector hashes, and requires executable
+default equivalence before any closed-loop run. The planned smoke is official
+`closed_loop_nonreactive_agents` on two zero-overlap mini scenarios; no install
+or execution has occurred. The next gate is static review only.
+
+current_v19_status=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_passed
+current_v19_artifact_scope=official_nuplan_v12_process_isolated_native_default_capability_and_smoke_plan
+current_v19_artifact=docs/superpowers/plans/2026-07-11-v19-native-default-nuplan-closed-loop-capability.md
+current_v19_artifact_root_sha256=9c7c0ce43e8117e1ee9223ababf2a2e75687eb9fa89a9c821fe01d60757b07c7
+next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_only
 
 ## Current V18 Status
 

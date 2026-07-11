@@ -160,3 +160,42 @@ current_v19_artifact_scope=fixed_dp_native_default_source_provenance_and_nuplan_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_baseline_safety_evidence_gap_5a6a0976_20260711T230539CST
 current_v19_artifact_root_sha256=8d860e61165f77cc0893ad17199970f833b41be2a4d2696dd168d789f929a791
 next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_only
+
+## Native-default nuPlan Closed-loop Capability Plan
+
+The plan-only gate froze the smallest non-DP-mutating architecture in:
+
+`docs/superpowers/plans/2026-07-11-v19-native-default-nuplan-closed-loop-capability.md`
+
+Plan SHA256 is
+`9c7c0ce43e8117e1ee9223ababf2a2e75687eb9fa89a9c821fe01d60757b07c7`.
+
+The plan pins official Motional nuPlan devkit tag `nuplan-devkit-v1.2` at
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`, uses a separate Python 3.9
+conda environment, and keeps the existing Python 3.12 fixed-DP environment
+unchanged. A file-based NPZ/JSON bridge separates the official simulator from
+the fixed-DP worker and counts bridge time in total planning-path latency.
+
+The immutable v18 corrected14D selector root and its scales/weights hashes are
+frozen. Baseline provenance must first prove executable deterministic/MAP
+equivalence on an identical label-free input. CAMP remains K=8 candidate-only
+selection with candidate 0 zero-noise, candidates 1-7 at noise scale 1.0,
+before/after tensor hashes, and fail-closed all-K-infeasible behavior.
+
+The proposed smoke is official nuPlan `closed_loop_nonreactive_agents`, two
+zero-overlap scenarios from distinct unused logs, with seeds 3411/3412 and
+bootstrap seed 3410. Its scope must remain explicit: official ego closed-loop
+with nonreactive logged traffic, not reactive-traffic or real-world safety.
+SafetyCost v1 remains primary; official collision/drivable-area/direction/TTC/
+progress/speed/comfort metrics are additional, and ADE/FDE/miss remain
+secondary.
+
+No source was cloned, dependency installed, simulator executed, holdout label
+read, or artifact deleted by this plan-only gate. The next gate is a static
+review of the plan; it cannot install or execute anything.
+
+current_v19_status=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_passed
+current_v19_artifact_scope=official_nuplan_v12_process_isolated_native_default_capability_and_smoke_plan
+current_v19_artifact=docs/superpowers/plans/2026-07-11-v19-native-default-nuplan-closed-loop-capability.md
+current_v19_artifact_root_sha256=9c7c0ce43e8117e1ee9223ababf2a2e75687eb9fa89a9c821fe01d60757b07c7
+next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_static_review_only
