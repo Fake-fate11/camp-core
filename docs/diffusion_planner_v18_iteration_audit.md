@@ -2378,3 +2378,61 @@ current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_o
 current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-causal-10k-static-training-calibration-paired-evaluation.md
 current_v18_artifact_root_sha256=482e4c07501e7d24d8117ccc920d1d76b74887e64d7cb10e7f015b9ea582ef5b
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
+
+## Causal-10k Static Training, Calibration, and Paired-Evaluation TDD Implementation Checkpoint
+
+The approved causal-10k static-selector plan is implemented on CAMP
+local/GitHub/AutoDL `60b0458a8dbac4daeaa3d449f0a6b7b2d6877797`; fixed Diffusion Planner
+remains tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+The implementation and focused-test SHA256 values are respectively
+`b048faca3e49d49ba789968cf5570158aedbe753b8fd5446feb251e54ac4d919`
+and `5706713b88c5702a49ce0b5319e551733674b2159d1daaee3038a5236dfa98ce`.
+
+- The existing runner now fits corrected 9D/10D/12D/13D/14D selectors with
+  the same accepted static convex master, freezes the exact
+  `564/1408/2816/5631` corrected14D learning curve, copies and hashes the
+  independently reviewed mini-trained14D weights/scales, and records the
+  distinct legacy9D comparator as unavailable with its complete fail-closed
+  reason. No trainer, optimizer, epoch loop, random restart, non-affine path,
+  or scene-conditioned `Theta` was added.
+- The full freeze loader requires every comparison model/scales hash, exact
+  comparison order, mini freeze/review roots, legacy-unavailable reason, and
+  primary corrected14D alias. A narrow primary-only loader preserves
+  compatibility with the real immutable mini freeze, whose verified layout
+  predates `comparison_family.json`; this does not weaken the causal-10k full
+  comparison loader.
+- Holdout preflight requires exactly 1,931 label-free materialized identities,
+  69 excluded source-holdout audit rows, zero split overlap, reviewed freeze
+  evidence, and absent output/staging roots. One-shot evaluation derives
+  ADE/FDE once per identity, applies all seven affine selectors to those same
+  derived metrics, persists only label SHA receipts and derived values, and
+  blocks a second execution.
+- Every affine selector reports ADE/FDE/miss, better/tie/worse, complete
+  feasible-oracle and selection-oracle gaps, non-Top1 count/rate, log/scene
+  CI95 from distinct child streams of root bootstrap seed 3410, and
+  mean/p50/p95/p99/max latency. Baseline, feasible best-of-K oracle, and the
+  unavailable legacy9D comparator are explicit in the final comparison
+  result. Calibration is tuning-free and records the same per-selector
+  latency without changing models or scales.
+- Candidate 0 remains only the independently proven fixed-DP
+  deterministic/MAP baseline with `native_ranked_top1=false`. All-K
+  infeasible rows remain excluded with no fallback. Exactness remains limited
+  to the frozen 32-dynamic plus 5-static observable source, and no
+  complete-scene, performance, closed-loop, real-world, or safety claim is
+  made.
+- Focused TDD plus the Benders atom contract passed `34` tests. Independent
+  code review reported zero Critical, Important, or Minor findings. The full
+  local prescribed suite first reproduced the known Windows Torch/OpenMP
+  import abort; the repository-recorded process-only workaround then passed
+  `85 passed, 2 skipped`. AutoDL passed the same suite without that workaround
+  with `85 passed, 2 skipped`; py_compile and diff checks passed on both sides.
+- Before AutoDL synchronization, no v18 gate job was active and free bytes
+  were `16235028480`, above the hard 10 GiB floor. This checkpoint made no
+  production model, training, calibration, holdout-label, paired-evaluation,
+  or safety call and changed no immutable data/model root.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_checkpoint_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_training_calibration_and_one_shot_paired_evaluation_tdd_implementation_checkpoint
+current_v18_artifact=scripts/integrations/run_diffusion_planner_dp_camp_v18_training_evaluation.py
+current_v18_artifact_root_sha256=b048faca3e49d49ba789968cf5570158aedbe753b8fd5446feb251e54ac4d919
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_only

@@ -1089,6 +1089,37 @@ current_v18_artifact=docs/superpowers/plans/2026-07-11-v18-causal-10k-static-tra
 current_v18_artifact_root_sha256=482e4c07501e7d24d8117ccc920d1d76b74887e64d7cb10e7f015b9ea582ef5b
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_only
 
+The approved causal-10k static-selector TDD implementation checkpoint passed
+at CAMP local/GitHub/AutoDL
+`60b0458a8dbac4daeaa3d449f0a6b7b2d6877797`; fixed Diffusion Planner remains
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The runner SHA256 is
+`b048faca3e49d49ba789968cf5570158aedbe753b8fd5446feb251e54ac4d919`.
+
+The existing runner now freezes corrected 9D/10D/12D/13D/14D, uniform14D,
+mini-trained14D, corrected14D learning curves, oracle headroom, and exact
+legacy9D-unavailable evidence. Calibration remains tuning-free. The one-shot
+evaluator gates the reviewed freeze, exact 1,931 materialized plus 69 excluded
+holdout contract, one label query/derivation per identity, all affine
+selectors, distinct bootstrap child streams, complete oracle/non-Top1
+reporting, and per-selector mean/p50/p95/p99/max latency. Raw futures are not
+persisted and existing output or staging blocks a rerun.
+
+Focused TDD plus Benders passed `34` tests and independent review reported no
+finding. The full local suite passed `85 passed, 2 skipped` under the already
+recorded process-only Windows Torch/OpenMP workaround; AutoDL passed the same
+`85 passed, 2 skipped` without it. Holdout labels remain sealed and this
+checkpoint made no production training, calibration, evaluation, or safety
+call. Candidate 0 remains the proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; exactness remains limited to the frozen 32+5
+observable source with no complete-scene, performance, closed-loop, or safety
+claim.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_tdd_implementation_checkpoint_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_training_calibration_and_one_shot_paired_evaluation_tdd_implementation_checkpoint
+current_v18_artifact=scripts/integrations/run_diffusion_planner_dp_camp_v18_training_evaluation.py
+current_v18_artifact_root_sha256=b048faca3e49d49ba789968cf5570158aedbe753b8fd5446feb251e54ac4d919
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
