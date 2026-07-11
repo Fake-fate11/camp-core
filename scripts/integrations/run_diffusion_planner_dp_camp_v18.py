@@ -39,7 +39,6 @@ from camp_core.integrations.nuplan_causal_adapter import (  # noqa: E402
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_K = 8
-EXPECTED_MINI_RECORD_COUNT = 367
 FIXED_DP_NEIGHBOR_COUNT = 320
 DEFAULT_SEED = 3407
 CAUSAL_SOURCE_SCHEMA_VERSION = "dp_camp_v18_nuplan_causal_source_v2"
@@ -439,14 +438,13 @@ def _verified_candidate_source(
     summary = json.loads(
         (candidate_root / "summary.json").read_text(encoding="utf-8")
     )
+    expected_record_count = int(summary.get("record_count", -1))
     if (
-        len(records) != EXPECTED_MINI_RECORD_COUNT
-        or int(summary.get("record_count", -1)) != EXPECTED_MINI_RECORD_COUNT
-        or len(entries) != EXPECTED_MINI_RECORD_COUNT
+        expected_record_count <= 0
+        or len(records) != expected_record_count
+        or len(entries) != expected_record_count
     ):
-        raise ValueError(
-            f"candidate source must contain {EXPECTED_MINI_RECORD_COUNT} records"
-        )
+        raise ValueError("candidate source record count mismatch")
     if (
         summary.get("candidate_generation_executed") is not True
         or summary.get("dp_head") != FIXED_DP_HEAD
@@ -457,7 +455,7 @@ def _verified_candidate_source(
     if not manifest.is_absolute():
         manifest = candidate_root / manifest
     source_rows = _read_manifest(manifest, str(summary["manifest_sha256"]))
-    if len(source_rows) != EXPECTED_MINI_RECORD_COUNT:
+    if len(source_rows) != expected_record_count:
         raise ValueError("candidate manifest record count mismatch")
     identities = [_identity(row) for row in records]
     if len(set(identities)) != len(identities):

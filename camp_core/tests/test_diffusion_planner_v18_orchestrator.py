@@ -586,7 +586,6 @@ def test_run_materialization_seals_holdout_and_excludes_all_k(
 ) -> None:
     module = _orchestrator()
     args, causal_input = _materialization_output_fixture(tmp_path, module)
-    monkeypatch.setattr(module, "EXPECTED_MINI_RECORD_COUNT", 3)
     pointer_calls = []
     monkeypatch.setattr(
         module,
