@@ -32,11 +32,20 @@ official nuPlan metrics. No v18 holdout reopening, DP modification, simulator
 execution, promotion, deployment, activation, or broad safety claim is
 authorized by this pointer.
 
-current_v19_status=v19_safety_first_claim_taxonomy_and_controller_bootstrap_passed
-current_v19_artifact_scope=v19_safety_first_claim_taxonomy_controller_bootstrap_and_autodl_verification
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_safety_first_controller_bootstrap_35226fcf_20260711T225917CST
-current_v19_artifact_root_sha256=d323414e252f1c122865a5ead7e0b7c5b94dff5c70b4671dc95ca11e1ecc3d3b
-next_work_target=v19_native_baseline_provenance_and_safety_evidence_gap_read_only_audit_only
+That read-only audit has now passed. The fixed DP source contract establishes a
+single-output deterministic/MAP default path but no native K-ranking/Top-1
+path. The existing nuPlan mini root has 64 DBs and 4 map databases, while the
+fixed DP environment has no nuPlan devkit/official simulator and the fixed DP
+repository has no nuPlan closed-loop adapter. Matched closed-loop execution is
+therefore not ready. The next gate is plan-only and must freeze an executable
+DP-default provenance check plus an isolated CAMP-side nuPlan capability path
+before any dependency install or smoke.
+
+current_v19_status=v19_native_baseline_provenance_and_safety_evidence_gap_audit_complete_execution_not_ready
+current_v19_artifact_scope=fixed_dp_native_default_source_provenance_and_nuplan_closed_loop_capability_read_only_audit_and_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_baseline_safety_evidence_gap_5a6a0976_20260711T230539CST
+current_v19_artifact_root_sha256=8d860e61165f77cc0893ad17199970f833b41be2a4d2696dd168d789f929a791
+next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_only
 
 ## Current V18 Status
 

@@ -72,9 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_safety_first_claim_taxonomy_and_controller_bootstrap_passed"
+        "v19_native_baseline_provenance_and_safety_evidence_gap_audit_"
+        "complete_execution_not_ready"
     )
     assert pointer["next_work_target"] == (
-        "v19_native_baseline_provenance_and_safety_evidence_gap_"
-        "read_only_audit_only"
+        "v19_native_default_executable_provenance_and_nuplan_closed_loop_"
+        "capability_plan_only"
     )

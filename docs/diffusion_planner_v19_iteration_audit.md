@@ -55,6 +55,68 @@ current_v19_artifact=docs/superpowers/specs/2026-07-11-v19-safety-first-evidence
 current_v19_artifact_root_sha256=c4ec98ea736d1cc2fcf8d3394d56f037f67f92899c83ecea79da5288037cddbe
 next_work_target=v19_native_baseline_provenance_and_safety_evidence_gap_read_only_audit_only
 
+## Native Baseline Provenance and Safety Evidence Gap Read-only Audit
+
+The read-only audit and independent review completed on AutoDL at CAMP
+`5a6a09765a1c71ed7300b16bedb1dc64cf422276`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Artifact and root SHA256:
+
+- `/root/autodl-tmp/camp_dp_v19_native_baseline_safety_evidence_gap_5a6a0976_20260711T230539CST`
+- `8d860e61165f77cc0893ad17199970f833b41be2a4d2696dd168d789f929a791`
+
+`py_compile`, v18/v19 tests, audit execution, independent review, and diff
+checks all exited `0`; pytest reported `30 passed in 2.76s` with empty stderr.
+The independent review passed all 18 checks.
+
+Fixed-DP source provenance established the source contract for its default
+single-output deterministic/MAP path, but did not find a native K-ranking or
+Top-1 selection path:
+
+- decoder SHA256: `8e81d1e9aa879dd0c0762d623dbe7480786e2618ccb261d10fd72cc00192e7dd`
+- deterministic zero-latent tensor-converter SHA256:
+  `af0a087dcfa910e5f0ad4732c5d1ebabb2fe5c41d2d61a4aa7aaf0f4351d36a7`
+- default replay single-output consumer SHA256:
+  `de4542fbc8685718379dbf0626499113d8bca6f7dead1c4456d2d34ffd0b9e4e`
+- ROS default batch-one/item-zero path SHA256:
+  `3341028ca11f45e73b7b43ab49dbf38980711f422dccfdb2f816f301443a5f53`
+
+The accurate baseline name is therefore `DP-default deterministic/MAP
+baseline`. Candidate 0 remains equivalent to the deterministic/MAP output but
+is not native Top-1 provenance. `native_ranked_top1=false`,
+`native_ranking_path_found=false`, and the broad native-Top-1 objective remains
+unsupported. Research/training reward rankers are not relabeled as native
+default inference.
+
+The existing nuPlan root contains 64 DBs totaling `14351183872` bytes and 4
+map databases. The fixed DP environment has no `nuplan-devkit` or official
+nuPlan simulator module. The fixed DP repository has no nuPlan reference or
+closed-loop adapter. CAMP's causal SQLite adapter is present, but it is an
+open-loop source materializer, not a matched closed-loop planner harness.
+
+Consequently `matched_closed_loop_execution_ready=false`. No simulator ran,
+no holdout label was read, and no data or dependency was downloaded. No safety,
+ADE/FDE/miss, or latency metric is reported by this capability-only gate.
+
+The claim taxonomy remains:
+
+- `performance_claim=no_claim`
+- `bounded_offline_safety_proxy_improvement=supported`
+- `closed_loop_safety_claim=not_yet_supported`
+- `broad_CAMP_over_native_DP_Top1_claim=not_supported`
+
+The next gate may only plan and statically review how to prove the executable
+DP-default path and add an isolated CAMP-side nuPlan simulation adapter. It may
+not modify DP, execute a smoke, install dependencies, or claim closed-loop
+safety yet.
+
+current_v19_status=v19_native_baseline_provenance_and_safety_evidence_gap_audit_complete_execution_not_ready
+current_v19_artifact_scope=fixed_dp_native_default_source_provenance_and_nuplan_closed_loop_capability_read_only_audit_and_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_baseline_safety_evidence_gap_5a6a0976_20260711T230539CST
+current_v19_artifact_root_sha256=8d860e61165f77cc0893ad17199970f833b41be2a4d2696dd168d789f929a791
+next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_only
+
 ## Safety-first Controller Bootstrap AutoDL Verification
 
 The bootstrap gate was independently reproduced on AutoDL after an ff-only
@@ -83,3 +145,18 @@ current_v19_artifact_scope=v19_safety_first_claim_taxonomy_controller_bootstrap_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_safety_first_controller_bootstrap_35226fcf_20260711T225917CST
 current_v19_artifact_root_sha256=d323414e252f1c122865a5ead7e0b7c5b94dff5c70b4671dc95ca11e1ecc3d3b
 next_work_target=v19_native_baseline_provenance_and_safety_evidence_gap_read_only_audit_only
+
+## Evidence-gap Entry Chronology Qualification
+
+The preceding evidence-gap result was mechanically inserted before the
+bootstrap AutoDL verification because its repeated next-target text was an
+ambiguous append anchor. No prior text is removed or rewritten. This
+append-only qualification records the actual chronology: bootstrap verification
+completed first, followed by the read-only evidence-gap audit at
+`5a6a09765a1c71ed7300b16bedb1dc64cf422276`. The pointer below is authoritative.
+
+current_v19_status=v19_native_baseline_provenance_and_safety_evidence_gap_audit_complete_execution_not_ready
+current_v19_artifact_scope=fixed_dp_native_default_source_provenance_and_nuplan_closed_loop_capability_read_only_audit_and_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_native_baseline_safety_evidence_gap_5a6a0976_20260711T230539CST
+current_v19_artifact_root_sha256=8d860e61165f77cc0893ad17199970f833b41be2a4d2696dd168d789f929a791
+next_work_target=v19_native_default_executable_provenance_and_nuplan_closed_loop_capability_plan_only
