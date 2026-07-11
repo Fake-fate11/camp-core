@@ -1120,6 +1120,36 @@ current_v18_artifact=scripts/integrations/run_diffusion_planner_dp_camp_v18_trai
 current_v18_artifact_root_sha256=b048faca3e49d49ba789968cf5570158aedbe753b8fd5446feb251e54ac4d919
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_only
 
+The causal-10k static training/calibration preflight passed once at CAMP
+local/GitHub/AutoDL `0c22f85e506993742361bb8428ea55daca535198`; fixed DP remains
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Artifact/root:
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_preflight_0c22f85e_20260711T203734CST`
+/ `6c88f59ca9bc71bf7cc2cadba3728079591b5e86bdd8093bd9cd86c78b2626d9`.
+
+The production verifier passed every immutable candidate/canonical/
+equivalence/mini-selector root, exact materialized counts `5631/1896/1931`,
+69 excluded holdout rows, train/calibration label presence, 1,931 label-free
+holdout NPZs, and zero log/scene overlap. CLARABEL was installed, free bytes
+were `16234422272` above the hard 10 GiB floor, and no peer gate was active.
+The planned output
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e`
+and its `.tmp` remain absent.
+
+Independent read-only review reverified all nine artifact SHA entries and all
+9,458 canonical NPZ label boundaries without rerunning preflight. Model/
+optimizer calls, training, calibration execution, paired evaluation,
+candidate generation/mutation, and holdout label reads remained zero.
+Candidate 0 remains the proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; feasibility remains limited to the frozen 32+5
+observable source with no complete-scene, performance, closed-loop, or safety
+claim.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_14d_convex_training_calibration_preflight_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_preflight_0c22f85e_20260711T203734CST
+current_v18_artifact_root_sha256=6c88f59ca9bc71bf7cc2cadba3728079591b5e86bdd8093bd9cd86c78b2626d9
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

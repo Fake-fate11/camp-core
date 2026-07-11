@@ -2436,3 +2436,52 @@ current_v18_artifact_scope=nuplan_causal_10k_static_selector_comparison_family_t
 current_v18_artifact=scripts/integrations/run_diffusion_planner_dp_camp_v18_training_evaluation.py
 current_v18_artifact_root_sha256=b048faca3e49d49ba789968cf5570158aedbe753b8fd5446feb251e54ac4d919
 next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_only
+
+## Causal-10k Static Training and Calibration Preflight
+
+The causal-10k static training/calibration preflight passed once at CAMP
+local/GitHub/AutoDL `0c22f85e506993742361bb8428ea55daca535198`; fixed Diffusion Planner
+remained tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+The existing training/evaluation runner SHA256 was
+`628f0e154b87289e72c41e8292ea03ea2c1a09fb8c031ce23b0770a037c39e19`.
+
+- Preflight artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_preflight_0c22f85e_20260711T203734CST`
+  / `6c88f59ca9bc71bf7cc2cadba3728079591b5e86bdd8093bd9cd86c78b2626d9`.
+  All nine artifact SHA entries passed; `run.exit=0`, stderr was empty, and
+  wall time was `18.764952806s`.
+- The planned immutable selector freeze is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e`.
+  It and its `.tmp` staging root were absent before, during, and after
+  preflight.
+- The production verifier revalidated candidate/canonical/equivalence roots
+  `3febcd4d... / 79c9570b... / aacbab7f...`, the frozen mini selector/review
+  roots `b09a81f... / de5a90b...`, 10,000 candidate/source records, and 9,460
+  canonical manifest entries. The live controller target exactly authorized
+  this preflight.
+- Materialized train/calibration/holdout counts were exactly
+  `5631 / 1896 / 1931`; 69 source-holdout rows remained excluded. Independent
+  review opened all 9,458 canonical NPZs and verified train/calibration label
+  presence `5631 / 1896`, holdout label presence `0`, and holdout label
+  absence `1931`. All train/calibration/holdout log and scene intersections
+  were zero across all 10,000 audit rows.
+- CLARABEL was installed. Preflight free bytes were `16234422272` against the
+  hard `10737418240`-byte floor; post-review free bytes were `16234389504`.
+  Active peer gate processes were zero. AutoDL passed the implementation suite
+  with `88 passed, 2 skipped` before the gate.
+- The independent read-only result review reverified every artifact hash,
+  count, label boundary, split, upstream root, output absence, CAMP/DP HEAD,
+  tracked-clean status, disk floor, and no-peer condition without rerunning
+  preflight or creating/modifying/deleting a remote file.
+- Model calls, optimizer calls, training, calibration execution, paired
+  evaluation, candidate generation/mutation, and holdout label reads were all
+  zero. Candidate 0 remains the proven fixed-DP deterministic/MAP baseline
+  with `native_ranked_top1=false`; feasibility remains exact only within the
+  frozen 32+5 observable source, with no complete-scene, performance,
+  closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_static_14d_convex_training_calibration_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_static_14d_convex_training_calibration_preflight_and_independent_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_training_calibration_preflight_0c22f85e_20260711T203734CST
+current_v18_artifact_root_sha256=6c88f59ca9bc71bf7cc2cadba3728079591b5e86bdd8093bd9cd86c78b2626d9
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_execution_only
