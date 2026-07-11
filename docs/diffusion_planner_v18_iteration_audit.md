@@ -1999,3 +1999,49 @@ current_v18_artifact_scope=nuplan_causal_10k_source_selection_manifest_and_indep
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_source_selection_result_review_c7f3e7f3_20260711T121411CST
 current_v18_artifact_root_sha256=cf141780c48ab3c02516916a028073dbedb9812e17613076f40451dae3e630d6
 next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight_only
+
+## Gate 37: Causal-10k Fixed-DP K=8 Candidate-Generation Preflight
+
+Status: passed after one harness-only retry; candidate generation execution is
+the only next gate.
+
+- The first preflight artifact/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_preflight_2ed4823f_20260711T121844CST`
+  / `24071a42b6d08523ba8fe512a699bcd9edccec6d9022d28ed4bffc3c2049a15d`.
+  Its sole failed check was a process-detector self-match: the outer `bash -c`
+  command text contained the review program's literal `--execute` test. The
+  target remained absent and model/candidate calls remained zero.
+- The retry restricted activity detection to Python process argv containing
+  both the committed v18 runner and an actual `--execute` argument. Passing
+  artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_preflight_retry_2ed4823f_20260711T121930CST`
+  / `5fa489bc1810bffe9fd3237735b7705d5ba6f2bbd3913bdd7c213de86bd26d6e`.
+  Exit was zero, stderr empty, and every SHA entry reverified.
+- CAMP local/GitHub/AutoDL is
+  `2ed4823f61225d45f47c602c9ade6287e168eedc`; fixed DP is tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The frozen 10k manifest remains
+  SHA256 `703a47bec14d9ee4605184618e6bb61b6a4ce4ed73bee4173df508d6a6dfa5e5`
+  with exact train/calibration/holdout counts `6000 / 2000 / 2000`.
+- The dry run verified all 10,000 unique identities and decision-unique
+  `scene__decision.npz` output paths, v2 causal schema, K=8, seed 3407, fixed
+  checkpoint SHA256
+  `4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75`,
+  and args SHA256
+  `42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa`.
+- Planned immutable target is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidates_703a47bec14d`;
+  it and its `.tmp` peer are absent. No other candidate execution is active.
+  Free bytes are `19917967360`; the linear candidate estimate is
+  `3408830000` bytes and projected remaining bytes are `16509137360`, above
+  the hard 10 GiB start/retry floor.
+- Parent/source/review/protocol roots all reverified. Label reads, model calls,
+  candidate generation, atom materialization, training, calibration,
+  evaluation, and claims are zero. Candidate 0 remains the fixed-DP
+  deterministic/MAP baseline, not native ranked Top-1; other frozen semantic
+  and no-safety-claim boundaries are unchanged.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_preflight_retry_2ed4823f_20260711T121930CST
+current_v18_artifact_root_sha256=5fa489bc1810bffe9fd3237735b7705d5ba6f2bbd3913bdd7c213de86bd26d6e
+next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_execution_only

@@ -871,11 +871,19 @@ outputs were valid and were not changed or rerun. Label reads, model calls,
 candidate generation/mutation, atom materialization, training, calibration,
 evaluation, and claims remain zero.
 
-current_v18_status=v18_nuplan_causal_10k_source_selection_result_review_passed_label_free
-current_v18_artifact_scope=nuplan_causal_10k_source_selection_manifest_and_independent_result_review
-current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_source_selection_result_review_c7f3e7f3_20260711T121411CST
-current_v18_artifact_root_sha256=cf141780c48ab3c02516916a028073dbedb9812e17613076f40451dae3e630d6
-next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight_only
+The causal-10k candidate-generation preflight then passed after one
+process-detector self-match retry. It reverified the fixed DP/checkpoint/args,
+all source/review/protocol roots, 10,000 decision-unique output paths, K=8,
+seed 3407, and an absent target without loading the model or generating a
+candidate. Free bytes were `19917967360`; projected free bytes after the
+`3408830000`-byte linear candidate estimate were `16509137360`, above the
+hard 10 GiB start/retry floor.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_k8_candidate_generation_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_preflight_retry_2ed4823f_20260711T121930CST
+current_v18_artifact_root_sha256=5fa489bc1810bffe9fd3237735b7705d5ba6f2bbd3913bdd7c213de86bd26d6e
+next_work_target=v18_nuplan_causal_10k_fixed_dp_k8_candidate_generation_execution_only
 
 ## Historical V17 Closeout
 
