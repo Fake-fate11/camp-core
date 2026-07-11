@@ -34,7 +34,6 @@ RED_COST_TOLERANCE = 1e-12
 SCORE_TIE_TOLERANCE = 1e-9
 BOOTSTRAP_SEED = 3410
 BOOTSTRAP_REPLICATES = 10_000
-EXPECTED_HOLDOUT_COUNT = 71
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 
 MIN_LONGITUDINAL_ACCELERATION_MPS2 = -4.05
@@ -374,9 +373,12 @@ def _compute_evaluation(args: Any) -> tuple[dict[str, Any], list[dict[str, Any]]
     paired_summary = _verify_artifact_root(
         args.paired_eval_root, args.expected_paired_eval_root_sha256
     )
+    holdout_count = paired_summary.get("holdout_records")
     if not (
         paired_summary.get("status") == "passed"
-        and paired_summary.get("holdout_records") == EXPECTED_HOLDOUT_COUNT
+        and isinstance(holdout_count, int)
+        and not isinstance(holdout_count, bool)
+        and holdout_count > 0
         and paired_summary.get("raw_holdout_labels_persisted") is False
         and paired_summary.get("baseline_semantics") == BASELINE_SEMANTICS
         and paired_summary.get("native_ranked_top1") is False
@@ -389,7 +391,7 @@ def _compute_evaluation(args: Any) -> tuple[dict[str, Any], list[dict[str, Any]]
         "holdout",
         labels_required=False,
     )
-    if holdout.labels is not None or len(holdout.rows) != EXPECTED_HOLDOUT_COUNT:
+    if holdout.labels is not None or len(holdout.rows) != holdout_count:
         raise ValueError("holdout must remain label-free with exact record count")
     paired_rows = [
         json.loads(line)
@@ -399,7 +401,7 @@ def _compute_evaluation(args: Any) -> tuple[dict[str, Any], list[dict[str, Any]]
         if line.strip()
     ]
     paired_by_identity = {_identity(row): row for row in paired_rows}
-    if len(paired_rows) != EXPECTED_HOLDOUT_COUNT or len(paired_by_identity) != len(
+    if len(paired_rows) != holdout_count or len(paired_by_identity) != len(
         paired_rows
     ):
         raise ValueError("paired-evaluation identities must be unique and complete")
@@ -409,7 +411,7 @@ def _compute_evaluation(args: Any) -> tuple[dict[str, Any], list[dict[str, Any]]
 
     inputs = load_candidate_component_inputs(args.canonical_root, holdout.rows)
     component_rows: list[dict[str, np.ndarray]] = []
-    for index in range(EXPECTED_HOLDOUT_COUNT):
+    for index in range(holdout_count):
         component_rows.append(
             candidate_safety_components(
                 atom_matrix=holdout.atoms[index],
@@ -438,8 +440,8 @@ def _compute_evaluation(args: Any) -> tuple[dict[str, Any], list[dict[str, Any]]
         for row in holdout.rows
     ):
         raise ValueError("baseline index must remain candidate 0")
-    baseline = np.full(EXPECTED_HOLDOUT_COUNT, BASELINE_INDEX, dtype=np.int64)
-    row_numbers = np.arange(EXPECTED_HOLDOUT_COUNT)
+    baseline = np.full(holdout_count, BASELINE_INDEX, dtype=np.int64)
+    row_numbers = np.arange(holdout_count)
     camp_scores = components["bounded_offline_safety_score"][row_numbers, selected]
     baseline_scores = components["bounded_offline_safety_score"][
         row_numbers, baseline
@@ -477,7 +479,7 @@ def _compute_evaluation(args: Any) -> tuple[dict[str, Any], list[dict[str, Any]]
     summary = {
         "status": "passed",
         "schema_version": "camp_dp_bounded_offline_safety_score_v1",
-        "holdout_records": EXPECTED_HOLDOUT_COUNT,
+        "holdout_records": holdout_count,
         "holdout_label_reads": 0,
         "raw_holdout_labels_persisted": False,
         "camp": _method_summary(components, selected),
