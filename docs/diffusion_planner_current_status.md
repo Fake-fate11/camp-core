@@ -920,6 +920,34 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_ge
 current_v18_artifact_root_sha256=2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c
 next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
 
+The first causal-10k canonical-materialization preflight then failed closed at
+artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_4551936a_20260711T142956CST`
+/ `7d1f735ac56c98d8b4ea4cd2373f08e81902df39c2fd23cf0951404632cf7d32`.
+The existing source verifier still hardcoded the mini-only count 367; it wrote
+no output and read no labels. TDD removed that coupling and now requires the
+immutable summary count to match records, NPZ SHA entries, and manifest rows.
+The remediation is CAMP local/GitHub/AutoDL
+`f5c903d6a3e22316bcb85114de8a4190cc2f350f`; fixed DP remains
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, and all local/AutoDL tests passed
+within the recorded Windows Torch/OpenMP limitation.
+
+The retry preflight passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_retry_f5c903d6_20260711T143309CST`
+/ `d691834900f9980c6d7f6ac3df8bdd54be5b05787b06030d2e3e74df45da0730`.
+The production verifier loaded all 10,000 NPZ files, confirmed exact
+`6000 / 2000 / 2000` splits, 9,757 eligible and 243 fail-closed source rows,
+unchanged candidate/review/protocol SHA chains, absent output and `.tmp`, no
+active materializer, and projected free bytes `16264800192` above the 10 GiB
+floor. Model, label, atom-materialization, training, and evaluation counts are
+zero. Candidate-0 and bounded 32+5/no-safety-claim semantics are unchanged.
+
+current_v18_status=v18_nuplan_causal_10k_canonical_14d_materialization_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_physical_feasibility_canonical_atom_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_retry_f5c903d6_20260711T143309CST
+current_v18_artifact_root_sha256=d691834900f9980c6d7f6ac3df8bdd54be5b05787b06030d2e3e74df45da0730
+next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

@@ -2108,3 +2108,66 @@ current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_k8_candidate_generation_an
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_candidate_generation_result_review_retry2_ec2adff2_20260711T141923CST
 current_v18_artifact_root_sha256=2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c
 next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_preflight_only
+
+## Gate 39: Causal-10k Canonical-14D Materialization Preflight and Count-Contract Remediation
+
+Status: passed after one implementation-only remediation; immutable
+materialization execution is the only next gate.
+
+- The first preflight failed closed before any materialization at artifact/root
+  SHA256
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_4551936a_20260711T142956CST`
+  / `7d1f735ac56c98d8b4ea4cd2373f08e81902df39c2fd23cf0951404632cf7d32`.
+  It reverified every candidate SHA entry and found one implementation-only
+  defect: `_verified_candidate_source` still required the mini-only constant
+  `367`, so the valid frozen 10,000-record source was rejected with
+  `ValueError: candidate source must contain 367 records`. The planned output
+  and `.tmp` root remained absent; model calls, labels, atom materialization,
+  training, and evaluation were zero.
+- TDD removed the test monkeypatch that had hidden the fixed-count coupling and
+  reproduced the exact 367-record failure. The minimal remediation now takes
+  the positive expected count from the immutable candidate `summary.json` and
+  requires records, NPZ SHA entries, and manifest rows all to match it while
+  retaining the existing hash, identity/order, split, fixed-DP, and K checks.
+  Focused RED then GREEN was observed; independent code review reported no
+  Critical, Important, or Minor finding.
+- The remediation commit is
+  `f5c903d6a3e22316bcb85114de8a4190cc2f350f`, aligned at CAMP
+  local/GitHub/AutoDL. Fixed DP remained tracked-clean at
+  `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Local verification passed
+  `24` orchestrator tests with the one known Windows Torch/OpenMP test
+  deselected; AutoDL passed `25` orchestrator, `12` causal-adapter, and `6`
+  v17 causal-atom tests, plus py_compile and diff check.
+- The retry preflight passed at artifact/root SHA256
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_retry_f5c903d6_20260711T143309CST`
+  / `d691834900f9980c6d7f6ac3df8bdd54be5b05787b06030d2e3e74df45da0730`.
+  It used the production source verifier and NPZ loader on all 10,000 records,
+  with `allow_pickle=False`, exact `6000 / 2000 / 2000` splits, manifest SHA256
+  `703a47bec14d9ee4605184618e6bb61b6a4ce4ed73bee4173df508d6a6dfa5e5`,
+  candidate root SHA256
+  `3febcd4de182598e69d3420900c996eb37dc3f54d0a8a4a1f221d6ab3c648515`,
+  candidate-review root SHA256
+  `2f114f18b7a11ca74bba5612f74cd6f38410f84d1c0eaa77e3882cea11c0f60c`,
+  and frozen bounded-offline protocol SHA256
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`.
+- The retry confirmed 9,757 canonical-source-eligible records and 243 retained
+  fail-closed source records. Planned output
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_3febcd4de182`
+  and its `.tmp` peer are absent, no materializer is active, free bytes are
+  `16462036992`, and projected free bytes after the 197,236,800-byte estimate
+  are `16264800192`, above the hard 10 GiB floor. Candidate source hashes were
+  identical before and after preflight.
+- No expert-future or holdout labels were read and no candidate, atom matrix,
+  training, calibration, evaluation, or claim was produced. The 243 source
+  failures and any later all-K-infeasible rows remain recorded but excluded
+  downstream without candidate-0 forcing or all-K progress fallback.
+  Candidate 0 remains the fixed-DP deterministic/MAP baseline position pending
+  independent same-input equivalence; exactness remains bounded to the frozen
+  32+5 observable source with no complete-scene, closed-loop, performance, or
+  safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_canonical_14d_materialization_preflight_passed
+current_v18_artifact_scope=nuplan_causal_10k_physical_feasibility_canonical_atom_expert_label_materialization_preflight
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_canonical_14d_materialization_preflight_retry_f5c903d6_20260711T143309CST
+current_v18_artifact_root_sha256=d691834900f9980c6d7f6ac3df8bdd54be5b05787b06030d2e3e74df45da0730
+next_work_target=v18_nuplan_causal_10k_physical_feasibility_canonical_atom_and_expert_label_materialization_execution_only
