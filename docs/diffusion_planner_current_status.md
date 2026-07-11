@@ -1319,6 +1319,50 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offl
 current_v18_artifact_root_sha256=72222ef122424eccdc18cb147705d3eab52978d6e529a8715fc0c0de1a7b995e
 next_work_target=v18_nuplan_causal_10k_bounded_offline_safety_execution_only
 
+The byte-identical causal-10k bounded-offline safety execution completed once
+at CAMP local/GitHub/AutoDL
+`9b8b0bb9fe5bec8375bffe3cbb4a12969a1ea059`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Execution artifact/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_execution_9b8b0bb9_20260711T221520CST`
+/ `a2bab7cc83210b8e970f6150757d177069c4e8b541eb2db7db7c8e15a5b11f9a`;
+safety output/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_5c2e45d2_747d3ecd`
+/ `637159e2bed112d688c68e553d0a5ff53c2092b36733ea3f8a1614b0683baf54`.
+Remote execution exited `0` with empty stderr in `9.622948647s`; a subsequent
+local bytes/JSON wrapper error was repaired in place without rerunning safety
+and is preserved in the execution artifact.
+
+Built-in independent review reproduced all 1,931 records exactly with zero
+label reads at execution artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_result_review_execution_9b8b0bb9_20260711T221647CST`
+/ `d801268f9650119aa09f6893b9c6c23baf758ef2a843046a2fc150cbabd1bba6`.
+Review output/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_result_review_637159e2_9b8b0bb9`
+/ `94a42207e18a996f92233eb3403b8a354c02f4b81473e842a15e062a11b491ed`.
+
+CAMP/baseline bounded score was `72.1707349966 / 65.2628188375`, delta
+`+6.9079161591`, better/tie/worse `1509/86/336`, log CI95
+`[+3.8939433902,+11.2785867028]`, scene CI95
+`[+3.7570172546,+10.9859004678]`. All frozen bounded-score criteria and hard
+component non-regression checks passed. Protocol SHA remains exactly
+`54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`;
+learned CAMP weights were not evaluation weights.
+
+This is positive bounded offline proxy evidence only. It does not change the
+final paired performance `no_claim` and is not complete-scene feasibility,
+closed-loop safety, or a real-world safety claim. Candidate 0 remains the
+fixed-DP deterministic/MAP baseline with `native_ranked_top1=false`; exactness
+remains within the frozen 32+5 observable source. V18 is at its offline
+terminal boundary; promotion/deployment/activation, model replacement,
+holdout reopening, post-result tuning, or broader claim language requires a
+new user decision.
+
+current_v18_status=v18_nuplan_causal_10k_bounded_offline_safety_result_review_passed_overall_no_claim_terminal
+current_v18_artifact_scope=nuplan_causal_10k_byte_identical_bounded_offline_safety_execution_independent_review_and_final_offline_no_claim_boundary
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_result_review_637159e2_9b8b0bb9
+current_v18_artifact_root_sha256=94a42207e18a996f92233eb3403b8a354c02f4b81473e842a15e062a11b491ed
+next_work_target=user_decision_required_before_v18_nuplan_promotion_deployment_activation_model_replacement_holdout_reopening_or_broader_safety_claim
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2

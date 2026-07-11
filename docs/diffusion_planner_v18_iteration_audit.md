@@ -2760,3 +2760,69 @@ current_v18_artifact_scope=nuplan_causal_10k_byte_identical_bounded_offline_safe
 current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_preflight_result_review_747d3ecd_20260711T221230CST
 current_v18_artifact_root_sha256=72222ef122424eccdc18cb147705d3eab52978d6e529a8715fc0c0de1a7b995e
 next_work_target=v18_nuplan_causal_10k_bounded_offline_safety_execution_only
+
+## Causal-10k Bounded-offline Safety Execution, Review, and Final No-claim Boundary
+
+The byte-identical bounded-offline safety evaluation completed once at CAMP
+local/GitHub/AutoDL `9b8b0bb9fe5bec8375bffe3cbb4a12969a1ea059`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+- Execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_execution_9b8b0bb9_20260711T221520CST`
+  / `a2bab7cc83210b8e970f6150757d177069c4e8b541eb2db7db7c8e15a5b11f9a`.
+  Remote evaluation exited `0` with empty stderr in `9.622948647s`.
+  The local wrapper then failed while JSON-serializing an SFTP bytes value for
+  the already-created output root. It did not rerun safety; the same execution
+  `.tmp` was finalized after decoding the receipt, with the failure class and
+  `safety_execution_rerun=false` preserved in
+  `wrapper_metadata_remediation.json`.
+- Immutable safety output/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_5c2e45d2_747d3ecd`
+  / `637159e2bed112d688c68e553d0a5ff53c2092b36733ea3f8a1614b0683baf54`.
+  The stored protocol SHA256 is exactly
+  `54022f480b53d1a036af82f81b4d9124b333bda1971a07122523e9e692a6f94b`;
+  learned selector weights were not used as evaluation weights, holdout label
+  reads were zero, and all 1,931 selected indices came from the immutable
+  paired output.
+- Built-in independent review execution artifact/root SHA256:
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_result_review_execution_9b8b0bb9_20260711T221647CST`
+  / `d801268f9650119aa09f6893b9c6c23baf758ef2a843046a2fc150cbabd1bba6`.
+  It exited `0` with empty stderr in `9.639531136s` and reproduced all 1,931
+  records and the complete summary exactly. Review output/root SHA256 is
+  `/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_result_review_637159e2_9b8b0bb9`
+  / `94a42207e18a996f92233eb3403b8a354c02f4b81473e842a15e062a11b491ed`.
+- CAMP-selected versus fixed-DP deterministic/MAP baseline mean bounded score
+  was `72.1707349966` versus `65.2628188375`, delta `+6.9079161591`.
+  Better/tie/worse was `1509 / 86 / 336`; log-cluster CI95 was
+  `[+3.8939433902, +11.2785867028]` and scene-cluster CI95 was
+  `[+3.7570172546, +10.9859004678]`. The frozen bounded-score criteria all
+  passed: both CI lower bounds were positive, better exceeded worse, and
+  collision-free, lane-compliance, red-light-compliance, and making-progress
+  failure counts did not regress.
+- CAMP/baseline observable-scope rates were collision-free
+  `1.0 / 0.9321595028`, lane-compliant `1.0 / 0.9886069394`, red-light
+  compliant `0.9886069394 / 0.9860176075`, physical-feasible
+  `1.0 / 0.9212843086`, comfort-pass `0.0491973071 / 0.0481615743`, and mean
+  frozen-observable minimum OBB clearance
+  `1.6046464621 m / 1.3929857899 m`.
+
+This positive bounded offline score is reported as a frozen proxy result only.
+It does not override the already final paired performance `no_claim`, does not
+establish complete-scene physical feasibility, and is not a closed-loop or
+real-world safety claim. The protocol's legacy mini-descriptive key remains
+byte-identical solely because protocol mutation after holdout was forbidden;
+the reviewed 1,931-record computation is the causal-10k bounded evaluation.
+Candidate 0 remains the proven fixed-DP deterministic/MAP baseline with
+`native_ranked_top1=false`; exactness remains only within the frozen 32+5
+observable source.
+
+V18 has reached its preregistered offline terminal boundary with an honest
+overall `no_claim`. No promotion, deployment, activation, model replacement,
+holdout reopening, post-result tuning, or broader safety language is
+authorized.
+
+current_v18_status=v18_nuplan_causal_10k_bounded_offline_safety_result_review_passed_overall_no_claim_terminal
+current_v18_artifact_scope=nuplan_causal_10k_byte_identical_bounded_offline_safety_execution_independent_review_and_final_offline_no_claim_boundary
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_bounded_offline_safety_result_review_637159e2_9b8b0bb9
+current_v18_artifact_root_sha256=94a42207e18a996f92233eb3403b8a354c02f4b81473e842a15e062a11b491ed
+next_work_target=user_decision_required_before_v18_nuplan_promotion_deployment_activation_model_replacement_holdout_reopening_or_broader_safety_claim
