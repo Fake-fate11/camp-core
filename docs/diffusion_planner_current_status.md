@@ -1016,6 +1016,43 @@ current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_det
 current_v18_artifact_root_sha256=22fb92e062411a1ffb57dac8a43c88084141ef10800973091d61d11c0f51ae4c
 next_work_target=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_execution_only
 
+The causal-10k fixed-DP deterministic/MAP equivalence execution completed once
+at unchanged CAMP local/GitHub/AutoDL
+`a5f384640acb70615b4c70cc758aa61254c0bd84`; fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. Its execution artifact/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_execution_a5f38464_20260711T184517CST`
+/ `e998350334b26bb6559b1ce196505dd1f9232890300014e8e76443b3586b6f5a`,
+and the immutable equality output/root is
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_7a1d33da_3febcd4d`
+/ `d26f0430dc030d1745391e2bd247757959457c729b8738457b4753e14607c852`.
+
+All 10,000 independent same-input native fixed-DP `noise_scale=0` calls matched
+frozen candidate 0 exactly elementwise and by SHA256; maximum absolute
+difference was `0.0`. Candidate generation/mutation and expert-label reads were
+zero, holdout labels stayed sealed, and the execution completed in
+`2626.144143s` with exit `0` and empty stderr.
+
+Independent full review passed at artifact/root
+`/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_result_review_a5f38464_20260711T193330CST`
+/ `aacbab7f5b64bdec369435309a3530b4cec6d704c031be6c8d8322b2a4ff6446`.
+It opened all 10,000 candidate NPZ files, reverified each receipt against the
+actual candidate-0 hash, exact `6000/2000/2000` splits, 10,000 unique
+identities/hashes, every upstream root, and the unchanged candidate source.
+Reviewer model, label, training, and evaluation calls were zero; exit was `0`,
+stderr was empty, and wall time was `8.443089s`.
+
+`equivalence_verified=true` now proves candidate 0 equals an independent,
+same-input fixed-DP deterministic/MAP output. It remains baseline identity
+evidence only: `native_ranked_top1=false`, with no native K=8 ranking claim.
+OBB exactness remains bounded to the frozen 32+5 observable source; there is no
+complete-scene, performance, closed-loop, or safety claim.
+
+current_v18_status=v18_nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_result_review_passed
+current_v18_artifact_scope=nuplan_causal_10k_fixed_dp_deterministic_map_baseline_equivalence_semantic_result_review
+current_v18_artifact=/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_fixed_dp_deterministic_map_equivalence_result_review_a5f38464_20260711T193330CST
+current_v18_artifact_root_sha256=aacbab7f5b64bdec369435309a3530b4cec6d704c031be6c8d8322b2a4ff6446
+next_work_target=v18_nuplan_causal_10k_static_14d_convex_training_calibration_paired_evaluation_spec_and_plan_only
+
 ## Historical V17 Closeout
 
 Phase 0 and the Phase 1A observable-only materializer boundary passed. Phase 2
