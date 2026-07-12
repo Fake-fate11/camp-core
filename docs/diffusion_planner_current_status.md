@@ -326,11 +326,18 @@ rename, retained-staging failure policy, zero conflicting ports/processes, and
 the current disk floor. Projected free space is `48698031670` bytes. Staging
 and final roots remain absent; no extraction or simulator ran.
 
-current_v19_status=v19_carla_extraction_execution_preflight_independent_review_passed
-current_v19_artifact_scope=carla_0_9_16_extraction_execution_preflight_independent_review_no_extraction
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_execution_preflight_independent_review_046b40ef5a_20260712T234349CST
-current_v19_artifact_root_sha256=92837a632fe05c5c8bad3e9cb2c7b6cdae598fa6fd1f53b05b31e34d91d819dc
-next_work_target=v19_carla_0_9_16_extraction_execution_only
+The single extraction job completed to `runtime.tmp`. Exactly-once review
+verified the unchanged archive/inventory, `32857` filesystem entries,
+`31437` regular files totaling `20272275914` bytes, required runtime files,
+empty stderr, floor headroom, and both safe relative SQLite symlinks resolving
+inside staging to existing targets. Only then was staging atomically renamed
+to `runtime`. Free space is `50782457856` bytes. No simulator or metric ran.
+
+current_v19_status=v19_carla_extraction_result_review_passed_runtime_published
+current_v19_artifact_scope=carla_0_9_16_single_extraction_exactly_once_review_atomic_publish
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST
+current_v19_artifact_root_sha256=2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce
+next_work_target=v19_carla_post_extraction_runtime_source_inventory_plan_static_review_preflight_only
 
 ## Current V18 Status
 

@@ -1439,3 +1439,34 @@ current_v19_artifact_scope=carla_0_9_16_extraction_execution_preflight_independe
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_execution_preflight_independent_review_046b40ef5a_20260712T234349CST
 current_v19_artifact_root_sha256=92837a632fe05c5c8bad3e9cb2c7b6cdae598fa6fd1f53b05b31e34d91d819dc
 next_work_target=v19_carla_0_9_16_extraction_execution_only
+
+## CARLA 0.9.16 Single Extraction And Result Review
+
+All five prerequisite SHA chains, CAMP/DP heads, archive size/SHA, free space,
+and absent roots/jobs were reverified. A necessary read-only link inventory
+identified two safe relative SQLite SONAME links, both targeting the same
+in-archive regular library without absolute or parent traversal.
+
+Exactly one explicit `/usr/bin/tar` process extracted to the frozen
+`runtime.tmp` staging root. Monitoring retained PID `3891`, byte/file progress,
+empty stderr, and free bytes above the 10 GiB floor. The job was never
+restarted. Because the detached direct tar process did not persist a shell
+exit status, process completion alone was not accepted as success.
+
+The exactly-once pre-publish review instead proved the unchanged archive and
+inventory SHA, `32857` filesystem entries, `31437` regular files totaling
+`20272275914` bytes, required launcher/PythonAPI/maps, empty stderr, sufficient
+free space, and both symlinks resolving inside staging to existing targets.
+Only after all checks passed was staging atomically renamed to the final
+`runtime` root on the same filesystem. Final free bytes were `50782457856`.
+
+The immutable extraction artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST`
+and `2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce`.
+No download, simulator, planner, metric, or holdout access occurred.
+
+current_v19_status=v19_carla_extraction_result_review_passed_runtime_published
+current_v19_artifact_scope=carla_0_9_16_single_extraction_exactly_once_review_atomic_publish
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST
+current_v19_artifact_root_sha256=2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce
+next_work_target=v19_carla_post_extraction_runtime_source_inventory_plan_static_review_preflight_only

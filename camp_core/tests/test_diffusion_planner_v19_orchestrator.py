@@ -72,8 +72,9 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_extraction_execution_preflight_independent_review_passed"
+        "v19_carla_extraction_result_review_passed_runtime_published"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_0_9_16_extraction_execution_only"
+        "v19_carla_post_extraction_runtime_source_inventory_"
+        "plan_static_review_preflight_only"
     )
