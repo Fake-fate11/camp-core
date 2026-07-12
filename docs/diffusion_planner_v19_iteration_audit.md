@@ -1657,3 +1657,28 @@ current_v19_artifact_scope=existing_v19_bridge_worker_source_probe_harness_reuse
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_source_probe_harness_reuse_independent_review_28d0c454cf_20260713T003947CST
 current_v19_artifact_root_sha256=01e9cf0f442df68ecc2db97df97d6d6f1c82f46c499526ef67bd6404e670b608
 next_work_target=v19_carla_runtime_snapshot_collector_tdd_and_isolated_client_materialization_preflight_only
+
+## CARLA Isolated Client Materialization Preflight
+
+The read-only preflight verified the official cp312 wheel, Python 3.12 match,
+18 archive members, zero unsafe paths, absent
+`/root/autodl-tmp/camp_v19_carla_client`, no CARLA/source-probe job, fixed DP,
+and projected free space `50592807294` bytes above the 10 GiB floor. The first
+sealed artifact failed only because its expected full CAMP HEAD receipt was
+mistyped; all other checks passed and no extraction occurred.
+
+The corrected retry artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_preflight_retry_c275eff4e2_20260713T004138CST`
+and `5667543567d5ef46638848aa691658788f2fef9ddfb90e687620e8cf743bb2df`.
+Independent review validated its manifest, every check, retained prior failure,
+zero call counts, absent target, and floor. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_preflight_independent_review_c275eff4e2_20260713T004158CST`
+and `25fa8bf7dab8a787c82827e9ce5cd8bbc6f37b26113534d2448f26187b1c2456`.
+No client extraction, simulator, planner, metric, holdout, or outcome read
+occurred.
+
+current_v19_status=v19_carla_isolated_client_materialization_preflight_independent_review_passed
+current_v19_artifact_scope=carla_cp312_isolated_client_materialization_preflight_review_no_extraction
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_preflight_independent_review_c275eff4e2_20260713T004158CST
+current_v19_artifact_root_sha256=25fa8bf7dab8a787c82827e9ce5cd8bbc6f37b26113534d2448f26187b1c2456
+next_work_target=v19_carla_runtime_snapshot_collector_tdd_implementation_only

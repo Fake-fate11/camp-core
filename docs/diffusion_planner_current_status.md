@@ -381,11 +381,18 @@ independent review accepted reuse and rejected a duplicate runner. Two initial
 import-path failures and the final explicit dual-root `PYTHONPATH` success are
 retained in the artifact.
 
-current_v19_status=v19_carla_source_probe_harness_reuse_independent_review_passed
-current_v19_artifact_scope=existing_v19_bridge_worker_source_probe_harness_reuse_review_no_new_runner
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_source_probe_harness_reuse_independent_review_28d0c454cf_20260713T003947CST
-current_v19_artifact_root_sha256=01e9cf0f442df68ecc2db97df97d6d6f1c82f46c499526ef67bd6404e670b608
-next_work_target=v19_carla_runtime_snapshot_collector_tdd_and_isolated_client_materialization_preflight_only
+The isolated cp312 client materialization preflight and independent review now
+pass. The official 18-member wheel SHA is unchanged, contains zero unsafe
+paths, and would use `186726018` bytes; projected free space remains
+`50592807294` bytes. The target client root is absent and no CARLA/source-probe
+job is running. An initial failed artifact retains the incorrect expected HEAD
+receipt; the corrected retry changed no code or protocol.
+
+current_v19_status=v19_carla_isolated_client_materialization_preflight_independent_review_passed
+current_v19_artifact_scope=carla_cp312_isolated_client_materialization_preflight_review_no_extraction
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_preflight_independent_review_c275eff4e2_20260713T004158CST
+current_v19_artifact_root_sha256=25fa8bf7dab8a787c82827e9ce5cd8bbc6f37b26113534d2448f26187b1c2456
+next_work_target=v19_carla_runtime_snapshot_collector_tdd_implementation_only
 
 ## Current V18 Status
 
