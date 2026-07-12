@@ -419,11 +419,18 @@ rung or scenario is frozen, and no simulator, planner, metric, holdout, or
 outcome call occurred. The retained initial failure records an annotation-only
 preflight mismatch and the corrected artifact reused the sealed census.
 
-current_v19_status=v19_carla_type274_full_map_mapping_census_and_candidate_probe_preflight_independent_review_passed
-current_v19_artifact_scope=carla_type274_full_map_waypoint_mapping_census_and_strict_candidate_projection_preflight
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_independent_review_a9601de0d2_20260713T022656CST
-current_v19_artifact_root_sha256=74d92ad451a38c9a439537581bbe5a8dfcc80f5c6ad8f41088f26491405a5ffe
-next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_only
+Strict candidate world-point projection now passes TDD and independent review.
+The single helper uses the official map API with `project_to_road=False` and a
+driving-lane filter, reuses the existing `SegmentRef`, returns `None` off road,
+and rejects invalid point or waypoint metadata. AutoDL passed `47` tests with
+one skip. No CARLA import, simulator, planner, candidate tensor, metric,
+holdout, or outcome call was added; no rung or scenario is frozen.
+
+current_v19_status=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_independent_review_passed
+current_v19_artifact_scope=carla_strict_world_point_to_existing_segment_ref_projection_tdd_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_independent_review_retry_e7b66186_20260713T032505CST
+current_v19_artifact_root_sha256=0ef58adfa6eb084d15ed4d777bd474640381ddfd40598c06d7762782eb244245
+next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_only
 
 ## Current V18 Status
 

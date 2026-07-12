@@ -1817,3 +1817,37 @@ current_v19_artifact_scope=carla_type274_full_map_waypoint_mapping_census_and_st
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_independent_review_a9601de0d2_20260713T022656CST
 current_v19_artifact_root_sha256=74d92ad451a38c9a439537581bbe5a8dfcc80f5c6ad8f41088f26491405a5ffe
 next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_only
+
+## CARLA Strict Candidate World-Point Projection TDD
+
+The strict candidate projection helper was implemented test-first at CAMP
+commit `e7b66186235138ae94a42c24d2513f664e74977e`. The isolated RED probe failed
+on the missing `project_world_point_to_segment` symbol. The minimum GREEN
+implementation reuses `SegmentRef`, calls the official map API with explicit
+`project_to_road=False` and the driving-lane filter, returns `None` for an
+off-road point, and rejects non-finite coordinates, non-driving waypoints, or
+invalid OpenDRIVE metadata. It imports no CARLA package and adds no new type or
+dependency.
+
+AutoDL Python 3.9 passed compilation and `47 passed, 1 skipped` across the
+focused exact-speed, causal-adapter, and v18/v19 pointer suites. The
+implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_e7b66186_20260713T032316CST`
+and `453c0ce374676bae561d44ea85e69c7f1c738210d8ee9673bf77a75b5dd8becc`.
+
+The first independent review sealed all static checks as passing except for a
+mistyped expected full CAMP commit receipt. That retained artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_independent_review_e7b66186_20260713T032413CST`
+and `34ca25e1a74f3b5cae4f0e8dd3e9cacb775547eb1a1be9740750a4ca7dee5d5e`.
+The receipt-only retry reused those sealed checks without rerunning tests and
+passed at
+`/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_independent_review_retry_e7b66186_20260713T032505CST`
+with root `0ef58adfa6eb084d15ed4d777bd474640381ddfd40598c06d7762782eb244245`.
+No simulator, planner, candidate tensor, metric, holdout, or outcome call
+occurred; no rung or scenario is selected or frozen.
+
+current_v19_status=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_independent_review_passed
+current_v19_artifact_scope=carla_strict_world_point_to_existing_segment_ref_projection_tdd_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_independent_review_retry_e7b66186_20260713T032505CST
+current_v19_artifact_root_sha256=0ef58adfa6eb084d15ed4d777bd474640381ddfd40598c06d7762782eb244245
+next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_only

@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_type274_full_map_mapping_census_and_candidate_probe_"
-        "preflight_independent_review_passed"
+        "v19_carla_strict_candidate_world_point_to_opendrive_segment_"
+        "projection_tdd_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
         "v19_carla_strict_candidate_world_point_to_opendrive_segment_"
-        "projection_tdd_only"
+        "projection_static_review_only"
     )
