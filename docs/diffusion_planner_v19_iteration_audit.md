@@ -1293,3 +1293,35 @@ current_v19_artifact_scope=existing_data_9212_rows_three_rung_exact_speed_suppor
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST
 current_v19_artifact_root_sha256=021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d
 next_work_target=user_decision_required_before_new_data_scope_or_atom_source_contract
+
+## WOMD/Waymax and CARLA New-Data Qualification
+
+The user authorized changing only the existing-data scope. Fixed DP, K=8
+candidates, affine/simplex selection, the convex master, 14D source semantics,
+baseline naming, and claim taxonomy remained unchanged.
+
+Official WOMD evidence was reviewed without a dataset download. WOMD supplies
+one second of history and eight seconds of future, so it cannot satisfy the
+frozen unpadded three-second history plus eight-second evaluation contract.
+Candidate-route speed coverage and unchanged fixed-DP compatibility also
+remain unproven; WOMD therefore failed closed before sample or adapter work.
+
+CARLA then failed its synthetic-fallback resource preflight. Its official
+0.9.16 Linux archive is `8346095504` bytes compressed, while only
+`4303986688` bytes were available above the 10 GiB floor: a pre-extraction
+deficit of `4042108816` bytes. Exact route-speed coverage and fixed-DP input
+compatibility remain unproven.
+
+The exactly-once read-only artifact/root is
+`/root/autodl-tmp/camp_dp_v19_new_data_qualification_79f8aae41d_20260712T225405CST`
+and `fb257b871fa75ecd769e0772899187edd309529eae6eaacf44ca785f93ee954c`.
+Its command exited zero, all hashes passed, and independent review recorded
+zero downloads, simulator/metric calls, or holdout reads. Candidate 0 remains
+the `DP-default deterministic/MAP baseline`, `native_ranked_top1=false`, and
+the four-part claim taxonomy is unchanged.
+
+current_v19_status=v19_womd_waymax_hard_failed_3s_history_carla_fallback_disk_preflight_failed_closed_user_decision_required
+current_v19_artifact_scope=womd_waymax_and_carla_new_data_qualification_no_download_fail_closed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_new_data_qualification_79f8aae41d_20260712T225405CST
+current_v19_artifact_root_sha256=fb257b871fa75ecd769e0772899187edd309529eae6eaacf44ca785f93ee954c
+next_work_target=user_decision_required_before_carla_large_download_additional_disk_and_license_source_preflight

@@ -264,11 +264,24 @@ closed-loop safety not yet supported; and broad CAMP-over-native-DP-Top1 not
 supported. Candidate 0 remains the `DP-default deterministic/MAP baseline`
 with `native_ranked_top1=false`.
 
-current_v19_status=v19_nuplan_v12_source_protocol_exhausted_all_three_rungs_zero_independent_review_passed_user_decision_required
-current_v19_artifact_scope=existing_data_9212_rows_three_rung_exact_speed_support_zero_exhaustion_fail_closed
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST
-current_v19_artifact_root_sha256=021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d
-next_work_target=user_decision_required_before_new_data_scope_or_atom_source_contract
+The user authorized a new-data qualification without changing the atom/source
+contract. Official WOMD/Waymax evidence fails the frozen causal window because
+WOMD supplies one second of history plus eight seconds future, not the required
+three plus eight. No WOMD sample was downloaded and its candidate-route speed
+coverage and unchanged-DP compatibility remain unproven.
+
+The automatic CARLA synthetic fallback also failed closed before download. The
+official CARLA 0.9.16 Linux archive is `8346095504` bytes compressed; only
+`4303986688` bytes were available above the 10 GiB floor, a pre-extraction
+deficit of `4042108816` bytes. Independent review passed with zero simulator,
+metric, or holdout calls. Continuing now requires explicit authorization for a
+large CARLA download, additional disk, and license/exact-speed source preflight.
+
+current_v19_status=v19_womd_waymax_hard_failed_3s_history_carla_fallback_disk_preflight_failed_closed_user_decision_required
+current_v19_artifact_scope=womd_waymax_and_carla_new_data_qualification_no_download_fail_closed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_new_data_qualification_79f8aae41d_20260712T225405CST
+current_v19_artifact_root_sha256=fb257b871fa75ecd769e0772899187edd309529eae6eaacf44ca785f93ee954c
+next_work_target=user_decision_required_before_carla_large_download_additional_disk_and_license_source_preflight
 
 ## Current V18 Status
 
