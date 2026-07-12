@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional
+import math
+from types import SimpleNamespace
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -33,6 +35,115 @@ def _reject_forbidden_source_fields(value: Any) -> None:
     elif isinstance(value, (list, tuple)):
         for child in value:
             _reject_forbidden_source_fields(child)
+
+
+def _state(value: Any, name: str) -> np.ndarray:
+    state = np.asarray(value, dtype=np.float64).reshape(-1)
+    if state.shape != (7,) or not np.isfinite(state).all():
+        raise ValueError("%s must contain finite x,y,vx,vy,ax,ay,heading" % name)
+    return state
+
+
+def build_carla_history_batch(
+    frames: Sequence[Mapping[str, Any]],
+) -> Tuple[np.ndarray, SimpleNamespace]:
+    """Encode 31 official CARLA tick snapshots for the shared materializer."""
+    _reject_forbidden_source_fields(frames)
+    if len(frames) != 31:
+        raise ValueError("CARLA history must contain 31 frames")
+    timestamps = np.asarray(
+        [frame["timestamp_us"] for frame in frames], dtype=np.int64
+    )
+    if not np.all(np.diff(timestamps) == 100_000):
+        raise ValueError("CARLA history timestamps must be uniform 0.1s ticks")
+
+    ego_states = [_state(frame["ego_state"], "ego_state") for frame in frames]
+    ego_extents = np.asarray([frame["ego_extent"] for frame in frames], dtype=np.float32)
+    if ego_extents.shape != (31, 3) or not np.isfinite(ego_extents).all():
+        raise ValueError("ego_extent must contain 31 finite length,width,height rows")
+    if np.any(ego_extents <= 0.0):
+        raise ValueError("ego extents must be positive")
+    current = ego_states[-1]
+    c, s = math.cos(float(current[6])), math.sin(float(current[6]))
+    rotation = np.array([[c, s], [-s, c]], dtype=np.float64)
+    transform = np.eye(3, dtype=np.float64)
+    transform[:2, :2] = rotation
+    transform[:2, 2] = -rotation @ current[:2]
+
+    ego_history = np.zeros((31, 8), dtype=np.float32)
+    for index, state in enumerate(ego_states):
+        ego_history[index, :6] = state[:6]
+        ego_history[index, 6:] = [math.sin(state[6]), math.cos(state[6])]
+
+    actor_frames = []
+    for frame in frames:
+        values = {str(actor["track_id"]): actor for actor in frame.get("actors", [])}
+        if len(values) != len(frame.get("actors", [])):
+            raise ValueError("CARLA actor track IDs must be unique within a tick")
+        actor_frames.append(values)
+    active = actor_frames[-1]
+    ordered = sorted(
+        active,
+        key=lambda track_id: (
+            float(
+                np.linalg.norm(
+                    _state(active[track_id]["state"], "actor state")[:2]
+                    - current[:2]
+                )
+            ),
+            track_id,
+        ),
+    )
+    histories = np.zeros((len(ordered), 31, 8), dtype=np.float32)
+    extents = np.zeros((len(ordered), 31, 3), dtype=np.float32)
+    lengths = np.zeros(len(ordered), dtype=np.int64)
+    types = np.zeros(len(ordered), dtype=np.float32)
+    for actor_index, track_id in enumerate(ordered):
+        contiguous = []
+        for values in reversed(actor_frames):
+            actor = values.get(track_id)
+            if actor is None:
+                break
+            contiguous.append(actor)
+        contiguous.reverse()
+        lengths[actor_index] = len(contiguous)
+        types[actor_index] = float(contiguous[-1]["type_id"])
+        for state_index, actor in enumerate(contiguous):
+            state = _state(actor["state"], "actor state")
+            local_xy = rotation @ (state[:2] - current[:2])
+            local_velocity = rotation @ state[2:4]
+            local_acceleration = rotation @ state[4:6]
+            local_heading = math.atan2(
+                math.sin(state[6] - current[6]), math.cos(state[6] - current[6])
+            )
+            histories[actor_index, state_index] = [
+                local_xy[0],
+                local_xy[1],
+                local_velocity[0],
+                local_velocity[1],
+                local_acceleration[0],
+                local_acceleration[1],
+                math.sin(local_heading),
+                math.cos(local_heading),
+            ]
+            extent = np.asarray(actor["extent"], dtype=np.float32).reshape(-1)
+            if extent.shape != (3,) or not np.isfinite(extent).all() or np.any(extent <= 0):
+                raise ValueError("actor extent must contain positive length,width,height")
+            extents[actor_index, state_index] = extent
+
+    return timestamps, SimpleNamespace(
+        dt=np.array([0.1], dtype=np.float32),
+        history_pad_dir=np.array(1, dtype=np.int64),
+        agent_hist=ego_history[None],
+        agent_hist_len=np.array([31], dtype=np.int64),
+        agent_hist_extent=ego_extents[None],
+        curr_agent_state=np.asarray([current], dtype=np.float64),
+        neigh_hist=histories[None],
+        neigh_hist_len=lengths[None],
+        neigh_hist_extents=extents[None],
+        neigh_types=types[None],
+        agents_from_world_tf=transform[None],
+    )
 
 
 def materialize_carla_snapshot(

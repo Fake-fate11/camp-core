@@ -5,7 +5,10 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from camp_core.integrations.carla_causal_adapter import materialize_carla_snapshot
+from camp_core.integrations.carla_causal_adapter import (
+    build_carla_history_batch,
+    materialize_carla_snapshot,
+)
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
 )
@@ -151,3 +154,55 @@ def test_snapshot_rejects_stale_traffic_and_outcome_fields() -> None:
             decision_context=_context(),
             source_metadata={"closed_loop_outcome": 0.0},
         )
+
+
+def _frames() -> list[dict[str, object]]:
+    frames = []
+    for index in range(31):
+        actors = [
+            {
+                "track_id": "vehicle-a",
+                "type_id": 1,
+                "state": [float(index), 5.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                "extent": [4.2, 1.7, 1.5],
+            }
+        ]
+        if index >= 29:
+            actors.append(
+                {
+                    "track_id": "walker-b",
+                    "type_id": 2,
+                    "state": [float(index), 2.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    "extent": [0.5, 0.5, 1.8],
+                }
+            )
+        frames.append(
+            {
+                "timestamp_us": index * 100_000,
+                "ego_state": [float(index), 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                "ego_extent": [4.5, 1.8, 1.5],
+                "actors": actors,
+            }
+        )
+    return frames
+
+
+def test_history_collector_builds_contiguous_actor_histories_in_ego_frame() -> None:
+    timestamps, batch = build_carla_history_batch(_frames())
+
+    np.testing.assert_array_equal(timestamps, _timestamps())
+    assert batch.agent_hist.shape == (1, 31, 8)
+    assert batch.neigh_hist.shape == (1, 2, 31, 8)
+    np.testing.assert_array_equal(batch.neigh_hist_len, [[2, 31]])
+    np.testing.assert_allclose(batch.curr_agent_state[0, :2], [30.0, 0.0])
+    np.testing.assert_allclose(batch.agents_from_world_tf[0] @ [30, 0, 1], [0, 0, 1])
+    np.testing.assert_allclose(batch.neigh_hist[0, 0, :2, :2], [[-1, 2], [0, 2]])
+    np.testing.assert_allclose(batch.neigh_hist[0, 1, -1, :2], [0, 5])
+
+
+def test_history_collector_rejects_outcome_fields() -> None:
+    frames = _frames()
+    frames[-1]["metric_outcome"] = 0.0
+
+    with pytest.raises(ValueError, match="forbidden source field"):
+        build_carla_history_batch(frames)
