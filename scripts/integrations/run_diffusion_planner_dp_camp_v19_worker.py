@@ -1,0 +1,437 @@
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+from collections.abc import Callable, Mapping
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
+    BRIDGE_SCHEMA_VERSION,
+    array_sha256,
+    read_request,
+    write_response,
+)
+
+
+_FULL_OUTPUT_SHAPE = (321, 80, 4)
+_LATENT_SHAPE = (321, 81, 4)
+FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+NATIVE_RANKED_TOP1 = False
+_FIXED_SOURCE_HASHES = {
+    "diffusion_planner/diffusion_planner/model/module/decoder.py": (
+        "8e81d1e9aa879dd0c0762d623dbe7480786e2618ccb261d10fd72cc00192e7dd"
+    ),
+    "scenario_generation/tensor_converter.py": (
+        "af0a087dcfa910e5f0ad4732c5d1ebabb2fe5c41d2d61a4aa7aaf0f4351d36a7"
+    ),
+    "scenario_generation/simulate.py": (
+        "de4542fbc8685718379dbf0626499113d8bca6f7dead1c4456d2d34ffd0b9e4e"
+    ),
+    "diffusion_planner_ros/diffusion_planner_ros/diffusion_planner_node.py": (
+        "3341028ca11f45e73b7b43ab49dbf38980711f422dccfdb2f816f301443a5f53"
+    ),
+}
+
+
+def process_request(
+    request_dir: str | Path,
+    *,
+    operation: str,
+    infer_one: Callable[[np.ndarray], np.ndarray],
+    atom_scales: np.ndarray | None = None,
+    weights: np.ndarray | None = None,
+    planned_red_cost: Callable[[np.ndarray, Mapping[str, Any]], np.ndarray]
+    | None = None,
+    signal_mask: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
+    materialize: Callable[..., Mapping[str, Any]] | None = None,
+) -> None:
+    directory = Path(request_dir)
+    raw_metadata = json.loads((directory / "request.json").read_text("utf-8"))
+    request = read_request(
+        directory,
+        expected_run_key=str(raw_metadata["run_key"]),
+        expected_iteration_index=int(raw_metadata["iteration_index"]),
+    )
+    arm = str(request.metadata["arm"])
+    if operation not in {"default_provenance", "plan_tick"}:
+        raise ValueError("unsupported worker operation")
+    if operation == "default_provenance" and arm != "dp_default":
+        raise ValueError("default provenance requires the DP-default arm")
+    response_metadata: dict[str, object] = {
+        "schema_version": BRIDGE_SCHEMA_VERSION,
+        "arm": arm,
+        "run_key": request.metadata["run_key"],
+        "iteration_index": request.metadata["iteration_index"],
+        "native_ranked_top1": False,
+    }
+    if arm == "dp_default":
+        default, _ = run_fixed_dp_default(infer_one)
+        if operation == "default_provenance":
+            reference, _ = run_fixed_dp_default(infer_one)
+            evidence = verify_default_equivalence(default, reference)
+            arrays = {
+                "selected_trajectory": default,
+                "default_trajectory": default,
+                "independent_reference_trajectory": reference,
+            }
+            response_metadata.update(evidence)
+        else:
+            arrays = {"selected_trajectory": default}
+        response_metadata.update(
+            {
+                "status": "ok",
+                "baseline_name": "DP-default deterministic/MAP baseline",
+                "selected_trajectory_sha256": array_sha256(default),
+            }
+        )
+        write_response(directory, arrays, response_metadata)
+        return
+
+    if any(
+        value is None
+        for value in (atom_scales, weights, planned_red_cost, signal_mask, materialize)
+    ):
+        raise ValueError("CAMP plan_tick dependencies are incomplete")
+    candidates, neighbor_predictions = run_fixed_dp_candidates(
+        infer_one,
+        np.random.default_rng(int(request.metadata["tick_seed"])),
+        noise_scale=1.0,
+    )
+    raw_neighbors = request.arrays["neighbor_agents_past"]
+    neighbor_valid = np.any(np.abs(raw_neighbors) > 1e-8, axis=(1, 2))
+    signals = np.asarray(
+        signal_mask(candidates, request.arrays["route_lanes"]), dtype=bool
+    )
+    red_cost = np.asarray(planned_red_cost(candidates, request.arrays), dtype=np.float64)
+    materialized = materialize(
+        candidates=candidates,
+        causal_input=request.arrays,
+        neighbor_predictions=neighbor_predictions,
+        neighbor_valid_mask=neighbor_valid,
+        signal_mask=signals,
+        planned_red_light_cost=red_cost,
+        dt=0.1,
+    )
+    selection = select_camp_candidate(
+        candidates=candidates,
+        materialized=materialized,
+        atom_scales=np.asarray(atom_scales),
+        weights=np.asarray(weights),
+    )
+    response_metadata.update(
+        {
+            "status": selection["status"],
+            "candidate_sha256_before": selection["candidate_sha256_before"],
+            "candidate_sha256_after": selection["candidate_sha256_after"],
+            "candidate_reasons": selection["candidate_reasons"],
+        }
+    )
+    physical = np.asarray(selection["physical_feasible_mask"], dtype=bool)
+    arrays = {"candidates": candidates, "physical_feasible_mask": physical}
+    if selection["status"] == "failed":
+        response_metadata["failure_reason"] = selection["failure_reason"]
+    else:
+        selected = np.asarray(selection["selected_trajectory"], dtype=np.float32)
+        response_metadata["selected_trajectory_sha256"] = array_sha256(selected)
+        arrays.update(
+            {
+                "neighbor_predictions": neighbor_predictions,
+                "neighbor_valid_mask": neighbor_valid,
+                "signal_mask": signals,
+                "atom_matrix": np.asarray(materialized["atom_matrix"], dtype=np.float64),
+                "selected_index": np.array(selection["selected_index"], dtype=np.int64),
+                "selected_trajectory": selected,
+            }
+        )
+    write_response(directory, arrays, response_metadata)
+
+
+def run_fixed_dp_default(
+    infer_one: Callable[[np.ndarray], np.ndarray],
+) -> tuple[np.ndarray, np.ndarray]:
+    output = _validated_inference(
+        infer_one(np.zeros(_LATENT_SHAPE, dtype=np.float32))
+    )
+    return output[0].copy(), output[1:33].copy()
+
+
+def run_fixed_dp_candidates(
+    infer_one: Callable[[np.ndarray], np.ndarray],
+    rng: np.random.Generator,
+    *,
+    noise_scale: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    if not np.isfinite(noise_scale) or noise_scale < 0.0:
+        raise ValueError("noise_scale must be finite and nonnegative")
+    outputs = []
+    for index in range(8):
+        latent = np.zeros(_LATENT_SHAPE, dtype=np.float32)
+        if index:
+            latent = (
+                rng.standard_normal(_LATENT_SHAPE).astype(np.float32)
+                * float(noise_scale)
+            )
+        outputs.append(_validated_inference(infer_one(latent))[:33])
+    stacked = np.stack(outputs)
+    return stacked[:, 0].copy(), stacked[:, 1:33].copy()
+
+
+def verify_default_equivalence(
+    default_output: np.ndarray, candidate0: np.ndarray
+) -> dict[str, object]:
+    default = _trajectory(default_output, "default output")
+    reference = _trajectory(candidate0, "candidate 0")
+    difference = float(np.max(np.abs(default.astype(np.float64) - reference)))
+    default_sha = array_sha256(default)
+    reference_sha = array_sha256(reference)
+    if not np.array_equal(default, reference) or default_sha != reference_sha:
+        raise ValueError("DP-default deterministic/MAP equivalence failed")
+    return {
+        "elementwise_equal": True,
+        "max_abs_difference": difference,
+        "default_output_sha256": default_sha,
+        "candidate0_sha256": reference_sha,
+        "baseline_name": "DP-default deterministic/MAP baseline",
+        "native_ranked_top1": False,
+    }
+
+
+def select_camp_candidate(
+    *,
+    candidates: np.ndarray,
+    materialized: Mapping[str, Any],
+    atom_scales: np.ndarray,
+    weights: np.ndarray,
+) -> dict[str, object]:
+    trajectories = np.asarray(candidates)
+    if trajectories.shape != (8, 80, 4) or trajectories.dtype != np.float32:
+        raise ValueError("candidates must be float32 [8,80,4]")
+    if not np.isfinite(trajectories).all():
+        raise ValueError("candidates must be finite")
+    scales = np.asarray(atom_scales, dtype=np.float64)
+    coefficients = np.asarray(weights, dtype=np.float64)
+    if (
+        scales.shape != (14,)
+        or not np.isfinite(scales).all()
+        or np.any(scales <= 0.0)
+    ):
+        raise ValueError("atom scales must be finite positive [14]")
+    if (
+        coefficients.shape != (14,)
+        or not np.isfinite(coefficients).all()
+        or np.any(coefficients < 0.0)
+        or not np.isclose(coefficients.sum(), 1.0, rtol=0.0, atol=1e-8)
+    ):
+        raise ValueError("weights must be a nonnegative simplex [14]")
+
+    before = array_sha256(trajectories)
+    feasible = np.asarray(materialized["physical_feasible_mask"], dtype=bool)
+    if feasible.shape != (8,):
+        raise ValueError("physical feasible mask must have shape [8]")
+    reasons = [list(value) for value in materialized["candidate_reasons"]]
+    if len(reasons) != 8:
+        raise ValueError("candidate reasons must contain all K records")
+    common: dict[str, object] = {
+        "candidate_sha256_before": before,
+        "candidate_sha256_after": array_sha256(trajectories),
+        "candidate_reasons": reasons,
+        "physical_feasible_mask": feasible.copy(),
+        "score_contract": "score_k(w)=a_k^T w",
+        "native_ranked_top1": False,
+    }
+    if not bool(materialized.get("canonical_eligible")) or not feasible.any():
+        return {
+            **common,
+            "status": "failed",
+            "failure_reason": str(
+                materialized.get("exclusion_reason")
+                or "all_candidates_physically_infeasible"
+            ),
+        }
+
+    atoms = np.asarray(materialized["atom_matrix"], dtype=np.float64)
+    if atoms.shape != (8, 14) or not np.isfinite(atoms).all():
+        raise ValueError("canonical atom matrix must be finite [8,14]")
+    scores = (atoms / scales[None, :]) @ coefficients
+    masked_scores = np.where(feasible, scores, np.inf)
+    selected = int(np.argmin(masked_scores))
+    after = array_sha256(trajectories)
+    if after != before:
+        raise ValueError("candidate tensor mutated during CAMP selection")
+    return {
+        **common,
+        "candidate_sha256_after": after,
+        "status": "ok",
+        "scores": scores,
+        "selected_index": selected,
+        "selected_trajectory": trajectories[selected].copy(),
+    }
+
+
+def _validated_inference(value: np.ndarray) -> np.ndarray:
+    output = np.asarray(value)
+    if output.shape != _FULL_OUTPUT_SHAPE or output.dtype != np.float32:
+        raise ValueError("fixed-DP inference must return float32 [321,80,4]")
+    if not np.isfinite(output).all():
+        raise ValueError("fixed-DP inference output must be finite")
+    return output
+
+
+def _trajectory(value: np.ndarray, name: str) -> np.ndarray:
+    output = np.asarray(value)
+    if output.shape != (80, 4) or output.dtype != np.float32:
+        raise ValueError(f"{name} must be float32 [80,4]")
+    if not np.isfinite(output).all():
+        raise ValueError(f"{name} must be finite")
+    return output
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--request-dir", type=Path, required=True)
+    parser.add_argument(
+        "--operation", choices=("default_provenance", "plan_tick"), required=True
+    )
+    parser.add_argument("--dp-repo", type=Path, required=True)
+    parser.add_argument("--checkpoint", type=Path, required=True)
+    parser.add_argument("--checkpoint-sha256", required=True)
+    parser.add_argument("--args-json", type=Path, required=True)
+    parser.add_argument("--args-json-sha256", required=True)
+    parser.add_argument("--selector-root", type=Path, required=True)
+    parser.add_argument("--selector-root-sha256", required=True)
+    parser.add_argument("--atom-scales", type=Path, required=True)
+    parser.add_argument("--atom-scales-sha256", required=True)
+    parser.add_argument("--static-weights", type=Path, required=True)
+    parser.add_argument("--static-weights-sha256", required=True)
+    parser.add_argument("--device", default="cuda")
+    return parser.parse_args(argv)
+
+
+def _real_infer_one(context: Mapping[str, Any], causal_input: Mapping[str, Any]):
+    from scripts.integrations.run_diffusion_planner_dp_camp_v18 import (
+        prepare_causal_arrays,
+    )
+
+    torch = context["torch"]
+    device = context["device"]
+    arrays = prepare_causal_arrays(causal_input)
+    tensors = {
+        key: torch.as_tensor(value).unsqueeze(0).to(device)
+        for key, value in arrays.items()
+    }
+    tensors["ego_agent_past"] = context["heading_to_cos_sin"](
+        tensors["ego_agent_past"]
+    )
+    tensors["goal_pose"] = context["heading_to_cos_sin"](tensors["goal_pose"])
+    normalized = context["config"].observation_normalizer(tensors)
+    normalized["delay"] = torch.zeros(1, dtype=torch.float32, device=device)
+    model = context["model"]
+
+    def infer(latent: np.ndarray) -> np.ndarray:
+        original_fn = model.decoder._guidance_fn
+        original_scale = model.decoder._guidance_scale
+        model.decoder._guidance_fn = None
+        model.decoder._guidance_scale = 0.5
+        normalized["sampled_trajectories"] = torch.from_numpy(latent).unsqueeze(0).to(
+            device
+        )
+        try:
+            with torch.no_grad():
+                _, output = model(normalized)
+        finally:
+            model.decoder._guidance_fn = original_fn
+            model.decoder._guidance_scale = original_scale
+        return output["prediction"][0].detach().cpu().numpy().astype(np.float32)
+
+    return infer
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _require_sha(path: Path, expected: str, name: str) -> None:
+    if _sha256(path) != expected:
+        raise ValueError(f"{name} SHA256 mismatch")
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    from camp_core.integrations.diffusion_planner import load_dp_camp_atom_scales
+    from camp_core.integrations.diffusion_planner_causal_atoms import (
+        materialize_canonical_14d,
+    )
+    from scripts.integrations.run_diffusion_planner_dp_camp_v18 import (
+        _fixed_dp_red_cost,
+        _load_context,
+        _verify_fixed_dp_repo,
+        candidate_signal_source_available_mask,
+    )
+
+    if _verify_fixed_dp_repo(args.dp_repo) != FIXED_DP_HEAD:
+        raise ValueError("fixed DP HEAD mismatch")
+    for relative, expected in _FIXED_SOURCE_HASHES.items():
+        _require_sha(args.dp_repo / relative, expected, relative)
+    _require_sha(args.checkpoint, args.checkpoint_sha256, "checkpoint")
+    _require_sha(args.args_json, args.args_json_sha256, "args JSON")
+    _require_sha(
+        args.selector_root / "SHA256SUMS",
+        args.selector_root_sha256,
+        "selector root",
+    )
+    _require_sha(args.atom_scales, args.atom_scales_sha256, "atom scales")
+    _require_sha(args.static_weights, args.static_weights_sha256, "static weights")
+
+    raw = json.loads((args.request_dir / "request.json").read_text("utf-8"))
+    request = read_request(
+        args.request_dir,
+        expected_run_key=str(raw["run_key"]),
+        expected_iteration_index=int(raw["iteration_index"]),
+    )
+    if request.metadata["arm"] == "camp" and request.metadata.get(
+        "selector_hashes"
+    ) != [
+        args.selector_root_sha256,
+        args.atom_scales_sha256,
+        args.static_weights_sha256,
+    ]:
+        raise ValueError("request selector hashes do not match frozen artifacts")
+    context = _load_context(
+        args.dp_repo, args.checkpoint, args.args_json, args.device
+    )
+    infer_one = _real_infer_one(context, request.arrays)
+    if request.metadata["arm"] == "camp":
+        scales = load_dp_camp_atom_scales(args.atom_scales)
+        weights = np.load(args.static_weights, allow_pickle=False)
+        process_request(
+            args.request_dir,
+            operation=args.operation,
+            infer_one=infer_one,
+            atom_scales=scales,
+            weights=weights,
+            planned_red_cost=lambda candidates, causal: _fixed_dp_red_cost(
+                candidates, causal, args.dp_repo, 0.1
+            ),
+            signal_mask=candidate_signal_source_available_mask,
+            materialize=materialize_canonical_14d,
+        )
+    else:
+        process_request(
+            args.request_dir,
+            operation=args.operation,
+            infer_one=infer_one,
+        )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
