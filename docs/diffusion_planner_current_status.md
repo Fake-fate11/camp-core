@@ -208,14 +208,22 @@ defines all eight primary fields, all six latency receipts, full fail-closed
 behavior, and the distinction between posterior full-observation evaluation
 and online frozen 32+5 feasibility.
 
-No planner, worker, simulator, metric, or holdout ran. Execution remains not
-ready until the design is implemented and preflighted test-first.
+The five-task TDD implementation plan has now passed static review. It splits
+work into four independently testable code slices: causal history
+downsampling, reuse of existing replay summaries for posterior evidence,
+planned-red/worker timing bridge receipts, and planner/harness integration,
+followed by a non-execution integration review. Every slice has a required
+RED, minimal GREEN, focused verification, and small commit.
 
-current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_design_static_review_passed_execution_not_ready
-current_v19_artifact_scope=closed_loop_history_map_bridge_safetycost_component_and_six_segment_latency_design_static_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175249CST
-current_v19_artifact_root_sha256=b6acf99b6cc69d2141c96c4351b4773cd307d0eb21fec8495e9a63cc76ef084a
-next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_only
+No planner, worker, simulator, metric, or holdout ran. Execution remains not
+ready until this TDD plan passes and a fresh execution preflight proves every
+field and receipt.
+
+current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_static_review_passed_execution_not_ready
+current_v19_artifact_scope=five_task_four_slice_closed_loop_safety_component_latency_tdd_plan_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_plan_static_review_760e174f_20260712T175725CST
+current_v19_artifact_root_sha256=7d251174503765201a3050cb3d9fac5c8861d352b8ecb66b1e1e307a7e6f7fb6
+next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_implementation_only
 
 ## Current V18 Status
 

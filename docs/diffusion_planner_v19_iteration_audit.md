@@ -967,3 +967,42 @@ current_v19_artifact_scope=closed_loop_history_map_bridge_safetycost_component_a
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175249CST
 current_v19_artifact_root_sha256=b6acf99b6cc69d2141c96c4351b4773cd307d0eb21fec8495e9a63cc76ef084a
 next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_only
+
+## Closed-loop Safety Component and Latency TDD Plan Static Review
+
+The preauthorized writing-plans gate froze the implementation plan at:
+
+- `docs/superpowers/plans/2026-07-12-v19-nuplan-closed-loop-safety-component-latency-tdd.md`
+- SHA256 `eeb7b4fde36ee3fed24ff99595b673bfb7acc5c2150fcb74e4d019de10688f2c`
+
+The plan contains five tasks and four implementation slices. It first fixes the
+native `0.05 s` to fixed-DP `0.1 s` causal history boundary; then reuses the
+existing replay summary helpers through one official-history adapter; adds
+selected planned-red and two worker timing fields without altering candidate
+tensors; adds four planner-side timing fields and immutable tick receipts; and
+finishes with separated-runtime non-execution review and controller update.
+
+Each implementation slice requires a retained RED result, minimal GREEN,
+py_compile/target tests, and a small commit/push. It adds no dependency and
+does not authorize a real planner compute, worker/checkpoint execution,
+simulator, metric compute, holdout access, or claim.
+
+The successful AutoDL static review artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_plan_static_review_760e174f_20260712T175725CST`
+- `7d251174503765201a3050cb3d9fac5c8861d352b8ecb66b1e1e307a7e6f7fb6`
+
+It verified the plan SHA, five tasks, four RED/GREEN/commit slices, exact
+interfaces, design/protocol boundaries, no placeholders, zero peer git jobs,
+fixed DP/source heads, and the 10 GiB disk floor. Free bytes were
+`15076581376`. No planner, worker, simulator, metric, or holdout ran.
+
+Candidate 0 remains only the `DP-default deterministic/MAP baseline`, with
+`native_ranked_top1=false`. The user previously selected Inline Execution, so
+the next gate is TDD implementation only without another approval checkpoint.
+
+current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_static_review_passed_execution_not_ready
+current_v19_artifact_scope=five_task_four_slice_closed_loop_safety_component_latency_tdd_plan_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_plan_static_review_760e174f_20260712T175725CST
+current_v19_artifact_root_sha256=7d251174503765201a3050cb3d9fac5c8861d352b8ecb66b1e1e307a7e6f7fb6
+next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_implementation_only
