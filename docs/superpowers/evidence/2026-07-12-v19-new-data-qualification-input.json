@@ -1,0 +1,57 @@
+{
+  "camp_head": "895e352899c3c6da0852bf8008a0c67061685a4d",
+  "dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+  "free_bytes": 15041404928,
+  "floor_bytes": 10737418240,
+  "womd": {
+    "speed_schema": true,
+    "topology_actors_signals": true,
+    "history_seconds": 1,
+    "evaluation_seconds": 8,
+    "fixed_dp_compatible": null,
+    "closed_loop_metrics": true,
+    "license_accepted_and_minimal_sample_available": false
+  },
+  "carla": {
+    "speed_schema": true,
+    "topology_actors_signals": true,
+    "history_seconds": 3,
+    "evaluation_seconds": 8,
+    "fixed_dp_compatible": null,
+    "closed_loop_metrics": true,
+    "license_accepted_and_minimal_sample_available": true,
+    "compressed_archive_bytes": 8346095504
+  },
+  "source_receipts": [
+    {
+      "url": "https://waymo.com/open/data/motion/",
+      "fact": "official motion windows are 1 second history plus 8 seconds future"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/waymo-research/waymo-open-dataset/master/src/waymo_open_dataset/protos/scenario.proto",
+      "sha256": "10fc630afdea2cbf487da4cdff8ef010a0b12b782cffbbca88abb4c9fe5dbc11"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/waymo-research/waymo-open-dataset/master/src/waymo_open_dataset/protos/map.proto",
+      "sha256": "880174ad592d67ba2af0c38534d059b45618570da63bb422b896bbabe7db34db"
+    },
+    {
+      "url": "https://github.com/waymo-research/waymax",
+      "fact": "official WOMD closed-loop simulator; dataset access application required"
+    },
+    {
+      "url": "https://waymo.com/open/terms/",
+      "fact": "Waymo Dataset License Agreement for Non-Commercial Use"
+    },
+    {
+      "url": "https://github.com/carla-simulator/carla/releases/tag/0.9.16",
+      "resolved_url": "https://carla-releases.b-cdn.net/Linux/CARLA_0.9.16.tar.gz",
+      "content_length": 8346095504,
+      "fact": "official CARLA 0.9.16 Linux package HEAD receipt"
+    },
+    {
+      "url": "https://carla.readthedocs.io/en/latest/core_map/",
+      "fact": "OpenDRIVE-backed topology, lanes, markings, landmarks, and traffic signals"
+    }
+  ]
+}
