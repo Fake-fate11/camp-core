@@ -63,8 +63,8 @@
 
 - [ ] **Step 1: Create** the exact prefix with `/root/miniconda3/bin/conda create --yes --override-channels -c conda-forge -p /root/autodl-tmp/camp_v19_nuplan_env python=3.9 pip=21.2.4 setuptools=59.5.0`.
 - [ ] **Step 2: Check** free bytes and stop before wheel installation if below the hard floor.
-- [ ] **Step 3: Install** the reviewed lock with `/root/autodl-tmp/camp_v19_nuplan_env/bin/python -m pip install --no-deps --require-hashes -r <review-artifact>/runtime.lock`.
-- [ ] **Step 4: Check** free bytes again, then install the fixed source with `python -m pip install --no-deps --no-build-isolation /root/autodl-tmp/camp_v19_nuplan_devkit`.
+- [ ] **Step 3: Install** the reviewed lock with `/root/autodl-tmp/camp_v19_nuplan_env/bin/python -m pip --isolated install --index-url https://pypi.org/simple --no-deps --require-hashes -r <review-artifact>/runtime.lock`.
+- [ ] **Step 4: Check** free bytes again, then install the fixed source with `python -m pip --isolated install --no-index --no-deps --no-build-isolation /root/autodl-tmp/camp_v19_nuplan_devkit`.
 - [ ] **Step 5: Run** `pip check`, forbidden-package inspection, source HEAD verification, and imports for the frozen scenario-builder/simulator/controller/observation/metric modules.
 - [ ] **Step 6: Seal** conda explicit lock, pip freeze, import output, disk checkpoints, stdout/stderr, and SHA256SUMS. Never retry a failed materialization.
 

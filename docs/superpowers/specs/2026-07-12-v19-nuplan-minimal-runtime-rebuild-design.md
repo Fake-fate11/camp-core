@@ -91,8 +91,9 @@ review must prove:
 
 Only that reviewed lock may be installed. The base prefix is created with
 Python 3.9, pip 21.2.4, and setuptools 59.5.0. Runtime wheels are installed
-with `--no-deps --require-hashes`; the fixed official source is then installed
-with `--no-deps --no-build-isolation`.
+with `--isolated --index-url https://pypi.org/simple --no-deps
+--require-hashes`; the fixed official source is then installed locally with
+`--isolated --no-index --no-deps --no-build-isolation`.
 
 ## Fail-closed Verification
 

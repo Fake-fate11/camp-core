@@ -396,3 +396,26 @@ current_v19_artifact_scope=exact_single_environment_cleanup_and_torch_free_pytho
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST
 current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
 next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
+
+## Minimal Runtime Installation Index Qualification
+
+Final command review found that the reviewed official-PyPI wheel lock would
+still be installed through AutoDL's incomplete machine-level mirror unless the
+installation command repeated the resolver's isolation flags. The design and
+plan were therefore narrowed before materialization: runtime lock installation
+uses `--isolated --index-url https://pypi.org/simple`, and the fixed local
+nuPlan source uses `--isolated --no-index --no-deps --no-build-isolation`.
+Package versions, wheel hashes, process boundaries, disk gate, simulator
+semantics, and all claim constraints are unchanged. No environment or
+simulator was created by this qualification.
+
+- qualified design SHA256:
+  `c4084e405e2da636531c73a30a4d67a074634dd10e9bc41e6ded4f84ece33778`
+- qualified plan SHA256:
+  `88da8686900c8843f6fe6a64b96cbdbb113d3bed73d6505f22a2b36d138a5098`
+
+current_v19_status=v19_nuplan_v12_environment_cleanup_and_minimal_runtime_lock_static_review_passed
+current_v19_artifact_scope=exact_single_environment_cleanup_and_torch_free_python39_wheel_lock_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST
+current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
+next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
