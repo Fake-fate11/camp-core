@@ -416,7 +416,11 @@ def _mean_or_none(values: Sequence[Any]) -> Optional[float]:
     return float(np.mean(finite)) if finite else None
 
 
-def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
+def _summarize_trajectory_log(
+    records: list[dict[str, Any]], *, dt: float = 0.1
+) -> dict[str, Any]:
+    if not np.isfinite(dt) or dt <= 0.0:
+        raise ValueError("dt must be finite and positive")
     if not records:
         return {
             "closed_loop_steps": 0,
@@ -456,8 +460,8 @@ def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
         _finite_values([record.get("heading") for record in records]),
         dtype=np.float64,
     )
-    accel = np.diff(speeds) / 0.1 if speeds.size >= 2 else np.asarray([])
-    jerk = np.diff(accel) / 0.1 if accel.size >= 2 else np.asarray([])
+    accel = np.diff(speeds) / dt if speeds.size >= 2 else np.asarray([])
+    jerk = np.diff(accel) / dt if accel.size >= 2 else np.asarray([])
     acceleration_magnitude = np.asarray([])
     jerk_magnitude = np.asarray([])
     yaw_rate = np.asarray([])
@@ -466,16 +470,16 @@ def _summarize_trajectory_log(records: list[dict[str, Any]]) -> dict[str, Any]:
         velocity = np.column_stack(
             [speeds * np.cos(headings), speeds * np.sin(headings)]
         )
-        acceleration_vectors = np.diff(velocity, axis=0) / 0.1
+        acceleration_vectors = np.diff(velocity, axis=0) / dt
         acceleration_magnitude = np.linalg.norm(acceleration_vectors, axis=1)
         if acceleration_vectors.shape[0] >= 2:
-            jerk_vectors = np.diff(acceleration_vectors, axis=0) / 0.1
+            jerk_vectors = np.diff(acceleration_vectors, axis=0) / dt
             jerk_magnitude = np.linalg.norm(jerk_vectors, axis=1)
         heading_delta = np.arctan2(
             np.sin(np.diff(headings)),
             np.cos(np.diff(headings)),
         )
-        yaw_rate = heading_delta / 0.1
+        yaw_rate = heading_delta / dt
         lateral_acceleration = np.abs(speeds[1:] * yaw_rate)
     goal_distances = _finite_values([record.get("goal_d") for record in records])
     final_goal = goal_distances[-1] if goal_distances else None
