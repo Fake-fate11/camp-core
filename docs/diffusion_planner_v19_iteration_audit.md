@@ -571,3 +571,69 @@ current_v19_artifact_scope=camp_side_nuplan_v12_adapter_and_executable_dp_defaul
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_plan_static_review_47497ef_20260712T162829CST
 current_v19_artifact_root_sha256=d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc
 next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_only
+
+## nuPlan Adapter and Executable DP-default Provenance TDD Result Review
+
+The approved TDD plan was executed in three small CAMP-side checkpoints:
+
+- `a168d337`: exact per-tick NPZ+JSON bridge, causal/request/response hashes,
+  paired run keys, stale/forbidden-field rejection, and all-K failure payloads;
+- `af2a8bf9`: live official `PlannerInput` causal materialization plus the
+  non-oracle `NuPlanCAMPPlanner(AbstractPlanner)` shell and official relative
+  pose conversion;
+- `1ed984e1`: one-shot fixed-DP worker, independent default equivalence,
+  deterministic K=8 fake-model generation, frozen affine/simplex selection,
+  and fixed source/artifact CLI hashes.
+
+All production behaviors were introduced through observed RED then GREEN
+tests. The bridge preserves scalar NPZ shapes rather than allowing
+`np.ascontiguousarray` to expand them. The live adapter consumes exactly 31
+causal 0.1-second history ticks, mission-route lanes with true boundaries and
+speed limits, same-tick traffic state, at most 32 dynamic and 5 static
+observable objects, and rejects future/label/outcome fields. It uses official
+`transform_predictions_to_states` only for coordinate/state conversion and
+does not smooth, blend, guide, repair, postprocess, or postselect a trajectory.
+
+The worker freezes DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the four executable default-path
+source hashes, checkpoint/config hashes, and selector root/scales/weights
+hashes before a future one-shot call. Tests use a pure fake inference callable:
+the direct default and candidate 0 are independent zero-latent calls; candidates
+1-7 use deterministic `noise_scale=1.0`; selection is
+`score_k(w)=a_k^T w` on nonnegative simplex weights and physical-feasible
+candidates only. All-K-infeasible produces no selected index or trajectory.
+
+Candidate 0 remains a fixed-DP deterministic/MAP reference. Neither source
+provenance nor TDD establishes a native K-ranking path:
+
+- baseline name: `DP-default deterministic/MAP baseline`;
+- `native_ranked_top1=false`;
+- `broad_CAMP_over_native_DP_Top1_claim=not_supported`.
+
+The immutable AutoDL TDD result-review artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_1ed984e1_20260712T164911CST`
+- `c402c9e073a4b57be393e52a592cf81398c2fb2c56dd409c669b5496b377e73f`
+
+It records CAMP/GitHub/AutoDL HEAD
+`1ed984e152173d24f1426f728c1fbfb415690efd`, fixed DP HEAD above, official
+nuPlan source `ce3c323af01c0d7ec5672f7832ef53f9c679aab0`, tracked-clean state,
+zero related jobs, and `15080972288` free bytes. The fixed-DP environment ran
+`9 passed`; the official nuPlan environment ran `119 passed, 3 skipped`.
+Both py_compile checks and `git diff --check` exited zero. The official runtime
+emitted only known third-party matplotlib/pyparsing deprecation warnings.
+
+This gate did not call `NuPlanCAMPPlanner.compute_planner_trajectory`, worker
+`main`, a real model/checkpoint, `Simulation`/`SimulationRunner`, any holdout,
+or any safety/ADE/FDE/latency metric. Claim qualification therefore remains:
+
+- `performance_claim=no_claim`
+- `bounded_offline_safety_proxy_improvement=supported`
+- `closed_loop_safety_claim=not_yet_supported`
+- `broad_CAMP_over_native_DP_Top1_claim=not_supported`
+
+current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_result_review_passed
+current_v19_artifact_scope=camp_side_nuplan_v12_adapter_bridge_and_fixed_dp_default_provenance_tdd_only
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_1ed984e1_20260712T164911CST
+current_v19_artifact_root_sha256=c402c9e073a4b57be393e52a592cf81398c2fb2c56dd409c669b5496b377e73f
+next_work_target=v19_nuplan_v12_executable_default_provenance_preflight_only

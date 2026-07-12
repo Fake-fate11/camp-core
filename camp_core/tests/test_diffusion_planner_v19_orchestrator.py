@@ -73,8 +73,8 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
 
     assert pointer["current_v19_status"] == (
         "v19_nuplan_v12_adapter_and_executable_default_provenance_"
-        "tdd_plan_static_review_passed"
+        "tdd_result_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_only"
+        "v19_nuplan_v12_executable_default_provenance_preflight_only"
     )

@@ -120,11 +120,26 @@ matched their own SSH wrapper. None reached adapter, DP inference, simulator,
 holdout, or metric execution. The next gate is TDD implementation only and
 retains those non-execution boundaries for real checkpoint/simulator work.
 
-current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_static_review_passed
-current_v19_artifact_scope=camp_side_nuplan_v12_adapter_and_executable_dp_default_provenance_tdd_plan_static_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_plan_static_review_47497ef_20260712T162829CST
-current_v19_artifact_root_sha256=d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc
-next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_only
+The TDD-only implementation and independent static result review have now
+passed. The CAMP-side code adds an atomic NPZ+JSON bridge, live official
+`PlannerInput` causal materialization, an official non-oracle
+`AbstractPlanner` shell, and a one-shot fixed-DP worker. Fake-model tests prove
+independent zero-latent default/candidate-0 equality, immutable K=8 tensors,
+feasible-only affine/simplex selection, and all-K fail-closed handling. The
+official Python 3.9 and fixed-DP environments passed their separated suites.
+No adapter computation, real DP inference/checkpoint load, simulator, holdout,
+or safety/ADE/FDE/latency metric ran.
+
+Candidate 0 is still only the fixed-DP deterministic/MAP reference, with
+`native_ranked_top1=false`. The next gate is a label-free executable-default
+provenance preflight only; it may freeze one non-simulator request and all
+source/config/checkpoint/input/output hashes but may not execute that request.
+
+current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_result_review_passed
+current_v19_artifact_scope=camp_side_nuplan_v12_adapter_bridge_and_fixed_dp_default_provenance_tdd_only
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_1ed984e1_20260712T164911CST
+current_v19_artifact_root_sha256=c402c9e073a4b57be393e52a592cf81398c2fb2c56dd409c669b5496b377e73f
+next_work_target=v19_nuplan_v12_executable_default_provenance_preflight_only
 
 ## Current V18 Status
 
