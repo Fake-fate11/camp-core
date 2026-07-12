@@ -293,8 +293,43 @@ def materialize_nuplan_planner_input(
     )
 
 
+def _causal_history_view(history: Any) -> SimpleNamespace:
+    ego_states = list(history.ego_states)
+    observations = list(history.observations)
+    if len(ego_states) != len(observations):
+        raise NuPlanCausalSourceError("ego and observation history must align")
+    source_dt = float(history.sample_interval)
+    if np.isclose(source_dt, 0.05, rtol=0.0, atol=1e-8):
+        count, stride = 61, 2
+    elif np.isclose(source_dt, 0.1, rtol=0.0, atol=1e-8):
+        count, stride = 31, 1
+    else:
+        raise NuPlanCausalSourceError(
+            "history must use 0.05 or 0.1 second samples"
+        )
+    if len(ego_states) < count:
+        raise NuPlanCausalSourceError("history must cover three seconds")
+    ego_states = ego_states[-count:]
+    observations = observations[-count:]
+    timestamps = np.asarray(
+        [_state_time_us(state) for state in ego_states], dtype=np.int64
+    )
+    if not np.allclose(
+        np.diff(timestamps) / 1_000_000.0,
+        source_dt,
+        rtol=0.0,
+        atol=1e-3,
+    ):
+        raise NuPlanCausalSourceError("history timestamps must be uniformly sampled")
+    return SimpleNamespace(
+        ego_states=ego_states[::stride],
+        observations=observations[::stride],
+        sample_interval=0.1,
+    )
+
+
 def _live_planner_batch(current_input: Any) -> tuple[SimpleNamespace, np.ndarray]:
-    history = current_input.history
+    history = _causal_history_view(current_input.history)
     ego_states = list(history.ego_states)
     observations = list(history.observations)
     if len(ego_states) < 31 or len(observations) < 31:
@@ -305,7 +340,7 @@ def _live_planner_batch(current_input: Any) -> tuple[SimpleNamespace, np.ndarray
     if not np.isclose(source_dt, 0.1, rtol=0.0, atol=1e-8):
         raise NuPlanCausalSourceError("live history dt must equal 0.1 seconds")
     timestamps = np.asarray([_state_time_us(state) for state in ego_states])
-    if np.any(np.diff(timestamps) != 100_000):
+    if not np.allclose(np.diff(timestamps), 100_000, rtol=0.0, atol=2_000):
         raise NuPlanCausalSourceError("live ego timestamps must be regular 0.1s ticks")
     decision_time = _iteration_time_us(current_input.iteration)
     if int(timestamps[-1]) != decision_time:

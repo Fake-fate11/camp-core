@@ -150,6 +150,49 @@ def test_live_planner_input_rejects_future_and_stale_traffic() -> None:
         )
 
 
+def test_causal_history_view_downsamples_native_nuplan_ticks() -> None:
+    states = [_state(index * 0.05, index * 50_000) for index in range(61)]
+    observations = [SimpleNamespace(index=index) for index in range(61)]
+    history = SimpleNamespace(
+        ego_states=states,
+        observations=observations,
+        sample_interval=0.05,
+    )
+
+    view = nuplan_causal_adapter._causal_history_view(history)
+
+    assert view.sample_interval == 0.1
+    assert [state.time_us for state in view.ego_states] == [
+        states[index].time_us for index in range(0, 61, 2)
+    ]
+    assert view.observations == observations[::2]
+    assert view.ego_states[-1] is states[-1]
+
+
+@pytest.mark.parametrize("failure", ["short", "misaligned", "irregular", "dt"])
+def test_causal_history_view_rejects_invalid_native_history(failure: str) -> None:
+    states = [_state(index * 0.05, index * 50_000) for index in range(61)]
+    observations = [SimpleNamespace(index=index) for index in range(61)]
+    sample_interval = 0.05
+    if failure == "short":
+        states = states[1:]
+        observations = observations[1:]
+    elif failure == "misaligned":
+        observations = observations[:-1]
+    elif failure == "irregular":
+        states[30].time_us += 2_000
+    else:
+        sample_interval = 0.04
+    history = SimpleNamespace(
+        ego_states=states,
+        observations=observations,
+        sample_interval=sample_interval,
+    )
+
+    with pytest.raises(ValueError, match="history|timestamp|align"):
+        nuplan_causal_adapter._causal_history_view(history)
+
+
 def test_relative_pose_conversion_does_not_rewrite_trajectory() -> None:
     try:
         module = importlib.import_module(
