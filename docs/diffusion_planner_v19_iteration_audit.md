@@ -1630,3 +1630,30 @@ current_v19_artifact_scope=carla_causal_snapshot_adapter_python39_tdd_and_indepe
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_causal_snapshot_adapter_independent_review_20f7384fd6_20260713T003700CST
 current_v19_artifact_root_sha256=1fe5fc52a559807ff1266ab4c9782e4f31aefce60207e49e436b5efb40454e13
 next_work_target=v19_carla_candidate_source_probe_harness_tdd_and_execution_preflight_only
+
+## Existing Source-Probe Harness Reuse Review
+
+Ponytail review found that a new candidate-source runner would duplicate the
+checked-in v19 bridge, fixed-DP worker `source_probe`, source-support artifact
+helpers, and exact-speed census. The final AutoDL command used the explicit
+repo and nested-package roots and passed all `33` bridge, worker, source-probe,
+and CARLA speed-census tests. Two earlier commands failed only at collection
+because each exposed one of the two required Python roots; both causes and the
+successful third command are retained rather than hidden.
+
+The reuse artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_source_probe_harness_reuse_review_28d0c454cf_20260713T003925CST`
+and `1ba0c9c5202fa59e044f2c3ad5d6536918e12d8de39180e5391d1ee6db9f422f`.
+Independent review validated the manifest, `33 passed`, all three attempt
+records, exact heads, zero calls, and the no-new-runner decision. Its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_source_probe_harness_reuse_independent_review_28d0c454cf_20260713T003947CST`
+and `01e9cf0f442df68ecc2db97df97d6d6f1c82f46c499526ef67bd6404e670b608`.
+No simulator, planner, metric, holdout, DP modification, or outcome read
+occurred.
+
+current_v19_status=v19_carla_source_probe_harness_reuse_independent_review_passed
+current_v19_artifact_scope=existing_v19_bridge_worker_source_probe_harness_reuse_review_no_new_runner
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_source_probe_harness_reuse_independent_review_28d0c454cf_20260713T003947CST
+current_v19_artifact_root_sha256=01e9cf0f442df68ecc2db97df97d6d6f1c82f46c499526ef67bd6404e670b608
+next_work_target=v19_carla_runtime_snapshot_collector_tdd_and_isolated_client_materialization_preflight_only

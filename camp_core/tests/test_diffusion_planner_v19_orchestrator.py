@@ -72,9 +72,9 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_causal_snapshot_adapter_tdd_independent_review_passed"
+        "v19_carla_source_probe_harness_reuse_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_candidate_source_probe_harness_tdd_and_"
-        "execution_preflight_only"
+        "v19_carla_runtime_snapshot_collector_tdd_and_isolated_client_"
+        "materialization_preflight_only"
     )
