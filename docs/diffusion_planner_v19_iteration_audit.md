@@ -1596,3 +1596,37 @@ current_v19_artifact_scope=carla_fixed_dp_k8_candidate_route_source_probe_plan_a
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
 current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
 next_work_target=v19_carla_causal_snapshot_adapter_tdd_implementation_only
+
+## CARLA Causal Snapshot Adapter TDD And Review
+
+The minimal CAMP-side adapter was implemented test-first. The focused test
+first failed because the module did not exist, then passed after adding a
+single wrapper around the existing causal materializer. It validates exactly
+31 integer timestamps at uniform 100 ms intervals ending at the decision
+tick, same-tick traffic source, `current_map_topology_successors`, and nested
+future/outcome/label/holdout/metric source rejection. Existing materializer
+logic retains the 32 dynamic and 5 static observable caps, SE(2) conversion,
+fixed tensor schema, and 8 s candidate horizon.
+
+Local Python 3.9 compilation passed. The combined adapter and v17 causal suite
+reported `18 passed, 1 skipped`; the v19 pointer suite reported `3 passed`.
+AutoDL Python 3.9 reproduced both results at CAMP HEAD
+`20f7384fd65044481aebd99ccf3493e71b47167d`, with fixed DP still
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The implementation artifact/root
+is
+`/root/autodl-tmp/camp_dp_v19_carla_causal_snapshot_adapter_20f7384fd6_20260713T003637CST`
+and `5a1a9728396c5c6b7bd4f15417060508176ea0e4ea8d2ca25a2e79723d7aacd3`.
+
+Independent review validated the full manifest, exact heads, zero call counts,
+materializer reuse, history/traffic/forbidden-field guards, and absence of a
+CARLA import. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_causal_snapshot_adapter_independent_review_20f7384fd6_20260713T003700CST`
+and `1fe5fc52a559807ff1266ab4c9782e4f31aefce60207e49e436b5efb40454e13`.
+No simulator, planner, metric, holdout, DP modification, or outcome read
+occurred.
+
+current_v19_status=v19_carla_causal_snapshot_adapter_tdd_independent_review_passed
+current_v19_artifact_scope=carla_causal_snapshot_adapter_python39_tdd_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_causal_snapshot_adapter_independent_review_20f7384fd6_20260713T003700CST
+current_v19_artifact_root_sha256=1fe5fc52a559807ff1266ab4c9782e4f31aefce60207e49e436b5efb40454e13
+next_work_target=v19_carla_candidate_source_probe_harness_tdd_and_execution_preflight_only

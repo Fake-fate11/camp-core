@@ -368,11 +368,17 @@ be added. CARLA and DP remain isolated processes joined by immutable bridge
 directories. B must be exhausted before C, and no outcome may be produced or
 read before the source/scenario/candidate freeze.
 
-current_v19_status=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_frozen_preflight_passed
-current_v19_artifact_scope=carla_fixed_dp_k8_candidate_route_source_probe_plan_and_runtime_preflight_no_simulator
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
-current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
-next_work_target=v19_carla_causal_snapshot_adapter_tdd_implementation_only
+The causal snapshot adapter now passes TDD and independent review. It validates
+exactly 31 uniform 0.1 s timestamps ending at the decision tick, same-tick
+traffic data, the CARLA topology route source, and forbidden future/outcome
+fields, then delegates unchanged to the existing causal materializer. It adds
+no CARLA dependency, tensor rewrite, DP code, simulator call, or metric path.
+
+current_v19_status=v19_carla_causal_snapshot_adapter_tdd_independent_review_passed
+current_v19_artifact_scope=carla_causal_snapshot_adapter_python39_tdd_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_causal_snapshot_adapter_independent_review_20f7384fd6_20260713T003700CST
+current_v19_artifact_root_sha256=1fe5fc52a559807ff1266ab4c9782e4f31aefce60207e49e436b5efb40454e13
+next_work_target=v19_carla_candidate_source_probe_harness_tdd_and_execution_preflight_only
 
 ## Current V18 Status
 
