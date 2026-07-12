@@ -198,18 +198,24 @@ simulation objects, one per paired arm, plus the official 15-metric
 nonreactive engine and exact fixed-DP `plan_tick` argument list. It did not
 initialize a planner or run a worker, simulator, or metric.
 
-Execution remains fail-closed. Official nuPlan v1.2 has no red-light metric;
-the current bridge has no matched DP-default planned-red receipt; exact
-SafetyCost run-rate extractors for TTC/lane/progress/dynamics are not yet
-frozen; and the adapter/worker do not emit all six latency receipts. Proxy
-substitution is forbidden. The next gate is design-only for those missing
-evaluation contracts.
+The missing evaluation contract is now designed and statically reviewed. It
+retains SafetyCost v1 unchanged, uses official history/map/traffic-light data
+plus immutable per-tick bridge receipts, and keeps official metrics secondary.
+Both selected scenarios independently confirm `0.05 s` database intervals and
+161 iterations, so the fixed-DP online input must causally downsample the
+61-sample native history to the frozen 31-sample `0.1 s` history. The design
+defines all eight primary fields, all six latency receipts, full fail-closed
+behavior, and the distinction between posterior full-observation evaluation
+and online frozen 32+5 feasibility.
 
-current_v19_status=v19_nuplan_v12_closed_loop_smoke_execution_preflight_passed_execution_not_ready
-current_v19_artifact_scope=four_independent_official_scenario_simulation_and_metric_engine_construction_with_safety_component_latency_gap
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_0042c79c_20260712T171917CST
-current_v19_artifact_root_sha256=350076df70f12364531b0494d63a5e089d570a124a3b4c03f7e1a29a8c125822
-next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_contract_design_only
+No planner, worker, simulator, metric, or holdout ran. Execution remains not
+ready until the design is implemented and preflighted test-first.
+
+current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_design_static_review_passed_execution_not_ready
+current_v19_artifact_scope=closed_loop_history_map_bridge_safetycost_component_and_six_segment_latency_design_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175249CST
+current_v19_artifact_root_sha256=b6acf99b6cc69d2141c96c4351b4773cd307d0eb21fec8495e9a63cc76ef084a
+next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_only
 
 ## Current V18 Status
 

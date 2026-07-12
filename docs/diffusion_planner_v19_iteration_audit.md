@@ -914,3 +914,56 @@ current_v19_artifact_scope=four_independent_official_scenario_simulation_and_met
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_0042c79c_20260712T171917CST
 current_v19_artifact_root_sha256=350076df70f12364531b0494d63a5e089d570a124a3b4c03f7e1a29a8c125822
 next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_contract_design_only
+
+## Closed-loop Safety Component and Latency Design Static Review
+
+The preauthorized design gate froze the missing execution evidence contract at:
+
+- `docs/superpowers/specs/2026-07-12-v19-nuplan-closed-loop-safety-component-latency-design.md`
+- SHA256 `56a24ce729f5c7b4a8f13b9f9dc8cec9563d28251fc4f011425dbfcc6d91e50e`
+
+The selected design rejects both incomplete official-only substitution and any
+post-hoc SafetyCost formula change. It adds one CAMP-side posterior evaluation
+adapter over official history/map/traffic-light sources and immutable bridge
+receipts while leaving the official metric engine as secondary reporting.
+
+The contract freezes:
+
+- causal `61 x 0.05 s` to `31 x 0.1 s` history downsampling with no future,
+  interpolation, or cross-stream index mismatch;
+- OBB collision and 2.0 m near-miss step rates over the full official posterior
+  observation, explicitly separate from online frozen 32+5 feasibility;
+- route-corridor lane violation, existing state-transition realized-red,
+  selected-trajectory planned-red at tolerance `1e-12`, observed-dt dynamics,
+  and monotone route completion;
+- six `perf_counter_ns` receipts for causal conversion, bridge write, DP
+  inference, atom/selector, bridge read, and total planning path;
+- complete per-tick SHA/run-key/arm evidence and matched-pair fail-closed
+  handling without candidate-0 or cross-arm fallback.
+
+The successful AutoDL static review artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175249CST`
+- `b6acf99b6cc69d2141c96c4351b4773cd307d0eb21fec8495e9a63cc76ef084a`
+
+It verified the spec SHA and fixed boundaries and independently constructed both
+selected scenarios at database interval `0.05 s` with 161 iterations. Free
+bytes were `15077048320`. No planner, worker, simulator, metric, or holdout ran.
+
+Two retained static-review attempts used nonexistent case-sensitive proxy
+literals and failed before interval review. The spec did not change:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175035CST.tmp`
+  / `8323444ccb7eb392424bc50bd6e361fd36669bf737dee23cae61b7fcdebfff43`;
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175155CST.tmp`
+  / `a5a011e2a88ce903678e8a9bf23125f84b984a52261785874ea77e6368303948`.
+
+Candidate 0 remains only the `DP-default deterministic/MAP baseline`, with
+`native_ranked_top1=false`. The next gate is TDD plan-only and may not run a
+planner, worker, simulator, metric, or holdout.
+
+current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_design_static_review_passed_execution_not_ready
+current_v19_artifact_scope=closed_loop_history_map_bridge_safetycost_component_and_six_segment_latency_design_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_design_static_review_2f0973ec_20260712T175249CST
+current_v19_artifact_root_sha256=b6acf99b6cc69d2141c96c4351b4773cd307d0eb21fec8495e9a63cc76ef084a
+next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_only
