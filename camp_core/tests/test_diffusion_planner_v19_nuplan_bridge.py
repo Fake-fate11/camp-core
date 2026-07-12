@@ -1,0 +1,207 @@
+import importlib
+import json
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from camp_core.integrations.diffusion_planner_causal_materializer import (
+    CAUSAL_DP_INPUT_SCHEMA,
+)
+
+
+def _bridge():
+    try:
+        return importlib.import_module(
+            "camp_core.integrations.diffusion_planner_v19_nuplan_bridge"
+        )
+    except ModuleNotFoundError:
+        pytest.fail("the v19 nuPlan file bridge is missing")
+
+
+def _causal_arrays() -> dict[str, np.ndarray]:
+    arrays = {
+        key: np.zeros(shape, dtype=dtype)
+        for key, (shape, dtype) in CAUSAL_DP_INPUT_SCHEMA.items()
+    }
+    arrays["version"] = np.array(1, dtype=np.int64)
+    return arrays
+
+
+def _request_metadata(module, *, arm: str = "camp") -> dict[str, object]:
+    return module.build_request_metadata(
+        arm=arm,
+        log_name="log-a",
+        scenario_token="scenario-a",
+        iteration_index=7,
+        simulation_time_us=700_000,
+        scenario_seed=3411,
+        dp_seed_root=3412,
+        camp_head="a" * 40,
+        dp_head="b" * 40,
+        nuplan_head="c" * 40,
+        causal_input=_causal_arrays(),
+        selector_hashes=("d" * 64, "e" * 64, "f" * 64),
+    )
+
+
+def test_paired_run_key_is_stable_and_arm_keys_are_distinct() -> None:
+    module = _bridge()
+
+    pair = module.paired_run_key("log-a", "scenario-a", 3411)
+
+    assert pair == module.paired_run_key("log-a", "scenario-a", 3411)
+    assert module.arm_run_key(pair, "dp_default") != module.arm_run_key(
+        pair, "camp"
+    )
+    with pytest.raises(ValueError, match="formal seed"):
+        module.paired_run_key("log-a", "scenario-a", 11)
+
+
+def test_request_round_trip_uses_json_as_readiness_marker(tmp_path: Path) -> None:
+    module = _bridge()
+    arrays = _causal_arrays()
+    metadata = _request_metadata(module)
+
+    module.write_request(tmp_path, arrays, metadata)
+    loaded = module.read_request(
+        tmp_path,
+        expected_run_key=str(metadata["run_key"]),
+        expected_iteration_index=7,
+    )
+
+    assert set(loaded.arrays) == set(CAUSAL_DP_INPUT_SCHEMA)
+    assert loaded.metadata == metadata
+    assert (tmp_path / "request.npz").is_file()
+    assert (tmp_path / "request.json").is_file()
+    (tmp_path / "request.json").unlink()
+    with pytest.raises(FileNotFoundError, match="request.json"):
+        module.read_request(
+            tmp_path,
+            expected_run_key=str(metadata["run_key"]),
+            expected_iteration_index=7,
+        )
+
+
+def test_request_rejects_forbidden_or_stale_inputs(tmp_path: Path) -> None:
+    module = _bridge()
+    arrays = _causal_arrays()
+    metadata = _request_metadata(module)
+    metadata["expert_future"] = [[0.0, 0.0]]
+    with pytest.raises(ValueError, match="forbidden online field"):
+        module.write_request(tmp_path, arrays, metadata)
+
+    metadata.pop("expert_future")
+    arrays["extra"] = np.zeros(1, dtype=np.float32)
+    with pytest.raises(ValueError, match="extra"):
+        module.write_request(tmp_path, arrays, metadata)
+
+    arrays.pop("extra")
+    module.write_request(tmp_path, arrays, metadata)
+    with pytest.raises(ValueError, match="iteration"):
+        module.read_request(
+            tmp_path,
+            expected_run_key=str(metadata["run_key"]),
+            expected_iteration_index=8,
+        )
+
+
+def test_response_rejects_hash_or_shape_mismatch(tmp_path: Path) -> None:
+    module = _bridge()
+    trajectory = np.zeros((80, 4), dtype=np.float32)
+    metadata = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "dp_default",
+        "run_key": "run:dp_default",
+        "iteration_index": 0,
+        "status": "ok",
+        "selected_trajectory_sha256": module.array_sha256(trajectory),
+        "baseline_name": "DP-default deterministic/MAP baseline",
+        "native_ranked_top1": False,
+    }
+    module.write_response(tmp_path, {"selected_trajectory": trajectory}, metadata)
+    loaded = module.read_response(
+        tmp_path, expected_run_key="run:dp_default", expected_iteration_index=0
+    )
+    assert loaded.arrays["selected_trajectory"].shape == (80, 4)
+
+    payload = json.loads((tmp_path / "response.json").read_text(encoding="utf-8"))
+    payload["selected_trajectory_sha256"] = "0" * 64
+    (tmp_path / "response.json").write_text(
+        json.dumps(payload), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="trajectory SHA"):
+        module.read_response(
+            tmp_path,
+            expected_run_key="run:dp_default",
+            expected_iteration_index=0,
+        )
+
+
+def test_all_k_infeasible_response_contains_evidence_and_no_trajectory(
+    tmp_path: Path,
+) -> None:
+    module = _bridge()
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    metadata = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "camp",
+        "run_key": "run:camp",
+        "iteration_index": 2,
+        "status": "failed",
+        "failure_reason": "all_candidates_physically_infeasible",
+        "candidate_sha256_before": module.array_sha256(candidates),
+        "candidate_sha256_after": module.array_sha256(candidates),
+        "candidate_reasons": [["obb_collision"] for _ in range(8)],
+        "native_ranked_top1": False,
+    }
+    arrays = {
+        "candidates": candidates,
+        "physical_feasible_mask": np.zeros(8, dtype=bool),
+    }
+
+    module.write_response(tmp_path, arrays, metadata)
+    loaded = module.read_response(
+        tmp_path, expected_run_key="run:camp", expected_iteration_index=2
+    )
+
+    assert "selected_trajectory" not in loaded.arrays
+    assert not loaded.arrays["physical_feasible_mask"].any()
+
+
+def test_camp_success_response_requires_immutable_k8_tensor(tmp_path: Path) -> None:
+    module = _bridge()
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates[3, :, 0] = 1.0
+    digest = module.array_sha256(candidates)
+    arrays = {
+        "candidates": candidates,
+        "neighbor_predictions": np.zeros((8, 32, 80, 4), dtype=np.float32),
+        "neighbor_valid_mask": np.zeros(32, dtype=bool),
+        "signal_mask": np.ones(8, dtype=bool),
+        "physical_feasible_mask": np.ones(8, dtype=bool),
+        "atom_matrix": np.zeros((8, 14), dtype=np.float64),
+        "selected_index": np.array(3, dtype=np.int64),
+        "selected_trajectory": candidates[3],
+    }
+    metadata = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "camp",
+        "run_key": "run:camp",
+        "iteration_index": 3,
+        "status": "ok",
+        "candidate_sha256_before": digest,
+        "candidate_sha256_after": digest,
+        "selected_trajectory_sha256": module.array_sha256(candidates[3]),
+        "candidate_reasons": [[] for _ in range(8)],
+        "native_ranked_top1": False,
+    }
+
+    module.write_response(tmp_path, arrays, metadata)
+    module.read_response(
+        tmp_path, expected_run_key="run:camp", expected_iteration_index=3
+    )
+
+    metadata["candidate_sha256_after"] = "0" * 64
+    with pytest.raises(ValueError, match="candidate tensor mutated"):
+        module.write_response(tmp_path / "mutated", arrays, metadata)
