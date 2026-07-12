@@ -10,6 +10,11 @@ from types import SimpleNamespace
 
 import numpy as np
 
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    CANDIDATE_LOCAL_EXACT_SPEED,
+    FULL_WINDOW_EXACT_SPEED,
+)
+
 
 class NuPlanCausalSourceError(ValueError):
     """Raised when nuPlan source data cannot satisfy the causal DP contract."""
@@ -26,7 +31,7 @@ _STATIC_OBJECT_TYPES = {
 @dataclass(frozen=True)
 class EncodedRouteLane:
     tensor: np.ndarray
-    speed_limit_mps: float
+    speed_limit_mps: float | None
 
 
 @dataclass(frozen=True)
@@ -259,8 +264,15 @@ def materialize_nuplan_decision(
 def materialize_nuplan_planner_input(
     current_input: Any,
     initialization: Any,
+    *,
+    speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
 ):
     """Materialize the fixed-DP causal schema from one live nuPlan tick."""
+    if speed_source_policy not in {
+        FULL_WINDOW_EXACT_SPEED,
+        CANDIDATE_LOCAL_EXACT_SPEED,
+    }:
+        raise ValueError("unsupported route speed-source policy")
     for name in ("expert_future", "future_trajectory", "label", "outcome"):
         if getattr(current_input, name, None) is not None:
             raise NuPlanCausalSourceError(
@@ -275,6 +287,7 @@ def materialize_nuplan_planner_input(
             current_input.history.ego_states[-1]
             .car_footprint.vehicle_parameters.wheel_base
         ),
+        speed_source_policy=speed_source_policy,
     )
     from camp_core.integrations.diffusion_planner_causal_materializer import (
         CausalDPMaterialization,
@@ -289,6 +302,7 @@ def materialize_nuplan_planner_input(
             "source": "official_nuplan_planner_input",
             "observable_dynamic_limit": 32,
             "observable_static_limit": 5,
+            "speed_source_policy": speed_source_policy,
         },
     )
 
@@ -471,6 +485,7 @@ def _live_planner_context(
     *,
     static_objects: np.ndarray,
     wheelbase: float,
+    speed_source_policy: str,
 ) -> dict[str, Any]:
     route_ids = [str(value) for value in initialization.route_roadblock_ids]
     if not route_ids or len(set(route_ids)) != len(route_ids):
@@ -510,10 +525,14 @@ def _live_planner_context(
             traffic_light_status=traffic.get(str(lane.id)),
             traffic_timestamp_us=decision_time if str(lane.id) in traffic else None,
             decision_timestamp_us=decision_time,
+            require_speed_limit=(
+                speed_source_policy == FULL_WINDOW_EXACT_SPEED
+            ),
         )
         route_lanes[index] = encoded.tensor
-        route_has_speed[index, 0] = True
-        route_speed[index, 0] = encoded.speed_limit_mps
+        if encoded.speed_limit_mps is not None:
+            route_has_speed[index, 0] = True
+            route_speed[index, 0] = encoded.speed_limit_mps
     lanes = np.zeros((140, 20, 33), dtype=np.float64)
     lanes[: len(selected)] = route_lanes[: len(selected)]
     lanes_has_speed = np.zeros((140, 1), dtype=bool)
@@ -1217,11 +1236,16 @@ def encode_route_lane(
     traffic_light_status: str | None = None,
     traffic_timestamp_us: int | None = None,
     decision_timestamp_us: int | None = None,
+    require_speed_limit: bool = True,
 ) -> EncodedRouteLane:
-    if speed_limit_mps is None or not np.isfinite(speed_limit_mps):
-        raise NuPlanCausalSourceError("route speed_limit_mps is required")
-    speed_limit = float(speed_limit_mps)
-    if speed_limit <= 0.0:
+    speed_limit = None
+    if speed_limit_mps is not None and np.isfinite(speed_limit_mps):
+        speed_limit = float(speed_limit_mps)
+        if speed_limit <= 0.0:
+            speed_limit = None
+    if require_speed_limit and speed_limit is None:
+        if speed_limit_mps is None or not np.isfinite(speed_limit_mps):
+            raise NuPlanCausalSourceError("route speed_limit_mps is required")
         raise NuPlanCausalSourceError("route speed_limit_mps must be positive")
 
     center = _resample_polyline(centerline)

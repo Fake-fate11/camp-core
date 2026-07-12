@@ -151,6 +151,57 @@ def test_live_planner_input_rejects_future_and_stale_traffic() -> None:
         )
 
 
+def test_live_candidate_local_route_preserves_missing_speed_as_unavailable() -> None:
+    current, initialization = _fixture()
+    second = initialization.map_api.get_map_object("rb-1", None)
+    second.interior_edges[0].speed_limit_mps = None
+
+    with pytest.raises(nuplan_causal_adapter.NuPlanCausalSourceError, match="speed_limit_mps"):
+        nuplan_causal_adapter.materialize_nuplan_planner_input(
+            current, initialization
+        )
+
+    materialized = nuplan_causal_adapter.materialize_nuplan_planner_input(
+        current,
+        initialization,
+        speed_source_policy=(
+            nuplan_causal_adapter.CANDIDATE_LOCAL_EXACT_SPEED
+        ),
+    )
+
+    assert not materialized.dp_input["route_lanes_has_speed_limit"][1, 0]
+    assert materialized.dp_input["route_lanes_speed_limit"][1, 0] == 0.0
+    assert np.any(materialized.dp_input["route_lanes"][1, :, 13] > 0.5)
+
+
+def test_live_adapter_and_planner_reject_unapproved_speed_source_policy(
+    tmp_path,
+) -> None:
+    current, initialization = _fixture()
+    with pytest.raises(ValueError, match="unsupported route speed-source policy"):
+        nuplan_causal_adapter.materialize_nuplan_planner_input(
+            current,
+            initialization,
+            speed_source_policy="ego_speed_fallback",
+        )
+
+    module = importlib.import_module(
+        "camp_core.integrations.nuplan_closed_loop_adapter"
+    )
+    with pytest.raises(ValueError, match="unsupported route speed-source policy"):
+        module.NuPlanCAMPPlanner(
+            arm="dp_default",
+            bridge_root=tmp_path,
+            worker_command=("python", "worker.py"),
+            log_name="log-a",
+            scenario_token="scenario-a",
+            camp_head="a" * 40,
+            dp_head="b" * 40,
+            nuplan_head="c" * 40,
+            speed_source_policy="ego_speed_fallback",
+        )
+
+
 def test_causal_history_view_downsamples_native_nuplan_ticks() -> None:
     states = [_state(index * 0.05, index * 50_000) for index in range(61)]
     observations = [SimpleNamespace(index=index) for index in range(61)]
@@ -258,20 +309,32 @@ def test_planner_writes_one_immutable_six_segment_tick_receipt(
         "run_key": f"{'a' * 64}:dp_default",
         "causal_input_sha256": "b" * 64,
     }
+    policy = "candidate_local_exact_speed"
     response = bridge.BridgeMessage(
         arrays={"selected_trajectory": selected},
         metadata={
             "status": "ok",
+            "speed_source_policy": policy,
             "selected_trajectory_sha256": bridge.array_sha256(selected),
             "worker_latency_ms": {"dp_inference": 3.0, "atom_selector": 0.0},
         },
     )
+    calls = {}
+
+    def materialize(*_args, **kwargs):
+        calls["materialize"] = kwargs
+        return SimpleNamespace(dp_input={"version": np.array(1)})
+
+    def request_metadata(**kwargs):
+        calls["metadata"] = kwargs
+        return metadata
+
     monkeypatch.setattr(
         module,
         "materialize_nuplan_planner_input",
-        lambda *_: SimpleNamespace(dp_input={"version": np.array(1)}),
+        materialize,
     )
-    monkeypatch.setattr(module, "build_request_metadata", lambda **_: metadata)
+    monkeypatch.setattr(module, "build_request_metadata", request_metadata)
 
     def write_request(directory, *_):
         directory.mkdir(parents=True)
@@ -304,6 +367,7 @@ def test_planner_writes_one_immutable_six_segment_tick_receipt(
         camp_head="a" * 40,
         dp_head="b" * 40,
         nuplan_head="c" * 40,
+        speed_source_policy=policy,
     )
     planner.initialize(SimpleNamespace())
     current = SimpleNamespace(
@@ -312,6 +376,8 @@ def test_planner_writes_one_immutable_six_segment_tick_receipt(
     )
 
     assert planner.compute_planner_trajectory(current) == ["state"]
+    assert calls["materialize"]["speed_source_policy"] == policy
+    assert calls["metadata"]["speed_source_policy"] == policy
 
     receipt_path = tmp_path / ("a" * 64) / "dp_default" / "000000" / "planning_receipt.json"
     receipt = json.loads(receipt_path.read_text("utf-8"))

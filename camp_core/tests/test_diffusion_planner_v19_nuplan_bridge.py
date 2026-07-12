@@ -41,6 +41,7 @@ def _request_metadata(module, *, arm: str = "camp") -> dict[str, object]:
         dp_head="b" * 40,
         nuplan_head="c" * 40,
         causal_input=_causal_arrays(),
+        speed_source_policy="full_window_exact_speed",
         selector_hashes=("d" * 64, "e" * 64, "f" * 64),
     )
 
@@ -56,6 +57,32 @@ def test_paired_run_key_is_stable_and_arm_keys_are_distinct() -> None:
     )
     with pytest.raises(ValueError, match="formal seed"):
         module.paired_run_key("log-a", "scenario-a", 11)
+
+
+def test_request_rejects_unapproved_speed_source_policy(tmp_path: Path) -> None:
+    module = _bridge()
+    arrays = _causal_arrays()
+    with pytest.raises(ValueError, match="speed-source policy"):
+        module.build_request_metadata(
+            arm="camp",
+            log_name="log-a",
+            scenario_token="scenario-a",
+            iteration_index=7,
+            simulation_time_us=700_000,
+            scenario_seed=3411,
+            dp_seed_root=3412,
+            camp_head="a" * 40,
+            dp_head="b" * 40,
+            nuplan_head="c" * 40,
+            causal_input=arrays,
+            speed_source_policy="nearby_lane_fallback",
+            selector_hashes=("d" * 64, "e" * 64, "f" * 64),
+        )
+
+    metadata = _request_metadata(module)
+    metadata["speed_source_policy"] = "nearby_lane_fallback"
+    with pytest.raises(ValueError, match="speed-source policy"):
+        module.write_request(tmp_path, arrays, metadata)
 
 
 def test_request_round_trip_uses_json_as_readiness_marker(tmp_path: Path) -> None:
@@ -118,6 +145,7 @@ def test_response_rejects_hash_or_shape_mismatch(tmp_path: Path) -> None:
         "selected_trajectory_sha256": module.array_sha256(trajectory),
         "baseline_name": "DP-default deterministic/MAP baseline",
         "native_ranked_top1": False,
+        "speed_source_policy": "full_window_exact_speed",
     }
     module.write_response(tmp_path, {"selected_trajectory": trajectory}, metadata)
     loaded = module.read_response(
@@ -153,6 +181,7 @@ def test_plan_tick_response_requires_planned_red_and_worker_latency(
         "selected_trajectory_sha256": module.array_sha256(trajectory),
         "baseline_name": "DP-default deterministic/MAP baseline",
         "native_ranked_top1": False,
+        "speed_source_policy": "full_window_exact_speed",
     }
 
     with pytest.raises(ValueError, match="planned-red|latency"):
@@ -195,6 +224,7 @@ def test_all_k_infeasible_response_contains_evidence_and_no_trajectory(
         "candidate_sha256_after": module.array_sha256(candidates),
         "candidate_reasons": [["obb_collision"] for _ in range(8)],
         "native_ranked_top1": False,
+        "speed_source_policy": "full_window_exact_speed",
     }
     arrays = {
         "candidates": candidates,
@@ -241,6 +271,7 @@ def test_camp_success_response_requires_immutable_k8_tensor(tmp_path: Path) -> N
         "planned_red_source": "fixed_dp_red_cost_v18",
         "worker_latency_ms": {"dp_inference": 1.0, "atom_selector": 2.0},
         "native_ranked_top1": False,
+        "speed_source_policy": "full_window_exact_speed",
     }
 
     module.write_response(tmp_path, arrays, metadata)
@@ -256,3 +287,81 @@ def test_camp_success_response_requires_immutable_k8_tensor(tmp_path: Path) -> N
     metadata["selected_planned_red_light_cost"] = 0.0
     with pytest.raises(ValueError, match="planned-red"):
         module.write_response(tmp_path / "red-mismatch", arrays, metadata)
+
+
+def test_source_probe_response_requires_unchanged_k8_and_source_mask(
+    tmp_path: Path,
+) -> None:
+    module = _bridge()
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    source_mask = np.array([True, False, True, False, False, False, False, False])
+    digest = module.array_sha256(candidates)
+    metadata = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "camp",
+        "run_key": "run:camp",
+        "iteration_index": 0,
+        "operation": "source_probe",
+        "speed_source_policy": "candidate_local_exact_speed",
+        "status": "ok",
+        "native_ranked_top1": False,
+        "candidate_sha256_before": digest,
+        "candidate_sha256_after": digest,
+        "dp_default_source_complete": True,
+        "eligible_candidate_count": 2,
+    }
+
+    module.write_response(
+        tmp_path,
+        {
+            "candidates": candidates,
+            "route_speed_source_eligible_mask": source_mask,
+        },
+        metadata,
+    )
+    loaded = module.read_response(
+        tmp_path,
+        expected_run_key="run:camp",
+        expected_iteration_index=0,
+    )
+
+    assert loaded.arrays["candidates"].shape == (8, 80, 4)
+    np.testing.assert_array_equal(
+        loaded.arrays["route_speed_source_eligible_mask"], source_mask
+    )
+    assert loaded.metadata["candidate_sha256_before"] == digest
+    assert loaded.metadata["candidate_sha256_after"] == digest
+
+
+def test_response_rejects_request_speed_source_policy_mismatch(tmp_path: Path) -> None:
+    module = _bridge()
+    arrays = _causal_arrays()
+    metadata = _request_metadata(module)
+    module.write_request(tmp_path, arrays, metadata)
+    response = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "camp",
+        "run_key": metadata["run_key"],
+        "iteration_index": 7,
+        "operation": "source_probe",
+        "speed_source_policy": "candidate_local_exact_speed",
+        "status": "ok",
+        "native_ranked_top1": False,
+        "candidate_sha256_before": module.array_sha256(
+            np.zeros((8, 80, 4), dtype=np.float32)
+        ),
+        "candidate_sha256_after": module.array_sha256(
+            np.zeros((8, 80, 4), dtype=np.float32)
+        ),
+        "dp_default_source_complete": True,
+        "eligible_candidate_count": 8,
+    }
+    with pytest.raises(ValueError, match="speed-source policy mismatch"):
+        module.write_response(
+            tmp_path,
+            {
+                "candidates": np.zeros((8, 80, 4), dtype=np.float32),
+                "route_speed_source_eligible_mask": np.ones(8, dtype=bool),
+            },
+            response,
+        )

@@ -16,6 +16,8 @@ from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
     write_request,
 )
 from camp_core.integrations.nuplan_causal_adapter import (
+    CANDIDATE_LOCAL_EXACT_SPEED,
+    FULL_WINDOW_EXACT_SPEED,
     materialize_nuplan_planner_input,
 )
 
@@ -83,6 +85,7 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
         scenario_seed: int = 3411,
         dp_seed_root: int = 3412,
         worker_timeout_s: float = 120.0,
+        speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
     ) -> None:
         if arm not in {"dp_default", "camp"}:
             raise ValueError("arm must be dp_default or camp")
@@ -92,6 +95,11 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
             raise ValueError("CAMP arm requires frozen selector hashes")
         if arm == "dp_default" and selector_hashes is not None:
             raise ValueError("DP-default arm must not carry selector hashes")
+        if speed_source_policy not in {
+            FULL_WINDOW_EXACT_SPEED,
+            CANDIDATE_LOCAL_EXACT_SPEED,
+        }:
+            raise ValueError("unsupported route speed-source policy")
         self._arm = arm
         self._bridge_root = Path(bridge_root)
         self._worker_command = tuple(str(value) for value in worker_command)
@@ -104,6 +112,7 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
         self._scenario_seed = int(scenario_seed)
         self._dp_seed_root = int(dp_seed_root)
         self._worker_timeout_s = float(worker_timeout_s)
+        self._speed_source_policy = speed_source_policy
         self._initialization: Any | None = None
 
     def name(self) -> str:
@@ -129,7 +138,9 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
         total_start = time.perf_counter_ns()
         causal_start = time.perf_counter_ns()
         materialized = materialize_nuplan_planner_input(
-            current_input, self._initialization
+            current_input,
+            self._initialization,
+            speed_source_policy=self._speed_source_policy,
         )
         causal_ms = (time.perf_counter_ns() - causal_start) / 1e6
         iteration = int(current_input.iteration.index)
@@ -150,6 +161,7 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
             nuplan_head=self._nuplan_head,
             causal_input=materialized.dp_input,
             selector_hashes=self._selector_hashes,
+            speed_source_policy=self._speed_source_policy,
         )
         tick_dir = (
             self._bridge_root
@@ -176,6 +188,8 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
             expected_run_key=str(metadata["run_key"]),
             expected_iteration_index=iteration,
         )
+        if response.metadata.get("speed_source_policy") != self._speed_source_policy:
+            raise RuntimeError("worker speed-source policy mismatch")
         read_ms = (time.perf_counter_ns() - read_start) / 1e6
         if response.metadata["status"] != "ok":
             raise RuntimeError(

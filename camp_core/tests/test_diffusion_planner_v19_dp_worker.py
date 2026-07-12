@@ -27,12 +27,27 @@ def _fake_infer(latent: np.ndarray) -> np.ndarray:
     return latent[:, 1:].astype(np.float32, copy=True)
 
 
-def _request(tmp_path, *, arm: str):
+def _request(
+    tmp_path,
+    *,
+    arm: str,
+    speed_source_policy: str = "full_window_exact_speed",
+    route_speed_available: bool = True,
+):
     arrays = {
         key: np.zeros(shape, dtype=dtype)
         for key, (shape, dtype) in CAUSAL_DP_INPUT_SCHEMA.items()
     }
     arrays["version"] = np.array(1, dtype=np.int64)
+    arrays["route_lanes"][0, :, 0] = np.linspace(0.0, 19.0, 20)
+    arrays["route_lanes"][0, :, 2] = 1.0
+    arrays["route_lanes"][0, :, 5] = 2.0
+    arrays["route_lanes"][0, :, 7] = -2.0
+    arrays["route_lanes"][0, :, 13] = 1.0
+    arrays["route_lanes_has_speed_limit"][0, 0] = route_speed_available
+    arrays["route_lanes_speed_limit"][0, 0] = (
+        10.0 if route_speed_available else 0.0
+    )
     metadata = build_request_metadata(
         arm=arm,
         log_name="log-a",
@@ -45,6 +60,7 @@ def _request(tmp_path, *, arm: str):
         dp_head="b" * 40,
         nuplan_head="c" * 40,
         causal_input=arrays,
+        speed_source_policy=speed_source_policy,
         selector_hashes=("d" * 64, "e" * 64, "f" * 64)
         if arm == "camp"
         else None,
@@ -228,6 +244,85 @@ def test_process_default_tick_records_planned_red_without_generating_k8(
     assert response.metadata["worker_latency_ms"]["atom_selector"] == 0.0
 
 
+def test_process_default_candidate_local_tick_fails_without_speed_source(
+    tmp_path,
+) -> None:
+    module = _worker()
+    metadata = _request(
+        tmp_path,
+        arm="dp_default",
+        speed_source_policy="candidate_local_exact_speed",
+        route_speed_available=False,
+    )
+
+    module.process_request(
+        tmp_path,
+        operation="plan_tick",
+        infer_one=_fake_infer,
+        planned_red_cost=lambda _candidates, _causal: np.zeros(1),
+    )
+    response = read_response(
+        tmp_path,
+        expected_run_key=str(metadata["run_key"]),
+        expected_iteration_index=0,
+    )
+
+    assert response.metadata["status"] == "failed"
+    assert response.metadata["failure_reason"] == (
+        "dp_default_route_speed_source_ineligible"
+    )
+    assert "selected_trajectory" not in response.arrays
+
+
+def test_source_probe_writes_only_unchanged_candidates_and_source_mask(
+    tmp_path,
+) -> None:
+    module = _worker()
+    metadata = _request(
+        tmp_path,
+        arm="camp",
+        speed_source_policy="candidate_local_exact_speed",
+    )
+
+    module.process_request(
+        tmp_path,
+        operation="source_probe",
+        infer_one=_fake_infer,
+    )
+    response = read_response(
+        tmp_path,
+        expected_run_key=str(metadata["run_key"]),
+        expected_iteration_index=0,
+    )
+
+    assert set(response.arrays) == {
+        "candidates",
+        "route_speed_source_eligible_mask",
+    }
+    assert response.arrays["candidates"].shape == (8, 80, 4)
+    assert response.arrays["route_speed_source_eligible_mask"].all()
+    assert response.metadata["candidate_sha256_before"] == response.metadata[
+        "candidate_sha256_after"
+    ]
+    assert response.metadata["eligible_candidate_count"] == 8
+
+
+def test_source_probe_rejects_dp_default_arm(tmp_path) -> None:
+    module = _worker()
+    _request(
+        tmp_path,
+        arm="dp_default",
+        speed_source_policy="candidate_local_exact_speed",
+    )
+
+    with pytest.raises(ValueError, match="source probe requires the CAMP arm"):
+        module.process_request(
+            tmp_path,
+            operation="source_probe",
+            infer_one=_fake_infer,
+        )
+
+
 def test_process_camp_tick_writes_k8_selection_without_mutation(tmp_path) -> None:
     module = _worker()
     metadata = _request(tmp_path, arm="camp")
@@ -285,7 +380,7 @@ def test_cli_freezes_fixed_dp_and_selector_hash_inputs(tmp_path) -> None:
             "--request-dir",
             str(tmp_path),
             "--operation",
-            "plan_tick",
+            "source_probe",
             "--dp-repo",
             "/fixed/dp",
             "--checkpoint",
@@ -311,6 +406,6 @@ def test_cli_freezes_fixed_dp_and_selector_hash_inputs(tmp_path) -> None:
         ]
     )
 
-    assert args.operation == "plan_tick"
+    assert args.operation == "source_probe"
     assert module.FIXED_DP_HEAD == "7a1d33da277a1992ec474b5383a0c963c72e04e4"
     assert module.NATIVE_RANKED_TOP1 is False

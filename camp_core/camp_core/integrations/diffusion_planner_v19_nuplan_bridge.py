@@ -9,6 +9,11 @@ from typing import Any, Mapping
 
 import numpy as np
 
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    CANDIDATE_LOCAL_EXACT_SPEED,
+    FULL_WINDOW_EXACT_SPEED,
+)
+
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
     validate_causal_dp_input,
@@ -81,9 +86,11 @@ def build_request_metadata(
     dp_head: str,
     nuplan_head: str,
     causal_input: Mapping[str, Any],
+    speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
     selector_hashes: tuple[str, str, str] | None = None,
 ) -> dict[str, object]:
     _require_arm(arm)
+    _require_speed_source_policy(speed_source_policy)
     pair_key = paired_run_key(log_name, scenario_token, scenario_seed)
     if iteration_index < 0 or simulation_time_us < 0:
         raise ValueError("iteration and simulation time must be nonnegative")
@@ -108,6 +115,7 @@ def build_request_metadata(
         "nuplan_head": nuplan_head,
         "causal_input_sha256": causal_input_sha256(causal_input),
         "native_ranked_top1": False,
+        "speed_source_policy": speed_source_policy,
     }
     if arm == "camp":
         if selector_hashes is None or len(selector_hashes) != 3:
@@ -144,6 +152,7 @@ def write_response(
     arrays: Mapping[str, Any],
     metadata: Mapping[str, Any],
 ) -> None:
+    _require_response_policy_match(Path(directory), metadata)
     prepared = _validate_response(arrays, metadata)
     _write_message(Path(directory), "response", prepared, metadata)
 
@@ -156,6 +165,7 @@ def read_response(
 ) -> BridgeMessage:
     message = _read_message(Path(directory), "response")
     _require_identity(message.metadata, expected_run_key, expected_iteration_index)
+    _require_response_policy_match(Path(directory), message.metadata)
     prepared = _validate_response(message.arrays, message.metadata)
     return BridgeMessage(prepared, message.metadata)
 
@@ -226,6 +236,34 @@ def _validate_default_response(
 def _validate_camp_response(
     arrays: Mapping[str, np.ndarray], metadata: Mapping[str, Any], status: str
 ) -> None:
+    if metadata.get("operation") == "source_probe":
+        if status != "ok":
+            raise ValueError("source probe response must be ok")
+        if set(arrays) != {
+            "candidates",
+            "route_speed_source_eligible_mask",
+        }:
+            raise ValueError("source probe response arrays are invalid")
+        candidates = arrays["candidates"]
+        source_mask = arrays["route_speed_source_eligible_mask"]
+        _require_array(candidates, (8, 80, 4), np.float32, "candidates")
+        _require_array(
+            source_mask,
+            (8,),
+            np.bool_,
+            "route_speed_source_eligible_mask",
+        )
+        digest = array_sha256(candidates)
+        if (
+            metadata.get("candidate_sha256_before") != digest
+            or metadata.get("candidate_sha256_after") != digest
+        ):
+            raise ValueError("candidate tensor mutated")
+        if metadata.get("dp_default_source_complete") is not bool(source_mask[0]):
+            raise ValueError("DP-default source-complete evidence mismatch")
+        if metadata.get("eligible_candidate_count") != int(source_mask.sum()):
+            raise ValueError("eligible candidate count mismatch")
+        return
     required_evidence = {"candidates", "physical_feasible_mask"}
     if metadata.get("operation") == "plan_tick":
         required_evidence.add("planned_red_light_cost")
@@ -296,8 +334,12 @@ def _validate_worker_evidence(metadata: Mapping[str, Any]) -> None:
     operation = metadata.get("operation")
     if operation is None:
         return
-    if operation not in {"default_provenance", "plan_tick"}:
+    if operation not in {"default_provenance", "plan_tick", "source_probe"}:
         raise ValueError("response operation is invalid")
+    if operation == "source_probe":
+        if metadata.get("arm") != "camp":
+            raise ValueError("source probe requires the CAMP arm")
+        return
     if operation != "plan_tick":
         return
     latency = metadata.get("worker_latency_ms")
@@ -357,6 +399,23 @@ def _validate_common_metadata(metadata: Mapping[str, Any]) -> None:
     index = metadata.get("iteration_index")
     if isinstance(index, bool) or not isinstance(index, int) or index < 0:
         raise ValueError("iteration_index must be a nonnegative integer")
+    _require_speed_source_policy(str(metadata.get("speed_source_policy", "")))
+
+
+def _require_speed_source_policy(value: str) -> None:
+    if value not in {FULL_WINDOW_EXACT_SPEED, CANDIDATE_LOCAL_EXACT_SPEED}:
+        raise ValueError("request speed-source policy is invalid")
+
+
+def _require_response_policy_match(
+    directory: Path, metadata: Mapping[str, Any]
+) -> None:
+    request_path = directory / "request.json"
+    if not request_path.is_file():
+        return
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    if request.get("speed_source_policy") != metadata.get("speed_source_policy"):
+        raise ValueError("response/request speed-source policy mismatch")
 
 
 def _require_identity(

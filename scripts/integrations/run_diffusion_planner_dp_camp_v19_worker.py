@@ -11,6 +11,11 @@ from typing import Any
 
 import numpy as np
 
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    CANDIDATE_LOCAL_EXACT_SPEED,
+    project_candidates_to_route,
+)
+
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
     BRIDGE_SCHEMA_VERSION,
     array_sha256,
@@ -59,10 +64,12 @@ def process_request(
         expected_iteration_index=int(raw_metadata["iteration_index"]),
     )
     arm = str(request.metadata["arm"])
-    if operation not in {"default_provenance", "plan_tick"}:
+    if operation not in {"default_provenance", "plan_tick", "source_probe"}:
         raise ValueError("unsupported worker operation")
     if operation == "default_provenance" and arm != "dp_default":
         raise ValueError("default provenance requires the DP-default arm")
+    if operation == "source_probe" and arm != "camp":
+        raise ValueError("source probe requires the CAMP arm")
     response_metadata: dict[str, object] = {
         "schema_version": BRIDGE_SCHEMA_VERSION,
         "arm": arm,
@@ -70,6 +77,7 @@ def process_request(
         "iteration_index": request.metadata["iteration_index"],
         "operation": operation,
         "native_ranked_top1": False,
+        "speed_source_policy": request.metadata["speed_source_policy"],
     }
     if arm == "dp_default":
         inference_start = time.perf_counter_ns()
@@ -85,6 +93,29 @@ def process_request(
             }
             response_metadata.update(evidence)
         else:
+            if request.metadata["speed_source_policy"] == CANDIDATE_LOCAL_EXACT_SPEED:
+                projection = project_candidates_to_route(
+                    default[None, ...],
+                    request.arrays["route_lanes"],
+                    request.arrays["route_lanes_speed_limit"],
+                    request.arrays["route_lanes_has_speed_limit"],
+                    speed_source_policy=CANDIDATE_LOCAL_EXACT_SPEED,
+                )
+                if not bool(projection["route_speed_source_eligible_mask"][0]):
+                    response_metadata.update(
+                        {
+                            "status": "failed",
+                            "failure_reason": (
+                                "dp_default_route_speed_source_ineligible"
+                            ),
+                            "worker_latency_ms": {
+                                "dp_inference": inference_ms,
+                                "atom_selector": 0.0,
+                            },
+                        }
+                    )
+                    write_response(directory, {}, response_metadata)
+                    return
             if planned_red_cost is None:
                 raise ValueError("DP-default plan_tick requires planned-red evidence")
             red_cost = _planned_red_cost(
@@ -109,6 +140,42 @@ def process_request(
             }
         )
         write_response(directory, arrays, response_metadata)
+        return
+
+    if operation == "source_probe":
+        candidates, _ = run_fixed_dp_candidates(
+            infer_one,
+            np.random.default_rng(int(request.metadata["tick_seed"])),
+            noise_scale=1.0,
+        )
+        projection = project_candidates_to_route(
+            candidates,
+            request.arrays["route_lanes"],
+            request.arrays["route_lanes_speed_limit"],
+            request.arrays["route_lanes_has_speed_limit"],
+            speed_source_policy=str(request.metadata["speed_source_policy"]),
+        )
+        source_mask = np.asarray(
+            projection["route_speed_source_eligible_mask"], dtype=bool
+        )
+        digest = array_sha256(candidates)
+        response_metadata.update(
+            {
+                "status": "ok",
+                "candidate_sha256_before": digest,
+                "candidate_sha256_after": digest,
+                "dp_default_source_complete": bool(source_mask[0]),
+                "eligible_candidate_count": int(source_mask.sum()),
+            }
+        )
+        write_response(
+            directory,
+            {
+                "candidates": candidates,
+                "route_speed_source_eligible_mask": source_mask,
+            },
+            response_metadata,
+        )
         return
 
     if any(
@@ -138,6 +205,7 @@ def process_request(
         signal_mask=signals,
         planned_red_light_cost=red_cost,
         dt=0.1,
+        speed_source_policy=str(request.metadata["speed_source_policy"]),
     )
     selection = select_camp_candidate(
         candidates=candidates,
@@ -336,7 +404,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--request-dir", type=Path, required=True)
     parser.add_argument(
-        "--operation", choices=("default_provenance", "plan_tick"), required=True
+        "--operation",
+        choices=("default_provenance", "plan_tick", "source_probe"),
+        required=True,
     )
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--checkpoint", type=Path, required=True)
@@ -450,7 +520,13 @@ def main(argv: list[str] | None = None) -> int:
         args.dp_repo, args.checkpoint, args.args_json, args.device
     )
     infer_one = _real_infer_one(context, request.arrays)
-    if request.metadata["arm"] == "camp":
+    if request.metadata["arm"] == "camp" and args.operation == "source_probe":
+        process_request(
+            args.request_dir,
+            operation=args.operation,
+            infer_one=infer_one,
+        )
+    elif request.metadata["arm"] == "camp":
         scales = load_dp_camp_atom_scales(args.atom_scales)
         weights = np.load(args.static_weights, allow_pickle=False)
         process_request(
