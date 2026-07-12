@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-11, Asia/Shanghai.
+Last verified: 2026-07-12, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v19_iteration_audit.md`. V18 and earlier
@@ -244,11 +244,31 @@ simulator or metric ran. An independent review rebuilt all `964` identities,
 hashes, ordering, zero-overlap checks, and official routes and confirmed zero
 eligible normal candidates.
 
-current_v19_status=v19_nuplan_v12_closed_loop_smoke_speed_complete_reselection_failed_no_eligible_normal_candidate_independent_review_passed_user_decision_required
-current_v19_artifact_scope=approved_two_tier_source_reselection_964_normal_candidates_zero_eligible_fail_closed_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_failure_review_retry_517ab14a_20260712T190230CST
-current_v19_artifact_root_sha256=5d4fe87c2d2f9e1f8ac8ad642eaf11c3acb504df37db3bdacd73911bf640ed23
-next_work_target=user_decision_required_before_changing_v19_closed_loop_smoke_bucket_or_route_source_contract_after_no_speed_complete_normal_candidate
+The user then authorized the persistent source-support controller to supersede
+that legacy pointer without changing the frozen protocol. One exhaustive
+source-only census covered all `9212` zero-overlap existing-data identities.
+It produced `656` fixed-DP K=8 source probes and found zero support for each
+preregistered rung: full-window exact speed, candidate-local exact speed, and
+honest interaction-only candidate-local exact speed.
+
+An independent review rebuilt all `9212` rows and confirmed the same zero
+support with zero worker calls, simulator advances, outcome reads, or metric
+computations. No rung or scenario was selected. The controller therefore
+materialized one sealed exhaustion decision and stopped before simulation;
+there is no fourth rung or fallback speed. Continuing requires an explicit
+new-data-scope or atom/source-contract decision.
+
+The claim taxonomy remains unchanged: performance no-claim; bounded-offline
+proxy improvement supported only within its frozen observable source;
+closed-loop safety not yet supported; and broad CAMP-over-native-DP-Top1 not
+supported. Candidate 0 remains the `DP-default deterministic/MAP baseline`
+with `native_ranked_top1=false`.
+
+current_v19_status=v19_nuplan_v12_source_protocol_exhausted_all_three_rungs_zero_independent_review_passed_user_decision_required
+current_v19_artifact_scope=existing_data_9212_rows_three_rung_exact_speed_support_zero_exhaustion_fail_closed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST
+current_v19_artifact_root_sha256=021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d
+next_work_target=user_decision_required_before_new_data_scope_or_atom_source_contract
 
 ## Current V18 Status
 

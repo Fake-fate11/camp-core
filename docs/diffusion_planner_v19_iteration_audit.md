@@ -1190,3 +1190,76 @@ current_v19_artifact_scope=approved_two_tier_source_reselection_964_normal_candi
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_failure_review_retry_517ab14a_20260712T190230CST
 current_v19_artifact_root_sha256=5d4fe87c2d2f9e1f8ac8ad642eaf11c3acb504df37db3bdacd73911bf640ed23
 next_work_target=user_decision_required_before_changing_v19_closed_loop_smoke_bucket_or_route_source_contract_after_no_speed_complete_normal_candidate
+
+## Persistent Source-Support Census Exhaustion Review
+
+The user authorized the persistent controller to supersede the preceding
+legacy user-decision pointer and execute the already approved three-rung
+source-support plan without changing scenarios from outcomes, DP, candidates,
+atoms, weights, SafetyCost, metrics, thresholds, baseline provenance, or seed
+`3411`.
+
+The single exhaustive source-only census completed all `9212/9212`
+zero-overlap existing-data identities. Its immutable artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_source_support_census_fc3a10facc_20260712T202548CST`;
+- `7ec02db81091784d888a67ecb3d89f02815afd2c6050e9c57c965e81a00533f0`.
+
+The census made `656` fixed-DP K=8 source probes and retained every row plus
+its source failure. Rejection counts were `2655` `AttributeError`, `4803`
+`NuPlanCausalSourceError`, and `1098` `ValueError`. The independently computed
+support matrix found zero support in every location and tag family for all
+three preregistered rungs:
+
+- `full_window_exact_speed=0`;
+- `candidate_local_exact_speed=0`;
+- `interaction_only_candidate_local_exact_speed=0`.
+
+No rung or scenario was selected, and selection used no outcome. The census
+recorded zero expert-future reads, simulator advances, outcome reads, or metric
+computations. Its stderr was empty and all SHA256 entries passed.
+
+The exactly-once independent review rebuilt all `9212` identities and official
+route sources without fixed-DP worker, simulator, outcome, or metric calls. It
+confirmed the same rows, rejection counts, zero-support matrix, and unselected
+protocol. Its artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_source_support_independent_review_fc3a10facc_20260712T214750CST`;
+- `9acbea9fcd86039e64f8ce61bf5126db54d1eaad6db98a9402fd1d8fa69df618`.
+
+The review exited zero, recorded `worker_calls=0`, `simulator_advances=0`,
+`outcome_reads=0`, and `metric_computations=0`, and passed its complete SHA
+chain. No second census or review was started.
+
+Following the frozen decision table, the controller wrote one immutable
+exhaustion artifact and did not invent a fourth rung or any speed fallback:
+
+- `/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST`;
+- `021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d`.
+
+That artifact reverified tracked-clean CAMP
+`fc3a10facce83577291e4b6bb88dd055eba5707a`, fixed DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, and official nuPlan source
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`, with zero related jobs and
+`15042048000` free bytes. It copied the independently reviewed support matrix
+and selected protocol, recorded no holdout access, and passed every SHA entry.
+
+No simulator arm, SafetyCost/trajectory metric, holdout, promotion,
+deployment, activation, model replacement, or claim was run. Candidate 0
+remains the `DP-default deterministic/MAP baseline`, with
+`native_ranked_top1=false`. The claim taxonomy remains:
+
+1. `performance_claim=no_claim`;
+2. `bounded_offline_safety_proxy_improvement=supported` only within the frozen
+   observable source;
+3. `closed_loop_safety_claim=not_yet_supported`;
+4. `broad_CAMP_over_native_DP_Top1_claim=not_supported`.
+
+All three authorized rungs are exhausted. Continuing requires a user decision
+that changes either the existing data scope or the atom/source contract.
+
+current_v19_status=v19_nuplan_v12_source_protocol_exhausted_all_three_rungs_zero_independent_review_passed_user_decision_required
+current_v19_artifact_scope=existing_data_9212_rows_three_rung_exact_speed_support_zero_exhaustion_fail_closed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST
+current_v19_artifact_root_sha256=021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d
+next_work_target=user_decision_required_before_new_data_scope_or_atom_source_contract

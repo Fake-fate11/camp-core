@@ -72,11 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_nuplan_v12_closed_loop_smoke_speed_complete_reselection_failed_"
-        "no_eligible_normal_candidate_independent_review_passed_"
+        "v19_nuplan_v12_source_protocol_exhausted_all_three_rungs_zero_"
+        "independent_review_passed_"
         "user_decision_required"
     )
     assert pointer["next_work_target"] == (
-        "user_decision_required_before_changing_v19_closed_loop_smoke_bucket_"
-        "or_route_source_contract_after_no_speed_complete_normal_candidate"
+        "user_decision_required_before_new_data_scope_or_atom_source_contract"
     )
