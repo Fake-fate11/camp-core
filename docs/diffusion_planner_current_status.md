@@ -163,11 +163,23 @@ the broad native-Top-1 claim remains unsupported. The next gate is read-only
 scenario selection and zero-overlap preflight for the existing-data official
 closed-loop smoke; it may not run a simulator.
 
-current_v19_status=v19_nuplan_v12_executable_default_provenance_result_review_passed
-current_v19_artifact_scope=single_label_free_executable_dp_default_equivalence_and_independent_result_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_result_review_8b1ed84b_20260712T165700CST
-current_v19_artifact_root_sha256=b47d1829f59718510f120a85ef80ba702ee6465d9b1b31b4140e6a276b434a30
-next_work_target=v19_nuplan_v12_closed_loop_smoke_scenario_selection_and_zero_overlap_preflight_only
+That selection preflight has passed. All 46 v18 logs and 364 scenes are
+excluded from 64 existing mini logs, leaving 18 unseen logs. Frozen SHA256
+ordering selected a normal scenario `6a73b61a412f5bce` and an interaction
+scenario `eecd62f34d5e567e` from distinct logs, with zero log and scene
+overlap. Selection used only scenario-tag/identity/timestamp/route metadata;
+no trajectory future, holdout label, or simulator was read or run.
+
+The next gate is static config/harness preflight only. It must bind these exact
+two scenarios to official `closed_loop_nonreactive_agents`, sequential worker,
+perfect tracking, frozen seeds/hashes and paired arm construction without
+executing either arm.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_scenario_selection_zero_overlap_preflight_passed
+current_v19_artifact_scope=existing_mini_two_log_two_bucket_zero_overlap_scenario_selection_preflight
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_scenario_selection_preflight_d0f3372e_20260712T170011CST
+current_v19_artifact_root_sha256=80be83ed08b332ddd05a39016bc4618fb9679106bdd686d99b2ebf19c68ebf47
+next_work_target=v19_nuplan_v12_closed_loop_smoke_static_config_and_harness_preflight_only
 
 ## Current V18 Status
 

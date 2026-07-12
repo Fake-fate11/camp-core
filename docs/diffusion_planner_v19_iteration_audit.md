@@ -737,3 +737,37 @@ current_v19_artifact_scope=single_label_free_executable_dp_default_equivalence_a
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_result_review_8b1ed84b_20260712T165700CST
 current_v19_artifact_root_sha256=b47d1829f59718510f120a85ef80ba702ee6465d9b1b31b4140e6a276b434a30
 next_work_target=v19_nuplan_v12_closed_loop_smoke_scenario_selection_and_zero_overlap_preflight_only
+
+## Closed-loop Smoke Scenario Selection and Zero-overlap Preflight
+
+The read-only selection compared every log and scene in the frozen v18 causal
+manifest against all 64 existing nuPlan mini DB logs. V18 used 46 logs and 364
+scenes; 18 whole logs remain unseen. No holdout label or trajectory future was
+read. Frozen bucket rules produced 426 interaction and 3,350 normal eligible
+scenario-tag anchors with at least 3 seconds of past and 8 seconds of future
+timestamp coverage, a mission goal, and a nonempty route.
+
+SHA256 ascending selection with seed `3411` froze two distinct logs:
+
+- normal: scenario `6a73b61a412f5bce`, scene `8e094bf622b6556b`,
+  log `91382cbd48a755ec`, tag `medium_magnitude_speed`, selection SHA256
+  `000a3f5665eee39fd6373037129b1967c8fe7eaa372cf30932975162da1e9665`;
+- interaction: scenario `eecd62f34d5e567e`, scene `e5a54d93210e5019`,
+  log `ebaddc0a658856e0`, tag `waiting_for_pedestrian_to_cross`, selection SHA256
+  `0090489250355c76557d2eb6cef522791dc91191dc77be94fa6c4e2f60c9b678`.
+
+Both are in existing `sg-one-north` mini DBs. Selected log overlap with all
+v18 train/calibration/holdout identities is zero; selected scene overlap is
+zero; selected logs are distinct. The selection imported official scenario
+builder/simulation classes only and instantiated no simulator.
+
+The immutable selection preflight artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_scenario_selection_preflight_d0f3372e_20260712T170011CST`
+- `80be83ed08b332ddd05a39016bc4618fb9679106bdd686d99b2ebf19c68ebf47`
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_scenario_selection_zero_overlap_preflight_passed
+current_v19_artifact_scope=existing_mini_two_log_two_bucket_zero_overlap_scenario_selection_preflight
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_scenario_selection_preflight_d0f3372e_20260712T170011CST
+current_v19_artifact_root_sha256=80be83ed08b332ddd05a39016bc4618fb9679106bdd686d99b2ebf19c68ebf47
+next_work_target=v19_nuplan_v12_closed_loop_smoke_static_config_and_harness_preflight_only
