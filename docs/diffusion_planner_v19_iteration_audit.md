@@ -1263,3 +1263,33 @@ current_v19_artifact_scope=existing_data_9212_rows_three_rung_exact_speed_suppor
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST
 current_v19_artifact_root_sha256=021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d
 next_work_target=user_decision_required_before_new_data_scope_or_atom_source_contract
+
+## Source-Protocol Exhaustion Synchronization Verification
+
+After the exhaustion pointer commit, local verification reported `59 passed,
+1 skipped` for the focused v19 suite and `5 passed` for the v18/v19 pointer
+contracts. Local pycompile and `git diff --check` passed. The broader v18 test
+module was not used as a pointer gate because its unrelated torch import
+aborted in the Windows Anaconda runtime; the two named v18 pointer tests both
+passed.
+
+AutoDL fast-forwarded cleanly to CAMP
+`985eb0f02c9c2e643258283fa7a3bfa08a5b986d`. The official nuPlan Python 3.9
+environment passed the complete focused suite with `60 passed`; the separated
+fixed-DP Python 3.12 environment passed its worker/bridge/source/pointer subset
+with `34 passed`. The fixed-DP environment intentionally has no Shapely, so
+the official smoke harness remains tested in the nuPlan environment rather
+than weakening runtime isolation. Both environments passed pycompile. AutoDL
+`git diff --check` passed, CAMP was tracked-clean and matched `origin/main`,
+fixed DP remained `7a1d33da277a1992ec474b5383a0c963c72e04e4`, official
+nuPlan remained `ce3c323af01c0d7ec5672f7832ef53f9c679aab0`, and free space
+was `15041601536` bytes.
+
+No census, review, worker, simulator, metric, outcome, or holdout job remained
+active. The verified exhaustion result and claim taxonomy are unchanged.
+
+current_v19_status=v19_nuplan_v12_source_protocol_exhausted_all_three_rungs_zero_independent_review_passed_user_decision_required
+current_v19_artifact_scope=existing_data_9212_rows_three_rung_exact_speed_support_zero_exhaustion_fail_closed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_source_protocol_exhaustion_fc3a10facc_20260712T220918CST
+current_v19_artifact_root_sha256=021b9a654477d77d1410b4a2227cda257c5d450d7125bad846130e6e5a72636d
+next_work_target=user_decision_required_before_new_data_scope_or_atom_source_contract
