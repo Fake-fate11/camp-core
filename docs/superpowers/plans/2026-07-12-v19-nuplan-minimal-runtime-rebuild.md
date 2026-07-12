@@ -46,7 +46,7 @@
 - Produces: immutable report, hash lock, summary, disk projection, command/stdout/stderr, and SHA manifest.
 
 - [ ] **Step 1: Recheck** exact absent target, no related process, preserved paths, three tracked-clean heads, pointer equality, and free bytes.
-- [ ] **Step 2: Run** `/root/autodl-tmp/dp312_venv/bin/python -m pip install --dry-run --ignore-installed --only-binary=:all: --platform manylinux2014_x86_64 --implementation cp --python-version 3.9 --abi cp39 --report <artifact>/pip-report.json -r scripts/integrations/nuplan_v12_minimal_runtime_requirements.txt`.
+- [ ] **Step 2: Run** `/root/autodl-tmp/dp312_venv/bin/python -m pip --isolated install --index-url https://pypi.org/simple --dry-run --ignore-installed --only-binary=:all: --platform manylinux2014_x86_64 --implementation cp --python-version 3.9 --abi cp39 --report <artifact>/pip-report.json -r scripts/integrations/nuplan_v12_minimal_runtime_requirements.txt`.
 - [ ] **Step 3: Convert** the report with the Task 1 CLI and require all review booleans true, no forbidden package, and wheel-only SHA256 coverage.
 - [ ] **Step 4: Record** estimated download bytes from the report and require current free minus the frozen 5,000,000,000-byte reserve to remain at least `10737418240`.
 - [ ] **Step 5: Seal** the successful static-review artifact and independently recompute its root SHA256. Do not create the environment if review fails.
@@ -83,4 +83,3 @@
 - [ ] **Step 2: Append** cleanup/materialization evidence to the v19 audit and update only `Current V19 Status` to the identical tuple.
 - [ ] **Step 3: Run** py_compile, the target lock/pointer tests, all v18/v19 suites, and `git diff --check`.
 - [ ] **Step 4: Commit/push** only scoped files, ff-only sync AutoDL, rerun the same checks there, and reread the v19 audit EOF.
-

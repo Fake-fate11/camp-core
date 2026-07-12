@@ -75,8 +75,9 @@ materialized without the official parquet aggregation callback.
 
 Before environment creation, the existing Python 3.12 pip resolver performs a
 CPython 3.9 / manylinux2014 x86_64 `--dry-run --report` with binary wheels only.
-A stdlib converter emits a sorted `--require-hashes` lock. Static review must
-prove:
+It uses `--isolated --index-url https://pypi.org/simple` so the lock is not
+affected by AutoDL's incomplete machine-level mirror. A stdlib converter emits
+a sorted `--require-hashes` lock. Static review must prove:
 
 1. every resolved item has an exact version, a wheel URL, and SHA256;
 2. no forbidden package is present;
@@ -102,4 +103,3 @@ package lock, `pip check` exit 0, import smokes for every frozen official
 component, no fixed-DP modification, and at least 10 GiB free. It does not
 authorize simulator execution, holdout access, claims, promotion, deployment,
 or activation.
-
