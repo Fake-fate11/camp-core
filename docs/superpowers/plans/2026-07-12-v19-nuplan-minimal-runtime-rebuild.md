@@ -46,7 +46,7 @@
 - Produces: immutable report, hash lock, summary, disk projection, command/stdout/stderr, and SHA manifest.
 
 - [ ] **Step 1: Recheck** exact absent target, no related process, preserved paths, three tracked-clean heads, pointer equality, and free bytes.
-- [ ] **Step 2: Run** `/root/autodl-tmp/dp312_venv/bin/python -m pip --isolated install --index-url https://pypi.org/simple --dry-run --ignore-installed --only-binary=:all: --platform manylinux2014_x86_64 --implementation cp --python-version 3.9 --abi cp39 --report <artifact>/pip-report.json -r scripts/integrations/nuplan_v12_minimal_runtime_requirements.txt`.
+- [ ] **Step 2: Run** `/root/miniconda3/envs/camp/bin/python -m pip --isolated install --index-url https://pypi.org/simple --dry-run --ignore-installed --only-binary=:all: --report <artifact>/pip-report.json -r scripts/integrations/nuplan_v12_minimal_runtime_requirements.txt`.
 - [ ] **Step 3: Convert** the report with the Task 1 CLI and require all review booleans true, no forbidden package, and wheel-only SHA256 coverage.
 - [ ] **Step 4: Record** estimated download bytes from the report and require current free minus the frozen 5,000,000,000-byte reserve to remain at least `10737418240`.
 - [ ] **Step 5: Seal** the successful static-review artifact and independently recompute its root SHA256. Do not create the environment if review fails.

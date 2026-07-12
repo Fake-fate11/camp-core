@@ -73,11 +73,14 @@ materialized without the official parquet aggregation callback.
 
 ## Reproducibility Gate
 
-Before environment creation, the existing Python 3.12 pip resolver performs a
-CPython 3.9 / manylinux2014 x86_64 `--dry-run --report` with binary wheels only.
-It uses `--isolated --index-url https://pypi.org/simple` so the lock is not
-affected by AutoDL's incomplete machine-level mirror. A stdlib converter emits
-a sorted `--require-hashes` lock. Static review must prove:
+Before environment creation, the existing read-only
+`/root/miniconda3/envs/camp` Python 3.9 resolver performs a
+`--dry-run --report` with binary wheels only. It uses
+`--isolated --index-url https://pypi.org/simple` so the lock is not affected by
+AutoDL's incomplete machine-level mirror. Using a real Python 3.9 resolver also
+prevents pip from evaluating `Requires-Python` against the Python 3.12 fixed-DP
+worker. A stdlib converter emits a sorted `--require-hashes` lock. Static
+review must prove:
 
 1. every resolved item has an exact version, a wheel URL, and SHA256;
 2. no forbidden package is present;
