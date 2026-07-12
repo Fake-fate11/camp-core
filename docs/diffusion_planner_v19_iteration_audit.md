@@ -1542,3 +1542,36 @@ current_v19_artifact_scope=carla_exact_speed_source_ladder_python39_tdd_no_runti
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_exact_speed_ladder_tdd_c9245a120a_20260713T002436CST
 current_v19_artifact_root_sha256=f7c165b455ae6c38cf16e511ab4682ba10edb0057be907b02546e4cbf1899d32
 next_work_target=v19_carla_runtime_actor_landmark_source_probe_preflight_only
+
+## CARLA Runtime Client And A/B/C Map-Source Preflight
+
+The source preflight found no CARLA or evaluation process, no port conflict,
+and `50781089792` free bytes. The official cp312 wheel SHA is
+`c497edf1b8747194c55b4a24b65b5010d91a4c03baf72c06d11e7cff2b961528`;
+its 186726018 uncompressed bytes fit the isolated
+`/root/autodl-tmp/camp_v19_carla_client` plan without modifying the fixed-DP
+environment. Static official stubs expose OpenDRIVE IDs on landmarks but not
+on ordinary `TrafficSign` actors, and all eight main Town XODRs contain zero
+type-274 landmarks. A therefore has zero legal unique map mappings.
+
+The checked-in ladder then censused all `2495` driving-lane map units. B
+accepted `1134` explicit non-junction units. C accepted `1716`, including
+`582` strict topology-derived connector units; ambiguous or unequal connectors
+remained unavailable. This is only map-source support. No fixed-DP candidate
+path was generated or read, no rung was selected, and no simulator, planner,
+metric, holdout, or outcome call occurred.
+
+The preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_0a37602772_20260713T002723CST`
+and `697e45468e2d1403c91297fdaf1398c9282f1592bc6dcfc91451efba7563f4dc`.
+Independent review validated its manifest, frozen counts, zero-call boundary,
+fixed DP, free-space floor, and absence of a premature rung decision. Its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST`
+and `8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4`.
+
+current_v19_status=v19_carla_runtime_source_preflight_review_passed_A_exhausted_BC_map_support_only
+current_v19_artifact_scope=carla_runtime_client_and_abc_map_source_preflight_independent_review_no_simulator
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
+current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
+next_work_target=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_tdd_preflight_only

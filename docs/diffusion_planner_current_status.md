@@ -354,11 +354,18 @@ masks/reasons, DP-default eligibility, deterministic output, and rejection of
 outcome fields. AutoDL passed all nine focused tests with zero simulator,
 planner, metric, or holdout calls.
 
-current_v19_status=v19_carla_exact_speed_source_ladder_tdd_implementation_passed
-current_v19_artifact_scope=carla_exact_speed_source_ladder_python39_tdd_no_runtime_or_outcomes
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_exact_speed_ladder_tdd_c9245a120a_20260713T002436CST
-current_v19_artifact_root_sha256=f7c165b455ae6c38cf16e511ab4682ba10edb0057be907b02546e4cbf1899d32
-next_work_target=v19_carla_runtime_actor_landmark_source_probe_preflight_only
+The runtime/source preflight and independent review passed without starting
+CARLA. The official cp312 client wheel matches the existing isolated Python
+3.12 interpreter; the DP environment is untouched. Across all `2495` map
+driving-lane units, A has zero exact actor/landmark mappings, B supports `1134`,
+and C supports `1716`. These are map-source counts only: no candidate-route
+census ran and no rung is selected yet.
+
+current_v19_status=v19_carla_runtime_source_preflight_review_passed_A_exhausted_BC_map_support_only
+current_v19_artifact_scope=carla_runtime_client_and_abc_map_source_preflight_independent_review_no_simulator
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
+current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
+next_work_target=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_tdd_preflight_only
 
 ## Current V18 Status
 
