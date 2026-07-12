@@ -5,7 +5,7 @@ import math
 from pathlib import Path
 import sqlite3
 import struct
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 from types import SimpleNamespace
 
 import numpy as np
@@ -254,6 +254,368 @@ def materialize_nuplan_decision(
         "ego_wheelbase_m": 3.089,
     }
     return materialize_causal_dp_input(batch, context)
+
+
+def materialize_nuplan_planner_input(
+    current_input: Any,
+    initialization: Any,
+):
+    """Materialize the fixed-DP causal schema from one live nuPlan tick."""
+    for name in ("expert_future", "future_trajectory", "label", "outcome"):
+        if getattr(current_input, name, None) is not None:
+            raise NuPlanCausalSourceError(
+                f"future, label, and outcome fields are forbidden: {name}"
+            )
+    batch, static_objects = _live_planner_batch(current_input)
+    context = _live_planner_context(
+        current_input,
+        initialization,
+        static_objects=static_objects,
+        wheelbase=float(
+            current_input.history.ego_states[-1]
+            .car_footprint.vehicle_parameters.wheel_base
+        ),
+    )
+    from camp_core.integrations.diffusion_planner_causal_materializer import (
+        CausalDPMaterialization,
+        materialize_causal_dp_input,
+    )
+
+    materialized = materialize_causal_dp_input(batch, context)
+    return CausalDPMaterialization(
+        dp_input=materialized.dp_input,
+        metadata={
+            **materialized.metadata,
+            "source": "official_nuplan_planner_input",
+            "observable_dynamic_limit": 32,
+            "observable_static_limit": 5,
+        },
+    )
+
+
+def _live_planner_batch(current_input: Any) -> tuple[SimpleNamespace, np.ndarray]:
+    history = current_input.history
+    ego_states = list(history.ego_states)
+    observations = list(history.observations)
+    if len(ego_states) < 31 or len(observations) < 31:
+        raise NuPlanCausalSourceError("live history must contain at least 31 ticks")
+    ego_states = ego_states[-31:]
+    observations = observations[-31:]
+    source_dt = float(history.sample_interval)
+    if not np.isclose(source_dt, 0.1, rtol=0.0, atol=1e-8):
+        raise NuPlanCausalSourceError("live history dt must equal 0.1 seconds")
+    timestamps = np.asarray([_state_time_us(state) for state in ego_states])
+    if np.any(np.diff(timestamps) != 100_000):
+        raise NuPlanCausalSourceError("live ego timestamps must be regular 0.1s ticks")
+    decision_time = _iteration_time_us(current_input.iteration)
+    if int(timestamps[-1]) != decision_time:
+        raise NuPlanCausalSourceError("live history must end at the decision tick")
+
+    current = ego_states[-1]
+    current_pose = current.rear_axle
+    heading = float(current_pose.heading)
+    rotation = np.array(
+        [[math.cos(heading), math.sin(heading)], [-math.sin(heading), math.cos(heading)]],
+        dtype=np.float64,
+    )
+    transform = np.eye(3, dtype=np.float64)
+    transform[:2, :2] = rotation
+    transform[:2, 2] = -rotation @ np.array(
+        [float(current_pose.x), float(current_pose.y)], dtype=np.float64
+    )
+
+    agent_hist = np.zeros((31, 8), dtype=np.float64)
+    agent_extents = np.zeros((31, 3), dtype=np.float32)
+    for index, state in enumerate(ego_states):
+        pose = state.rear_axle
+        velocity = state.dynamic_car_state.rear_axle_velocity_2d
+        acceleration = state.dynamic_car_state.rear_axle_acceleration_2d
+        agent_hist[index] = [
+            pose.x,
+            pose.y,
+            velocity.x,
+            velocity.y,
+            acceleration.x,
+            acceleration.y,
+            math.sin(pose.heading),
+            math.cos(pose.heading),
+        ]
+        footprint = state.car_footprint
+        agent_extents[index] = [footprint.length, footprint.width, 1.0]
+
+    dynamic_by_tick = [_dynamic_objects(observation) for observation in observations]
+    active = dynamic_by_tick[-1]
+    ordered = sorted(
+        active,
+        key=lambda item: (
+            float(
+                np.linalg.norm(
+                    np.array([item.center.x, item.center.y])
+                    - np.array([current_pose.x, current_pose.y])
+                )
+            ),
+            str(item.track_token),
+        ),
+    )
+    histories = np.zeros((len(ordered), 31, 8), dtype=np.float32)
+    lengths = np.zeros(len(ordered), dtype=np.int64)
+    extents = np.zeros((len(ordered), 31, 3), dtype=np.float32)
+    types = np.zeros(len(ordered), dtype=np.float32)
+    for neighbor_index, active_object in enumerate(ordered):
+        token = str(active_object.track_token)
+        continuous = []
+        for objects in reversed(dynamic_by_tick):
+            match = next(
+                (item for item in objects if str(item.track_token) == token), None
+            )
+            if match is None:
+                break
+            continuous.append(match)
+        continuous.reverse()
+        lengths[neighbor_index] = len(continuous)
+        types[neighbor_index] = _dynamic_type_id(active_object)
+        for state_index, item in enumerate(continuous):
+            xy = np.array([item.center.x, item.center.y], dtype=np.float64)
+            local_xy = transform @ np.array([xy[0], xy[1], 1.0])
+            velocity = np.array([item.velocity.x, item.velocity.y]) @ rotation.T
+            local_heading = math.atan2(
+                math.sin(float(item.center.heading) - heading),
+                math.cos(float(item.center.heading) - heading),
+            )
+            histories[neighbor_index, state_index] = [
+                local_xy[0],
+                local_xy[1],
+                velocity[0],
+                velocity[1],
+                0.0,
+                0.0,
+                math.sin(local_heading),
+                math.cos(local_heading),
+            ]
+            extents[neighbor_index, state_index] = [
+                item.box.length,
+                item.box.width,
+                item.box.height,
+            ]
+
+    static_objects = _live_static_objects(observations[-1], current_pose)
+    velocity = current.dynamic_car_state.rear_axle_velocity_2d
+    acceleration = current.dynamic_car_state.rear_axle_acceleration_2d
+    batch = SimpleNamespace(
+        dt=np.array([source_dt], dtype=np.float32),
+        history_pad_dir=np.array(1, dtype=np.int64),
+        agent_hist=agent_hist[None],
+        agent_hist_len=np.array([31], dtype=np.int64),
+        agent_hist_extent=agent_extents[None],
+        curr_agent_state=np.array(
+            [
+                [
+                    current_pose.x,
+                    current_pose.y,
+                    velocity.x,
+                    velocity.y,
+                    acceleration.x,
+                    acceleration.y,
+                    current_pose.heading,
+                ]
+            ],
+            dtype=np.float64,
+        ),
+        neigh_hist=histories[None],
+        neigh_hist_len=lengths[None],
+        neigh_hist_extents=extents[None],
+        neigh_types=types[None],
+        agents_from_world_tf=transform[None],
+    )
+    return batch, static_objects
+
+
+def _live_planner_context(
+    current_input: Any,
+    initialization: Any,
+    *,
+    static_objects: np.ndarray,
+    wheelbase: float,
+) -> dict[str, Any]:
+    route_ids = [str(value) for value in initialization.route_roadblock_ids]
+    if not route_ids or len(set(route_ids)) != len(route_ids):
+        raise NuPlanCausalSourceError("mission route must be nonempty and unique")
+    roadblocks = [_map_roadblock(initialization.map_api, value) for value in route_ids]
+    current_pose = current_input.history.ego_states[-1].rear_axle
+    current_xy = np.array([current_pose.x, current_pose.y], dtype=np.float64)
+    distances = [
+        min(
+            np.linalg.norm(_polyline(edge.baseline_path.discrete_path) - current_xy, axis=1).min()
+            for edge in roadblock.interior_edges
+        )
+        for roadblock in roadblocks
+    ]
+    start = int(np.argmin(distances))
+    roadblocks = roadblocks[start : start + 25]
+    selected = _connected_live_lane_path(roadblocks, current_xy)
+    decision_time = _iteration_time_us(current_input.iteration)
+    traffic = {}
+    for item in current_input.traffic_light_data or []:
+        timestamp = int(item.timestamp)
+        if timestamp != decision_time:
+            raise NuPlanCausalSourceError(
+                "traffic-light status must come from the same decision tick"
+            )
+        traffic[str(item.lane_connector_id)] = str(item.status.name).lower()
+
+    route_lanes = np.zeros((25, 20, 33), dtype=np.float64)
+    route_has_speed = np.zeros((25, 1), dtype=bool)
+    route_speed = np.zeros((25, 1), dtype=np.float32)
+    for index, lane in enumerate(selected):
+        encoded = encode_route_lane(
+            centerline=_polyline(lane.baseline_path.discrete_path),
+            left_boundary=_polyline(lane.left_boundary.discrete_path),
+            right_boundary=_polyline(lane.right_boundary.discrete_path),
+            speed_limit_mps=lane.speed_limit_mps,
+            traffic_light_status=traffic.get(str(lane.id)),
+            traffic_timestamp_us=decision_time if str(lane.id) in traffic else None,
+            decision_timestamp_us=decision_time,
+        )
+        route_lanes[index] = encoded.tensor
+        route_has_speed[index, 0] = True
+        route_speed[index, 0] = encoded.speed_limit_mps
+    lanes = np.zeros((140, 20, 33), dtype=np.float64)
+    lanes[: len(selected)] = route_lanes[: len(selected)]
+    lanes_has_speed = np.zeros((140, 1), dtype=bool)
+    lanes_speed = np.zeros((140, 1), dtype=np.float32)
+    lanes_has_speed[: len(selected)] = route_has_speed[: len(selected)]
+    lanes_speed[: len(selected)] = route_speed[: len(selected)]
+    goal = initialization.mission_goal
+    return {
+        "map_frame": "world",
+        "decision_id": f"{int(current_input.iteration.index)}:{decision_time}",
+        "route_source": "nuplan_mission_route_current_roadblock_successors",
+        "mission_goal_pose": np.array([goal.x, goal.y, goal.heading]),
+        "lanes": lanes,
+        "lanes_has_speed_limit": lanes_has_speed,
+        "lanes_speed_limit": lanes_speed,
+        "route_lanes": route_lanes,
+        "route_lanes_has_speed_limit": route_has_speed,
+        "route_lanes_speed_limit": route_speed,
+        "line_strings": np.zeros((60, 20, 4), dtype=np.float32),
+        "polygons": np.zeros((10, 40, 3), dtype=np.float32),
+        "static_objects": static_objects,
+        "turn_indicators": np.zeros(31, dtype=np.int32),
+        "turn_indicators_available": False,
+        "traffic_light_state_available": bool(traffic),
+        "ego_wheelbase_m": wheelbase,
+    }
+
+
+def _map_roadblock(map_api: Any, roadblock_id: str) -> Any:
+    try:
+        from nuplan.common.maps.maps_datatypes import SemanticMapLayer
+
+        layers = (SemanticMapLayer.ROADBLOCK, SemanticMapLayer.ROADBLOCK_CONNECTOR)
+    except ImportError:
+        layers = ("ROADBLOCK", "ROADBLOCK_CONNECTOR")
+    for layer in layers:
+        value = map_api.get_map_object(roadblock_id, layer)
+        if value is not None:
+            if not value.interior_edges:
+                raise NuPlanCausalSourceError(
+                    f"route roadblock {roadblock_id} has no lanes"
+                )
+            return value
+    raise NuPlanCausalSourceError(f"route roadblock {roadblock_id} is missing")
+
+
+def _connected_live_lane_path(roadblocks: Sequence[Any], current_xy: np.ndarray):
+    candidates = [list(roadblock.interior_edges) for roadblock in roadblocks]
+    first = min(
+        candidates[0],
+        key=lambda lane: (
+            np.linalg.norm(_polyline(lane.baseline_path.discrete_path) - current_xy, axis=1).min(),
+            str(lane.id),
+        ),
+    )
+    result = [first]
+    for slot in candidates[1:]:
+        outgoing = {str(edge.id) for edge in getattr(result[-1], "outgoing_edges", [])}
+        connected = [lane for lane in slot if str(lane.id) in outgoing]
+        if not connected:
+            raise NuPlanCausalSourceError(
+                f"mission route is disconnected after lane {result[-1].id}"
+            )
+        result.append(sorted(connected, key=lambda lane: str(lane.id))[0])
+    return result
+
+
+def _polyline(points: Sequence[Any]) -> np.ndarray:
+    result = np.asarray([[point.x, point.y] for point in points], dtype=np.float64)
+    if result.shape[0] < 2 or not np.isfinite(result).all():
+        raise NuPlanCausalSourceError("map polyline must contain finite points")
+    return result
+
+
+def _objects(observation: Any) -> list[Any]:
+    return list(observation.tracked_objects.tracked_objects)
+
+
+def _dynamic_objects(observation: Any) -> list[Any]:
+    allowed = {"VEHICLE", "PEDESTRIAN", "BICYCLE", "MOTORCYCLE"}
+    return [
+        item
+        for item in _objects(observation)
+        if str(item.tracked_object_type.name).upper() in allowed
+    ]
+
+
+def _dynamic_type_id(item: Any) -> float:
+    return {
+        "VEHICLE": 1.0,
+        "PEDESTRIAN": 2.0,
+        "BICYCLE": 3.0,
+        "MOTORCYCLE": 4.0,
+    }[str(item.tracked_object_type.name).upper()]
+
+
+def _live_static_objects(observation: Any, ego_pose: Any) -> np.ndarray:
+    encoded = []
+    ego_xy = np.array([ego_pose.x, ego_pose.y], dtype=np.float64)
+    for item in _objects(observation):
+        kind = str(item.tracked_object_type.name).lower()
+        if kind not in _STATIC_OBJECT_TYPES:
+            continue
+        row = np.array(
+            [
+                item.center.x,
+                item.center.y,
+                math.cos(item.center.heading),
+                math.sin(item.center.heading),
+                item.box.width,
+                item.box.length,
+                *_STATIC_OBJECT_TYPES[kind],
+            ],
+            dtype=np.float32,
+        )
+        encoded.append(
+            (float(np.linalg.norm(row[:2] - ego_xy)), str(item.track_token), row)
+        )
+    encoded.sort(key=lambda item: (item[0], item[1]))
+    result = np.zeros((5, 10), dtype=np.float32)
+    for index, (_, _, row) in enumerate(encoded[:5]):
+        result[index] = row
+    return result
+
+
+def _state_time_us(state: Any) -> int:
+    value = getattr(state, "time_us", None)
+    if value is None:
+        value = state.time_point.time_us
+    return int(value)
+
+
+def _iteration_time_us(iteration: Any) -> int:
+    value = getattr(iteration, "time_us", None)
+    if value is None:
+        value = iteration.time_point.time_us
+    return int(value)
 
 
 def load_nuplan_expert_ego_future(
