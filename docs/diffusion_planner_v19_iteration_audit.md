@@ -771,3 +771,42 @@ current_v19_artifact_scope=existing_mini_two_log_two_bucket_zero_overlap_scenari
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_scenario_selection_preflight_d0f3372e_20260712T170011CST
 current_v19_artifact_root_sha256=80be83ed08b332ddd05a39016bc4618fb9679106bdd686d99b2ebf19c68ebf47
 next_work_target=v19_nuplan_v12_closed_loop_smoke_static_config_and_harness_preflight_only
+
+## Closed-loop Smoke Static Configuration and Harness Preflight
+
+The preflight froze official `closed_loop_nonreactive_agents` semantics for the
+two selected unseen-log scenarios:
+
+- `NuPlanScenarioBuilder`, `StepSimulationTimeController`,
+  `TracksObservation`, `PerfectTrackingController`, `SimulationSetup`,
+  `Simulation`, and sequential `SimulationRunner`;
+- a 3.0-second simulation history buffer required by the causal adapter;
+- separate DP-default and CAMP rollouts from identical scenario/initial state,
+  with natural divergence allowed only after selections;
+- seeds scenario `3411`, DP tick root `3412`, bootstrap `3410`, with formal
+  `11/12/13` forbidden;
+- primary lower-is-better SafetyCost v1 at protocol SHA256
+  `5a3f6cd77bb5ff34e002321b1dbd201d2a4fd56af058fa57f7d6b8d06dffe9d3`;
+- official collision/TTC/drivable-area/direction/progress/speed/comfort,
+  secondary ADE/FDE/miss, separate latency fields, and all failure rules.
+
+Static imports and official source hashes passed, but the expected CAMP-side
+`scripts/integrations/run_diffusion_planner_dp_camp_v19_closed_loop_smoke.py`
+does not exist. Missing implementation is limited to constructing selected
+scenario objects and paired setups, executing separate arms, retaining bridge
+evidence, serializing official histories/metrics, materializing frozen
+SafetyCost components/latencies, and failing closed on incomplete evidence.
+
+The immutable artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_static_config_harness_preflight_17038d9a_20260712T170236CST`
+- `2b9f07880fef3ada8700b85e3e964342eb9c953538e2fa9cbbc9f791c062d917`
+
+The gate passed as a static contract but records `execution_ready=false`. It
+instantiated no scenario, planner, worker, simulator, holdout label, or metric.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_static_config_harness_preflight_passed_execution_not_ready
+current_v19_artifact_scope=frozen_official_nonreactive_two_arm_smoke_config_and_missing_harness_contract
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_static_config_harness_preflight_17038d9a_20260712T170236CST
+current_v19_artifact_root_sha256=2b9f07880fef3ada8700b85e3e964342eb9c953538e2fa9cbbc9f791c062d917
+next_work_target=v19_nuplan_v12_closed_loop_smoke_harness_tdd_only

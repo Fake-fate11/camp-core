@@ -175,11 +175,24 @@ two scenarios to official `closed_loop_nonreactive_agents`, sequential worker,
 perfect tracking, frozen seeds/hashes and paired arm construction without
 executing either arm.
 
-current_v19_status=v19_nuplan_v12_closed_loop_smoke_scenario_selection_zero_overlap_preflight_passed
-current_v19_artifact_scope=existing_mini_two_log_two_bucket_zero_overlap_scenario_selection_preflight
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_scenario_selection_preflight_d0f3372e_20260712T170011CST
-current_v19_artifact_root_sha256=80be83ed08b332ddd05a39016bc4618fb9679106bdd686d99b2ebf19c68ebf47
-next_work_target=v19_nuplan_v12_closed_loop_smoke_static_config_and_harness_preflight_only
+The static config/harness preflight froze those exact scenarios, official
+nonreactive simulation components, 3-second history buffer, both paired arms,
+seeds, SafetyCost v1, official secondary metrics, latency fields, and
+fail-closed rules. Official imports pass, but no executable CAMP-side harness
+yet constructs the scenarios/setups, retains per-tick bridge evidence, or
+serializes histories and metrics. Execution is therefore not ready. No
+scenario object, planner compute, worker, simulator, holdout label, or metric
+was instantiated or run.
+
+The next gate is harness TDD only within the frozen configuration. It may add
+and unit-test the missing CAMP-side harness but may not execute a real
+scenario.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_static_config_harness_preflight_passed_execution_not_ready
+current_v19_artifact_scope=frozen_official_nonreactive_two_arm_smoke_config_and_missing_harness_contract
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_static_config_harness_preflight_17038d9a_20260712T170236CST
+current_v19_artifact_root_sha256=2b9f07880fef3ada8700b85e3e964342eb9c953538e2fa9cbbc9f791c062d917
+next_work_target=v19_nuplan_v12_closed_loop_smoke_harness_tdd_only
 
 ## Current V18 Status
 
