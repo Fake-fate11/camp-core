@@ -46,6 +46,15 @@ def _config() -> dict[str, object]:
         "selected_distinct_logs": True,
         "zero_log_overlap": True,
         "zero_scene_overlap": True,
+        "source_protocol": {
+            "rung": "full_window_exact_speed",
+            "speed_source_policy": "full_window_exact_speed",
+            "selection_seed": 3411,
+            "census_root_sha256": "b" * 64,
+            "review_root_sha256": "c" * 64,
+            "selection_uses_outcomes": False,
+            "dp_default_source_complete_required": True,
+        },
         "selected_scenarios": [
             _scenario("normal", "scenario-normal", "log-normal"),
             _scenario("interaction", "scenario-interaction", "log-interaction"),
@@ -95,6 +104,109 @@ def test_validate_config_freezes_two_unseen_scenarios_and_nonformal_seeds() -> N
         smoke.validate_smoke_config(invalid)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("census_root_sha256", None, "source protocol SHA256"),
+        ("review_root_sha256", "UPPER" + "0" * 59, "source protocol SHA256"),
+        ("selection_uses_outcomes", True, "outcome"),
+        ("selection_seed", 3410, "selection seed"),
+    ],
+)
+def test_source_protocol_rejects_missing_roots_outcomes_or_seed(
+    field: str,
+    value: object,
+    match: str,
+) -> None:
+    config = _config()
+    if value is None:
+        del config["source_protocol"][field]
+    else:
+        config["source_protocol"][field] = value
+
+    with pytest.raises(ValueError, match=match):
+        smoke.validate_smoke_config(config)
+
+
+def test_source_protocol_object_is_required() -> None:
+    config = _config()
+    del config["source_protocol"]
+
+    with pytest.raises(ValueError, match="source protocol is missing"):
+        smoke.validate_smoke_config(config)
+
+
+def test_candidate_local_protocol_requires_dp_default_source_complete() -> None:
+    config = _config()
+    config["source_protocol"].update(
+        {
+            "rung": "candidate_local_exact_speed",
+            "speed_source_policy": "candidate_local_exact_speed",
+            "dp_default_source_complete_required": False,
+        }
+    )
+
+    with pytest.raises(ValueError, match="DP-default.*source-complete"):
+        smoke.validate_smoke_config(config)
+
+
+def test_source_protocol_rejects_rung_policy_mismatch() -> None:
+    config = _config()
+    config["source_protocol"]["rung"] = "full_window_exact_speed"
+    config["source_protocol"]["speed_source_policy"] = (
+        "candidate_local_exact_speed"
+    )
+
+    with pytest.raises(ValueError, match="rung.*policy"):
+        smoke.validate_smoke_config(config)
+
+
+def _interaction_only_config() -> dict[str, object]:
+    config = _config()
+    config["source_protocol"].update(
+        {
+            "rung": "interaction_only_candidate_local_exact_speed",
+            "speed_source_policy": "candidate_local_exact_speed",
+        }
+    )
+    first, second = config["selected_scenarios"]
+    first.update(
+        {
+            "bucket": "interaction",
+            "selection_tag": "near_multiple_vehicles",
+            "tags": ["near_multiple_vehicles"],
+        }
+    )
+    second.update(
+        {
+            "bucket": "interaction",
+            "selection_tag": "waiting_for_pedestrian_to_cross",
+            "tags": ["waiting_for_pedestrian_to_cross"],
+        }
+    )
+    return config
+
+
+def test_interaction_only_protocol_keeps_honest_distinct_tag_families() -> None:
+    config = smoke.validate_smoke_config(_interaction_only_config())
+    assert [row["bucket"] for row in config["selected_scenarios"]] == [
+        "interaction",
+        "interaction",
+    ]
+
+    relabeled = _interaction_only_config()
+    relabeled["selected_scenarios"][0]["bucket"] = "normal"
+    with pytest.raises(ValueError, match="interaction-only.*interaction"):
+        smoke.validate_smoke_config(relabeled)
+
+    duplicate = _interaction_only_config()
+    duplicate["selected_scenarios"][1]["selection_tag"] = (
+        duplicate["selected_scenarios"][0]["selection_tag"]
+    )
+    with pytest.raises(ValueError, match="tag"):
+        smoke.validate_smoke_config(duplicate)
+
+
 def test_construct_scenario_uses_official_map_version(monkeypatch) -> None:
     captured = {}
     vehicle = ModuleType("nuplan.common.actor_state.vehicle_parameters")
@@ -138,6 +250,8 @@ def test_pair_plan_uses_identical_pair_identity_and_separate_arm_roots(
         assert Path(pair[0]["arm_root"]).parent == Path(pair[1]["arm_root"]).parent
         expected = paired_run_key(pair[0]["logfile"], scenario_token, 3411)
         assert pair[0]["pair_run_key"] == expected
+        assert pair[0]["source_protocol"] == _config()["source_protocol"]
+        assert pair[1]["source_protocol"] == _config()["source_protocol"]
 
 
 def test_safety_cost_v1_matches_frozen_formula_and_fails_closed() -> None:

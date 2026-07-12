@@ -54,6 +54,22 @@ LATENCY_FIELDS = (
     "bridge_read",
     "total_planning_path",
 )
+_SOURCE_PROTOCOL_POLICIES = {
+    "full_window_exact_speed": "full_window_exact_speed",
+    "candidate_local_exact_speed": "candidate_local_exact_speed",
+    "interaction_only_candidate_local_exact_speed": (
+        "candidate_local_exact_speed"
+    ),
+}
+_INTERACTION_SOURCE_TAGS = frozenset(
+    {
+        "waiting_for_pedestrian_to_cross",
+        "near_pedestrian_on_crosswalk_with_ego",
+        "near_multiple_vehicles",
+        "high_magnitude_jerk",
+        "near_pedestrian_on_crosswalk",
+    }
+)
 
 
 def validate_smoke_config(config: Mapping[str, Any]) -> dict[str, Any]:
@@ -67,6 +83,28 @@ def validate_smoke_config(config: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("smoke must use existing nuPlan mini data")
     if not value.get("zero_log_overlap") or not value.get("zero_scene_overlap"):
         raise ValueError("selected scenarios must have zero overlap")
+    source_protocol = value.get("source_protocol")
+    if not isinstance(source_protocol, dict):
+        raise ValueError("source protocol is missing")
+    rung = source_protocol.get("rung")
+    if rung not in _SOURCE_PROTOCOL_POLICIES:
+        raise ValueError("source protocol rung is invalid")
+    if source_protocol.get("speed_source_policy") != _SOURCE_PROTOCOL_POLICIES[rung]:
+        raise ValueError("source protocol rung and policy mismatch")
+    if source_protocol.get("selection_seed") != 3411:
+        raise ValueError("source protocol selection seed must remain 3411")
+    if source_protocol.get("selection_uses_outcomes") is not False:
+        raise ValueError("source protocol must not use outcomes")
+    if source_protocol.get("dp_default_source_complete_required") is not True:
+        raise ValueError("DP-default candidate must be source-complete")
+    for name in ("census_root_sha256", "review_root_sha256"):
+        digest = source_protocol.get(name)
+        if (
+            not isinstance(digest, str)
+            or len(digest) != 64
+            or any(character not in "0123456789abcdef" for character in digest)
+        ):
+            raise ValueError("source protocol SHA256 roots are invalid")
 
     scenarios = value.get("selected_scenarios")
     if not isinstance(scenarios, list) or len(scenarios) != 2:
@@ -91,7 +129,18 @@ def validate_smoke_config(config: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError("selected scenario lacks three seconds of history")
         if float(scenario.get("future_span_s", 0.0)) < 8.0:
             raise ValueError("selected scenario lacks eight seconds of rollout")
-    if {str(row["bucket"]) for row in scenarios} != {"normal", "interaction"}:
+    buckets = [str(row["bucket"]) for row in scenarios]
+    if rung == "interaction_only_candidate_local_exact_speed":
+        if buckets != ["interaction", "interaction"]:
+            raise ValueError(
+                "interaction-only protocol requires two honest interaction buckets"
+            )
+        selection_tags = [str(row.get("selection_tag", "")) for row in scenarios]
+        if any(tag not in _INTERACTION_SOURCE_TAGS for tag in selection_tags):
+            raise ValueError("interaction-only selection tag is not approved")
+        if len(set(selection_tags)) != 2:
+            raise ValueError("interaction-only selection tags must be distinct")
+    elif set(buckets) != {"normal", "interaction"}:
         raise ValueError("smoke must contain normal and interaction buckets")
     if len({str(row["logfile"]) for row in scenarios}) != 2:
         raise ValueError("smoke scenarios must use distinct logs")
@@ -163,6 +212,7 @@ def build_paired_run_plan(
                     "pair_root": str(pair_root),
                     "arm_root": str(pair_root / arm),
                     "scenario_seed": scenario_seed,
+                    "source_protocol": dict(frozen["source_protocol"]),
                 }
             )
     return rows
