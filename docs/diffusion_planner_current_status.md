@@ -277,11 +277,26 @@ deficit of `4042108816` bytes. Independent review passed with zero simulator,
 metric, or holdout calls. Continuing now requires explicit authorization for a
 large CARLA download, additional disk, and license/exact-speed source preflight.
 
-current_v19_status=v19_womd_waymax_hard_failed_3s_history_carla_fallback_disk_preflight_failed_closed_user_decision_required
-current_v19_artifact_scope=womd_waymax_and_carla_new_data_qualification_no_download_fail_closed
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_new_data_qualification_79f8aae41d_20260712T225405CST
-current_v19_artifact_root_sha256=fb257b871fa75ecd769e0772899187edd309529eae6eaacf44ca785f93ee954c
-next_work_target=user_decision_required_before_carla_large_download_additional_disk_and_license_source_preflight
+The user added 60 GB to the AutoDL data disk and authorized one official
+CARLA package download. Live preflight measured `79465361408` free bytes.
+Official CARLA 0.9.16 code is MIT and its assets are CC-BY, with no additional
+click-through. The exact-speed path is frozen to official speed-limit
+actors/landmarks mapped by OpenDRIVE road/section/lane IDs; stateful vehicle
+speed, current speed, defaults, statutory estimates, and fallbacks remain
+forbidden. Candidate-used coverage is deferred to the mandatory
+post-extraction, pre-simulator audit.
+
+The conservative archive + 31 GiB extraction + 2 GiB staging peak is
+`43779575696` bytes and leaves `35685933168` bytes, above the 10 GiB floor.
+Temporal 3+8 accumulation, topology/boundaries, actors/signals, and CAMP-side
+conversion to unchanged fixed-DP K=8 were independently reviewed as feasible.
+No download, extraction, simulator, metric, or holdout access occurred.
+
+current_v19_status=v19_carla_license_source_temporal_fixed_dp_disk_preflight_independent_review_passed_download_ready
+current_v19_artifact_scope=carla_0_9_16_license_source_temporal_fixed_dp_disk_preflight_no_download
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acquisition_preflight_8a5374d307_20260712T230711CST
+current_v19_artifact_root_sha256=5ed26e0ee862dd83442fa3321bde8975f407978a21be511ee654131ca0973fcc
+next_work_target=v19_carla_0_9_16_official_linux_package_download_only
 
 ## Current V18 Status
 

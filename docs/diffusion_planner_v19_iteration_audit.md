@@ -1325,3 +1325,38 @@ current_v19_artifact_scope=womd_waymax_and_carla_new_data_qualification_no_downl
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_new_data_qualification_79f8aae41d_20260712T225405CST
 current_v19_artifact_root_sha256=fb257b871fa75ecd769e0772899187edd309529eae6eaacf44ca785f93ee954c
 next_work_target=user_decision_required_before_carla_large_download_additional_disk_and_license_source_preflight
+
+## CARLA Acquisition Preflight After Disk Expansion
+
+The user added 60 GB and authorized one official CARLA 0.9.16 Linux package
+download after license/source/disk review. AutoDL measured `118111600640`
+total and `79465508864` free bytes on `/root/autodl-tmp`; there were no related
+jobs or CARLA partials, and CAMP/DP were aligned and tracked-clean.
+
+Official tag receipts establish MIT code and CC-BY assets without a
+click-through. The release URL resolves to a `8346095504`-byte archive with
+ETag `ff92e6da32553dc81d993079c6782f6d-995`. The route-speed source is frozen
+to official speed-limit actors/landmarks mapped through OpenDRIVE IDs. The
+stateful vehicle speed-limit getter, current speed, defaults, estimates, and
+fallbacks are prohibited. Actual candidate-used coverage remains a mandatory
+post-extraction, pre-simulator fail-closed gate.
+
+Using a conservative 31 GiB extraction bound plus 2 GiB reserve, peak use is
+`43779575696` bytes and projected free space is `35685933168` bytes, above the
+10 GiB floor. Official synchronous ticks support exact 3 s history
+accumulation and an 8 s evaluation rollout; map topology/boundaries,
+traffic-light states, dynamic actors, and CAMP-side conversion to the frozen
+DP input/K=8 call are statically feasible without modifying DP.
+
+The exactly-once preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_acquisition_preflight_8a5374d307_20260712T230711CST`
+and `5ed26e0ee862dd83442fa3321bde8975f407978a21be511ee654131ca0973fcc`.
+Independent review passed all pre-download gates and recorded zero download,
+simulator, metric, and holdout calls. Claims and baseline semantics remain
+unchanged.
+
+current_v19_status=v19_carla_license_source_temporal_fixed_dp_disk_preflight_independent_review_passed_download_ready
+current_v19_artifact_scope=carla_0_9_16_license_source_temporal_fixed_dp_disk_preflight_no_download
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acquisition_preflight_8a5374d307_20260712T230711CST
+current_v19_artifact_root_sha256=5ed26e0ee862dd83442fa3321bde8975f407978a21be511ee654131ca0973fcc
+next_work_target=v19_carla_0_9_16_official_linux_package_download_only
