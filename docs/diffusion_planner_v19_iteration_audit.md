@@ -1006,3 +1006,53 @@ current_v19_artifact_scope=five_task_four_slice_closed_loop_safety_component_lat
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_plan_static_review_760e174f_20260712T175725CST
 current_v19_artifact_root_sha256=7d251174503765201a3050cb3d9fac5c8861d352b8ecb66b1e1e307a7e6f7fb6
 next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_implementation_only
+
+## Closed-loop Safety Component and Latency TDD Independent Review
+
+The four TDD implementation slices completed on current `main`:
+
+- `d4ec4865a6961fb0f33ea264fefcea199ffbd922` causally downsamples 61 native
+  `0.05 s` history samples to the fixed 31-sample `0.1 s` online input;
+- `5ffa4b86e2a135556a7035c557a5fbf1488e07d4` reuses existing replay summary
+  helpers through one official-history posterior evidence adapter;
+- `857361523b6405cdd2a615653b26395442a0e939` records selected planned-red,
+  the CAMP raw planned-red vector, and two worker timing fields while preserving
+  candidate hashes and the one-call DP-default path;
+- `abf8415e823bd450e3367fab4f2b2064d3b11217` writes one immutable per-tick
+  receipt with request/response/selected SHAs and all six latency fields and
+  wires the harness directly to those receipts and evidence materialization.
+
+The successful separated-runtime TDD artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_abf8415e_20260712T181140CST`
+- `53788f39ff8fa31c1644004e2b501b249488fd3b0c1a49a64f380c66b53faf13`
+
+The official nuPlan Python 3.9 suite reported `78 passed, 2 skipped`; the
+fixed-DP Python 3.12 bridge/worker suite reported `15 passed`. Pycompile and
+diff check passed. The artifact reverified CAMP/GitHub/AutoDL agreement, fixed
+DP/source heads, selector/scales/weights/checkpoint, SafetyCost/design/plan
+hashes, prior artifact manifests, zero jobs, and `15075004416` free bytes.
+
+The independent review did not rerun tests. It recomputed the source manifest
+and root, checked recorded test counts and source contracts, and reverified
+heads, no jobs, and disk floor. Its artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_result_review_abf8415e_20260712T181211CST`
+- `aaac385112ffc2c16f991c0d28521c5b9884de42b3b9a9d6368f36b77a5424f8`
+
+Implementation tests used fake inference, runner, and planner boundaries. No
+real checkpoint worker, planner compute, simulator, metric compute, or holdout
+access occurred. No safety, ADE/FDE/miss, or latency result was generated.
+Candidate 0 remains the `DP-default deterministic/MAP baseline`, with
+`native_ranked_top1=false`.
+
+Execution remains not ready. The next gate may repeat only the execution
+preflight against the real selected scenarios and frozen runtime/worker command
+to prove all online sources, posterior components, and six receipt fields are
+constructible. It may not run either arm.
+
+current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_independent_review_passed_execution_not_ready
+current_v19_artifact_scope=causal_history_safetycost_component_planned_red_and_six_latency_receipt_tdd_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_result_review_abf8415e_20260712T181211CST
+current_v19_artifact_root_sha256=aaac385112ffc2c16f991c0d28521c5b9884de42b3b9a9d6368f36b77a5424f8
+next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_only

@@ -215,15 +215,25 @@ planned-red/worker timing bridge receipts, and planner/harness integration,
 followed by a non-execution integration review. Every slice has a required
 RED, minimal GREEN, focused verification, and small commit.
 
-No planner, worker, simulator, metric, or holdout ran. Execution remains not
-ready until this TDD plan passes and a fresh execution preflight proves every
-field and receipt.
+All four TDD implementation slices and independent review have now passed.
+The adapter causally downsamples native `0.05 s` history to the fixed-DP
+`0.1 s` contract; one official-history adapter reuses existing replay summary
+math for all eight SafetyCost fields; the worker/bridge record selected
+planned-red and two worker timings; and the planner writes immutable six-field
+tick receipts consumed directly by the harness. Fixed DP, candidate tensors,
+selector artifacts, baseline naming, and claim boundaries remain unchanged.
 
-current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_plan_static_review_passed_execution_not_ready
-current_v19_artifact_scope=five_task_four_slice_closed_loop_safety_component_latency_tdd_plan_static_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_plan_static_review_760e174f_20260712T175725CST
-current_v19_artifact_root_sha256=7d251174503765201a3050cb3d9fac5c8861d352b8ecb66b1e1e307a7e6f7fb6
-next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_implementation_only
+The separated AutoDL suites reported `78 passed, 2 skipped` in the official
+nuPlan environment and `15 passed` in the fixed-DP environment. Tests used
+fake inference/runner boundaries only. No real checkpoint worker, planner,
+simulator, metric, or holdout ran. Execution remains not ready until a fresh
+preflight validates the real selected-scenario source and receipt path.
+
+current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_independent_review_passed_execution_not_ready
+current_v19_artifact_scope=causal_history_safetycost_component_planned_red_and_six_latency_receipt_tdd_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_result_review_abf8415e_20260712T181211CST
+current_v19_artifact_root_sha256=aaac385112ffc2c16f991c0d28521c5b9884de42b3b9a9d6368f36b77a5424f8
+next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_only
 
 ## Current V18 Status
 
