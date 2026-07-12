@@ -454,6 +454,71 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materia
 current_v19_artifact_root_sha256=4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031
 next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_only
 
+## nuPlan Adapter and Executable DP-default Provenance TDD Plan Static Review
+
+The plan-only gate froze the minimum CAMP-side implementation at:
+
+- `docs/superpowers/plans/2026-07-12-v19-nuplan-adapter-default-provenance-tdd.md`
+- plan SHA256 `2777b7bb6920a9a968f27f3a296be0f563c7e6a19d6b538da60f56948d3a5a27`
+
+It reuses the passed minimal runtime and independent review without reinstalling
+or launching another materialization:
+
+- runtime root `816367a0eec1b0e0563a1d09c0b8b988f9d407bef3f99678bd01ebc2d1f83f8c`;
+- independent review root `4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031`.
+
+The source/interface audit fixed the implementation boundary to official
+nuPlan v1.2 `AbstractPlanner`, `PlannerInput`,
+`transform_predictions_to_states`, and `InterpolatedTrajectory` in the
+isolated Python 3.9 process, plus one unchanged fixed-DP Python 3.12 worker.
+Only atomic per-tick NPZ+JSON crosses that boundary. The plan requires causal
+live-history conversion, exact direct-default versus independent
+deterministic/MAP elementwise and SHA equivalence, pre/post CAMP candidate
+tensor hashes, feasible-only affine/simplex selection, and preservation of
+all-K-infeasible masks/reasons with no selected trajectory, candidate-0
+fallback, or all-K progress reference.
+
+Baseline provenance remains precisely qualified:
+
+- name: `DP-default deterministic/MAP baseline`;
+- candidate 0: fixed-DP deterministic/MAP reference;
+- `native_ranked_top1=false`;
+- no native K-ranking path or broad CAMP-over-native-DP-Top-1 claim is created
+  by default-output equivalence.
+
+The successful AutoDL static review artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_plan_static_review_47497ef_20260712T162829CST`
+- `d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc`
+
+It reverified CAMP local/GitHub/AutoDL starting HEAD
+`47497ef353b5c0df1a0c6cef08031444e88ae793`, fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, official source HEAD
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`, tracked-clean state, both prior
+artifact manifests and roots, `pip check`, official adapter imports, zero
+related Python jobs, and `15082151936` free bytes.
+
+Three failed harness attempts are retained at timestamps `162402`, `162651`,
+and `162735` CST. The first omitted the required network-turbo activation for
+`git ls-remote`; the next two counted their own Paramiko/SSH command wrappers
+as related jobs. An independent executable-name-scoped process audit observed
+zero real jobs, and the corrected successful review records all failed paths.
+No attempt executed an adapter, fixed-DP inference, simulator, holdout access,
+or safety/ADE/FDE/latency metric.
+
+Claim qualification is unchanged:
+
+- `performance_claim=no_claim`
+- `bounded_offline_safety_proxy_improvement=supported`
+- `closed_loop_safety_claim=not_yet_supported`
+- `broad_CAMP_over_native_DP_Top1_claim=not_supported`
+
+current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_static_review_passed
+current_v19_artifact_scope=camp_side_nuplan_v12_adapter_and_executable_dp_default_provenance_tdd_plan_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_plan_static_review_47497ef_20260712T162829CST
+current_v19_artifact_root_sha256=d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc
+next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_only
+
 ## Minimal Runtime Installation Index Qualification
 
 Final command review found that the reviewed official-PyPI wheel lock would
@@ -492,3 +557,17 @@ current_v19_artifact_scope=official_nuplan_v12_torch_free_python39_runtime_mater
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_result_review_d85ea23b_20260712T160605CST
 current_v19_artifact_root_sha256=4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031
 next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_only
+
+## nuPlan Adapter TDD Plan Review EOF Qualification
+
+The complete adapter/default-provenance TDD plan static-review section above
+precedes older qualifications because historical pointer text appears more than
+once. No history is moved, rewritten, or deleted. The successful plan review
+at root `d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc`
+is the latest gate, and the pointer below is authoritative.
+
+current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_static_review_passed
+current_v19_artifact_scope=camp_side_nuplan_v12_adapter_and_executable_dp_default_provenance_tdd_plan_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_plan_static_review_47497ef_20260712T162829CST
+current_v19_artifact_root_sha256=d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc
+next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_only

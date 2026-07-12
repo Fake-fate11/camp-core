@@ -102,15 +102,29 @@ all frozen official simulator/scenario/metric imports pass, and no forbidden
 torch/Lightning package is installed. Final free bytes remain above 10 GiB.
 No simulator ran and no holdout was accessed.
 
-The next gate is plan-only for the CAMP-side adapter and executable
-DP-default deterministic/MAP provenance TDD. It cannot execute a simulator,
-claim native ranked Top-1, modify DP, or reopen any holdout.
+The CAMP-side nuPlan v1.2 adapter and executable DP-default provenance TDD plan
+is now frozen and independently reviewed. It keeps official nuPlan in the
+minimal Python 3.9 runtime and the unchanged fixed DP in its existing Python
+3.12 worker, joined only by atomic per-tick NPZ+JSON files. The plan requires
+live causal `PlannerInput` conversion, exact executable default equivalence,
+immutable K=8 tensors, feasible-only affine/simplex selection, and fail-closed
+all-K-infeasible handling. Candidate 0 remains a fixed-DP deterministic/MAP
+reference with `native_ranked_top1=false`.
 
-current_v19_status=v19_nuplan_v12_minimal_runtime_materialization_result_review_passed
-current_v19_artifact_scope=official_nuplan_v12_torch_free_python39_runtime_materialization_and_independent_result_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_result_review_d85ea23b_20260712T160605CST
-current_v19_artifact_root_sha256=4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031
-next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_only
+The successful review reverified the runtime and independent-review roots,
+all entries in both SHA manifests, fixed CAMP/DP/nuPlan heads, tracked-clean
+state, official imports, `pip check`, at least 10 GiB free, and zero related
+Python jobs. Three earlier review harness attempts are preserved: one omitted
+the required network-turbo activation and two command-line process filters
+matched their own SSH wrapper. None reached adapter, DP inference, simulator,
+holdout, or metric execution. The next gate is TDD implementation only and
+retains those non-execution boundaries for real checkpoint/simulator work.
+
+current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_static_review_passed
+current_v19_artifact_scope=camp_side_nuplan_v12_adapter_and_executable_dp_default_provenance_tdd_plan_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_plan_static_review_47497ef_20260712T162829CST
+current_v19_artifact_root_sha256=d244718bd13bc74b88c5aaa9dc03e082ebf43453c12eb270c0e7138b11b73dbc
+next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_only
 
 ## Current V18 Status
 
