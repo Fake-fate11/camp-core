@@ -27,6 +27,11 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 OBSERVABLE_FEASIBILITY_SCOPE = (
     "frozen_observable_32_dynamic_plus_5_static_only"
 )
+FULL_WINDOW_EXACT_SPEED = "full_window_exact_speed"
+CANDIDATE_LOCAL_EXACT_SPEED = "candidate_local_exact_speed"
+_SPEED_SOURCE_POLICIES = frozenset(
+    {FULL_WINDOW_EXACT_SPEED, CANDIDATE_LOCAL_EXACT_SPEED}
+)
 
 
 @dataclass(frozen=True)
@@ -260,13 +265,22 @@ def project_candidates_to_route(
     route_lanes: np.ndarray,
     route_speed_limits: np.ndarray,
     route_has_speed_limits: np.ndarray,
+    *,
+    speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
 ) -> dict[str, np.ndarray]:
+    if speed_source_policy not in _SPEED_SOURCE_POLICIES:
+        raise ValueError("unsupported route speed-source policy")
     trajectories = np.asarray(candidates, dtype=np.float64)
     route = np.asarray(route_lanes, dtype=np.float64)
     limits = np.asarray(route_speed_limits, dtype=np.float64).reshape(-1)
     has_limits = np.asarray(route_has_speed_limits, dtype=bool).reshape(-1)
-    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
-        raise ValueError("candidates must be finite with shape [8,80,4]")
+    if (
+        trajectories.ndim != 3
+        or trajectories.shape[0] < 1
+        or trajectories.shape[1:] != (80, 4)
+        or not np.isfinite(trajectories).all()
+    ):
+        raise ValueError("candidates must be finite with shape [K,80,4]")
     if route.shape != (25, 20, 33) or not np.isfinite(route).all():
         raise ValueError("route_lanes must be finite with shape [25,20,33]")
     if limits.shape != (25,) or has_limits.shape != (25,):
@@ -280,7 +294,12 @@ def project_candidates_to_route(
         valid = route[slot, :, 13] > 0.5
         if not valid.any():
             continue
-        if not has_limits[slot] or not np.isfinite(limits[slot]) or limits[slot] <= 0:
+        speed_available = bool(
+            has_limits[slot]
+            and np.isfinite(limits[slot])
+            and limits[slot] > 0
+        )
+        if speed_source_policy == FULL_WINDOW_EXACT_SPEED and not speed_available:
             raise ValueError(f"route slot {slot} requires a positive speed limit")
         rows = route[slot, valid]
         if rows.shape[0] < 2:
@@ -288,7 +307,13 @@ def project_candidates_to_route(
         points.append(rows[:, :2])
         left_offsets.append(rows[:, 4:6])
         right_offsets.append(rows[:, 6:8])
-        speeds.append(np.full(rows.shape[0], limits[slot], dtype=np.float64))
+        speeds.append(
+            np.full(
+                rows.shape[0],
+                limits[slot] if speed_available else np.nan,
+                dtype=np.float64,
+            )
+        )
     if not points:
         raise ValueError("route has no valid points")
 
@@ -351,10 +376,13 @@ def project_candidates_to_route(
                 + fraction * (speed_end[segment] - speed_start[segment])
             )
             projected_arc[candidate_index, step] = arc_starts[segment] + along[segment]
-    if (
-        np.any(left_width <= 0.0)
-        or np.any(right_width <= 0.0)
-        or np.any(speed_limit <= 0.0)
+    if np.any(left_width <= 0.0) or np.any(right_width <= 0.0):
+        raise ValueError("projected route boundaries and speed limits must be positive")
+    route_speed_source_eligible = np.isfinite(speed_limit).all(axis=1) & (
+        speed_limit > 0.0
+    ).all(axis=1)
+    if speed_source_policy == FULL_WINDOW_EXACT_SPEED and not (
+        route_speed_source_eligible.all()
     ):
         raise ValueError("projected route boundaries and speed limits must be positive")
     route_progress = np.maximum.accumulate(projected_arc, axis=1)[:, -1]
@@ -365,6 +393,7 @@ def project_candidates_to_route(
         "speed_limit": speed_limit,
         "projected_arc": projected_arc,
         "route_progress": route_progress,
+        "route_speed_source_eligible_mask": route_speed_source_eligible,
     }
 
 
@@ -539,6 +568,7 @@ def materialize_canonical_14d(
     signal_mask: np.ndarray,
     planned_red_light_cost: np.ndarray,
     dt: float,
+    speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
 ) -> dict[str, object]:
     errors = validate_causal_dp_input(causal_input)
     if errors:
@@ -561,6 +591,7 @@ def materialize_canonical_14d(
         causal_input["route_lanes"],
         causal_input["route_lanes_speed_limit"],
         causal_input["route_lanes_has_speed_limit"],
+        speed_source_policy=speed_source_policy,
     )
     obstacle_obbs = build_observable_obbs(
         neighbor_predictions,
@@ -575,6 +606,21 @@ def materialize_canonical_14d(
         obstacle_obbs,
         causal_input["ego_shape"],
     )
+    source_complete = np.asarray(
+        projection["route_speed_source_eligible_mask"], dtype=bool
+    )
+    physical = np.asarray(feasibility["physical_feasible_mask"], dtype=bool).copy()
+    physical &= source_complete
+    candidate_reasons = tuple(
+        tuple(reasons)
+        + (() if source_complete[index] else ("route_speed_source_unavailable",))
+        for index, reasons in enumerate(feasibility["candidate_reasons"])
+    )
+    feasibility = {
+        **feasibility,
+        "physical_feasible_mask": physical,
+        "candidate_reasons": candidate_reasons,
+    }
     result: dict[str, object] = {
         **feasibility,
         "baseline_semantics": "fixed_dp_deterministic_map_baseline",
@@ -585,6 +631,7 @@ def materialize_canonical_14d(
         "canonical_eligible": False,
         "exclusion_reason": None,
         "route_progress": projection["route_progress"],
+        "route_speed_source_eligible_mask": source_complete,
         "minimum_obb_clearance": feasibility["minimum_obb_clearance"],
         "progress_reference": None,
     }
@@ -592,7 +639,11 @@ def materialize_canonical_14d(
     if not signal.all():
         result["exclusion_reason"] = "signal_source_incomplete"
         return result
-    physical = np.asarray(feasibility["physical_feasible_mask"], dtype=bool)
+    if not source_complete.any():
+        result["exclusion_reason"] = (
+            "all_candidates_route_speed_source_ineligible"
+        )
+        return result
     if not physical.any():
         result["exclusion_reason"] = "all_candidates_physically_infeasible"
         return result
@@ -612,14 +663,22 @@ def materialize_canonical_14d(
     )
     rms_acceleration = np.sqrt(np.mean(np.sum(acceleration**2, axis=2), axis=1))
     speeds = np.linalg.norm(velocity, axis=2)
-    speed_limits = np.asarray(projection["speed_limit"], dtype=np.float64)[:, 1:]
-    speed_atoms = np.column_stack(
-        [
+    speed_atoms = np.zeros((8, 3), dtype=np.float64)
+    for candidate_index in np.flatnonzero(source_complete):
+        candidate_limits = np.asarray(
+            projection["speed_limit"][candidate_index, 1:], dtype=np.float64
+        )
+        speed_atoms[candidate_index] = [
             float(dt)
-            * np.sum(np.maximum(speeds - (speed_limits - margin), 0.0) ** 2, axis=1)
+            * np.sum(
+                np.maximum(
+                    speeds[candidate_index] - (candidate_limits - margin),
+                    0.0,
+                )
+                ** 2
+            )
             for margin in (0.0, 0.5, 1.0)
         ]
-    )
     lateral = np.asarray(projection["lateral_offset"], dtype=np.float64)
     left = np.asarray(projection["left_width"], dtype=np.float64)
     right = np.asarray(projection["right_width"], dtype=np.float64)

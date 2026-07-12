@@ -73,6 +73,77 @@ def test_route_projection_uses_per_segment_speed_and_side_boundaries() -> None:
     assert np.all(projection["route_progress"] > 39.0)
 
 
+def test_candidate_local_speed_rejects_only_candidates_using_unknown_segments() -> None:
+    candidates, route, speed, has_speed = _route_projection_fixture()
+    candidates[:4, :, 0] = np.linspace(0.25, 10.0, 80)
+    candidates[4:, :, 0] = np.linspace(25.0, 35.0, 80)
+    has_speed[1, 0] = False
+    speed[1, 0] = 0.0
+
+    with pytest.raises(ValueError, match="route slot 1"):
+        causal_atoms.project_candidates_to_route(candidates, route, speed, has_speed)
+
+    projection = causal_atoms.project_candidates_to_route(
+        candidates,
+        route,
+        speed,
+        has_speed,
+        speed_source_policy=causal_atoms.CANDIDATE_LOCAL_EXACT_SPEED,
+    )
+
+    expected = np.array([True] * 4 + [False] * 4)
+    np.testing.assert_array_equal(
+        projection["route_speed_source_eligible_mask"], expected
+    )
+    assert projection["route_speed_source_eligible_mask"].dtype == np.bool_
+    assert np.isfinite(projection["speed_limit"][expected]).all()
+    assert np.isnan(projection["speed_limit"][~expected]).all()
+
+
+def test_candidate_local_speed_never_uses_zero_as_a_speed_source() -> None:
+    candidates, route, speed, has_speed = _route_projection_fixture()
+    has_speed[:] = False
+    speed[:] = 0.0
+
+    projection = causal_atoms.project_candidates_to_route(
+        candidates,
+        route,
+        speed,
+        has_speed,
+        speed_source_policy=causal_atoms.CANDIDATE_LOCAL_EXACT_SPEED,
+    )
+
+    assert not projection["route_speed_source_eligible_mask"].any()
+
+
+def test_route_projection_accepts_one_candidate_for_baseline_source_check() -> None:
+    candidates, route, speed, has_speed = _route_projection_fixture()
+
+    projection = causal_atoms.project_candidates_to_route(
+        candidates[:1],
+        route,
+        speed,
+        has_speed,
+        speed_source_policy=causal_atoms.CANDIDATE_LOCAL_EXACT_SPEED,
+    )
+
+    assert projection["route_speed_source_eligible_mask"].shape == (1,)
+    assert projection["route_speed_source_eligible_mask"].all()
+
+
+def test_route_projection_rejects_unknown_speed_source_policy() -> None:
+    candidates, route, speed, has_speed = _route_projection_fixture()
+
+    with pytest.raises(ValueError, match="unsupported route speed-source policy"):
+        causal_atoms.project_candidates_to_route(
+            candidates,
+            route,
+            speed,
+            has_speed,
+            speed_source_policy="invented_speed_fallback",
+        )
+
+
 def test_route_projection_is_global_se2_invariant() -> None:
     candidates, route, speed, has_speed = _route_projection_fixture()
     expected = causal_atoms.project_candidates_to_route(
@@ -428,6 +499,64 @@ def test_materialize_canonical_14d_rejects_source_incomplete_record() -> None:
     assert result["canonical_eligible"] is False
     assert result["atom_matrix"] is None
     assert result["exclusion_reason"] == "signal_source_incomplete"
+    assert result["progress_reference"] is None
+
+
+def test_materialize_candidate_local_speed_excludes_ineligible_candidates() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    candidates[:4, :, 0] = np.linspace(0.25, 10.0, 80)
+    neighbors[:4, 0, :, 0] = candidates[:4, :, 0]
+    causal_input["route_lanes_has_speed_limit"][1, 0] = False
+    causal_input["route_lanes_speed_limit"][1, 0] = 0.0
+
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=valid,
+        signal_mask=np.ones(8, dtype=bool),
+        planned_red_light_cost=np.arange(8, dtype=np.float64),
+        dt=0.1,
+        speed_source_policy=causal_atoms.CANDIDATE_LOCAL_EXACT_SPEED,
+    )
+
+    expected = np.array([True] * 4 + [False] * 4)
+    assert result["canonical_eligible"] is True
+    np.testing.assert_array_equal(
+        result["route_speed_source_eligible_mask"], expected
+    )
+    assert not result["physical_feasible_mask"][~expected].any()
+    assert all(
+        "route_speed_source_unavailable" in result["candidate_reasons"][index]
+        for index in range(4, 8)
+    )
+    np.testing.assert_array_equal(result["atom_matrix"][~expected, 4:7], 0.0)
+    assert result["progress_reference"] == pytest.approx(
+        result["route_progress"][result["physical_feasible_mask"]].max()
+    )
+
+
+def test_materialize_candidate_local_speed_excludes_all_source_ineligible() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    causal_input["route_lanes_has_speed_limit"][:] = False
+    causal_input["route_lanes_speed_limit"][:] = 0.0
+
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=valid,
+        signal_mask=np.ones(8, dtype=bool),
+        planned_red_light_cost=np.arange(8, dtype=np.float64),
+        dt=0.1,
+        speed_source_policy=causal_atoms.CANDIDATE_LOCAL_EXACT_SPEED,
+    )
+
+    assert result["canonical_eligible"] is False
+    assert result["atom_matrix"] is None
+    assert result["exclusion_reason"] == "all_candidates_route_speed_source_ineligible"
+    assert not result["route_speed_source_eligible_mask"].any()
+    assert not result["physical_feasible_mask"].any()
     assert result["progress_reference"] is None
 
 
