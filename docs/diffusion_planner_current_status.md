@@ -292,11 +292,26 @@ Temporal 3+8 accumulation, topology/boundaries, actors/signals, and CAMP-side
 conversion to unchanged fixed-DP K=8 were independently reviewed as feasible.
 No download, extraction, simulator, metric, or holdout access occurred.
 
-current_v19_status=v19_carla_license_source_temporal_fixed_dp_disk_preflight_independent_review_passed_download_ready
-current_v19_artifact_scope=carla_0_9_16_license_source_temporal_fixed_dp_disk_preflight_no_download
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acquisition_preflight_8a5374d307_20260712T230711CST
-current_v19_artifact_root_sha256=5ed26e0ee862dd83442fa3321bde8975f407978a21be511ee654131ca0973fcc
-next_work_target=v19_carla_0_9_16_official_linux_package_download_only
+The single CARLA download completed with exit 0, exact size `8346095504`, no
+partial, and SHA256
+`09e3ebb28df17962f0c997e66f4b914ad5ea6f1d6a6dbbf13c9f87eb38346d57`.
+Its independently sealed artifact root is
+`118825ade6b8826059950f62a5ac4c0b2d485fae5fe32e80df9d3de8a4d719ab`.
+
+Read-only tar inventory then proved `32857` members, `20272275914` regular-file
+bytes, required launcher/PythonAPI/maps present, and zero unsafe paths. The
+extraction decision wrapper nevertheless failed three times on environment
+assumptions: missing bare `python3`, missing `ss`, and Python 3.9 lacking
+`platform.freedesktop_os_release`. All failures are sealed; no extraction or
+simulator ran. A fourth retry requires consolidating the wrapper into one
+checked-in, tested Python 3.9-compatible preflight rather than another shell
+patch.
+
+current_v19_status=v19_carla_download_review_passed_extraction_preflight_harness_failed_three_attempts_user_decision_required
+current_v19_artifact_scope=carla_download_passed_extraction_preflight_harness_three_failures_no_extraction
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_preflight_final_e97264189f_20260712T233025CST
+current_v19_artifact_root_sha256=3d478f63c7e4699d63642554b5c9a1645d5c4e66b186f45d647adc295591d757
+next_work_target=user_decision_required_before_v19_carla_extraction_preflight_harness_consolidation_retry
 
 ## Current V18 Status
 

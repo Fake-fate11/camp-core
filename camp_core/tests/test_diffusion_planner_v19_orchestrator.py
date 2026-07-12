@@ -72,9 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_license_source_temporal_fixed_dp_disk_preflight_"
-        "independent_review_passed_download_ready"
+        "v19_carla_download_review_passed_extraction_preflight_harness_"
+        "failed_three_attempts_user_decision_required"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_0_9_16_official_linux_package_download_only"
+        "user_decision_required_before_v19_carla_extraction_preflight_"
+        "harness_consolidation_retry"
     )

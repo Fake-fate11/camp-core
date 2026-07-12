@@ -1360,3 +1360,30 @@ current_v19_artifact_scope=carla_0_9_16_license_source_temporal_fixed_dp_disk_pr
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acquisition_preflight_8a5374d307_20260712T230711CST
 current_v19_artifact_root_sha256=5ed26e0ee862dd83442fa3321bde8975f407978a21be511ee654131ca0973fcc
 next_work_target=v19_carla_0_9_16_official_linux_package_download_only
+
+## CARLA Download Review And Extraction-Preflight Harness Stop
+
+The only authorized download completed once with exit 0 and zero retries. The
+final archive is `8346095504` bytes, no `.part` remains, and its independently
+recomputed SHA256 is
+`09e3ebb28df17962f0c997e66f4b914ad5ea6f1d6a6dbbf13c9f87eb38346d57`.
+Response provenance retained ETag `ff92e6da32553dc81d993079c6782f6d-995`.
+The sealed download artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_download_e97264189f_20260712T230835CST`
+and `118825ade6b8826059950f62a5ac4c0b2d485fae5fe32e80df9d3de8a4d719ab`.
+
+Read-only tar scanning found `32857` members, `31437` regular files totaling
+`20272275914` bytes, required launcher/PythonAPI/maps, and zero unsafe paths.
+The decision wrapper failed three times before a valid decision: missing bare
+`python3`, missing `ss`, then Python 3.9 lacking
+`platform.freedesktop_os_release`. Failed roots are
+`57e70a5a8dfa2efe946b509d913638ce5c05bc4099e9db135c7d50e1bdd898f7`,
+`c558545a1fc83448a89872ae164b13b2849082d50df87cd7ec8cfcd2ccfff17a`,
+and `3d478f63c7e4699d63642554b5c9a1645d5c4e66b186f45d647adc295591d757`.
+No fourth retry, extraction, simulator, metric, or holdout access occurred.
+
+current_v19_status=v19_carla_download_review_passed_extraction_preflight_harness_failed_three_attempts_user_decision_required
+current_v19_artifact_scope=carla_download_passed_extraction_preflight_harness_three_failures_no_extraction
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_preflight_final_e97264189f_20260712T233025CST
+current_v19_artifact_root_sha256=3d478f63c7e4699d63642554b5c9a1645d5c4e66b186f45d647adc295591d757
+next_work_target=user_decision_required_before_v19_carla_extraction_preflight_harness_consolidation_retry
