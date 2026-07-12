@@ -1112,3 +1112,81 @@ current_v19_artifact_scope=two_selected_singapore_scenarios_50_of_50_route_speed
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_failure_review_c6fdc9f3_20260712T182110CST
 current_v19_artifact_root_sha256=e64031e0ff0a0f2ed5fa9084cd2fea66a276e1e850c813f4742371e54f1104d1
 next_work_target=user_decision_required_before_replacing_frozen_v19_closed_loop_smoke_scenario_selection_for_real_route_speed_sources
+
+## Speed-complete Smoke Scenario Reselection Failure Review
+
+The user authorized a source-only correction before any simulator or metric
+execution: keep two smoke scenarios and the existing normal/interaction rules,
+exclude all frozen v18 logs/scenes, select deterministically without labels or
+outcomes, prefer existing Las Vegas/Pittsburgh data, and change no metric,
+threshold, seed, baseline, selector, or SafetyCost rule.
+
+The frozen qualification documents are:
+
+- `docs/superpowers/specs/2026-07-12-v19-closed-loop-smoke-speed-complete-reselection-design.md`,
+  SHA256 `5057052f6aac4c6157dbc55285ba5d151cc50ea62ed53a2b2839f3cb1b67f4ec`;
+- `docs/superpowers/plans/2026-07-12-v19-closed-loop-smoke-speed-complete-reselection.md`,
+  SHA256 `2a8ff16826f9d3e5e30466ec70c65d519b25e2fb2059f5091815b541dfd4e70a`.
+
+The first selection artifact/root is retained at:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_de05110a_20260712T185124CST`;
+- `f63de3229936a8671e4184222f93da36445c8447ebec4e6c4c82ccd5d1e40892`.
+
+It failed because DB `location=las_vegas` is not the official maps metadata
+key. The same DB exposes `map_version=us-nv-las-vegas-strip`. The shared
+`construct_nuplan_scenario` boundary was fixed test-first at
+`d67dbaf00bb48697a7b4d9aac0d0bd8de8991206`; the harness suite reported
+`6 passed` locally and on AutoDL. The fix changes no route, candidate, metric,
+or model semantics.
+
+The preferred tier contained `30` normal candidates in one Las Vegas scene and
+zero interaction candidates. Its normal route was disconnected. Consistent
+with the user's word "prefer", Boston became the only tier-1 source for a
+missing bucket; Singapore remained excluded by the independently reviewed
+`0/2001` complete-speed-source inventory. The exact priority hash remained
+`sha256("3411|bucket|log_token|scene_token|scenario_token")` within each tier.
+
+The retry evaluated all `964` normal candidates: tier 0 `30`, tier 1 `934`.
+Every candidate was retained with its failure reason; none was eligible or
+selected. No interaction candidate was evaluated after the mandatory normal
+bucket failed, and no replacement `smoke_config.json` was frozen. The immutable
+selection failure artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_retry_517ab14a_20260712T185855CST`;
+- `4488dbc74beab84333fe0f69f87527b68a20f8fa155eb02047773afc01a255a0`.
+
+The first independent-review implementation correctly found the same
+ineligibility but omitted the selection's earlier nonempty/unique route check,
+causing a reason-string mismatch at row 43. Its retained artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_failure_review_517ab14a_20260712T190144CST`;
+- `f073901d7a1573f225cd58e0642cbd791e589cb8c03a2fe445cfe31bb7b6f2fc`.
+
+The corrected independent review rebuilt all `964/964` SQLite identities,
+source tiers, SHA ordering, coverage, v18 exclusions, and official route
+objects. It confirmed `eligible_normal_candidates=0`, zero log/scene overlap,
+and failure-class counts `146` `NuPlanCausalSourceError` plus `818`
+`ValueError`. Its passed artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_failure_review_retry_517ab14a_20260712T190230CST`;
+- `5d4fe87c2d2f9e1f8ac8ad642eaf11c3acb504df37db3bdacd73911bf640ed23`.
+
+All gates recorded zero label/outcome reads and no planner compute, worker,
+simulation runner, metric compute, old holdout reopening, or claim. Candidate
+0 remains the `DP-default deterministic/MAP baseline` with
+`native_ranked_top1=false`. The scientific taxonomy remains performance
+no-claim, bounded-offline proxy improvement supported within its frozen source,
+closed-loop safety not yet supported, and broad CAMP-over-native-DP-Top1 not
+supported.
+
+Continuing now requires changing the frozen normal-bucket definition, route
+window/source contract, or existing-data scope. That is not authorized by the
+source-only replacement decision, so the controller stops for a new user
+decision before any simulator execution.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_speed_complete_reselection_failed_no_eligible_normal_candidate_independent_review_passed_user_decision_required
+current_v19_artifact_scope=approved_two_tier_source_reselection_964_normal_candidates_zero_eligible_fail_closed_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_failure_review_retry_517ab14a_20260712T190230CST
+current_v19_artifact_root_sha256=5d4fe87c2d2f9e1f8ac8ad642eaf11c3acb504df37db3bdacd73911bf640ed23
+next_work_target=user_decision_required_before_changing_v19_closed_loop_smoke_bucket_or_route_source_contract_after_no_speed_complete_normal_candidate

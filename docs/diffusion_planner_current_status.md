@@ -228,22 +228,27 @@ nuPlan environment and `15 passed` in the fixed-DP environment. Tests used
 fake inference/runner boundaries only. No real checkpoint worker, planner,
 simulator, metric, or holdout ran.
 
-The bounded real-source execution-preflight retry then failed closed. Its
-first retained attempt omitted the official current-frame append; independent
-source review proved that `Simulation.initialize()` is the required source and
-that the adapter's exact decision-tick check is correct. The corrected attempt
-reached the frozen route source, where all 50 selected route slots across the
-two frozen Singapore scenarios had `speed_limit_mps=None`. This agrees with
-the v18 inventory (`0/2001` Singapore roadblocks with complete speed sources).
-No fallback is allowed, and replacing the frozen scenario selection changes a
-frozen protocol input. No third preflight, planner compute, worker, simulator,
-metric, or holdout access occurred.
+The user authorized replacing the two source-incomplete Singapore scenarios
+without changing scenario count, bucket rules, seed, metrics, baseline, or
+SafetyCost. Source tier 0 used unseen Las Vegas/Pittsburgh logs; Boston was the
+only authorized tier-1 fallback for a bucket unavailable in tier 0. The shared
+scenario constructor was fixed test-first to use official `log.map_version`
+(`us-nv-las-vegas-strip`) rather than DB `location` (`las_vegas`).
 
-current_v19_status=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_failed_missing_frozen_route_speed_source_user_decision_required
-current_v19_artifact_scope=two_selected_singapore_scenarios_50_of_50_route_speed_sources_missing_fail_closed_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_failure_review_c6fdc9f3_20260712T182110CST
-current_v19_artifact_root_sha256=e64031e0ff0a0f2ed5fa9084cd2fea66a276e1e850c813f4742371e54f1104d1
-next_work_target=user_decision_required_before_replacing_frozen_v19_closed_loop_smoke_scenario_selection_for_real_route_speed_sources
+The deterministic selection still failed closed. All `30` tier-0 and `934`
+tier-1 normal candidates were evaluated in source-tier/SHA order; none had a
+connected current-roadblock route window with complete finite positive
+official speed limits. No interaction candidate was evaluated after the
+mandatory normal bucket failed, no replacement config was frozen, and no
+simulator or metric ran. An independent review rebuilt all `964` identities,
+hashes, ordering, zero-overlap checks, and official routes and confirmed zero
+eligible normal candidates.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_speed_complete_reselection_failed_no_eligible_normal_candidate_independent_review_passed_user_decision_required
+current_v19_artifact_scope=approved_two_tier_source_reselection_964_normal_candidates_zero_eligible_fail_closed_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_speed_complete_reselection_failure_review_retry_517ab14a_20260712T190230CST
+current_v19_artifact_root_sha256=5d4fe87c2d2f9e1f8ac8ad642eaf11c3acb504df37db3bdacd73911bf640ed23
+next_work_target=user_decision_required_before_changing_v19_closed_loop_smoke_bucket_or_route_source_contract_after_no_speed_complete_normal_candidate
 
 ## Current V18 Status
 
