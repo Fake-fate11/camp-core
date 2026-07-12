@@ -403,11 +403,18 @@ Towns, so the earlier A=0 conclusion is qualified: raw XML signal-only parsing
 missed landmarks exposed by the official map parser. A is not selected; it is
 reopened for unique candidate-segment mapping census.
 
-current_v19_status=v19_carla_isolated_client_materialization_review_passed_A_landmark_source_reopened
-current_v19_artifact_scope=carla_cp312_client_atomic_publish_import_review_and_offline_type274_census
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_independent_review_25d8dd8e71_20260713T004910CST
-current_v19_artifact_root_sha256=9fed6265a50b7336702f15fdbe68996f7d9ae51da42a85e2db36ddc32081cfe3
-next_work_target=v19_carla_type274_landmark_segment_mapping_tdd_and_candidate_route_probe_preflight_only
+Type-274 landmark-to-segment mapping now passes TDD and independent review.
+The exact A source is restricted to the same OpenDRIVE road, an inclusive
+official lane-validity range, and the unique latest landmark whose `s` does
+not exceed the candidate segment. Duplicate latest sources are rejected even
+when values agree. Cross-road propagation, nearest-neighbour mapping, and
+vehicle state remain forbidden.
+
+current_v19_status=v19_carla_type274_landmark_segment_mapping_tdd_independent_review_passed
+current_v19_artifact_scope=carla_type274_same_road_lane_validity_unique_predecessor_mapping_tdd
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_landmark_segment_mapping_independent_review_2bd18d669b_20260713T012127CST
+current_v19_artifact_root_sha256=bc934a052c2c27dde49869457e776d30517e903d5ce764629f7316493c663238
+next_work_target=v19_carla_type274_full_map_mapping_census_and_candidate_route_probe_preflight_only
 
 ## Current V18 Status
 

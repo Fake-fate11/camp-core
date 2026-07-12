@@ -1746,3 +1746,33 @@ current_v19_artifact_scope=carla_cp312_client_atomic_publish_import_review_and_o
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_independent_review_25d8dd8e71_20260713T004910CST
 current_v19_artifact_root_sha256=9fed6265a50b7336702f15fdbe68996f7d9ae51da42a85e2db36ddc32081cfe3
 next_work_target=v19_carla_type274_landmark_segment_mapping_tdd_and_candidate_route_probe_preflight_only
+
+## CARLA Type-274 Landmark Segment Mapping TDD
+
+The official runtime schema exposes lane ranges through
+`Landmark.get_lane_validities()`. The mapping contract was implemented
+test-first: the new test failed on the missing source type/API, then passed
+after adding one pure resolver. A candidate segment may use a type-274 source
+only from the same OpenDRIVE road, an inclusive official lane-validity range,
+and the unique latest landmark with `landmark.s <= segment.s`. Duplicate
+records at the latest `s` are ambiguous even if their values match. No source
+crosses a road or junction; nearest-neighbour, current vehicle state, defaults,
+and result-driven fallback remain forbidden.
+
+Local and AutoDL Python 3.9 checks passed `6` focused mapping tests plus `5`
+census/pointer tests at CAMP HEAD
+`2bd18d669b5a6fa7d9f3d730cc35c90b77427e50`; fixed DP remains unchanged.
+The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_type274_landmark_segment_mapping_2bd18d669b_20260713T012127CST`
+and `3b0a0c8228f7cab2c359a458384be1b4caafeccd959e89b06dde6472335fcbbc`.
+Independent review validated the manifest, tests, same-road/lane/latest-s
+contract, duplicate rejection, and zero call counts. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_type274_landmark_segment_mapping_independent_review_2bd18d669b_20260713T012127CST`
+and `bc934a052c2c27dde49869457e776d30517e903d5ce764629f7316493c663238`.
+No simulator, planner, metric, holdout, or outcome call occurred.
+
+current_v19_status=v19_carla_type274_landmark_segment_mapping_tdd_independent_review_passed
+current_v19_artifact_scope=carla_type274_same_road_lane_validity_unique_predecessor_mapping_tdd
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_landmark_segment_mapping_independent_review_2bd18d669b_20260713T012127CST
+current_v19_artifact_root_sha256=bc934a052c2c27dde49869457e776d30517e903d5ce764629f7316493c663238
+next_work_target=v19_carla_type274_full_map_mapping_census_and_candidate_route_probe_preflight_only
