@@ -1517,3 +1517,28 @@ current_v19_artifact_scope=carla_0_9_16_post_extraction_static_source_review_and
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_post_extraction_runtime_source_inventory_independent_review_1d866e494f_20260713T001619CST
 current_v19_artifact_root_sha256=f4c02827b9e3e07be5ae672c4aa6b35e05e154aa744b46c6c11bb28bb45691eb
 next_work_target=v19_carla_exact_speed_source_ladder_tdd_implementation_only
+
+## CARLA Exact-Speed Ladder TDD Implementation
+
+The minimal implementation adds one pure Python 3.9 source module and one
+thin census CLI. Rung A requires exactly one finite-positive official mapping;
+rung B accepts only an explicit non-junction road speed; rung C accepts a
+speedless connector only with one incoming road, one outgoing road, matching
+junction connection, and one identical explicit speed across both adjacent
+roads. Candidate eligibility is the conjunction of every traversed segment.
+
+Tests cover accepted and rejected A/B/C sources, missing/ambiguous/unequal or
+one-sided topology, all-segment fail-closed behavior, deterministic census,
+retained masks/reasons, DP-default eligibility, and rejection of any
+outcome/label/metric field. Local Python 3.9 compilation passed; local tests
+passed `4 + 5`. AutoDL Python 3.9 independently passed the same `4 + 5` tests.
+The immutable TDD artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_exact_speed_ladder_tdd_c9245a120a_20260713T002436CST`
+and `f7c165b455ae6c38cf16e511ab4682ba10edb0057be907b02546e4cbf1899d32`.
+No CARLA runtime, planner, metric, holdout, DP change, or outcome read occurred.
+
+current_v19_status=v19_carla_exact_speed_source_ladder_tdd_implementation_passed
+current_v19_artifact_scope=carla_exact_speed_source_ladder_python39_tdd_no_runtime_or_outcomes
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_exact_speed_ladder_tdd_c9245a120a_20260713T002436CST
+current_v19_artifact_root_sha256=f7c165b455ae6c38cf16e511ab4682ba10edb0057be907b02546e4cbf1899d32
+next_work_target=v19_carla_runtime_actor_landmark_source_probe_preflight_only

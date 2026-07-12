@@ -72,8 +72,8 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_exact_speed_source_ladder_spec_plan_frozen"
+        "v19_carla_exact_speed_source_ladder_tdd_implementation_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_exact_speed_source_ladder_tdd_implementation_only"
+        "v19_carla_runtime_actor_landmark_source_probe_preflight_only"
     )

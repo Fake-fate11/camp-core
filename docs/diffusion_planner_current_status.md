@@ -347,11 +347,18 @@ only when topology is unique and every related incoming/outgoing driving road
 has the same explicit finite-positive speed. The design and implementation
 plan are frozen; no fallback or fourth rung exists.
 
-current_v19_status=v19_carla_exact_speed_source_ladder_spec_plan_frozen
-current_v19_artifact_scope=carla_0_9_16_post_extraction_static_source_review_and_abc_exact_speed_ladder_plan
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_post_extraction_runtime_source_inventory_independent_review_1d866e494f_20260713T001619CST
-current_v19_artifact_root_sha256=f4c02827b9e3e07be5ae672c4aa6b35e05e154aa744b46c6c11bb28bb45691eb
-next_work_target=v19_carla_exact_speed_source_ladder_tdd_implementation_only
+The pure Python 3.9 ladder and thin source-only census CLI are now implemented.
+Tests cover unique A mapping, explicit B speed, strict two-sided/equal C
+topology, ambiguous and missing sources, all-segment conjunction, retained
+masks/reasons, DP-default eligibility, deterministic output, and rejection of
+outcome fields. AutoDL passed all nine focused tests with zero simulator,
+planner, metric, or holdout calls.
+
+current_v19_status=v19_carla_exact_speed_source_ladder_tdd_implementation_passed
+current_v19_artifact_scope=carla_exact_speed_source_ladder_python39_tdd_no_runtime_or_outcomes
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_exact_speed_ladder_tdd_c9245a120a_20260713T002436CST
+current_v19_artifact_root_sha256=f7c165b455ae6c38cf16e511ab4682ba10edb0057be907b02546e4cbf1899d32
+next_work_target=v19_carla_runtime_actor_landmark_source_probe_preflight_only
 
 ## Current V18 Status
 
