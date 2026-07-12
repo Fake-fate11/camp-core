@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -92,6 +93,30 @@ def test_validate_config_freezes_two_unseen_scenarios_and_nonformal_seeds() -> N
     invalid["seeds"]["scenario"] = 11
     with pytest.raises(ValueError, match="formal seed"):
         smoke.validate_smoke_config(invalid)
+
+
+def test_construct_scenario_uses_official_map_version(monkeypatch) -> None:
+    captured = {}
+    vehicle = ModuleType("nuplan.common.actor_state.vehicle_parameters")
+    vehicle.get_pacifica_parameters = lambda: object()
+    scenario = ModuleType(
+        "nuplan.planning.scenario_builder.nuplan_db.nuplan_scenario"
+    )
+    scenario.NuPlanScenario = lambda **kwargs: captured.update(kwargs) or object()
+    utils = ModuleType(
+        "nuplan.planning.scenario_builder.nuplan_db.nuplan_scenario_utils"
+    )
+    utils.ScenarioExtractionInfo = lambda **kwargs: kwargs
+    monkeypatch.setitem(sys.modules, vehicle.__name__, vehicle)
+    monkeypatch.setitem(sys.modules, scenario.__name__, scenario)
+    monkeypatch.setitem(sys.modules, utils.__name__, utils)
+    record = _scenario("normal", "scenario-normal", "log-normal")
+    record["location"] = "las_vegas"
+    record["map_version"] = "us-nv-las-vegas-strip"
+
+    smoke.construct_nuplan_scenario(record, data_root="/data", map_root="/maps")
+
+    assert captured["map_name"] == "us-nv-las-vegas-strip"
 
     invalid = _config()
     invalid["zero_log_overlap"] = False

@@ -216,7 +216,7 @@ def construct_nuplan_scenario(
         scenario_type=str(record["selection_tag"]),
         map_root=str(map_root),
         map_version="nuplan-maps-v1.0",
-        map_name=str(record["location"]),
+        map_name=str(record.get("map_version", record["location"])),
         scenario_extraction_info=ScenarioExtractionInfo(
             scenario_name=str(record["selection_tag"]),
             scenario_duration=8.0,
