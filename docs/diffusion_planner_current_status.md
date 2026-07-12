@@ -388,11 +388,17 @@ paths, and would use `186726018` bytes; projected free space remains
 job is running. An initial failed artifact retains the incorrect expected HEAD
 receipt; the corrected retry changed no code or protocol.
 
-current_v19_status=v19_carla_isolated_client_materialization_preflight_independent_review_passed
-current_v19_artifact_scope=carla_cp312_isolated_client_materialization_preflight_review_no_extraction
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_preflight_independent_review_c275eff4e2_20260713T004158CST
-current_v19_artifact_root_sha256=25fa8bf7dab8a787c82827e9ce5cd8bbc6f37b26113534d2448f26187b1c2456
-next_work_target=v19_carla_runtime_snapshot_collector_tdd_implementation_only
+The runtime snapshot collector now passes TDD and independent review. It
+encodes 31 official source ticks into the existing materializer batch, retains
+only contiguous actor history, orders actors deterministically by current
+distance and track ID, and converts actor state to the decision-time ego
+frame. It imports no CARLA package and reads no route, outcome, or metric.
+
+current_v19_status=v19_carla_runtime_snapshot_collector_tdd_independent_review_passed
+current_v19_artifact_scope=carla_runtime_snapshot_history_collector_python39_tdd_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_snapshot_collector_independent_review_5e887d4608_20260713T004620CST
+current_v19_artifact_root_sha256=d894f575f136e1cc87b984a09f2ad01edfb90b1e58243ba92a5f87a211075b45
+next_work_target=v19_carla_isolated_client_materialization_execution_and_import_review_only
 
 ## Current V18 Status
 

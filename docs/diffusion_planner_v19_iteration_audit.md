@@ -1682,3 +1682,32 @@ current_v19_artifact_scope=carla_cp312_isolated_client_materialization_preflight
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_preflight_independent_review_c275eff4e2_20260713T004158CST
 current_v19_artifact_root_sha256=25fa8bf7dab8a787c82827e9ce5cd8bbc6f37b26113534d2448f26187b1c2456
 next_work_target=v19_carla_runtime_snapshot_collector_tdd_implementation_only
+
+## CARLA Runtime Snapshot Collector TDD And Review
+
+The existing causal adapter was extended test-first with one history collector.
+The test first failed on the missing API, then passed after implementing the
+minimum conversion from 31 official CARLA source ticks to the shared
+materializer batch. Actor histories are contiguous at the decision tail,
+ordered by current distance and stable track ID, transformed into the current
+ego frame, and carry explicit type and extent data. Nested outcome fields are
+rejected before conversion.
+
+Local Python 3.9 compilation passed; the adapter plus v17 causal suite reported
+`20 passed, 1 skipped`, and the pointer suite reported `3 passed`. After one
+evidence-preserving GitHub 503 retry, AutoDL reproduced both results at CAMP
+HEAD `5e887d460878c0486d2b40a3a8acd5ed1bb269d5` with fixed DP unchanged.
+The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_runtime_snapshot_collector_5e887d4608_20260713T004620CST`
+and `45b7f5e1c3a816b3ab29fb152510e2d1f8eb65ea7c1cac3afcd814777571a0f1`.
+Independent review validated its manifest, tests, history builder, forbidden
+guard, world-to-ego transform, zero calls, and absence of a CARLA import. Its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_runtime_snapshot_collector_independent_review_5e887d4608_20260713T004620CST`
+and `d894f575f136e1cc87b984a09f2ad01edfb90b1e58243ba92a5f87a211075b45`.
+
+current_v19_status=v19_carla_runtime_snapshot_collector_tdd_independent_review_passed
+current_v19_artifact_scope=carla_runtime_snapshot_history_collector_python39_tdd_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_snapshot_collector_independent_review_5e887d4608_20260713T004620CST
+current_v19_artifact_root_sha256=d894f575f136e1cc87b984a09f2ad01edfb90b1e58243ba92a5f87a211075b45
+next_work_target=v19_carla_isolated_client_materialization_execution_and_import_review_only
