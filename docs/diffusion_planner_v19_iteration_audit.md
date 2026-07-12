@@ -1416,3 +1416,26 @@ current_v19_artifact_scope=carla_unified_python39_extraction_preflight_read_only
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_unified_extraction_preflight_independent_review_0ee305ec7f_20260712T234148CST
 current_v19_artifact_root_sha256=eefe8f094f44cd585c78d304ee413a66eacff31db48ba6d5f758b8605662e2bf
 next_work_target=v19_carla_extraction_execution_preflight_only
+
+## CARLA Extraction Execution Preflight
+
+The execution preflight froze the exact archive, explicit `/usr/bin/tar`,
+`runtime.tmp` staging root, `runtime` final root, safe tar flags,
+same-filesystem atomic rename, and a failure policy that retains staging and
+stops without automatic deletion. It rechecked the source review, archive,
+free space, ports/processes, and absent staging/final roots. All ten checks
+passed; projected free space was `48698031670` bytes.
+
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_extraction_execution_preflight_046b40ef5a_20260712T234331CST`
+and `3c4a3e521a4359208b3fac889575ddf447842cd807936d9227e5f6a945734791`.
+Independent review passed all eight checks with zero extraction, simulator,
+metric, or holdout calls. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_extraction_execution_preflight_independent_review_046b40ef5a_20260712T234349CST`
+and `92837a632fe05c5c8bad3e9cb2c7b6cdae598fa6fd1f53b05b31e34d91d819dc`.
+
+current_v19_status=v19_carla_extraction_execution_preflight_independent_review_passed
+current_v19_artifact_scope=carla_0_9_16_extraction_execution_preflight_independent_review_no_extraction
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_execution_preflight_independent_review_046b40ef5a_20260712T234349CST
+current_v19_artifact_root_sha256=92837a632fe05c5c8bad3e9cb2c7b6cdae598fa6fd1f53b05b31e34d91d819dc
+next_work_target=v19_carla_0_9_16_extraction_execution_only
