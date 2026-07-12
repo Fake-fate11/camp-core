@@ -1575,3 +1575,24 @@ current_v19_artifact_scope=carla_runtime_client_and_abc_map_source_preflight_ind
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
 current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
 next_work_target=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_tdd_preflight_only
+
+## CARLA Fixed-DP K8 Candidate-Route Source Probe Plan
+
+Static review confirmed the shortest safe path is to reuse the existing v19
+bridge, fixed-DP worker `source_probe`, causal materializer, and exact-speed
+census. The only new product code is a thin CARLA snapshot-to-causal-schema
+adapter; the only new execution code is a source-only harness. No new worker or
+general controller is permitted.
+
+The implementation plan is frozen at
+`docs/superpowers/plans/2026-07-13-v19-carla-fixed-dp-k8-candidate-route-source-probe.md`.
+It keeps CARLA cp312 and the fixed-DP Python 3.12 worker isolated, requires
+candidate SHA equality, candidate-0 source completeness, retained all-K
+failures, B-before-C ordering, and a zero-outcome independent freeze review
+before any arm advancement.
+
+current_v19_status=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_frozen_preflight_passed
+current_v19_artifact_scope=carla_fixed_dp_k8_candidate_route_source_probe_plan_and_runtime_preflight_no_simulator
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
+current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
+next_work_target=v19_carla_causal_snapshot_adapter_tdd_implementation_only

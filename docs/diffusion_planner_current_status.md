@@ -361,11 +361,18 @@ driving-lane units, A has zero exact actor/landmark mappings, B supports `1134`,
 and C supports `1716`. These are map-source counts only: no candidate-route
 census ran and no rung is selected yet.
 
-current_v19_status=v19_carla_runtime_source_preflight_review_passed_A_exhausted_BC_map_support_only
-current_v19_artifact_scope=carla_runtime_client_and_abc_map_source_preflight_independent_review_no_simulator
+The candidate-route probe plan is now frozen. It reuses the existing v19
+bridge, fixed-DP worker `source_probe`, causal materializer, and exact-speed
+census; only a thin CARLA causal snapshot adapter and source-only harness may
+be added. CARLA and DP remain isolated processes joined by immutable bridge
+directories. B must be exhausted before C, and no outcome may be produced or
+read before the source/scenario/candidate freeze.
+
+current_v19_status=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_frozen_preflight_passed
+current_v19_artifact_scope=carla_fixed_dp_k8_candidate_route_source_probe_plan_and_runtime_preflight_no_simulator
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_source_preflight_independent_review_0a37602772_20260713T002746CST
 current_v19_artifact_root_sha256=8f98702a5eaaecd63b78695c8267e6d49c432756ed235c7ec7fb65b032fa7af4
-next_work_target=v19_carla_fixed_dp_k8_candidate_route_source_probe_plan_tdd_preflight_only
+next_work_target=v19_carla_causal_snapshot_adapter_tdd_implementation_only
 
 ## Current V18 Status
 
