@@ -1470,3 +1470,50 @@ current_v19_artifact_scope=carla_0_9_16_single_extraction_exactly_once_review_at
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST
 current_v19_artifact_root_sha256=2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce
 next_work_target=v19_carla_post_extraction_runtime_source_inventory_plan_static_review_preflight_only
+
+## CARLA Post-Extraction Source Inventory And Exact-Speed Ladder Resume
+
+The read-only runtime/source inventory completed without starting CARLA or
+calling a planner, metric, holdout, or outcome path. All eight main Town XODRs,
+runtime launchers, client wheels, speed-limit blueprints, traffic-light assets,
+and vehicle assets are present. The main Towns contain `397` ordinary roads,
+all with finite-positive explicit OpenDRIVE `<type><speed>` values, and `1362`
+junction connector roads, all without an explicit speed. All driving lanes
+have width/border geometry. No Town XODR contains a type-274 speed-limit
+landmark.
+
+Under the then-frozen actor/landmark-only source, actual candidate-route speed
+coverage could not be proven without runtime observations. The source audit
+therefore failed closed before simulator planning. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_post_extraction_runtime_source_inventory_1d866e494f_20260713T001545CST`
+and `cef560f9e52179e8cf591b2e885ec860fa924029629c77783ac7a646f30ccc87`.
+Independent review recomputed the road/junction counts and zero type-274
+landmarks, validated the full manifest, and supported the fail-closed decision.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_post_extraction_runtime_source_inventory_independent_review_1d866e494f_20260713T001619CST`
+and `f4c02827b9e3e07be5ae672c4aa6b35e05e154aa744b46c6c11bb28bb45691eb`.
+
+The user then explicitly authorized overnight continuation and pre-registered
+the ordered exact-speed ladder. Rung A is a unique official speed-limit
+actor/landmark mapping. Rung B is an explicit finite-positive speed on every
+candidate-used non-junction OpenDRIVE road. Rung C permits a speedless junction
+connector only when topology is unique and all related incoming and outgoing
+driving roads have one identical explicit finite-positive speed. Any missing,
+ambiguous, unequal, or one-sided source makes the candidate ineligible;
+all-K-ineligible records remain retained and excluded fail-closed.
+
+The design and implementation plan are now frozen in
+`docs/superpowers/specs/2026-07-13-v19-carla-exact-speed-source-ladder-design.md`
+and
+`docs/superpowers/plans/2026-07-13-v19-carla-exact-speed-source-ladder.md`.
+They prohibit `Vehicle.get_speed_limit()`, current/default/average speed,
+nearest-neighbour or one-sided inheritance, interpolation, result-driven
+selection, and a fourth rung. Claim taxonomy and all fixed-DP, K=8, 3+8,
+14D, affine/simplex/convex, baseline, holdout, and deployment boundaries remain
+unchanged.
+
+current_v19_status=v19_carla_exact_speed_source_ladder_spec_plan_frozen
+current_v19_artifact_scope=carla_0_9_16_post_extraction_static_source_review_and_abc_exact_speed_ladder_plan
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_post_extraction_runtime_source_inventory_independent_review_1d866e494f_20260713T001619CST
+current_v19_artifact_root_sha256=f4c02827b9e3e07be5ae672c4aa6b35e05e154aa744b46c6c11bb28bb45691eb
+next_work_target=v19_carla_exact_speed_source_ladder_tdd_implementation_only

@@ -333,11 +333,25 @@ empty stderr, floor headroom, and both safe relative SQLite symlinks resolving
 inside staging to existing targets. Only then was staging atomically renamed
 to `runtime`. Free space is `50782457856` bytes. No simulator or metric ran.
 
-current_v19_status=v19_carla_extraction_result_review_passed_runtime_published
-current_v19_artifact_scope=carla_0_9_16_single_extraction_exactly_once_review_atomic_publish
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST
-current_v19_artifact_root_sha256=2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce
-next_work_target=v19_carla_post_extraction_runtime_source_inventory_plan_static_review_preflight_only
+Post-extraction static source inventory found all eight main Town XODRs and
+required runtime assets. All `397` ordinary roads have finite-positive
+OpenDRIVE road-type speeds; all `1362` junction connectors lack explicit
+speeds; no Town XODR has a type-274 speed-limit landmark. The frozen former
+actor/landmark-only source therefore remained unproven, and independent review
+correctly disallowed simulator smoke planning with zero outcome calls.
+
+The user then pre-registered an ordered A/B/C exact-speed source ladder for
+overnight execution. A uses unique official actor/landmark mappings, B uses
+explicit non-junction OpenDRIVE road speeds, and C permits a junction connector
+only when topology is unique and every related incoming/outgoing driving road
+has the same explicit finite-positive speed. The design and implementation
+plan are frozen; no fallback or fourth rung exists.
+
+current_v19_status=v19_carla_exact_speed_source_ladder_spec_plan_frozen
+current_v19_artifact_scope=carla_0_9_16_post_extraction_static_source_review_and_abc_exact_speed_ladder_plan
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_post_extraction_runtime_source_inventory_independent_review_1d866e494f_20260713T001619CST
+current_v19_artifact_root_sha256=f4c02827b9e3e07be5ae672c4aa6b35e05e154aa744b46c6c11bb28bb45691eb
+next_work_target=v19_carla_exact_speed_source_ladder_tdd_implementation_only
 
 ## Current V18 Status
 
