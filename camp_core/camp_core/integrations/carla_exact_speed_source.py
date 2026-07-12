@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Dict, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 import xml.etree.ElementTree as ET
 
 
@@ -71,6 +71,39 @@ class LandmarkSpeedSource:
     to_lane: int
     value: float
     unit: str
+
+
+def project_world_point_to_segment(
+    map_api: Any, location: Any, driving_lane_type: Any
+) -> Optional[SegmentRef]:
+    try:
+        coordinates = tuple(float(getattr(location, axis)) for axis in ("x", "y", "z"))
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("CARLA world point must contain finite x,y,z") from exc
+    if not all(math.isfinite(value) for value in coordinates):
+        raise ValueError("CARLA world point must contain finite x,y,z")
+
+    waypoint = map_api.get_waypoint(
+        location,
+        project_to_road=False,
+        lane_type=driving_lane_type,
+    )
+    if waypoint is None:
+        return None
+    if waypoint.lane_type != driving_lane_type:
+        raise ValueError("CARLA waypoint is not a driving lane")
+    section_id = int(waypoint.section_id)
+    lane_id = int(waypoint.lane_id)
+    s = float(waypoint.s)
+    if section_id < 0 or lane_id == 0 or not math.isfinite(s) or s < 0.0:
+        raise ValueError("CARLA waypoint has invalid OpenDRIVE metadata")
+    return SegmentRef(
+        str(waypoint.road_id),
+        section_id,
+        lane_id,
+        s,
+        bool(waypoint.is_junction),
+    )
 
 
 def _speed_mps(raw: str, unit: str) -> float:

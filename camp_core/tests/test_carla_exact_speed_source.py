@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import math
+from types import SimpleNamespace
+
+import pytest
 
 from camp_core.integrations.carla_exact_speed_source import (
     RUNG_ACTOR_LANDMARK,
@@ -9,6 +12,7 @@ from camp_core.integrations.carla_exact_speed_source import (
     LandmarkSpeedSource,
     SegmentRef,
     candidate_source_mask,
+    project_world_point_to_segment,
     resolve_landmark_segment_speed,
     parse_opendrive_speed_index,
     resolve_segment_speed,
@@ -181,3 +185,48 @@ def test_landmark_mapping_rejects_missing_lane_and_duplicate_latest_source() -> 
         resolve_landmark_segment_speed(segment, duplicate).reason
         == "actor_landmark_mapping_not_unique"
     )
+
+
+def test_world_point_projection_is_strict_and_fail_closed() -> None:
+    location = SimpleNamespace(x=1.0, y=2.0, z=0.0)
+    driving = object()
+    calls = []
+
+    class Map:
+        waypoint = SimpleNamespace(
+            road_id=7,
+            section_id=2,
+            lane_id=-1,
+            s=12.5,
+            is_junction=False,
+            lane_type=driving,
+        )
+
+        def get_waypoint(self, point, *, project_to_road, lane_type):
+            calls.append((point, project_to_road, lane_type))
+            return self.waypoint
+
+    map_api = Map()
+    assert project_world_point_to_segment(map_api, location, driving) == SegmentRef(
+        "7", 2, -1, 12.5, False
+    )
+    assert calls == [(location, False, driving)]
+
+    map_api.waypoint = None
+    assert project_world_point_to_segment(map_api, location, driving) is None
+
+    map_api.waypoint = SimpleNamespace(
+        road_id=7,
+        section_id=2,
+        lane_id=-1,
+        s=12.5,
+        is_junction=False,
+        lane_type=object(),
+    )
+    with pytest.raises(ValueError, match="not a driving lane"):
+        project_world_point_to_segment(map_api, location, driving)
+
+    with pytest.raises(ValueError, match="finite x,y,z"):
+        project_world_point_to_segment(
+            map_api, SimpleNamespace(x=math.nan, y=2.0, z=0.0), driving
+        )
