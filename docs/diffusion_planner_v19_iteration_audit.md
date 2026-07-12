@@ -1886,3 +1886,43 @@ current_v19_artifact_scope=carla_strict_projection_coordinate_frame_z_semantics_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_static_review_independent_review_d659bdf1_20260713T042220CST
 current_v19_artifact_root_sha256=2d922b11619a8b34c519fda2148c252ff8b81c410a2c2be62cd08637942caaec
 next_work_target=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_only
+
+## CARLA A-First Candidate World-Transform Preflight Failure
+
+The offline preflight failed closed before any fixed-DP candidate generation.
+Across `25091` official 5 m driving waypoints in the eight main Town maps,
+strict `project_to_road=False` lookup preserved the original road/section/lane
+identity for only `23765` points at each waypoint's own z and `23497` at z=0.
+Changing only z to `actual +/- 1000 m` produced `16527/19422` matches. Thus the
+official CARLA 0.9.16 strict lookup is z-sensitive and is not identity-
+preserving even when started from every generated waypoint's own transform.
+All eight Towns had nonzero actual-z identity gaps.
+
+The failed preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_A_first_world_transform_source_probe_preflight_b2f1360d_20260713T052313CST`
+and `b6c7c9609733a31d966f8782508509dd4047c37f9572bd558e6d8c6eb7469f94`.
+Its only failed checks were exact actual-z identity and z invariance; heads,
+fixed DP, disk, transform roundtrip, official maps, worker SHA receipts, and
+no-job checks passed.
+
+Independent review recomputed every total and found at least one actual-z
+identity mismatch in every Town plus an independently observed z-sensitive
+point. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_A_first_world_transform_source_probe_preflight_independent_failure_review_b2f1360d_20260713T052457CST`
+and `fb096a9f5453d64a6f63f354c56afd07c68cdd64507318b2d3e75ad400ef40d9`.
+
+Fixed-DP candidates remain immutable ego-frame `float32 [8,80,4]` trajectories
+containing planar x/y and heading representation but no z. Exact candidate
+OpenDRIVE segment identity therefore cannot be established under the frozen
+strict world-point contract. Inventing candidate z, enabling road projection,
+using nearest-lane or route/lane z interpolation/inheritance, modifying DP, or
+calling the result exact would change the approved atom/source semantics.
+Those remediations were not attempted. No candidate tensor, simulator,
+planner, metric, holdout, outcome, rung, or scenario was generated, read,
+selected, or frozen. Claim taxonomy remains unchanged.
+
+current_v19_status=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_failed_closed
+current_v19_artifact_scope=carla_strict_lookup_z_sensitivity_and_2d_candidate_to_3d_opendrive_source_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_A_first_world_transform_source_probe_preflight_independent_failure_review_b2f1360d_20260713T052457CST
+current_v19_artifact_root_sha256=fb096a9f5453d64a6f63f354c56afd07c68cdd64507318b2d3e75ad400ef40d9
+next_work_target=user_decision_required_before_carla_candidate_2d_to_3d_opendrive_atom_source_contract_change

@@ -434,11 +434,19 @@ without invented z or road projection. All 80 points and DP-default candidate
 by the new A support evidence; the ordered ladder remains A then B then C.
 No candidate tensor, runtime outcome, rung, or scenario was produced or frozen.
 
-current_v19_status=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_independent_review_passed
-current_v19_artifact_scope=carla_strict_projection_coordinate_frame_z_semantics_and_A_first_ladder_static_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_static_review_independent_review_d659bdf1_20260713T042220CST
-current_v19_artifact_root_sha256=2d922b11619a8b34c519fda2148c252ff8b81c410a2c2be62cd08637942caaec
-next_work_target=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_only
+The z preflight then failed closed. On `25091` official waypoints, strict
+lookup preserved the source segment for only `23765` points at actual z and
+changed further when only z changed. Every main Town reproduced an actual-z
+identity gap. Fixed-DP candidates are immutable ego-frame `[8,80,4]` planar
+trajectories and provide no z, so exact OpenDRIVE segment identity cannot be
+established without changing the atom/source contract. No workaround,
+candidate generation, simulator, metric, outcome, rung, or freeze occurred.
+
+current_v19_status=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_failed_closed
+current_v19_artifact_scope=carla_strict_lookup_z_sensitivity_and_2d_candidate_to_3d_opendrive_source_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_A_first_world_transform_source_probe_preflight_independent_failure_review_b2f1360d_20260713T052457CST
+current_v19_artifact_root_sha256=fb096a9f5453d64a6f63f354c56afd07c68cdd64507318b2d3e75ad400ef40d9
+next_work_target=user_decision_required_before_carla_candidate_2d_to_3d_opendrive_atom_source_contract_change
 
 ## Current V18 Status
 
