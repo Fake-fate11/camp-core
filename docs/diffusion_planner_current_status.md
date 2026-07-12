@@ -95,11 +95,22 @@ after the conservative 5 GB reserve. No environment was created and no
 simulator or holdout ran. The next gate may perform one fail-closed
 materialization only.
 
-current_v19_status=v19_nuplan_v12_environment_cleanup_and_minimal_runtime_lock_static_review_passed
-current_v19_artifact_scope=exact_single_environment_cleanup_and_torch_free_python39_wheel_lock_static_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST
-current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
-next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
+The one authorized materialization has now passed independent review. The
+Python 3.9 environment is `1035920810` bytes; conda, 65-wheel runtime-lock, and
+fixed-source installs exited zero. `pip check` reports no broken requirements,
+all frozen official simulator/scenario/metric imports pass, and no forbidden
+torch/Lightning package is installed. Final free bytes remain above 10 GiB.
+No simulator ran and no holdout was accessed.
+
+The next gate is plan-only for the CAMP-side adapter and executable
+DP-default deterministic/MAP provenance TDD. It cannot execute a simulator,
+claim native ranked Top-1, modify DP, or reopen any holdout.
+
+current_v19_status=v19_nuplan_v12_minimal_runtime_materialization_result_review_passed
+current_v19_artifact_scope=official_nuplan_v12_torch_free_python39_runtime_materialization_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_result_review_d85ea23b_20260712T160605CST
+current_v19_artifact_root_sha256=4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031
+next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_only
 
 ## Current V18 Status
 

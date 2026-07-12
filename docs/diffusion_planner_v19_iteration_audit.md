@@ -397,6 +397,63 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_st
 current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
 next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
 
+## Minimal Runtime Materialization Result Review
+
+The single authorized materialization completed without a second install
+attempt. Its immutable artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_d85ea23b_20260712T133356CST`
+- `816367a0eec1b0e0563a1d09c0b8b988f9d407bef3f99678bd01ebc2d1f83f8c`
+
+All 22 entries in `SHA256SUMS` passed and the independently computed
+`sha256(SHA256SUMS)` matched both the recorded and expected root. Conda base,
+reviewed 65-wheel runtime lock, and fixed-source installs all exited zero.
+The final artifact records:
+
+- `pip_check_exit=0`, with `No broken requirements found`;
+- `import_exit=0` for scenario builder, sequential worker, official
+  `Simulation`/`SimulationRunner`, perfect tracking, tracks observation,
+  metric engine, collision, TTC, drivable-area, speed, comfort, progress, and
+  driving-direction metric modules;
+- `forbidden_check_exit=0`, with no torch, Lightning, training stack,
+  protobuf, or PyYAML package;
+- environment bytes `1035920810`;
+- final outcome free bytes `15082639360`, above the `10737418240` hard floor;
+- `no_simulator_run=true` and `no_holdout_access=true`.
+
+The independent result review reran the artifact hashes, `pip check`, all 17
+official import probes, forbidden-package inspection, resolved-path/disk
+checks, related-process count, and CAMP/fixed-DP/source HEAD/tracked status.
+It observed `15082561536` free bytes and zero related processes. Its immutable
+artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_result_review_d85ea23b_20260712T160605CST`
+- `4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031`
+
+The first read-only review harness exited before creating staging because
+`pipefail` treated the expected zero-process `grep` result as failure. The
+successful review records that qualification and explicitly handles zero
+matches. It ran no installer and did not modify the environment.
+
+Materialization establishes simulator capability only. It adds no safety,
+ADE/FDE/miss, or latency result and does not change the claim taxonomy:
+
+- `performance_claim=no_claim`
+- `bounded_offline_safety_proxy_improvement=supported`
+- `closed_loop_safety_claim=not_yet_supported`
+- `broad_CAMP_over_native_DP_Top1_claim=not_supported`
+
+The next smallest gate may only write and statically review the CAMP-side
+adapter plus executable DP-default deterministic/MAP provenance TDD plan. It
+may not execute a simulator, call candidate 0 native ranked Top-1, modify DP,
+open a holdout, or make a closed-loop claim.
+
+current_v19_status=v19_nuplan_v12_minimal_runtime_materialization_result_review_passed
+current_v19_artifact_scope=official_nuplan_v12_torch_free_python39_runtime_materialization_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_result_review_d85ea23b_20260712T160605CST
+current_v19_artifact_root_sha256=4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031
+next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_only
+
 ## Minimal Runtime Installation Index Qualification
 
 Final command review found that the reviewed official-PyPI wheel lock would
@@ -419,3 +476,19 @@ current_v19_artifact_scope=exact_single_environment_cleanup_and_torch_free_pytho
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST
 current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
 next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
+
+## Minimal Runtime Materialization Review EOF Qualification
+
+The complete materialization result-review section above was inserted before
+the earlier installation-index qualification because the materialization
+pointer appeared more than once. No historical text is moved, rewritten, or
+deleted. The installation-index qualification happened first; the independent
+result review at
+`4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031`
+is the latest gate. The pointer below is authoritative.
+
+current_v19_status=v19_nuplan_v12_minimal_runtime_materialization_result_review_passed
+current_v19_artifact_scope=official_nuplan_v12_torch_free_python39_runtime_materialization_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_materialization_result_review_d85ea23b_20260712T160605CST
+current_v19_artifact_root_sha256=4bad5fa9fe5e00033860870a6b0eafe50c8e3e195eea0d74c46430bfdc516031
+next_work_target=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_plan_only
