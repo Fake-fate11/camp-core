@@ -72,8 +72,9 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_nuplan_v12_isolated_dependency_and_disk_preflight_passed"
+        "v19_nuplan_v12_isolated_dependency_source_materialization_failed_closed"
     )
     assert pointer["next_work_target"] == (
-        "v19_nuplan_v12_isolated_dependency_and_source_materialization_only"
+        "user_decision_required_before_v19_nuplan_environment_cleanup_or_disk_"
+        "expansion_and_runtime_dependency_union_remediation"
     )

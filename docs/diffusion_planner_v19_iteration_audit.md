@@ -273,3 +273,53 @@ current_v19_artifact_scope=official_nuplan_v12_dependency_metadata_conda_dry_run
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_disk_preflight_bfca4fa3_20260711T232437CST
 current_v19_artifact_root_sha256=0a61e0f050a97f91aa59e2697ed125fe1db77ec1d9a92755c1260beb2c973a27
 next_work_target=v19_nuplan_v12_isolated_dependency_and_source_materialization_only
+
+## nuPlan v1.2 Isolated Materialization Failure Result Review
+
+Materialization failed closed on AutoDL at CAMP
+`7a2bdad6d6d419dbd3852e128a45d766b4046679`; fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, and the official
+nuPlan source remained tracked-clean at
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`.
+
+The independently verified failure artifact and review are:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_source_materialization_retry6_7a2bdad6_20260712T113131CST.tmp`
+- `eec658bc9652d18fdbb19bff1d3b8b1cd1b5760159f4342ae6764dfc9fe863e7`
+- `/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_source_materialization_failure_result_review_7a2bdad6_20260712T114713CST`
+- `b7c7cf03df5e115d0ee9830ae034ceb0c9819905012ad8b8ec1a1d9a4cad103f`
+
+All source-artifact SHA256 entries passed and its recorded root matched the
+independently computed root. Preconditions, the derived official hash-locked
+torch runtime subset, and the official main lock exited zero. The runtime
+subset removed only the repository-unreferenced `torch_scatter` requirement;
+it did not override the drifted upstream wheel hash. Its scope review root is
+`c77106e63a1d77fe0a31e97ae2e9ca04d0d6d4da711fde333c3bf74ebdf7f524`.
+
+Free space fell from `16016338944` bytes to `11217469440` bytes after the
+torch runtime lock and then to `9593786368` bytes after the main lock. The
+artifact recorded `9593782272` final free bytes, `1143635968` bytes below the
+frozen `10737418240`-byte floor. The gate therefore skipped devkit install,
+import smoke, and pip check and set `passed=false` / `overall=1`.
+
+Independent read-only `pip check` found two additional official lock-union
+conflicts: tensorboard 2.9.1 requires protobuf below 3.20 while the main lock
+installed protobuf 3.20.2, and pytorch-lightning 1.3.8 requires PyYAML at most
+5.4.1 while the main lock installed PyYAML 6.0. The isolated environment is
+`6453283272` bytes. No nuPlan devkit was installed, no simulator ran, no
+holdout label was read, and no CAMP/DP/source tracked file changed.
+
+No retry or destructive cleanup is authorized while free space is below the
+hard floor. Continuing requires a user decision to add disk or remove/recreate
+the isolated environment, followed by a frozen runtime dependency-union
+remediation. Claim qualification is unchanged:
+`performance_claim=no_claim`,
+`bounded_offline_safety_proxy_improvement=supported`,
+`closed_loop_safety_claim=not_yet_supported`, and
+`broad_CAMP_over_native_DP_Top1_claim=not_supported`.
+
+current_v19_status=v19_nuplan_v12_isolated_dependency_source_materialization_failed_closed
+current_v19_artifact_scope=official_nuplan_v12_hash_locked_runtime_subset_materialization_failure_disk_floor_and_dependency_union_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_source_materialization_failure_result_review_7a2bdad6_20260712T114713CST
+current_v19_artifact_root_sha256=b7c7cf03df5e115d0ee9830ae034ceb0c9819905012ad8b8ec1a1d9a4cad103f
+next_work_target=user_decision_required_before_v19_nuplan_environment_cleanup_or_disk_expansion_and_runtime_dependency_union_remediation

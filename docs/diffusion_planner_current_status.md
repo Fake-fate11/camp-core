@@ -64,11 +64,26 @@ TUNA channel cause; global conda config was not changed. No environment/source
 was materialized and no simulator ran. The next gate may create only the
 isolated env and fixed-tag source, with the disk floor rechecked throughout.
 
-current_v19_status=v19_nuplan_v12_isolated_dependency_and_disk_preflight_passed
-current_v19_artifact_scope=official_nuplan_v12_dependency_metadata_conda_dry_run_and_10gib_disk_preflight
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_disk_preflight_bfca4fa3_20260711T232437CST
-current_v19_artifact_root_sha256=0a61e0f050a97f91aa59e2697ed125fe1db77ec1d9a92755c1260beb2c973a27
-next_work_target=v19_nuplan_v12_isolated_dependency_and_source_materialization_only
+Materialization then failed closed. The hash-locked simulation runtime subset
+and official main lock both installed successfully, but free space fell to
+`9593782272` bytes, `1143635968` bytes below the frozen 10 GiB floor. The
+devkit install, import smoke, simulator, and holdout access were therefore not
+run. Independent review also found that the two official locks are not a
+consistent combined environment: tensorboard conflicts with protobuf and
+pytorch-lightning conflicts with PyYAML. CAMP, fixed DP, and the official
+source remain tracked-clean at their frozen commits.
+
+No cleanup or retry is authorized. Continuing requires a user decision to add
+disk or remove/recreate the 6.45 GB isolated environment, followed by a frozen
+runtime dependency-union remediation. The claim taxonomy remains unchanged:
+bounded offline proxy improvement is supported; performance, closed-loop
+safety, and broad CAMP-over-native-DP-Top-1 claims remain unsupported.
+
+current_v19_status=v19_nuplan_v12_isolated_dependency_source_materialization_failed_closed
+current_v19_artifact_scope=official_nuplan_v12_hash_locked_runtime_subset_materialization_failure_disk_floor_and_dependency_union_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_source_materialization_failure_result_review_7a2bdad6_20260712T114713CST
+current_v19_artifact_root_sha256=b7c7cf03df5e115d0ee9830ae034ceb0c9819905012ad8b8ec1a1d9a4cad103f
+next_work_target=user_decision_required_before_v19_nuplan_environment_cleanup_or_disk_expansion_and_runtime_dependency_union_remediation
 
 ## Current V18 Status
 
