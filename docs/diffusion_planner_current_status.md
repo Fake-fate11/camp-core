@@ -135,11 +135,25 @@ Candidate 0 is still only the fixed-DP deterministic/MAP reference, with
 provenance preflight only; it may freeze one non-simulator request and all
 source/config/checkpoint/input/output hashes but may not execute that request.
 
-current_v19_status=v19_nuplan_v12_adapter_and_executable_default_provenance_tdd_result_review_passed
-current_v19_artifact_scope=camp_side_nuplan_v12_adapter_bridge_and_fixed_dp_default_provenance_tdd_only
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_1ed984e1_20260712T164911CST
-current_v19_artifact_root_sha256=c402c9e073a4b57be393e52a592cf81398c2fb2c56dd409c669b5496b377e73f
-next_work_target=v19_nuplan_v12_executable_default_provenance_preflight_only
+That executable-default provenance preflight has passed. It rematerialized only
+the causal fields for frozen train record 0 and matched historical causal SHA
+`4eb497aa771eeb3d60ce5fe9d45381105a6c7e197ef8cf2eb196c99bb99ede28`.
+It froze the fixed DP/checkpoint/config/source hashes, one-shot worker command,
+CUDA availability, and exact response equivalence contract. No candidate
+tensor, expert future, label, holdout, checkpoint load, DP inference,
+closed-loop adapter, simulator, or metric was accessed or executed.
+
+The next gate may execute that exact `default_provenance` request once. It must
+fail closed unless the direct DP-default output and independent zero-latent
+candidate-0 reference are elementwise equal with identical SHA. A passing
+result still establishes only `DP-default deterministic/MAP baseline`, never
+native ranked Top-1.
+
+current_v19_status=v19_nuplan_v12_executable_default_provenance_preflight_passed
+current_v19_artifact_scope=label_free_train_causal_request_and_fixed_dp_default_provenance_command_freeze
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_preflight_16b58672_20260712T165340CST
+current_v19_artifact_root_sha256=ff4f02f7963083c532ad36a047dc50135f4016b14739629807e4cc8c33c5f9e0
+next_work_target=v19_nuplan_v12_executable_default_provenance_execution_only
 
 ## Current V18 Status
 

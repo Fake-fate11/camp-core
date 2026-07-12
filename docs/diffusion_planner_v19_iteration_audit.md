@@ -637,3 +637,58 @@ current_v19_artifact_scope=camp_side_nuplan_v12_adapter_bridge_and_fixed_dp_defa
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_adapter_default_provenance_tdd_1ed984e1_20260712T164911CST
 current_v19_artifact_root_sha256=c402c9e073a4b57be393e52a592cf81398c2fb2c56dd409c669b5496b377e73f
 next_work_target=v19_nuplan_v12_executable_default_provenance_preflight_only
+
+## Executable DP-default Provenance Preflight
+
+The preflight selected the first immutable `train` record from the frozen v18
+causal candidate receipt without reading its candidate tensor or any label:
+
+- record index `0`, log `4d57015cb0245d59`, scene `3becdbe1dd655a34`,
+  decision `d3ce291b9f8b5962`;
+- source manifest SHA256
+  `703a47bec14d9ee4605184618e6bb61b6a4ce4ed73bee4173df508d6a6dfa5e5`;
+- candidate records receipt SHA256
+  `dd44dd428a599f82583fbe4acda25e7fa3b5e86d89fd4488cac56281d73e88bf`.
+
+The read-only nuPlan source materializer emitted only
+`CAUSAL_DP_INPUT_SCHEMA`. Its SHA256
+`4eb497aa771eeb3d60ce5fe9d45381105a6c7e197ef8cf2eb196c99bb99ede28`
+exactly matched both historical source and candidate receipts. The request is
+arm `dp_default`, seed root `3412`, scenario seed `3411`, contains no selector
+hashes and no future/label/outcome/holdout/metric field, and keeps
+`native_ranked_top1=false`.
+
+The future one-shot command is frozen to:
+
+- DP HEAD `7a1d33da277a1992ec474b5383a0c963c72e04e4`;
+- checkpoint SHA256
+  `4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75`;
+- fixed args SHA256
+  `42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa`;
+- selector root/scales/weights SHA256
+  `afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7`,
+  `a4122b0fa56912818af92eacf90449633addf9872966aed975317b4307076952`,
+  and `922ae11db719a2bda983bccf0c6bca842c37a899c4df222a1f7a5ac733285134`;
+- the four previously audited default-path source SHA256 values.
+
+CUDA is available, the checkpoint remained unloaded, worker tests report
+`7 passed`, and the exact output contract requires `[80,4]` direct default,
+independent deterministic reference, and selected trajectories with
+elementwise equality, zero maximum absolute difference, and identical SHA.
+Output SHA values are deliberately not invented in preflight; execution must
+materialize and independent review must recompute them.
+
+The immutable preflight artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_executable_default_provenance_preflight_16b58672_20260712T165340CST`
+- `ff4f02f7963083c532ad36a047dc50135f4016b14739629807e4cc8c33c5f9e0`
+
+No closed-loop adapter, worker `main`, checkpoint load, DP inference,
+simulator, holdout, or safety/ADE/FDE/latency metric ran. Claim taxonomy is
+unchanged, and a future pass still cannot be called native ranked Top-1.
+
+current_v19_status=v19_nuplan_v12_executable_default_provenance_preflight_passed
+current_v19_artifact_scope=label_free_train_causal_request_and_fixed_dp_default_provenance_command_freeze
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_preflight_16b58672_20260712T165340CST
+current_v19_artifact_root_sha256=ff4f02f7963083c532ad36a047dc50135f4016b14739629807e4cc8c33c5f9e0
+next_work_target=v19_nuplan_v12_executable_default_provenance_execution_only
