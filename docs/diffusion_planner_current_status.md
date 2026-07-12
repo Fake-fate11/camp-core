@@ -426,11 +426,19 @@ and rejects invalid point or waypoint metadata. AutoDL passed `47` tests with
 one skip. No CARLA import, simulator, planner, candidate tensor, metric,
 holdout, or outcome call was added; no rung or scenario is frozen.
 
-current_v19_status=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_independent_review_passed
-current_v19_artifact_scope=carla_strict_world_point_to_existing_segment_ref_projection_tdd_no_runtime
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_independent_review_retry_e7b66186_20260713T032505CST
-current_v19_artifact_root_sha256=0ef58adfa6eb084d15ed4d777bd474640381ddfd40598c06d7762782eb244245
-next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_only
+Its static review and independent result review now pass. They freeze two
+preflight requirements: invert the same-tick `agents_from_world_tf` to convert
+immutable ego-frame candidates to CARLA world XY, and prove CARLA z semantics
+without invented z or road projection. All 80 points and DP-default candidate
+0 must be source-complete. The old probe-plan B-first statement is qualified
+by the new A support evidence; the ordered ladder remains A then B then C.
+No candidate tensor, runtime outcome, rung, or scenario was produced or frozen.
+
+current_v19_status=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_independent_review_passed
+current_v19_artifact_scope=carla_strict_projection_coordinate_frame_z_semantics_and_A_first_ladder_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_static_review_independent_review_d659bdf1_20260713T042220CST
+current_v19_artifact_root_sha256=2d922b11619a8b34c519fda2148c252ff8b81c410a2c2be62cd08637942caaec
+next_work_target=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_only
 
 ## Current V18 Status
 

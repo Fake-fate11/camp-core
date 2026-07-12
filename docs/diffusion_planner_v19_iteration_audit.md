@@ -1851,3 +1851,38 @@ current_v19_artifact_scope=carla_strict_world_point_to_existing_segment_ref_proj
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_independent_review_retry_e7b66186_20260713T032505CST
 current_v19_artifact_root_sha256=0ef58adfa6eb084d15ed4d777bd474640381ddfd40598c06d7762782eb244245
 next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_only
+
+## CARLA Strict Candidate Projection Static Review
+
+The read-only static review passed at CAMP HEAD
+`d659bdf19ce1c57f6e98d95e2b10a6302c9c7981`. It verified the sealed TDD
+artifact, official CARLA 0.9.16 strict `get_waypoint` overload, unchanged fixed
+DP worker SHA receipts, dependency-free helper, tracked-clean heads, and disk
+floor. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_static_review_d659bdf1_20260713T042131CST`
+and `b75ba30875fb8e7f1870a6dcda10cd48be2192e4acdd5bd7544fb1a10479c6c0`.
+Independent result review passed at
+`/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_static_review_independent_review_d659bdf1_20260713T042220CST`
+with root `2d922b11619a8b34c519fda2148c252ff8b81c410a2c2be62cd08637942caaec`.
+
+The review identified two mandatory preflight boundaries. Fixed-DP candidates
+are in `ego_base_link`, while the CARLA map API consumes world locations, so
+world XY must be derived only by the inverse of the same-tick
+`agents_from_world_tf`; the immutable K=8 tensor cannot be modified. CARLA z
+semantics must also be proven before a candidate probe, without invented z or
+road projection. Each of all 80 points must resolve strictly or the candidate
+is source-ineligible; candidate 0 must be source-complete.
+
+The dedicated probe plan's statement that A was exhausted and B should run
+first is now historically stale. The independently reviewed `9342` map-level
+A mappings supersede it, so the frozen ladder remains A then B then C, stopping
+at the first independently reviewed legal paired support. This is a
+source-evidence qualification, not an outcome-driven protocol change. No
+candidate tensor, simulator, planner, metric, holdout, outcome, rung, or
+scenario was generated, read, selected, or frozen.
+
+current_v19_status=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_static_review_independent_review_passed
+current_v19_artifact_scope=carla_strict_projection_coordinate_frame_z_semantics_and_A_first_ladder_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_strict_segment_projection_static_review_independent_review_d659bdf1_20260713T042220CST
+current_v19_artifact_root_sha256=2d922b11619a8b34c519fda2148c252ff8b81c410a2c2be62cd08637942caaec
+next_work_target=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_only
