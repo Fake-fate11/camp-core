@@ -1,4 +1,5 @@
 import importlib
+import json
 import math
 from types import SimpleNamespace
 
@@ -239,3 +240,96 @@ def test_official_planner_is_a_non_oracle_detections_tracks_adapter(tmp_path) ->
     assert planner.requires_scenario is False
     assert planner.name() == "DP-default deterministic/MAP baseline"
     assert planner.observation_type() is observation.DetectionsTracks
+
+
+def test_planner_writes_one_immutable_six_segment_tick_receipt(
+    tmp_path, monkeypatch
+) -> None:
+    module = importlib.import_module(
+        "camp_core.integrations.nuplan_closed_loop_adapter"
+    )
+    bridge = importlib.import_module(
+        "camp_core.integrations.diffusion_planner_v19_nuplan_bridge"
+    )
+    selected = np.zeros((80, 4), dtype=np.float32)
+    selected[:, 2] = 1.0
+    metadata = {
+        "pair_run_key": "a" * 64,
+        "run_key": f"{'a' * 64}:dp_default",
+        "causal_input_sha256": "b" * 64,
+    }
+    response = bridge.BridgeMessage(
+        arrays={"selected_trajectory": selected},
+        metadata={
+            "status": "ok",
+            "selected_trajectory_sha256": bridge.array_sha256(selected),
+            "worker_latency_ms": {"dp_inference": 3.0, "atom_selector": 0.0},
+        },
+    )
+    monkeypatch.setattr(
+        module,
+        "materialize_nuplan_planner_input",
+        lambda *_: SimpleNamespace(dp_input={"version": np.array(1)}),
+    )
+    monkeypatch.setattr(module, "build_request_metadata", lambda **_: metadata)
+
+    def write_request(directory, *_):
+        directory.mkdir(parents=True)
+        (directory / "request.json").write_text("{}", encoding="utf-8")
+        (directory / "request.npz").write_bytes(b"request")
+        (directory / "response.json").write_text(
+            '{"response": true}', encoding="utf-8"
+        )
+        (directory / "response.npz").write_bytes(b"response")
+
+    monkeypatch.setattr(module, "write_request", write_request)
+    monkeypatch.setattr(module, "read_response", lambda *_args, **_kwargs: response)
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=0),
+    )
+    monkeypatch.setattr(
+        module, "transform_predictions_to_states", lambda *_args: ["state"]
+    )
+    monkeypatch.setattr(module, "InterpolatedTrajectory", lambda states: states)
+    ticks = iter(range(0, 20_000_000, 1_000_000))
+    monkeypatch.setattr(module.time, "perf_counter_ns", lambda: next(ticks))
+    planner = module.NuPlanCAMPPlanner(
+        arm="dp_default",
+        bridge_root=tmp_path,
+        worker_command=("python", "worker.py"),
+        log_name="log-a",
+        scenario_token="scenario-a",
+        camp_head="a" * 40,
+        dp_head="b" * 40,
+        nuplan_head="c" * 40,
+    )
+    planner.initialize(SimpleNamespace())
+    current = SimpleNamespace(
+        iteration=SimpleNamespace(index=0, time_us=1_000_000),
+        history=SimpleNamespace(ego_states=[SimpleNamespace()]),
+    )
+
+    assert planner.compute_planner_trajectory(current) == ["state"]
+
+    receipt_path = tmp_path / ("a" * 64) / "dp_default" / "000000" / "planning_receipt.json"
+    receipt = json.loads(receipt_path.read_text("utf-8"))
+    assert receipt["arm"] == "dp_default"
+    assert receipt["native_ranked_top1"] is False
+    assert set(receipt["latency_ms"]) == {
+        "causal_conversion",
+        "bridge_write",
+        "dp_inference",
+        "atom_selector",
+        "bridge_read",
+        "total_planning_path",
+    }
+    assert receipt["latency_ms"]["total_planning_path"] >= max(
+        value
+        for name, value in receipt["latency_ms"].items()
+        if name != "total_planning_path"
+    )
+    assert receipt["request_json_sha256"] != receipt["response_json_sha256"]
+    with pytest.raises(FileExistsError, match="receipt"):
+        planner.compute_planner_trajectory(current)

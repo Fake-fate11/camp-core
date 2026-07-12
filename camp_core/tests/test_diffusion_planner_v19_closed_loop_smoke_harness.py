@@ -142,18 +142,47 @@ def test_safety_cost_v1_matches_frozen_formula_and_fails_closed() -> None:
 
 
 def test_execute_arm_retains_history_metrics_bridge_and_no_cross_arm_result(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch,
 ) -> None:
     pair_key = "b" * 64
     history = SimpleNamespace(data=[SimpleNamespace(iteration=SimpleNamespace(index=0))])
-    runner = SimpleNamespace(run=lambda: SimpleNamespace(succeeded=True, error_message=None))
+    arm_root = tmp_path / pair_key / "dp_default"
+
+    def run():
+        tick = arm_root / "000000"
+        tick.mkdir()
+        (tick / "planning_receipt.json").write_text(
+            json.dumps(
+                {
+                    "iteration_index": 0,
+                    "latency_ms": {name: 0.0 for name in smoke.LATENCY_FIELDS},
+                }
+            ),
+            encoding="utf-8",
+        )
+        return SimpleNamespace(succeeded=True, error_message=None)
+
+    runner = SimpleNamespace(run=run)
     simulation = SimpleNamespace(history=history)
     metric_engine = SimpleNamespace(
         compute_metric_results=lambda actual_history, scenario: {
             "metric": [SimpleNamespace(metric_computator="metric", statistics=[])]
         }
     )
-    arm_root = tmp_path / pair_key / "dp_default"
+    monkeypatch.setattr(
+        smoke,
+        "materialize_closed_loop_evidence",
+        lambda _history, _scenario, receipts: {
+            "obb_collision_rate": 0.0,
+            "near_miss_rate": 0.0,
+            "lane_violation_rate": 0.0,
+            "red_light_violation_rate": 0.0,
+            "planned_red_light_violation_rate": 0.0,
+            "mean_jerk_magnitude_mps3": 0.0,
+            "mean_lateral_acceleration_mps2": 0.0,
+            "route_completion_rate": 1.0,
+        },
+    )
 
     result = smoke.execute_arm(
         arm="dp_default",
@@ -164,19 +193,6 @@ def test_execute_arm_retains_history_metrics_bridge_and_no_cross_arm_result(
         runner=runner,
         metric_engine=metric_engine,
         planner_name="DP-default deterministic/MAP baseline",
-        component_materializer=lambda **_: {
-            "safety_components": {
-                "obb_collision_rate": 0.0,
-                "near_miss_rate": 0.0,
-                "lane_violation_rate": 0.0,
-                "red_light_violation_rate": 0.0,
-                "planned_red_light_violation_rate": 0.0,
-                "mean_jerk_magnitude_mps3": 0.0,
-                "mean_lateral_acceleration_mps2": 0.0,
-                "route_completion_rate": 1.0,
-            },
-            "latency_ms": {name: 0.0 for name in smoke.LATENCY_FIELDS},
-        },
     )
 
     assert result["arm"] == "dp_default"
@@ -200,7 +216,6 @@ def test_execute_arm_retains_history_metrics_bridge_and_no_cross_arm_result(
             runner=runner,
             metric_engine=metric_engine,
             planner_name="CAMP fixed-DP K=8 selector",
-            component_materializer=lambda **_: {},
         )
 
 
@@ -221,7 +236,6 @@ def test_execute_arm_preserves_failure_evidence(tmp_path: Path) -> None:
             runner=runner,
             metric_engine=SimpleNamespace(),
             planner_name="CAMP fixed-DP K=8 selector",
-            component_materializer=lambda **_: {},
         )
 
     failure = json.loads((arm_root / "failure.json").read_text("utf-8"))

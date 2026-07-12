@@ -5,7 +5,7 @@ import dataclasses
 import enum
 import json
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +13,9 @@ import numpy as np
 
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
     paired_run_key,
+)
+from camp_core.integrations.nuplan_closed_loop_evidence import (
+    materialize_closed_loop_evidence,
 )
 
 
@@ -270,7 +273,6 @@ def execute_arm(
     runner: Any,
     metric_engine: Any,
     planner_name: str,
-    component_materializer: Callable[..., Mapping[str, Any]],
 ) -> dict[str, Any]:
     """Run one arm and retain its history, metrics, bridge, and result evidence."""
     if arm not in _ARMS:
@@ -294,16 +296,16 @@ def execute_arm(
         _write_json(root / "history.json", history_payload)
         _write_json(root / "official_metrics.json", metric_payload)
 
-        materialized = dict(
-            component_materializer(
-                history=history,
-                scenario=scenario,
-                official_metrics=metrics,
-                arm_root=root,
-            )
+        receipt_paths = sorted(root.rglob("planning_receipt.json"))
+        if not receipt_paths:
+            raise ValueError("planning receipt evidence is missing")
+        receipts = [
+            json.loads(path.read_text(encoding="utf-8")) for path in receipt_paths
+        ]
+        components = dict(
+            materialize_closed_loop_evidence(history, scenario, receipts)
         )
-        components = dict(materialized.get("safety_components", {}))
-        latency = _validate_latency(materialized.get("latency_ms"))
+        latency = _mean_latency(receipts)
         cost = compute_safety_cost_v1(components)
         result = {
             "schema_version": "dp_camp_v19_closed_loop_smoke_arm_result_v1",
@@ -342,6 +344,14 @@ def _validate_latency(value: Any) -> dict[str, float]:
     if not all(math.isfinite(item) and item >= 0.0 for item in latency.values()):
         raise ValueError("latency evidence must be finite and nonnegative")
     return latency
+
+
+def _mean_latency(receipts: Sequence[Mapping[str, Any]]) -> dict[str, float]:
+    values = [_validate_latency(receipt.get("latency_ms")) for receipt in receipts]
+    return {
+        name: float(np.mean([item[name] for item in values]))
+        for name in LATENCY_FIELDS
+    }
 
 
 def _history_payload(history: Any) -> dict[str, Any]:

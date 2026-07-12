@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 import subprocess
+import time
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -122,9 +126,12 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
             raise RuntimeError("planner must be initialized before compute")
         if transform_predictions_to_states is None or InterpolatedTrajectory is None:
             raise RuntimeError("official nuPlan v1.2 runtime is unavailable")
+        total_start = time.perf_counter_ns()
+        causal_start = time.perf_counter_ns()
         materialized = materialize_nuplan_planner_input(
             current_input, self._initialization
         )
+        causal_ms = (time.perf_counter_ns() - causal_start) / 1e6
         iteration = int(current_input.iteration.index)
         simulation_time_us = getattr(current_input.iteration, "time_us", None)
         if simulation_time_us is None:
@@ -150,7 +157,12 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
             / self._arm
             / f"{iteration:06d}"
         )
+        receipt_path = tick_dir / "planning_receipt.json"
+        if receipt_path.exists():
+            raise FileExistsError("planning receipt already exists")
+        write_start = time.perf_counter_ns()
         write_request(tick_dir, materialized.dp_input, metadata)
+        write_ms = (time.perf_counter_ns() - write_start) / 1e6
         completed = subprocess.run(
             [*self._worker_command, "--request-dir", str(tick_dir)],
             check=False,
@@ -158,11 +170,13 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
         )
         if completed.returncode != 0:
             raise RuntimeError(f"fixed-DP worker exited {completed.returncode}")
+        read_start = time.perf_counter_ns()
         response = read_response(
             tick_dir,
             expected_run_key=str(metadata["run_key"]),
             expected_iteration_index=iteration,
         )
+        read_ms = (time.perf_counter_ns() - read_start) / 1e6
         if response.metadata["status"] != "ok":
             raise RuntimeError(
                 f"fixed-DP/CAMP planning failed: "
@@ -177,4 +191,62 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
             8.0,
             0.1,
         )
-        return InterpolatedTrajectory(states)
+        trajectory = InterpolatedTrajectory(states)
+        worker_latency = response.metadata.get("worker_latency_ms", {})
+        latency = {
+            "causal_conversion": causal_ms,
+            "bridge_write": write_ms,
+            "dp_inference": float(worker_latency["dp_inference"]),
+            "atom_selector": float(worker_latency["atom_selector"]),
+            "bridge_read": read_ms,
+            "total_planning_path": (time.perf_counter_ns() - total_start) / 1e6,
+        }
+        if latency["total_planning_path"] < max(
+            value
+            for name, value in latency.items()
+            if name != "total_planning_path"
+        ):
+            raise RuntimeError("total planning-path latency is inconsistent")
+        _write_receipt(
+            receipt_path,
+            {
+                "schema_version": "dp_camp_v19_nuplan_planning_receipt_v1",
+                "pair_run_key": metadata["pair_run_key"],
+                "run_key": metadata["run_key"],
+                "arm": self._arm,
+                "iteration_index": iteration,
+                "simulation_time_us": simulation_time_us,
+                "causal_input_sha256": metadata["causal_input_sha256"],
+                "request_json_sha256": _sha256(tick_dir / "request.json"),
+                "request_npz_sha256": _sha256(tick_dir / "request.npz"),
+                "response_json_sha256": _sha256(tick_dir / "response.json"),
+                "response_npz_sha256": _sha256(tick_dir / "response.npz"),
+                "selected_trajectory_sha256": response.metadata[
+                    "selected_trajectory_sha256"
+                ],
+                "selected_planned_red_light_cost": response.metadata.get(
+                    "selected_planned_red_light_cost"
+                ),
+                "planned_red_source": response.metadata.get("planned_red_source"),
+                "worker_exit_code": completed.returncode,
+                "latency_ms": latency,
+                "native_ranked_top1": False,
+            },
+        )
+        return trajectory
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_receipt(path: Path, receipt: dict[str, Any]) -> None:
+    if path.exists():
+        raise FileExistsError("planning receipt already exists")
+    temporary = path.with_suffix(".json.tmp")
+    with temporary.open("x", encoding="utf-8", newline="\n") as stream:
+        json.dump(receipt, stream, indent=2, sort_keys=True, allow_nan=False)
+        stream.write("\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    temporary.replace(path)
