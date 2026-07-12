@@ -867,3 +867,50 @@ current_v19_artifact_scope=camp_side_two_arm_smoke_harness_contract_tdd_validate
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_result_review_8dd926fd_20260712T171453CST
 current_v19_artifact_root_sha256=2d9cadaf251eee87de91428ba5150533af08fb3826554da429af37d489ee9ac7
 next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_only
+
+## Closed-loop Smoke Execution Preflight
+
+The execution preflight passed its bounded purpose at CAMP/GitHub/AutoDL
+`0042c79ce886dd03ef1447a0215fc025abdeb79e`. Fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, and official nuPlan
+source remained tracked-clean at
+`ce3c323af01c0d7ec5672f7832ef53f9c679aab0`.
+
+The preflight independently constructed four scenario/simulation objects: a
+fresh `NuPlanScenario` and `Simulation` for each DP-default/CAMP arm of both
+frozen scenarios. Every object had a mission goal, a nonempty route, at least
+161 iterations, `StepSimulationTimeController`, `TracksObservation`,
+`PerfectTrackingController`, and a 3.0-second history buffer. No object was
+initialized or run.
+
+The official `closed_loop_nonreactive_agents` metric YAML and exact source
+hashes were captured. A 15-metric `MetricsEngine` using the official thresholds
+for lane change, jerk, lateral/longitudinal acceleration, longitudinal jerk,
+yaw acceleration/rate, expert-route progress, collision, TTC, drivable area,
+speed limit, comfort, making progress, and driving direction constructed
+successfully. The fixed executable-provenance command was converted to a
+shell-free per-tick `plan_tick` argument list by removing only the frozen
+request directory and changing only the operation. It was not executed.
+
+The immutable preflight artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_0042c79c_20260712T171917CST`
+- `350076df70f12364531b0494d63a5e089d570a124a3b4c03f7e1a29a8c125822`
+
+Free bytes were `15077511168`, above the 10 GiB floor. No planner initialize or
+compute, worker, simulator runner, metric compute, or holdout access occurred.
+
+The preflight correctly records `execution_ready=false`. Official nuPlan v1.2
+has no red-light metric. The current bridge also lacks matched DP-default
+planned-red evidence, exact run-rate materializers for TTC/lane/progress/
+dynamics, and all six frozen latency receipts. These fields may not be replaced
+with convenient official booleans or other proxies. Closing them requires a
+new pre-execution evaluation contract and CAMP-side TDD; it does not authorize
+changing fixed DP, candidate tensors, SafetyCost weights/formula, or the
+baseline name.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_execution_preflight_passed_execution_not_ready
+current_v19_artifact_scope=four_independent_official_scenario_simulation_and_metric_engine_construction_with_safety_component_latency_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_0042c79c_20260712T171917CST
+current_v19_artifact_root_sha256=350076df70f12364531b0494d63a5e089d570a124a3b4c03f7e1a29a8c125822
+next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_contract_design_only

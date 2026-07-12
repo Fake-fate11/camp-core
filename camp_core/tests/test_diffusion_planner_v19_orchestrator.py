@@ -72,9 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_nuplan_v12_closed_loop_smoke_harness_tdd_and_independent_review_"
+        "v19_nuplan_v12_closed_loop_smoke_execution_preflight_"
         "passed_execution_not_ready"
     )
     assert pointer["next_work_target"] == (
-        "v19_nuplan_v12_closed_loop_smoke_execution_preflight_only"
+        "v19_nuplan_v12_closed_loop_safety_component_and_latency_contract_"
+        "design_only"
     )

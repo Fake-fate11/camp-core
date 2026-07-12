@@ -193,18 +193,23 @@ structured failure record in place. The official nuPlan Python 3.9 suite
 reported `29 passed, 1 skipped`; the fixed-DP Python 3.12 suite reported
 `13 passed`.
 
-The validation-only command produced four paired plan rows and did not
-instantiate a scenario, call a planner/worker, run a simulator/metric, or
-access a holdout. Execution remains fail-closed until the exact runtime
-arguments, selected-scenario construction, official metric builders,
-SafetyCost component materializer, planned-red evidence, and latency receipts
-pass a separate preflight.
+The execution preflight then constructed four independent official scenario and
+simulation objects, one per paired arm, plus the official 15-metric
+nonreactive engine and exact fixed-DP `plan_tick` argument list. It did not
+initialize a planner or run a worker, simulator, or metric.
 
-current_v19_status=v19_nuplan_v12_closed_loop_smoke_harness_tdd_and_independent_review_passed_execution_not_ready
-current_v19_artifact_scope=camp_side_two_arm_smoke_harness_contract_tdd_validate_only_and_independent_result_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_result_review_8dd926fd_20260712T171453CST
-current_v19_artifact_root_sha256=2d9cadaf251eee87de91428ba5150533af08fb3826554da429af37d489ee9ac7
-next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_only
+Execution remains fail-closed. Official nuPlan v1.2 has no red-light metric;
+the current bridge has no matched DP-default planned-red receipt; exact
+SafetyCost run-rate extractors for TTC/lane/progress/dynamics are not yet
+frozen; and the adapter/worker do not emit all six latency receipts. Proxy
+substitution is forbidden. The next gate is design-only for those missing
+evaluation contracts.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_execution_preflight_passed_execution_not_ready
+current_v19_artifact_scope=four_independent_official_scenario_simulation_and_metric_engine_construction_with_safety_component_latency_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_0042c79c_20260712T171917CST
+current_v19_artifact_root_sha256=350076df70f12364531b0494d63a5e089d570a124a3b4c03f7e1a29a8c125822
+next_work_target=v19_nuplan_v12_closed_loop_safety_component_and_latency_contract_design_only
 
 ## Current V18 Status
 
