@@ -6,8 +6,10 @@ from camp_core.integrations.carla_exact_speed_source import (
     RUNG_ACTOR_LANDMARK,
     RUNG_EXPLICIT_NON_JUNCTION,
     RUNG_TOPOLOGY_DERIVED_JUNCTION,
+    LandmarkSpeedSource,
     SegmentRef,
     candidate_source_mask,
+    resolve_landmark_segment_speed,
     parse_opendrive_speed_index,
     resolve_segment_speed,
 )
@@ -144,3 +146,38 @@ def test_candidate_mask_is_all_segment_conjunction() -> None:
     assert rejected.eligible is False
     assert rejected.reason == "segment_1:junction_not_allowed_by_rung_b"
     assert rejected.speed_mps == ()
+
+
+def test_landmark_mapping_uses_unique_same_road_lane_predecessor_only() -> None:
+    segment = SegmentRef("1", 0, 2, 20.0, False)
+    landmarks = (
+        LandmarkSpeedSource("sign-a", "1", 10.0, 1, 3, 30.0, "mph"),
+        LandmarkSpeedSource("sign-b", "1", 30.0, 1, 3, 60.0, "mph"),
+        LandmarkSpeedSource("other-road", "2", 15.0, 1, 3, 90.0, "mph"),
+    )
+
+    decision = resolve_landmark_segment_speed(segment, landmarks)
+
+    assert decision.eligible is True
+    assert math.isclose(decision.speed_mps, 30.0 * 0.44704)
+    assert decision.reason == "actor_landmark_exact_speed"
+
+
+def test_landmark_mapping_rejects_missing_lane_and_duplicate_latest_source() -> None:
+    segment = SegmentRef("1", 0, -1, 20.0, False)
+    wrong_lane = (
+        LandmarkSpeedSource("sign-a", "1", 10.0, 1, 3, 30.0, "mph"),
+    )
+    duplicate = (
+        LandmarkSpeedSource("sign-a", "1", 10.0, -3, -1, 30.0, "mph"),
+        LandmarkSpeedSource("sign-b", "1", 10.0, -3, -1, 30.0, "mph"),
+    )
+
+    assert (
+        resolve_landmark_segment_speed(segment, wrong_lane).reason
+        == "actor_landmark_mapping_missing"
+    )
+    assert (
+        resolve_landmark_segment_speed(segment, duplicate).reason
+        == "actor_landmark_mapping_not_unique"
+    )

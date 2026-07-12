@@ -62,6 +62,17 @@ class CandidateSourceDecision:
     reason: str
 
 
+@dataclass(frozen=True)
+class LandmarkSpeedSource:
+    landmark_id: str
+    road_id: str
+    s: float
+    from_lane: int
+    to_lane: int
+    value: float
+    unit: str
+
+
 def _speed_mps(raw: str, unit: str) -> float:
     value = float(raw)
     factors = {"m/s": 1.0, "mph": 0.44704, "km/h": 1.0 / 3.6}
@@ -137,6 +148,32 @@ def parse_opendrive_speed_index(xml_text: str) -> OpenDriveSpeedIndex:
 
 def _reject(reason: str) -> SegmentSpeedDecision:
     return SegmentSpeedDecision(False, None, reason)
+
+
+def resolve_landmark_segment_speed(
+    segment: SegmentRef,
+    landmarks: Sequence[LandmarkSpeedSource],
+) -> SegmentSpeedDecision:
+    candidates = [
+        source
+        for source in landmarks
+        if source.road_id == segment.road_id
+        and min(source.from_lane, source.to_lane)
+        <= segment.lane_id
+        <= max(source.from_lane, source.to_lane)
+        and source.s <= segment.s
+    ]
+    if not candidates:
+        return _reject("actor_landmark_mapping_missing")
+    latest_s = max(source.s for source in candidates)
+    latest = [source for source in candidates if source.s == latest_s]
+    if len(latest) != 1:
+        return _reject("actor_landmark_mapping_not_unique")
+    try:
+        speed = _speed_mps(str(latest[0].value), latest[0].unit)
+    except (TypeError, ValueError):
+        return _reject("actor_landmark_speed_not_finite_positive")
+    return SegmentSpeedDecision(True, speed, "actor_landmark_exact_speed")
 
 
 def _explicit_speed(road: RoadInfo, s: float) -> Optional[float]:
