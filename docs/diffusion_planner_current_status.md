@@ -226,14 +226,24 @@ selector artifacts, baseline naming, and claim boundaries remain unchanged.
 The separated AutoDL suites reported `78 passed, 2 skipped` in the official
 nuPlan environment and `15 passed` in the fixed-DP environment. Tests used
 fake inference/runner boundaries only. No real checkpoint worker, planner,
-simulator, metric, or holdout ran. Execution remains not ready until a fresh
-preflight validates the real selected-scenario source and receipt path.
+simulator, metric, or holdout ran.
 
-current_v19_status=v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_independent_review_passed_execution_not_ready
-current_v19_artifact_scope=causal_history_safetycost_component_planned_red_and_six_latency_receipt_tdd_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_result_review_abf8415e_20260712T181211CST
-current_v19_artifact_root_sha256=aaac385112ffc2c16f991c0d28521c5b9884de42b3b9a9d6368f36b77a5424f8
-next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_only
+The bounded real-source execution-preflight retry then failed closed. Its
+first retained attempt omitted the official current-frame append; independent
+source review proved that `Simulation.initialize()` is the required source and
+that the adapter's exact decision-tick check is correct. The corrected attempt
+reached the frozen route source, where all 50 selected route slots across the
+two frozen Singapore scenarios had `speed_limit_mps=None`. This agrees with
+the v18 inventory (`0/2001` Singapore roadblocks with complete speed sources).
+No fallback is allowed, and replacing the frozen scenario selection changes a
+frozen protocol input. No third preflight, planner compute, worker, simulator,
+metric, or holdout access occurred.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_failed_missing_frozen_route_speed_source_user_decision_required
+current_v19_artifact_scope=two_selected_singapore_scenarios_50_of_50_route_speed_sources_missing_fail_closed_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_failure_review_c6fdc9f3_20260712T182110CST
+current_v19_artifact_root_sha256=e64031e0ff0a0f2ed5fa9084cd2fea66a276e1e850c813f4742371e54f1104d1
+next_work_target=user_decision_required_before_replacing_frozen_v19_closed_loop_smoke_scenario_selection_for_real_route_speed_sources
 
 ## Current V18 Status
 

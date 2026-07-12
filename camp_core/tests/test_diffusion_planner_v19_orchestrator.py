@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_nuplan_v12_closed_loop_safety_component_and_latency_tdd_"
-        "independent_review_"
-        "passed_execution_not_ready"
+        "v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_failed_"
+        "missing_frozen_route_speed_source_user_decision_required"
     )
     assert pointer["next_work_target"] == (
-        "v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_only"
+        "user_decision_required_before_replacing_frozen_v19_closed_loop_smoke_"
+        "scenario_selection_for_real_route_speed_sources"
     )

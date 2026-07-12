@@ -1056,3 +1056,59 @@ current_v19_artifact_scope=causal_history_safetycost_component_planned_red_and_s
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_safety_component_latency_tdd_result_review_abf8415e_20260712T181211CST
 current_v19_artifact_root_sha256=aaac385112ffc2c16f991c0d28521c5b9884de42b3b9a9d6368f36b77a5424f8
 next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_only
+
+## Closed-loop Smoke Execution Preflight Retry Failure Review
+
+The bounded retry failed closed before any planner compute. The first retained
+attempt called `SimulationHistoryBuffer.initialize_from_scenario` directly and
+therefore omitted the current frame that official nuPlan appends inside
+`Simulation.initialize()`. The causal adapter correctly rejected that input
+because its history did not end at the decision tick. The completed failure
+artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_c6fdc9f3_20260712T181427CST`
+- `adc8a7ad206ca538ea25b718f1f075edb5f4ab571fd70933a0fd243afde3de54`
+
+Official source inspection and a two-scenario timestamp probe established the
+root cause without changing the adapter. The corrected retry used exactly
+`Simulation.initialize()` and `Simulation.get_planner_input()`. It passed the
+decision-tick history boundary, then failed at the next mandatory causal source:
+`route speed_limit_mps is required`. Its retained artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_c6fdc9f3_20260712T181943CST`
+- `b9ee87967a7e1aa299ebc6ceaee57b9304bfb00f15b98e71d378b254afc738f4`
+
+An independent read-only review reconstructed both frozen route paths from the
+official map API. All `50/50` selected route slots across the normal and
+interaction scenarios had `speed_limit_mps=None`, including lane and lane
+connector objects and their incoming/outgoing edges. This matches the v18
+source inventory: Singapore has `0/2001` map roadblocks with complete speed
+sources. Zero, current-speed, statutory-default, and `100 m/s` fallbacks remain
+forbidden. The review artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_failure_review_c6fdc9f3_20260712T182110CST`
+- `e64031e0ff0a0f2ed5fa9084cd2fea66a276e1e850c813f4742371e54f1104d1`
+
+Continuing requires replacing the already frozen two-scenario selection with
+speed-complete existing-data scenarios and repeating zero-overlap plus freeze
+gates. That changes a frozen protocol input and is outside routine harness
+remediation, so no third preflight was started. No DP/candidate mutation,
+planner compute, worker execution, simulator run, metric compute, old holdout
+access, or claim occurred.
+
+The scientific taxonomy remains unchanged:
+
+1. `performance_claim=no_claim`;
+2. `bounded_offline_safety_proxy_improvement=supported` within the frozen
+   observable source;
+3. `closed_loop_safety_claim=not_yet_supported`;
+4. `broad_CAMP_over_native_DP_Top1_claim=not_supported`.
+
+Candidate 0 remains the `DP-default deterministic/MAP baseline`, with
+`native_ranked_top1=false`.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_execution_preflight_retry_failed_missing_frozen_route_speed_source_user_decision_required
+current_v19_artifact_scope=two_selected_singapore_scenarios_50_of_50_route_speed_sources_missing_fail_closed_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_execution_preflight_retry_failure_review_c6fdc9f3_20260712T182110CST
+current_v19_artifact_root_sha256=e64031e0ff0a0f2ed5fa9084cd2fea66a276e1e850c813f4742371e54f1104d1
+next_work_target=user_decision_required_before_replacing_frozen_v19_closed_loop_smoke_scenario_selection_for_real_route_speed_sources
