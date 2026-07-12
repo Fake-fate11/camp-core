@@ -1711,3 +1711,38 @@ current_v19_artifact_scope=carla_runtime_snapshot_history_collector_python39_tdd
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_snapshot_collector_independent_review_5e887d4608_20260713T004620CST
 current_v19_artifact_root_sha256=d894f575f136e1cc87b984a09f2ad01edfb90b1e58243ba92a5f87a211075b45
 next_work_target=v19_carla_isolated_client_materialization_execution_and_import_review_only
+
+## CARLA Isolated Client Materialization And A-Source Qualification
+
+The official cp312 wheel was extracted once to
+`/root/autodl-tmp/camp_v19_carla_client.tmp`, imported with Python 3.12, checked
+with an offline Town01 `carla.Map`, and atomically renamed to the final client
+root. The target contains the expected 18 members and client manifest root
+`ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e`;
+free space remains above the 10 GiB floor. A first execution precheck failed
+before extraction because of an incorrect expected full HEAD receipt; its
+actual retained evidence root is
+`/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_25d8dd8e0a_20260713T004732CST.tmp`.
+
+The successful materialization artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_retry_25d8dd8e71_20260713T004811CST`
+and `421a2490281cf90c43031ce642713fdddeabe6b7017f143f1f5b802d5a3d49d5`.
+Independent review validated the client manifest, final import, absent client
+staging root, retained failed evidence, and an offline full-map source census.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_independent_review_25d8dd8e71_20260713T004910CST`
+and `9fed6265a50b7336702f15fdbe68996f7d9ae51da42a85e2db36ddc32081cfe3`.
+
+The official offline CARLA map parser exposes 153 type-274 landmarks:
+Town01/02/03/04/05/06/07/Town10HD counts are `22/21/6/53/18/0/33/0`.
+Town01 has one duplicate `(road_id,s)` key. This source-only evidence qualifies
+the earlier A=0 statement, which inspected only raw OpenDRIVE signal elements.
+A is not exhausted and is not yet selected; exact candidate-route uniqueness
+and coverage remain mandatory. No simulator, planner, metric, holdout, or
+outcome call occurred.
+
+current_v19_status=v19_carla_isolated_client_materialization_review_passed_A_landmark_source_reopened
+current_v19_artifact_scope=carla_cp312_client_atomic_publish_import_review_and_offline_type274_census
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_independent_review_25d8dd8e71_20260713T004910CST
+current_v19_artifact_root_sha256=9fed6265a50b7336702f15fdbe68996f7d9ae51da42a85e2db36ddc32081cfe3
+next_work_target=v19_carla_type274_landmark_segment_mapping_tdd_and_candidate_route_probe_preflight_only

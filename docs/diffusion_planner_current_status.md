@@ -394,11 +394,20 @@ only contiguous actor history, orders actors deterministically by current
 distance and track ID, and converts actor state to the decision-time ego
 frame. It imports no CARLA package and reads no route, outcome, or metric.
 
-current_v19_status=v19_carla_runtime_snapshot_collector_tdd_independent_review_passed
-current_v19_artifact_scope=carla_runtime_snapshot_history_collector_python39_tdd_no_runtime
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_runtime_snapshot_collector_independent_review_5e887d4608_20260713T004620CST
-current_v19_artifact_root_sha256=d894f575f136e1cc87b984a09f2ad01edfb90b1e58243ba92a5f87a211075b45
-next_work_target=v19_carla_isolated_client_materialization_execution_and_import_review_only
+The official cp312 client was safely extracted through one staging root,
+import-tested, checked with offline `carla.Map`, and atomically published. Its
+client manifest root is
+`ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e`.
+Independent review found 153 official type-274 landmarks across the eight main
+Towns, so the earlier A=0 conclusion is qualified: raw XML signal-only parsing
+missed landmarks exposed by the official map parser. A is not selected; it is
+reopened for unique candidate-segment mapping census.
+
+current_v19_status=v19_carla_isolated_client_materialization_review_passed_A_landmark_source_reopened
+current_v19_artifact_scope=carla_cp312_client_atomic_publish_import_review_and_offline_type274_census
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_isolated_client_materialization_independent_review_25d8dd8e71_20260713T004910CST
+current_v19_artifact_root_sha256=9fed6265a50b7336702f15fdbe68996f7d9ae51da42a85e2db36ddc32081cfe3
+next_work_target=v19_carla_type274_landmark_segment_mapping_tdd_and_candidate_route_probe_preflight_only
 
 ## Current V18 Status
 
