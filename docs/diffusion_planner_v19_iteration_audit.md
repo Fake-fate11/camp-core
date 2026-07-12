@@ -1387,3 +1387,32 @@ current_v19_artifact_scope=carla_download_passed_extraction_preflight_harness_th
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_preflight_final_e97264189f_20260712T233025CST
 current_v19_artifact_root_sha256=3d478f63c7e4699d63642554b5c9a1645d5c4e66b186f45d647adc295591d757
 next_work_target=user_decision_required_before_v19_carla_extraction_preflight_harness_consolidation_retry
+
+## Unified Python 3.9 Extraction Preflight Remediation
+
+The user authorized replacing the three temporary wrappers with one checked-in
+Python 3.9 standard-library harness. The root cause was the split shell/Python
+trust boundary: bare `python3`, missing `ss`, and a Python 3.10-only platform
+API. Target tests reproduced PATH independence and diagnostic failure output
+before the minimal implementation. Local and AutoDL Python 3.9 suites passed.
+
+The unified gate ran exactly once without rescanning or modifying the archive.
+All 16 checks passed with empty `failed_checks`: frozen archive and inventory
+SHA/size, `32857` members, `31437` regular files, `20272275914` extracted
+bytes, zero unsafe paths, required launcher/PythonAPI/maps, response headers,
+disk floor, ports/processes, absent extraction root, Ubuntu 22.04, and GPU.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_unified_extraction_preflight_0ee305ec7f_20260712T234106CST`
+and `7164a02568addc268492a8890d427a31cb59d4aa02bdb5482abd18f66e96df8d`.
+
+Independent review rehashed the archive and inventory, verified the source
+manifest/root, recomputed disk headroom, and confirmed zero execution calls.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_unified_extraction_preflight_independent_review_0ee305ec7f_20260712T234148CST`
+and `eefe8f094f44cd585c78d304ee413a66eacff31db48ba6d5f758b8605662e2bf`.
+
+current_v19_status=v19_carla_unified_extraction_preflight_independent_review_passed
+current_v19_artifact_scope=carla_unified_python39_extraction_preflight_read_only_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_unified_extraction_preflight_independent_review_0ee305ec7f_20260712T234148CST
+current_v19_artifact_root_sha256=eefe8f094f44cd585c78d304ee413a66eacff31db48ba6d5f758b8605662e2bf
+next_work_target=v19_carla_extraction_execution_preflight_only

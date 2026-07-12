@@ -307,11 +307,24 @@ simulator ran. A fourth retry requires consolidating the wrapper into one
 checked-in, tested Python 3.9-compatible preflight rather than another shell
 patch.
 
-current_v19_status=v19_carla_download_review_passed_extraction_preflight_harness_failed_three_attempts_user_decision_required
-current_v19_artifact_scope=carla_download_passed_extraction_preflight_harness_three_failures_no_extraction
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_extraction_preflight_final_e97264189f_20260712T233025CST
-current_v19_artifact_root_sha256=3d478f63c7e4699d63642554b5c9a1645d5c4e66b186f45d647adc295591d757
-next_work_target=user_decision_required_before_v19_carla_extraction_preflight_harness_consolidation_retry
+The approved remediation replaced three temporary wrappers with one checked-in
+Python 3.9 standard-library harness. Tests prove it runs with an empty PATH,
+does not require `python3` or `ss`, and writes explicit failed checks/reasons
+instead of an assertion-only failure. AutoDL Python 3.9 passed all focused
+tests before the exactly-once unified preflight.
+
+The unified preflight and independent review both passed. Archive size/SHA,
+download headers, `32857` members, `31437` regular files,
+`20272275914` extracted bytes, zero unsafe paths, required runtime files,
+Ubuntu/GPU, free ports/processes, absent target root, and the 10 GiB floor were
+verified. Independent projected free space is `48698392118` bytes. No archive
+rescan, download, extraction, simulator, metric, or holdout access occurred.
+
+current_v19_status=v19_carla_unified_extraction_preflight_independent_review_passed
+current_v19_artifact_scope=carla_unified_python39_extraction_preflight_read_only_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_unified_extraction_preflight_independent_review_0ee305ec7f_20260712T234148CST
+current_v19_artifact_root_sha256=eefe8f094f44cd585c78d304ee413a66eacff31db48ba6d5f758b8605662e2bf
+next_work_target=v19_carla_extraction_execution_preflight_only
 
 ## Current V18 Status
 

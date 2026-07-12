@@ -72,10 +72,8 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_download_review_passed_extraction_preflight_harness_"
-        "failed_three_attempts_user_decision_required"
+        "v19_carla_unified_extraction_preflight_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "user_decision_required_before_v19_carla_extraction_preflight_"
-        "harness_consolidation_retry"
+        "v19_carla_extraction_execution_preflight_only"
     )
