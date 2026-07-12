@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import sys
+import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -67,10 +68,13 @@ def process_request(
         "arm": arm,
         "run_key": request.metadata["run_key"],
         "iteration_index": request.metadata["iteration_index"],
+        "operation": operation,
         "native_ranked_top1": False,
     }
     if arm == "dp_default":
+        inference_start = time.perf_counter_ns()
         default, _ = run_fixed_dp_default(infer_one)
+        inference_ms = (time.perf_counter_ns() - inference_start) / 1e6
         if operation == "default_provenance":
             reference, _ = run_fixed_dp_default(infer_one)
             evidence = verify_default_equivalence(default, reference)
@@ -81,7 +85,22 @@ def process_request(
             }
             response_metadata.update(evidence)
         else:
+            if planned_red_cost is None:
+                raise ValueError("DP-default plan_tick requires planned-red evidence")
+            red_cost = _planned_red_cost(
+                planned_red_cost(default[None, ...], request.arrays), 1
+            )
             arrays = {"selected_trajectory": default}
+            response_metadata.update(
+                {
+                    "selected_planned_red_light_cost": float(red_cost[0]),
+                    "planned_red_source": "fixed_dp_red_cost_v18",
+                    "worker_latency_ms": {
+                        "dp_inference": inference_ms,
+                        "atom_selector": 0.0,
+                    },
+                }
+            )
         response_metadata.update(
             {
                 "status": "ok",
@@ -97,17 +116,20 @@ def process_request(
         for value in (atom_scales, weights, planned_red_cost, signal_mask, materialize)
     ):
         raise ValueError("CAMP plan_tick dependencies are incomplete")
+    inference_start = time.perf_counter_ns()
     candidates, neighbor_predictions = run_fixed_dp_candidates(
         infer_one,
         np.random.default_rng(int(request.metadata["tick_seed"])),
         noise_scale=1.0,
     )
+    inference_ms = (time.perf_counter_ns() - inference_start) / 1e6
+    selector_start = time.perf_counter_ns()
     raw_neighbors = request.arrays["neighbor_agents_past"]
     neighbor_valid = np.any(np.abs(raw_neighbors) > 1e-8, axis=(1, 2))
     signals = np.asarray(
         signal_mask(candidates, request.arrays["route_lanes"]), dtype=bool
     )
-    red_cost = np.asarray(planned_red_cost(candidates, request.arrays), dtype=np.float64)
+    red_cost = _planned_red_cost(planned_red_cost(candidates, request.arrays), 8)
     materialized = materialize(
         candidates=candidates,
         causal_input=request.arrays,
@@ -129,15 +151,27 @@ def process_request(
             "candidate_sha256_before": selection["candidate_sha256_before"],
             "candidate_sha256_after": selection["candidate_sha256_after"],
             "candidate_reasons": selection["candidate_reasons"],
+            "planned_red_source": "fixed_dp_red_cost_v18",
+            "worker_latency_ms": {
+                "dp_inference": inference_ms,
+                "atom_selector": (time.perf_counter_ns() - selector_start) / 1e6,
+            },
         }
     )
     physical = np.asarray(selection["physical_feasible_mask"], dtype=bool)
-    arrays = {"candidates": candidates, "physical_feasible_mask": physical}
+    arrays = {
+        "candidates": candidates,
+        "physical_feasible_mask": physical,
+        "planned_red_light_cost": red_cost,
+    }
     if selection["status"] == "failed":
         response_metadata["failure_reason"] = selection["failure_reason"]
     else:
         selected = np.asarray(selection["selected_trajectory"], dtype=np.float32)
         response_metadata["selected_trajectory_sha256"] = array_sha256(selected)
+        response_metadata["selected_planned_red_light_cost"] = float(
+            red_cost[int(selection["selected_index"])]
+        )
         arrays.update(
             {
                 "neighbor_predictions": neighbor_predictions,
@@ -149,6 +183,13 @@ def process_request(
             }
         )
     write_response(directory, arrays, response_metadata)
+
+
+def _planned_red_cost(value: Any, count: int) -> np.ndarray:
+    costs = np.asarray(value, dtype=np.float64)
+    if costs.shape != (count,) or not np.isfinite(costs).all() or np.any(costs < 0.0):
+        raise ValueError(f"planned-red cost must be finite nonnegative [{count}]")
+    return costs
 
 
 def run_fixed_dp_default(
@@ -429,6 +470,9 @@ def main(argv: list[str] | None = None) -> int:
             args.request_dir,
             operation=args.operation,
             infer_one=infer_one,
+            planned_red_cost=lambda candidates, causal: _fixed_dp_red_cost(
+                candidates, causal, args.dp_repo, 0.1
+            ),
         )
     return 0
 

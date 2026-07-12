@@ -138,6 +138,47 @@ def test_response_rejects_hash_or_shape_mismatch(tmp_path: Path) -> None:
         )
 
 
+def test_plan_tick_response_requires_planned_red_and_worker_latency(
+    tmp_path: Path,
+) -> None:
+    module = _bridge()
+    trajectory = np.zeros((80, 4), dtype=np.float32)
+    metadata = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "dp_default",
+        "run_key": "run:dp_default",
+        "iteration_index": 0,
+        "operation": "plan_tick",
+        "status": "ok",
+        "selected_trajectory_sha256": module.array_sha256(trajectory),
+        "baseline_name": "DP-default deterministic/MAP baseline",
+        "native_ranked_top1": False,
+    }
+
+    with pytest.raises(ValueError, match="planned-red|latency"):
+        module.write_response(
+            tmp_path / "missing", {"selected_trajectory": trajectory}, metadata
+        )
+
+    metadata.update(
+        {
+            "selected_planned_red_light_cost": 0.0,
+            "planned_red_source": "fixed_dp_red_cost_v18",
+            "worker_latency_ms": {"dp_inference": 1.0, "atom_selector": 0.0},
+        }
+    )
+    module.write_response(
+        tmp_path / "valid", {"selected_trajectory": trajectory}, metadata
+    )
+
+    bad = dict(metadata)
+    bad["worker_latency_ms"] = {"dp_inference": -1.0, "atom_selector": 0.0}
+    with pytest.raises(ValueError, match="latency"):
+        module.write_response(
+            tmp_path / "bad-latency", {"selected_trajectory": trajectory}, bad
+        )
+
+
 def test_all_k_infeasible_response_contains_evidence_and_no_trajectory(
     tmp_path: Path,
 ) -> None:
@@ -181,6 +222,7 @@ def test_camp_success_response_requires_immutable_k8_tensor(tmp_path: Path) -> N
         "signal_mask": np.ones(8, dtype=bool),
         "physical_feasible_mask": np.ones(8, dtype=bool),
         "atom_matrix": np.zeros((8, 14), dtype=np.float64),
+        "planned_red_light_cost": np.arange(8, dtype=np.float64) * 2e-12,
         "selected_index": np.array(3, dtype=np.int64),
         "selected_trajectory": candidates[3],
     }
@@ -189,11 +231,15 @@ def test_camp_success_response_requires_immutable_k8_tensor(tmp_path: Path) -> N
         "arm": "camp",
         "run_key": "run:camp",
         "iteration_index": 3,
+        "operation": "plan_tick",
         "status": "ok",
         "candidate_sha256_before": digest,
         "candidate_sha256_after": digest,
         "selected_trajectory_sha256": module.array_sha256(candidates[3]),
         "candidate_reasons": [[] for _ in range(8)],
+        "selected_planned_red_light_cost": 6e-12,
+        "planned_red_source": "fixed_dp_red_cost_v18",
+        "worker_latency_ms": {"dp_inference": 1.0, "atom_selector": 2.0},
         "native_ranked_top1": False,
     }
 
@@ -205,3 +251,8 @@ def test_camp_success_response_requires_immutable_k8_tensor(tmp_path: Path) -> N
     metadata["candidate_sha256_after"] = "0" * 64
     with pytest.raises(ValueError, match="candidate tensor mutated"):
         module.write_response(tmp_path / "mutated", arrays, metadata)
+
+    metadata["candidate_sha256_after"] = digest
+    metadata["selected_planned_red_light_cost"] = 0.0
+    with pytest.raises(ValueError, match="planned-red"):
+        module.write_response(tmp_path / "red-mismatch", arrays, metadata)

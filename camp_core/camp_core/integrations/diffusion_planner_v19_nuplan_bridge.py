@@ -190,6 +190,7 @@ def _validate_response(
     if status not in {"ok", "failed"}:
         raise ValueError("response status must be ok or failed")
     prepared = {key: _contiguous(value) for key, value in arrays.items()}
+    _validate_worker_evidence(metadata)
     arm = str(metadata["arm"])
     if arm == "dp_default":
         _validate_default_response(prepared, metadata, status)
@@ -218,18 +219,29 @@ def _validate_default_response(
     if metadata.get("baseline_name") != "DP-default deterministic/MAP baseline":
         raise ValueError("DP-default baseline name mismatch")
     _require_selected_sha(arrays["selected_trajectory"], metadata)
+    if metadata.get("operation") == "plan_tick":
+        _require_planned_red(metadata)
 
 
 def _validate_camp_response(
     arrays: Mapping[str, np.ndarray], metadata: Mapping[str, Any], status: str
 ) -> None:
     required_evidence = {"candidates", "physical_feasible_mask"}
+    if metadata.get("operation") == "plan_tick":
+        required_evidence.add("planned_red_light_cost")
     if not required_evidence.issubset(arrays):
         raise ValueError("CAMP response is missing candidate evidence")
     candidates = arrays["candidates"]
     physical = arrays["physical_feasible_mask"]
     _require_array(candidates, (8, 80, 4), np.float32, "candidates")
     _require_array(physical, (8,), np.bool_, "physical_feasible_mask")
+    if "planned_red_light_cost" in arrays:
+        _require_array(
+            arrays["planned_red_light_cost"],
+            (8,),
+            np.float64,
+            "planned_red_light_cost",
+        )
     before = metadata.get("candidate_sha256_before")
     after = metadata.get("candidate_sha256_after")
     actual = array_sha256(candidates)
@@ -269,6 +281,46 @@ def _validate_camp_response(
     if not np.array_equal(trajectory, candidates[index]):
         raise ValueError("selected trajectory is not the unchanged candidate")
     _require_selected_sha(trajectory, metadata)
+    if metadata.get("operation") == "plan_tick":
+        cost = _require_planned_red(metadata)
+        if not np.isclose(
+            cost,
+            float(arrays["planned_red_light_cost"][index]),
+            rtol=0.0,
+            atol=0.0,
+        ):
+            raise ValueError("selected planned-red cost does not match vector")
+
+
+def _validate_worker_evidence(metadata: Mapping[str, Any]) -> None:
+    operation = metadata.get("operation")
+    if operation is None:
+        return
+    if operation not in {"default_provenance", "plan_tick"}:
+        raise ValueError("response operation is invalid")
+    if operation != "plan_tick":
+        return
+    latency = metadata.get("worker_latency_ms")
+    if not isinstance(latency, Mapping) or set(latency) != {
+        "dp_inference",
+        "atom_selector",
+    }:
+        raise ValueError("worker latency evidence is incomplete")
+    for value in latency.values():
+        if isinstance(value, bool) or not np.isfinite(float(value)) or float(value) < 0.0:
+            raise ValueError("worker latency must be finite and nonnegative")
+
+
+def _require_planned_red(metadata: Mapping[str, Any]) -> float:
+    if metadata.get("planned_red_source") != "fixed_dp_red_cost_v18":
+        raise ValueError("planned-red source mismatch")
+    value = metadata.get("selected_planned_red_light_cost")
+    if isinstance(value, bool) or value is None:
+        raise ValueError("selected planned-red cost is missing")
+    cost = float(value)
+    if not np.isfinite(cost) or cost < 0.0:
+        raise ValueError("selected planned-red cost must be finite and nonnegative")
+    return cost
 
 
 def _validate_trajectory(array: np.ndarray) -> None:

@@ -188,14 +188,53 @@ def test_process_default_provenance_writes_independent_equivalence(tmp_path) -> 
     assert response.metadata["native_ranked_top1"] is False
 
 
+def test_process_default_tick_records_planned_red_without_generating_k8(
+    tmp_path,
+) -> None:
+    module = _worker()
+    metadata = _request(tmp_path, arm="dp_default")
+    inference_calls = []
+    planned_calls = []
+
+    def infer(latent: np.ndarray) -> np.ndarray:
+        inference_calls.append(latent.copy())
+        return _fake_infer(latent)
+
+    def planned(candidates: np.ndarray, _causal):
+        planned_calls.append(candidates.copy())
+        return np.array([2e-12], dtype=np.float64)
+
+    module.process_request(
+        tmp_path,
+        operation="plan_tick",
+        infer_one=infer,
+        planned_red_cost=planned,
+    )
+    response = read_response(
+        tmp_path,
+        expected_run_key=str(metadata["run_key"]),
+        expected_iteration_index=0,
+    )
+
+    assert len(inference_calls) == 1
+    assert planned_calls[0].shape == (1, 80, 4)
+    assert "candidates" not in response.arrays
+    assert response.metadata["operation"] == "plan_tick"
+    assert response.metadata["selected_planned_red_light_cost"] == pytest.approx(
+        2e-12
+    )
+    assert response.metadata["planned_red_source"] == "fixed_dp_red_cost_v18"
+    assert response.metadata["worker_latency_ms"]["dp_inference"] >= 0.0
+    assert response.metadata["worker_latency_ms"]["atom_selector"] == 0.0
+
+
 def test_process_camp_tick_writes_k8_selection_without_mutation(tmp_path) -> None:
     module = _worker()
     metadata = _request(tmp_path, arm="camp")
 
     def materialize(**kwargs):
-        candidates = kwargs["candidates"]
-        atoms = np.zeros((8, 14), dtype=np.float64)
-        atoms[:, 0] = np.mean(np.abs(candidates[:, :, 0]), axis=1)
+        atoms = np.full((8, 14), 10.0, dtype=np.float64)
+        atoms[3, 0] = 0.0
         return {
             "canonical_eligible": True,
             "atom_matrix": atoms,
@@ -211,7 +250,9 @@ def test_process_camp_tick_writes_k8_selection_without_mutation(tmp_path) -> Non
         infer_one=_fake_infer,
         atom_scales=np.ones(14, dtype=np.float64),
         weights=weights,
-        planned_red_cost=lambda _candidates, _causal: np.zeros(8),
+        planned_red_cost=lambda _candidates, _causal: (
+            np.arange(8, dtype=np.float64) * 2e-12
+        ),
         signal_mask=lambda _candidates, _route: np.ones(8, dtype=bool),
         materialize=materialize,
     )
@@ -226,6 +267,13 @@ def test_process_camp_tick_writes_k8_selection_without_mutation(tmp_path) -> Non
     assert response.metadata["candidate_sha256_before"] == response.metadata[
         "candidate_sha256_after"
     ]
+    assert response.arrays["selected_index"] == 3
+    assert response.metadata["selected_planned_red_light_cost"] == pytest.approx(
+        6e-12
+    )
+    assert response.arrays["planned_red_light_cost"][3] == pytest.approx(6e-12)
+    assert response.metadata["worker_latency_ms"]["dp_inference"] >= 0.0
+    assert response.metadata["worker_latency_ms"]["atom_selector"] >= 0.0
     assert response.metadata["native_ranked_top1"] is False
 
 
