@@ -79,11 +79,27 @@ runtime dependency-union remediation. The claim taxonomy remains unchanged:
 bounded offline proxy improvement is supported; performance, closed-loop
 safety, and broad CAMP-over-native-DP-Top-1 claims remain unsupported.
 
-current_v19_status=v19_nuplan_v12_isolated_dependency_source_materialization_failed_closed
-current_v19_artifact_scope=official_nuplan_v12_hash_locked_runtime_subset_materialization_failure_disk_floor_and_dependency_union_result_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_source_materialization_failure_result_review_7a2bdad6_20260712T114713CST
-current_v19_artifact_root_sha256=b7c7cf03df5e115d0ee9830ae034ceb0c9819905012ad8b8ec1a1d9a4cad103f
-next_work_target=user_decision_required_before_v19_nuplan_environment_cleanup_or_disk_expansion_and_runtime_dependency_union_remediation
+The user then authorized deletion of exactly
+`/root/autodl-tmp/camp_v19_nuplan_env`. The pre-delete audit proved exact path
+resolution, no process use, and fixed tracked-clean heads. Deletion released
+`6586032128` bytes and raised free space to `16179240960` bytes while all
+specified data, repositories, Shapely target, and evidence paths remained.
+
+A minimal runtime design and plan now replace the conflicting combined locks.
+The Python 3.9 simulator process uses official lower-level nuPlan components;
+the unchanged Python 3.12 fixed-DP worker remains separate. A Python 3.9 pip
+resolver produced a 65-wheel SHA256 lock from 24 frozen direct requirements.
+Static review found no torch/Lightning/training stack, protobuf, or PyYAML,
+estimated `240753441` download bytes, and projected `11177954816` free bytes
+after the conservative 5 GB reserve. No environment was created and no
+simulator or holdout ran. The next gate may perform one fail-closed
+materialization only.
+
+current_v19_status=v19_nuplan_v12_environment_cleanup_and_minimal_runtime_lock_static_review_passed
+current_v19_artifact_scope=exact_single_environment_cleanup_and_torch_free_python39_wheel_lock_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST
+current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
+next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
 
 ## Current V18 Status
 

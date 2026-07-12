@@ -323,3 +323,76 @@ current_v19_artifact_scope=official_nuplan_v12_hash_locked_runtime_subset_materi
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_v12_isolated_dependency_source_materialization_failure_result_review_7a2bdad6_20260712T114713CST
 current_v19_artifact_root_sha256=b7c7cf03df5e115d0ee9830ae034ceb0c9819905012ad8b8ec1a1d9a4cad103f
 next_work_target=user_decision_required_before_v19_nuplan_environment_cleanup_or_disk_expansion_and_runtime_dependency_union_remediation
+
+## Exact Environment Cleanup and Minimal Runtime Lock Static Review
+
+The user explicitly resumed the blocked v19 goal and authorized recursive
+deletion of only `/root/autodl-tmp/camp_v19_nuplan_env`. Before deletion, the
+resolved path matched exactly, no process used the environment, CAMP/fixed-DP/
+official-source heads were tracked-clean, and every required preserved path
+existed. The successful pre-delete artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_env_cleanup_predelete_64b9ce08_20260712T131237CST`
+- `971a3df09549cbde6f7d697cbf2db4ddc3afc62e38ad35e095f0a110ba788086`
+
+It records the `6453283272`-byte failed prefix, `pip check` exit 1, absent
+`nuplan-devkit`, and zero using processes. A retained failed pre-delete harness
+artifact/root records that the host had no `python3` command; no deletion had
+occurred at that point:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_env_cleanup_predelete_64b9ce08_20260712T131146CST.tmp`
+- `95919285329bfd507b9836701cbabadbc6a5c7977ef0077823ff7ca0314f51f2`
+
+The exact literal command deleted no other path. Free bytes rose from
+`9593208832` to `16179240960`, an observed release of `6586032128` bytes, and
+the four required keep paths remained present. The cleanup artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_env_cleanup_execution_64b9ce08_20260712T131317CST`
+- `d57abac9a58a018830656a70d8a4a9f139649c0a232d65b09ec589d5c07916b8`
+
+The approved recovery design and implementation plan are:
+
+- `docs/superpowers/specs/2026-07-12-v19-nuplan-minimal-runtime-rebuild-design.md`
+  / `98cddcec8459044e8044bf657527d6c0b60e4d30089406389686cd696da514fa`
+- `docs/superpowers/plans/2026-07-12-v19-nuplan-minimal-runtime-rebuild.md`
+  / `a20ce962dd076f76bcdf2b9c2e134c8fc2fa8b2f819f8a33d8831fcabab7577c`
+- frozen direct requirements SHA256:
+  `923916b53d2a4dccc7a528e9bea98aa510dee9f81454545c805672e24e7c68b7`
+
+The design keeps the official Python 3.9 simulator separate from the unchanged
+Python 3.12 fixed-DP worker. Static import closure over 139 official nuPlan
+modules proved that direct use of `Simulation`, `SimulationRunner`,
+`PerfectTrackingController`, `TracksObservation`,
+`StepSimulationTimeController`, and `MetricsEngine` does not require torch or
+PyTorch Lightning. It avoids the top-level `run_simulation.py` orchestration
+import without changing official simulator component implementations.
+
+Two retained static-review failures document harness provenance rather than
+dependency changes. The first used AutoDL's incomplete Aliyun pip mirror; the
+second used a Python 3.12 cross-resolver that evaluated SciPy's
+`Requires-Python` against itself. No environment was created:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_98bb53c2_20260712T132240CST.tmp`
+  / `7c66cd4a2564a7717a22371a60d65c2dee69004f2416e4f98268eb35df9a6cbc`
+- `/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ad350fb3_20260712T132434CST.tmp`
+  / `5e52a9cc30dd7c0d4fa1ca9f44625a53ca2c3b8a9f918c9f1ae94ab002022107`
+
+The successful review used the existing read-only Python 3.9 resolver with
+`--isolated` and official PyPI. Its artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST`
+- `b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de`
+
+Independent recomputation passed all 15 SHA entries and matched the root. The
+lock contains 65 wheel-only, SHA256-complete packages from 24 frozen direct
+requirements; forbidden packages, protobuf, and PyYAML are absent. Estimated
+download bytes are `240753441`; current free minus the frozen 5 GB reserve is
+`11177954816`, above the `10737418240` hard floor. The exact target remains
+absent. No simulator ran, no holdout was accessed, and claim qualification is
+unchanged.
+
+current_v19_status=v19_nuplan_v12_environment_cleanup_and_minimal_runtime_lock_static_review_passed
+current_v19_artifact_scope=exact_single_environment_cleanup_and_torch_free_python39_wheel_lock_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_nuplan_minimal_runtime_lock_static_review_ff375430_20260712T132719CST
+current_v19_artifact_root_sha256=b0e7a4188e53d325ee9b285bcccc2960a495f51846b3695ac36643e8194c45de
+next_work_target=v19_nuplan_v12_minimal_runtime_materialization_only
