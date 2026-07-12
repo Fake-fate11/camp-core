@@ -149,11 +149,25 @@ candidate-0 reference are elementwise equal with identical SHA. A passing
 result still establishes only `DP-default deterministic/MAP baseline`, never
 native ranked Top-1.
 
-current_v19_status=v19_nuplan_v12_executable_default_provenance_preflight_passed
-current_v19_artifact_scope=label_free_train_causal_request_and_fixed_dp_default_provenance_command_freeze
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_preflight_16b58672_20260712T165340CST
-current_v19_artifact_root_sha256=ff4f02f7963083c532ad36a047dc50135f4016b14739629807e4cc8c33c5f9e0
-next_work_target=v19_nuplan_v12_executable_default_provenance_execution_only
+The single execution and independent result review have passed. The direct
+default, independent zero-latent reference, and selected trajectory are
+elementwise identical with maximum absolute difference `0.0` and common
+SHA256 `0267c05e15b0aeace63187a169974cc7071027ce2bb1104c6de9da72c0fd3364`.
+The immutable preflight request remained unchanged; execution used a
+byte-identical copy and changed only its artifact-local request path. No worker
+rerun, simulator, holdout, or metric was used by the independent review.
+
+Executable provenance now supports the name `DP-default deterministic/MAP
+baseline`. It does not create native K-ranking: `native_ranked_top1=false` and
+the broad native-Top-1 claim remains unsupported. The next gate is read-only
+scenario selection and zero-overlap preflight for the existing-data official
+closed-loop smoke; it may not run a simulator.
+
+current_v19_status=v19_nuplan_v12_executable_default_provenance_result_review_passed
+current_v19_artifact_scope=single_label_free_executable_dp_default_equivalence_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_result_review_8b1ed84b_20260712T165700CST
+current_v19_artifact_root_sha256=b47d1829f59718510f120a85ef80ba702ee6465d9b1b31b4140e6a276b434a30
+next_work_target=v19_nuplan_v12_closed_loop_smoke_scenario_selection_and_zero_overlap_preflight_only
 
 ## Current V18 Status
 

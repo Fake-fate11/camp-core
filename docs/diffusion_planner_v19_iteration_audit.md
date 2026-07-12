@@ -692,3 +692,48 @@ current_v19_artifact_scope=label_free_train_causal_request_and_fixed_dp_default_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_preflight_16b58672_20260712T165340CST
 current_v19_artifact_root_sha256=ff4f02f7963083c532ad36a047dc50135f4016b14739629807e4cc8c33c5f9e0
 next_work_target=v19_nuplan_v12_executable_default_provenance_execution_only
+
+## Executable DP-default Provenance Execution and Result Review
+
+The exact preflight request could not be executed in place because adding a
+response would mutate its immutable artifact. The execution therefore copied
+`request.json` and `request.npz` byte-for-byte into a new artifact and changed
+only the artifact-local `--request-dir`. Independent review normalized that
+path and proved all remaining command text identical. The preflight artifact
+still contains exactly the two request files and its root remains
+`ff4f02f7963083c532ad36a047dc50135f4016b14739629807e4cc8c33c5f9e0`.
+
+The single worker invocation loaded the frozen checkpoint and made two
+independent zero-latent fixed-DP calls on causal input SHA256
+`4eb497aa771eeb3d60ce5fe9d45381105a6c7e197ef8cf2eb196c99bb99ede28`.
+It exited zero in 5 seconds. The direct default, independent reference, and
+selected trajectory are elementwise identical:
+
+- maximum absolute difference: `0.0`;
+- common trajectory SHA256:
+  `0267c05e15b0aeace63187a169974cc7071027ce2bb1104c6de9da72c0fd3364`;
+- baseline name: `DP-default deterministic/MAP baseline`;
+- `native_ranked_top1=false` and `native_ranking_path_found=false`.
+
+The execution artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_executable_default_provenance_execution_8b1ed84b_20260712T165600CST`
+- `22baae7a64220074e3893b957a104c112dfe454a083f3cd1fe9dc76d076ce94c`
+
+The independent review did not rerun the worker or load the checkpoint. It
+recomputed both artifact manifests, request identity, causal-input SHA,
+elementwise equality, all three output hashes, command equivalence, exact
+baseline naming, and the false native-ranking flag. Its artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_executable_default_provenance_result_review_8b1ed84b_20260712T165700CST`
+- `b47d1829f59718510f120a85ef80ba702ee6465d9b1b31b4140e6a276b434a30`
+
+No simulator, holdout, safety/ADE/FDE/latency metric, native K-ranking, or
+broad safety claim was involved. The result completes executable provenance
+for the accurately named deterministic/MAP default baseline only.
+
+current_v19_status=v19_nuplan_v12_executable_default_provenance_result_review_passed
+current_v19_artifact_scope=single_label_free_executable_dp_default_equivalence_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_executable_default_provenance_result_review_8b1ed84b_20260712T165700CST
+current_v19_artifact_root_sha256=b47d1829f59718510f120a85ef80ba702ee6465d9b1b31b4140e6a276b434a30
+next_work_target=v19_nuplan_v12_closed_loop_smoke_scenario_selection_and_zero_overlap_preflight_only
