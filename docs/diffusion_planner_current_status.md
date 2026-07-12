@@ -410,11 +410,20 @@ not exceed the candidate segment. Duplicate latest sources are rejected even
 when values agree. Cross-road propagation, nearest-neighbour mapping, and
 vehicle state remain forbidden.
 
-current_v19_status=v19_carla_type274_landmark_segment_mapping_tdd_independent_review_passed
-current_v19_artifact_scope=carla_type274_same_road_lane_validity_unique_predecessor_mapping_tdd
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_landmark_segment_mapping_independent_review_2bd18d669b_20260713T012127CST
-current_v19_artifact_root_sha256=bc934a052c2c27dde49869457e776d30517e903d5ce764629f7316493c663238
-next_work_target=v19_carla_type274_full_map_mapping_census_and_candidate_route_probe_preflight_only
+The offline full-map A-source census and independent review now pass. Across
+`60748` waypoint units, `9342` map exactly, `51279` are missing, and `127` are
+ambiguous; Town06 and Town10HD have zero A support. The official stub confirms
+strict `project_to_road=False` lookup with `None` treated as source-ineligible.
+These are map-level counts only: no K=8 candidate route has been probed, no
+rung or scenario is frozen, and no simulator, planner, metric, holdout, or
+outcome call occurred. The retained initial failure records an annotation-only
+preflight mismatch and the corrected artifact reused the sealed census.
+
+current_v19_status=v19_carla_type274_full_map_mapping_census_and_candidate_probe_preflight_independent_review_passed
+current_v19_artifact_scope=carla_type274_full_map_waypoint_mapping_census_and_strict_candidate_projection_preflight
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_independent_review_a9601de0d2_20260713T022656CST
+current_v19_artifact_root_sha256=74d92ad451a38c9a439537581bbe5a8dfcc80f5c6ad8f41088f26491405a5ffe
+next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_only
 
 ## Current V18 Status
 

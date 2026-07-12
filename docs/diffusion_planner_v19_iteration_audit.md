@@ -1776,3 +1776,44 @@ current_v19_artifact_scope=carla_type274_same_road_lane_validity_unique_predeces
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_landmark_segment_mapping_independent_review_2bd18d669b_20260713T012127CST
 current_v19_artifact_root_sha256=bc934a052c2c27dde49869457e776d30517e903d5ce764629f7316493c663238
 next_work_target=v19_carla_type274_full_map_mapping_census_and_candidate_route_probe_preflight_only
+
+## CARLA Type-274 Full-Map Mapping Census And Candidate Projection Preflight
+
+The offline full-map census applied the frozen same-road, lane-validity, and
+unique-predecessor resolver to `60748` CARLA waypoint units. It found `9342`
+exact A-source mappings, `51279` missing mappings, and `127` ambiguous
+mappings. Town06 and Town10HD have zero A-source support. This establishes
+map-level support only; it does not establish coverage on any fixed-DP K=8
+candidate route, select an exact-speed rung, or freeze a scenario.
+
+The first sealed census artifact failed only its strict API evidence check:
+the harness expected the legacy annotation `project_to_road: bool = True`,
+while the official CARLA 0.9.16 stub uses `bool | None = True` and returns
+`Waypoint | None`. All scientific census, head, DP, disk, client-manifest, and
+no-job checks passed. That retained artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_a9601de0d2_20260713T022005CST`
+and `5c8e6d77c2088e11ae32d0ec0e55988cde84d763e97952c139237c78c35c406d`.
+A first remediation construction attempt also remains sealed at
+`/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_remediation_a9601de0d2_20260713T022404CST_failed`
+with root `10d6dac54981df30ed2d99909a21b4c08e05967831ed684a53d7dcc99c6371c9`;
+it failed before any rescan because client provenance lives in its independent
+review artifact rather than a client-local `ROOT_SHA256` file.
+
+The corrected remediation reused the sealed census without rescanning maps,
+matched the official Python 3.9-compatible overload, and passed all checks.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_remediation_a9601de0d2_20260713T022543CST`
+and `d795dd630818c758771b2a386bd2b0bbe041970cd8b84593dc0b4c97553e4fc1`.
+Independent review revalidated the source manifest, recomputed every map
+partition and total, confirmed `project_to_road=False` support and fail-closed
+`None`, and found no CARLA runtime process. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_independent_review_a9601de0d2_20260713T022656CST`
+and `74d92ad451a38c9a439537581bbe5a8dfcc80f5c6ad8f41088f26491405a5ffe`.
+Free space was `50590949376` bytes. No simulator, planner, candidate tensor,
+metric, holdout, or outcome call occurred, and `selected_rung` remains null.
+
+current_v19_status=v19_carla_type274_full_map_mapping_census_and_candidate_probe_preflight_independent_review_passed
+current_v19_artifact_scope=carla_type274_full_map_waypoint_mapping_census_and_strict_candidate_projection_preflight
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_type274_full_map_mapping_census_preflight_independent_review_a9601de0d2_20260713T022656CST
+current_v19_artifact_root_sha256=74d92ad451a38c9a439537581bbe5a8dfcc80f5c6ad8f41088f26491405a5ffe
+next_work_target=v19_carla_strict_candidate_world_point_to_opendrive_segment_projection_tdd_only
