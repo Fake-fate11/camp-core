@@ -78,3 +78,27 @@ def test_claims_and_baseline_remain_frozen() -> None:
         "user_decision_required_before_carla_large_download_additional_disk_"
         "and_license_source_preflight"
     )
+
+
+def test_carla_preflight_passes_with_proven_sources_and_peak_headroom() -> None:
+    evidence = _evidence()
+    evidence["free_bytes"] = 79_465_508_864
+    evidence["carla"].update(
+        {
+            "speed_source_contract": True,
+            "fixed_dp_compatible": True,
+            "extracted_upper_bound_bytes": 31 * 1024**3,
+            "extraction_overhead_reserve_bytes": 2 * 1024**3,
+        }
+    )
+
+    report = _module().build_report(evidence)
+    carla = report["sources"]["carla"]
+
+    assert carla["qualified"] is True
+    assert carla["gates"]["official_route_speed_source_contract"] is True
+    assert carla["disk"]["projected_free_after_peak_bytes"] == 35_685_933_168
+    assert report["decision"] == {
+        "status": "v19_carla_license_source_disk_preflight_passed_download_ready",
+        "next_work_target": "v19_carla_0_9_16_official_linux_package_download_only",
+    }

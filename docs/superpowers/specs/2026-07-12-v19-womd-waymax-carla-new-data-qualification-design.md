@@ -72,10 +72,23 @@ CARLA 0.9.16 Linux package is `8,346,095,504` bytes compressed. AutoDL has
 10 GiB floor. The compressed archive alone exceeds that headroom by
 `4,041,965,456` bytes, before extraction or artifacts.
 
-Decision: CARLA qualification stops before download. Continuing requires an
-explicit large-download and additional-disk decision, followed by a fresh
-license/source and exact-speed coverage preflight. Any future CARLA evidence
-must be labelled synthetic closed-loop evidence.
+The user added 60 GB and authorized one official package download. Live free
+space is now `79,465,508,864` bytes. Code is MIT and official assets are
+CC-BY, with no click-through acceptance required for this research use.
+
+The pre-download speed contract uses only official speed-limit actors and
+landmarks mapped through OpenDRIVE road/section/lane IDs. It never uses the
+stateful `Vehicle.get_speed_limit()`, current speed, a statutory/default value,
+or a neighboring lane. Actual finite-positive coverage on candidate-used
+segments remains a mandatory post-extraction, pre-simulator fail-closed gate.
+
+For disk safety, use a conservative 31 GiB extracted upper bound plus a 2 GiB
+staging reserve. Archive + extraction + reserve peaks at `43,779,575,696`
+bytes, leaving `35,685,933,168` bytes, above the 10 GiB floor.
+
+Decision: license, source-path, temporal, fixed-DP compatibility, and disk
+preflight pass for one download only. Extraction and simulation remain
+unauthorized until their later gates pass. All CARLA evidence is synthetic.
 
 ## Evidence Shape
 
@@ -90,7 +103,7 @@ contains `HEADS`, `COMMAND`, stdout/stderr, exit status, source receipts,
 
 The gate advances to:
 
-`user_decision_required_before_carla_large_download_additional_disk_and_license_source_preflight`
+`v19_carla_0_9_16_official_linux_package_download_only`
 
 The claim taxonomy is unchanged: performance no-claim; bounded offline safety
 proxy supported only in its frozen observable source; closed-loop safety not

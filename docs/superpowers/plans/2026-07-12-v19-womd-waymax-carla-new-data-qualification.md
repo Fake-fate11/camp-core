@@ -59,3 +59,18 @@ commands, source hashes, and SHA manifests.
    `git diff --check` locally and on AutoDL; commit/push/ff-only sync.
 6. Re-read the live EOF and stop at the explicit CARLA large-download,
    additional-disk, and license/source decision boundary.
+
+## Authorized Resume: CARLA package acquisition
+
+1. Re-run the same audit with live disk, official 0.9.16 asset headers, MIT /
+   CC-BY receipts, exact-speed source-path evidence, temporal capability, and
+   fixed-DP K=8 adapter feasibility.
+2. Seal and independently review the preflight; update the pointer only if all
+   conjunctive gates pass.
+3. Start one outer-loop resumable `curl` download to one `.part` file. Do not
+   use curl's internal retry and do not create a second partial.
+4. Monitor the single PID. On completion require exact content length, compute
+   SHA256, retain response provenance, and independently review before any
+   extraction decision.
+5. Recheck extraction peak and 10 GiB floor. Do not extract or run CARLA in the
+   download gate.

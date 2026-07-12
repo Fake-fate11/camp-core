@@ -15,6 +15,7 @@ NEXT_WORK_TARGET = (
     "user_decision_required_before_carla_large_download_additional_disk_"
     "and_license_source_preflight"
 )
+DOWNLOAD_WORK_TARGET = "v19_carla_0_9_16_official_linux_package_download_only"
 CLAIMS = {
     "performance_claim": "no_claim",
     "bounded_offline_safety_proxy_improvement": "supported",
@@ -34,7 +35,9 @@ def _qualify(name: str, source: dict[str, Any]) -> dict[str, Any]:
     )
     gates = {
         "exact_3s_plus_8s": exact_window,
-        "finite_positive_route_speed": _known_true(source.get("speed_coverage")),
+        "official_route_speed_source_contract": _known_true(
+            source.get("speed_source_contract")
+        ),
         "topology_actors_signals": _known_true(
             source.get("topology_actors_signals")
         ),
@@ -49,15 +52,17 @@ def _qualify(name: str, source: dict[str, Any]) -> dict[str, Any]:
     reasons = []
     if not exact_window:
         reasons.append("frozen exact 3s history plus 8s evaluation is unavailable")
-    if not gates["finite_positive_route_speed"]:
-        reasons.append("candidate-used finite-positive route speed coverage is unproven")
+    if not gates["official_route_speed_source_contract"]:
+        reasons.append("official route speed source contract is unproven")
     if not gates["fixed_dp_k8"]:
         reasons.append("unchanged fixed-DP K=8 compatibility is unproven")
     return {
         "name": name,
         "gates": gates,
         "qualified": all(gates.values()),
-        "first_failure": next(key for key, passed in gates.items() if not passed),
+        "first_failure": next(
+            (key for key, passed in gates.items() if not passed), None
+        ),
         "reasons": "; ".join(reasons),
     }
 
@@ -69,16 +74,20 @@ def build_report(evidence: dict[str, Any]) -> dict[str, Any]:
     floor_bytes = int(evidence["floor_bytes"])
     archive_bytes = int(evidence["carla"]["compressed_archive_bytes"])
     headroom = max(free_bytes - floor_bytes, 0)
+    extracted_bytes = int(evidence["carla"].get("extracted_upper_bound_bytes", 0))
+    overhead_bytes = int(
+        evidence["carla"].get("extraction_overhead_reserve_bytes", 0)
+    )
+    peak_bytes = archive_bytes + extracted_bytes + overhead_bytes
 
     womd_source = dict(evidence["womd"])
-    womd_source["speed_coverage"] = False
+    womd_source["speed_source_contract"] = False
     womd = _qualify("WOMD + Waymax", womd_source)
 
     carla_source = dict(evidence["carla"])
-    carla_source["speed_coverage"] = False
     carla_source["license_accepted_and_minimal_sample_available"] = bool(
         carla_source.get("license_accepted_and_minimal_sample_available")
-        and archive_bytes <= headroom
+        and peak_bytes <= headroom
     )
     carla = _qualify("CARLA synthetic fallback", carla_source)
     carla["disk"] = {
@@ -87,6 +96,10 @@ def build_report(evidence: dict[str, Any]) -> dict[str, Any]:
         "headroom_bytes": headroom,
         "compressed_archive_bytes": archive_bytes,
         "compressed_archive_deficit_bytes": max(archive_bytes - headroom, 0),
+        "extracted_upper_bound_bytes": extracted_bytes,
+        "extraction_overhead_reserve_bytes": overhead_bytes,
+        "peak_bytes": peak_bytes,
+        "projected_free_after_peak_bytes": free_bytes - peak_bytes,
     }
 
     return {
@@ -103,10 +116,17 @@ def build_report(evidence: dict[str, Any]) -> dict[str, Any]:
             "metrics_computed": False,
             "holdout_accessed": False,
         },
-        "decision": {
-            "status": "v19_new_data_qualification_failed_closed_before_download",
-            "next_work_target": NEXT_WORK_TARGET,
-        },
+        "decision": (
+            {
+                "status": "v19_carla_license_source_disk_preflight_passed_download_ready",
+                "next_work_target": DOWNLOAD_WORK_TARGET,
+            }
+            if carla["qualified"]
+            else {
+                "status": "v19_new_data_qualification_failed_closed_before_download",
+                "next_work_target": NEXT_WORK_TARGET,
+            }
+        ),
     }
 
 
