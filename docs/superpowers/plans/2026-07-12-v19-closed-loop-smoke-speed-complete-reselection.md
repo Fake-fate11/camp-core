@@ -11,7 +11,9 @@
 ## Global Constraints
 
 - Keep exactly two smoke scenarios: one normal and one interaction.
-- Use only existing Las Vegas/Pittsburgh mini data and official finite positive `speed_limit_mps`.
+- Use existing Las Vegas/Pittsburgh mini data first, then Boston only for a
+  bucket with no eligible first-tier candidate; require official finite
+  positive `speed_limit_mps` in both tiers.
 - Read no expert future, label, safety result, ADE/FDE/miss result, or latency result.
 - Keep selection seed `3411`, all metric/threshold/bootstrap seeds, baseline provenance, SafetyCost v1, fixed DP, selector, K=8, and claim taxonomy unchanged.
 - Do not run planner compute, worker, simulator runner, or metric engine in this plan.
@@ -39,8 +41,9 @@ and at least 10 GiB free space.
 - [ ] **Step 2: Enumerate label-free candidates**
 
 Read only SQLite scene/log/lidar/scenario-tag metadata. Exclude the frozen v18
-log and scene identities, retain Las Vegas/Pittsburgh candidates satisfying the
-existing bucket, mission-route, and timestamp-coverage rules, and compute:
+log and scene identities, assign Las Vegas/Pittsburgh to source tier 0 and
+Boston to source tier 1, retain candidates satisfying the existing bucket,
+mission-route, and timestamp-coverage rules, and compute:
 
 ```python
 priority = hashlib.sha256(
@@ -62,8 +65,9 @@ assert selected_route and all(
 )
 ```
 
-Select the first eligible normal record, then the first eligible interaction
-record from a distinct log and scene. Fail closed if either is unavailable.
+For each bucket, exhaust source tier 0 before tier 1 and select the first
+eligible SHA-ordered record. Select interaction from a distinct log and scene
+from normal. Fail closed if either is unavailable after both tiers.
 
 - [ ] **Step 4: Freeze the replacement config**
 
@@ -91,8 +95,8 @@ directory. Preserve any failure with its ordered rejection audit.
 - [ ] **Step 1: Recompute identities, hashes, and ordering**
 
 Recompute both SHA256 values, verify distinct selected logs/scenes, and prove
-from `candidate_audit.jsonl` that no lower-priority eligible candidate was
-skipped outside the distinct-log rule.
+from `candidate_audit.jsonl` that no lower source tier or lower-priority
+eligible candidate was skipped outside the distinct-log rule.
 
 - [ ] **Step 2: Recheck zero overlap and config immutability**
 

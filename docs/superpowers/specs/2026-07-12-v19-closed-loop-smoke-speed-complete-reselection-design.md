@@ -22,9 +22,11 @@ outcomes, trajectory-quality outcomes, or latency results.
 - Every log and scene in the frozen v18 causal manifest at SHA256
   `703a47bec14d9ee4605184618e6bb61b6a4ce4ed73bee4173df508d6a6dfa5e5`
   remains excluded. Selected logs and scenes must be mutually distinct.
-- The preferred eligible location pool is the existing unseen Las Vegas and
-  Pittsburgh logs. If this pool cannot supply both buckets, selection fails
-  closed rather than expanding the protocol.
+- Source eligibility uses two deterministic tiers: existing unseen Las Vegas
+  and Pittsburgh logs first, then existing unseen Boston logs only for a
+  bucket with no eligible first-tier candidate. Singapore is excluded by the
+  already-reviewed `0/2001` complete-speed-source inventory. Selection fails
+  closed if the two tiers cannot supply both buckets.
 
 ## New Eligibility Gate
 
@@ -41,13 +43,16 @@ eligibility rejection.
 
 ## Freeze and Review
 
-The gate writes the complete candidate audit, ordered rejection reasons, two
+Within each bucket, the lowest source tier containing an eligible candidate is
+used, then candidates are ordered by the unchanged priority hash. The gate
+writes the complete candidate audit, ordered rejection reasons, two
 selected records, exclusion receipts, and a replacement `smoke_config.json`.
 The replacement config must be byte-equivalent in parsed content to the prior
 config except for `selected_scenarios`.
 
 An independent review must recompute selection hashes, prove that every lower
-priority candidate was ineligible or conflicted with the distinct-log rule,
+tier was exhausted and every lower-priority candidate in the chosen tier was
+ineligible or conflicted with the distinct-log rule,
 recheck log/scene zero overlap, reconstruct both official route windows, verify
 all route speeds, and confirm that no simulator runner, planner compute,
 worker, metric, holdout, label, or outcome was accessed.
