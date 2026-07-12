@@ -810,3 +810,60 @@ current_v19_artifact_scope=frozen_official_nonreactive_two_arm_smoke_config_and_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_static_config_harness_preflight_17038d9a_20260712T170236CST
 current_v19_artifact_root_sha256=2b9f07880fef3ada8700b85e3e964342eb9c953538e2fa9cbbc9f791c062d917
 next_work_target=v19_nuplan_v12_closed_loop_smoke_harness_tdd_only
+
+## Closed-loop Smoke Harness TDD and Independent Result Review
+
+The CAMP-side harness was implemented test-first at CAMP/GitHub/AutoDL commit
+`8dd926fd828d5d953f420f9d0c07a4c5bf42a8b4`. Fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; official nuPlan source remained
+tracked-clean at `ce3c323af01c0d7ec5672f7832ef53f9c679aab0`.
+
+The new script is
+`scripts/integrations/run_diffusion_planner_dp_camp_v19_closed_loop_smoke.py`.
+Its pure contract tests cover the frozen two-scenario config, formal-seed and
+zero-overlap rejection, shared paired identity with separate arm roots, the
+exact frozen SafetyCost v1 formula, complete finite nonnegative six-field
+latency evidence, retained history/official-metric/result files, cross-arm
+rejection, and structured failure preservation. Its official constructors bind
+`NuPlanScenario`, `StepSimulationTimeController`, `TracksObservation`,
+`PerfectTrackingController`, `SimulationSetup`, `Simulation` with a 3.0-second
+history buffer, and sequential `SimulationRunner` without Hydra.
+
+The successful TDD artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_8dd926fd_20260712T171349CST`
+- `615b50e1223a8334f049c1f70f9590372b8e6e67c0afaf388e0dbcffed031696`
+
+The isolated official nuPlan Python 3.9 suite reported `29 passed, 1 skipped`;
+the fixed-DP Python 3.12 suite reported `13 passed`. `py_compile`, the frozen
+config validation-only command, and `git diff --check` all exited zero. Free
+bytes were `15077896192`, above the 10 GiB floor. Validation-only produced four
+rows: two arms for each frozen scenario, sharing a pair key but using distinct
+arm roots.
+
+One retained command-harness failure at
+`/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_8dd926fd_20260712T171311CST.tmp`
+omitted command-local `PYTHONPATH=camp_core` and exited before importing the
+harness. Both pytest commands had already passed; no scenario, planner, worker,
+simulator, metric, or holdout was reached. The corrected command changed only
+that environment setting.
+
+The independent result review reverified the successful manifest/root, the
+retained failure manifest, fixed heads/tracked state, four-row pairing, separate
+arm roots, zero related jobs, and disk floor. Its artifact/root is:
+
+- `/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_result_review_8dd926fd_20260712T171453CST`
+- `2d9cadaf251eee87de91428ba5150533af08fb3826554da429af37d489ee9ac7`
+
+This TDD gate computed no scientific result. Candidate 0 remains only the
+`DP-default deterministic/MAP baseline`, with `native_ranked_top1=false`.
+Execution is not ready: the next preflight must freeze and validate exact
+runtime arguments, real selected-scenario construction, official metric
+builders, SafetyCost component materialization including planned-red evidence,
+and six latency receipts. It may not run either arm.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_harness_tdd_and_independent_review_passed_execution_not_ready
+current_v19_artifact_scope=camp_side_two_arm_smoke_harness_contract_tdd_validate_only_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_result_review_8dd926fd_20260712T171453CST
+current_v19_artifact_root_sha256=2d9cadaf251eee87de91428ba5150533af08fb3826554da429af37d489ee9ac7
+next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_only

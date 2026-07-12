@@ -184,15 +184,27 @@ serializes histories and metrics. Execution is therefore not ready. No
 scenario object, planner compute, worker, simulator, holdout label, or metric
 was instantiated or run.
 
-The next gate is harness TDD only within the frozen configuration. It may add
-and unit-test the missing CAMP-side harness but may not execute a real
-scenario.
+The harness TDD gate and independent result review have now passed. The new
+CAMP-side script validates the frozen two-scenario configuration, constructs
+official scenario/simulation objects behind non-executed functions, freezes
+paired arm roots, serializes history/official-metric evidence, applies the
+exact SafetyCost v1 formula, requires all six latency fields, and preserves a
+structured failure record in place. The official nuPlan Python 3.9 suite
+reported `29 passed, 1 skipped`; the fixed-DP Python 3.12 suite reported
+`13 passed`.
 
-current_v19_status=v19_nuplan_v12_closed_loop_smoke_static_config_harness_preflight_passed_execution_not_ready
-current_v19_artifact_scope=frozen_official_nonreactive_two_arm_smoke_config_and_missing_harness_contract
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_static_config_harness_preflight_17038d9a_20260712T170236CST
-current_v19_artifact_root_sha256=2b9f07880fef3ada8700b85e3e964342eb9c953538e2fa9cbbc9f791c062d917
-next_work_target=v19_nuplan_v12_closed_loop_smoke_harness_tdd_only
+The validation-only command produced four paired plan rows and did not
+instantiate a scenario, call a planner/worker, run a simulator/metric, or
+access a holdout. Execution remains fail-closed until the exact runtime
+arguments, selected-scenario construction, official metric builders,
+SafetyCost component materializer, planned-red evidence, and latency receipts
+pass a separate preflight.
+
+current_v19_status=v19_nuplan_v12_closed_loop_smoke_harness_tdd_and_independent_review_passed_execution_not_ready
+current_v19_artifact_scope=camp_side_two_arm_smoke_harness_contract_tdd_validate_only_and_independent_result_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_closed_loop_smoke_harness_tdd_result_review_8dd926fd_20260712T171453CST
+current_v19_artifact_root_sha256=2d9cadaf251eee87de91428ba5150533af08fb3826554da429af37d489ee9ac7
+next_work_target=v19_nuplan_v12_closed_loop_smoke_execution_preflight_only
 
 ## Current V18 Status
 
