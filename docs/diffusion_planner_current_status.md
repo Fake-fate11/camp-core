@@ -744,6 +744,61 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_ru
 current_v19_artifact_root_sha256=ea112274570064bc55a74148a8523a68002ae4f6c6fc6c59d0d08b2d32d4441a
 next_work_target=v19_carla_xdg_closed_dependency_source_only_k8_execution_only_continuous_authorization
 
+### XDG-Closed CARLA Exit-1 Recovery and Read-Only Diagnosis
+
+At CAMP/GitHub/AutoDL `976ba7a41f0141de936467c24dce09b5ec645085`
+and fixed clean DP `7a1d33da277a1992ec474b5383a0c963c72e04e4`, the
+continuous-authorization launch guard rehashed the corrected preflight and
+signed-package evidence, reconfirmed the 10 GiB disk floor, exact binary and
+harness hashes, no peer/listener/Saved path, and the restored mode-700 root.
+The first direct invocation stopped before ACL mutation because the audited
+wrapper is mode 0644. Its sealed no-runtime guard root is
+`bf414cb621099537df56f7580851adcedafe9d94ec318501336507e59eb645c7`.
+A superseding guard froze the mode-preserving correction
+`/usr/bin/bash <audited-wrapper> ...`; its root is
+`84f9556e21cf99ce329b33bd57afe7d51a2ee8a351c29b21962837a486dc3c36`.
+
+The corrected command granted only the reviewed UID 65534 execute traversal
+on `/root`, started the unchanged shipping binary, and restored ACL, stat, and
+xattrs byte-for-byte after the runner returned. CARLA printed the UE 4.26.2
+banner and exited 1 after 1.13 seconds, before RPC readiness. Unlike the prior
+ACL attempt, server stderr was empty: the retained signed
+`xdg-user-dirs 0.17-2ubuntu4` dependency removed the missing-helper observation
+but did not make the runtime ready. No capture, materialization, worker,
+candidate, receipt, metric, outcome, or holdout operation ran. The two empty
+UID-65534 HOME/XDG directories were retained inside the failed stage.
+
+An outer sealer observed the execution stage late and therefore did not retain
+its own wrapper stdout/stderr or direct wrapper return value. Recovery sealing
+bounded that capture gap explicitly; runner/server stdout, stderr, result,
+exit, ACL restore receipts, Saved inventory, command, heads, and SHA manifest
+are complete. The recovery execution/review roots are
+`60abbea94acc621543ae52710acaeee53f994d185ef0f9df5e951d414d4688ef`
+and `0eb876ca7a42ea080a2816582304f596d1a68a745a804261b4fb4f59d3eb976b`.
+
+Read-only comparison with the two earlier UE-banner exit-1 artifacts found
+three occurrences of the same observable signature. It establishes only that
+the missing helper was not, by itself, a sufficient remediation; the internal
+UE cause remains unknown. The current binary has zero missing `ldd`
+dependencies, UID 65534 can query the RTX 5090 and read/write its device
+nodes, and cgroup memory events contain no OOM. `strace` is unavailable.
+The frozen `HOME` and `XDG_RUNTIME_DIR` values are relative paths; that is a
+new observation, not a causal finding. Diagnosis/review roots are
+`a8c71519b4f10766ba4f69ff485ff55303b6895fbcef58f8c7fff6710ddd895b`
+and `5f4fff594eef4839b46e31f819b828fa8763b091198dc1b563121ae1a40283d7`.
+
+Performance remains no-claim, bounded offline proxy improvement remains
+supported, closed-loop safety remains unsupported, and broad CAMP-over-DP-
+operational-Top-1 remains unsupported. The next continuously authorized gate
+is a no-runtime preflight for one full-stdout/log diagnostic attempt that does
+not change DP, candidates, scientific inputs, outcomes, or holdout access.
+
+current_v19_status=v19_carla_xdg_closed_dependency_pre_readiness_exit1_recovery_review_and_read_only_diagnosis_passed
+current_v19_artifact_scope=carla_xdg_closed_dependency_pre_readiness_exit1_recovery_review_and_read_only_diagnosis_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_exit1_read_only_diagnosis_976ba7a4_20260713T190933CST_independent_review
+current_v19_artifact_root_sha256=5f4fff594eef4839b46e31f819b828fa8763b091198dc1b563121ae1a40283d7
+next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

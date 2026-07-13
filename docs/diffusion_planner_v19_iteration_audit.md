@@ -3078,3 +3078,90 @@ current_v19_artifact_scope=carla_xdg_closed_dependency_runtime_attempt_preflight
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST_independent_review
 current_v19_artifact_root_sha256=ea112274570064bc55a74148a8523a68002ae4f6c6fc6c59d0d08b2d32d4441a
 next_work_target=v19_carla_xdg_closed_dependency_source_only_k8_execution_only_continuous_authorization
+
+## XDG-Closed CARLA Exit-1 Recovery and Read-Only Diagnosis
+
+Continuous v19 authorization permitted the next frozen, reversible option-A
+attempt without another ordinary approval stop. Local, origin, GitHub, and
+AutoDL CAMP were `976ba7a41f0141de936467c24dce09b5ec645085`; fixed DP was
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The launch guard
+rehashed the corrected runtime preflight/review, exclude-aware signed-package
+execution/review, CARLA binary, Town01 assets, harness, worker, checkpoint,
+fixed arguments, selector artifacts, and disk floor. It also proved no related
+process, port-2000 listener, runtime Saved path, execution root, or preexisting
+UID 65534 traversal.
+
+The first guard sealed successfully but its exact direct command was rejected
+before wrapper entry because `acl_runtime_attempt.sh` is intentionally mode
+0644. No execution stage, ACL mutation, or runtime existed; the retained guard
+root is `bf414cb621099537df56f7580851adcedafe9d94ec318501336507e59eb645c7`.
+The next guard independently proved the mode and SHA, preserved that failed
+guard, and froze `/usr/bin/bash <audited-wrapper> ...` without chmod, ACL, or
+source changes. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_source_only_k8_execution_launch_guard_976ba7a4_20260713T190018CST`
+and `84f9556e21cf99ce329b33bd57afe7d51a2ee8a351c29b21962837a486dc3c36`.
+
+The corrected invocation was a real CARLA start. The wrapper saved numeric
+ACL, stat, and ACL-xattr state, granted only `u:65534:--x` on `/root`, proved
+read/write/list denial, and launched the unchanged binary as UID/GID 65534.
+CARLA printed `4.26.2-0+++UE4+Release-4.26 522 0` and `Disabling core dumps.`,
+then exited 1 after 1.13 seconds before readiness. Server stderr was empty.
+The runner called no capture, materialization, CAMP worker, DP worker, or
+receipt step; it generated no candidate or receipt and performed zero outcome,
+metric, or holdout read.
+
+The EXIT trap recorded body rc 1, restore rc 0, zero ACL/stat/xattr compare
+codes, and blocked traversal after restore. Original and restored records are
+byte-equal; the live root is again mode 700 without UID 65534 traversal. The
+runtime Saved path is absent and its two empty UID-65534 HOME/XDG directories
+are retained in the failed stage. No related process or listener survived.
+
+The outer evidence controller returned from the wrapper before the execution
+stage became visible to its immediate post-run check. It therefore missed its
+own wrapper stdout/stderr and direct return-code files even though the runner,
+server, result, ACL, and Saved records were complete. A recovery sealer did
+not fabricate those fields: it recorded them unavailable, inferred wrapper rc
+1 only from runner rc 1 plus restore body rc 1, and sealed the capture gap.
+Independent review accepted the bounded gap and reproduced all runtime-failure,
+zero-call, restore, package, head, binary, disk, and no-job assertions. The
+failed execution/root is
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_source_only_k8_execution_2d6693db_20260713T184609CST.tmp`
+and `60abbea94acc621543ae52710acaeee53f994d185ef0f9df5e951d414d4688ef`.
+Its recovery review/root is
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_source_only_k8_execution_2d6693db_20260713T184609CST_independent_review`
+and `0eb876ca7a42ea080a2816582304f596d1a68a745a804261b4fb4f59d3eb976b`.
+
+A subsequent read-only diagnosis fully rehashed this execution/review plus the
+prior ACL and loader-remediated exit-1 artifacts. One initial diagnosis stage
+failed before commands because its verifier assumed current two-space manifest
+format for a historical one-space manifest; that stage is retained. The
+compatible retry passed and independently reviewed these facts:
+
+- three CARLA starts have now reached the UE banner and exited 1 before log/RPC;
+- the signed helper removed the previous `xdg-user-dir: not found` stderr, but
+  exit 1 persisted, so helper absence alone was not a sufficient remediation;
+- the unchanged binary has zero missing `ldd` dependencies;
+- UID 65534 can query the RTX 5090 and can read/write its GPU device nodes;
+- cgroup memory events show zero OOM/kill, and `strace` is not installed;
+- frozen `HOME=CarlaUE4/Saved/home` and
+  `XDG_RUNTIME_DIR=CarlaUE4/Saved/xdg` are relative, which is an observation
+  only and does not establish causality.
+
+The exact internal UE cause therefore remains unknown. The successful
+diagnosis/root is
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_exit1_read_only_diagnosis_976ba7a4_20260713T190933CST`
+and `a8c71519b4f10766ba4f69ff485ff55303b6895fbcef58f8c7fff6710ddd895b`.
+Independent review passed at the corresponding `_independent_review` path
+with root `5f4fff594eef4839b46e31f819b828fa8763b091198dc1b563121ae1a40283d7`.
+
+No performance, closed-loop safety, broad CAMP-over-DP-operational-Top-1,
+promotion, deployment, or activation claim is added. The next continuously
+authorized gate is a no-runtime preflight for a full-stdout/log diagnostic
+attempt. It may alter only diagnostic capture, not DP, K=8 candidates,
+scientific inputs, outcomes, metrics, or holdout access.
+
+current_v19_status=v19_carla_xdg_closed_dependency_pre_readiness_exit1_recovery_review_and_read_only_diagnosis_passed
+current_v19_artifact_scope=carla_xdg_closed_dependency_pre_readiness_exit1_recovery_review_and_read_only_diagnosis_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_exit1_read_only_diagnosis_976ba7a4_20260713T190933CST_independent_review
+current_v19_artifact_root_sha256=5f4fff594eef4839b46e31f819b828fa8763b091198dc1b563121ae1a40283d7
+next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_only_continuous_authorization
