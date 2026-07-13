@@ -4024,3 +4024,66 @@ current_v19_artifact_scope=zero_support_contract_redesign_float32_station_precis
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_contract_redesign_static_review_17a2c5a9_20260713T213823CST
 current_v19_artifact_root_sha256=5c2b6ba0c82c4d37c1474ea8c33597195513151d466631f8a9c87c6ff1855db6
 next_work_target=v19_zero_support_float32_xodr_station_tolerance_tdd_implementation_and_static_review_only
+
+## Float32 XODR Station Precision TDD Fix And V19 Honest No-Claim Closeout
+
+The uniquely supported implementation defect was fixed test-first at CAMP
+`16ffe139d7722f78081aefcb8457618a5dcf3d35`. The RED regression test failed
+with `AttributeError` because the preregistered
+`FROZEN_LIFTING_TOLERANCES` constant did not exist. The minimal GREEN adds that
+single named value and replaces only the old inline tolerances in source-probe
+materialization:
+
+- geometry epsilon: `1.5273609989704584 m`, unchanged;
+- station epsilon: `3.0518578125e-05 m`;
+- z epsilon: `1e-9 m`, unchanged;
+- continuity epsilon: `3.0518578125e-05 m`.
+
+The source/test SHA256 values are
+`f4e3ea456bb3c5240c4d0bc21b4af33edf5f356decb86902417a9993c4586395`
+and `d0c9bd6c9cdb0add3caecf004fad071f5e0100b8cfa9ffc3126211518ad5ee8e`.
+The change does not touch the route matcher, route sample construction,
+identity rules, candidate tensor, operational Top-1, fixed DP, speed source,
+eligibility, atoms, selector math, seed, or any outcome path.
+
+Local Python 3.12 and AutoDL Python 3.9 each passed the source-probe plus exact
+speed suites with 33/33 tests. `py_compile` and diff checks passed. The TDD
+artifact passed all 15 checks at
+`/root/autodl-tmp/camp_dp_v19_float32_xodr_station_tolerance_tdd_16ffe139_20260713T214344CST`
+with root
+`b4830d34e48225cb29c9bd2ffa6f963eae93e5783332033565b1df5d2f832fbc`.
+Independent review reran 33 tests and passed 16/16 checks at
+`/root/autodl-tmp/camp_dp_v19_float32_xodr_station_tolerance_tdd_16ffe139_20260713T214404CST_independent_review`
+with root
+`aa421a4608226cd4f07d1710aec0dd8c96d43ef03e383016f2bfa0f9162c1806`.
+Both artifacts record zero runtime, DP worker, outcome, metric, and holdout
+calls and no new source probe.
+
+The independent review proves the precision defect is fixed but also records
+`route_contract_selected=false` and `new_probe_authorized=false`. The remaining
+127 before-window points and 24 directed-edge identity sampling-gap points
+cannot be resolved by the float32 correction. Retaining strict future-only
+support, adding a predecessor plus exact boundary surface, or changing
+endpoint/transition representation produces different scientific support sets.
+CARLA/OpenDRIVE semantics do not select one application policy, and selecting
+the option that admits current candidates would violate the outcome-free,
+eligible-count-free preregistration rule.
+
+This satisfies the user's explicit stop condition for multiple contract
+options that cannot be scientifically distinguished. A new source-only probe
+would either repeat known route exclusions or require an unselected route
+contract, so none was run. Candidate 0 / DP operational Top-1 remains
+source-incomplete under the only sealed execution, legal paired support remains
+zero, and no matched closed-loop arm, SafetyCost, official metric, or latency
+comparison is available.
+
+V19 closes with the unchanged taxonomy: performance no-claim; bounded offline
+safety proxy supported; closed-loop safety not supported; broad CAMP-over-DP
+operational Top-1 not supported; promotion, deployment, and activation not
+authorized. All prior failure and no-claim artifacts remain preserved.
+
+current_v19_status=v19_zero_support_precision_defect_fixed_route_contract_nonunique_honest_no_claim_closeout
+current_v19_artifact_scope=float32_xodr_station_precision_tdd_fix_independent_review_route_contract_unselected_no_new_probe_honest_no_claim
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_float32_xodr_station_tolerance_tdd_16ffe139_20260713T214404CST_independent_review
+current_v19_artifact_root_sha256=aa421a4608226cd4f07d1710aec0dd8c96d43ef03e383016f2bfa0f9162c1806
+next_work_target=no_further_action_v19_zero_legal_paired_support_route_contract_nonunique_honest_no_claim_complete
