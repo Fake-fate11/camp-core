@@ -2349,3 +2349,40 @@ current_v19_artifact_scope=route_constrained_lifting_source_probe_runtime_harnes
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review_346f668a_20260713T133128CST
 current_v19_artifact_root_sha256=b99d79063f550506aef10924575e4461057c5634f9148f80f4d1cb7227f72e26
 next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_only
+
+## CARLA Source-Only K8 Probe Execution Preflight
+
+The unique read-only execution preflight reverified CAMP/GitHub/AutoDL at
+`7347417c60e1a9563f56e212660da09f0be67f29`, fixed DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, tracked-clean state, no related
+process or port listener, CUDA, the extracted official CARLA runtime and
+isolated cp312 client, all checkpoint/config/selector hashes, five upstream
+review roots, and `50,572,677,120` free bytes.
+
+The gate froze one absent staging/final root, Town01, deterministic source-only
+seed 3411, DP seed root 3412, the current-map topology route source at 5 m,
+the reviewed map-only lifting tolerances, CARLA extraction provenance root,
+the exact checked-in harness/worker SHAs, and six command stages: one CARLA
+server, capture, causal request materialization, CAMP worker `source_probe`,
+independent DP `default_provenance`, and same-map lifting receipt. The execution
+must resolve its live CAMP HEAD only if the frozen harness SHA is unchanged.
+It must retain staging and stop on any command failure, candidate mutation,
+operational/candidate-0 mismatch, source-receipt invariant failure, or disk
+floor breach. Only exact recorded CARLA PIDs may be terminated after receipt
+sealing.
+
+All 22 preflight checks passed. The preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_7347417c_20260713T134427CST`
+and `e10e8c949e36c37e145e6fe1ba171294ca6e0dcabe0b4b562bdc8e5cac4c9107`.
+Independent manifest, frozen-command, root-absence, fixed-DP, and zero-call
+review passed at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_7347417c_20260713T134427CST`
+with root `c9296189ca96cbe531b2c5dcc3cffa30e689035ce991fe9984805e43b4bcf199`.
+No server, worker, checkpoint inference, candidate, simulator arm, rung,
+scenario, metric, outcome, or holdout ran.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_7347417c_20260713T134427CST
+current_v19_artifact_root_sha256=c9296189ca96cbe531b2c5dcc3cffa30e689035ce991fe9984805e43b4bcf199
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_only
