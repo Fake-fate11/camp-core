@@ -18,6 +18,8 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
 
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
     BRIDGE_SCHEMA_VERSION,
+    DP_OPERATIONAL_TOP1_NAME,
+    DP_OPERATIONAL_TOP1_PROVENANCE,
     array_sha256,
     read_request,
     write_response,
@@ -80,6 +82,13 @@ def process_request(
         "speed_source_policy": request.metadata["speed_source_policy"],
     }
     if arm == "dp_default":
+        response_metadata.update(
+            {
+                "baseline_name": DP_OPERATIONAL_TOP1_NAME,
+                "baseline_provenance": DP_OPERATIONAL_TOP1_PROVENANCE,
+            }
+        )
+    if arm == "dp_default":
         inference_start = time.perf_counter_ns()
         default, _ = run_fixed_dp_default(infer_one)
         inference_ms = (time.perf_counter_ns() - inference_start) / 1e6
@@ -135,7 +144,6 @@ def process_request(
         response_metadata.update(
             {
                 "status": "ok",
-                "baseline_name": "DP-default deterministic/MAP baseline",
                 "selected_trajectory_sha256": array_sha256(default),
             }
         )
@@ -305,7 +313,8 @@ def verify_default_equivalence(
         "max_abs_difference": difference,
         "default_output_sha256": default_sha,
         "candidate0_sha256": reference_sha,
-        "baseline_name": "DP-default deterministic/MAP baseline",
+        "baseline_name": DP_OPERATIONAL_TOP1_NAME,
+        "baseline_provenance": DP_OPERATIONAL_TOP1_PROVENANCE,
         "native_ranked_top1": False,
     }
 

@@ -289,7 +289,7 @@ def test_official_planner_is_a_non_oracle_detections_tracks_adapter(tmp_path) ->
     )
 
     assert planner.requires_scenario is False
-    assert planner.name() == "DP-default deterministic/MAP baseline"
+    assert planner.name() == "DP operational Top-1"
     assert planner.observation_type() is observation.DetectionsTracks
 
 

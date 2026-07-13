@@ -93,7 +93,10 @@ def test_default_and_candidate0_are_independent_zero_latent_calls() -> None:
     assert provenance["elementwise_equal"] is True
     assert provenance["max_abs_difference"] == 0.0
     assert provenance["default_output_sha256"] == provenance["candidate0_sha256"]
-    assert provenance["baseline_name"] == "DP-default deterministic/MAP baseline"
+    assert provenance["baseline_name"] == "DP operational Top-1"
+    assert provenance["baseline_provenance"] == (
+        "unmodified single DP output; independently equivalent to K=8 candidate 0"
+    )
     assert provenance["native_ranked_top1"] is False
 
 
@@ -202,6 +205,10 @@ def test_process_default_provenance_writes_independent_equivalence(tmp_path) -> 
         response.arrays["independent_reference_trajectory"],
     )
     assert response.metadata["native_ranked_top1"] is False
+    assert response.metadata["baseline_name"] == "DP operational Top-1"
+    assert response.metadata["baseline_provenance"] == (
+        "unmodified single DP output; independently equivalent to K=8 candidate 0"
+    )
 
 
 def test_process_default_tick_records_planned_red_without_generating_k8(
@@ -271,6 +278,11 @@ def test_process_default_candidate_local_tick_fails_without_speed_source(
     assert response.metadata["failure_reason"] == (
         "dp_default_route_speed_source_ineligible"
     )
+    assert response.metadata["baseline_name"] == "DP operational Top-1"
+    assert response.metadata["baseline_provenance"] == (
+        "unmodified single DP output; independently equivalent to K=8 candidate 0"
+    )
+    assert response.metadata["native_ranked_top1"] is False
     assert "selected_trajectory" not in response.arrays
 
 

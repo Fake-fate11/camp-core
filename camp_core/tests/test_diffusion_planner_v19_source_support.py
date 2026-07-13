@@ -262,6 +262,11 @@ def test_census_serializes_every_rejection_and_deterministic_candidates(
         "metric_computations": 0,
         "outcome_reads": 0,
     }
+    assert report["baseline_name"] == "DP operational Top-1"
+    assert report["baseline_provenance"] == (
+        "unmodified single DP output; independently equivalent to K=8 candidate 0"
+    )
+    assert report["native_ranked_top1"] is False
     matrix = json.loads((output / "support_matrix.json").read_text("utf-8"))
     assert set(matrix["by_log"]) == {"log-a", "log-b", "log-v18"}
     assert set(matrix["by_scene"]) == {"scene-a", "scene-b", "scene-v18"}
@@ -370,10 +375,24 @@ def test_review_rebuilds_smoke_config_instead_of_copying_tampered_bytes(
             "schema_version": "test_smoke_v1",
             "selected_scenario_count": 2,
             "selected_scenarios": [],
+            "arms": {
+                "baseline": {
+                    "baseline_name": "superseded",
+                    "baseline_provenance": "superseded",
+                    "native_ranked_top1": True,
+                }
+            },
         },
     )
     smoke_path = census / "smoke_config.json"
     smoke = json.loads(smoke_path.read_text("utf-8"))
+    assert smoke["arms"]["baseline"] == {
+        "baseline_name": "DP operational Top-1",
+        "baseline_provenance": (
+            "unmodified single DP output; independently equivalent to K=8 candidate 0"
+        ),
+        "native_ranked_top1": False,
+    }
     smoke["tampered_after_selection"] = True
     smoke_path.write_text(json.dumps(smoke, sort_keys=True) + "\n", encoding="utf-8")
     module._seal(census)

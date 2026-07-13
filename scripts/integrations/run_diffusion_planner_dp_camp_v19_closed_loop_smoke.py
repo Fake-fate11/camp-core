@@ -12,6 +12,8 @@ from typing import Any
 import numpy as np
 
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
+    DP_OPERATIONAL_TOP1_NAME,
+    DP_OPERATIONAL_TOP1_PROVENANCE,
     paired_run_key,
 )
 from camp_core.integrations.nuplan_closed_loop_evidence import (
@@ -175,8 +177,8 @@ def validate_smoke_config(config: Mapping[str, Any]) -> dict[str, Any]:
     camp = arms.get("camp", {})
     if (
         baseline.get("arm") != "dp_default"
-        or baseline.get("baseline_name")
-        != "DP-default deterministic/MAP baseline"
+        or baseline.get("baseline_name") != DP_OPERATIONAL_TOP1_NAME
+        or baseline.get("baseline_provenance") != DP_OPERATIONAL_TOP1_PROVENANCE
         or baseline.get("native_ranked_top1") is not False
         or baseline.get("worker_operation") != "plan_tick"
     ):

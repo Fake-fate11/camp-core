@@ -21,6 +21,10 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 
 
 BRIDGE_SCHEMA_VERSION = "dp_camp_v19_nuplan_bridge_v1"
+DP_OPERATIONAL_TOP1_NAME = "DP operational Top-1"
+DP_OPERATIONAL_TOP1_PROVENANCE = (
+    "unmodified single DP output; independently equivalent to K=8 candidate 0"
+)
 _ARMS = frozenset({"dp_default", "camp"})
 _FORMAL_SEEDS = frozenset({11, 12, 13})
 _FORBIDDEN_KEY_PARTS = (
@@ -219,6 +223,10 @@ def _validate_default_response(
     }
     if set(arrays) - allowed:
         raise ValueError("unexpected DP-default response arrays")
+    if metadata.get("baseline_name") != DP_OPERATIONAL_TOP1_NAME:
+        raise ValueError("DP-default baseline name mismatch")
+    if metadata.get("baseline_provenance") != DP_OPERATIONAL_TOP1_PROVENANCE:
+        raise ValueError("DP-default baseline provenance mismatch")
     if status == "failed":
         if arrays:
             raise ValueError("failed DP-default response must contain no trajectory")
@@ -226,8 +234,6 @@ def _validate_default_response(
     if "selected_trajectory" not in arrays:
         raise ValueError("DP-default response is missing selected trajectory")
     _validate_trajectory(arrays["selected_trajectory"])
-    if metadata.get("baseline_name") != "DP-default deterministic/MAP baseline":
-        raise ValueError("DP-default baseline name mismatch")
     _require_selected_sha(arrays["selected_trajectory"], metadata)
     if metadata.get("operation") == "plan_tick":
         _require_planned_red(metadata)

@@ -11,6 +11,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
+    DP_OPERATIONAL_TOP1_NAME,
     build_request_metadata,
     read_response,
     write_request,
@@ -117,7 +118,7 @@ class NuPlanCAMPPlanner(AbstractPlanner):  # type: ignore[misc]
 
     def name(self) -> str:
         return (
-            "DP-default deterministic/MAP baseline"
+            DP_OPERATIONAL_TOP1_NAME
             if self._arm == "dp_default"
             else "CAMP fixed-DP K=8 selector"
         )

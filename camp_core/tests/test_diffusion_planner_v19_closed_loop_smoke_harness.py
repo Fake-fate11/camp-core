@@ -75,7 +75,10 @@ def _config() -> dict[str, object]:
         "arms": {
             "baseline": {
                 "arm": "dp_default",
-                "baseline_name": "DP-default deterministic/MAP baseline",
+                "baseline_name": "DP operational Top-1",
+                "baseline_provenance": (
+                    "unmodified single DP output; independently equivalent to K=8 candidate 0"
+                ),
                 "native_ranked_top1": False,
                 "worker_operation": "plan_tick",
             },
@@ -97,6 +100,7 @@ def test_validate_config_freezes_two_unseen_scenarios_and_nonformal_seeds() -> N
         "interaction",
     ]
     assert config["arms"]["baseline"]["native_ranked_top1"] is False
+    assert config["arms"]["baseline"]["baseline_name"] == "DP operational Top-1"
 
     invalid = _config()
     invalid["seeds"]["scenario"] = 11
@@ -331,7 +335,7 @@ def test_execute_arm_retains_history_metrics_bridge_and_no_cross_arm_result(
         simulation=simulation,
         runner=runner,
         metric_engine=metric_engine,
-        planner_name="DP-default deterministic/MAP baseline",
+        planner_name="DP operational Top-1",
     )
 
     assert result["arm"] == "dp_default"

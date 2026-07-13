@@ -143,7 +143,10 @@ def test_response_rejects_hash_or_shape_mismatch(tmp_path: Path) -> None:
         "iteration_index": 0,
         "status": "ok",
         "selected_trajectory_sha256": module.array_sha256(trajectory),
-        "baseline_name": "DP-default deterministic/MAP baseline",
+        "baseline_name": "DP operational Top-1",
+        "baseline_provenance": (
+            "unmodified single DP output; independently equivalent to K=8 candidate 0"
+        ),
         "native_ranked_top1": False,
         "speed_source_policy": "full_window_exact_speed",
     }
@@ -179,7 +182,10 @@ def test_plan_tick_response_requires_planned_red_and_worker_latency(
         "operation": "plan_tick",
         "status": "ok",
         "selected_trajectory_sha256": module.array_sha256(trajectory),
-        "baseline_name": "DP-default deterministic/MAP baseline",
+        "baseline_name": "DP operational Top-1",
+        "baseline_provenance": (
+            "unmodified single DP output; independently equivalent to K=8 candidate 0"
+        ),
         "native_ranked_top1": False,
         "speed_source_policy": "full_window_exact_speed",
     }

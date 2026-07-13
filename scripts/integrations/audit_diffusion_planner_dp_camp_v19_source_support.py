@@ -20,6 +20,8 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
     project_candidates_to_route,
 )
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
+    DP_OPERATIONAL_TOP1_NAME,
+    DP_OPERATIONAL_TOP1_PROVENANCE,
     array_sha256,
     build_request_metadata,
     read_response,
@@ -340,6 +342,7 @@ def write_census_artifact(
     if protocol["selected"] and base_smoke_config is not None:
         smoke = json.loads(json.dumps(base_smoke_config))
         _write_json(root / "base_smoke_config.json", smoke)
+        _freeze_operational_top1_provenance(smoke)
         smoke["selected_scenarios"] = protocol["selected_scenarios"]
         smoke["selected_scenario_count"] = 2
         _write_json(root / "smoke_config.json", smoke)
@@ -352,7 +355,8 @@ def write_census_artifact(
         "exhausted": protocol["exhausted"],
         "access_counters": dict(ACCESS_COUNTERS),
         "native_ranked_top1": False,
-        "baseline_name": "DP-default deterministic/MAP baseline",
+        "baseline_name": DP_OPERATIONAL_TOP1_NAME,
+        "baseline_provenance": DP_OPERATIONAL_TOP1_PROVENANCE,
     }
     _write_json(root / "OUTCOME.json", report)
     report["artifact_root_sha256"] = _seal(root)
@@ -417,6 +421,7 @@ def write_review_artifact(
         if not base_path.is_file():
             raise ValueError("independent smoke config base is missing")
         smoke = json.loads(base_path.read_text(encoding="utf-8"))
+        _freeze_operational_top1_provenance(smoke)
         smoke["selected_scenarios"] = actual_protocol["selected_scenarios"]
         smoke["selected_scenario_count"] = 2
         _write_json(root / "smoke_config.json", smoke)
@@ -459,6 +464,22 @@ def write_review_artifact(
     )
     report["artifact_root_sha256"] = _seal(root)
     return report
+
+
+def _freeze_operational_top1_provenance(smoke: dict[str, Any]) -> None:
+    try:
+        baseline = smoke["arms"]["baseline"]
+    except (KeyError, TypeError) as exc:
+        raise ValueError("smoke config baseline arm is missing") from exc
+    if not isinstance(baseline, dict):
+        raise ValueError("smoke config baseline arm is invalid")
+    baseline.update(
+        {
+            "baseline_name": DP_OPERATIONAL_TOP1_NAME,
+            "baseline_provenance": DP_OPERATIONAL_TOP1_PROVENANCE,
+            "native_ranked_top1": False,
+        }
+    )
 
 
 def enumerate_candidate_rows(
