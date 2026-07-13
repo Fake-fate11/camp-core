@@ -1926,3 +1926,35 @@ current_v19_artifact_scope=carla_strict_lookup_z_sensitivity_and_2d_candidate_to
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_A_first_world_transform_source_probe_preflight_independent_failure_review_b2f1360d_20260713T052457CST
 current_v19_artifact_root_sha256=fb096a9f5453d64a6f63f354c56afd07c68cdd64507318b2d3e75ad400ef40d9
 next_work_target=user_decision_required_before_carla_candidate_2d_to_3d_opendrive_atom_source_contract_change
+
+## CARLA Route-Constrained Lifting Design Approved And Reviewed
+
+The user approved scheme 1, a strict route-constrained 2D-to-3D OpenDRIVE
+lifting contract, superseding the preceding source-contract decision boundary.
+The design is written at
+`docs/superpowers/specs/2026-07-13-v19-carla-route-constrained-lifting-design.md`
+with SHA256
+`84c2ba324b522bbf09086ba725c38aa4984745fd04d16026349014900fdee31d`.
+
+The contract keeps the fixed K=8 tensor immutable, converts ego XY only through
+the inverse same-tick transform, matches only the pre-registered route/lane
+surface, obtains z only from verified `get_waypoint_xodr`, requires unique
+identity/station and topology continuity, and seals canonical receipts before
+CAMP scoring. The paired baseline is named DP operational Top-1 while retaining
+`native_ranked_top1=false`; no native K-ranking is claimed. Flat-only filtering
+is not enabled and DP modification remains forbidden.
+
+Two failed review artifacts preserve an initial ff-only ordering failure and a
+missing literal 10 GiB floor check. The corrected final independent review
+passed all contract, scope, placeholder, head, DP, disk, and no-runtime checks.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_spec_review_final_dbe1b2af_20260713T091826CST`
+and `45d7c214fda7e06774a87b2e7aecc1028f889e7df3714349cdd3a320c5b98b98`.
+No simulator, planner, candidate tensor, metric, holdout, or outcome call
+occurred; no rung or scenario was selected or frozen.
+
+current_v19_status=v19_carla_route_constrained_lifting_design_independent_review_passed
+current_v19_artifact_scope=approved_route_constrained_2d_to_3d_opendrive_lifting_design
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_spec_review_final_dbe1b2af_20260713T091826CST
+current_v19_artifact_root_sha256=45d7c214fda7e06774a87b2e7aecc1028f889e7df3714349cdd3a320c5b98b98
+next_work_target=v19_carla_route_constrained_lifting_tdd_plan_only

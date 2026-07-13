@@ -442,11 +442,18 @@ trajectories and provide no z, so exact OpenDRIVE segment identity cannot be
 established without changing the atom/source contract. No workaround,
 candidate generation, simulator, metric, outcome, rung, or freeze occurred.
 
-current_v19_status=v19_carla_A_first_candidate_route_world_transform_and_source_probe_preflight_failed_closed
-current_v19_artifact_scope=carla_strict_lookup_z_sensitivity_and_2d_candidate_to_3d_opendrive_source_gap
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_A_first_world_transform_source_probe_preflight_independent_failure_review_b2f1360d_20260713T052457CST
-current_v19_artifact_root_sha256=fb096a9f5453d64a6f63f354c56afd07c68cdd64507318b2d3e75ad400ef40d9
-next_work_target=user_decision_required_before_carla_candidate_2d_to_3d_opendrive_atom_source_contract_change
+The user then approved strict route-constrained 2D-to-3D OpenDRIVE lifting.
+The reviewed design restricts matching to the pre-registered route/lane
+surface, derives z only from verified `get_waypoint_xodr`, requires unique
+identity and topology continuity, and preserves the immutable candidate SHA.
+The comparison is named CAMP-selected candidate vs DP operational Top-1 while
+`native_ranked_top1=false` remains explicit. No runtime or outcome occurred.
+
+current_v19_status=v19_carla_route_constrained_lifting_design_independent_review_passed
+current_v19_artifact_scope=approved_route_constrained_2d_to_3d_opendrive_lifting_design
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_spec_review_final_dbe1b2af_20260713T091826CST
+current_v19_artifact_root_sha256=45d7c214fda7e06774a87b2e7aecc1028f889e7df3714349cdd3a320c5b98b98
+next_work_target=v19_carla_route_constrained_lifting_tdd_plan_only
 
 ## Current V18 Status
 
