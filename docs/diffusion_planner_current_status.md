@@ -525,13 +525,31 @@ tolerances, exact asset and code hashes, separate CAMP `source_probe` and DP
 `default_provenance` worker calls, one staging/final root, and a retain-and-stop
 failure policy. Their roots are `e10e8c949e36c37e145e6fe1ba171294ca6e0dcabe0b4b562bdc8e5cac4c9107`
 and `c9296189ca96cbe531b2c5dcc3cffa30e689035ce991fe9984805e43b4bcf199`.
-No simulator, worker inference, candidate, metric, outcome, or holdout ran.
 
-current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_no_execution
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_7347417c_20260713T134427CST
-current_v19_artifact_root_sha256=c9296189ca96cbe531b2c5dcc3cffa30e689035ce991fe9984805e43b4bcf199
-next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_only
+The unique execution attempt then failed before CARLA became ready because the
+packaged Unreal runtime refuses effective UID 0. Its retained staging evidence
+has root `809227ae5a914c9f44a24cc27439d4778b358433e7bf9b57b434ed587cf24a4c`;
+no capture, worker, candidate, metric, outcome, or holdout call occurred. A
+read-only overlay preflight also failed before runtime because this container
+lacks mount capability; its retained root is
+`c768aea8fb53221f4a2e34214a586f3e395705460580fa4672d5e7e3906665ba`.
+
+The minimal rootless-CWD retry preflight and independent review now pass. Root
+enters the unchanged runtime directory before dropping to UID/GID 65534 with
+`setpriv`; relative official binary and Town01 access and an isolated official
+`CarlaUE4/Saved` write path were proven without changing `/root` permissions,
+mounting an overlay, or changing the runtime binary SHA. The transient Saved
+directory was moved into the preflight artifact and is absent from the runtime.
+The preflight/review roots are
+`aa160dc9066f962b331d967eaa676bf52cb925387e6e15b6c966f604acb420ac` and
+`dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2`.
+No retry server, worker, candidate, metric, outcome, or holdout ran.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_a6988f3f_20260713T140654CST
+current_v19_artifact_root_sha256=dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_execution_retry_only
 
 ## Current V18 Status
 

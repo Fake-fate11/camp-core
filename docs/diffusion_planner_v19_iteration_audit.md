@@ -2386,3 +2386,49 @@ current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_execut
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_independent_review_7347417c_20260713T134427CST
 current_v19_artifact_root_sha256=c9296189ca96cbe531b2c5dcc3cffa30e689035ce991fe9984805e43b4bcf199
 next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_only
+
+## CARLA Source-Only K8 Probe Rootless-CWD Retry Preflight
+
+The unique source-only execution attempt retained its failed staging root at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_7347417c_20260713T134427CST.tmp`
+with root `809227ae5a914c9f44a24cc27439d4778b358433e7bf9b57b434ed587cf24a4c`.
+The packaged Unreal process exited `1` before port readiness with
+`Refusing to run with the root privileges.` Capture, materialization, both
+workers, receipt construction, candidates, metrics, outcomes, and holdout
+access therefore remained at zero. The official binary retained SHA256
+`03bcd413615fa1fc61a5b846342dbdc4e6b3541320a40d6bf17ff927039731f9`;
+no process remained and free space was `50,572,210,176` bytes.
+
+A smaller read-only overlay remediation preflight proved that the kernel lists
+overlay support but this container lacks mount capability. It exited `32`
+before any server call, retained its sealed staging artifact/root at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_overlay_retry_preflight_a6988f3f_20260713T140325CST.tmp`
+and `c768aea8fb53221f4a2e34214a586f3e395705460580fa4672d5e7e3906665ba`,
+and left its exact mountpoint absent. It was not an additional runtime attempt.
+
+The minimal no-mount rootless-CWD retry preflight then passed all 19 checks.
+Root enters the unchanged official runtime directory and drops to UID/GID
+65534 with `/usr/bin/setpriv`, after which relative access to the packaged
+binary and Town01 asset succeeds despite `/root` remaining mode 700. The
+preflight also proved the exact runtime write location through an isolated
+`CarlaUE4/Saved` directory, then atomically retained that directory inside its
+artifact; the runtime Saved path is absent afterward. It created no user,
+mount, permission change, server, worker, candidate, metric, outcome, or
+holdout access. The binary SHA remained unchanged and free space was
+`50,572,169,216` bytes.
+
+The passed preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_a6988f3f_20260713T140654CST`
+and `aa160dc9066f962b331d967eaa676bf52cb925387e6e15b6c966f604acb420ac`.
+Independent manifest, command, permission, runtime-SHA, root-absence, and
+zero-call review passed at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_a6988f3f_20260713T140654CST`
+with root `dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2`.
+The next gate permits exactly one rootless-CWD retry of the already frozen
+Town01 source-only probe. It does not permit a metric, outcome, or claim.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_a6988f3f_20260713T140654CST
+current_v19_artifact_root_sha256=dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_execution_retry_only
