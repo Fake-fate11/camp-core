@@ -3462,3 +3462,37 @@ current_v19_artifact_scope=exact_signed_libvulkan1_single_package_install_integr
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_install_integrity_13e6241b_20260713T200103CST_independent_review
 current_v19_artifact_root_sha256=44d99f3b5042b64a66ee9f9cb3ba89cdfb126509fb1f2e75c35a965f9548089b
 next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_only_continuous_authorization
+
+## Vulkan-Loader Runtime Attempt Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`364af116fd32e0921bb6188592c7add42d09e470`, the no-runtime preflight verified
+the prior absolute-XDG failure review, missing-loader diagnosis review, and
+exact package install/review manifests. The retained exact package replayed
+its installed-path, owner/mode/hash, empty `dpkg -V`, SONAME, `ldd`/`ldconfig`,
+root `ctypes`, and UID 65534 load checks successfully.
+
+The execution plan was made by substituting only fresh stage/final paths in
+the already reviewed absolute-XDG/full-log plan. A whole-object comparison
+proves server argv/environment, logging flags, Town01/RPC/readiness, all five
+source-only steps, capture source head, fixed DP/checkpoint/args/selectors,
+K=8/scientific contracts, and forbidden-operation counters unchanged. Runner
+validate-only and exact UID XDG probes pass. No process/listener/Saved/staging
+state exists; root ACL is restored and UID 65534 cannot traverse it; disk is
+above the 10 GiB floor.
+
+The source artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_runtime_attempt_preflight_364af116_20260713T200519CST`
+and `b80b93515a9c60fbc66bcf43b1185c71b3a0846a1e7746c30d5659f0ad9ab553`.
+Independent review repeated package/plan/runtime-absence checks without
+changing the source manifest and passed at the corresponding review path with
+root `ecb6d0302f39a039b9e53092d6e51742833061e98751c65292ad1c43b19d8f06`.
+This freezes attempt 1 for the independently supported missing-Vulkan-loader
+root cause. It does not yet prove causality, and it performed no ACL mutation,
+runtime start, candidate, outcome, metric, or holdout activity.
+
+current_v19_status=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=missing_vulkan_loader_remediation_runtime_attempt_preflight_and_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_runtime_attempt_preflight_364af116_20260713T200519CST_independent_review
+current_v19_artifact_root_sha256=ecb6d0302f39a039b9e53092d6e51742833061e98751c65292ad1c43b19d8f06
+next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_execution_only_continuous_authorization

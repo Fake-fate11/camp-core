@@ -983,6 +983,33 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_install_integrity_1
 current_v19_artifact_root_sha256=44d99f3b5042b64a66ee9f9cb3ba89cdfb126509fb1f2e75c35a965f9548089b
 next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_only_continuous_authorization
 
+### Vulkan-Loader Runtime Attempt Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`364af116fd32e0921bb6188592c7add42d09e470`, a no-runtime preflight rehashed
+the prior failed execution review, missing-loader diagnosis, exact package
+install, and package review. The retained package again passed full installed-
+path, dpkg, SONAME, root-load, and UID 65534 load verification. The new plan is
+byte-structurally equal to the reviewed absolute-XDG/full-log plan after only
+substituting unique execution paths; server argv, Town01/RPC/readiness,
+five-step source-only pipeline, fixed DP/assets/selectors/candidate contracts,
+and all scientific fields are unchanged.
+
+The guard confirmed no peer process or port-2000 listener, no Saved or staging
+path, restored root mode/non-traverse state, and more than the 10 GiB floor.
+The exact ACL-wrapper command and package-remediation attempt index 1 are
+sealed. Preflight/review roots are
+`b80b93515a9c60fbc66bcf43b1185c71b3a0846a1e7746c30d5659f0ad9ab553`
+and `ecb6d0302f39a039b9e53092d6e51742833061e98751c65292ad1c43b19d8f06`.
+No runtime, ACL mutation, candidate, outcome, metric, or holdout activity
+occurred.
+
+current_v19_status=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=missing_vulkan_loader_remediation_runtime_attempt_preflight_and_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_runtime_attempt_preflight_364af116_20260713T200519CST_independent_review
+current_v19_artifact_root_sha256=ecb6d0302f39a039b9e53092d6e51742833061e98751c65292ad1c43b19d8f06
+next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_execution_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this
