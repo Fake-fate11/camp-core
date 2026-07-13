@@ -496,11 +496,18 @@ are `1.5273609989704584`, `1.0000017763568395e-9`, `1e-9`, and
 `1.0000017763568395e-9` metres. No DP candidate, server, outcome, or metric was
 used.
 
-current_v19_status=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_review_passed
-current_v19_artifact_scope=route_constrained_lifting_official_map_only_tolerance_freeze_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_map_only_tolerance_freeze_independent_review_147c0d56_20260713T111805CST
-current_v19_artifact_root_sha256=966a9f6169248186e470c0b1d89a177485794ba916df92c65aef2804fdae986b
-next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_only
+The source-only K8 probe preflight now passes independent review but execution
+remains fail-closed. All upstream roots, fixed assets, heads, disk, worker, and
+receipt census are ready. The sole missing input is a CAMP-side decision-time
+builder from the preregistered route waypoints to the canonical lifting
+sidecar. No request, candidate, worker, simulator, metric, or outcome ran. The
+next gate is the minimal TDD implementation of that builder.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_review_passed_execution_not_ready
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_preflight_independent_review_and_route_sidecar_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_independent_review_7fcfb32efa_20260713T114845CST
+current_v19_artifact_root_sha256=3691a86781588d94b28ee43e953918eead1324ad7943bebbc694d8788a53b3e2
+next_work_target=v19_carla_route_constrained_lifting_route_sidecar_tdd_implementation_only
 
 ## Current V18 Status
 

@@ -2201,3 +2201,40 @@ current_v19_artifact_scope=route_constrained_lifting_official_map_only_tolerance
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_map_only_tolerance_freeze_independent_review_147c0d56_20260713T111805CST
 current_v19_artifact_root_sha256=966a9f6169248186e470c0b1d89a177485794ba916df92c65aef2804fdae986b
 next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_only
+
+## CARLA Route-Constrained Lifting Source-Only K8 Probe Preflight
+
+The read-only preflight reverified the reviewed causal adapter, existing
+source-probe bridge/worker, receipt-consuming exact-speed census, Tasks 1-4,
+combined static review, official map tolerance freeze, fixed DP assets, clean
+matching CAMP/DP heads, zero related jobs, and the 10 GiB floor. It froze the
+exact future `source_probe` worker command without materializing a request,
+loading the checkpoint, generating a candidate tensor, or advancing a
+simulator arm.
+
+Execution is not ready for one narrow engineering reason: the current CARLA
+causal adapter produces the same-tick `agents_from_world_tf` but has no
+decision-time builder that converts the preregistered
+`current_map_topology_successors` route into the canonical
+`RouteLiftingContext`/`LaneSurfaceSample` sidecar. Starting the worker without
+that sidecar would bypass the approved route-constrained 2D-to-3D lifting
+contract, so the probe remains fail-closed.
+
+The preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_7fcfb32efa_20260713T114815CST`
+and `8c80f0064316129cd356b0698bb4407345aadb1cd202f606fa982e118bc70713`.
+Independent review rehashed that artifact and all upstream roots, reproduced
+the missing sidecar builder, confirmed the exact operational baseline naming,
+and found no request/response/candidate file or outcome access. Its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_independent_review_7fcfb32efa_20260713T114845CST`
+and `3691a86781588d94b28ee43e953918eead1324ad7943bebbc694d8788a53b3e2`.
+No simulator, planner arm, metric, holdout, rung, scenario, or claim was
+produced. The approved minimal remediation is a CAMP-side TDD route-sidecar
+builder; no new runner or protocol change is required.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_review_passed_execution_not_ready
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_preflight_independent_review_and_route_sidecar_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_independent_review_7fcfb32efa_20260713T114845CST
+current_v19_artifact_root_sha256=3691a86781588d94b28ee43e953918eead1324ad7943bebbc694d8788a53b3e2
+next_work_target=v19_carla_route_constrained_lifting_route_sidecar_tdd_implementation_only

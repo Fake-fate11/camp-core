@@ -72,8 +72,9 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_route_constrained_lifting_map_only_tolerance_freeze_review_passed"
+        "v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_"
+        "review_passed_execution_not_ready"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_only"
+        "v19_carla_route_constrained_lifting_route_sidecar_tdd_implementation_only"
     )
