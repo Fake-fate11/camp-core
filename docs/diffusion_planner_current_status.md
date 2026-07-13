@@ -1202,6 +1202,30 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_exe
 current_v19_artifact_root_sha256=a6542a10376bbb1b26bdd3e849119de9c82be8b8bd56f2466ec8708d905b04ab
 next_work_target=v19_carla_materialize_git_head_remediation_harness_sha_corrected_runtime_preflight_only_continuous_authorization
 
+### Harness-SHA-Corrected Runtime Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`a85109ffd99899334964a1687cfe7954d93bd35a`, the corrected preflight used the
+sealed failed plan as its base and changed only fresh execution paths plus
+`harness_sha256` from the pre-fix `45801d...` value to the exact committed
+`931366...` source SHA. The server, temporary ICD contract, five pipeline
+steps, fixed DP/assets/selectors, K=8, and every scientific field remain equal.
+
+The preflight/review again passed the 8 targeted tests twice, source/test hash
+checks, `py_compile`, diff check, exact package integrity, UID 65534 EGL/Vulkan
+probe, runner validate-only, synchronized HEAD/GitHub/DP, restored ACL, no
+process/listener/Saved/staging, and disk floor. Roots are
+`12033a3d5cddbaacfca3c9162234acd0c646ff2cda9997b9865400f0a164dabc`
+and `a8c2bff7cc79830f86f60d905f10a090f216798f7e384d79a39ffb670ba58f45`.
+No runtime, ACL mutation, DP worker, candidate, outcome, metric, or holdout
+operation occurred. Materialize attempt 1 remains ready and unconsumed.
+
+current_v19_status=v19_carla_materialize_git_head_remediation_harness_sha_corrected_runtime_preflight_independent_review_passed
+current_v19_artifact_scope=materialize_git_head_remediation_harness_sha_corrected_runtime_attempt_1_preflight_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_harness_sha_corrected_runtime_preflight_a85109ff_20260713T205709CST_independent_review
+current_v19_artifact_root_sha256=a8c2bff7cc79830f86f60d905f10a090f216798f7e384d79a39ffb670ba58f45
+next_work_target=v19_carla_materialize_git_head_remediation_runtime_attempt_1_execution_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

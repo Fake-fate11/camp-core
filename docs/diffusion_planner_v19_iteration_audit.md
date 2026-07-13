@@ -3776,3 +3776,48 @@ current_v19_artifact_scope=materialize_git_head_remediation_prestart_harness_sha
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_execution_controller_76319083_20260713T205117CST_execution_review
 current_v19_artifact_root_sha256=a6542a10376bbb1b26bdd3e849119de9c82be8b8bd56f2466ec8708d905b04ab
 next_work_target=v19_carla_materialize_git_head_remediation_harness_sha_corrected_runtime_preflight_only_continuous_authorization
+
+## Harness-SHA-Corrected Materialize Runtime Attempt 1 Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`a85109ffd99899334964a1687cfe7954d93bd35a`, the no-runtime preflight verified
+the sealed failed preflight/review, pre-start failure/review, original CARLA
+readiness/capture failure/review, Git-head diagnosis/review, and exact package
+install/review. It then derived the new plan from the sealed failed plan with
+exactly two permitted change classes:
+
+- fresh execution stage/final paths;
+- `harness_sha256` changed from pre-fix
+  `45801d5653cc5f04a000af033e1ac3c57ec2127f390ede68bcd98f8af698a86a`
+  to committed fixed-source SHA256
+  `931366a927c53e2c9045caec589814c75aff2fd979ea8ac86e6b75368d674c41`.
+
+The new stage/final paths are:
+
+- `/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_harness_sha_corrected_execution_a85109ff_20260713T205709CST.tmp`
+- `/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_harness_sha_corrected_execution_a85109ff_20260713T205709CST`
+
+Whole-object comparison keeps server argv/environment, temporary EGL-ICD
+manifest, all five source-only pipeline steps, fixed DP/checkpoint/args/
+selectors, K=8, route/speed/lifting/source/tolerance/eligibility, seeds, and
+forbidden-operation counters unchanged. Both source and independent review ran
+the source-probe/live-pointer suite with `8 passed`; exact source/test SHA,
+40-hex Git and 64-hex content validators, `py_compile`, and diff check passed.
+Exact package integrity and UID 65534 EGL/Vulkan were replayed, with temporary
+files removed. Runner validate-only, synchronized local/origin/GitHub CAMP,
+fixed clean DP, restored root, no process/listener/Saved/staging, and disk floor
+all passed.
+
+Source/review roots are
+`12033a3d5cddbaacfca3c9162234acd0c646ff2cda9997b9865400f0a164dabc`
+and `a8c2bff7cc79830f86f60d905f10a090f216798f7e384d79a39ffb670ba58f45`.
+No CARLA, ACL mutation, DP worker, candidate, outcome, metric, or holdout
+activity occurred. Materialize Git-head root-cause attempt 1 remains
+unconsumed and is ready under the corrected integrity contract. Claim
+boundaries remain unchanged.
+
+current_v19_status=v19_carla_materialize_git_head_remediation_harness_sha_corrected_runtime_preflight_independent_review_passed
+current_v19_artifact_scope=materialize_git_head_remediation_harness_sha_corrected_runtime_attempt_1_preflight_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_harness_sha_corrected_runtime_preflight_a85109ff_20260713T205709CST_independent_review
+current_v19_artifact_root_sha256=a8c2bff7cc79830f86f60d905f10a090f216798f7e384d79a39ffb670ba58f45
+next_work_target=v19_carla_materialize_git_head_remediation_runtime_attempt_1_execution_only_continuous_authorization
