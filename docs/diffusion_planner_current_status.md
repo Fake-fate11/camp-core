@@ -1010,6 +1010,38 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_runtime_at
 current_v19_artifact_root_sha256=ecb6d0302f39a039b9e53092d6e51742833061e98751c65292ad1c43b19d8f06
 next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_execution_only_continuous_authorization
 
+### Vulkan-Loader Remediation Runtime Attempt 1 Failure
+
+At synchronized CAMP/GitHub/AutoDL
+`a964961ef01177c9c1b2488cc5e54e447be1bcf5`, the first launch guard stopped
+before wrapper/ACL/runtime activity on GitHub HTTP 503. The failure/recovery
+review roots are
+`3db0edcc749d09ea21bc1a882b845a45289150fb7920492d4fe61ac2b7d2b275`
+and `70ae87e27255ec6ae95fd2b5e4bfc4c214bcc5803b203aee4eb550d59908f866`;
+the recovered `ls-remote` matched the frozen HEAD, so this did not consume an
+attempt.
+
+The next unique guard passed and launched missing-loader root-cause attempt 1.
+With exact `libvulkan1` retained and verified, CARLA again printed only its two
+banner/core-dump lines, exited 1 after 1.13 seconds, and never reached port
+readiness. No diagnostic log or pipeline command was produced. The ACL trap
+restored root ACL/stat/xattrs byte-equally and independently proved UID 65534
+traversal blocked; package integrity also remained valid. Guard/capture/
+execution/review roots are
+`f4072ef0e42dcde625267fd813a4ddbc50241c3140f44df43b38ffbf7f2a9aae`,
+`44b92bec9a897f085d838db4e0c7d40d6b33452b6165255937f01182be79e5dd`,
+`46aa8ac60eda753cf8e8144e1fbfa0f9fc46d38860df7f727ea2453c641d7e98`,
+and `de9119a29557ac071b64bbb5f2fb87555ea0c6d15a7ee5be1bb0c56fcc621af9`.
+Installing the loader was therefore not sufficient, and attempt 1/3 for that
+root cause is consumed. No candidate, metric, outcome, or holdout access
+occurred; all safety and comparison claims remain unsupported.
+
+current_v19_status=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_1_failure_independent_review_passed
+current_v19_artifact_scope=missing_vulkan_loader_remediation_runtime_attempt_1_pre_readiness_failure_acl_restoration_and_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_execution_controller_a964961e_20260713T201212CST_execution_review_retry1
+current_v19_artifact_root_sha256=de9119a29557ac071b64bbb5f2fb87555ea0c6d15a7ee5be1bb0c56fcc621af9
+next_work_target=v19_carla_post_vulkan_loader_failure_read_only_root_cause_diagnosis_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

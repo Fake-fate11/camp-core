@@ -3496,3 +3496,45 @@ current_v19_artifact_scope=missing_vulkan_loader_remediation_runtime_attempt_pre
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_runtime_attempt_preflight_364af116_20260713T200519CST_independent_review
 current_v19_artifact_root_sha256=ecb6d0302f39a039b9e53092d6e51742833061e98751c65292ad1c43b19d8f06
 next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_execution_only_continuous_authorization
+
+## Vulkan-Loader Remediation Runtime Attempt 1 Failure
+
+The execution controller was generated from the prior sealed implementation by
+exact one-count substitutions for synchronized HEAD
+`a964961ef01177c9c1b2488cc5e54e447be1bcf5`, the new preflight/diagnosis, and
+the exact package evidence, plus an installed-loader integrity guard. Static
+source/review roots are
+`b05e9df28484d97ae132b2918771196c11b1200b510a1d5310f108d06ece0ca5`
+and `310cc12b7c4ed1dc6ace8145604f78f52b1297082d1dbf4e272cdf3996520270`.
+
+Its first launch guard observed GitHub HTTP 503 before the wrapper, ACL, or
+CARLA was reached. This preserved failure and the independent read-only retry
+that matched GitHub HEAD have roots
+`3db0edcc749d09ea21bc1a882b845a45289150fb7920492d4fe61ac2b7d2b275`
+and `70ae87e27255ec6ae95fd2b5e4bfc4c214bcc5803b203aee4eb550d59908f866`.
+It consumed no runtime attempt.
+
+The fresh guard then passed all HEAD, fixed-DP, exact-package, no-peer,
+no-listener, no-Saved/staging, disk, plan, and root-restoration checks before
+the unique launch. CARLA ran with the frozen absolute-XDG/full-log command and
+exact `libvulkan1 1.3.204.1-2`, but printed only two banner/core-dump lines and
+exited 1 after 1.13 seconds before readiness. It produced no diagnostic log;
+all five source-only pipeline commands remained uncalled. The ACL trap recorded
+body rc 1, restore rc 0, zero ACL/stat/xattr comparisons, byte-equal original/
+restored state, and blocked post-restore traversal. Guard/capture/execution/
+review roots are
+`f4072ef0e42dcde625267fd813a4ddbc50241c3140f44df43b38ffbf7f2a9aae`,
+`44b92bec9a897f085d838db4e0c7d40d6b33452b6165255937f01182be79e5dd`,
+`46aa8ac60eda753cf8e8144e1fbfa0f9fc46d38860df7f727ea2453c641d7e98`,
+and `de9119a29557ac071b64bbb5f2fb87555ea0c6d15a7ee5be1bb0c56fcc621af9`.
+
+Thus the loader gap was real but its remediation was not sufficient for
+readiness; missing-loader root-cause attempt 1/3 is consumed. Exact package
+integrity remains valid. No candidate, receipt, outcome, metric, or holdout
+activity occurred and no claim boundary changed.
+
+current_v19_status=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_1_failure_independent_review_passed
+current_v19_artifact_scope=missing_vulkan_loader_remediation_runtime_attempt_1_pre_readiness_failure_acl_restoration_and_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_execution_controller_a964961e_20260713T201212CST_execution_review_retry1
+current_v19_artifact_root_sha256=de9119a29557ac071b64bbb5f2fb87555ea0c6d15a7ee5be1bb0c56fcc621af9
+next_work_target=v19_carla_post_vulkan_loader_failure_read_only_root_cause_diagnosis_only_continuous_authorization

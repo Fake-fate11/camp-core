@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_"
+        "v19_carla_missing_vulkan_loader_remediation_runtime_attempt_1_failure_"
         "independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_missing_vulkan_loader_remediation_runtime_attempt_execution_"
+        "v19_carla_post_vulkan_loader_failure_read_only_root_cause_diagnosis_"
         "only_continuous_authorization"
     )
