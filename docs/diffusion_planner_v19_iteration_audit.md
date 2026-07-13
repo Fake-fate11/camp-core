@@ -2024,3 +2024,44 @@ current_v19_artifact_scope=route_constrained_lifting_task1_pure_kernel_independe
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_independent_review_160f4e4fe1_20260713T103652CST
 current_v19_artifact_root_sha256=b591ab21ef99a32be84501bced8d8c00f19c6eadf6c3410f7085690540515448
 next_work_target=v19_carla_route_constrained_lifting_task2_tdd_implementation_only
+
+## CARLA Route-Constrained Lifting Task 2 Reviewed
+
+Task 2 added a canonical K=8 tick receipt at CAMP commit
+`f85dc7446ae4f22272c354d4ca4bccd0ef259fac`. It validates the immutable
+float32 `[8,80,4]` tensor and independent operational-output SHA before and
+after lifting, emits all eight eligibility masks/reasons and complete point
+receipts, and leaves `selected_index=None`. Per-trajectory hashes omit only the
+origin index so independently lifted candidate 0 and DP operational Top-1 can
+be compared without hiding XY, segment, station, z, or failure differences.
+
+Local Python 3.12 and AutoDL Python 3.9 reproduced `38 passed` across the
+lifting and fixed-DP worker suites. Tests cover tensor preservation, expected
+SHA mismatch, operational XY drift, independent z-receipt drift, candidate-0
+incompleteness, all-K fail-closed records, and rejection of outcome provenance.
+`py_compile` and `git diff --check` passed.
+
+The first evidence wrapper is preserved at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_f85dc7446a_20260713T104354CST.tmp`
+with root `c041022c7847b6460bc6d9481902abda55075b3a51b23dcf25a49239b796d8dc`.
+All `38` tests passed, but its static checker incorrectly rejected the literal
+`holdout` in the code's forbidden-field list. The sole remediation asserted
+that the rejection guard and its test exist; implementation and protocol were
+unchanged. The passing implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_f85dc7446a_20260713T104456CST`
+and `8b2a1ba08cfe3dad76a2eb76eebcdbd50d3da26c1b2d41282eb5ba5a305ad8ad`.
+
+Independent review verified that source manifest/root and result, reproduced
+the `38` tests, and built a fresh eight-candidate receipt proving unchanged
+candidate bytes, complete 8-by-80 receipts, operational/candidate-0 lifting
+equivalence, and no selected index. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_independent_review_f85dc7446a_20260713T104706CST`
+and `1925a0641d106b5013326429c35e2f346cc0955d19a5957665a76ddc2e42bdd9`.
+No simulator, planner outcome, metric, holdout, rung, scenario, or claim was
+produced. Fixed DP remains unchanged and `native_ranked_top1=false`.
+
+current_v19_status=v19_carla_route_constrained_lifting_task2_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task2_k8_operational_top1_receipt_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_independent_review_f85dc7446a_20260713T104706CST
+current_v19_artifact_root_sha256=1925a0641d106b5013326429c35e2f346cc0955d19a5957665a76ddc2e42bdd9
+next_work_target=v19_carla_route_constrained_lifting_task3_tdd_implementation_only

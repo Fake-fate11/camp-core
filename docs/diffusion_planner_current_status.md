@@ -462,11 +462,18 @@ receipts on failure, and rejects ambiguity or topology discontinuity. Focused
 Python 3.9 review reproduced `21 passed`; no candidate write, global road
 lookup, CARLA dependency, simulator, metric, holdout, or outcome was used.
 
-current_v19_status=v19_carla_route_constrained_lifting_task1_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_task1_pure_kernel_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_independent_review_160f4e4fe1_20260713T103652CST
-current_v19_artifact_root_sha256=b591ab21ef99a32be84501bced8d8c00f19c6eadf6c3410f7085690540515448
-next_work_target=v19_carla_route_constrained_lifting_task2_tdd_implementation_only
+Task 2 now passes independent review. The canonical tick receipt validates the
+immutable float32 `[8,80,4]` tensor and independent operational output SHAs,
+retains eight masks/reasons and complete point receipts, and fail-closes SHA,
+XY/lifting, candidate-0, operational-output, and all-K mismatches before any
+selection. Independent Python 3.9 review reproduced `38 passed` and a fresh
+dynamic equivalence receipt. No simulator, metric, holdout, or outcome ran.
+
+current_v19_status=v19_carla_route_constrained_lifting_task2_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task2_k8_operational_top1_receipt_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_independent_review_f85dc7446a_20260713T104706CST
+current_v19_artifact_root_sha256=1925a0641d106b5013326429c35e2f346cc0955d19a5957665a76ddc2e42bdd9
+next_work_target=v19_carla_route_constrained_lifting_task3_tdd_implementation_only
 
 ## Current V18 Status
 
