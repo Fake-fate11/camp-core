@@ -2735,3 +2735,79 @@ current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_execution_pre_
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_execution_failure_independent_review_12212340_20260713T155450CST
 current_v19_artifact_root_sha256=bd64b788ac7aa231823742317996685ca1bd78283374c2dba2fd21a98cd9ff6d
 next_work_target=user_decision_required_after_v19_carla_acl_runtime_attempt_pre_readiness_failure_before_any_dependency_remediation_or_additional_runtime_attempt
+
+## CARLA `xdg-user-dir` Read-Only Call-Chain and Causality Diagnosis
+
+The user authorized only a read-only diagnosis. GitHub, local, origin, and
+AutoDL remained at `0fcad73837925e4318bd2f9e42b898ef0d1e0582`; fixed DP
+remained tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The
+sealed execution and review roots were fully rehashed before analysis. No ACL,
+mode, owner, xattr, user, runtime, PATH/profile, package, DP, candidate, map,
+protocol, or holdout state was changed.
+
+The frozen runner copies its parent environment, overlays the recorded server
+variables, and directly invokes `/usr/bin/setpriv` plus the shipping binary by
+argv with `shell=False`. The packaged `CarlaUE4.sh` contains no
+`xdg-user-dir` call. Static ELF analysis found the exact ASCII command
+`xdg-user-dir DOCUMENTS` at file offset `0xc39247` inside the unchanged
+shipping binary. Its only direct static implementation is
+`FUnixPlatformProcess::UserDir()`, which calls `popen(command, "r")`, attempts
+one `fgets`, and calls `pclose`.
+
+Crucially, the disassembly does not test or propagate the `pclose` return
+value. If no stdout populates the result, `UserDir()` calls
+`FUnixPlatformProcess::UserHomeDir()`, which first uses
+`secure_getenv("HOME")` and otherwise `getpwuid(euid)`, then appends the UTF-16
+literal `/Documents/`. Under the exact attempt environment this fallback is
+`CarlaUE4/Saved/home/Documents/`; its parent existed and was writable by UID
+65534 during the attempt. The three static `UserDir()` callers are config
+hierarchy construction, the Kismet platform-user-dir accessor, and sandbox
+platform-file initialization.
+
+A safe dynamic provenance probe ran only `/bin/sh` as UID/GID 65534 under the
+exact cwd and HOME/XDG/PATH values; it did not invoke CARLA or UE. It reproduced
+missing-command rc 127 and `xdg-user-dir: not found`, while the runtime Saved
+path remained absent. This confirms where the stderr text originates. It also
+shows that `/usr/bin` is present in PATH, so the failure is package absence,
+not PATH omission. Because UE explicitly handles empty stdout with a fallback
+and ignores the child status, the missing helper is not proven as the direct
+exit-1 cause. An indirect effect through later path consumers cannot be ruled
+out from static evidence, so the overall CARLA exit-1 root cause remains
+`unknown`.
+
+The packaged Dockerfile independently declares `xdg-user-dirs` as a runtime
+dependency specifically so Unreal Engine can locate the user's Documents
+directory. The current Ubuntu signed index reports it absent and offers
+`xdg-user-dirs 0.17-2ubuntu4` with package SHA256
+`06c1cb52d3b249aa4b74da0b9fe17c6bfe9b66c3df47e7f7252af14d2a770ce6`.
+`apt-get -s` reports zero upgrades, one new package, and zero removals. Thus a
+minimal dependency-gap remediation plan exists, but it is not proven to fix
+exit 1 and was not executed. The plan requires new user authorization before
+any download/install, exact signed-package and rollback preflight, a no-CARLA
+UID/environment command-resolution check, and a separate later decision before
+any additional CARLA attempt.
+
+The diagnosis artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_user_dir_read_only_causality_diagnosis_0fcad738_20260713T161525CST`
+and `74cd122e24322d62fdb588c378d642443b888743a9e582c9371e00c0f7f5821b`.
+Independent review rehashed every input and the source manifest before and
+after review, repeated the selected disassembly, exact binary-offset checks,
+safe UID shell probe, signed-index inspection, simulation, and live-state
+checks, and passed at
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_0fcad738_20260713T161806CST`
+with root `70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6`.
+Free space was `50,552,483,840` bytes. No CARLA, DP worker, pipeline,
+candidate, receipt, metric, outcome, holdout, package download/install,
+promotion, deployment, activation, or claim ran.
+
+The claim taxonomy is unchanged: performance is no-claim, bounded offline
+proxy improvement remains supported, closed-loop safety remains unsupported,
+and broad CAMP-over-DP-operational-Top-1 remains unsupported. Continuing now
+requires a new user decision before the signed package dependency-gap
+remediation or any additional CARLA runtime attempt.
+
+current_v19_status=v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_passed
+current_v19_artifact_scope=carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_no_runtime_no_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_0fcad738_20260713T161806CST
+current_v19_artifact_root_sha256=70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6
+next_work_target=user_decision_required_before_v19_signed_xdg_user_dirs_dependency_gap_remediation_or_any_additional_carla_runtime_attempt

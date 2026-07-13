@@ -628,11 +628,24 @@ The trap restored ACL, stat, and xattrs byte-for-byte, no process/listener or
 runtime Saved path remains, and free space is `50,566,725,632` bytes. No retry
 is authorized, and the claim taxonomy is unchanged.
 
-current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_execution_pre_readiness_failure_independent_review_passed
-current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_execution_pre_readiness_failure_independent_review_no_candidate_or_outcome
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_execution_failure_independent_review_12212340_20260713T155450CST
-current_v19_artifact_root_sha256=bd64b788ac7aa231823742317996685ca1bd78283374c2dba2fd21a98cd9ff6d
-next_work_target=user_decision_required_after_v19_carla_acl_runtime_attempt_pre_readiness_failure_before_any_dependency_remediation_or_additional_runtime_attempt
+The authorized read-only causality diagnosis found the exact command embedded
+in the shipping ELF and called by `FUnixPlatformProcess::UserDir()` through
+`popen`. When it produces no stdout, UE ignores the `pclose` status and falls
+back through `secure_getenv("HOME")` to `HOME/Documents/`; therefore the
+missing helper is not proven as the direct exit-1 cause, and the overall cause
+remains unknown. The packaged Dockerfile nevertheless explicitly installs
+`xdg-user-dirs` for UE Documents lookup, confirming a real dependency gap.
+Ubuntu's signed index offers only `xdg-user-dirs 0.17-2ubuntu4`, and simulation
+shows one new package with no upgrades/removals. That is only a remediation
+plan: nothing was downloaded, installed, changed, or started. The diagnosis/
+review roots are `74cd122e24322d62fdb588c378d642443b888743a9e582c9371e00c0f7f5821b`
+and `70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6`.
+
+current_v19_status=v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_passed
+current_v19_artifact_scope=carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_no_runtime_no_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_0fcad738_20260713T161806CST
+current_v19_artifact_root_sha256=70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6
+next_work_target=user_decision_required_before_v19_signed_xdg_user_dirs_dependency_gap_remediation_or_any_additional_carla_runtime_attempt
 
 ## Current V18 Status
 
