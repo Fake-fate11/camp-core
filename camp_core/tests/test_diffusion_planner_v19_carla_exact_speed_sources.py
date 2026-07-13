@@ -266,6 +266,22 @@ def test_lifted_report_validates_sealed_capture_provenance(
         build_lifted_report(xodr, lifting, "B", None)
 
 
+@pytest.mark.parametrize(
+    "marker",
+    ("fallback_speed", "trajectory_mutation", "candidate_repair", "trajectory_blend"),
+)
+def test_lifted_report_reuses_provenance_allowlist(
+    tmp_path: Path, marker: str
+) -> None:
+    receipt = _lifting_receipt()
+    receipt["provenance"][marker] = False
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="provenance fields"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
 def test_lifted_report_rejects_non_xy_candidate0_drift(tmp_path: Path) -> None:
     receipt = _lifting_receipt()
     receipt["operational_top1_sha256"] = "f" * 64

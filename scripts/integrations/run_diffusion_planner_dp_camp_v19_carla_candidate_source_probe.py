@@ -355,7 +355,7 @@ def write_lifting_receipt(
     capture_sha256 = canonical_json_sha256(capture)
     if payload["capture_sha256"] != capture_sha256:
         raise ValueError("capture/context SHA256 mismatch")
-    _, context, transform = build_probe_materialization(
+    materialized, context, transform = build_probe_materialization(
         capture, tolerances=FROZEN_LIFTING_TOLERANCES
     )
     if canonical_json_sha256(payload.get("context")) != canonical_json_sha256(
@@ -368,29 +368,6 @@ def write_lifting_receipt(
         raise ValueError("serialized lifting transform mismatch")
     if hashlib.sha256(map_api.to_opendrive().encode("utf-8")).hexdigest() != context.map_sha256:
         raise ValueError("live CARLA map SHA256 mismatch")
-    camp_raw = json.loads((camp_request_dir / "request.json").read_text("utf-8"))
-    default_raw = json.loads((default_request_dir / "request.json").read_text("utf-8"))
-    camp_raw = read_request(
-        camp_request_dir,
-        expected_run_key=str(camp_raw.get("run_key")),
-        expected_iteration_index=0,
-    ).metadata
-    default_raw = read_request(
-        default_request_dir,
-        expected_run_key=str(default_raw.get("run_key")),
-        expected_iteration_index=0,
-    ).metadata
-    if camp_raw.get("arm") != "camp" or default_raw.get("arm") != "dp_default":
-        raise ValueError("request arms mismatch")
-    _require_fixed_dp_head(camp_raw.get("dp_head"))
-    _require_fixed_dp_head(default_raw.get("dp_head"))
-    camp_scenario_token = camp_raw.get("scenario_token")
-    default_scenario_token = default_raw.get("scenario_token")
-    if (
-        not isinstance(camp_scenario_token, str)
-        or camp_scenario_token != default_scenario_token
-    ):
-        raise ValueError("request scenario tokens mismatch")
     dp_context = build_route_lifting_context(
         route_source=str(capture["route_source"]),
         route_samples=capture["route_samples"],
@@ -399,8 +376,68 @@ def write_lifting_receipt(
         tolerances=context.tolerances,
         map_sha256=str(capture["map_sha256"]),
     )
+    camp_raw = json.loads((camp_request_dir / "request.json").read_text("utf-8"))
+    default_raw = json.loads((default_request_dir / "request.json").read_text("utf-8"))
+    camp_scenario_token = camp_raw.get("scenario_token")
+    default_scenario_token = default_raw.get("scenario_token")
+    if (
+        not isinstance(camp_scenario_token, str)
+        or camp_scenario_token != default_scenario_token
+    ):
+        raise ValueError("request scenario tokens mismatch")
     if camp_scenario_token != dp_context.source_sha256:
         raise ValueError("request scenario token does not match capture")
+    _require_fixed_dp_head(camp_raw.get("dp_head"))
+    _require_fixed_dp_head(default_raw.get("dp_head"))
+    camp_head = camp_raw.get("camp_head")
+    default_camp_head = default_raw.get("camp_head")
+    _require_git_head(camp_head, "CAMP head")
+    _require_git_head(default_camp_head, "CAMP head")
+    if camp_head != default_camp_head:
+        raise ValueError("request CAMP heads mismatch")
+    selector_hashes = camp_raw.get("selector_hashes")
+    if not isinstance(selector_hashes, list) or len(selector_hashes) != 3:
+        raise ValueError("CAMP request requires three selector hashes")
+    for digest in selector_hashes:
+        _require_sha256(digest, "selector")
+    if "selector_hashes" in default_raw:
+        raise ValueError("DP-default request must not carry selector hashes")
+    common = {
+        "log_name": str(capture["map_name"]),
+        "scenario_token": dp_context.source_sha256,
+        "iteration_index": 0,
+        "simulation_time_us": int(capture["decision_timestamp_us"]),
+        "scenario_seed": SELECTION_SEED,
+        "dp_seed_root": DP_SEED_ROOT,
+        "camp_head": camp_head,
+        "dp_head": FIXED_DP_HEAD,
+        "nuplan_head": str(capture["source_head"]),
+        "causal_input": materialized.dp_input,
+        "speed_source_policy": CANDIDATE_LOCAL_EXACT_SPEED,
+    }
+    expected_camp = build_request_metadata(
+        arm="camp", selector_hashes=tuple(selector_hashes), **common
+    )
+    expected_default = build_request_metadata(arm="dp_default", **common)
+    camp_request = read_request(
+        camp_request_dir,
+        expected_run_key=str(expected_camp["run_key"]),
+        expected_iteration_index=0,
+    )
+    default_request = read_request(
+        default_request_dir,
+        expected_run_key=str(expected_default["run_key"]),
+        expected_iteration_index=0,
+    )
+    _require_exact_request_arrays(camp_request.arrays, materialized.dp_input)
+    _require_exact_request_arrays(default_request.arrays, materialized.dp_input)
+    if (
+        dict(camp_request.metadata) != expected_camp
+        or dict(default_request.metadata) != expected_default
+    ):
+        raise ValueError("request metadata does not match rebuilt capture")
+    camp_raw = camp_request.metadata
+    default_raw = default_request.metadata
     camp = read_response(
         camp_request_dir,
         expected_run_key=str(camp_raw["run_key"]),
@@ -620,6 +657,22 @@ def _require_git_head(value: Any, name: str) -> None:
         character not in "0123456789abcdef" for character in value
     ):
         raise ValueError(f"{name} Git commit is invalid")
+
+
+def _require_exact_request_arrays(
+    actual: Mapping[str, Any], expected: Mapping[str, Any]
+) -> None:
+    if set(actual) != set(expected):
+        raise ValueError("request arrays do not match rebuilt capture")
+    for name, expected_value in expected.items():
+        actual_value = np.asarray(actual[name])
+        expected_value = np.asarray(expected_value)
+        if (
+            actual_value.dtype != expected_value.dtype
+            or actual_value.shape != expected_value.shape
+            or not np.array_equal(actual_value, expected_value)
+        ):
+            raise ValueError("request arrays do not match rebuilt capture")
 
 
 def _require_fixed_dp_head(value: Any) -> None:

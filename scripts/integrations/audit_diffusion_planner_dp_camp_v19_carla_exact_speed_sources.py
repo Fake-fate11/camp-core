@@ -20,6 +20,7 @@ from camp_core.integrations.carla_exact_speed_source import (  # noqa: E402
     SegmentKey,
     SegmentRef,
     _paired_source_support,
+    _reject_forbidden_receipt_fields,
     _tick_failure_reason,
     candidate_source_mask,
     canonical_json_sha256,
@@ -152,6 +153,7 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
     provenance = receipt.get("provenance")
     if not isinstance(provenance, Mapping):
         raise ValueError("lifting receipt provenance is missing")
+    _reject_forbidden_receipt_fields(provenance)
     _require_sha256(provenance.get("capture_sha256"), "capture provenance")
     _require_sha256(
         provenance.get("lifting_corridor_sha256"), "lifting corridor provenance"

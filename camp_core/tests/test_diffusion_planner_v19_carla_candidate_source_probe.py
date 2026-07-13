@@ -125,9 +125,9 @@ def _reseal_corridor(capture: dict[str, object]) -> None:
     )
 
 
-def _write_receipt_inputs(tmp_path):
+def _write_receipt_inputs(tmp_path, capture=None):
     probe = _probe()
-    capture = _capture()
+    capture = _capture() if capture is None else capture
     xodr = "<OpenDRIVE/>"
     map_sha256 = hashlib.sha256(xodr.encode("utf-8")).hexdigest()
     capture["map_sha256"] = map_sha256
@@ -451,6 +451,110 @@ def test_lifting_receipt_rejects_tampered_fixed_dp_head(
     _stub_receipt_responses(monkeypatch, probe, camp_dir)
 
     with pytest.raises(ValueError, match="fixed DP commit"):
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=tmp_path / "receipt.json",
+        )
+
+
+def test_lifting_receipt_rejects_mixed_capture_request_arrays(
+    tmp_path, monkeypatch
+) -> None:
+    probe, capture, xodr, _, default_dir, context_path = _write_receipt_inputs(
+        tmp_path / "trusted"
+    )
+    other_capture = deepcopy(capture)
+    for frame in other_capture["frames"]:
+        frame["ego_state"][0] += 1.0
+    _, _, _, other_camp_dir, _, _ = _write_receipt_inputs(
+        tmp_path / "other", other_capture
+    )
+    _stub_receipt_responses(monkeypatch, probe, other_camp_dir)
+
+    with pytest.raises(ValueError, match="request arrays do not match rebuilt capture"):
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=other_camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=tmp_path / "receipt.json",
+        )
+
+
+def test_lifting_receipt_rejects_self_consistent_metadata_from_other_log(
+    tmp_path, monkeypatch
+) -> None:
+    probe, capture, xodr, camp_dir, default_dir, context_path = (
+        _write_receipt_inputs(tmp_path)
+    )
+    materialized, _, _ = probe.build_probe_materialization(
+        capture, tolerances=probe.FROZEN_LIFTING_TOLERANCES
+    )
+    camp_path = camp_dir / "request.json"
+    default_path = default_dir / "request.json"
+    original_camp = json.loads(camp_path.read_text(encoding="utf-8"))
+    common = {
+        "log_name": "OtherTown",
+        "scenario_token": original_camp["scenario_token"],
+        "iteration_index": 0,
+        "simulation_time_us": capture["decision_timestamp_us"],
+        "scenario_seed": 3411,
+        "dp_seed_root": 3412,
+        "camp_head": "c" * 40,
+        "dp_head": FIXED_DP_HEAD,
+        "nuplan_head": capture["source_head"],
+        "causal_input": materialized.dp_input,
+        "speed_source_policy": "candidate_local_exact_speed",
+    }
+    changed_camp = probe.build_request_metadata(
+        arm="camp",
+        selector_hashes=("1" * 64, "2" * 64, "3" * 64),
+        **common,
+    )
+    changed_default = probe.build_request_metadata(arm="dp_default", **common)
+    for field in ("pair_run_key", "run_key", "tick_seed"):
+        assert changed_camp[field] != original_camp[field]
+    camp_path.write_text(json.dumps(changed_camp), encoding="utf-8")
+    default_path.write_text(json.dumps(changed_default), encoding="utf-8")
+    _stub_receipt_responses(monkeypatch, probe, camp_dir)
+
+    with pytest.raises(ValueError, match="run key mismatch|request metadata"):
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=tmp_path / "receipt.json",
+        )
+
+
+@pytest.mark.parametrize(
+    ("tamper", "match"),
+    (("camp_head", "CAMP heads"), ("selector_hash", "selector SHA256")),
+)
+def test_lifting_receipt_validates_unsealed_request_parameters(
+    tmp_path, monkeypatch, tamper: str, match: str
+) -> None:
+    probe, capture, xodr, camp_dir, default_dir, context_path = (
+        _write_receipt_inputs(tmp_path)
+    )
+    request_dir = default_dir if tamper == "camp_head" else camp_dir
+    request_path = request_dir / "request.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    if tamper == "camp_head":
+        request["camp_head"] = "d" * 40
+    else:
+        request["selector_hashes"][0] = "bad"
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+    _stub_receipt_responses(monkeypatch, probe, camp_dir)
+
+    with pytest.raises(ValueError, match=match):
         probe.write_lifting_receipt(
             capture=capture,
             context_path=context_path,

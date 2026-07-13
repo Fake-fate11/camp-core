@@ -26,6 +26,14 @@ XODR = """\
   </road>
 </OpenDRIVE>
 """
+XODR_LHT = XODR.replace(
+    '<road id="1" length="100">', '<road id="1" length="100" rule="LHT">'
+)
+XODR_REVERSED = XODR.replace(
+    '<lane id="-1" type="driving" />',
+    '<lane id="-1" type="driving" direction="reversed" />',
+    1,
+)
 
 
 class _Waypoint:
@@ -59,15 +67,21 @@ class _Waypoint:
 
 
 class _Map:
-    def __init__(self, contact_gap_m: float = 0.0, lane_width: float = 3.5) -> None:
+    def __init__(
+        self,
+        contact_gap_m: float = 0.0,
+        lane_width: float = 3.5,
+        road2_origin: float = 40.0,
+    ) -> None:
         self.contact_gap_m = contact_gap_m
         self.lane_width = lane_width
+        self.road2_origin = road2_origin
         self.xodr_calls = []
 
     def get_waypoint_xodr(self, road_id: int, lane_id: int, s: float):
         self.xodr_calls.append((road_id, lane_id, s))
         section_id = 0 if road_id == 2 or s < 40.0 else 1
-        x = s if road_id == 1 else 40.0 + self.contact_gap_m + s
+        x = s if road_id == 1 else self.road2_origin + self.contact_gap_m + s
         return _Waypoint(
             road_id,
             section_id,
@@ -105,11 +119,13 @@ def _waypoint_record(waypoint: _Waypoint):
     )
 
 
-def _corridor(route, map_api, contact_tolerance_m: float = 0.01):
+def _corridor(
+    route, map_api, contact_tolerance_m: float = 0.01, opendrive_xml: str = XODR
+):
     return build_pre_generation_route_corridor(
         route=route,
         map_api=map_api,
-        opendrive_xml=XODR,
+        opendrive_xml=opendrive_xml,
         route_sample_step_m=5.0,
         station_allowance_m=3.0518578125e-05,
         contact_tolerance_m=contact_tolerance_m,
@@ -154,23 +170,86 @@ def test_corridor_adds_unique_predecessor_without_changing_route() -> None:
     assert len(corridor["corridor_sha256"]) == 64
 
 
-def test_corridor_resolves_cross_identity_predecessor_from_opendrive() -> None:
+@pytest.mark.parametrize(
+    ("opendrive_xml", "expected_direction", "road2_origin", "rule", "lane_direction"),
+    (
+        (XODR, 1, 40.0, "RHT", "standard"),
+        (XODR_LHT, -1, 0.0, "LHT", "standard"),
+        (XODR_REVERSED, -1, 0.0, "RHT", "reversed"),
+    ),
+)
+def test_corridor_resolves_cross_identity_predecessor_from_opendrive(
+    opendrive_xml: str,
+    expected_direction: int,
+    road2_origin: float,
+    rule: str,
+    lane_direction: str,
+) -> None:
+    predecessor = _Waypoint(1, 0, -1, 35.0, 35.0)
+    route = [
+        _Waypoint(
+            2,
+            0,
+            -1,
+            5.0,
+            road2_origin + 5.0,
+            predecessors=[predecessor],
+        ),
+        _Waypoint(2, 0, -1, 10.0, road2_origin + 10.0),
+    ]
+
+    corridor = _corridor(
+        route, _Map(road2_origin=road2_origin), opendrive_xml=opendrive_xml
+    )
+
+    receipt = corridor["predecessor_receipt"]
+    assert receipt["direction"] == expected_direction
+    assert receipt["direction_evidence"] == {
+        "source": "opendrive_static_lane_direction",
+        "lane_type": "driving",
+        "road_rule": rule,
+        "lane_direction": lane_direction,
+        "station_direction": expected_direction,
+        "successor_identity": ["2", 0, -1],
+    }
+    assert corridor["directed_edges"] == [[["1", 0, -1], ["2", 0, -1]]]
+
+
+@pytest.mark.parametrize(
+    "opendrive_xml",
+    (
+        XODR.replace(
+            '<lane id="-1" type="driving" />',
+            '<lane id="-1" type="driving" direction="both" />',
+            1,
+        ),
+        XODR.replace(
+            '<lane id="-1" type="driving" />',
+            '<lane id="-1" type="driving" direction="sideways" />',
+            1,
+        ),
+        XODR.replace(
+            '<lane id="-1" type="driving" />',
+            '<lane id="-1" type="driving" dynamicLaneDirection="true" />',
+            1,
+        ),
+        XODR.replace(
+            '<road id="1" length="100">',
+            '<road id="1" length="100" rule="unknown">',
+        ),
+    ),
+)
+def test_corridor_rejects_nondeterministic_predecessor_direction(
+    opendrive_xml: str,
+) -> None:
     predecessor = _Waypoint(1, 0, -1, 35.0, 35.0)
     route = [
         _Waypoint(2, 0, -1, 5.0, 45.0, predecessors=[predecessor]),
         _Waypoint(2, 0, -1, 10.0, 50.0),
     ]
 
-    corridor = _corridor(route, _Map())
-
-    receipt = corridor["predecessor_receipt"]
-    assert receipt["direction"] == 1
-    assert receipt["direction_evidence"] == {
-        "source": "opendrive_driving_lane_sign",
-        "lane_type": "driving",
-        "successor_identity": ["2", 0, -1],
-    }
-    assert corridor["directed_edges"] == [[["1", 0, -1], ["2", 0, -1]]]
+    with pytest.raises(ValueError, match="direction semantics"):
+        _corridor(route, _Map(), opendrive_xml=opendrive_xml)
 
 
 def test_corridor_requires_five_meter_step_before_predecessor_lookup() -> None:

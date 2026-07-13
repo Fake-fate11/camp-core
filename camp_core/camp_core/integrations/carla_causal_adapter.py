@@ -132,7 +132,7 @@ def _boundary_sample_payload(
 
 def _opendrive_driving_lane_direction(
     opendrive_xml: str, identity: Tuple[str, int, int]
-) -> int:
+) -> tuple[int, str, str]:
     try:
         root = ET.fromstring(opendrive_xml)
     except ET.ParseError as exc:
@@ -141,6 +141,9 @@ def _opendrive_driving_lane_direction(
     sections = [] if road is None else road.findall("./lanes/laneSection")
     if not 0 <= identity[1] < len(sections):
         raise ValueError("predecessor OpenDRIVE lane evidence is missing")
+    road_rule = road.get("rule", "RHT")
+    if road_rule not in {"RHT", "LHT"}:
+        raise ValueError("predecessor OpenDRIVE direction semantics are unsupported")
     side = "left" if identity[2] > 0 else "right"
     lanes = []
     for lane in sections[identity[1]].findall(f"./{side}/lane"):
@@ -152,7 +155,18 @@ def _opendrive_driving_lane_direction(
             lanes.append(lane)
     if len(lanes) != 1 or lanes[0].get("type") != "driving":
         raise ValueError("predecessor OpenDRIVE driving lane evidence is missing")
-    return -1 if identity[2] > 0 else 1
+    lane_direction = lanes[0].get("direction", "standard")
+    if (
+        lane_direction not in {"standard", "reversed"}
+        or lanes[0].get("dynamicLaneDirection", "false") != "false"
+    ):
+        raise ValueError("predecessor OpenDRIVE direction semantics are unsupported")
+    station_direction = -1 if identity[2] > 0 else 1
+    if road_rule == "LHT":
+        station_direction *= -1
+    if lane_direction == "reversed":
+        station_direction *= -1
+    return station_direction, road_rule, lane_direction
 
 
 def build_pre_generation_route_corridor(
@@ -197,10 +211,15 @@ def build_pre_generation_route_corridor(
     predecessor_direction_evidence = None
     for index, (identity, samples) in enumerate(groups):
         if index == 0 and len(samples) == 1 and identity != successor_identity:
-            direction = _opendrive_driving_lane_direction(opendrive_xml, identity)
+            direction, road_rule, lane_direction = _opendrive_driving_lane_direction(
+                opendrive_xml, identity
+            )
             predecessor_direction_evidence = {
-                "source": "opendrive_driving_lane_sign",
+                "source": "opendrive_static_lane_direction",
                 "lane_type": "driving",
+                "road_rule": road_rule,
+                "lane_direction": lane_direction,
+                "station_direction": direction,
                 "successor_identity": list(successor_identity),
             }
         else:
