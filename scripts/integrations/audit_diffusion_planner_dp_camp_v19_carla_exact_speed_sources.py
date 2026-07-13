@@ -134,6 +134,8 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
     sealed = payload.pop("lifting_receipt_sha256", None)
     if sealed != canonical_json_sha256(payload):
         raise ValueError("lifting receipt SHA mismatch")
+    if "selected_index" not in receipt or receipt["selected_index"] is not None:
+        raise ValueError("selected index must be None")
     for field, name in (
         ("candidate_tensor_sha256", "candidate tensor"),
         ("candidate_tensor_sha256_before", "candidate tensor"),
@@ -206,7 +208,11 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
     paired_source_support_eligible, paired_source_support_reason = (
         _paired_source_support(reason, mask)
     )
-    if receipt.get("source_complete_candidate_count") != source_complete_candidate_count:
+    recorded_candidate_count = receipt.get("source_complete_candidate_count")
+    if (
+        type(recorded_candidate_count) is not int
+        or recorded_candidate_count != source_complete_candidate_count
+    ):
         raise ValueError("source-complete candidate count mismatch")
     if receipt.get("paired_source_support_eligible") is not paired_source_support_eligible:
         raise ValueError("paired source support eligibility mismatch")

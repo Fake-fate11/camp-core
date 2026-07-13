@@ -282,6 +282,30 @@ def test_lifted_report_rejects_resealed_paired_support_tampering(
         build_lifted_report(xodr, lifting, "B", None)
 
 
+def test_lifted_report_rejects_resealed_selected_index_tampering(
+    tmp_path: Path,
+) -> None:
+    receipt = _lifting_receipt()
+    receipt["selected_index"] = 0
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="selected index"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+def test_lifted_report_rejects_resealed_boolean_candidate_count(
+    tmp_path: Path,
+) -> None:
+    receipt = _lifting_receipt(only_candidate0=True)
+    receipt["source_complete_candidate_count"] = True
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="source-complete candidate count"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
 def test_lifted_report_fails_closed_on_operational_lifting_mismatch(
     tmp_path: Path,
 ) -> None:
