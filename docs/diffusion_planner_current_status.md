@@ -799,6 +799,35 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_ex
 current_v19_artifact_root_sha256=5f4fff594eef4839b46e31f819b828fa8763b091198dc1b563121ae1a40283d7
 next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_only_continuous_authorization
 
+### Full-Stdout/Log Diagnostic Runtime Attempt Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`5ea824321cbccde4baddbdce5926cdcbbc9929b9` and fixed clean DP, a new
+no-runtime preflight rehashed the exit-1 execution, recovery review, diagnosis,
+and corrected runtime sources. UTF-16 strings in the unchanged shipping binary
+independently prove support for `stdout`, `FullStdOutLogOutput`,
+`AllowStdOutLogVerbosity`, and `Abslog` capture. The preregistered diagnostic
+plan changes only its unique execution paths and appends:
+
+`-stdout -FullStdOutLogOutput -AllowStdOutLogVerbosity
+-Abslog=/root/autodl-tmp/carla_0.9.16/runtime/CarlaUE4/Saved/diagnostic.log`.
+
+The server cwd, HOME/XDG/PATH/LD_LIBRARY_PATH overlay, UID/GID, Town01 and RPC
+arguments, timeout, fixed DP, checkpoint, K=8 contract, harness, worker,
+selector artifacts, five source-only steps, seed, and zero-access boundaries
+remain byte- or field-equal after only the unique stage-path substitution.
+Plan tests and runner validate-only replay passed. No ACL mutation, CARLA,
+worker, candidate, receipt, metric, outcome, or holdout operation ran. The
+preflight/review roots are
+`667aa64306e6bcaa541237b10e5c06dd655b01b13a7dca10afa2b7cf94759c74`
+and `bd2ebc274dae14b2122e13edde1407fbc57604e769f2d10d60c0d1892bbe8a65`.
+
+current_v19_status=v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=carla_full_stdout_log_diagnostic_runtime_attempt_preflight_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_5ea82432_20260713T192404CST_independent_review
+current_v19_artifact_root_sha256=bd2ebc274dae14b2122e13edde1407fbc57604e769f2d10d60c0d1892bbe8a65
+next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_execution_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

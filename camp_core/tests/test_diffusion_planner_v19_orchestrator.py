@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_xdg_closed_dependency_pre_readiness_exit1_recovery_review_"
-        "and_read_only_diagnosis_passed"
+        "v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_"
+        "independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_only_"
+        "v19_carla_full_stdout_log_diagnostic_runtime_attempt_execution_only_"
         "continuous_authorization"
     )

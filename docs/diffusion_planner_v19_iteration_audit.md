@@ -3165,3 +3165,50 @@ current_v19_artifact_scope=carla_xdg_closed_dependency_pre_readiness_exit1_recov
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_exit1_read_only_diagnosis_976ba7a4_20260713T190933CST_independent_review
 current_v19_artifact_root_sha256=5f4fff594eef4839b46e31f819b828fa8763b091198dc1b563121ae1a40283d7
 next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_only_continuous_authorization
+
+## Full-Stdout/Log Diagnostic Runtime Attempt Preflight
+
+The next continuous-authorization gate performed no runtime or ACL mutation.
+Local, origin, GitHub, and AutoDL CAMP were
+`5ea824321cbccde4baddbdce5926cdcbbc9929b9`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The preflight fully rehashed the
+current failed execution/recovery review, exit-1 diagnosis/review, corrected
+ACL wrapper, runner, shipping binary, assets, harness, worker, checkpoint,
+fixed arguments, and selector artifacts. It reconfirmed no peer process,
+listener, runtime Saved path, execution path, or UID 65534 root traversal and
+more than the 10 GiB floor.
+
+Because `strace`, gdb, and ltrace are unavailable and no package installation
+is authorized, the smallest diagnostic capture uses existing Unreal logging.
+Direct binary-byte provenance found the exact UTF-16 strings `stdout`,
+`FullStdOutLogOutput`, `AllowStdOutLogVerbosity`, and `Abslog`. A new unique
+plan appends only these four diagnostic arguments:
+
+```text
+-stdout
+-FullStdOutLogOutput
+-AllowStdOutLogVerbosity
+-Abslog=/root/autodl-tmp/carla_0.9.16/runtime/CarlaUE4/Saved/diagnostic.log
+```
+
+The absolute log remains inside the already transient UID-65534 Saved tree and
+will be retained in the execution artifact. A contract test proved that all
+non-path plan fields, server cwd/environment, UID/GID, Town01/RPC arguments,
+readiness timeout, DP and asset hashes, five source-only steps, and forbidden-
+operation exclusions are unchanged. Only the unique stage/final paths, their
+step references, and four diagnostic flags differ. `bash -n`, the contract
+test, and runner `--validate-only` all passed; independent review replayed them
+and left the source manifest byte-identical.
+
+The preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_5ea82432_20260713T192404CST`
+and `667aa64306e6bcaa541237b10e5c06dd655b01b13a7dca10afa2b7cf94759c74`.
+Its independent review/root is the corresponding `_independent_review` path
+and `bd2ebc274dae14b2122e13edde1407fbc57604e769f2d10d60c0d1892bbe8a65`.
+No claim boundary changes.
+
+current_v19_status=v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=carla_full_stdout_log_diagnostic_runtime_attempt_preflight_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_5ea82432_20260713T192404CST_independent_review
+current_v19_artifact_root_sha256=bd2ebc274dae14b2122e13edde1407fbc57604e769f2d10d60c0d1892bbe8a65
+next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_execution_only_continuous_authorization
