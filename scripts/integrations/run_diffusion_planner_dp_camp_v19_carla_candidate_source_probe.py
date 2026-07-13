@@ -40,6 +40,12 @@ from camp_core.integrations.nuplan_causal_adapter import encode_route_lane
 CAPTURE_SCHEMA = "dp_camp_v19_carla_source_capture_v1"
 SELECTION_SEED = 3411
 DP_SEED_ROOT = 3412
+FROZEN_LIFTING_TOLERANCES = LiftingTolerances(
+    1.5273609989704584,
+    3.0518578125e-05,
+    1e-9,
+    3.0518578125e-05,
+)
 
 
 def build_probe_materialization(
@@ -512,12 +518,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.mode == "materialize":
         write_probe_requests(
             capture,
-            tolerances=LiftingTolerances(
-                1.5273609989704584,
-                1.0000017763568395e-9,
-                1e-9,
-                1.0000017763568395e-9,
-            ),
+            tolerances=FROZEN_LIFTING_TOLERANCES,
             camp_request_dir=args.camp_request_dir,
             default_request_dir=args.default_request_dir,
             context_path=args.context_json,

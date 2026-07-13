@@ -96,6 +96,21 @@ def test_build_probe_materialization_reuses_causal_and_lifting_contracts() -> No
     np.testing.assert_array_equal(transform, np.eye(3))
 
 
+def test_frozen_station_tolerance_covers_carla_float32_xodr_api() -> None:
+    probe = _probe()
+    bound = 3.0517578125e-05
+    allowance = 1e-9
+
+    assert probe.FROZEN_LIFTING_TOLERANCES == LiftingTolerances(
+        1.5273609989704584,
+        bound + allowance,
+        1e-9,
+        bound + allowance,
+    )
+    road_length = 966.8900000000001
+    assert abs(float(np.float32(road_length)) - road_length) <= bound
+
+
 def test_build_probe_materialization_rejects_outcomes() -> None:
     capture = _capture()
     capture["safety_outcome"] = 0.0
