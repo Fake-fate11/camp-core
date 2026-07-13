@@ -19,6 +19,7 @@ if str(PACKAGE_ROOT) not in sys.path:
 from camp_core.integrations.carla_exact_speed_source import (  # noqa: E402
     SegmentKey,
     SegmentRef,
+    _paired_source_support,
     _tick_failure_reason,
     candidate_source_mask,
     canonical_json_sha256,
@@ -202,17 +203,8 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
     ):
         raise ValueError("lifting record eligibility mismatch")
     source_complete_candidate_count = sum(bool(item) for item in mask)
-    paired_source_support_eligible = (
-        reason == "source_complete" and source_complete_candidate_count >= 2
-    )
-    paired_source_support_reason = (
-        "paired_source_support_complete"
-        if paired_source_support_eligible
-        else (
-            "fewer_than_two_source_complete_candidates"
-            if reason == "source_complete"
-            else reason
-        )
+    paired_source_support_eligible, paired_source_support_reason = (
+        _paired_source_support(reason, mask)
     )
     if receipt.get("source_complete_candidate_count") != source_complete_candidate_count:
         raise ValueError("source-complete candidate count mismatch")
@@ -285,17 +277,8 @@ def _lifted_record(
     else:
         reason = "source_complete"
     source_complete_candidate_count = sum(bool(item) for item in source_mask)
-    paired_source_support_eligible = (
-        reason == "source_complete" and source_complete_candidate_count >= 2
-    )
-    paired_source_support_reason = (
-        "paired_source_support_complete"
-        if paired_source_support_eligible
-        else (
-            "fewer_than_two_source_complete_candidates"
-            if reason == "source_complete"
-            else reason
-        )
+    paired_source_support_eligible, paired_source_support_reason = (
+        _paired_source_support(reason, source_mask)
     )
     return {
         "record_id": str(receipt.get("provenance", {}).get("record_id", "")),

@@ -258,6 +258,30 @@ def test_lifted_report_rejects_missing_point_receipt(tmp_path: Path) -> None:
         build_lifted_report(xodr, lifting, "B", None)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("source_complete_candidate_count", 0, "source-complete candidate count"),
+        ("paired_source_support_eligible", False, "paired source support eligibility"),
+        (
+            "paired_source_support_reason",
+            "fewer_than_two_source_complete_candidates",
+            "paired source support reason",
+        ),
+    ],
+)
+def test_lifted_report_rejects_resealed_paired_support_tampering(
+    tmp_path: Path, field: str, value: object, match: str
+) -> None:
+    receipt = _lifting_receipt()
+    receipt[field] = value
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match=match):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
 def test_lifted_report_fails_closed_on_operational_lifting_mismatch(
     tmp_path: Path,
 ) -> None:
@@ -283,15 +307,54 @@ def test_lifted_report_fails_closed_on_operational_lifting_mismatch(
     assert row["record_source_eligible"] is False
 
 
+def test_lifted_report_recomputes_paired_support_after_speed_exclusion(
+    tmp_path: Path,
+) -> None:
+    receipt = _lifting_receipt()
+    for candidate in receipt["candidate_receipts"][3:]:
+        for point in candidate["points"]:
+            point["road_id"] = "2"
+        trajectory = [
+            {key: value for key, value in point.items() if key != "candidate_index"}
+            for point in candidate["points"]
+        ]
+        candidate["trajectory_lifting_sha256"] = canonical_json_sha256(trajectory)
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    row = build_lifted_report(xodr, lifting, "B", None)["records"][0]
+
+    assert sum(row["candidate_lifting_eligible_mask"]) >= 2
+    assert row["candidate_source_eligible_mask"] == [
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    ]
+    assert row["source_complete_candidate_count"] == 1
+    assert row["paired_source_support_eligible"] is False
+    assert row["paired_source_support_reason"] == (
+        "fewer_than_two_source_complete_candidates"
+    )
+
+
 @pytest.mark.parametrize(
-    ("candidate0_bad", "all_bad", "reason"),
+    ("candidate0_bad", "all_bad", "reason", "count"),
     [
-        (True, False, "candidate0_source_incomplete"),
-        (False, True, "all_k_source_ineligible"),
+        (True, False, "candidate0_source_incomplete", 5),
+        (False, True, "all_k_source_ineligible", 0),
     ],
 )
 def test_lifted_report_retains_fail_closed_masks(
-    tmp_path: Path, candidate0_bad: bool, all_bad: bool, reason: str
+    tmp_path: Path,
+    candidate0_bad: bool,
+    all_bad: bool,
+    reason: str,
+    count: int,
 ) -> None:
     receipt = _lifting_receipt(candidate0_bad=candidate0_bad, all_bad=all_bad)
     xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
@@ -300,6 +363,9 @@ def test_lifted_report_retains_fail_closed_masks(
 
     assert row["record_source_eligible"] is False
     assert row["reason"] == reason
+    assert row["source_complete_candidate_count"] == count
+    assert row["paired_source_support_eligible"] is False
+    assert row["paired_source_support_reason"] == reason
     assert len(row["candidate_source_eligible_mask"]) == 8
     assert len(row["candidate_source_reasons"]) == 8
 
