@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import hashlib
 import importlib
+import json
 from types import SimpleNamespace
 
 import numpy as np
@@ -270,6 +272,117 @@ def test_corridor_changes_preserve_fixed_dp_request_identity(monkeypatch) -> Non
         assert first["scenario_token"] == second["scenario_token"]
         assert first["pair_run_key"] == second["pair_run_key"]
         assert first["tick_seed"] == second["tick_seed"]
+
+
+@pytest.mark.parametrize("mismatched_tokens", (False, True))
+def test_lifting_receipt_uses_paired_dp_request_token(
+    tmp_path, monkeypatch, mismatched_tokens: bool
+) -> None:
+    probe = _probe()
+    tolerances = LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6)
+    capture = _capture()
+    xodr = "<OpenDRIVE/>"
+    map_sha256 = hashlib.sha256(xodr.encode("utf-8")).hexdigest()
+    capture["map_sha256"] = map_sha256
+    capture["lifting_corridor"]["map_sha256"] = map_sha256
+    _reseal_corridor(capture)
+    _, corridor_context, _ = probe.build_probe_materialization(
+        capture, tolerances=tolerances
+    )
+    top_level_context = probe.build_route_lifting_context(
+        route_source=capture["route_source"],
+        route_samples=capture["route_samples"],
+        directed_edges=capture["directed_edges"],
+        route_sample_step_m=capture["route_sample_step_m"],
+        tolerances=tolerances,
+        map_sha256=capture["map_sha256"],
+    )
+
+    request_metadata = []
+    output = SimpleNamespace(exists=lambda: False)
+    monkeypatch.setattr(
+        probe,
+        "write_request",
+        lambda _directory, _causal_input, metadata: request_metadata.append(metadata),
+    )
+    context_path = tmp_path / "context.json"
+    probe.write_probe_requests(
+        capture,
+        tolerances=tolerances,
+        camp_request_dir=output,
+        default_request_dir=output,
+        context_path=context_path,
+        camp_head="c" * 40,
+        dp_head="d" * 40,
+        selector_hashes=("1" * 64, "2" * 64, "3" * 64),
+    )
+    camp_request, default_request = request_metadata
+    assert camp_request["scenario_token"] == default_request["scenario_token"]
+    assert camp_request["scenario_token"] == top_level_context.source_sha256
+    assert camp_request["scenario_token"] != corridor_context.source_sha256
+
+    camp_dir = tmp_path / "camp"
+    default_dir = tmp_path / "default"
+    camp_dir.mkdir()
+    default_dir.mkdir()
+    camp_token = camp_request["scenario_token"]
+    default_token = "not-the-camp-token" if mismatched_tokens else camp_token
+    (camp_dir / "request.json").write_text(
+        json.dumps({"run_key": camp_request["run_key"], "scenario_token": camp_token}),
+        encoding="utf-8",
+    )
+    (default_dir / "request.json").write_text(
+        json.dumps(
+            {
+                "run_key": default_request["run_key"],
+                "scenario_token": default_token,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        probe,
+        "read_response",
+        lambda directory, **_kwargs: SimpleNamespace(
+            arrays={
+                "candidates" if directory == camp_dir else "selected_trajectory": np.zeros(
+                    (8, 80, 4), dtype=np.float32
+                )
+            },
+            metadata={
+                "candidate_sha256_before": "c" * 64,
+                "selected_trajectory_sha256": "d" * 64,
+            },
+        ),
+    )
+    provenances = []
+    monkeypatch.setattr(
+        probe,
+        "lift_k8_route_receipt",
+        lambda **kwargs: provenances.append(kwargs["provenance"]) or {},
+    )
+
+    receipt_path = tmp_path / "receipt.json"
+    if mismatched_tokens:
+        with pytest.raises(ValueError, match="request scenario tokens mismatch"):
+            probe.write_lifting_receipt(
+                capture=capture,
+                context_path=context_path,
+                camp_request_dir=camp_dir,
+                default_request_dir=default_dir,
+                map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+                output_path=receipt_path,
+            )
+    else:
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=receipt_path,
+        )
+        assert provenances[0]["scenario_token"] == camp_token
 
 
 def test_build_probe_materialization_reuses_causal_and_lifting_contracts() -> None:

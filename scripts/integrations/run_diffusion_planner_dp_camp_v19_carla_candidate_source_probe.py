@@ -357,6 +357,23 @@ def write_lifting_receipt(
         raise ValueError("live CARLA map SHA256 mismatch")
     camp_raw = json.loads((camp_request_dir / "request.json").read_text("utf-8"))
     default_raw = json.loads((default_request_dir / "request.json").read_text("utf-8"))
+    camp_scenario_token = camp_raw.get("scenario_token")
+    default_scenario_token = default_raw.get("scenario_token")
+    if (
+        not isinstance(camp_scenario_token, str)
+        or camp_scenario_token != default_scenario_token
+    ):
+        raise ValueError("request scenario tokens mismatch")
+    dp_context = build_route_lifting_context(
+        route_source=str(capture["route_source"]),
+        route_samples=capture["route_samples"],
+        directed_edges=capture["directed_edges"],
+        route_sample_step_m=float(capture["route_sample_step_m"]),
+        tolerances=context.tolerances,
+        map_sha256=str(capture["map_sha256"]),
+    )
+    if camp_scenario_token != dp_context.source_sha256:
+        raise ValueError("request scenario token does not match capture")
     camp = read_response(
         camp_request_dir,
         expected_run_key=str(camp_raw["run_key"]),
@@ -376,7 +393,7 @@ def write_lifting_receipt(
         candidate_tensor_sha256=str(camp.metadata["candidate_sha256_before"]),
         operational_top1_sha256=str(default.metadata["selected_trajectory_sha256"]),
         provenance={
-            "scenario_token": context.source_sha256,
+            "scenario_token": camp_scenario_token,
             "agents_from_world_tf_sha256": array_sha256(
                 np.asarray(payload["agents_from_world_tf"], dtype=np.float64)
             ),
