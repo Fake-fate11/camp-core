@@ -1984,3 +1984,43 @@ current_v19_artifact_scope=route_constrained_lifting_five_task_tdd_plan
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_tdd_plan_review_b83ead33_20260713T092456CST
 current_v19_artifact_root_sha256=a5135ca42ef1555e9a8c17d45bbf7578f3fb0b603ace238e24e4ea7fb9d7240e
 next_work_target=v19_carla_route_constrained_lifting_task1_tdd_implementation_only
+
+## CARLA Route-Constrained Lifting Task 1 Reviewed
+
+Task 1 added the pure route-surface lifting kernel and focused tests at CAMP
+commit `160f4e4fe1969f6344561fc012fdec8f6bb88a18`. The kernel accepts immutable
+80-point candidate input, uses only the inverse same-tick planar transform and
+consecutive chords in the frozen route context, and calls only the injected
+official `get_waypoint_xodr` path for identity-checked finite z. It retains all
+80 receipts and fails closed on identity/station ambiguity, missing or
+mismatched XODR data, excessive residual, or route discontinuity.
+
+Local Python 3.12 and AutoDL Python 3.9 each reproduced `21 passed` across the
+focused lifting and existing exact-speed suites; `py_compile` and
+`git diff --check` also passed. The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_160f4e4fe1_20260713T103621CST`
+and `75eeb7ed08f97c0277483d54a6808aee448afda114bcf031d4893e946f989c69`.
+
+One evidence-packaging attempt is preserved at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_160f4e4fe1_20260713T103522CST.tmp`
+with root `1842f4fc890e5956fa74a73196a1f5863faea7b664fa037385c8c7276e486a83`.
+Its tests and static checks had passed, but the wrapper exited `127` because it
+used an unavailable bare `python3` only while writing `result.json`. The sole
+remediation used the already-preflighted explicit Python 3.9 interpreter; no
+code or protocol changed.
+
+The independent review reverified the source manifest/root, clean matching
+CAMP heads, fixed clean DP commit, 10 GiB floor, fresh focused tests, no global
+map lookup in the lifting path, official-XODR-only z, candidate immutability
+coverage, full failure receipts, and ambiguity/continuity guards. Its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_independent_review_160f4e4fe1_20260713T103652CST`
+and `b591ab21ef99a32be84501bced8d8c00f19c6eadf6c3410f7085690540515448`.
+No simulator, planner outcome, metric, holdout, rung, scenario, or claim was
+produced. The fixed DP remains unchanged and `native_ranked_top1=false`.
+
+current_v19_status=v19_carla_route_constrained_lifting_task1_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task1_pure_kernel_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_independent_review_160f4e4fe1_20260713T103652CST
+current_v19_artifact_root_sha256=b591ab21ef99a32be84501bced8d8c00f19c6eadf6c3410f7085690540515448
+next_work_target=v19_carla_route_constrained_lifting_task2_tdd_implementation_only

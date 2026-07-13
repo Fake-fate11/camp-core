@@ -455,11 +455,18 @@ integration, and pre-outcome freeze gates without a new runner or dependency.
 The user preselected Inline Execution on current main. No runtime or outcome
 occurred.
 
-current_v19_status=v19_carla_route_constrained_lifting_tdd_plan_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_five_task_tdd_plan
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_tdd_plan_review_b83ead33_20260713T092456CST
-current_v19_artifact_root_sha256=a5135ca42ef1555e9a8c17d45bbf7578f3fb0b603ace238e24e4ea7fb9d7240e
-next_work_target=v19_carla_route_constrained_lifting_task1_tdd_implementation_only
+Task 1 now passes independent review. The pure kernel inverts the same-tick
+planar transform, matches only consecutive frozen route-surface chords, obtains
+finite z only from identity-checked `get_waypoint_xodr`, retains all 80 point
+receipts on failure, and rejects ambiguity or topology discontinuity. Focused
+Python 3.9 review reproduced `21 passed`; no candidate write, global road
+lookup, CARLA dependency, simulator, metric, holdout, or outcome was used.
+
+current_v19_status=v19_carla_route_constrained_lifting_task1_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task1_pure_kernel_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task1_independent_review_160f4e4fe1_20260713T103652CST
+current_v19_artifact_root_sha256=b591ab21ef99a32be84501bced8d8c00f19c6eadf6c3410f7085690540515448
+next_work_target=v19_carla_route_constrained_lifting_task2_tdd_implementation_only
 
 ## Current V18 Status
 
