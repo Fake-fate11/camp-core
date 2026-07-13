@@ -5,6 +5,7 @@ import math
 from dataclasses import asdict
 from types import SimpleNamespace
 from typing import Any, Mapping, Optional, Sequence, Tuple
+import xml.etree.ElementTree as ET
 
 import numpy as np
 
@@ -129,6 +130,31 @@ def _boundary_sample_payload(
     return payload
 
 
+def _opendrive_driving_lane_direction(
+    opendrive_xml: str, identity: Tuple[str, int, int]
+) -> int:
+    try:
+        root = ET.fromstring(opendrive_xml)
+    except ET.ParseError as exc:
+        raise ValueError("invalid OpenDRIVE XML") from exc
+    road = next((item for item in root.findall("road") if item.get("id") == identity[0]), None)
+    sections = [] if road is None else road.findall("./lanes/laneSection")
+    if not 0 <= identity[1] < len(sections):
+        raise ValueError("predecessor OpenDRIVE lane evidence is missing")
+    side = "left" if identity[2] > 0 else "right"
+    lanes = []
+    for lane in sections[identity[1]].findall(f"./{side}/lane"):
+        try:
+            lane_id = int(lane.get("id", ""))
+        except ValueError as exc:
+            raise ValueError("predecessor OpenDRIVE lane evidence is invalid") from exc
+        if lane_id == identity[2]:
+            lanes.append(lane)
+    if len(lanes) != 1 or lanes[0].get("type") != "driving":
+        raise ValueError("predecessor OpenDRIVE driving lane evidence is missing")
+    return -1 if identity[2] > 0 else 1
+
+
 def build_pre_generation_route_corridor(
     *,
     route: Sequence[Any],
@@ -156,16 +182,39 @@ def build_pre_generation_route_corridor(
     source_waypoints = [predecessors[0], *route]
 
     source_samples = [_lane_surface_sample_payload(item) for item in source_waypoints]
-    directions = route_identity_directions(
-        [LaneSurfaceSample(**sample) for sample in source_samples],
-        station_allowance_m,
-    )
     groups = []
+    seen = set()
     for sample in source_samples:
         identity = (sample["road_id"], sample["section_id"], sample["lane_id"])
         if not groups or groups[-1][0] != identity:
+            if identity in seen:
+                raise ValueError("route identity must occupy one contiguous block")
+            seen.add(identity)
             groups.append((identity, []))
         groups[-1][1].append(sample)
+    successor_identity = _waypoint_identity(route[0])
+    directions = []
+    predecessor_direction_evidence = None
+    for index, (identity, samples) in enumerate(groups):
+        if index == 0 and len(samples) == 1 and identity != successor_identity:
+            direction = _opendrive_driving_lane_direction(opendrive_xml, identity)
+            predecessor_direction_evidence = {
+                "source": "opendrive_driving_lane_sign",
+                "lane_type": "driving",
+                "successor_identity": list(successor_identity),
+            }
+        else:
+            direction = route_identity_directions(
+                [LaneSurfaceSample(**sample) for sample in samples],
+                station_allowance_m,
+            )[0][1]
+            if index == 0:
+                predecessor_direction_evidence = {
+                    "source": "ordered_station_samples",
+                    "successor_identity": list(successor_identity),
+                }
+        directions.append((identity, direction))
+    directions = tuple(directions)
 
     bounds_by_identity = {
         (bounds.road_id, bounds.section_id): bounds
@@ -265,6 +314,8 @@ def build_pre_generation_route_corridor(
             "route_step_m": float(route_sample_step_m),
             "identity": list(_waypoint_identity(predecessors[0])),
             "s": float(predecessors[0].s),
+            "direction": directions[0][1],
+            "direction_evidence": predecessor_direction_evidence,
         },
         "boundary_receipts": boundary_receipts,
         "max_contact_gap_m": max(contact_gaps, default=0.0),

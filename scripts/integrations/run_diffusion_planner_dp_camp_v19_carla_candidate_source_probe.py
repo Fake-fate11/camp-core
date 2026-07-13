@@ -33,6 +33,7 @@ from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
     DP_OPERATIONAL_TOP1_PROVENANCE,
     array_sha256,
     build_request_metadata,
+    read_request,
     read_response,
     write_request,
 )
@@ -42,6 +43,7 @@ from camp_core.integrations.nuplan_causal_adapter import encode_route_lane
 CAPTURE_SCHEMA = "dp_camp_v20_carla_source_capture_v1"
 SELECTION_SEED = 3411
 DP_SEED_ROOT = 3412
+FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 FROZEN_LIFTING_TOLERANCES = LiftingTolerances(
     1.5273609989704584,
     3.0518578125e-05,
@@ -216,7 +218,7 @@ def write_probe_requests(
     if any(path.exists() for path in (camp_request_dir, default_request_dir, context_path)):
         raise FileExistsError("probe request or context output already exists")
     _require_git_head(camp_head, "CAMP head")
-    _require_git_head(dp_head, "DP head")
+    _require_fixed_dp_head(dp_head)
     if len(selector_hashes) != 3:
         raise ValueError("source probe requires three selector hashes")
     for digest in selector_hashes:
@@ -350,13 +352,38 @@ def write_lifting_receipt(
     output_path: Path,
 ) -> None:
     payload = json.loads(context_path.read_text(encoding="utf-8"))
-    if payload["capture_sha256"] != canonical_json_sha256(capture):
+    capture_sha256 = canonical_json_sha256(capture)
+    if payload["capture_sha256"] != capture_sha256:
         raise ValueError("capture/context SHA256 mismatch")
-    context = _context(payload["context"])
+    _, context, transform = build_probe_materialization(
+        capture, tolerances=FROZEN_LIFTING_TOLERANCES
+    )
+    if canonical_json_sha256(payload.get("context")) != canonical_json_sha256(
+        asdict(context)
+    ):
+        raise ValueError("serialized lifting context mismatch")
+    if canonical_json_sha256(
+        payload.get("agents_from_world_tf")
+    ) != canonical_json_sha256(transform.tolist()):
+        raise ValueError("serialized lifting transform mismatch")
     if hashlib.sha256(map_api.to_opendrive().encode("utf-8")).hexdigest() != context.map_sha256:
         raise ValueError("live CARLA map SHA256 mismatch")
     camp_raw = json.loads((camp_request_dir / "request.json").read_text("utf-8"))
     default_raw = json.loads((default_request_dir / "request.json").read_text("utf-8"))
+    camp_raw = read_request(
+        camp_request_dir,
+        expected_run_key=str(camp_raw.get("run_key")),
+        expected_iteration_index=0,
+    ).metadata
+    default_raw = read_request(
+        default_request_dir,
+        expected_run_key=str(default_raw.get("run_key")),
+        expected_iteration_index=0,
+    ).metadata
+    if camp_raw.get("arm") != "camp" or default_raw.get("arm") != "dp_default":
+        raise ValueError("request arms mismatch")
+    _require_fixed_dp_head(camp_raw.get("dp_head"))
+    _require_fixed_dp_head(default_raw.get("dp_head"))
     camp_scenario_token = camp_raw.get("scenario_token")
     default_scenario_token = default_raw.get("scenario_token")
     if (
@@ -387,7 +414,7 @@ def write_lifting_receipt(
     receipt = lift_k8_route_receipt(
         candidates=camp.arrays["candidates"],
         operational_top1=default.arrays["selected_trajectory"],
-        agents_from_world_tf=payload["agents_from_world_tf"],
+        agents_from_world_tf=transform,
         context=context,
         map_api=map_api,
         candidate_tensor_sha256=str(camp.metadata["candidate_sha256_before"]),
@@ -395,11 +422,15 @@ def write_lifting_receipt(
         provenance={
             "scenario_token": camp_scenario_token,
             "agents_from_world_tf_sha256": array_sha256(
-                np.asarray(payload["agents_from_world_tf"], dtype=np.float64)
+                transform
             ),
             "baseline_name": DP_OPERATIONAL_TOP1_NAME,
             "baseline_provenance": DP_OPERATIONAL_TOP1_PROVENANCE,
             "native_ranked_top1": False,
+            "capture_sha256": capture_sha256,
+            "lifting_corridor_sha256": capture["lifting_corridor"][
+                "corridor_sha256"
+            ],
         },
     )
     _write_json_atomic(
@@ -427,6 +458,8 @@ def _deterministic_route(map_api: Any, step: float, count: int) -> list[Any]:
             successors = [item for item in route[-1].next(step) if _waypoint_key(item) not in seen]
             if not successors:
                 break
+            if len(successors) != 1:
+                raise ValueError("CARLA route step has multiple unseen successors")
             current = sorted(successors, key=_waypoint_key)[0]
             route.append(current)
             seen.add(_waypoint_key(current))
@@ -587,6 +620,12 @@ def _require_git_head(value: Any, name: str) -> None:
         character not in "0123456789abcdef" for character in value
     ):
         raise ValueError(f"{name} Git commit is invalid")
+
+
+def _require_fixed_dp_head(value: Any) -> None:
+    _require_git_head(value, "DP head")
+    if value != FIXED_DP_HEAD:
+        raise ValueError("DP head must equal the fixed DP commit")
 
 
 def _write_json_atomic(path: Path, value: Any) -> None:

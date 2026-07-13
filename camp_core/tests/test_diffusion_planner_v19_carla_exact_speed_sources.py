@@ -158,7 +158,12 @@ def _lifting_receipt(
         map_api=_Map(),
         candidate_tensor_sha256=array_sha256(candidates),
         operational_top1_sha256=array_sha256(operational),
-        provenance={"record_id": "record-1", "native_ranked_top1": False},
+        provenance={
+            "record_id": "record-1",
+            "native_ranked_top1": False,
+            "capture_sha256": "d" * 64,
+            "lifting_corridor_sha256": "e" * 64,
+        },
     )
     _reseal_tick(receipt)
     return receipt
@@ -245,6 +250,31 @@ def test_lifted_report_rejects_tampered_root_or_candidate_sha(tmp_path: Path) ->
     _reseal_tick(receipt)
     lifting.write_text(json.dumps({"records": [receipt]}), encoding="utf-8")
     with pytest.raises(ValueError, match="candidate tensor SHA"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+@pytest.mark.parametrize("field", ("capture_sha256", "lifting_corridor_sha256"))
+def test_lifted_report_validates_sealed_capture_provenance(
+    tmp_path: Path, field: str
+) -> None:
+    receipt = _lifting_receipt()
+    receipt["provenance"][field] = "bad"
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="SHA"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+def test_lifted_report_rejects_non_xy_candidate0_drift(tmp_path: Path) -> None:
+    receipt = _lifting_receipt()
+    receipt["operational_top1_sha256"] = "f" * 64
+    receipt["operational_top1_sha256_before"] = "f" * 64
+    receipt["operational_top1_sha256_after"] = "f" * 64
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="raw SHA"):
         build_lifted_report(xodr, lifting, "B", None)
 
 

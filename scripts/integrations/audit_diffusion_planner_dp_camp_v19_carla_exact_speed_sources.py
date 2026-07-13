@@ -140,6 +140,7 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
         ("candidate_tensor_sha256", "candidate tensor"),
         ("candidate_tensor_sha256_before", "candidate tensor"),
         ("candidate_tensor_sha256_after", "candidate tensor"),
+        ("candidate0_sha256", "candidate 0"),
         ("operational_top1_sha256", "operational Top-1"),
         ("operational_top1_sha256_before", "operational Top-1"),
         ("operational_top1_sha256_after", "operational Top-1"),
@@ -148,6 +149,13 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
         ("route_graph_sha256", "route graph"),
     ):
         _require_sha256(receipt.get(field), name)
+    provenance = receipt.get("provenance")
+    if not isinstance(provenance, Mapping):
+        raise ValueError("lifting receipt provenance is missing")
+    _require_sha256(provenance.get("capture_sha256"), "capture provenance")
+    _require_sha256(
+        provenance.get("lifting_corridor_sha256"), "lifting corridor provenance"
+    )
     candidates = receipt.get("candidate_receipts")
     if not isinstance(candidates, list) or len(candidates) != 8:
         raise ValueError("lifting receipt must contain eight candidates")
@@ -178,11 +186,16 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
         "operational_top1_sha256_after"
     ):
         raise ValueError("operational Top-1 SHA mismatch")
-    equivalent = (
+    raw_equivalent = receipt["candidate0_sha256"] == receipt[
+        "operational_top1_sha256"
+    ]
+    equivalent = raw_equivalent and (
         candidates[0]["trajectory_lifting_sha256"]
         == operational["trajectory_lifting_sha256"]
     )
     if receipt.get("candidate0_operational_top1_equivalent") is not equivalent:
+        if not raw_equivalent:
+            raise ValueError("candidate 0 raw SHA equivalence evidence mismatch")
         raise ValueError("operational Top-1 equivalence evidence mismatch")
     if receipt.get("dp_operational_top1_source_complete") is not bool(
         operational["eligible"]

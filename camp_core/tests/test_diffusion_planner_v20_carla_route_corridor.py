@@ -15,13 +15,13 @@ XODR = """\
 <OpenDRIVE>
   <road id="1" length="100">
     <lanes>
-      <laneSection s="0" />
-      <laneSection s="40" />
+      <laneSection s="0"><right><lane id="-1" type="driving" /></right></laneSection>
+      <laneSection s="40"><right><lane id="-1" type="driving" /></right></laneSection>
     </lanes>
   </road>
   <road id="2" length="25">
     <lanes>
-      <laneSection s="0" />
+      <laneSection s="0"><right><lane id="-1" type="driving" /></right></laneSection>
     </lanes>
   </road>
 </OpenDRIVE>
@@ -127,7 +127,7 @@ def test_lane_section_bounds_use_next_start_or_road_length() -> None:
 
 
 def test_lane_section_bounds_reject_duplicate_starts() -> None:
-    invalid = XODR.replace('<laneSection s="40" />', '<laneSection s="0" />')
+    invalid = XODR.replace('<laneSection s="40">', '<laneSection s="0">')
 
     with pytest.raises(ValueError, match="lane-section bounds"):
         parse_opendrive_lane_section_bounds(invalid)
@@ -152,6 +152,25 @@ def test_corridor_adds_unique_predecessor_without_changing_route() -> None:
     assert corridor["predecessor_receipt"]["route_step_m"] == 5.0
     assert corridor["route_samples"][0]["s"] < route[0].s
     assert len(corridor["corridor_sha256"]) == 64
+
+
+def test_corridor_resolves_cross_identity_predecessor_from_opendrive() -> None:
+    predecessor = _Waypoint(1, 0, -1, 35.0, 35.0)
+    route = [
+        _Waypoint(2, 0, -1, 5.0, 45.0, predecessors=[predecessor]),
+        _Waypoint(2, 0, -1, 10.0, 50.0),
+    ]
+
+    corridor = _corridor(route, _Map())
+
+    receipt = corridor["predecessor_receipt"]
+    assert receipt["direction"] == 1
+    assert receipt["direction_evidence"] == {
+        "source": "opendrive_driving_lane_sign",
+        "lane_type": "driving",
+        "successor_identity": ["2", 0, -1],
+    }
+    assert corridor["directed_edges"] == [[["1", 0, -1], ["2", 0, -1]]]
 
 
 def test_corridor_requires_five_meter_step_before_predecessor_lookup() -> None:

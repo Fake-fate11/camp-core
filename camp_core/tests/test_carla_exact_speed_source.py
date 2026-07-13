@@ -384,6 +384,26 @@ def test_route_lift_accepts_decreasing_station_in_travel_order() -> None:
     assert result.points[-1].s == 1.0
 
 
+def test_route_lift_rejects_nonconsecutive_shortcut_edge() -> None:
+    samples = (
+        _surface_samples(road_id="1", start=0, stop=1)
+        + _surface_samples(road_id="2", start=2, stop=3)
+        + _surface_samples(road_id="3", start=4, stop=5)
+    )
+    identities = tuple(dict.fromkeys(sample.identity for sample in samples))
+    context = _route_context(
+        samples,
+        edges=(
+            (identities[0], identities[1]),
+            (identities[1], identities[2]),
+            (identities[0], identities[2]),
+        ),
+    )
+
+    with pytest.raises(ValueError, match="consecutive identity transitions"):
+        _lift(context=context)
+
+
 def test_route_lift_rejects_backtrack_on_decreasing_station_lane() -> None:
     candidate = tuple(
         (float(index if index < 40 else 79 - index), 0.0, 1.0, 0.0)
@@ -430,8 +450,9 @@ def test_route_lift_fails_closed_with_all_point_receipts(
     context = _route_context(_surface_samples())
     map_api = _FakeXodrMap()
     if fixture == "overlapping_lanes":
+        samples = _surface_samples() + _surface_samples(road_id="2", lane_id=2)
         context = _route_context(
-            _surface_samples() + _surface_samples(road_id="2", lane_id=2)
+            samples, edges=((samples[0].identity, samples[-1].identity),)
         )
     elif fixture == "station_ambiguity":
         context = _route_context(
@@ -456,9 +477,17 @@ def test_route_lift_fails_closed_with_all_point_receipts(
             for index in range(80)
         )
     elif fixture == "branch_hop":
+        first = _surface_samples(stop=39)
+        skipped = _surface_samples(
+            road_id="2", lane_id=2, start=40, stop=41, y=40.0
+        )
+        third = _surface_samples(road_id="3", lane_id=3, start=40)
         context = _route_context(
-            _surface_samples(stop=39)
-            + _surface_samples(road_id="2", lane_id=2, start=40)
+            first + skipped + third,
+            edges=(
+                (first[0].identity, skipped[0].identity),
+                (skipped[0].identity, third[0].identity),
+            ),
         )
 
     result = _lift(candidate, context=context, map_api=map_api)
@@ -580,6 +609,7 @@ def test_k8_receipt_preserves_tensor_and_matches_operational_top1() -> None:
     assert receipt["candidate_source_eligible_mask"] == [True] * 8
     assert receipt["dp_operational_top1_source_complete"] is True
     assert receipt["candidate0_operational_top1_equivalent"] is True
+    assert receipt["candidate0_sha256"] == array_sha256(candidates[0])
     assert receipt["selected_index"] is None
     assert (
         receipt["candidate_receipts"][0]["trajectory_lifting_sha256"]
@@ -687,10 +717,38 @@ def test_k8_receipt_rejects_outcome_provenance() -> None:
         lift_k8_route_receipt(
             candidates=candidates,
             operational_top1=candidates[0].copy(),
-            agents_from_world_tf=((1.0, 0.0, 0.0),) * 3,
+            agents_from_world_tf=(
+                (1.0, 0.0, 0.0),
+                (0.0, 1.0, 0.0),
+                (0.0, 0.0, 1.0),
+            ),
             context=_route_context(_surface_samples()),
             map_api=_FakeXodrMap(),
             candidate_tensor_sha256=array_sha256(candidates),
             operational_top1_sha256=array_sha256(candidates[0]),
             provenance={"safety_cost": 0.0},
+        )
+
+
+@pytest.mark.parametrize(
+    "marker",
+    ("fallback_speed", "trajectory_mutation", "candidate_repair", "trajectory_blend"),
+)
+def test_k8_receipt_rejects_forbidden_provenance_markers(marker: str) -> None:
+    candidates = _k8_candidates()
+
+    with pytest.raises(ValueError, match="provenance fields"):
+        lift_k8_route_receipt(
+            candidates=candidates,
+            operational_top1=candidates[0].copy(),
+            agents_from_world_tf=(
+                (1.0, 0.0, 0.0),
+                (0.0, 1.0, 0.0),
+                (0.0, 0.0, 1.0),
+            ),
+            context=_route_context(_surface_samples()),
+            map_api=_FakeXodrMap(),
+            candidate_tensor_sha256=array_sha256(candidates),
+            operational_top1_sha256=array_sha256(candidates[0]),
+            provenance={marker: False},
         )

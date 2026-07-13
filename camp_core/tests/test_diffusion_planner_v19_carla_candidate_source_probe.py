@@ -16,6 +16,9 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 )
 
 
+FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+
+
 def _probe():
     return importlib.import_module(
         "scripts.integrations."
@@ -120,6 +123,74 @@ def _reseal_corridor(capture: dict[str, object]) -> None:
     corridor["corridor_sha256"] = canonical_json_sha256(
         {key: value for key, value in corridor.items() if key != "corridor_sha256"}
     )
+
+
+def _write_receipt_inputs(tmp_path):
+    probe = _probe()
+    capture = _capture()
+    xodr = "<OpenDRIVE/>"
+    map_sha256 = hashlib.sha256(xodr.encode("utf-8")).hexdigest()
+    capture["map_sha256"] = map_sha256
+    capture["lifting_corridor"]["map_sha256"] = map_sha256
+    _reseal_corridor(capture)
+    camp_dir = tmp_path / "camp"
+    default_dir = tmp_path / "default"
+    context_path = tmp_path / "context.json"
+    probe.write_probe_requests(
+        capture,
+        tolerances=probe.FROZEN_LIFTING_TOLERANCES,
+        camp_request_dir=camp_dir,
+        default_request_dir=default_dir,
+        context_path=context_path,
+        camp_head="c" * 40,
+        dp_head=FIXED_DP_HEAD,
+        selector_hashes=("1" * 64, "2" * 64, "3" * 64),
+    )
+    return probe, capture, xodr, camp_dir, default_dir, context_path
+
+
+def _stub_receipt_responses(monkeypatch, probe, camp_dir, provenances=None) -> None:
+    monkeypatch.setattr(
+        probe,
+        "read_response",
+        lambda directory, **_kwargs: SimpleNamespace(
+            arrays={
+                "candidates": np.zeros((8, 80, 4), dtype=np.float32)
+                if directory == camp_dir
+                else np.zeros((80, 4), dtype=np.float32)
+            }
+            if directory == camp_dir
+            else {"selected_trajectory": np.zeros((80, 4), dtype=np.float32)},
+            metadata={
+                "candidate_sha256_before": "c" * 64,
+                "selected_trajectory_sha256": "d" * 64,
+            },
+        ),
+    )
+    monkeypatch.setattr(
+        probe,
+        "lift_k8_route_receipt",
+        lambda **kwargs: (
+            provenances.append(kwargs["provenance"]) if provenances is not None else None
+        )
+        or {},
+    )
+
+
+def test_deterministic_route_rejects_multiple_unseen_successors() -> None:
+    left = SimpleNamespace(road_id=1, section_id=0, lane_id=-1, s=5.0)
+    right = SimpleNamespace(road_id=2, section_id=0, lane_id=-1, s=5.0)
+    start = SimpleNamespace(
+        road_id=1,
+        section_id=0,
+        lane_id=-1,
+        s=0.0,
+        next=lambda _step: [left, right],
+    )
+    map_api = SimpleNamespace(generate_waypoints=lambda _step: [start])
+
+    with pytest.raises(ValueError, match="multiple unseen successors"):
+        _probe()._deterministic_route(map_api, 5.0, 2)
 
 
 def test_materialization_keeps_corridor_out_of_fixed_dp_route() -> None:
@@ -255,7 +326,7 @@ def test_corridor_changes_preserve_fixed_dp_request_identity(monkeypatch) -> Non
             default_request_dir=output,
             context_path=output,
             camp_head="c" * 40,
-            dp_head="d" * 40,
+            dp_head=FIXED_DP_HEAD,
             selector_hashes=("1" * 64, "2" * 64, "3" * 64),
         )
 
@@ -278,89 +349,34 @@ def test_corridor_changes_preserve_fixed_dp_request_identity(monkeypatch) -> Non
 def test_lifting_receipt_uses_paired_dp_request_token(
     tmp_path, monkeypatch, mismatched_tokens: bool
 ) -> None:
-    probe = _probe()
-    tolerances = LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6)
-    capture = _capture()
-    xodr = "<OpenDRIVE/>"
-    map_sha256 = hashlib.sha256(xodr.encode("utf-8")).hexdigest()
-    capture["map_sha256"] = map_sha256
-    capture["lifting_corridor"]["map_sha256"] = map_sha256
-    _reseal_corridor(capture)
+    probe, capture, xodr, camp_dir, default_dir, context_path = (
+        _write_receipt_inputs(tmp_path)
+    )
     _, corridor_context, _ = probe.build_probe_materialization(
-        capture, tolerances=tolerances
+        capture, tolerances=probe.FROZEN_LIFTING_TOLERANCES
     )
     top_level_context = probe.build_route_lifting_context(
         route_source=capture["route_source"],
         route_samples=capture["route_samples"],
         directed_edges=capture["directed_edges"],
         route_sample_step_m=capture["route_sample_step_m"],
-        tolerances=tolerances,
+        tolerances=probe.FROZEN_LIFTING_TOLERANCES,
         map_sha256=capture["map_sha256"],
     )
-
-    request_metadata = []
-    output = SimpleNamespace(exists=lambda: False)
-    monkeypatch.setattr(
-        probe,
-        "write_request",
-        lambda _directory, _causal_input, metadata: request_metadata.append(metadata),
-    )
-    context_path = tmp_path / "context.json"
-    probe.write_probe_requests(
-        capture,
-        tolerances=tolerances,
-        camp_request_dir=output,
-        default_request_dir=output,
-        context_path=context_path,
-        camp_head="c" * 40,
-        dp_head="d" * 40,
-        selector_hashes=("1" * 64, "2" * 64, "3" * 64),
-    )
-    camp_request, default_request = request_metadata
+    camp_path = camp_dir / "request.json"
+    default_path = default_dir / "request.json"
+    camp_request = json.loads(camp_path.read_text(encoding="utf-8"))
+    default_request = json.loads(default_path.read_text(encoding="utf-8"))
     assert camp_request["scenario_token"] == default_request["scenario_token"]
     assert camp_request["scenario_token"] == top_level_context.source_sha256
     assert camp_request["scenario_token"] != corridor_context.source_sha256
 
-    camp_dir = tmp_path / "camp"
-    default_dir = tmp_path / "default"
-    camp_dir.mkdir()
-    default_dir.mkdir()
     camp_token = camp_request["scenario_token"]
-    default_token = "not-the-camp-token" if mismatched_tokens else camp_token
-    (camp_dir / "request.json").write_text(
-        json.dumps({"run_key": camp_request["run_key"], "scenario_token": camp_token}),
-        encoding="utf-8",
-    )
-    (default_dir / "request.json").write_text(
-        json.dumps(
-            {
-                "run_key": default_request["run_key"],
-                "scenario_token": default_token,
-            }
-        ),
-        encoding="utf-8",
-    )
-    monkeypatch.setattr(
-        probe,
-        "read_response",
-        lambda directory, **_kwargs: SimpleNamespace(
-            arrays={
-                "candidates" if directory == camp_dir else "selected_trajectory": np.zeros(
-                    (8, 80, 4), dtype=np.float32
-                )
-            },
-            metadata={
-                "candidate_sha256_before": "c" * 64,
-                "selected_trajectory_sha256": "d" * 64,
-            },
-        ),
-    )
+    if mismatched_tokens:
+        default_request["scenario_token"] = "not-the-camp-token"
+        default_path.write_text(json.dumps(default_request), encoding="utf-8")
     provenances = []
-    monkeypatch.setattr(
-        probe,
-        "lift_k8_route_receipt",
-        lambda **kwargs: provenances.append(kwargs["provenance"]) or {},
-    )
+    _stub_receipt_responses(monkeypatch, probe, camp_dir, provenances)
 
     receipt_path = tmp_path / "receipt.json"
     if mismatched_tokens:
@@ -383,6 +399,66 @@ def test_lifting_receipt_uses_paired_dp_request_token(
             output_path=receipt_path,
         )
         assert provenances[0]["scenario_token"] == camp_token
+        assert provenances[0]["capture_sha256"] == canonical_json_sha256(capture)
+        assert provenances[0]["lifting_corridor_sha256"] == capture[
+            "lifting_corridor"
+        ]["corridor_sha256"]
+
+
+@pytest.mark.parametrize("carrier", ("context_sample", "context_edges", "transform"))
+def test_lifting_receipt_rejects_serialized_carrier_tampering(
+    tmp_path, monkeypatch, carrier: str
+) -> None:
+    probe, capture, xodr, camp_dir, default_dir, context_path = (
+        _write_receipt_inputs(tmp_path)
+    )
+    payload = json.loads(context_path.read_text(encoding="utf-8"))
+    if carrier == "context_sample":
+        payload["context"]["samples"][0]["x"] += 1.0
+    elif carrier == "context_edges":
+        payload["context"]["edges"].append(
+            [["1", 0, -1], ["1", 0, -1]]
+        )
+    else:
+        payload["agents_from_world_tf"][0][2] += 1.0
+    context_path.write_text(json.dumps(payload), encoding="utf-8")
+    _stub_receipt_responses(monkeypatch, probe, camp_dir)
+
+    expected = "serialized lifting transform" if carrier == "transform" else "serialized lifting context"
+    with pytest.raises(ValueError, match=expected):
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=tmp_path / "receipt.json",
+        )
+
+
+@pytest.mark.parametrize("request_name", ("camp", "default"))
+def test_lifting_receipt_rejects_tampered_fixed_dp_head(
+    tmp_path, monkeypatch, request_name: str
+) -> None:
+    probe, capture, xodr, camp_dir, default_dir, context_path = (
+        _write_receipt_inputs(tmp_path)
+    )
+    request_dir = camp_dir if request_name == "camp" else default_dir
+    request_path = request_dir / "request.json"
+    request = json.loads(request_path.read_text(encoding="utf-8"))
+    request["dp_head"] = "d" * 40
+    request_path.write_text(json.dumps(request), encoding="utf-8")
+    _stub_receipt_responses(monkeypatch, probe, camp_dir)
+
+    with pytest.raises(ValueError, match="fixed DP commit"):
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=tmp_path / "receipt.json",
+        )
 
 
 def test_build_probe_materialization_reuses_causal_and_lifting_contracts() -> None:
@@ -440,7 +516,7 @@ def test_write_probe_requests_is_exactly_once() -> None:
             default_request_dir=output,
             context_path=output,
             camp_head="c" * 40,
-            dp_head="d" * 40,
+            dp_head=FIXED_DP_HEAD,
             selector_hashes=("1" * 64, "2" * 64, "3" * 64),
         )
 
@@ -456,6 +532,25 @@ def test_write_probe_requests_rejects_content_digest_as_git_head() -> None:
             default_request_dir=output,
             context_path=output,
             camp_head="c" * 64,
+            dp_head=FIXED_DP_HEAD,
+            selector_hashes=("1" * 64, "2" * 64, "3" * 64),
+        )
+
+
+def test_write_probe_requests_rejects_nonfixed_dp_head(monkeypatch) -> None:
+    probe = _probe()
+    output = SimpleNamespace(exists=lambda: False)
+    monkeypatch.setattr(probe, "write_request", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(probe, "_write_json_atomic", lambda *_args, **_kwargs: None)
+
+    with pytest.raises(ValueError, match="fixed DP commit"):
+        probe.write_probe_requests(
+            _capture(),
+            tolerances=probe.FROZEN_LIFTING_TOLERANCES,
+            camp_request_dir=output,
+            default_request_dir=output,
+            context_path=output,
+            camp_head="c" * 40,
             dp_head="d" * 40,
             selector_hashes=("1" * 64, "2" * 64, "3" * 64),
         )
@@ -479,7 +574,7 @@ def test_write_probe_requests_freezes_source_only_metadata(monkeypatch) -> None:
         default_request_dir=output,
         context_path=output,
         camp_head="c" * 40,
-        dp_head="d" * 40,
+        dp_head=FIXED_DP_HEAD,
         selector_hashes=("1" * 64, "2" * 64, "3" * 64),
     )
 
@@ -495,4 +590,4 @@ def test_write_probe_requests_freezes_source_only_metadata(monkeypatch) -> None:
     assert all("selected_index" not in request for request in requests)
     assert all("outcome" not in " ".join(request).lower() for request in requests)
     assert all(request["camp_head"] == "c" * 40 for request in requests)
-    assert all(request["dp_head"] == "d" * 40 for request in requests)
+    assert all(request["dp_head"] == FIXED_DP_HEAD for request in requests)

@@ -16,6 +16,18 @@ _RUNGS = {
     RUNG_EXPLICIT_NON_JUNCTION,
     RUNG_TOPOLOGY_DERIVED_JUNCTION,
 }
+_RECEIPT_PROVENANCE_FIELDS = frozenset(
+    {
+        "scenario_token",
+        "agents_from_world_tf_sha256",
+        "baseline_name",
+        "baseline_provenance",
+        "native_ranked_top1",
+        "record_id",
+        "capture_sha256",
+        "lifting_corridor_sha256",
+    }
+)
 
 
 SegmentKey = Tuple[str, int, int]
@@ -406,11 +418,11 @@ def lift_k8_route_receipt(
     operational_after = _array_sha256(
         operational_top1, (80, 4), "operational Top-1"
     )
+    candidate0_sha256 = _array_sha256(candidates[0], (80, 4), "candidate 0")
     mask = [decision.eligible for decision in decisions]
     reasons = [decision.reason for decision in decisions]
     equivalent = (
-        _array_sha256(candidates[0], (80, 4), "candidate 0")
-        == operational_before
+        candidate0_sha256 == operational_before
         and decisions[0].trajectory_lifting_sha256
         == default.trajectory_lifting_sha256
     )
@@ -434,6 +446,7 @@ def lift_k8_route_receipt(
         "candidate_tensor_sha256": candidate_tensor_sha256,
         "candidate_tensor_sha256_before": candidate_before,
         "candidate_tensor_sha256_after": candidate_after,
+        "candidate0_sha256": candidate0_sha256,
         "operational_top1_sha256": operational_top1_sha256,
         "operational_top1_sha256_before": operational_before,
         "operational_top1_sha256_after": operational_after,
@@ -473,16 +486,22 @@ def _validate_sha256(value: str, name: str) -> None:
 
 
 def _reject_forbidden_receipt_fields(value: Any) -> None:
+    _reject_forbidden_receipt_markers(value)
+    if not isinstance(value, Mapping) or set(value) - _RECEIPT_PROVENANCE_FIELDS:
+        raise ValueError("lifting receipt provenance fields mismatch")
+
+
+def _reject_forbidden_receipt_markers(value: Any) -> None:
     forbidden = ("expert_future", "holdout", "label", "outcome", "metric", "safety_cost")
     if isinstance(value, Mapping):
         for key, item in value.items():
             normalized = str(key).casefold()
             if any(part in normalized for part in forbidden):
                 raise ValueError(f"forbidden outcome field: {key}")
-            _reject_forbidden_receipt_fields(item)
+            _reject_forbidden_receipt_markers(item)
     elif isinstance(value, (list, tuple)):
         for item in value:
-            _reject_forbidden_receipt_fields(item)
+            _reject_forbidden_receipt_markers(item)
 
 
 def _decision_payload(decision: CandidateLiftDecision) -> dict[str, Any]:
@@ -579,6 +598,12 @@ def _validate_lifting_context(context: RouteLiftingContext) -> None:
     )
     if context.identity_directions != expected_directions:
         raise ValueError("route identity direction metadata mismatch")
+    expected_edges = tuple(
+        (left[0], right[0])
+        for left, right in zip(expected_directions, expected_directions[1:])
+    )
+    if context.edges != expected_edges:
+        raise ValueError("route edges must equal consecutive identity transitions")
 
 
 def _inverse_transform_xy(
