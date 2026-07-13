@@ -511,14 +511,21 @@ not ready. It proved the sidecar dynamically, then found that no checked-in
 CARLA runtime entry composes official ticks/route samples with the existing
 bridge and worker; the available source-support and smoke harnesses are
 nuPlan-specific. No request, candidate, worker, simulator, or metric ran. The
-next gate is the original plan's thin CARLA source-only harness TDD, not a new
-general controller.
+runtime-entry gap is now closed at CAMP `346f668a05e8d1b2fb0814ce4a161a364aac22cf`.
+The checked-in thin harness collects one deterministic source-only CARLA
+history, reuses the causal adapter and route sidecar, writes the existing
+bridge requests, and later seals the existing worker responses into the
+canonical lifting receipt. It does not add a worker or controller. AutoDL
+reproduced 80 focused tests; implementation and independent-review roots are
+`b7f27758b34c5a20f9264f14e1b3dd893c2c82c1a157cf9b9925880b0a20f217`
+and `b99d79063f550506aef10924575e4461057c5634f9148f80f4d1cb7227f72e26`.
+No simulator, worker inference, candidate, metric, outcome, or holdout ran.
 
-current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_review_passed_execution_not_ready
-current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_and_runtime_entry_gap
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_5ea480b6_20260713T124616CST
-current_v19_artifact_root_sha256=cd73c614fa82521cf41164a39f07be85a73f3dfa544e84d8d3fc5d1f80fb1b70
-next_work_target=v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_implementation_only
+current_v19_status=v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review_346f668a_20260713T133128CST
+current_v19_artifact_root_sha256=b99d79063f550506aef10924575e4461057c5634f9148f80f4d1cb7227f72e26
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_only
 
 ## Current V18 Status
 

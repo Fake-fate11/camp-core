@@ -2308,3 +2308,44 @@ current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_prefli
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_5ea480b6_20260713T124616CST
 current_v19_artifact_root_sha256=cd73c614fa82521cf41164a39f07be85a73f3dfa544e84d8d3fc5d1f80fb1b70
 next_work_target=v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_implementation_only
+
+## CARLA Source-Probe Runtime Harness TDD
+
+The approved thin CARLA source-only runtime entry was implemented test-first at
+CAMP `346f668a05e8d1b2fb0814ce4a161a364aac22cf`. The initial RED failed because
+the planned module did not exist. The minimal implementation has three explicit
+process-boundary modes: collect one deterministic 31-tick official CARLA source
+history, materialize the existing causal request plus route-lifting sidecar,
+and turn existing fixed-worker responses into the canonical lifting receipt.
+It reuses the causal adapter, route-sidecar builder, v19 bridge, fixed worker
+directories, and K=8 lifting receipt; it does not implement a second worker or
+general controller.
+
+The harness rejects forbidden future/outcome fields, fixes selection seed 3411
+and DP seed root 3412, refuses existing outputs, leaves route speed explicitly
+unavailable for later exact OpenDRIVE receipt/census resolution, and preserves
+the active `DP operational Top-1` / `native_ranked_top1=false` provenance. Its
+source-only access receipt fixes simulator-arm advances, outcome reads, metric
+calls, and holdout reads at zero. Local no-temporary-directory tests reproduced
+`40 passed`; the bridge/worker tests that require pytest temporary directories
+remain blocked locally by the pre-existing Windows temp ACL rather than an
+assertion failure.
+
+AutoDL synchronized ff-only to the implementation commit, remained tracked
+clean with fixed DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, and reproduced `80 passed`,
+py_compile, and diff check. The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_346f668a_20260713T133128CST`
+and `b7f27758b34c5a20f9264f14e1b3dd893c2c82c1a157cf9b9925880b0a20f217`.
+Independent manifest rehash and static contract review passed all 15 checks;
+its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review_346f668a_20260713T133128CST`
+and `b99d79063f550506aef10924575e4461057c5634f9148f80f4d1cb7227f72e26`.
+Free space remained `50,573,070,336` bytes. No CARLA runtime, worker inference,
+candidate tensor, simulator arm, metric, outcome, or holdout was executed.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_independent_review_346f668a_20260713T133128CST
+current_v19_artifact_root_sha256=b99d79063f550506aef10924575e4461057c5634f9148f80f4d1cb7227f72e26
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_execution_preflight_only
