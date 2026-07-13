@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_"
-        "review_passed"
+        "v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_"
+        "retry_review_passed_execution_not_ready"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_"
-        "retry_only"
+        "v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_"
+        "implementation_only"
     )

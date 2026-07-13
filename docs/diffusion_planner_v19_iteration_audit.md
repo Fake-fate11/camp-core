@@ -2274,3 +2274,37 @@ current_v19_artifact_scope=route_constrained_lifting_decision_time_route_sidecar
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_efe2a58c_20260713T115753CST
 current_v19_artifact_root_sha256=b7f9f0f88e90ad6c45b7421fd330f6bbe7e77c41afd8e93155540aff4cfa29c8
 next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_only
+
+## CARLA Route-Constrained Lifting Source-Only K8 Probe Preflight Retry
+
+The unique read-only retry synchronized AutoDL to CAMP
+`5ea480b68f38e6bba77a294eec80d00fc94de94a`, found no related task or duplicate
+staging, and reverified fixed DP, the first preflight, route-sidecar TDD/review,
+map-only tolerances, bridge, worker, assets, and the 10 GiB floor. A dynamic
+Python 3.9 check successfully constructed the canonical sidecar with the frozen
+tolerances.
+
+The full execution chain remains fail-closed for a different, narrower gap:
+there is no checked-in CARLA source-only runtime entry that obtains official
+ticks/route samples and invokes the existing bridge/worker. The existing
+source-support census and closed-loop smoke harness are nuPlan-specific, so
+using either as a CARLA runner would be false provenance. The retry did not
+materialize a request or call the worker, simulator, or metrics.
+
+The retry artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_5ea480b6_20260713T124547CST`
+and `31e80e7181b42b39cbba95a5dcda7c44f2aaf2562302e521402c5a3ce55c05e1`.
+Independent review reproduced the missing runtime entry and the nuPlan-only
+scope of the two existing harnesses while revalidating all zero-call and
+baseline fields. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_5ea480b6_20260713T124616CST`
+and `cd73c614fa82521cf41164a39f07be85a73f3dfa544e84d8d3fc5d1f80fb1b70`.
+The approved remediation is the original plan's thin CARLA source-only harness
+that composes the existing adapter, sidecar builder, bridge, worker command,
+and lifting receipt; it is not a new general controller.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_review_passed_execution_not_ready
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_and_runtime_entry_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_5ea480b6_20260713T124616CST
+current_v19_artifact_root_sha256=cd73c614fa82521cf41164a39f07be85a73f3dfa544e84d8d3fc5d1f80fb1b70
+next_work_target=v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_implementation_only

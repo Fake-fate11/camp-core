@@ -504,14 +504,21 @@ sidecar. No request, candidate, worker, simulator, metric, or outcome ran. The
 minimal route-sidecar builder has now passed TDD and independent review at CAMP
 `efe2a58c647bcb9bf726b48cac369899cf8a1a33`. It reuses the existing lifting
 types, canonical SHA, and validator, accepts only the preregistered route
-source, and makes no CARLA/global lookup call. The next gate is one read-only
-probe preflight retry; no candidate or runtime outcome has been produced.
+source, and makes no CARLA/global lookup call.
 
-current_v19_status=v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_decision_time_route_sidecar_tdd_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_efe2a58c_20260713T115753CST
-current_v19_artifact_root_sha256=b7f9f0f88e90ad6c45b7421fd330f6bbe7e77c41afd8e93155540aff4cfa29c8
-next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_only
+The unique preflight retry now passes independent review but execution remains
+not ready. It proved the sidecar dynamically, then found that no checked-in
+CARLA runtime entry composes official ticks/route samples with the existing
+bridge and worker; the available source-support and smoke harnesses are
+nuPlan-specific. No request, candidate, worker, simulator, or metric ran. The
+next gate is the original plan's thin CARLA source-only harness TDD, not a new
+general controller.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_review_passed_execution_not_ready
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_and_runtime_entry_gap
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_independent_review_5ea480b6_20260713T124616CST
+current_v19_artifact_root_sha256=cd73c614fa82521cf41164a39f07be85a73f3dfa544e84d8d3fc5d1f80fb1b70
+next_work_target=v19_carla_route_constrained_lifting_source_probe_runtime_harness_tdd_implementation_only
 
 ## Current V18 Status
 
