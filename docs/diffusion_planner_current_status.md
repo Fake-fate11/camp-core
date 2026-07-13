@@ -1144,6 +1144,33 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_dia
 current_v19_artifact_root_sha256=44a9533051d1355dc64ae551e62079a464f3ecdcf40a6c6573a8475abc607e5c
 next_work_target=v19_carla_materialize_git_head_validation_tdd_fix_static_review_and_runtime_preflight_only_continuous_authorization
 
+### Materialize Git-Head Fix Static Review and Runtime Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`b82eb784a43289f50f5bb857740f09f8a0808ff2`, AutoDL independently ran the
+source-probe and live-pointer tests twice; all 8 passed both times. The exact
+source/test SHA256 values matched the committed files, the new 40-hex Git-head
+checks were present, and the existing 64-hex selector/source digest checks
+remained. `py_compile` and diff checks passed.
+
+The preflight rehashed the prior readiness/capture execution and diagnosis,
+reverified exact package integrity and UID 65534 EGL/Vulkan operation, and
+proved no process/listener/Saved/staging state, restored root ACL, fixed clean
+DP, matched local/origin/GitHub CAMP HEAD, and disk above the floor. Its plan
+diff contains only fresh execution paths; server, source-only steps, fixed DP,
+K=8, lifting, selectors, and all scientific contracts are unchanged.
+Preflight/review roots are
+`0bf3b1915a7bd49cf94ef4d6fd5f464a47b62af734d91a5baaae94aca3731cea`
+and `0b1d95cc2b1e54de5dc42fed8f0cdf78af774b33144f6b9a2708e29f70e8c1f8`.
+No runtime, ACL mutation, DP worker, candidate, outcome, metric, or holdout
+operation occurred. Materialize Git-head remediation attempt 1 is ready.
+
+current_v19_status=v19_carla_materialize_git_head_validation_tdd_fix_static_review_runtime_preflight_independent_review_passed
+current_v19_artifact_scope=materialize_git_head_validation_tdd_fix_static_review_runtime_attempt_1_preflight_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_fix_runtime_preflight_b82eb784_20260713T204700CST_independent_review
+current_v19_artifact_root_sha256=0b1d95cc2b1e54de5dc42fed8f0cdf78af774b33144f6b9a2708e29f70e8c1f8
+next_work_target=v19_carla_materialize_git_head_validation_remediation_runtime_attempt_1_execution_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

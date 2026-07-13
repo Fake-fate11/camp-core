@@ -3677,3 +3677,49 @@ current_v19_artifact_scope=headless_egl_icd_runtime_readiness_source_capture_mat
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_diagnosis_f3418986_20260713T204056CST_review
 current_v19_artifact_root_sha256=44a9533051d1355dc64ae551e62079a464f3ecdcf40a6c6573a8475abc607e5c
 next_work_target=v19_carla_materialize_git_head_validation_tdd_fix_static_review_and_runtime_preflight_only_continuous_authorization
+
+## Materialize Git-Head Fix Static Review and Runtime Attempt 1 Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`b82eb784a43289f50f5bb857740f09f8a0808ff2`, the remote static contract
+matched source-probe SHA256
+`931366a927c53e2c9045caec589814c75aff2fd979ea8ac86e6b75368d674c41`
+and test SHA256
+`6d40349ab127c09d0987fc027be135a55b008caf1d979276531a8831997d477f`.
+It verified both CAMP/DP calls use the exact 40-hex Git-commit validator while
+the 64-hex SHA256 validator remains on selector/source content digests. The
+source-probe plus live-pointer suite reported `8 passed` in both the source and
+independent review; `py_compile` and `git diff --check` also passed.
+
+The no-runtime preflight rehashed the prior headless EGL-ICD preflight/review,
+the readiness/capture/materialize-failure execution/review, the direct Git-head
+diagnosis/review, and the exact retained `libvulkan1` install/review. Package
+integrity replay passed. UID 65534 independently completed the temporary
+EGL-ICD Vulkan instance/device probe twice, and each probe/manifest was removed.
+
+The guard state proves local/origin/GitHub CAMP HEAD agreement, fixed clean DP,
+no relevant process or RPC listener, absent runtime Saved and new execution
+paths, root mode 0700 with UID 65534 traversal blocked, and disk above the
+10-GiB floor. The execution plan is the last reviewed headless plan with only
+fresh stage/final paths:
+
+- stage:
+  `/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_fix_execution_b82eb784_20260713T204700CST.tmp`
+- final:
+  `/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_fix_execution_b82eb784_20260713T204700CST`
+
+Whole-object checks keep the server argv/environment, temporary ICD manifest,
+all source-only steps, fixed DP/checkpoint/args/selectors, K=8, route/speed/
+lifting/tolerance/eligibility, seeds, and forbidden-operation counters
+unchanged. Runner validate-only passed. Source and independent-review roots are
+`0bf3b1915a7bd49cf94ef4d6fd5f464a47b62af734d91a5baaae94aca3731cea`
+and `0b1d95cc2b1e54de5dc42fed8f0cdf78af774b33144f6b9a2708e29f70e8c1f8`.
+This freezes attempt 1 for the independently supported CAMP-side materialize
+Git-head validator root cause. No CARLA, ACL mutation, DP worker, candidate,
+outcome, metric, or holdout activity occurred; claim boundaries are unchanged.
+
+current_v19_status=v19_carla_materialize_git_head_validation_tdd_fix_static_review_runtime_preflight_independent_review_passed
+current_v19_artifact_scope=materialize_git_head_validation_tdd_fix_static_review_runtime_attempt_1_preflight_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_fix_runtime_preflight_b82eb784_20260713T204700CST_independent_review
+current_v19_artifact_root_sha256=0b1d95cc2b1e54de5dc42fed8f0cdf78af774b33144f6b9a2708e29f70e8c1f8
+next_work_target=v19_carla_materialize_git_head_validation_remediation_runtime_attempt_1_execution_only_continuous_authorization
