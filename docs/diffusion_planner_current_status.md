@@ -668,11 +668,56 @@ No CARLA, UE, exact-UID helper validation, DP worker, pipeline, candidate,
 receipt, metric, outcome, or holdout operation ran. The prior exit-1 cause
 remains unknown and the claim taxonomy is unchanged.
 
-current_v19_status=v19_xdg_user_dirs_signed_dpkg_install_validation_failed_path_exclude_rollback_restored_independent_review_passed
-current_v19_artifact_scope=xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_independent_review_no_package_retained_no_runtime
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_review_0d5deec8_20260713T170333CST_independent_review
-current_v19_artifact_root_sha256=d3d19b3646da934c43a7267e5cf1c66b9b3b0dbe20afce6a82a8a78e16919631
-next_work_target=user_decision_required_after_v19_xdg_user_dirs_install_validation_failure_and_verified_rollback_before_any_retry_or_carla_runtime_attempt
+The user then authorized an exclude-aware retry. A new preflight sealed the
+active dpkg configuration files in load order and independently reclassified
+all 124 prior `dpkg -V` lines. Each line is a missing package-manifest path,
+the path is absent on disk, and the final matching active rule is an exclude;
+no later include reintroduces it. The exclude-aware preflight/review roots are
+`2d0749c18c5fd12ec44e774330d8d46e0e4dfe1f59f34b84f77cc47a04f23354`
+and `068baab4cc18cb979a7ddfec634637f60fe348a34218c03b7294b951783ef754`.
+
+Two execution attempts then failed closed in provenance validation before the
+UID helper command. The first incorrectly applied ELF-only `readelf` checks to
+the package's POSIX shell helper. The second canonicalized `/lib` paths into
+`/usr/lib` paths before querying dpkg on this usrmerge image. Both controllers
+restored `unknown ok not-installed`, an absent executable, and zero dpkg-info
+residue with the independently checked rollback root
+`531c26848d2a10a25bb9fd22a9d6251e9b71f2440dc18ed4bf572af6595738e9`.
+Read-only correction preflights and reviews then proved the exact package
+payload is a `#!/bin/sh` script and registered existing, realpath- and
+SHA-equal `/bin` and `/lib` ownership aliases. Their roots are
+`bc4c24627ba6924a95c94d9c370c1f61bf58d42a61a14497ad9de6c6e49a9b6d`,
+`783431271dfe6e07a4b33df3fc81fa0c18c2065733147e8c57cf10fbcd16da72`,
+`fa53ca7c7f333870de078eb67c3c8796e159c0785c5e221e9d3a1cf7448cc53d`,
+and `2987833a28490df928038c73a89ea9f3507b81d56c1fa003a3c6362aa513aadd`.
+
+The corrected execution installed only signed `xdg-user-dirs 0.17-2ubuntu4`.
+It required all 124 nonempty verification lines to satisfy the registered
+exclude predicate, matched `dpkg-query -L` exactly to the frozen package
+manifest, and verified every included file's type, owner, mode, and payload
+hash. It also verified the helper SHA, package ownership, exact shebang and
+shell syntax, plus interpreter/library ownership through proved usrmerge
+aliases. Under UID/GID 65534 and the frozen cwd, HOME, XDG, PATH, and
+LD_LIBRARY_PATH values, `command -v` resolved `/usr/bin/xdg-user-dir` and
+`xdg-user-dir DOCUMENTS` exited zero with stdout `CarlaUE4/Saved/home` and
+empty stderr. The runtime Saved path remained absent.
+
+Execution and independent replay passed with roots
+`9a2fe23a3626ad2ebfeb42f37ec3826f37528cda1ecd645ed34271a914847ac1`
+and `23c45897ecedfdae5b3576c5b64e1719367837e2e6949b6b8498a279f55ff2ba`.
+The preregistered success contract therefore retains exactly that package;
+the dependency gap is closed. No CARLA, UE, DP worker, pipeline, candidate,
+receipt, metric, outcome, or holdout operation ran. The prior CARLA exit-1
+cause remains unknown. Performance remains no-claim, bounded offline proxy
+improvement remains supported, closed-loop safety remains unsupported, and
+broad CAMP-over-DP-operational-Top-1 remains unsupported. A new explicit user
+decision is required before any additional CARLA runtime attempt.
+
+current_v19_status=v19_xdg_user_dirs_exclude_aware_integrity_exact_uid_no_carla_validation_independent_review_passed
+current_v19_artifact_scope=xdg_user_dirs_exclude_aware_integrity_exact_uid_no_carla_validation_package_temporarily_retained
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_exclude_aware_install_execution_248baa8d_20260713T174326CST_independent_review
+current_v19_artifact_root_sha256=23c45897ecedfdae5b3576c5b64e1719367837e2e6949b6b8498a279f55ff2ba
+next_work_target=user_decision_required_before_any_additional_carla_runtime_attempt_after_v19_xdg_user_dirs_exact_environment_validation
 
 ## Current V18 Status
 
