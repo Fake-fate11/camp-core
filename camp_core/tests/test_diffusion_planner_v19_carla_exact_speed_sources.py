@@ -12,6 +12,7 @@ from camp_core.integrations.carla_exact_speed_source import (
     RouteLiftingContext,
     canonical_json_sha256,
     lift_k8_route_receipt,
+    route_identity_directions,
 )
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import array_sha256
 from scripts.integrations.audit_diffusion_planner_dp_camp_v19_carla_exact_speed_sources import (
@@ -121,6 +122,7 @@ def _lifting_context() -> RouteLiftingContext:
     return RouteLiftingContext(
         samples=samples,
         edges=(),
+        identity_directions=route_identity_directions(samples, 1e-6),
         route_sample_step_m=1.0,
         tolerances=LiftingTolerances(1e-6, 1e-6, 1e-6, 1e-6),
         map_sha256="a" * 64,

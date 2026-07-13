@@ -20,6 +20,7 @@ from camp_core.integrations.carla_exact_speed_source import (
     lift_k8_route_receipt,
     lift_candidate_to_route_surface,
     project_world_point_to_segment,
+    route_identity_directions,
     resolve_landmark_segment_speed,
     parse_opendrive_speed_index,
     resolve_segment_speed,
@@ -291,21 +292,30 @@ def _surface_samples(
     )
 
 
+def _decreasing_surface_samples() -> tuple[LaneSurfaceSample, ...]:
+    return tuple(
+        LaneSurfaceSample(
+            "1", 0, 1, 80.0 - float(index), 10.0 + index, 20.0,
+            3.5, 4.0, False,
+        )
+        for index in range(81)
+    )
+
+
 def _route_context(
     samples: tuple[LaneSurfaceSample, ...],
     *,
     edges=(),
 ) -> RouteLiftingContext:
+    tolerances = LiftingTolerances(1e-6, 1e-6, 1e-6, 1e-6)
     return RouteLiftingContext(
         samples=samples,
         edges=tuple(edges),
-        route_sample_step_m=1.0,
-        tolerances=LiftingTolerances(
-            geometry_epsilon_m=1e-6,
-            station_epsilon_m=1e-6,
-            z_epsilon_m=1e-6,
-            continuity_epsilon_m=1e-6,
+        identity_directions=route_identity_directions(
+            samples, tolerances.continuity_epsilon_m
         ),
+        route_sample_step_m=1.0,
+        tolerances=tolerances,
         map_sha256="a" * 64,
         source_sha256="b" * 64,
         route_graph_sha256="c" * 64,
@@ -352,6 +362,43 @@ def test_route_lift_uses_unique_surface_and_official_xodr_z() -> None:
     assert result.points[-1].point_index == 79
     assert len(result.trajectory_lifting_sha256) == 64
     assert tuple(candidate) == before
+
+
+def test_route_lift_accepts_decreasing_station_in_travel_order() -> None:
+    context = _route_context(_decreasing_surface_samples())
+
+    result = _lift(context=context)
+
+    assert context.identity_directions == ((("1", 0, 1), -1),)
+    assert result.eligible is True
+    assert result.points[0].s == 80.0
+    assert result.points[-1].s == 1.0
+
+
+def test_route_lift_rejects_backtrack_on_decreasing_station_lane() -> None:
+    candidate = tuple(
+        (float(index if index < 40 else 79 - index), 0.0, 1.0, 0.0)
+        for index in range(80)
+    )
+
+    result = _lift(
+        candidate,
+        context=_route_context(_decreasing_surface_samples()),
+    )
+
+    assert result.eligible is False
+    assert result.reason == "route_topology_discontinuous"
+
+
+def test_route_identity_may_not_reappear_after_departure() -> None:
+    samples = (
+        _surface_samples(road_id="1", stop=2)
+        + _surface_samples(road_id="2", lane_id=2, start=3, stop=5)
+        + _surface_samples(road_id="1", start=6, stop=8)
+    )
+
+    with pytest.raises(ValueError, match="contiguous block"):
+        _route_context(samples)
 
 
 @pytest.mark.parametrize(

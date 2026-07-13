@@ -105,11 +105,47 @@ class LiftingTolerances:
 class RouteLiftingContext:
     samples: Tuple[LaneSurfaceSample, ...]
     edges: Tuple[Tuple[RouteIdentity, RouteIdentity], ...]
+    identity_directions: Tuple[Tuple[RouteIdentity, int], ...]
     route_sample_step_m: float
     tolerances: LiftingTolerances
     map_sha256: str
     source_sha256: str
     route_graph_sha256: str
+
+
+def route_identity_directions(
+    samples: Sequence[LaneSurfaceSample],
+    continuity_epsilon_m: float,
+) -> Tuple[Tuple[RouteIdentity, int], ...]:
+    if not math.isfinite(continuity_epsilon_m) or continuity_epsilon_m < 0.0:
+        raise ValueError("continuity epsilon must be finite and nonnegative")
+    groups: list[tuple[RouteIdentity, list[LaneSurfaceSample]]] = []
+    seen: set[RouteIdentity] = set()
+    for sample in samples:
+        if not groups or sample.identity != groups[-1][0]:
+            if sample.identity in seen:
+                raise ValueError("route identity must occupy one contiguous block")
+            seen.add(sample.identity)
+            groups.append((sample.identity, []))
+        groups[-1][1].append(sample)
+    directions = []
+    for identity, group in groups:
+        deltas = [right.s - left.s for left, right in zip(group, group[1:])]
+        signs = {
+            1 if delta > 0.0 else -1
+            for delta in deltas
+            if abs(delta) > continuity_epsilon_m
+        }
+        if len(signs) != 1:
+            raise ValueError("route identity needs one nonzero station direction")
+        direction = signs.pop()
+        if any(
+            direction * delta < -continuity_epsilon_m
+            for delta in deltas
+        ):
+            raise ValueError("route identity station order is inconsistent")
+        directions.append((identity, direction))
+    return tuple(directions)
 
 
 @dataclass(frozen=True)
@@ -470,6 +506,11 @@ def _validate_lifting_context(context: RouteLiftingContext) -> None:
         for source, target in context.edges
     ):
         raise ValueError("route edge identity is outside the frozen context")
+    expected_directions = route_identity_directions(
+        context.samples, context.tolerances.continuity_epsilon_m
+    )
+    if context.identity_directions != expected_directions:
+        raise ValueError("route identity direction metadata mismatch")
 
 
 def _inverse_transform_xy(
@@ -519,14 +560,11 @@ def _inverse_transform_xy(
 def _surface_chords(
     context: RouteLiftingContext,
 ) -> Tuple[Tuple[LaneSurfaceSample, LaneSurfaceSample], ...]:
-    grouped: Dict[RouteIdentity, list[LaneSurfaceSample]] = {}
-    for sample in context.samples:
-        grouped.setdefault(sample.identity, []).append(sample)
-    chords = []
-    for samples in grouped.values():
-        ordered = sorted(samples, key=lambda sample: sample.s)
-        chords.extend(zip(ordered, ordered[1:]))
-    return tuple(chords)
+    return tuple(
+        (left, right)
+        for left, right in zip(context.samples, context.samples[1:])
+        if left.identity == right.identity
+    )
 
 
 def _unique_route_surface_match(
@@ -705,7 +743,12 @@ def _continuous(
     assert previous.identity is not None and current.identity is not None
     assert previous.s is not None and current.s is not None
     if previous.identity == current.identity:
-        return current.s + context.tolerances.continuity_epsilon_m >= previous.s
+        direction = dict(context.identity_directions)[current.identity]
+        return (
+            direction * (current.s - previous.s)
+            + context.tolerances.continuity_epsilon_m
+            >= 0.0
+        )
     return (
         current.identity not in departed
         and (previous.identity, current.identity) in set(context.edges)

@@ -253,6 +253,7 @@ def test_route_lifting_context_is_deterministic_and_route_only() -> None:
         ("2", 0, -1),
     )
     assert first.edges == ((("1", 0, -1), ("2", 0, -1)),)
+    assert first.identity_directions == ((('1', 0, -1), 1), (('2', 0, -1), 1))
     assert len(first.source_sha256) == len(first.route_graph_sha256) == 64
 
 

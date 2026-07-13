@@ -13,6 +13,7 @@ from camp_core.integrations.carla_exact_speed_source import (
     RouteLiftingContext,
     _validate_lifting_context,
     canonical_json_sha256,
+    route_identity_directions,
 )
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CausalDPMaterialization,
@@ -226,9 +227,14 @@ def build_route_lifting_context(
             raise ValueError("route edge must contain source and target identities")
         edges.append((identity(raw[0]), identity(raw[1])))
 
+    directions = route_identity_directions(
+        samples, tolerances.continuity_epsilon_m
+    )
     route_graph_sha256 = canonical_json_sha256(
         {
-            "identities": sorted({sample.identity for sample in samples}),
+            "identity_directions": [
+                [list(identity), direction] for identity, direction in directions
+            ],
             "directed_edges": edges,
         }
     )
@@ -245,6 +251,7 @@ def build_route_lifting_context(
     context = RouteLiftingContext(
         samples=tuple(samples),
         edges=tuple(edges),
+        identity_directions=directions,
         route_sample_step_m=float(route_sample_step_m),
         tolerances=tolerances,
         map_sha256=map_sha256,

@@ -449,6 +449,10 @@ def _context(raw: Mapping[str, Any]) -> RouteLiftingContext:
     return RouteLiftingContext(
         samples=tuple(LaneSurfaceSample(**item) for item in raw["samples"]),
         edges=tuple((tuple(source), tuple(target)) for source, target in raw["edges"]),
+        identity_directions=tuple(
+            (tuple(identity), int(direction))
+            for identity, direction in raw["identity_directions"]
+        ),
         route_sample_step_m=float(raw["route_sample_step_m"]),
         tolerances=tolerances,
         map_sha256=str(raw["map_sha256"]),
