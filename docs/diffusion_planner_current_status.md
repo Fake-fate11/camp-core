@@ -590,11 +590,25 @@ list `/root`. The final drill/review roots are
 `2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a`.
 No CARLA runtime, worker, candidate, metric, outcome, or holdout ran.
 
-current_v19_status=v19_carla_nonroot_execute_only_acl_restore_drill_independent_review_passed
-current_v19_artifact_scope=carla_nonroot_execute_only_acl_tooling_contract_restore_drill_independent_review_no_runtime
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_restore_drill_independent_review_633fc40e_20260713T151413CST
-current_v19_artifact_root_sha256=2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a
-next_work_target=v19_carla_nonroot_execute_only_acl_runtime_attempt_preflight_only
+The exact source-only runtime-attempt plan now has a cache-safe preflight and
+independent review. An earlier valid preflight was superseded after its review
+replay changed only two generated `__pycache__` files inside the sealed
+artifact; its frozen runner, ACL wrapper, plan, and test hashes remained
+unchanged. The replacement runs Python replays with bytecode disabled and
+writes compilation outputs only into the active evidence artifact. Its
+preflight/review roots are
+`a85bb086654074ebfcc9af092a1e2081d7327ae9f047adca65a0f2811a90b358` and
+`eeafefda6607faaae001a0f0b665c35237596cbbaac7da8f3f31ec958bf538c6`.
+Review proved the source manifest byte-identical before and after replay,
+fixed heads and assets, absent execution roots, no related process/listener,
+`/root` restored at mode 700 without ACL, and `50,568,769,536` free bytes.
+No ACL mutation or CARLA runtime occurred in this gate.
+
+current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_retry2_independent_review_dd5d8122_20260713T153946CST
+current_v19_artifact_root_sha256=eeafefda6607faaae001a0f0b665c35237596cbbaac7da8f3f31ec958bf538c6
+next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_only
 
 ## Current V18 Status
 

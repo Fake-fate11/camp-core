@@ -2592,3 +2592,53 @@ current_v19_artifact_scope=carla_nonroot_execute_only_acl_tooling_contract_resto
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_restore_drill_independent_review_633fc40e_20260713T151413CST
 current_v19_artifact_root_sha256=2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a
 next_work_target=v19_carla_nonroot_execute_only_acl_runtime_attempt_preflight_only
+
+## CARLA Non-Root ACL Source-Only K8 Runtime Attempt Preflight
+
+The frozen attempt plan uses the reviewed single
+`setfacl -m u:65534:--x /root` mutation, EXIT/HUP/INT/TERM restoration, and
+read/write/list denials. Inside that transaction it starts the unchanged CARLA
+binary as UID/GID 65534 with only the reviewed relative CARLA-dependency and
+PhysX library paths, waits at most 60 seconds for Town01 RPC readiness, and
+then runs the fixed capture, materialize, CAMP `source_probe`, DP
+`default_provenance`, and receipt sequence. Fixed DP remains
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`; the worker and harness hashes,
+checkpoint, fixed args, selector artifacts, K=8 candidate contract, source
+head, seed, and source-only zero-access counters remain frozen. The execution
+stage and final roots are single-use and absent.
+
+The first TDD wrapper failed before producing a runner because its test omitted
+the module loader call; its retained root is
+`6b6a40453b2c39e02f480bb12dd13aca803b81a0861ea030f6c175cb79fe6f38`.
+The corrected preflight passed with root
+`bcad314d3268e69b83bdbb5cc26fe6a07b2f02040c5e266a368211adc48bb038`.
+Several fail-closed review-development artifacts were retained while replacing
+fragile stderr, handwritten hash, and unavailable `ss` assumptions. A review
+replay then changed only the corrected preflight's two generated
+`__pycache__` files; every frozen source, wrapper, plan, and test hash still
+matched. Because the sealed artifact was no longer wholly immutable, it was
+superseded and not used to authorize execution. None of those review attempts
+changed ACLs or started CARLA.
+
+The cache-safe replacement re-observed the expected missing-runner RED and
+passing GREEN with bytecode writes disabled, compiled only to files inside its
+own artifact, revalidated the shell and Python plans, rehashed all assets and
+scripts, and recorded the two-cache-only supersession evidence. Its artifact/
+root is
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_retry2_dd5d8122_20260713T153850CST`
+and `a85bb086654074ebfcc9af092a1e2081d7327ae9f047adca65a0f2811a90b358`.
+Independent review replayed tests with `-B`, directed compilation output only
+to the review artifact, and rehashed the source manifest both before and after
+review. It passed with a byte-identical manifest at
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_retry2_independent_review_dd5d8122_20260713T153946CST`
+and root `eeafefda6607faaae001a0f0b665c35237596cbbaac7da8f3f31ec958bf538c6`.
+The final state has no related process/listener, no runtime Saved or execution
+root, `/root` mode 700 without UID 65534 traversal, and `50,568,769,536` free
+bytes. No ACL mutation, server, worker, candidate, metric, outcome, holdout,
+promotion, deployment, activation, or claim ran.
+
+current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_retry2_independent_review_dd5d8122_20260713T153946CST
+current_v19_artifact_root_sha256=eeafefda6607faaae001a0f0b665c35237596cbbaac7da8f3f31ec958bf538c6
+next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_only
