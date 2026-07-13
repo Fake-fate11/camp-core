@@ -2680,3 +2680,58 @@ current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attemp
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_30feaec8_20260713T154919CST
 current_v19_artifact_root_sha256=33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225
 next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_only
+
+## CARLA Non-Root ACL Runtime Attempt Pre-Readiness Failure Review
+
+The immediate launch guard rehashed the cache-safe preflight, readiness, and
+readiness-review artifacts after the documentation checkpoint. It bound
+GitHub, local, origin, and AutoDL to
+`12212340d696a1c660d92a72e2aa95e93f044ca3`, fixed clean DP to
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the exact wrapper/runner/plan
+argv, frozen scripts and assets, absent execution roots, no peer process or
+listener, the disk floor, and `/root` mode 700 with no ACL. Its artifact/root
+is
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_launch_guard_12212340_20260713T155208CST`
+and `78b9b8daaea5830a0c4db65aba696ca12d4bb1ca0095c73911932a4790b34c07`.
+
+The sole newly authorized option-A attempt then ran the exact argv once. The
+wrapper saved the original numeric ACL, stat, and ACL xattrs, granted only
+`u:65534:--x` on `/root`, proved UID 65534 still could not read, write, or list
+that directory, and started the unchanged CARLA binary as UID/GID 65534. CARLA
+printed the UE 4.26.2 banner and exited `1` after 0.60 seconds, before port
+readiness. The only server stderr was `sh: 1: xdg-user-dir: not found`. Local
+inspection confirms that helper is absent, but no UE log, trace, or other
+evidence establishes it as the cause; no causal remediation claim is made.
+
+The runner therefore invoked zero capture, materialization, CAMP worker, DP
+worker, or receipt commands. It generated no candidate tensor or receipt and
+performed zero metric, outcome, or holdout reads. DP operational Top-1 was not
+evaluated, CAMP made no selection, and there is no paired support. The retained
+failed staging artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_execution_dd5d8122_20260713T152639CST.tmp`
+and `a43483c9bc4d2efadff7e40b538631c6842e56bd9db7f720dd22a46188923271`.
+
+The EXIT trap restored successfully with body rc 1, restore rc 0, and zero ACL,
+stat, and xattr comparison return codes. All three original/restored records
+are byte-equal; `/root` is again mode 700 with no UID 65534 traversal. The two
+empty Saved subdirectories were retained inside the failed artifact, while the
+runtime Saved path, CARLA process, workers, and port 2000 listener are absent.
+Independent review rehashed the execution artifact before and after review,
+reproduced every restore and zero-call assertion, and passed at
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_execution_failure_independent_review_12212340_20260713T155450CST`
+with root `bd64b788ac7aa231823742317996685ca1bd78283374c2dba2fd21a98cd9ff6d`.
+Free space is `50,566,725,632` bytes.
+
+This was the fourth total CARLA start and the only new attempt explicitly
+authorized under option A; no further retry or dependency mutation is
+authorized. Performance remains no-claim, bounded offline proxy improvement
+remains supported, closed-loop safety remains unsupported, and broad
+CAMP-over-DP-operational-Top-1 remains unsupported. Promotion, deployment, and
+activation remain prohibited. Continuing requires a new explicit user
+decision before any dependency remediation or additional runtime attempt.
+
+current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_execution_pre_readiness_failure_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_execution_pre_readiness_failure_independent_review_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_execution_failure_independent_review_12212340_20260713T155450CST
+current_v19_artifact_root_sha256=bd64b788ac7aa231823742317996685ca1bd78283374c2dba2fd21a98cd9ff6d
+next_work_target=user_decision_required_after_v19_carla_acl_runtime_attempt_pre_readiness_failure_before_any_dependency_remediation_or_additional_runtime_attempt

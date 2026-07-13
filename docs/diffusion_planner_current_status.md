@@ -615,11 +615,24 @@ scripts/assets/binary, trusted ACL package, `/root` mode 700 with no ACL, and
 `33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225`.
 No ACL mutation or runtime occurred in the recheck.
 
-current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_passed
-current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_no_execution
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_30feaec8_20260713T154919CST
-current_v19_artifact_root_sha256=33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225
-next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_only
+The sole newly authorized option-A runtime attempt then granted only the
+reviewed execute-only ACL and started the unchanged CARLA binary as UID/GID
+65534. CARLA printed its UE 4.26.2 banner and exited `1` after 0.60 seconds,
+before RPC readiness. Its only stderr was `xdg-user-dir: not found`; the helper
+is absent, but the available evidence does not establish that observation as
+the cause. No capture, materialization, worker, candidate, receipt, metric,
+outcome, or holdout operation ran. The failed execution/review roots are
+`a43483c9bc4d2efadff7e40b538631c6842e56bd9db7f720dd22a46188923271` and
+`bd64b788ac7aa231823742317996685ca1bd78283374c2dba2fd21a98cd9ff6d`.
+The trap restored ACL, stat, and xattrs byte-for-byte, no process/listener or
+runtime Saved path remains, and free space is `50,566,725,632` bytes. No retry
+is authorized, and the claim taxonomy is unchanged.
+
+current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_execution_pre_readiness_failure_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_execution_pre_readiness_failure_independent_review_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_execution_failure_independent_review_12212340_20260713T155450CST
+current_v19_artifact_root_sha256=bd64b788ac7aa231823742317996685ca1bd78283374c2dba2fd21a98cd9ff6d
+next_work_target=user_decision_required_after_v19_carla_acl_runtime_attempt_pre_readiness_failure_before_any_dependency_remediation_or_additional_runtime_attempt
 
 ## Current V18 Status
 
