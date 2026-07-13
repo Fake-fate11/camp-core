@@ -641,11 +641,38 @@ plan: nothing was downloaded, installed, changed, or started. The diagnosis/
 review roots are `74cd122e24322d62fdb588c378d642443b888743a9e582c9371e00c0f7f5821b`
 and `70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6`.
 
-current_v19_status=v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_passed
-current_v19_artifact_scope=carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_no_runtime_no_mutation
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_0fcad738_20260713T161806CST
-current_v19_artifact_root_sha256=70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6
-next_work_target=user_decision_required_before_v19_signed_xdg_user_dirs_dependency_gap_remediation_or_any_additional_carla_runtime_attempt
+The authorized signed-package preflight then verified the Ubuntu InRelease
+signature, trusted jammy/main index hash and size, exact
+`xdg-user-dirs 0.17-2ubuntu4` package SHA, one-package simulation, installed
+`libc6 >= 2.34` dependency, and rollback contract. The exact local `dpkg`
+dry-run and both preflight reviews passed. A first exact-local apt simulation
+failed before mutation because `--no-download` also disables local archive
+acquisition; two correction-artifact tooling attempts also failed before
+mutation and were retained. The corrected `dpkg --install` contract was used.
+
+The exact package installed successfully and was the only package-universe
+change. Validation then failed closed before the UID 65534 command: `dpkg -V`
+returned zero but printed 124 missing locale/man paths. All 124 match existing
+image-level dpkg `path-exclude` rules, but the preregistered contract required
+empty stdout. The controller immediately purged only `xdg-user-dirs` and the
+rollback proved `unknown ok not-installed`, absent command, zero package-path
+or HOME/XDG baseline differences, no runtime Saved path, and no related
+process. Thus no package is retained and the dependency gap remains open.
+
+The rollback root is
+`531c26848d2a10a25bb9fd22a9d6251e9b71f2440dc18ed4bf572af6595738e9`.
+The failure/rollback review and independent-review roots are
+`6513cabc011e038b6d407db09ca2e3ad5210146db98b3de33902efad91e4a66f`
+and `d3d19b3646da934c43a7267e5cf1c66b9b3b0dbe20afce6a82a8a78e16919631`.
+No CARLA, UE, exact-UID helper validation, DP worker, pipeline, candidate,
+receipt, metric, outcome, or holdout operation ran. The prior exit-1 cause
+remains unknown and the claim taxonomy is unchanged.
+
+current_v19_status=v19_xdg_user_dirs_signed_dpkg_install_validation_failed_path_exclude_rollback_restored_independent_review_passed
+current_v19_artifact_scope=xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_independent_review_no_package_retained_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_review_0d5deec8_20260713T170333CST_independent_review
+current_v19_artifact_root_sha256=d3d19b3646da934c43a7267e5cf1c66b9b3b0dbe20afce6a82a8a78e16919631
+next_work_target=user_decision_required_after_v19_xdg_user_dirs_install_validation_failure_and_verified_rollback_before_any_retry_or_carla_runtime_attempt
 
 ## Current V18 Status
 

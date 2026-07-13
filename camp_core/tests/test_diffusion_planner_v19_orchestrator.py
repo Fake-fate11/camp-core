@@ -72,10 +72,11 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_"
-        "review_passed"
+        "v19_xdg_user_dirs_signed_dpkg_install_validation_failed_path_exclude_"
+        "rollback_restored_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "user_decision_required_before_v19_signed_xdg_user_dirs_dependency_"
-        "gap_remediation_or_any_additional_carla_runtime_attempt"
+        "user_decision_required_after_v19_xdg_user_dirs_install_validation_"
+        "failure_and_verified_rollback_before_any_retry_or_carla_runtime_"
+        "attempt"
     )

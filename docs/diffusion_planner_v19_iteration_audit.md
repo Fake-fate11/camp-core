@@ -2811,3 +2811,67 @@ current_v19_artifact_scope=carla_xdg_user_dir_read_only_causality_diagnosis_inde
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_user_dir_read_only_causality_diagnosis_independent_review_0fcad738_20260713T161806CST
 current_v19_artifact_root_sha256=70829ca25e9ec7ad0b322ee3defce30fe091d8915851b7b940d292fb91064ba6
 next_work_target=user_decision_required_before_v19_signed_xdg_user_dirs_dependency_gap_remediation_or_any_additional_carla_runtime_attempt
+
+## Signed `xdg-user-dirs` Install Failure and Verified Rollback
+
+The user authorized only the signed `xdg-user-dirs 0.17-2ubuntu4` package and
+an exact UID/environment validation without CARLA. Local, GitHub, origin, and
+AutoDL began at `0d5deec8a55a7aeb29b67a3b53777dc82c4bf285`; fixed DP
+remained tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+No related process, port-2000 listener, or runtime Saved path existed.
+
+The install preflight verified the configured Huawei Cloud mirror's Ubuntu
+jammy InRelease with `/usr/share/keyrings/ubuntu-archive-keyring.gpg`, matched
+the signed uncompressed main/amd64 Packages hash and size, and matched the
+downloaded package to signed SHA256
+`06c1cb52d3b249aa4b74da0b9fe17c6bfe9b66c3df47e7f7252af14d2a770ce6`.
+Simulation selected only `xdg-user-dirs`; its sole direct dependency
+`libc6 (>= 2.34)` was already installed. The package-owned path baseline,
+HOME/XDG baseline, no-autoremove rollback, and success-state keep contract
+were recorded. The preflight/review roots are
+`e933cea76ceb7903dad9c74caae4fd8b5d5de2f760688b0107624d500f2bf633`
+and `ed8b51ca709718df1889b9cb72fd9f319111bac1ff2e59438edc86c693914beb`.
+
+An exact-local apt simulation with `--no-download` failed rc 100 before any
+mutation because that option also forbids acquiring the local archive. The
+replacement `dpkg --install` command was dry-run because it cannot download or
+auto-install dependencies. Two correction evidence attempts failed before
+mutation due evidence-driver initialization and literal-newline manifest bugs;
+both were retained. The corrected command preflight and independent review
+then passed with roots
+`4e045717a55378ee98eddf010310b8fdea7d363354daf695ea1f974cfb546bd2`
+and `dcc714db42321913edf84eeffaa7f8f1b29783ee0eb6bbcf87173efe2aee5c77`.
+
+The exact signed package installed with rc 0 and was the sole installed-package
+change. The next integrity check, `dpkg -V xdg-user-dirs`, returned rc 0 but
+printed 124 missing locale/man files. Independent classification proved every
+one matches the image's existing `/usr/share/locale/*` or
+`/usr/share/man/*` dpkg `path-exclude` policy. Nevertheless the preregistered
+validation required empty stdout, so the controller failed closed before
+running `xdg-user-dir DOCUMENTS` as UID/GID 65534.
+
+The controller immediately invoked the preflight rollback. It purged only the
+target package without autoremove or cache cleanup and proved the original
+`unknown ok not-installed` state, absent executable, zero package-owned-path
+differences, and byte/normalized-equal HOME/XDG baselines. The rollback root is
+`531c26848d2a10a25bb9fd22a9d6251e9b71f2440dc18ed4bf572af6595738e9`.
+The failure/rollback review passed at
+`/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_review_0d5deec8_20260713T170333CST`
+with root `6513cabc011e038b6d407db09ca2e3ad5210146db98b3de33902efad91e4a66f`.
+Its independent review passed at
+`/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_review_0d5deec8_20260713T170333CST_independent_review`
+with root `d3d19b3646da934c43a7267e5cf1c66b9b3b0dbe20afce6a82a8a78e16919631`.
+
+No package is retained, so the dependency gap remains open. No CARLA, UE,
+exact-UID helper validation, DP worker, pipeline, candidate, receipt, metric,
+outcome, or holdout operation ran. The missing helper remains unproven as the
+prior CARLA exit-1 cause. Performance remains no-claim, bounded offline proxy
+improvement remains supported, closed-loop safety remains unsupported, and
+broad CAMP-over-DP-operational-Top-1 remains unsupported. A new explicit user
+decision is required before any install retry or CARLA runtime attempt.
+
+current_v19_status=v19_xdg_user_dirs_signed_dpkg_install_validation_failed_path_exclude_rollback_restored_independent_review_passed
+current_v19_artifact_scope=xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_independent_review_no_package_retained_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_signed_dpkg_install_validation_failure_rollback_review_0d5deec8_20260713T170333CST_independent_review
+current_v19_artifact_root_sha256=d3d19b3646da934c43a7267e5cf1c66b9b3b0dbe20afce6a82a8a78e16919631
+next_work_target=user_decision_required_after_v19_xdg_user_dirs_install_validation_failure_and_verified_rollback_before_any_retry_or_carla_runtime_attempt
