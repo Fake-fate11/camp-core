@@ -26,6 +26,8 @@ retain `native_ranked_top1=false`; this wording does not claim native K-ranking.
 - Closed-loop outcomes, labels, SafetyCost, trajectory metrics, latency
   results, old holdout data, Full36, and formal seeds `11/12/13` are forbidden
   during lifting, census, tolerance freeze, and scenario selection.
+- Every materialization, census, and execution gate preserves the existing
+  10 GiB free-space floor and single staging/final rule.
 - Scheme 2 flat-only filtering is not enabled. Scheme 3 DP modification is
   permanently forbidden.
 
