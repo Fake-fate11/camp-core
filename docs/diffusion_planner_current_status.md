@@ -884,6 +884,38 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_full_stdout
 current_v19_artifact_root_sha256=742d9f7d69e3dae9b317395d6b1d8333df212335a82e5b2f69774a485a88383d
 next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_execution_only_continuous_authorization
 
+### Absolute-XDG Failure and Missing Vulkan Loader Diagnosis
+
+At synchronized CAMP/GitHub/AutoDL
+`e54414a8d5119c810a0ab9ccf422ce5f8db6cf86`, absolute-XDG hypothesis attempt
+1 ran under the reviewed ACL/full-log controller. CARLA again printed only the
+UE banner/core-dump lines and exited 1 after 0.60 seconds before readiness;
+no log or pipeline output was created. ACL restoration and external capture
+passed, with guard/capture/execution/review roots
+`2dc93de08a3fe5bed4e5cdc4dcc22bbc07589d95c160ca9ca43144a0f3c4b152`,
+`76e938c73f805ba4d5c2301aafe5522c5fd938e848086891ae78cfca2cf25cef`,
+`4ffd2ac913cc7e36ad2e8821ca024748d32731103cf4eaed6ec7434fb1ef607c`,
+and `051b71ea9cfba19717e874badd1871ac680bac2a0b7a34d4ef37a472a50cbdb1`.
+Changing only XDG was therefore not sufficient; no candidate, outcome, metric,
+or holdout activity occurred.
+
+A no-CARLA diagnosis then established a distinct runtime dependency gap. The
+shipping binary contains direct strings for `libvulkan.so.1`, `VulkanRHI`, and
+`vkCreateInstance`; NVIDIA's ICD and driver library exist, but no Vulkan loader
+exists in `ldconfig`, the bounded runtime/system paths, or dpkg state.
+`ctypes.CDLL("libvulkan.so.1")` fails with `No such file or directory`.
+Ubuntu offers exact candidate `libvulkan1 1.3.204.1-2`; simulation adds only
+that package with zero upgrades/removals. This proves a dependency gap but not
+yet sole exit-1 causality. Diagnosis/review roots are
+`d522d77083cec6e7edc6adf31389d2e345fe171a067a6af89e02fd168a6009c7`
+and `e1454d797d0ffece63e875f12209c529d98e2174eede9602bdc12653a21df21c`.
+
+current_v19_status=v19_carla_absolute_xdg_execution_failure_missing_vulkan_loader_diagnosis_independent_review_passed
+current_v19_artifact_scope=carla_absolute_xdg_execution_failure_missing_vulkan_loader_read_only_diagnosis_no_package_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_missing_vulkan_loader_read_only_diagnosis_e54414a8_20260713T194347CST_independent_review
+current_v19_artifact_root_sha256=e1454d797d0ffece63e875f12209c529d98e2174eede9602bdc12653a21df21c
+next_work_target=v19_signed_libvulkan1_exact_package_preflight_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

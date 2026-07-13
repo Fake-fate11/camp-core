@@ -3321,3 +3321,59 @@ current_v19_artifact_scope=carla_absolute_xdg_full_stdout_log_runtime_attempt_pr
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_8010cdd7_20260713T193613CST_independent_review
 current_v19_artifact_root_sha256=742d9f7d69e3dae9b317395d6b1d8333df212335a82e5b2f69774a485a88383d
 next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_execution_only_continuous_authorization
+
+## Absolute-XDG Failure and Missing Vulkan Loader Diagnosis
+
+Absolute-XDG hypothesis attempt 1 was bound to synchronized CAMP/GitHub/AutoDL
+`e54414a8d5119c810a0ab9ccf422ce5f8db6cf86` and fixed clean DP. The controller
+reused the reviewed full-log/ACL implementation, substituting only the new
+preflight/diagnosis roots, HEAD, schema name, and exact unique execution path.
+The sealed controller source SHA is
+`6ae3781bc5e661e7334bf3d4941f9c65fbfb3ae41c425d1f2f245d4aba49790b`.
+
+The immediate guard rehashed the absolute-XDG preflight/review and diagnosis/
+review, checked GitHub, plan validation, package/binary/disk state, and absent
+peer/listener/Saved/execution state. Its root is
+`2dc93de08a3fe5bed4e5cdc4dcc22bbc07589d95c160ca9ca43144a0f3c4b152`.
+The separate complete wrapper capture has root
+`76e938c73f805ba4d5c2301aafe5522c5fd938e848086891ae78cfca2cf25cef`.
+
+CARLA started with absolute XDG, retained full-log flags, and unchanged
+scientific inputs, but again printed only the UE 4.26.2 banner and core-dump
+line before exit 1 at 0.60 seconds. It never reached RPC readiness, produced
+no diagnostic log, and invoked zero pipeline steps. No candidate or receipt
+was generated and outcome/metric/holdout counters remained zero. The ACL trap
+recorded body rc 1, restore rc 0, zero ACL/stat/xattr comparisons, byte-equal
+snapshots, and blocked post-restore traversal. Execution/review roots are
+`4ffd2ac913cc7e36ad2e8821ca024748d32731103cf4eaed6ec7434fb1ef607c`
+and `051b71ea9cfba19717e874badd1871ac680bac2a0b7a34d4ef37a472a50cbdb1`.
+Thus changing only XDG was not a sufficient remediation; the hypothesis has
+used one of at most three fail-closed attempts.
+
+A subsequent read-only graphics diagnosis rehashed all four artifacts and
+found a distinct dependency gap:
+
+- the unchanged shipping binary contains ASCII/UTF-16 references to
+  `libvulkan.so.1`, `VulkanRHI`, and `vkCreateInstance`;
+- NVIDIA's ICD JSON points to an existing `libGLX_nvidia.so.0` driver;
+- `ldconfig`, `/lib`, `/usr/lib`, and the CARLA runtime contain no
+  `libvulkan.so*` loader, and dpkg reports no installed `libvulkan1`;
+- root `ctypes.CDLL("libvulkan.so.1")` fails with exact error
+  `cannot open shared object file: No such file or directory`;
+- Ubuntu apt metadata offers `libvulkan1 1.3.204.1-2`, and a no-recommends
+  simulation proposes exactly one new package, zero upgrades/removals.
+
+Earlier `ldd` checks did not expose this gap because Vulkan is runtime-loaded
+rather than an ELF `NEEDED` dependency. The gap is independently established,
+but its sole responsibility for CARLA exit 1 remains unproven until a strictly
+signed, exact-version, rollback-safe remediation is validated. The diagnosis/
+review roots are
+`d522d77083cec6e7edc6adf31389d2e345fe171a067a6af89e02fd168a6009c7`
+and `e1454d797d0ffece63e875f12209c529d98e2174eede9602bdc12653a21df21c`.
+No package was installed and no claim boundary changed.
+
+current_v19_status=v19_carla_absolute_xdg_execution_failure_missing_vulkan_loader_diagnosis_independent_review_passed
+current_v19_artifact_scope=carla_absolute_xdg_execution_failure_missing_vulkan_loader_read_only_diagnosis_no_package_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_missing_vulkan_loader_read_only_diagnosis_e54414a8_20260713T194347CST_independent_review
+current_v19_artifact_root_sha256=e1454d797d0ffece63e875f12209c529d98e2174eede9602bdc12653a21df21c
+next_work_target=v19_signed_libvulkan1_exact_package_preflight_only_continuous_authorization

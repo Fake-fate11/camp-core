@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_"
-        "independent_review_passed"
+        "v19_carla_absolute_xdg_execution_failure_missing_vulkan_loader_"
+        "diagnosis_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_execution_"
-        "only_continuous_authorization"
+        "v19_signed_libvulkan1_exact_package_preflight_only_continuous_"
+        "authorization"
     )
