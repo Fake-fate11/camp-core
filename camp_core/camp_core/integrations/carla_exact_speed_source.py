@@ -94,6 +94,14 @@ class LaneSurfaceSample:
 
 
 @dataclass(frozen=True)
+class LaneSectionBounds:
+    road_id: str
+    section_id: int
+    start_s: float
+    end_s: float
+
+
+@dataclass(frozen=True)
 class LiftingTolerances:
     geometry_epsilon_m: float
     station_epsilon_m: float
@@ -201,6 +209,52 @@ def canonical_json_sha256(value: Any) -> str:
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def parse_opendrive_lane_section_bounds(
+    xml_text: str,
+) -> Tuple[LaneSectionBounds, ...]:
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise ValueError("invalid OpenDRIVE XML") from exc
+    result = []
+    seen_roads = set()
+    for road in root.findall("road"):
+        road_id = road.get("id")
+        try:
+            length = float(road.get("length", ""))
+        except ValueError as exc:
+            raise ValueError("OpenDRIVE road length is invalid") from exc
+        if (
+            not road_id
+            or road_id in seen_roads
+            or not math.isfinite(length)
+            or length <= 0.0
+        ):
+            raise ValueError("OpenDRIVE road metadata is invalid")
+        seen_roads.add(road_id)
+        starts = []
+        for section in road.findall("./lanes/laneSection"):
+            try:
+                starts.append(float(section.get("s", "")))
+            except ValueError as exc:
+                raise ValueError("OpenDRIVE lane-section start is invalid") from exc
+        if starts != sorted(starts) or any(
+            not math.isfinite(value) or value < 0.0 or value >= length
+            for value in starts
+        ) or any(right <= left for left, right in zip(starts, starts[1:])):
+            raise ValueError("OpenDRIVE lane-section bounds are invalid")
+        for section_id, start_s in enumerate(starts):
+            end_s = (
+                starts[section_id + 1]
+                if section_id + 1 < len(starts)
+                else length
+            )
+            result.append(LaneSectionBounds(road_id, section_id, start_s, end_s))
+    if not result:
+        raise ValueError("OpenDRIVE contains no lane-section bounds")
+    return tuple(result)
 
 
 def freeze_lifting_tolerances(

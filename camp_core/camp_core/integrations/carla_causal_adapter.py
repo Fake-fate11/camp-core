@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import math
 from dataclasses import asdict
 from types import SimpleNamespace
@@ -8,11 +9,13 @@ from typing import Any, Mapping, Optional, Sequence, Tuple
 import numpy as np
 
 from camp_core.integrations.carla_exact_speed_source import (
+    LaneSectionBounds,
     LaneSurfaceSample,
     LiftingTolerances,
     RouteLiftingContext,
     _validate_lifting_context,
     canonical_json_sha256,
+    parse_opendrive_lane_section_bounds,
     route_identity_directions,
 )
 from camp_core.integrations.diffusion_planner_causal_materializer import (
@@ -43,6 +46,229 @@ _ROUTE_SAMPLE_FIELDS = {
     "lane_width",
     "is_junction",
 }
+CARLA_ROUTE_CORRIDOR_SCHEMA = "dp_camp_v20_carla_route_corridor_v1"
+
+
+def _waypoint_identity(waypoint: Any) -> Tuple[str, int, int]:
+    try:
+        raw_road_id = waypoint.road_id
+        raw_section_id = waypoint.section_id
+        raw_lane_id = waypoint.lane_id
+    except AttributeError as exc:
+        raise ValueError("CARLA route waypoint metadata is invalid") from exc
+    if (
+        isinstance(raw_road_id, bool)
+        or not isinstance(raw_road_id, (int, str))
+        or not str(raw_road_id)
+        or isinstance(raw_section_id, bool)
+        or not isinstance(raw_section_id, int)
+        or raw_section_id < 0
+        or isinstance(raw_lane_id, bool)
+        or not isinstance(raw_lane_id, int)
+        or raw_lane_id == 0
+    ):
+        raise ValueError("CARLA route waypoint metadata is invalid")
+    return (str(raw_road_id), raw_section_id, raw_lane_id)
+
+
+def _lane_surface_sample_payload(waypoint: Any) -> dict[str, Any]:
+    identity = _waypoint_identity(waypoint)
+    try:
+        location = waypoint.transform.location
+        s = float(waypoint.s)
+        x = float(location.x)
+        y = float(location.y)
+        z = float(location.z)
+        lane_width = float(waypoint.lane_width)
+        is_junction = waypoint.is_junction
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("CARLA route waypoint metadata is invalid") from exc
+    if (
+        not all(math.isfinite(value) for value in (s, x, y, z, lane_width))
+        or s < 0.0
+        or lane_width <= 0.0
+        or not isinstance(is_junction, bool)
+    ):
+        raise ValueError("CARLA route waypoint metadata is invalid")
+    return {
+        "road_id": identity[0],
+        "section_id": identity[1],
+        "lane_id": identity[2],
+        "s": s,
+        "x": x,
+        "y": y,
+        "z": z,
+        "lane_width": lane_width,
+        "is_junction": is_junction,
+    }
+
+
+def _boundary_sample_payload(
+    map_api: Any,
+    identity: Tuple[str, int, int],
+    lookup_s: float,
+    station_allowance_m: float,
+    is_junction: bool,
+) -> dict[str, Any]:
+    try:
+        waypoint = map_api.get_waypoint_xodr(
+            int(identity[0]), identity[2], lookup_s
+        )
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("route corridor boundary lookup failed") from exc
+    if waypoint is None:
+        raise ValueError("route corridor boundary lookup failed")
+    payload = _lane_surface_sample_payload(waypoint)
+    if (
+        (payload["road_id"], payload["section_id"], payload["lane_id"])
+        != identity
+        or abs(payload["s"] - lookup_s) > station_allowance_m
+        or payload["is_junction"] is not is_junction
+    ):
+        raise ValueError("route corridor boundary identity verification failed")
+    return payload
+
+
+def build_pre_generation_route_corridor(
+    *,
+    route: Sequence[Any],
+    map_api: Any,
+    opendrive_xml: str,
+    route_sample_step_m: float,
+    station_allowance_m: float,
+    contact_tolerance_m: float,
+) -> dict[str, Any]:
+    if len(route) < 2:
+        raise ValueError("route corridor needs at least two future samples")
+    for name, value in (
+        ("route step", route_sample_step_m),
+        ("station allowance", station_allowance_m),
+    ):
+        if not math.isfinite(value) or value <= 0.0:
+            raise ValueError(f"{name} must be finite and positive")
+    if not math.isfinite(contact_tolerance_m) or contact_tolerance_m < 0.0:
+        raise ValueError("contact tolerance must be finite and nonnegative")
+    predecessors = list(route[0].previous(route_sample_step_m))
+    if len(predecessors) != 1:
+        raise ValueError("route corridor requires exactly one predecessor")
+    source_waypoints = [predecessors[0], *route]
+
+    source_samples = [_lane_surface_sample_payload(item) for item in source_waypoints]
+    directions = route_identity_directions(
+        [LaneSurfaceSample(**sample) for sample in source_samples],
+        station_allowance_m,
+    )
+    groups = []
+    for sample in source_samples:
+        identity = (sample["road_id"], sample["section_id"], sample["lane_id"])
+        if not groups or groups[-1][0] != identity:
+            groups.append((identity, []))
+        groups[-1][1].append(sample)
+
+    bounds_by_identity = {
+        (bounds.road_id, bounds.section_id): bounds
+        for bounds in parse_opendrive_lane_section_bounds(opendrive_xml)
+    }
+    corridor_samples = []
+    boundary_receipts = []
+    boundary_samples = []
+    for (identity, direction), (_, samples) in zip(directions, groups):
+        bounds: Optional[LaneSectionBounds] = bounds_by_identity.get(identity[:2])
+        if bounds is None or any(
+            sample["s"] < bounds.start_s or sample["s"] > bounds.end_s
+            for sample in samples
+        ):
+            raise ValueError("route corridor identity has invalid lane-section bounds")
+        junction_states = {sample["is_junction"] for sample in samples}
+        if len(junction_states) != 1:
+            raise ValueError("route corridor junction state is inconsistent")
+        is_junction = junction_states.pop()
+        exact_entry_s = bounds.start_s if direction == 1 else bounds.end_s
+        exact_exit_s = bounds.end_s if direction == 1 else bounds.start_s
+        lookup_entry_s = exact_entry_s + direction * station_allowance_m
+        lookup_exit_s = exact_exit_s - direction * station_allowance_m
+        if not (
+            bounds.start_s < lookup_entry_s < bounds.end_s
+            and bounds.start_s < lookup_exit_s < bounds.end_s
+        ):
+            raise ValueError("route corridor boundary lookup must stay inside section")
+        entry = _boundary_sample_payload(
+            map_api,
+            identity,
+            lookup_entry_s,
+            station_allowance_m,
+            is_junction,
+        )
+        exit_sample = _boundary_sample_payload(
+            map_api,
+            identity,
+            lookup_exit_s,
+            station_allowance_m,
+            is_junction,
+        )
+        ordered = sorted(
+            [entry, *samples, exit_sample], key=lambda sample: direction * sample["s"]
+        )
+        deduplicated = []
+        for sample in ordered:
+            if (
+                not deduplicated
+                or abs(sample["s"] - deduplicated[-1]["s"])
+                > station_allowance_m
+            ):
+                deduplicated.append(sample)
+        corridor_samples.extend(deduplicated)
+        entry_xyz = [entry[axis] for axis in ("x", "y", "z")]
+        exit_xyz = [exit_sample[axis] for axis in ("x", "y", "z")]
+        boundary_samples.append((entry_xyz, exit_xyz))
+        boundary_receipts.append(
+            {
+                "identity": list(identity),
+                "direction": direction,
+                "exact_entry_s": exact_entry_s,
+                "exact_exit_s": exact_exit_s,
+                "lookup_entry_s": lookup_entry_s,
+                "lookup_exit_s": lookup_exit_s,
+                "entry_xyz": entry_xyz,
+                "exit_xyz": exit_xyz,
+                "contact_to_next_m": None,
+                "identity_verified": True,
+            }
+        )
+
+    contact_gaps = []
+    for index, (left, right) in enumerate(zip(boundary_samples, boundary_samples[1:])):
+        gap = math.dist(left[1], right[0])
+        if gap > contact_tolerance_m:
+            raise ValueError("route corridor boundary contact exceeds tolerance")
+        contact_gaps.append(gap)
+        boundary_receipts[index]["contact_to_next_m"] = gap
+    directed_edges = [
+        [list(left[0]), list(right[0])]
+        for left, right in zip(directions, directions[1:])
+    ]
+    payload = {
+        "schema_version": CARLA_ROUTE_CORRIDOR_SCHEMA,
+        "map_sha256": hashlib.sha256(opendrive_xml.encode("utf-8")).hexdigest(),
+        "route_sample_step_m": float(route_sample_step_m),
+        "station_allowance_m": float(station_allowance_m),
+        "contact_tolerance_m": float(contact_tolerance_m),
+        "route_samples": corridor_samples,
+        "directed_edges": directed_edges,
+        "identity_directions": [
+            [list(identity), direction] for identity, direction in directions
+        ],
+        "predecessor_receipt": {
+            "predecessor_count": 1,
+            "route_step_m": float(route_sample_step_m),
+            "identity": list(_waypoint_identity(predecessors[0])),
+            "s": float(predecessors[0].s),
+        },
+        "boundary_receipts": boundary_receipts,
+        "max_contact_gap_m": max(contact_gaps, default=0.0),
+    }
+    payload["corridor_sha256"] = canonical_json_sha256(payload)
+    return payload
 
 
 def _reject_forbidden_source_fields(value: Any) -> None:
