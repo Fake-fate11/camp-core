@@ -11,8 +11,10 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from camp_core.integrations.carla_causal_adapter import (
+    CARLA_ROUTE_CORRIDOR_SCHEMA,
     _reject_forbidden_source_fields,
     build_carla_history_batch,
+    build_pre_generation_route_corridor,
     build_route_lifting_context,
     materialize_carla_snapshot,
 )
@@ -37,7 +39,7 @@ from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
 from camp_core.integrations.nuplan_causal_adapter import encode_route_lane
 
 
-CAPTURE_SCHEMA = "dp_camp_v19_carla_source_capture_v1"
+CAPTURE_SCHEMA = "dp_camp_v20_carla_source_capture_v1"
 SELECTION_SEED = 3411
 DP_SEED_ROOT = 3412
 FROZEN_LIFTING_TOLERANCES = LiftingTolerances(
@@ -63,6 +65,17 @@ def build_probe_materialization(
         raise ValueError("CARLA route source mismatch")
     for name in ("map_sha256", "source_head"):
         _require_sha256(capture.get(name), name)
+    corridor = capture.get("lifting_corridor")
+    if not isinstance(corridor, Mapping):
+        raise ValueError("CARLA lifting corridor is missing")
+    corridor_payload = dict(corridor)
+    sealed_corridor_sha256 = corridor_payload.pop("corridor_sha256", None)
+    if sealed_corridor_sha256 != canonical_json_sha256(corridor_payload):
+        raise ValueError("CARLA lifting corridor SHA mismatch")
+    if corridor.get("schema_version") != CARLA_ROUTE_CORRIDOR_SCHEMA:
+        raise ValueError("CARLA lifting corridor schema mismatch")
+    if corridor.get("map_sha256") != capture.get("map_sha256"):
+        raise ValueError("CARLA lifting corridor map SHA mismatch")
 
     route_sources = capture.get("route_lanes")
     if not isinstance(route_sources, list) or not 1 <= len(route_sources) <= 25:
@@ -130,16 +143,23 @@ def build_probe_materialization(
             "map_sha256": capture["map_sha256"],
             "source_head": capture["source_head"],
             "selection_seed": SELECTION_SEED,
+            "lifting_corridor_schema": corridor["schema_version"],
+            "lifting_corridor_sha256": sealed_corridor_sha256,
         },
     )
     context = build_route_lifting_context(
         route_source=str(capture["route_source"]),
-        route_samples=capture["route_samples"],
-        directed_edges=capture["directed_edges"],
-        route_sample_step_m=float(capture["route_sample_step_m"]),
+        route_samples=corridor["route_samples"],
+        directed_edges=corridor["directed_edges"],
+        route_sample_step_m=float(corridor["route_sample_step_m"]),
         tolerances=tolerances,
         map_sha256=str(capture["map_sha256"]),
     )
+    if context.identity_directions != tuple(
+        (tuple(identity), int(direction))
+        for identity, direction in corridor["identity_directions"]
+    ):
+        raise ValueError("CARLA lifting corridor identity directions mismatch")
     return materialized, context, np.asarray(batch.agents_from_world_tf[0]).copy()
 
 
@@ -198,14 +218,24 @@ def collect_carla_source_bundle(
     world: Any,
     *,
     source_head: str,
+    corridor_contact_tolerance_m: float,
     route_sample_step_m: float = 5.0,
     route_point_count: int = 81,
 ) -> dict[str, Any]:
     """Collect one outcome-free stationary source tick bundle from CARLA."""
     _require_sha256(source_head, "source head")
     map_api = world.get_map()
+    xodr = map_api.to_opendrive()
     route = _deterministic_route(map_api, route_sample_step_m, route_point_count)
     samples, edges, route_lanes = _route_source(route)
+    lifting_corridor = build_pre_generation_route_corridor(
+        route=route,
+        map_api=map_api,
+        opendrive_xml=xodr,
+        route_sample_step_m=route_sample_step_m,
+        station_allowance_m=FROZEN_LIFTING_TOLERANCES.station_epsilon_m,
+        contact_tolerance_m=corridor_contact_tolerance_m,
+    )
     blueprint = sorted(
         world.get_blueprint_library().filter("vehicle.*"), key=lambda item: item.id
     )[0]
@@ -238,7 +268,6 @@ def collect_carla_source_bundle(
     timestamps = [frame["timestamp_us"] for frame in frames]
     if any(right - left != 100_000 for left, right in zip(timestamps, timestamps[1:])):
         raise ValueError("CARLA source ticks are not uniformly spaced at 0.1 s")
-    xodr = map_api.to_opendrive()
     goal = route[-1].transform
     return {
         "schema_version": CAPTURE_SCHEMA,
@@ -254,6 +283,7 @@ def collect_carla_source_bundle(
         "route_samples": samples,
         "directed_edges": edges,
         "route_lanes": route_lanes,
+        "lifting_corridor": lifting_corridor,
         "mission_goal_pose": [
             float(goal.location.x),
             float(goal.location.y),
@@ -505,15 +535,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--dp-head")
     parser.add_argument("--selector-hashes-json")
     parser.add_argument("--receipt-json", type=Path)
+    parser.add_argument("--corridor-contact-tolerance-m", type=float)
     args = parser.parse_args(argv)
     if args.mode == "capture":
+        if args.corridor_contact_tolerance_m is None:
+            raise ValueError("capture requires a frozen corridor contact tolerance")
         import carla
 
         client = carla.Client(args.host, args.port)
         client.set_timeout(20.0)
         _write_json_atomic(
             args.capture_json,
-            collect_carla_source_bundle(client.get_world(), source_head=args.source_head),
+            collect_carla_source_bundle(
+                client.get_world(),
+                source_head=args.source_head,
+                corridor_contact_tolerance_m=args.corridor_contact_tolerance_m,
+            ),
         )
         return 0
     if args.context_json is None or args.camp_request_dir is None or args.default_request_dir is None:

@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from camp_core.integrations.carla_exact_speed_source import LiftingTolerances
+from camp_core.integrations.carla_exact_speed_source import canonical_json_sha256
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
 )
@@ -42,14 +43,49 @@ def _capture() -> dict[str, object]:
             "is_junction": road == "2",
         }
         for road, s, x in (
-            ("1", 0.0, 0.0),
-            ("1", 5.0, 5.0),
+            ("1", 5.0, 0.0),
+            ("1", 10.0, 5.0),
             ("2", 0.0, 5.0),
             ("2", 5.0, 10.0),
         )
     ]
+    corridor = {
+        "schema_version": "dp_camp_v20_carla_route_corridor_v1",
+        "map_sha256": "a" * 64,
+        "route_sample_step_m": 5.0,
+        "station_allowance_m": 3.0518578125e-05,
+        "contact_tolerance_m": 0.01,
+        "route_samples": [
+            {
+                "road_id": "1",
+                "section_id": 0,
+                "lane_id": -1,
+                "s": 0.0,
+                "x": -5.0,
+                "y": 0.0,
+                "z": 1.0,
+                "lane_width": 3.5,
+                "is_junction": False,
+            },
+            *samples,
+        ],
+        "directed_edges": [(("1", 0, -1), ("2", 0, -1))],
+        "identity_directions": [
+            [["1", 0, -1], 1],
+            [["2", 0, -1], 1],
+        ],
+    }
+    corridor["corridor_sha256"] = canonical_json_sha256(corridor)
+
+    def route_lane(start_x: float) -> dict[str, list[list[float]]]:
+        return {
+            "centerline": [[start_x + index, 0.0] for index in range(20)],
+            "left_boundary": [[start_x + index, 1.75] for index in range(20)],
+            "right_boundary": [[start_x + index, -1.75] for index in range(20)],
+        }
+
     return {
-        "schema_version": "dp_camp_v19_carla_source_capture_v1",
+        "schema_version": "dp_camp_v20_carla_source_capture_v1",
         "selection_seed": 3411,
         "map_name": "Town01",
         "map_sha256": "a" * 64,
@@ -61,21 +97,46 @@ def _capture() -> dict[str, object]:
         "route_sample_step_m": 5.0,
         "route_samples": samples,
         "directed_edges": [(("1", 0, -1), ("2", 0, -1))],
-        "route_lanes": [
-            {
-                "centerline": [[0.0, 0.0], [5.0, 0.0]],
-                "left_boundary": [[0.0, 1.75], [5.0, 1.75]],
-                "right_boundary": [[0.0, -1.75], [5.0, -1.75]],
-            },
-            {
-                "centerline": [[5.0, 0.0], [10.0, 0.0]],
-                "left_boundary": [[5.0, 1.75], [10.0, 1.75]],
-                "right_boundary": [[5.0, -1.75], [10.0, -1.75]],
-            },
-        ],
+        "route_lanes": [route_lane(0.0), route_lane(19.0)],
+        "lifting_corridor": corridor,
         "mission_goal_pose": [10.0, 0.0, 0.0],
         "frames": frames,
     }
+
+
+def test_materialization_keeps_corridor_out_of_fixed_dp_route() -> None:
+    capture = _capture()
+    dp_route_before = np.asarray(capture["route_lanes"][0]["centerline"]).copy()
+
+    materialized, context, _ = _probe().build_probe_materialization(
+        capture,
+        tolerances=LiftingTolerances(
+            1.5273609989704584,
+            3.0518578125e-05,
+            1e-9,
+            3.0518578125e-05,
+        ),
+    )
+
+    assert context.samples[0].x < capture["route_samples"][0]["x"]
+    np.testing.assert_array_equal(
+        materialized.dp_input["route_lanes"][0, : len(dp_route_before), :2],
+        dp_route_before,
+    )
+    assert materialized.metadata["source_metadata"]["lifting_corridor_sha256"] == (
+        capture["lifting_corridor"]["corridor_sha256"]
+    )
+
+
+def test_materialization_rejects_corridor_sha_drift() -> None:
+    capture = _capture()
+    capture["lifting_corridor"]["route_samples"][0]["x"] -= 1.0
+
+    with pytest.raises(ValueError, match="corridor SHA mismatch"):
+        _probe().build_probe_materialization(
+            capture,
+            tolerances=LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6),
+        )
 
 
 def test_build_probe_materialization_reuses_causal_and_lifting_contracts() -> None:
