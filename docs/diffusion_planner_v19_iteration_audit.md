@@ -3415,3 +3415,50 @@ current_v19_artifact_scope=signed_exact_libvulkan1_package_preflight_rollback_co
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_signed_exact_preflight_1b7d7c01_20260713T195033CST_independent_review
 current_v19_artifact_root_sha256=7d34fce54be5f080ffa85f88e36ac13007b86acc2f821ec85718286b3743ea6a
 next_work_target=v19_signed_libvulkan1_exact_package_install_and_integrity_validation_only_continuous_authorization
+
+## Exact libvulkan1 Install and Integrity Validation
+
+At synchronized CAMP/GitHub/AutoDL
+`13e6241b561aed21dba5b13eca616ab1ec9e1c96`, the fail-closed package
+controller ran the exact signed local `.deb` transaction. Its first validation
+harness incorrectly required absent `/usr/bin/python3`. The controller purged
+only `libvulkan1`, and root
+`e6bdb05e0ef6b211870e47cd99bc7414b18a41ba70908b2dcb03cf426712088b`
+proves the original package-not-found, package-path, dpkg-config, and no-loader
+baseline was restored. Read-only diagnosis/review roots
+`6fa504607d595e8ddb00c8d7bb1cf8bbac3a5366995aefdd3e514ebba811f3c3`
+and `a058e8b043e4bcbdb135324a0d7c125896bacbc1115904e7041b694bf81110eb`
+bound the defect and replaced the probe with root conda `ctypes` plus UID 65534
+`setpriv`/`LD_PRELOAD` execution of `/bin/true`.
+
+The second transaction passed all loader checks but the reviewer rejected
+shared parent directories because its owner parser examined only the first
+package in dpkg's comma-separated ownership list. It again purged only the
+target and produced the same restored-baseline root. The preserved integrity
+output shows `dpkg -V`, tar/list equality, loader, SONAME, `ldd`, `ldconfig`,
+root load, and UID 65534 load had all passed; every rejected directory had
+correct content and raw ownership containing `libvulkan1:amd64`. Read-only
+diagnosis/review roots are
+`1c6d3de9992b7c920f68a1904e23b58f37cb7b8596567d9545a71a017918c4d5`
+and `aa1c950b9a4493d208873d0abe9ff497b99aca8f380415417fd8158ffacf47d7`.
+The fix parses the exact comma-separated owner set before the path suffix.
+
+The final bounded execution passed. Package snapshots changed only
+`libvulkan1:amd64`; dpkg's installed path set exactly equals the signed tar
+manifest; all package files and symlinks match archive type/mode/owner/hash,
+pre-existing shared directories retain baseline metadata and include the
+target owner, and `dpkg -V` is empty. SONAME target
+`libvulkan.so.1.3.204`, `ldd`, `ldconfig`, root `ctypes.CDLL`, and UID 65534
+`LD_PRELOAD` execution all pass with unchanged dpkg configuration. Source and
+independent-review roots are
+`57eb755770f0d24e4eb1330412a69eb0378e775806d5154d87e5fe663cd93194`
+and `44d99f3b5042b64a66ee9f9cb3ba89cdfb126509fb1f2e75c35a965f9548089b`.
+Exact `libvulkan1 1.3.204.1-2` is temporarily retained under the success
+contract. No runtime, candidate, outcome, metric, or holdout activity occurred;
+prior exit-1 causality remains unproven.
+
+current_v19_status=v19_signed_libvulkan1_exact_package_install_integrity_independent_review_passed
+current_v19_artifact_scope=exact_signed_libvulkan1_single_package_install_integrity_validation_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_install_integrity_13e6241b_20260713T200103CST_independent_review
+current_v19_artifact_root_sha256=44d99f3b5042b64a66ee9f9cb3ba89cdfb126509fb1f2e75c35a965f9548089b
+next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_only_continuous_authorization

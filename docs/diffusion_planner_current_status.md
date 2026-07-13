@@ -946,6 +946,43 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_signed_exact_prefli
 current_v19_artifact_root_sha256=7d34fce54be5f080ffa85f88e36ac13007b86acc2f821ec85718286b3743ea6a
 next_work_target=v19_signed_libvulkan1_exact_package_install_and_integrity_validation_only_continuous_authorization
 
+### Exact libvulkan1 Install and Integrity Validation
+
+At synchronized CAMP/GitHub/AutoDL
+`13e6241b561aed21dba5b13eca616ab1ec9e1c96`, two validation-harness defects
+failed closed after the exact single-package transaction and each triggered
+target-only purge plus byte/metadata baseline restoration. The first assumed
+absent `/usr/bin/python3`; diagnosis/review roots are
+`6fa504607d595e8ddb00c8d7bb1cf8bbac3a5366995aefdd3e514ebba811f3c3`
+and `a058e8b043e4bcbdb135324a0d7c125896bacbc1115904e7041b694bf81110eb`.
+The second misparsed comma-separated multi-package ownership for shared parent
+directories even though raw dpkg output contained `libvulkan1:amd64`;
+diagnosis/review roots are
+`1c6d3de9992b7c920f68a1904e23b58f37cb7b8596567d9545a71a017918c4d5`
+and `aa1c950b9a4493d208873d0abe9ff497b99aca8f380415417fd8158ffacf47d7`.
+Both rollback artifacts independently have root
+`e6bdb05e0ef6b211870e47cd99bc7414b18a41ba70908b2dcb03cf426712088b`.
+
+After those bounded harness fixes, exact signed `libvulkan1 1.3.204.1-2`
+installed successfully and was retained under the preregistered success
+contract. Package snapshots prove the transaction added only the target;
+dpkg's path list exactly matches the package tar, every path's content/type/
+mode/owner check passes, `dpkg -V` is empty, and dpkg configuration is
+unchanged. The real loader and SONAME symlink pass `ldd`, `ldconfig`, root
+`ctypes.CDLL`, and UID 65534 `LD_PRELOAD` execution checks. Install/review
+roots are
+`57eb755770f0d24e4eb1330412a69eb0378e775806d5154d87e5fe663cd93194`
+and `44d99f3b5042b64a66ee9f9cb3ba89cdfb126509fb1f2e75c35a965f9548089b`.
+No CARLA, DP worker, pipeline, candidate, metric, outcome, or holdout activity
+occurred. This closes the dependency gap but does not yet prove it caused the
+earlier CARLA exit 1.
+
+current_v19_status=v19_signed_libvulkan1_exact_package_install_integrity_independent_review_passed
+current_v19_artifact_scope=exact_signed_libvulkan1_single_package_install_integrity_validation_and_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_install_integrity_13e6241b_20260713T200103CST_independent_review
+current_v19_artifact_root_sha256=44d99f3b5042b64a66ee9f9cb3ba89cdfb126509fb1f2e75c35a965f9548089b
+next_work_target=v19_carla_missing_vulkan_loader_remediation_runtime_attempt_preflight_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this
