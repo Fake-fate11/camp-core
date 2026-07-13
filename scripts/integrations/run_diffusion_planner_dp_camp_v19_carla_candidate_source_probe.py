@@ -48,6 +48,42 @@ FROZEN_LIFTING_TOLERANCES = LiftingTolerances(
     1e-9,
     3.0518578125e-05,
 )
+_CAPTURE_FIELDS = frozenset(
+    {
+        "schema_version",
+        "selection_seed",
+        "map_name",
+        "map_sha256",
+        "source_head",
+        "decision_timestamp_us",
+        "traffic_timestamp_us",
+        "traffic_light_state_available",
+        "route_source",
+        "route_sample_step_m",
+        "route_samples",
+        "directed_edges",
+        "route_lanes",
+        "lifting_corridor",
+        "mission_goal_pose",
+        "frames",
+    }
+)
+_CORRIDOR_FIELDS = frozenset(
+    {
+        "schema_version",
+        "map_sha256",
+        "route_sample_step_m",
+        "station_allowance_m",
+        "contact_tolerance_m",
+        "route_samples",
+        "directed_edges",
+        "identity_directions",
+        "predecessor_receipt",
+        "boundary_receipts",
+        "max_contact_gap_m",
+        "corridor_sha256",
+    }
+)
 
 
 def build_probe_materialization(
@@ -57,6 +93,8 @@ def build_probe_materialization(
 ):
     """Build the existing causal DP input and route-lifting sidecar."""
     _reject_forbidden_source_fields(capture)
+    if set(capture) != _CAPTURE_FIELDS:
+        raise ValueError("CARLA source capture fields mismatch")
     if capture.get("schema_version") != CAPTURE_SCHEMA:
         raise ValueError("CARLA source capture schema mismatch")
     if capture.get("selection_seed") != SELECTION_SEED:
@@ -68,6 +106,8 @@ def build_probe_materialization(
     corridor = capture.get("lifting_corridor")
     if not isinstance(corridor, Mapping):
         raise ValueError("CARLA lifting corridor is missing")
+    if set(corridor) != _CORRIDOR_FIELDS:
+        raise ValueError("CARLA lifting corridor fields mismatch")
     corridor_payload = dict(corridor)
     sealed_corridor_sha256 = corridor_payload.pop("corridor_sha256", None)
     if sealed_corridor_sha256 != canonical_json_sha256(corridor_payload):
@@ -155,9 +195,8 @@ def build_probe_materialization(
         tolerances=tolerances,
         map_sha256=str(capture["map_sha256"]),
     )
-    if context.identity_directions != tuple(
-        (tuple(identity), int(direction))
-        for identity, direction in corridor["identity_directions"]
+    if context.identity_directions != _identity_directions(
+        corridor["identity_directions"]
     ):
         raise ValueError("CARLA lifting corridor identity directions mismatch")
     return materialized, context, np.asarray(batch.agents_from_world_tf[0]).copy()
@@ -185,9 +224,17 @@ def write_probe_requests(
     materialized, context, transform = build_probe_materialization(
         capture, tolerances=tolerances
     )
+    dp_context = build_route_lifting_context(
+        route_source=str(capture["route_source"]),
+        route_samples=capture["route_samples"],
+        directed_edges=capture["directed_edges"],
+        route_sample_step_m=float(capture["route_sample_step_m"]),
+        tolerances=tolerances,
+        map_sha256=str(capture["map_sha256"]),
+    )
     common = {
         "log_name": str(capture["map_name"]),
-        "scenario_token": context.source_sha256,
+        "scenario_token": dp_context.source_sha256,
         "iteration_index": 0,
         "simulation_time_us": int(capture["decision_timestamp_us"]),
         "scenario_seed": SELECTION_SEED,
@@ -479,16 +526,36 @@ def _context(raw: Mapping[str, Any]) -> RouteLiftingContext:
     return RouteLiftingContext(
         samples=tuple(LaneSurfaceSample(**item) for item in raw["samples"]),
         edges=tuple((tuple(source), tuple(target)) for source, target in raw["edges"]),
-        identity_directions=tuple(
-            (tuple(identity), int(direction))
-            for identity, direction in raw["identity_directions"]
-        ),
+        identity_directions=_identity_directions(raw["identity_directions"]),
         route_sample_step_m=float(raw["route_sample_step_m"]),
         tolerances=tolerances,
         map_sha256=str(raw["map_sha256"]),
         source_sha256=str(raw["source_sha256"]),
         route_graph_sha256=str(raw["route_graph_sha256"]),
     )
+
+
+def _identity_directions(raw: Any) -> tuple[tuple[tuple[str, int, int], int], ...]:
+    if not isinstance(raw, list):
+        raise ValueError("route identity directions are invalid")
+    directions = []
+    for item in raw:
+        if not isinstance(item, list) or len(item) != 2:
+            raise ValueError("route identity directions are invalid")
+        identity, direction = item
+        if (
+            not isinstance(identity, list)
+            or len(identity) != 3
+            or type(identity[0]) is not str
+            or not identity[0]
+            or type(identity[1]) is not int
+            or type(identity[2]) is not int
+            or type(direction) is not int
+            or direction not in (-1, 1)
+        ):
+            raise ValueError("route identity directions are invalid")
+        directions.append(((identity[0], identity[1], identity[2]), direction))
+    return tuple(directions)
 
 
 def _require_sha256(value: Any, name: str) -> None:

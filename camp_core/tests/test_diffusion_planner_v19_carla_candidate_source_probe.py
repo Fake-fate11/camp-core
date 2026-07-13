@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import importlib
 from types import SimpleNamespace
 
@@ -74,6 +75,14 @@ def _capture() -> dict[str, object]:
             [["1", 0, -1], 1],
             [["2", 0, -1], 1],
         ],
+        "predecessor_receipt": {
+            "predecessor_count": 1,
+            "route_step_m": 5.0,
+            "identity": ["1", 0, -1],
+            "s": 0.0,
+        },
+        "boundary_receipts": [],
+        "max_contact_gap_m": 0.0,
     }
     corridor["corridor_sha256"] = canonical_json_sha256(corridor)
 
@@ -102,6 +111,13 @@ def _capture() -> dict[str, object]:
         "mission_goal_pose": [10.0, 0.0, 0.0],
         "frames": frames,
     }
+
+
+def _reseal_corridor(capture: dict[str, object]) -> None:
+    corridor = capture["lifting_corridor"]
+    corridor["corridor_sha256"] = canonical_json_sha256(
+        {key: value for key, value in corridor.items() if key != "corridor_sha256"}
+    )
 
 
 def test_materialization_keeps_corridor_out_of_fixed_dp_route() -> None:
@@ -137,6 +153,123 @@ def test_materialization_rejects_corridor_sha_drift() -> None:
             capture,
             tolerances=LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6),
         )
+
+
+@pytest.mark.parametrize("key", ("frames", "unexpected_capture_field"))
+def test_materialization_requires_exact_capture_fields(key: str) -> None:
+    capture = _capture()
+    if key in capture:
+        del capture[key]
+    else:
+        capture[key] = None
+
+    with pytest.raises(ValueError, match="source capture fields"):
+        _probe().build_probe_materialization(
+            capture,
+            tolerances=LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6),
+        )
+
+
+@pytest.mark.parametrize("key", ("boundary_receipts", "unexpected_corridor_field"))
+def test_materialization_requires_exact_corridor_fields(key: str) -> None:
+    capture = _capture()
+    corridor = capture["lifting_corridor"]
+    if key in corridor:
+        del corridor[key]
+    else:
+        corridor[key] = None
+    _reseal_corridor(capture)
+
+    with pytest.raises(ValueError, match="lifting corridor fields"):
+        _probe().build_probe_materialization(
+            capture,
+            tolerances=LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6),
+        )
+
+
+@pytest.mark.parametrize(
+    ("identity", "direction"),
+    (
+        (["1", 0.0, -1], 1),
+        (["1", False, -1], 1),
+        (["1", 0, -1.0], 1),
+        (["1", 0, -1], True),
+        (["1", 0, -1], 1.0),
+        (["1", 0, -1], "1"),
+    ),
+)
+def test_materialization_rejects_coerced_corridor_identity_directions(
+    identity: list[object], direction: object
+) -> None:
+    capture = _capture()
+    capture["lifting_corridor"]["identity_directions"][0] = [identity, direction]
+    _reseal_corridor(capture)
+
+    with pytest.raises(ValueError, match="identity directions"):
+        _probe().build_probe_materialization(
+            capture,
+            tolerances=LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6),
+        )
+
+
+def test_corridor_changes_preserve_fixed_dp_request_identity(monkeypatch) -> None:
+    probe = _probe()
+    tolerances = LiftingTolerances(1.5, 1e-6, 1e-6, 1e-6)
+    first_capture = _capture()
+    second_capture = deepcopy(first_capture)
+    second_capture["lifting_corridor"]["route_samples"][0]["s"] = 1.0
+    second_capture["lifting_corridor"]["predecessor_receipt"]["s"] = 1.0
+    _reseal_corridor(second_capture)
+
+    first_materialized, first_context, _ = probe.build_probe_materialization(
+        first_capture, tolerances=tolerances
+    )
+    second_materialized, second_context, _ = probe.build_probe_materialization(
+        second_capture, tolerances=tolerances
+    )
+    assert first_context.source_sha256 != second_context.source_sha256
+    assert first_materialized.metadata["decision_id"] == second_materialized.metadata[
+        "decision_id"
+    ]
+    assert set(first_materialized.dp_input) == set(second_materialized.dp_input)
+    for name in first_materialized.dp_input:
+        np.testing.assert_array_equal(
+            first_materialized.dp_input[name], second_materialized.dp_input[name]
+        )
+
+    requests = []
+    output = SimpleNamespace(exists=lambda: False)
+    monkeypatch.setattr(
+        probe,
+        "write_request",
+        lambda _directory, _causal_input, metadata: requests.append(metadata),
+    )
+    monkeypatch.setattr(probe, "_write_json_atomic", lambda _path, _value: None)
+    for capture in (first_capture, second_capture):
+        probe.write_probe_requests(
+            capture,
+            tolerances=tolerances,
+            camp_request_dir=output,
+            default_request_dir=output,
+            context_path=output,
+            camp_head="c" * 40,
+            dp_head="d" * 40,
+            selector_hashes=("1" * 64, "2" * 64, "3" * 64),
+        )
+
+    top_level_context = probe.build_route_lifting_context(
+        route_source=first_capture["route_source"],
+        route_samples=first_capture["route_samples"],
+        directed_edges=first_capture["directed_edges"],
+        route_sample_step_m=first_capture["route_sample_step_m"],
+        tolerances=tolerances,
+        map_sha256=first_capture["map_sha256"],
+    )
+    for first, second in zip(requests[:2], requests[2:]):
+        assert first["scenario_token"] == top_level_context.source_sha256
+        assert first["scenario_token"] == second["scenario_token"]
+        assert first["pair_run_key"] == second["pair_run_key"]
+        assert first["tick_seed"] == second["tick_seed"]
 
 
 def test_build_probe_materialization_reuses_causal_and_lifting_contracts() -> None:
