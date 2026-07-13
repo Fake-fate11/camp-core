@@ -3377,3 +3377,41 @@ current_v19_artifact_scope=carla_absolute_xdg_execution_failure_missing_vulkan_l
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_missing_vulkan_loader_read_only_diagnosis_e54414a8_20260713T194347CST_independent_review
 current_v19_artifact_root_sha256=e1454d797d0ffece63e875f12209c529d98e2174eede9602bdc12653a21df21c
 next_work_target=v19_signed_libvulkan1_exact_package_preflight_only_continuous_authorization
+
+## Signed Exact libvulkan1 Package Preflight
+
+The preflight at synchronized CAMP/GitHub/AutoDL
+`1b7d7c0190f57ed058695a548753d5be700b4afa` performed no installation and no
+runtime start. Ubuntu jammy/main's `InRelease` signature and signed
+uncompressed package-index hash/size were verified before selecting exact
+`libvulkan1 1.3.204.1-2` for amd64. Its signed stanza, apt metadata, and the
+downloaded 128,014-byte `.deb` agree on SHA256
+`192adcff489996b3398e7e7c0012b98e9586b46fe9a9eb13fb02c0feba88548b`.
+The no-recommends transaction simulation contains only `libvulkan1`, with
+zero upgrades or removals.
+
+Before any future mutation, the gate sealed every active dpkg configuration
+file and all path-exclude/path-include rules. There are zero effective rules
+and zero exemptions for this package; the real loader and SONAME symlink are
+both present in the package manifest and cannot be exempted. The original
+dpkg-query state is package-not-found, all package-owned paths and loader
+paths were baselined, and a purge-only rollback check proved that exact
+baseline. Autoremove, cache cleanup, upgrades, unrelated package changes, and
+CARLA start are forbidden by the contract.
+
+The source artifact/root is
+`/root/autodl-tmp/camp_dp_v19_libvulkan1_signed_exact_preflight_1b7d7c01_20260713T195033CST`
+and `3e9865dd8f1bc71349adb0ad7fdd552204cf54f35a88aefb2ba077893939e182`.
+Independent review rehashed the immutable source manifest and `.deb`, replayed
+signature/version/single-package/rollback checks, confirmed dpkg configuration
+unchanged and the package still absent, and passed at the corresponding
+`_independent_review` path with root
+`7d34fce54be5f080ffa85f88e36ac13007b86acc2f821ec85718286b3743ea6a`.
+No candidate, outcome, metric, or holdout activity occurred. Missing-loader
+causality for the prior CARLA exit 1 remains unproven.
+
+current_v19_status=v19_signed_libvulkan1_exact_package_preflight_independent_review_passed
+current_v19_artifact_scope=signed_exact_libvulkan1_package_preflight_rollback_contract_and_independent_review_no_install_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_libvulkan1_signed_exact_preflight_1b7d7c01_20260713T195033CST_independent_review
+current_v19_artifact_root_sha256=7d34fce54be5f080ffa85f88e36ac13007b86acc2f821ec85718286b3743ea6a
+next_work_target=v19_signed_libvulkan1_exact_package_install_and_integrity_validation_only_continuous_authorization
