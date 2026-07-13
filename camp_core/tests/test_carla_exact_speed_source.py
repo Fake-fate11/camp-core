@@ -9,9 +9,14 @@ from camp_core.integrations.carla_exact_speed_source import (
     RUNG_ACTOR_LANDMARK,
     RUNG_EXPLICIT_NON_JUNCTION,
     RUNG_TOPOLOGY_DERIVED_JUNCTION,
+    LaneSurfaceSample,
     LandmarkSpeedSource,
+    LiftingTolerances,
+    RouteLiftingContext,
     SegmentRef,
     candidate_source_mask,
+    freeze_lifting_tolerances,
+    lift_candidate_to_route_surface,
     project_world_point_to_segment,
     resolve_landmark_segment_speed,
     parse_opendrive_speed_index,
@@ -230,3 +235,229 @@ def test_world_point_projection_is_strict_and_fail_closed() -> None:
         project_world_point_to_segment(
             map_api, SimpleNamespace(x=math.nan, y=2.0, z=0.0), driving
         )
+
+
+class _FakeXodrMap:
+    def __init__(
+        self,
+        *,
+        z: float = 3.5,
+        missing: bool = False,
+        section_id: int = 0,
+        is_junction: bool = False,
+    ) -> None:
+        self.z = z
+        self.missing = missing
+        self.section_id = section_id
+        self.is_junction = is_junction
+
+    def get_waypoint_xodr(self, road_id: int, lane_id: int, s: float):
+        if self.missing:
+            return None
+        return SimpleNamespace(
+            road_id=road_id,
+            section_id=self.section_id,
+            lane_id=lane_id,
+            s=s,
+            is_junction=self.is_junction,
+            transform=SimpleNamespace(location=SimpleNamespace(z=self.z)),
+        )
+
+
+def _surface_samples(
+    *,
+    road_id: str = "1",
+    lane_id: int = 1,
+    start: int = 0,
+    stop: int = 80,
+    y: float = 20.0,
+) -> tuple[LaneSurfaceSample, ...]:
+    return tuple(
+        LaneSurfaceSample(
+            road_id=road_id,
+            section_id=0,
+            lane_id=lane_id,
+            s=float(index),
+            x=10.0 + float(index),
+            y=y,
+            z=3.5,
+            lane_width=4.0,
+            is_junction=False,
+        )
+        for index in range(start, stop + 1)
+    )
+
+
+def _route_context(
+    samples: tuple[LaneSurfaceSample, ...],
+    *,
+    edges=(),
+) -> RouteLiftingContext:
+    return RouteLiftingContext(
+        samples=samples,
+        edges=tuple(edges),
+        route_sample_step_m=1.0,
+        tolerances=LiftingTolerances(
+            geometry_epsilon_m=1e-6,
+            station_epsilon_m=1e-6,
+            z_epsilon_m=1e-6,
+            continuity_epsilon_m=1e-6,
+        ),
+        map_sha256="a" * 64,
+        source_sha256="b" * 64,
+        route_graph_sha256="c" * 64,
+    )
+
+
+def _candidate(*, y: float = 0.0) -> tuple[tuple[float, ...], ...]:
+    return tuple((float(index), y, 1.0, 0.0) for index in range(80))
+
+
+def _lift(
+    candidate=None,
+    *,
+    context=None,
+    map_api=None,
+):
+    return lift_candidate_to_route_surface(
+        candidate_index=0,
+        candidate=_candidate() if candidate is None else candidate,
+        agents_from_world_tf=(
+            (1.0, 0.0, -10.0),
+            (0.0, 1.0, -20.0),
+            (0.0, 0.0, 1.0),
+        ),
+        context=(
+            _route_context(_surface_samples()) if context is None else context
+        ),
+        map_api=_FakeXodrMap() if map_api is None else map_api,
+    )
+
+
+def test_route_lift_uses_unique_surface_and_official_xodr_z() -> None:
+    candidate = _candidate()
+    before = tuple(candidate)
+
+    result = _lift(candidate)
+
+    assert result.eligible is True
+    assert result.reason == "source_complete"
+    assert len(result.points) == 80
+    assert result.points[0].world_x == 10.0
+    assert result.points[0].world_y == 20.0
+    assert result.points[0].z == 3.5
+    assert result.points[-1].point_index == 79
+    assert len(result.trajectory_lifting_sha256) == 64
+    assert tuple(candidate) == before
+
+
+@pytest.mark.parametrize(
+    ("fixture", "reason"),
+    [
+        ("overlapping_lanes", "lane_identity_ambiguous"),
+        ("station_ambiguity", "lane_station_ambiguous"),
+        ("outside_surface", "lateral_residual_exceeds_tolerance"),
+        ("missing_xodr", "xodr_waypoint_missing"),
+        ("wrong_section", "xodr_identity_mismatch"),
+        ("wrong_junction", "xodr_identity_mismatch"),
+        ("backward_station", "route_topology_discontinuous"),
+        ("branch_hop", "route_topology_discontinuous"),
+    ],
+)
+def test_route_lift_fails_closed_with_all_point_receipts(
+    fixture: str, reason: str
+) -> None:
+    candidate = _candidate()
+    context = _route_context(_surface_samples())
+    map_api = _FakeXodrMap()
+    if fixture == "overlapping_lanes":
+        context = _route_context(
+            _surface_samples() + _surface_samples(road_id="2", lane_id=2)
+        )
+    elif fixture == "station_ambiguity":
+        context = _route_context(
+            (
+                LaneSurfaceSample("1", 0, 1, 0.0, 10.0, 20.0, 3.5, 4.0, False),
+                LaneSurfaceSample("1", 0, 1, 80.0, 90.0, 20.0, 3.5, 4.0, False),
+                LaneSurfaceSample("1", 0, 1, 100.0, 10.0, 20.0, 3.5, 4.0, False),
+                LaneSurfaceSample("1", 0, 1, 180.0, 90.0, 20.0, 3.5, 4.0, False),
+            )
+        )
+    elif fixture == "outside_surface":
+        candidate = _candidate(y=10.0)
+    elif fixture == "missing_xodr":
+        map_api = _FakeXodrMap(missing=True)
+    elif fixture == "wrong_section":
+        map_api = _FakeXodrMap(section_id=1)
+    elif fixture == "wrong_junction":
+        map_api = _FakeXodrMap(is_junction=True)
+    elif fixture == "backward_station":
+        candidate = tuple(
+            (float(index if index < 40 else 79 - index), 0.0, 1.0, 0.0)
+            for index in range(80)
+        )
+    elif fixture == "branch_hop":
+        context = _route_context(
+            _surface_samples(stop=39)
+            + _surface_samples(road_id="2", lane_id=2, start=40)
+        )
+
+    result = _lift(candidate, context=context, map_api=map_api)
+
+    assert result.eligible is False
+    assert result.reason == reason
+    assert len(result.points) == 80
+    assert any(point.reason == reason for point in result.points)
+
+
+def test_route_lift_rejects_nonfinite_transform() -> None:
+    with pytest.raises(ValueError, match="finite planar homogeneous"):
+        lift_candidate_to_route_surface(
+            candidate_index=0,
+            candidate=_candidate(),
+            agents_from_world_tf=(
+                (1.0, 0.0, math.nan),
+                (0.0, 1.0, 0.0),
+                (0.0, 0.0, 1.0),
+            ),
+            context=_route_context(_surface_samples()),
+            map_api=_FakeXodrMap(),
+        )
+
+
+def test_route_lift_rejects_edges_outside_frozen_context() -> None:
+    context = _route_context(
+        _surface_samples(),
+        edges=((('9', 0, 1), ('1', 0, 1)),),
+    )
+
+    with pytest.raises(ValueError, match="route edge identity"):
+        _lift(context=context)
+
+
+def test_tolerance_freeze_is_deterministic_and_source_sensitive() -> None:
+    first = freeze_lifting_tolerances(
+        max_chord_error_m=0.01,
+        max_station_roundtrip_error_m=0.02,
+        max_z_roundtrip_error_m=0.03,
+        coordinate_scale_m=1000.0,
+    )
+    second = freeze_lifting_tolerances(
+        max_chord_error_m=0.01,
+        max_station_roundtrip_error_m=0.02,
+        max_z_roundtrip_error_m=0.03,
+        coordinate_scale_m=1000.0,
+    )
+    changed = freeze_lifting_tolerances(
+        max_chord_error_m=0.01,
+        max_station_roundtrip_error_m=0.02,
+        max_z_roundtrip_error_m=0.04,
+        coordinate_scale_m=1000.0,
+    )
+
+    assert first == second
+    assert first != changed
+    assert first.geometry_epsilon_m > 0.01
+    assert first.station_epsilon_m > 0.02
+    assert first.z_epsilon_m > 0.03
+    assert first.continuity_epsilon_m == first.station_epsilon_m

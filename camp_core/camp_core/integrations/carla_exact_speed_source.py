@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
+import hashlib
+import json
 import math
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 import xml.etree.ElementTree as ET
@@ -17,6 +19,7 @@ _RUNGS = {
 
 
 SegmentKey = Tuple[str, int, int]
+RouteIdentity = Tuple[str, int, int]
 
 
 @dataclass(frozen=True)
@@ -71,6 +74,483 @@ class LandmarkSpeedSource:
     to_lane: int
     value: float
     unit: str
+
+
+@dataclass(frozen=True)
+class LaneSurfaceSample:
+    road_id: str
+    section_id: int
+    lane_id: int
+    s: float
+    x: float
+    y: float
+    z: float
+    lane_width: float
+    is_junction: bool
+
+    @property
+    def identity(self) -> RouteIdentity:
+        return (self.road_id, self.section_id, self.lane_id)
+
+
+@dataclass(frozen=True)
+class LiftingTolerances:
+    geometry_epsilon_m: float
+    station_epsilon_m: float
+    z_epsilon_m: float
+    continuity_epsilon_m: float
+
+
+@dataclass(frozen=True)
+class RouteLiftingContext:
+    samples: Tuple[LaneSurfaceSample, ...]
+    edges: Tuple[Tuple[RouteIdentity, RouteIdentity], ...]
+    route_sample_step_m: float
+    tolerances: LiftingTolerances
+    map_sha256: str
+    source_sha256: str
+    route_graph_sha256: str
+
+
+@dataclass(frozen=True)
+class LiftedPointReceipt:
+    candidate_index: int
+    point_index: int
+    ego_x: float
+    ego_y: float
+    world_x: float
+    world_y: float
+    road_id: Optional[str]
+    section_id: Optional[int]
+    lane_id: Optional[int]
+    s: Optional[float]
+    z: Optional[float]
+    lateral_residual_m: Optional[float]
+    unique_identity: bool
+    unique_station: bool
+    topology_continuous: bool
+    reason: str
+
+    @property
+    def identity(self) -> Optional[RouteIdentity]:
+        if self.road_id is None or self.section_id is None or self.lane_id is None:
+            return None
+        return (self.road_id, self.section_id, self.lane_id)
+
+
+@dataclass(frozen=True)
+class CandidateLiftDecision:
+    eligible: bool
+    points: Tuple[LiftedPointReceipt, ...]
+    reason: str
+    trajectory_lifting_sha256: str
+
+
+@dataclass(frozen=True)
+class _SurfaceMatch:
+    road_id: str
+    section_id: int
+    lane_id: int
+    s: float
+    lateral_residual_m: float
+    is_junction: bool
+
+    @property
+    def identity(self) -> RouteIdentity:
+        return (self.road_id, self.section_id, self.lane_id)
+
+
+def canonical_json_sha256(value: Any) -> str:
+    payload = json.dumps(
+        value, sort_keys=True, separators=(",", ":"), allow_nan=False
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def freeze_lifting_tolerances(
+    *,
+    max_chord_error_m: float,
+    max_station_roundtrip_error_m: float,
+    max_z_roundtrip_error_m: float,
+    coordinate_scale_m: float,
+) -> LiftingTolerances:
+    values = (
+        max_chord_error_m,
+        max_station_roundtrip_error_m,
+        max_z_roundtrip_error_m,
+    )
+    if any(not math.isfinite(value) or value < 0.0 for value in values):
+        raise ValueError("lifting source errors must be finite and nonnegative")
+    if not math.isfinite(coordinate_scale_m) or coordinate_scale_m <= 0.0:
+        raise ValueError("coordinate scale must be finite and positive")
+    allowance = max(1e-9, 64.0 * math.ulp(float(coordinate_scale_m)))
+    return LiftingTolerances(
+        geometry_epsilon_m=max_chord_error_m + allowance,
+        station_epsilon_m=max_station_roundtrip_error_m + allowance,
+        z_epsilon_m=max_z_roundtrip_error_m + allowance,
+        continuity_epsilon_m=max_station_roundtrip_error_m + allowance,
+    )
+
+
+def lift_candidate_to_route_surface(
+    *,
+    candidate_index: int,
+    candidate: Sequence[Sequence[float]],
+    agents_from_world_tf: Sequence[Sequence[float]],
+    context: RouteLiftingContext,
+    map_api: Any,
+) -> CandidateLiftDecision:
+    if candidate_index < 0:
+        raise ValueError("candidate index must be nonnegative")
+    if len(candidate) != 80:
+        raise ValueError("candidate must contain exactly 80 points")
+    _validate_lifting_context(context)
+    world_xy = _inverse_transform_xy(candidate, agents_from_world_tf)
+    chords = _surface_chords(context)
+    points = []
+    previous: Optional[LiftedPointReceipt] = None
+    departed: set[RouteIdentity] = set()
+    first_failure: Optional[str] = None
+    continuity_broken = False
+    for point_index, (raw_point, (world_x, world_y)) in enumerate(
+        zip(candidate, world_xy)
+    ):
+        ego_x, ego_y = float(raw_point[0]), float(raw_point[1])
+        match, failure = _unique_route_surface_match(
+            world_x, world_y, context, chords
+        )
+        if failure is not None:
+            receipt = _failed_point_receipt(
+                candidate_index,
+                point_index,
+                ego_x,
+                ego_y,
+                world_x,
+                world_y,
+                failure,
+            )
+            continuity_broken = True
+        else:
+            assert match is not None
+            receipt = _xodr_receipt(
+                candidate_index,
+                point_index,
+                ego_x,
+                ego_y,
+                world_x,
+                world_y,
+                match,
+                map_api,
+                context.tolerances,
+            )
+            if receipt.reason != "lifted":
+                continuity_broken = True
+            elif continuity_broken or not _continuous(
+                previous, receipt, departed, context
+            ):
+                receipt = replace(
+                    receipt,
+                    topology_continuous=False,
+                    reason="route_topology_discontinuous",
+                )
+                continuity_broken = True
+        points.append(receipt)
+        if receipt.reason != "lifted" and first_failure is None:
+            first_failure = receipt.reason
+        if receipt.reason == "lifted":
+            if previous is not None and previous.identity != receipt.identity:
+                assert previous.identity is not None
+                departed.add(previous.identity)
+            previous = receipt
+        else:
+            previous = None
+    payload = [asdict(point) for point in points]
+    return CandidateLiftDecision(
+        eligible=first_failure is None,
+        points=tuple(points),
+        reason="source_complete" if first_failure is None else first_failure,
+        trajectory_lifting_sha256=canonical_json_sha256(payload),
+    )
+
+
+def _validate_lifting_context(context: RouteLiftingContext) -> None:
+    if len(context.samples) < 2:
+        raise ValueError("route lifting context needs at least two samples")
+    if (
+        not math.isfinite(context.route_sample_step_m)
+        or context.route_sample_step_m <= 0
+    ):
+        raise ValueError("route sample step must be finite and positive")
+    tolerances = context.tolerances
+    for value in (
+        tolerances.geometry_epsilon_m,
+        tolerances.station_epsilon_m,
+        tolerances.z_epsilon_m,
+        tolerances.continuity_epsilon_m,
+    ):
+        if not math.isfinite(value) or value < 0.0:
+            raise ValueError("lifting tolerances must be finite and nonnegative")
+    for digest in (
+        context.map_sha256,
+        context.source_sha256,
+        context.route_graph_sha256,
+    ):
+        if len(digest) != 64 or any(
+            character not in "0123456789abcdef" for character in digest
+        ):
+            raise ValueError("lifting context SHA256 is invalid")
+    for sample in context.samples:
+        numeric = (sample.s, sample.x, sample.y, sample.z, sample.lane_width)
+        if any(not math.isfinite(value) for value in numeric):
+            raise ValueError("route surface sample must be finite")
+        if sample.s < 0.0 or sample.lane_width <= 0.0 or sample.lane_id == 0:
+            raise ValueError("route surface sample metadata is invalid")
+    identities = {sample.identity for sample in context.samples}
+    if any(
+        source not in identities or target not in identities
+        for source, target in context.edges
+    ):
+        raise ValueError("route edge identity is outside the frozen context")
+
+
+def _inverse_transform_xy(
+    candidate: Sequence[Sequence[float]],
+    transform: Sequence[Sequence[float]],
+) -> Tuple[Tuple[float, float], ...]:
+    try:
+        matrix = tuple(tuple(float(value) for value in row) for row in transform)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "agents_from_world_tf must be a finite planar homogeneous transform"
+        ) from exc
+    if (
+        len(matrix) != 3
+        or any(len(row) != 3 for row in matrix)
+        or any(not math.isfinite(value) for row in matrix for value in row)
+        or not all(
+            math.isclose(value, expected, abs_tol=1e-9)
+            for value, expected in zip(matrix[2], (0.0, 0.0, 1.0))
+        )
+    ):
+        raise ValueError(
+            "agents_from_world_tf must be a finite planar homogeneous transform"
+        )
+    a, b, tx = matrix[0]
+    c, d, ty = matrix[1]
+    determinant = a * d - b * c
+    if (
+        determinant <= 0.0
+        or not math.isclose(a * a + b * b, 1.0, abs_tol=1e-6)
+        or not math.isclose(c * c + d * d, 1.0, abs_tol=1e-6)
+        or not math.isclose(a * c + b * d, 0.0, abs_tol=1e-6)
+    ):
+        raise ValueError("agents_from_world_tf must be a finite planar homogeneous transform")
+    result = []
+    for point in candidate:
+        if len(point) < 2:
+            raise ValueError("candidate points must contain x and y")
+        ego_x, ego_y = float(point[0]), float(point[1])
+        if not math.isfinite(ego_x) or not math.isfinite(ego_y):
+            raise ValueError("candidate XY must be finite")
+        shifted_x, shifted_y = ego_x - tx, ego_y - ty
+        result.append((a * shifted_x + c * shifted_y, b * shifted_x + d * shifted_y))
+    return tuple(result)
+
+
+def _surface_chords(
+    context: RouteLiftingContext,
+) -> Tuple[Tuple[LaneSurfaceSample, LaneSurfaceSample], ...]:
+    grouped: Dict[RouteIdentity, list[LaneSurfaceSample]] = {}
+    for sample in context.samples:
+        grouped.setdefault(sample.identity, []).append(sample)
+    chords = []
+    for samples in grouped.values():
+        ordered = sorted(samples, key=lambda sample: sample.s)
+        chords.extend(zip(ordered, ordered[1:]))
+    return tuple(chords)
+
+
+def _unique_route_surface_match(
+    world_x: float,
+    world_y: float,
+    context: RouteLiftingContext,
+    chords: Sequence[Tuple[LaneSurfaceSample, LaneSurfaceSample]],
+) -> Tuple[Optional[_SurfaceMatch], Optional[str]]:
+    matches: Dict[RouteIdentity, list[_SurfaceMatch]] = {}
+    for left, right in chords:
+        dx, dy = right.x - left.x, right.y - left.y
+        length_squared = dx * dx + dy * dy
+        if length_squared <= 0.0:
+            continue
+        raw = ((world_x - left.x) * dx + (world_y - left.y) * dy) / length_squared
+        if raw < 0.0 or raw > 1.0:
+            continue
+        projected_x, projected_y = left.x + raw * dx, left.y + raw * dy
+        residual = math.hypot(world_x - projected_x, world_y - projected_y)
+        width = left.lane_width + raw * (right.lane_width - left.lane_width)
+        if residual > width / 2.0 + context.tolerances.geometry_epsilon_m:
+            continue
+        station = left.s + raw * (right.s - left.s)
+        matches.setdefault(left.identity, []).append(
+            _SurfaceMatch(
+                left.road_id,
+                left.section_id,
+                left.lane_id,
+                station,
+                residual,
+                left.is_junction,
+            )
+        )
+    if not matches:
+        return None, "lateral_residual_exceeds_tolerance"
+    if len(matches) != 1:
+        return None, "lane_identity_ambiguous"
+    identity_matches = next(iter(matches.values()))
+    stations = [match.s for match in identity_matches]
+    if max(stations) - min(stations) > context.tolerances.station_epsilon_m:
+        return None, "lane_station_ambiguous"
+    return min(
+        identity_matches,
+        key=lambda match: (match.lateral_residual_m, match.s),
+    ), None
+
+
+def _xodr_receipt(
+    candidate_index: int,
+    point_index: int,
+    ego_x: float,
+    ego_y: float,
+    world_x: float,
+    world_y: float,
+    match: _SurfaceMatch,
+    map_api: Any,
+    tolerances: LiftingTolerances,
+) -> LiftedPointReceipt:
+    try:
+        waypoint = map_api.get_waypoint_xodr(
+            int(match.road_id), int(match.lane_id), float(match.s)
+        )
+    except (AttributeError, TypeError, ValueError):
+        waypoint = None
+    if waypoint is None:
+        return _failed_point_receipt(
+            candidate_index,
+            point_index,
+            ego_x,
+            ego_y,
+            world_x,
+            world_y,
+            "xodr_waypoint_missing",
+        )
+    try:
+        identity = (
+            str(waypoint.road_id),
+            int(waypoint.section_id),
+            int(waypoint.lane_id),
+        )
+        station = float(waypoint.s)
+        z = float(waypoint.transform.location.z)
+        is_junction = bool(waypoint.is_junction)
+    except (AttributeError, TypeError, ValueError):
+        return _failed_point_receipt(
+            candidate_index,
+            point_index,
+            ego_x,
+            ego_y,
+            world_x,
+            world_y,
+            "xodr_identity_mismatch",
+        )
+    if (
+        identity != match.identity
+        or is_junction != match.is_junction
+        or not math.isfinite(station)
+        or abs(station - match.s) > tolerances.station_epsilon_m
+    ):
+        return _failed_point_receipt(
+            candidate_index,
+            point_index,
+            ego_x,
+            ego_y,
+            world_x,
+            world_y,
+            "xodr_identity_mismatch",
+        )
+    if not math.isfinite(z):
+        return _failed_point_receipt(
+            candidate_index,
+            point_index,
+            ego_x,
+            ego_y,
+            world_x,
+            world_y,
+            "xodr_elevation_missing",
+        )
+    return LiftedPointReceipt(
+        candidate_index,
+        point_index,
+        ego_x,
+        ego_y,
+        world_x,
+        world_y,
+        match.road_id,
+        match.section_id,
+        match.lane_id,
+        station,
+        z,
+        match.lateral_residual_m,
+        True,
+        True,
+        True,
+        "lifted",
+    )
+
+
+def _failed_point_receipt(
+    candidate_index: int,
+    point_index: int,
+    ego_x: float,
+    ego_y: float,
+    world_x: float,
+    world_y: float,
+    reason: str,
+) -> LiftedPointReceipt:
+    return LiftedPointReceipt(
+        candidate_index,
+        point_index,
+        ego_x,
+        ego_y,
+        world_x,
+        world_y,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        False,
+        False,
+        False,
+        reason,
+    )
+
+
+def _continuous(
+    previous: Optional[LiftedPointReceipt],
+    current: LiftedPointReceipt,
+    departed: set[RouteIdentity],
+    context: RouteLiftingContext,
+) -> bool:
+    if previous is None:
+        return True
+    assert previous.identity is not None and current.identity is not None
+    assert previous.s is not None and current.s is not None
+    if previous.identity == current.identity:
+        return current.s + context.tolerances.continuity_epsilon_m >= previous.s
+    return (
+        current.identity not in departed
+        and (previous.identity, current.identity) in set(context.edges)
+    )
 
 
 def project_world_point_to_segment(
