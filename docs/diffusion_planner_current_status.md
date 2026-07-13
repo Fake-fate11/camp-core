@@ -1105,6 +1105,45 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_headless_egl_icd_runtime
 current_v19_artifact_root_sha256=0f673bc72a082a1378cf8dc7f27e130379aaf4d3c858b32365b140deab3a5f73
 next_work_target=v19_carla_headless_egl_icd_runtime_attempt_execution_only_continuous_authorization
 
+### Headless EGL-ICD Readiness and Materialize Git-Head Diagnosis
+
+At synchronized CAMP/GitHub/AutoDL
+`f341898625fa0b9d9fb74b16e22609d02edf94d1`, the reviewed controller created
+the exact temporary EGL-ICD manifest, applied the UID 65534 execute-only ACL,
+and launched the frozen CARLA command once. CARLA passed RPC readiness for the
+first time and source capture exited 0. Materialize then exited 1 before any
+request/context output because the CAMP-side harness passed the real 40-hex
+CAMP commit to a validator that required a 64-hex SHA256. No DP worker,
+candidate, receipt, outcome, metric, or holdout operation ran. The server later
+reported signal 11, but that is not attributed as this pipeline stop's cause.
+
+Guard/capture/execution/review roots are
+`ec1ae5c53ed6eaa1eaebb2134b9798907dbd9d276a24909f0d02b77a03f2d15b`,
+`5667cd20ca73de8cab94c41995b4addca39800bcfbcfbda24e3cfcc821d6c43c`,
+`7be9b8ac748b484f9b8d2c46a4d7c2c18e9f11be978ac4d09a9106b2ab5a2a8c`,
+and `5406159e0253dc6335dfc0cf5e8528cd56116d059cb6895e22785c55c88398e8`.
+The temporary manifest was removed, root ACL/stat/xattrs were restored, and
+independent review passed.
+
+The first no-runtime diagnosis driver correctly stopped on pre-existing
+untracked CAMP paths that it had over-broadly treated as drift; its preserved
+failure/review roots are
+`06df56f57f1ef5cdd9543448e6936875725af6cffc54391b0f7f539c4aaeca34`
+and `28a3c94862569227e6b87732dd32f5aabd6975f0efdafe9394427aa5d8e6d6b1`.
+The tracked-only rerun and independent review directly bound the Git-head
+validator defect with roots
+`3d3cb757fd882c7c848806df929e3f42e30c6362a80d495a1d9e8f0d12bdc9dc`
+and `44a9533051d1355dc64ae551e62079a464f3ecdcf40a6c6573a8475abc607e5c`.
+The minimal TDD fix validates CAMP/DP commits as exact 40-hex values while
+retaining 64-hex validation for selector/source digests. It does not change DP,
+captured source, candidates, lifting, or any scientific contract.
+
+current_v19_status=v19_carla_headless_egl_icd_readiness_passed_materialize_git_head_validation_failure_diagnosed_tdd_fix_ready
+current_v19_artifact_scope=headless_egl_icd_runtime_readiness_source_capture_materialize_git_head_validation_failure_diagnosis_and_tdd_fix_no_candidate_no_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_diagnosis_f3418986_20260713T204056CST_review
+current_v19_artifact_root_sha256=44a9533051d1355dc64ae551e62079a464f3ecdcf40a6c6573a8475abc607e5c
+next_work_target=v19_carla_materialize_git_head_validation_tdd_fix_static_review_and_runtime_preflight_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

@@ -150,8 +150,8 @@ def write_probe_requests(
 ) -> None:
     if any(path.exists() for path in (camp_request_dir, default_request_dir, context_path)):
         raise FileExistsError("probe request or context output already exists")
-    _require_sha256(camp_head, "CAMP head")
-    _require_sha256(dp_head, "DP head")
+    _require_git_head(camp_head, "CAMP head")
+    _require_git_head(dp_head, "DP head")
     if len(selector_hashes) != 3:
         raise ValueError("source probe requires three selector hashes")
     for digest in selector_hashes:
@@ -456,6 +456,13 @@ def _require_sha256(value: Any, name: str) -> None:
         character not in "0123456789abcdef" for character in value
     ):
         raise ValueError(f"{name} SHA256 is invalid")
+
+
+def _require_git_head(value: Any, name: str) -> None:
+    if not isinstance(value, str) or len(value) != 40 or any(
+        character not in "0123456789abcdef" for character in value
+    ):
+        raise ValueError(f"{name} Git commit is invalid")
 
 
 def _write_json_atomic(path: Path, value: Any) -> None:

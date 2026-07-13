@@ -117,8 +117,24 @@ def test_write_probe_requests_is_exactly_once() -> None:
             camp_request_dir=output,
             default_request_dir=output,
             context_path=output,
+            camp_head="c" * 40,
+            dp_head="d" * 40,
+            selector_hashes=("1" * 64, "2" * 64, "3" * 64),
+        )
+
+
+def test_write_probe_requests_rejects_content_digest_as_git_head() -> None:
+    output = SimpleNamespace(exists=lambda: False)
+
+    with pytest.raises(ValueError, match="CAMP head Git commit is invalid"):
+        _probe().write_probe_requests(
+            _capture(),
+            tolerances=LiftingTolerances(1.5, 1e-9, 1e-9, 1e-9),
+            camp_request_dir=output,
+            default_request_dir=output,
+            context_path=output,
             camp_head="c" * 64,
-            dp_head="d" * 64,
+            dp_head="d" * 40,
             selector_hashes=("1" * 64, "2" * 64, "3" * 64),
         )
 
@@ -140,8 +156,8 @@ def test_write_probe_requests_freezes_source_only_metadata(monkeypatch) -> None:
         camp_request_dir=output,
         default_request_dir=output,
         context_path=output,
-        camp_head="c" * 64,
-        dp_head="d" * 64,
+        camp_head="c" * 40,
+        dp_head="d" * 40,
         selector_hashes=("1" * 64, "2" * 64, "3" * 64),
     )
 
@@ -156,3 +172,5 @@ def test_write_probe_requests_freezes_source_only_metadata(monkeypatch) -> None:
     assert "selector_hashes" not in requests[1]
     assert all("selected_index" not in request for request in requests)
     assert all("outcome" not in " ".join(request).lower() for request in requests)
+    assert all(request["camp_head"] == "c" * 40 for request in requests)
+    assert all(request["dp_head"] == "d" * 40 for request in requests)

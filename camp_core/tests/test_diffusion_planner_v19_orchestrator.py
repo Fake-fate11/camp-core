@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_headless_egl_icd_runtime_attempt_preflight_independent_"
-        "review_passed"
+        "v19_carla_headless_egl_icd_readiness_passed_materialize_git_head_"
+        "validation_failure_diagnosed_tdd_fix_ready"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_headless_egl_icd_runtime_attempt_execution_only_continuous_"
-        "authorization"
+        "v19_carla_materialize_git_head_validation_tdd_fix_static_review_and_"
+        "runtime_preflight_only_continuous_authorization"
     )
