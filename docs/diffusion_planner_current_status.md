@@ -476,11 +476,18 @@ candidate 0`, while `native_ranked_top1=false` remains mandatory. Historical
 evidence was not rewritten. AutoDL reproduced `57 passed`; no simulator,
 metric, holdout, or outcome ran.
 
-current_v19_status=v19_carla_route_constrained_lifting_task3_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_task3_operational_top1_active_provenance_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task3_independent_review_78c82091a0_20260713T105608CST
-current_v19_artifact_root_sha256=15823afc672546512c07d5c93bf1d764a91e01b589a9129baf2f2bfe58fb73ef
-next_work_target=v19_carla_route_constrained_lifting_task4_tdd_implementation_only
+Task 4 now passes independent review. The existing exact-speed census validates
+the canonical receipt root, nine source SHAs, eight candidate receipts and all
+80 points before intersecting lifting eligibility with the frozen A/B/C speed
+mask. Operational completeness/equivalence remains a record-level hard gate;
+the historical segment-only path remains available. AutoDL reproduced `49
+passed, 1 skipped`; no simulator, metric, holdout, or outcome ran.
+
+current_v19_status=v19_carla_route_constrained_lifting_task4_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task4_exact_speed_census_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task4_independent_review_abdedb2a9d_20260713T110744CST
+current_v19_artifact_root_sha256=bd956bf03411ea0b513e65102072e1a13b0ca960e3bcbb32a56a99960ec995f1
+next_work_target=v19_carla_route_constrained_lifting_task5_implementation_static_review_only
 
 ## Current V18 Status
 

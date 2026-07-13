@@ -2099,3 +2099,39 @@ current_v19_artifact_scope=route_constrained_lifting_task3_operational_top1_acti
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task3_independent_review_78c82091a0_20260713T105608CST
 current_v19_artifact_root_sha256=15823afc672546512c07d5c93bf1d764a91e01b589a9129baf2f2bfe58fb73ef
 next_work_target=v19_carla_route_constrained_lifting_task4_tdd_implementation_only
+
+## CARLA Route-Constrained Lifting Task 4 Reviewed
+
+Task 4 updated the existing CARLA exact-speed census at CAMP commit
+`abdedb2a9dc2b0b74875d3b15d2e659cdad731e9`. The new path consumes only the
+canonical Task 2 receipt JSON. It verifies the receipt root, candidate and
+operational before/after SHAs, map/source/route-graph SHAs, eight candidate
+decisions, every 80-point trajectory hash, masks/reasons, operational
+completeness, and candidate-0 equivalence before using any segment. It then
+reconstructs `SegmentRef` rows from validated point receipts, derives junction
+status from the frozen XODR index, and intersects lifting eligibility with the
+existing A/B/C speed-source decision. All K masks, reasons, and point failures
+are retained. The historical segment-only builder remains unchanged and the
+CLI requires exactly one input mode.
+
+Local focused tests reproduced `21 passed`. AutoDL Python 3.9 reproduced `49
+passed, 1 skipped` across the receipt census, source-support, and complete v18
+orchestrator suites; `py_compile`, `git diff --check`, and static contract
+checks passed. The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task4_abdedb2a9d_20260713T110707CST`
+and `f8f6cc71b8e4f65e66c4866dd50deeb7737b4d3ff2a115b4377dbf50b71d1b6a`.
+
+Independent review reverified the implementation manifest/root, reproduced
+`19 passed`, and confirmed canonical validation, nine SHA fields, eight-by-80
+completeness, mask intersection, operational hard gate, zero access counters,
+and the retained historical path. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task4_independent_review_abdedb2a9d_20260713T110744CST`
+and `bd956bf03411ea0b513e65102072e1a13b0ca960e3bcbb32a56a99960ec995f1`.
+No simulator, planner outcome, metric, holdout, rung, scenario, or claim was
+produced. Fixed DP and claim taxonomy remain unchanged.
+
+current_v19_status=v19_carla_route_constrained_lifting_task4_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task4_exact_speed_census_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task4_independent_review_abdedb2a9d_20260713T110744CST
+current_v19_artifact_root_sha256=bd956bf03411ea0b513e65102072e1a13b0ca960e3bcbb32a56a99960ec995f1
+next_work_target=v19_carla_route_constrained_lifting_task5_implementation_static_review_only
