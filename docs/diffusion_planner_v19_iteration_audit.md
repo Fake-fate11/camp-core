@@ -3723,3 +3723,56 @@ current_v19_artifact_scope=materialize_git_head_validation_tdd_fix_static_review
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_fix_runtime_preflight_b82eb784_20260713T204700CST_independent_review
 current_v19_artifact_root_sha256=0b1d95cc2b1e54de5dc42fed8f0cdf78af774b33144f6b9a2708e29f70e8c1f8
 next_work_target=v19_carla_materialize_git_head_validation_remediation_runtime_attempt_1_execution_only_continuous_authorization
+
+## Materialize Remediation Pre-Start Harness-SHA Failure
+
+At synchronized CAMP/GitHub/AutoDL
+`763190831cae8ae9efe73456d4c9f64de2fe8caa`, the first controller-generation
+call stopped before creating its target because it addressed the already sealed
+source static review with an incorrect `_independent_review` suffix. The
+corrected generator used the exact `_static_review` artifact, preserved that
+path-attribution failure inside its output, and changed only current CAMP HEAD,
+preflight roots, and the attempt label in the previously reviewed controller.
+Static controller source/review roots are
+`b350b4e31a1425b3659a5487c4f9ae9481c16b76359895bb89580b50ed08f92d`
+and `bbde55a0b8c7546947beb9a73c68feccc5a9bdcaa8dd39e757beec256986d4b7`;
+controller SHA256 is
+`6d2199814f39f4c605e3bc3f695f15b16e1bd4636462d37aab2bfdc2e2ef6ad2`.
+
+The first controller invocation omitted its contract-required pre-created
+`GUARD_STAGE` and stopped on the initial assertion. It performed no guard,
+manifest, ACL, or runtime action. The repeated invocation created only that
+unique mode-0700 staging directory first. Its guard then passed synchronized
+HEAD/GitHub, fixed clean DP, package, no peer/listener/Saved/staging, restored
+root, disk, and plan checks before entering the reviewed wrapper.
+
+Inside the wrapper, the runner failed at line 28, before `COMMAND.resolved.json`
+and before the server variable/start block, with `ValueError: harness SHA
+drift`. The preflight plan retained the pre-fix harness SHA256
+`45801d5653cc5f04a000af033e1ac3c57ec2127f390ede68bcd98f8af698a86a`,
+while synchronized source SHA256 is
+`931366a927c53e2c9045caec589814c75aff2fd979ea8ac86e6b75368d674c41`.
+The prior preflight correctly tested the new source but incorrectly asserted
+that only execution paths needed plan replacement; it did not update the plan's
+integrity pin.
+
+The ACL trap reports `body_rc=1`, `restore_rc=0`, all ACL/stat/xattr comparison
+rc values 0, and `blocked_after_restore=true`; original and restored files are
+byte-equal. Root is mode 0700, UID 65534 cannot traverse, the temporary manifest
+is absent, and there is no process/listener/Saved state. Guard, wrapper-capture,
+execution, and independent-review roots are
+`39ecba553e706d3ef47fcc268363b93f5a4ae4ac883b7dd8cfbf87605238e69d`,
+`bb263568bd6cc4ddb151dca9cb3ae57dba0d0a30bd8dfaee74d18fe0d304155d`,
+`26c17fbc2e36160f7dbc5c4a3931003a699af57c02132361cda510dee9c71946`,
+and `a6542a10376bbb1b26bdd3e849119de9c82be8b8bd56f2466ec8708d905b04ab`.
+CARLA and DP were not started; no candidate, outcome, metric, or holdout access
+occurred. Materialize Git-head root-cause attempt 1 is therefore not consumed.
+The next preflight may update only fresh execution paths plus the harness
+integrity pin to the exact committed source SHA; scientific contracts remain
+unchanged.
+
+current_v19_status=v19_carla_materialize_git_head_remediation_prestart_harness_sha_drift_failure_independent_review_passed
+current_v19_artifact_scope=materialize_git_head_remediation_prestart_harness_sha_drift_failure_acl_restoration_and_independent_review_no_runtime_attempt_consumed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_execution_controller_76319083_20260713T205117CST_execution_review
+current_v19_artifact_root_sha256=a6542a10376bbb1b26bdd3e849119de9c82be8b8bd56f2466ec8708d905b04ab
+next_work_target=v19_carla_materialize_git_head_remediation_harness_sha_corrected_runtime_preflight_only_continuous_authorization

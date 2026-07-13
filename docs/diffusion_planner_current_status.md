@@ -1171,6 +1171,37 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_fix
 current_v19_artifact_root_sha256=0b1d95cc2b1e54de5dc42fed8f0cdf78af774b33144f6b9a2708e29f70e8c1f8
 next_work_target=v19_carla_materialize_git_head_validation_remediation_runtime_attempt_1_execution_only_continuous_authorization
 
+### Materialize Remediation Pre-Start Harness-SHA Failure
+
+At synchronized CAMP/GitHub/AutoDL
+`763190831cae8ae9efe73456d4c9f64de2fe8caa`, controller generation first
+failed before creating an artifact because the source review suffix was
+misnamed; the corrected generation preserved that error and passed static
+review with roots
+`b350b4e31a1425b3659a5487c4f9ae9481c16b76359895bb89580b50ed08f92d`
+and `bbde55a0b8c7546947beb9a73c68feccc5a9bdcaa8dd39e757beec256986d4b7`.
+An initial invocation then omitted the required pre-created guard staging
+directory and stopped on its first assertion before any action.
+
+The corrected invocation passed the launch guard and entered the ACL wrapper,
+but the runner stopped before writing a resolved plan or starting CARLA:
+`execution_plan.json` retained pre-fix harness SHA256 `45801d...`, while the
+committed fixed harness is `931366...`. The ACL trap restored ACL/stat/xattrs
+byte-equally with restore rc 0, blocked UID 65534 again, and the temporary ICD
+manifest was removed. No server, DP worker, candidate, outcome, metric, or
+holdout activity occurred, so materialize root-cause attempt 1 is not consumed.
+Guard/capture/execution/review roots are
+`39ecba553e706d3ef47fcc268363b93f5a4ae4ac883b7dd8cfbf87605238e69d`,
+`bb263568bd6cc4ddb151dca9cb3ae57dba0d0a30bd8dfaee74d18fe0d304155d`,
+`26c17fbc2e36160f7dbc5c4a3931003a699af57c02132361cda510dee9c71946`,
+and `a6542a10376bbb1b26bdd3e849119de9c82be8b8bd56f2466ec8708d905b04ab`.
+
+current_v19_status=v19_carla_materialize_git_head_remediation_prestart_harness_sha_drift_failure_independent_review_passed
+current_v19_artifact_scope=materialize_git_head_remediation_prestart_harness_sha_drift_failure_acl_restoration_and_independent_review_no_runtime_attempt_consumed
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_execution_controller_76319083_20260713T205117CST_execution_review
+current_v19_artifact_root_sha256=a6542a10376bbb1b26bdd3e849119de9c82be8b8bd56f2466ec8708d905b04ab
+next_work_target=v19_carla_materialize_git_head_remediation_harness_sha_corrected_runtime_preflight_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this
