@@ -2432,3 +2432,43 @@ current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootle
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_a6988f3f_20260713T140654CST
 current_v19_artifact_root_sha256=dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2
 next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_execution_retry_only
+
+## CARLA Source-Only K8 Probe Rootless Loader Retry Preflight
+
+The unique rootless-CWD runtime attempt started only the frozen CARLA process,
+which exited `127` before port readiness. Its exact stderr is
+`libChronoEngine.so: cannot open shared object file`; capture, materialization,
+both workers, receipt construction, candidates, metrics, outcomes, and holdout
+access remained at zero. The retained failed stage/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_retry_a6988f3f_20260713T140654CST.tmp`
+and `8fe2ed5fb8822dcc3556ad5a861de12b94f1554a5f74b7621d63677bed98b7f6`.
+It atomically retained the generated Saved directory outside the runtime,
+left no process, preserved `/root` mode 700 and binary SHA256
+`03bcd413615fa1fc61a5b846342dbdc4e6b3541320a40d6bf17ff927039731f9`,
+and left `50,571,735,040` free bytes.
+
+Read-only loader diagnosis found that the packaged binary RPATH resolves from
+its absolute `/root/...` origin after UID drop, which UID 65534 cannot traverse.
+Adding only the two packaged relative library directories resolves this
+engineering compatibility gap: `CarlaUE4/Plugins/Carla/CarlaDependencies/lib`
+for Chrono and `Engine/Binaries/ThirdParty/PhysX3/Linux/x86_64-unknown-linux-gnu`
+for PhysX. No default, copied library, mount, permission change, or runtime
+file mutation is used.
+
+The formal no-server loader preflight passed all 18 checks and independently
+resolved the full binary dependency graph with zero `not found` entries. Its
+artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_7d67160b_20260713T141937CST`
+and `0f388976519f78bf78561927ab11f8eed8340483c4323482164a949f087ac845`.
+Independent manifest rehash and rootless `ldd` review passed all 15 checks at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_7d67160b_20260713T141937CST`
+with root `6357b6c999fd016699c54bcadf921be8d7693cfa12f8d0c2bd4eb0572ae4eb01`.
+No server, worker, candidate, metric, outcome, or holdout ran. The next gate
+permits one final rootless loader retry with this exact environment addition;
+all source, model, candidate, and protocol inputs remain frozen.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_7d67160b_20260713T141937CST
+current_v19_artifact_root_sha256=6357b6c999fd016699c54bcadf921be8d7693cfa12f8d0c2bd4eb0572ae4eb01
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_retry_only

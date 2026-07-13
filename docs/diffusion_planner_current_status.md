@@ -543,13 +543,27 @@ directory was moved into the preflight artifact and is absent from the runtime.
 The preflight/review roots are
 `aa160dc9066f962b331d967eaa676bf52cb925387e6e15b6c966f604acb420ac` and
 `dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2`.
-No retry server, worker, candidate, metric, outcome, or holdout ran.
 
-current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_no_execution
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_retry_preflight_independent_review_a6988f3f_20260713T140654CST
-current_v19_artifact_root_sha256=dc9996ad08f42346b9786e5371a521ef30298f003131301bc2d67c910e49b6d2
-next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_cwd_execution_retry_only
+The rootless-CWD runtime attempt then exited `127` before readiness because the
+dynamic loader could not resolve `libChronoEngine.so`: the packaged RPATH
+resolved through the inaccessible absolute `/root` ancestor after UID drop.
+Its retained stage has root
+`8fe2ed5fb8822dcc3556ad5a861de12b94f1554a5f74b7621d63677bed98b7f6`.
+No capture, worker, candidate, metric, outcome, or holdout call occurred.
+
+The minimal no-server loader preflight and independent review now pass. Under
+UID/GID 65534, a relative `LD_LIBRARY_PATH` containing only the packaged CARLA
+dependency and PhysX directories resolves the full binary dependency graph
+with zero `not found` entries. It changes no runtime file or protocol and does
+not start CARLA. The preflight/review roots are
+`0f388976519f78bf78561927ab11f8eed8340483c4323482164a949f087ac845` and
+`6357b6c999fd016699c54bcadf921be8d7693cfa12f8d0c2bd4eb0572ae4eb01`.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_7d67160b_20260713T141937CST
+current_v19_artifact_root_sha256=6357b6c999fd016699c54bcadf921be8d7693cfa12f8d0c2bd4eb0572ae4eb01
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_retry_only
 
 ## Current V18 Status
 
