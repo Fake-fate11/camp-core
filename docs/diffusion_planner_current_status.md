@@ -1262,6 +1262,46 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_cor
 current_v19_artifact_root_sha256=46d65dc6942e3890085acf727a72675106866e9872f5b7a03fb4c82bceb745fb
 next_work_target=user_decision_required_before_any_frozen_scientific_contract_change_after_zero_legal_paired_support_hard_stop
 
+### Zero-Support Source-Only Point Breakdown Independently Reviewed
+
+The user authorized a separate source-only, outcome-free scientific-contract
+redesign instead of ending v19 at the preceding no-claim boundary. At clean
+local/GitHub/AutoDL CAMP `a27e292ff7154a84a62c813325da98f094f50276`
+and fixed clean DP `7a1d33da277a1992ec474b5383a0c963c72e04e4`, a read-only
+diagnostic rehashed the sealed execution/review, immutable K=8 tensor, DP
+operational Top-1, Town10HD OpenDRIVE, route context, and every candidate x 80
+point receipt. It did not start CARLA, DP, a pipeline, an arm, or any metric,
+and it did not read an outcome or holdout.
+
+Across the complete 640-point grid, the original receipt reasons are 154
+`lateral_residual_exceeds_tolerance`, 405 `xodr_identity_mismatch`, and 81
+`route_topology_discontinuous`. Source-only decomposition shows that the 154
+nominal lateral failures comprise 127 points before the route window, 24 points
+inside a directed OpenDRIVE-identity transition sampling gap, and only 3 true
+lateral/non-route points. The 405 XODR mismatches are reproduced exactly by
+the documented CARLA `float s` API boundary exceeding the frozen approximately
+1e-9 m station epsilon; all 81 points that passed that numeric comparison are
+the later fail-closed continuity propagation after an earlier source gap.
+There are zero intrinsic backtracks, non-edge branch hops, identity/station
+ambiguities, missing XODR waypoints, or missing elevations in this record.
+
+The outcome-free eight-map XODR census gives a global float32 station
+half-ULP bound of `3.0517578125e-05 m`. This is diagnostic evidence only: no
+tolerance, route window, transition representation, source contract, candidate,
+or eligibility was changed, and no replacement threshold was selected. The
+breakdown/review roots are
+`e2601162e8bbeb1c6ddc781e99246097dda95f4ff5ae7f30b4004d2d512efb4a`
+and `d540bf6b195db9a33cf31c6b6769d52d1d82d01cda5a19135ac6934c805e5b34`.
+Candidate 0 remains equivalent to DP operational Top-1 but source-incomplete;
+closed-loop, safety, performance, and broad CAMP-over-DP claims remain
+unsupported.
+
+current_v19_status=v19_zero_support_source_only_candidate_point_breakdown_independent_review_passed
+current_v19_artifact_scope=zero_support_complete_candidate_x80_source_only_failure_breakdown_float32_station_diagnosis_and_route_coverage_ambiguity_no_contract_change
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_source_only_breakdown_a27e292f_20260713T213118CST_independent_review
+current_v19_artifact_root_sha256=d540bf6b195db9a33cf31c6b6769d52d1d82d01cda5a19135ac6934c805e5b34
+next_work_target=v19_zero_support_scientific_contract_redesign_design_spec_static_review_and_tdd_plan_only
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

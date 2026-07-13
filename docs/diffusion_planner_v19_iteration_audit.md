@@ -3902,3 +3902,79 @@ current_v19_artifact_scope=source_only_fixed_dp_k8_probe_runtime_passed_candidat
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_corrected_execution_controller_c8953d6c_20260713T210038CST_execution_review
 current_v19_artifact_root_sha256=46d65dc6942e3890085acf727a72675106866e9872f5b7a03fb4c82bceb745fb
 next_work_target=user_decision_required_before_any_frozen_scientific_contract_change_after_zero_legal_paired_support_hard_stop
+
+## Zero-Support Source-Only Point Breakdown Independently Reviewed
+
+The user explicitly superseded the preceding scientific-contract decision
+boundary with a separate redesign scope. The first gate remained completely
+source-only and outcome-free. At clean synchronized CAMP
+`a27e292ff7154a84a62c813325da98f094f50276` and fixed clean DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, it rehashed the sealed source
+execution/review, K=8 and operational Top-1 arrays, capture, route context,
+lifting receipt, and the exact Town10HD OpenDRIVE whose SHA256 is
+`5d883b799f634030af92be1e9d79d107845540ba04338e8c60e095be1aef7be7`.
+No CARLA server, DP worker, pipeline, simulator arm, candidate generation,
+metric, outcome, or holdout access occurred.
+
+The complete candidate x 80 grid contains these original receipt reasons:
+
+- `lateral_residual_exceeds_tolerance`: 154;
+- `xodr_identity_mismatch`: 405;
+- `route_topology_discontinuous`: 81.
+
+The source-only reclassification retains all 640 rows and does not stop at the
+first candidate error:
+
+- route-window-before-start: 127;
+- directed identity-transition sampling gap: 24;
+- true lateral/non-route: 3, all candidate 7 points 77-79;
+- XODR float32 station round-trip: 405;
+- continuity propagated after an earlier source failure: 81.
+
+The immutable candidate tensor and DP operational Top-1 SHA256 values remain
+`8ca8c2e35de6363d40a154033ebee08e326114da0d7ae6790013329988f6a42c`
+and `d01bd26929034d356e57d8f731bf90b5aba8b93b54839ee36b0f74f58a4d967c`;
+candidate 0 is still exactly equivalent to the operational Top-1. The frozen
+route has 81 samples, seven directed identity edges, source SHA256
+`fcc1c6b3655cd44690ae0223ad8ef76ff1c54d6d9a9d9c0bc2f3454534bd0e58`,
+and graph SHA256
+`a3a850dd70b170782edf8fdc09b76c1fc7490ea19a4f292389af9caa52772a76`.
+
+For every one of the 486 points with a unique route-chord match, converting the
+interpolated double station to the CARLA API's float32 input predicts the
+receipt split exactly: all 405 XODR mismatch rows exceed the frozen
+`1.0000017763568395e-9 m` station epsilon, and all 81 later continuity rows do
+not. Roads 0 and 10 each have one lane section containing lane -2 and are
+non-junction roads, so section/lane/junction ambiguity does not explain the
+observed split. An independent, candidate-free census of all road lengths in
+the same eight official XODRs gives a global float32 station half-ULP bound of
+`3.0517578125e-05 m`. This identifies a precision-census/implementation defect
+but does not yet select or apply a replacement tolerance.
+
+The remaining route coverage evidence is separate: 127 points lie just before
+the first sampled route chord, while 24 lie on the geometric connection between
+consecutive samples whose identities form the frozen directed edge `(0,0,-2)`
+to `(10,0,-2)`. The present same-identity chord representation contains neither
+the predecessor-side route surface nor an identity-valid boundary
+representation. Whether to add an outcome-free predecessor halo, materialize
+exact OpenDRIVE boundary samples, or retain strict future-only exclusion has not
+been scientifically selected. No current-candidate magnitude is used to derive
+a threshold.
+
+The source breakdown artifact/root is
+`/root/autodl-tmp/camp_dp_v19_zero_support_source_only_breakdown_a27e292f_20260713T213103CST`
+and `e2601162e8bbeb1c6ddc781e99246097dda95f4ff5ae7f30b4004d2d512efb4a`.
+Independent review passed 13/13 checks at
+`/root/autodl-tmp/camp_dp_v19_zero_support_source_only_breakdown_a27e292f_20260713T213118CST_independent_review`
+with root
+`d540bf6b195db9a33cf31c6b6769d52d1d82d01cda5a19135ac6934c805e5b34`.
+No lifting/source/tolerance/eligibility field changed. Legal paired support is
+still zero, candidate 0 remains source-incomplete, and performance,
+closed-loop safety, broad CAMP-over-DP, promotion, deployment, and activation
+claims remain unsupported.
+
+current_v19_status=v19_zero_support_source_only_candidate_point_breakdown_independent_review_passed
+current_v19_artifact_scope=zero_support_complete_candidate_x80_source_only_failure_breakdown_float32_station_diagnosis_and_route_coverage_ambiguity_no_contract_change
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_source_only_breakdown_a27e292f_20260713T213118CST_independent_review
+current_v19_artifact_root_sha256=d540bf6b195db9a33cf31c6b6769d52d1d82d01cda5a19135ac6934c805e5b34
+next_work_target=v19_zero_support_scientific_contract_redesign_design_spec_static_review_and_tdd_plan_only
