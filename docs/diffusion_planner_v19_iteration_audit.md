@@ -3212,3 +3212,70 @@ current_v19_artifact_scope=carla_full_stdout_log_diagnostic_runtime_attempt_pref
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_runtime_attempt_preflight_5ea82432_20260713T192404CST_independent_review
 current_v19_artifact_root_sha256=bd2ebc274dae14b2122e13edde1407fbc57604e769f2d10d60c0d1892bbe8a65
 next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_execution_only_continuous_authorization
+
+## Full-Log Failure and Absolute-XDG Read-Only Diagnosis
+
+The full-stdout/log attempt was bound to CAMP/GitHub/AutoDL
+`d36a98e892b1941723da08cf6337a63f41764ceb` and fixed clean DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Its immediate guard rehashed the
+preflight/review and prior diagnosis roots, reran plan validation, checked
+GitHub main, package/binary state, no peer/listener/Saved/execution path, the
+disk floor, and the mode-700 root without UID 65534 traversal. The guard/root
+is
+`/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_execution_controller_d36a98e8_20260713T192933CST`
+and `b0689f76e403281fdb3916fc45d22bf92f2f166cc5805f8f5cb5edead50e3c76`.
+
+A separately precreated wrapper-capture artifact avoided the earlier stage
+visibility gap. It records the exact command, empty wrapper stdout/stderr,
+direct exit 1, start/end times, and restored final state with root
+`97e9dad6e12a02eaf455e84c67bbb15854316194f12e2262d62767d94f17fd08`.
+The wrapper granted only `u:65534:--x`, retained read/write/list denial, and
+launched the unchanged shipping binary as UID/GID 65534.
+
+CARLA again printed only `4.26.2-0+++UE4+Release-4.26 522 0` and
+`Disabling core dumps.`, then exited 1 after 0.60 seconds before RPC readiness.
+Server stderr remained empty. `-stdout`, `-FullStdOutLogOutput`,
+`-AllowStdOutLogVerbosity`, and the Saved-local absolute `-Abslog` produced no
+log file, so the diagnostic attempt added no internal UE error text. It invoked
+zero capture, materialization, CAMP worker, DP worker, or receipt commands and
+generated no candidate or receipt. Outcome, metric, and holdout counters stayed
+zero.
+
+The ACL trap restored with body rc 1, restore rc 0, zero ACL/stat/xattr compare
+codes, byte-equal snapshots, and blocked post-restore traversal. The failed
+execution/root is
+`/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_execution_5ea82432_20260713T192404CST.tmp`
+and `2a5c0ba1b3f441dd7f5a49584f2280369f8c80955747826616d4ae18d2a7fb85`.
+Independent review rehashed guard, capture, and execution, replayed every
+restore/zero-call/log-inventory assertion, and passed at
+`/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnostic_execution_controller_d36a98e8_20260713T192933CST_independent_review`
+with root `1e4a0e5da18b28f71aeb71a4c9d4e1eb746641c2b10ac646cc94d267a11c086d`.
+This is the fourth UE-banner exit-1 observation; the internal cause remains
+unknown rather than being renamed.
+
+A new read-only gate then rehashed all four artifacts and retrieved the
+official XDG Base Directory Specification 0.7. It establishes that paths set
+in XDG base-directory variables must be absolute and relative paths should be
+treated as invalid. The frozen `XDG_RUNTIME_DIR=CarlaUE4/Saved/xdg` violates
+that contract. Under UID/GID 65534, the current value caused
+`systemd-path user-runtime` to exit 1 with `No such device or address`; the
+proposed value
+`/root/autodl-tmp/carla_0.9.16/runtime/CarlaUE4/Saved/xdg` exited zero and
+returned itself. Prior execution evidence proves the runner creates that
+directory as UID/GID 65534, mode 0700.
+
+This is an independently established environment-contract defect, not proof
+of the CARLA exit-1 cause. The diagnosis/root is
+`/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_runtime_dir_read_only_diagnosis_d36a98e8_20260713T193206CST`
+and `da6810fe60acd4f290531f696a57c4c2a39b89e026ac3e14593eeaf484995c7f`.
+Its independent review/root is the corresponding `_independent_review` path
+and `d5e384fe5adf1bb37ca01dc91383495024c2fb1b77ba39558abcbc93bd1ebb8c`.
+The next continuously authorized gate is a no-runtime preflight for attempt 1
+of this absolute-XDG hypothesis, changing only `XDG_RUNTIME_DIR` while retaining
+full-log capture and every scientific boundary.
+
+current_v19_status=v19_carla_full_stdout_log_diagnostic_execution_failure_and_absolute_xdg_read_only_diagnosis_independent_review_passed
+current_v19_artifact_scope=carla_full_stdout_log_diagnostic_execution_failure_and_absolute_xdg_read_only_diagnosis_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_runtime_dir_read_only_diagnosis_d36a98e8_20260713T193206CST_independent_review
+current_v19_artifact_root_sha256=d5e384fe5adf1bb37ca01dc91383495024c2fb1b77ba39558abcbc93bd1ebb8c
+next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_only_continuous_authorization

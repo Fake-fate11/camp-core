@@ -828,6 +828,41 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_full_stdout_log_diagnost
 current_v19_artifact_root_sha256=bd2ebc274dae14b2122e13edde1407fbc57604e769f2d10d60c0d1892bbe8a65
 next_work_target=v19_carla_full_stdout_log_diagnostic_runtime_attempt_execution_only_continuous_authorization
 
+### Full-Log Failure and Absolute-XDG Read-Only Diagnosis
+
+At synchronized CAMP/GitHub/AutoDL
+`d36a98e892b1941723da08cf6337a63f41764ceb`, the reviewed full-log command
+ran under the same execute-only ACL trap. Its external wrapper capture was
+complete, CARLA printed only the same two UE banner/core-dump lines, and it
+exited 1 after 0.60 seconds before readiness. None of the four supported
+logging arguments created `diagnostic.log`; stderr stayed empty. No pipeline
+step, candidate, receipt, metric, outcome, or holdout access occurred. ACL,
+stat, and xattrs restored byte-for-byte, and no process/listener/Saved path
+remains. Guard/capture/execution/review roots are
+`b0689f76e403281fdb3916fc45d22bf92f2f166cc5805f8f5cb5edead50e3c76`,
+`97e9dad6e12a02eaf455e84c67bbb15854316194f12e2262d62767d94f17fd08`,
+`2a5c0ba1b3f441dd7f5a49584f2280369f8c80955747826616d4ae18d2a7fb85`,
+and `1e4a0e5da18b28f71aeb71a4c9d4e1eb746641c2b10ac646cc94d267a11c086d`.
+
+A subsequent no-CARLA diagnosis established an independent environment
+contract violation without claiming it caused exit 1. The official XDG Base
+Directory Specification requires XDG paths to be absolute. The frozen value
+`CarlaUE4/Saved/xdg` is relative; under the exact UID 65534 environment,
+`systemd-path user-runtime` failed with `No such device or address`. Changing
+only the probe value to the already reviewed absolute runtime Saved path
+returned zero and that path's creation contract is UID/GID 65534, mode 0700.
+Diagnosis/review roots are
+`da6810fe60acd4f290531f696a57c4c2a39b89e026ac3e14593eeaf484995c7f`
+and `d5e384fe5adf1bb37ca01dc91383495024c2fb1b77ba39558abcbc93bd1ebb8c`.
+The next gate is a no-runtime preflight changing only `XDG_RUNTIME_DIR` to
+that absolute path while retaining full-log capture and all scientific fields.
+
+current_v19_status=v19_carla_full_stdout_log_diagnostic_execution_failure_and_absolute_xdg_read_only_diagnosis_independent_review_passed
+current_v19_artifact_scope=carla_full_stdout_log_diagnostic_execution_failure_and_absolute_xdg_read_only_diagnosis_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_runtime_dir_read_only_diagnosis_d36a98e8_20260713T193206CST_independent_review
+current_v19_artifact_root_sha256=d5e384fe5adf1bb37ca01dc91383495024c2fb1b77ba39558abcbc93bd1ebb8c
+next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this
