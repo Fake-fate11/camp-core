@@ -2135,3 +2135,37 @@ current_v19_artifact_scope=route_constrained_lifting_task4_exact_speed_census_in
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task4_independent_review_abdedb2a9d_20260713T110744CST
 current_v19_artifact_root_sha256=bd956bf03411ea0b513e65102072e1a13b0ca960e3bcbb32a56a99960ec995f1
 next_work_target=v19_carla_route_constrained_lifting_task5_implementation_static_review_only
+
+## CARLA Route-Constrained Lifting Combined Static Review
+
+The combined review verified the four Task 1-4 independent artifact roots and
+all manifest entries, clean matching CAMP heads, fixed clean DP commit, and the
+10 GiB floor. It reproduced `93 passed` across the pure lifting, K=8 receipt,
+active provenance, receipt census, bridge, worker, adapter, smoke, and
+source-support suites.
+
+The first wrapper at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_implementation_static_review_d63b6a21fe_20260713T110945CST`
+with root `3fda9d22384ff319b235d8425fdb3de2bb30fa4aebe2989c17bea3a2397a6aa0`
+is invalid review evidence. Its tests passed, but its call-graph slice ended
+before `_xodr_receipt`, and its subshell lacked `set -e`, so the resulting
+assertion in stderr was masked by a later successful diff check. It is retained
+for audit only and is not used as a passed gate.
+
+The corrected review used shell errexit and traced both the public kernel and
+the private XODR helper. It confirmed route-only matching, no global map
+projection, official `get_waypoint_xodr` as the sole z lookup, no CARLA import
+in the pure module, separate operational lifting, eight complete receipts, no
+selection in the lifting gate, canonical census validation, lifting/speed mask
+intersection, zero outcome/metric access, active operational provenance, and
+`native_ranked_top1=false`. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_implementation_static_review_final_d63b6a21fe_20260713T111027CST`
+and `69e0012e75c66e60935dd2355ccc43a3d64ed76c0b706d0ad92275f7b7cd21ec`.
+No candidate generation, simulator, metric, holdout, rung, scenario, or claim
+occurred.
+
+current_v19_status=v19_carla_route_constrained_lifting_implementation_static_review_passed
+current_v19_artifact_scope=route_constrained_lifting_tasks1_4_combined_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_implementation_static_review_final_d63b6a21fe_20260713T111027CST
+current_v19_artifact_root_sha256=69e0012e75c66e60935dd2355ccc43a3d64ed76c0b706d0ad92275f7b7cd21ec
+next_work_target=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_only

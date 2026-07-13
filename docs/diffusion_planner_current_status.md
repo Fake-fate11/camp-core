@@ -483,11 +483,17 @@ mask. Operational completeness/equivalence remains a record-level hard gate;
 the historical segment-only path remains available. AutoDL reproduced `49
 passed, 1 skipped`; no simulator, metric, holdout, or outcome ran.
 
-current_v19_status=v19_carla_route_constrained_lifting_task4_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_task4_exact_speed_census_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task4_independent_review_abdedb2a9d_20260713T110744CST
-current_v19_artifact_root_sha256=bd956bf03411ea0b513e65102072e1a13b0ca960e3bcbb32a56a99960ec995f1
-next_work_target=v19_carla_route_constrained_lifting_task5_implementation_static_review_only
+The combined implementation static review now passes. It verified all four
+upstream review roots, reproduced `93 passed`, traced the XODR helper call,
+confirmed no global projection, candidate writes, CARLA import in the pure
+module, outcome access, or active legacy baseline name. An earlier wrapper
+with an incomplete call-graph slice is retained as invalid evidence.
+
+current_v19_status=v19_carla_route_constrained_lifting_implementation_static_review_passed
+current_v19_artifact_scope=route_constrained_lifting_tasks1_4_combined_static_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_implementation_static_review_final_d63b6a21fe_20260713T111027CST
+current_v19_artifact_root_sha256=69e0012e75c66e60935dd2355ccc43a3d64ed76c0b706d0ad92275f7b7cd21ec
+next_work_target=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_only
 
 ## Current V18 Status
 
