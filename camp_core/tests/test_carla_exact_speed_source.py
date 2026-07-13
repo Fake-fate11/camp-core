@@ -653,6 +653,23 @@ def test_k8_receipt_requires_candidate0_source_complete() -> None:
     assert receipt["selected_index"] is None
 
 
+def test_k8_receipt_requires_two_candidates_for_paired_support() -> None:
+    candidates = _k8_candidates()
+    candidates[1:, :, 1] = np.float32(10.0)
+    before = candidates.copy()
+
+    receipt = _lift_k8(candidates)
+
+    np.testing.assert_array_equal(candidates, before)
+    assert receipt["record_source_eligible"] is True
+    assert receipt["source_complete_candidate_count"] == 1
+    assert receipt["paired_source_support_eligible"] is False
+    assert receipt["paired_source_support_reason"] == (
+        "fewer_than_two_source_complete_candidates"
+    )
+    assert receipt["selected_index"] is None
+
+
 def test_k8_receipt_retains_all_reasons_when_all_k_ineligible() -> None:
     receipt = _lift_k8(_k8_candidates(y=10.0))
 

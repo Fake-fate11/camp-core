@@ -426,6 +426,7 @@ def lift_k8_route_receipt(
         operational_before=operational_before,
         operational_after=operational_after,
     )
+    paired_eligible, paired_reason = _paired_source_support(reason, mask)
     payload = {
         "record_source_eligible": reason == "source_complete",
         "reason": reason,
@@ -438,6 +439,9 @@ def lift_k8_route_receipt(
         "operational_top1_sha256_after": operational_after,
         "candidate_source_eligible_mask": mask,
         "candidate_source_reasons": reasons,
+        "source_complete_candidate_count": sum(bool(item) for item in mask),
+        "paired_source_support_eligible": paired_eligible,
+        "paired_source_support_reason": paired_reason,
         "candidate_receipts": [_decision_payload(item) for item in decisions],
         "operational_top1_receipt": _decision_payload(default),
         "dp_operational_top1_source_complete": default.eligible,
@@ -520,6 +524,16 @@ def _tick_failure_reason(
     if not equivalent:
         return "candidate0_operational_top1_mismatch"
     return "source_complete"
+
+
+def _paired_source_support(
+    record_reason: str, mask: Sequence[bool]
+) -> Tuple[bool, str]:
+    if record_reason != "source_complete":
+        return False, record_reason
+    if sum(bool(item) for item in mask) < 2:
+        return False, "fewer_than_two_source_complete_candidates"
+    return True, "paired_source_support_complete"
 
 
 def _validate_lifting_context(context: RouteLiftingContext) -> None:

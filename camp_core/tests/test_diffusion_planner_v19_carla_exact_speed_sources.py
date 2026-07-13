@@ -131,7 +131,12 @@ def _lifting_context() -> RouteLiftingContext:
     )
 
 
-def _lifting_receipt(*, candidate0_bad: bool = False, all_bad: bool = False):
+def _lifting_receipt(
+    *,
+    candidate0_bad: bool = False,
+    all_bad: bool = False,
+    only_candidate0: bool = False,
+):
     base = np.zeros((80, 4), dtype=np.float32)
     base[:, 0] = np.arange(80, dtype=np.float32)
     candidates = np.repeat(base[None, :, :], 8, axis=0)
@@ -142,8 +147,10 @@ def _lifting_receipt(*, candidate0_bad: bool = False, all_bad: bool = False):
         candidates[2, 40:, 0] = candidates[2, 39::-1, 0]
         if candidate0_bad:
             candidates[0, :, 1] = np.float32(10.0)
+        elif only_candidate0:
+            candidates[1:, :, 1] = np.float32(10.0)
     operational = candidates[0].copy()
-    return lift_k8_route_receipt(
+    receipt = lift_k8_route_receipt(
         candidates=candidates,
         operational_top1=operational,
         agents_from_world_tf=((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)),
@@ -153,6 +160,8 @@ def _lifting_receipt(*, candidate0_bad: bool = False, all_bad: bool = False):
         operational_top1_sha256=array_sha256(operational),
         provenance={"record_id": "record-1", "native_ranked_top1": False},
     )
+    _reseal_tick(receipt)
+    return receipt
 
 
 def _write_lifting_inputs(tmp_path: Path, receipt=None) -> tuple[Path, Path]:
@@ -196,6 +205,20 @@ def test_lifted_report_intersects_lifting_and_speed_masks(tmp_path: Path) -> Non
     assert row["record_source_eligible"] is True
     assert report["outcome_reads"] == 0
     assert report["metric_calls"] == 0
+
+
+def test_lifted_report_blocks_paired_support_with_only_candidate0(tmp_path) -> None:
+    receipt = _lifting_receipt(only_candidate0=True)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    row = build_lifted_report(xodr, lifting, "B", None)["records"][0]
+
+    assert row["record_source_eligible"] is True
+    assert row["source_complete_candidate_count"] == 1
+    assert row["paired_source_support_eligible"] is False
+    assert row["paired_source_support_reason"] == (
+        "fewer_than_two_source_complete_candidates"
+    )
 
 
 def test_lifted_report_rejects_tampered_root_or_candidate_sha(tmp_path: Path) -> None:
@@ -249,6 +272,8 @@ def test_lifted_report_fails_closed_on_operational_lifting_mismatch(
     receipt["candidate0_operational_top1_equivalent"] = False
     receipt["record_source_eligible"] = False
     receipt["reason"] = "candidate0_operational_top1_mismatch"
+    receipt["paired_source_support_eligible"] = False
+    receipt["paired_source_support_reason"] = "candidate0_operational_top1_mismatch"
     _reseal_tick(receipt)
     xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
 

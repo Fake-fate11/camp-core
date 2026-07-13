@@ -19,6 +19,7 @@ if str(PACKAGE_ROOT) not in sys.path:
 from camp_core.integrations.carla_exact_speed_source import (  # noqa: E402
     SegmentKey,
     SegmentRef,
+    _tick_failure_reason,
     candidate_source_mask,
     canonical_json_sha256,
     parse_opendrive_speed_index,
@@ -184,6 +185,41 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
         operational["eligible"]
     ):
         raise ValueError("operational Top-1 completeness mismatch")
+    reason = _tick_failure_reason(
+        mask=mask,
+        candidate0_complete=bool(candidates[0]["eligible"]),
+        operational_complete=bool(operational["eligible"]),
+        equivalent=equivalent,
+        candidate_expected=receipt["candidate_tensor_sha256"],
+        candidate_before=receipt["candidate_tensor_sha256_before"],
+        candidate_after=receipt["candidate_tensor_sha256_after"],
+        operational_expected=receipt["operational_top1_sha256"],
+        operational_before=receipt["operational_top1_sha256_before"],
+        operational_after=receipt["operational_top1_sha256_after"],
+    )
+    if receipt.get("reason") != reason or receipt.get("record_source_eligible") is not (
+        reason == "source_complete"
+    ):
+        raise ValueError("lifting record eligibility mismatch")
+    source_complete_candidate_count = sum(bool(item) for item in mask)
+    paired_source_support_eligible = (
+        reason == "source_complete" and source_complete_candidate_count >= 2
+    )
+    paired_source_support_reason = (
+        "paired_source_support_complete"
+        if paired_source_support_eligible
+        else (
+            "fewer_than_two_source_complete_candidates"
+            if reason == "source_complete"
+            else reason
+        )
+    )
+    if receipt.get("source_complete_candidate_count") != source_complete_candidate_count:
+        raise ValueError("source-complete candidate count mismatch")
+    if receipt.get("paired_source_support_eligible") is not paired_source_support_eligible:
+        raise ValueError("paired source support eligibility mismatch")
+    if receipt.get("paired_source_support_reason") != paired_source_support_reason:
+        raise ValueError("paired source support reason mismatch")
 
 
 def _segments_from_lifting(
@@ -248,6 +284,19 @@ def _lifted_record(
         reason = "candidate0_operational_top1_mismatch"
     else:
         reason = "source_complete"
+    source_complete_candidate_count = sum(bool(item) for item in source_mask)
+    paired_source_support_eligible = (
+        reason == "source_complete" and source_complete_candidate_count >= 2
+    )
+    paired_source_support_reason = (
+        "paired_source_support_complete"
+        if paired_source_support_eligible
+        else (
+            "fewer_than_two_source_complete_candidates"
+            if reason == "source_complete"
+            else reason
+        )
+    )
     return {
         "record_id": str(receipt.get("provenance", {}).get("record_id", "")),
         "candidate_lifting_eligible_mask": lifting_mask,
@@ -267,6 +316,9 @@ def _lifted_record(
         "candidate0_operational_top1_equivalent": equivalent,
         "record_source_eligible": reason == "source_complete",
         "reason": reason,
+        "source_complete_candidate_count": source_complete_candidate_count,
+        "paired_source_support_eligible": paired_source_support_eligible,
+        "paired_source_support_reason": paired_source_support_reason,
     }
 
 
@@ -299,6 +351,9 @@ def build_lifted_report(
         ),
         "record_count": len(records),
         "eligible_record_count": sum(row["record_source_eligible"] for row in records),
+        "paired_source_support_record_count": sum(
+            row["paired_source_support_eligible"] for row in records
+        ),
         "all_k_ineligible_record_count": sum(
             not any(row["candidate_source_eligible_mask"]) for row in records
         ),
