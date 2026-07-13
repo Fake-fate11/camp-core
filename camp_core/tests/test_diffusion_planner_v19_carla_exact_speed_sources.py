@@ -181,7 +181,8 @@ def _lifting_receipt(
 
 def _write_lifting_inputs(tmp_path: Path, receipt=None) -> tuple[Path, Path]:
     xodr = tmp_path / "TownTest.xodr"
-    xodr.write_text(XODR, encoding="utf-8", newline="")
+    with xodr.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(XODR)
     lifting = tmp_path / "lifting.json"
     lifting.write_text(
         json.dumps({"records": [receipt or _lifting_receipt()]}, sort_keys=True),
@@ -304,11 +305,8 @@ def test_lifted_report_rejects_same_identity_xodr_with_changed_speed(
     tmp_path: Path,
 ) -> None:
     xodr, lifting = _write_lifting_inputs(tmp_path)
-    xodr.write_text(
-        XODR.replace('max="10"', 'max="20"', 1),
-        encoding="utf-8",
-        newline="",
-    )
+    with xodr.open("w", encoding="utf-8", newline="") as handle:
+        handle.write(XODR.replace('max="10"', 'max="20"', 1))
 
     with pytest.raises(ValueError, match="map SHA"):
         build_lifted_report(xodr, lifting, "B", None)
