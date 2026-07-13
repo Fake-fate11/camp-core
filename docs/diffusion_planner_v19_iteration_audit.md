@@ -2472,3 +2472,53 @@ current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootle
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_retry_preflight_independent_review_7d67160b_20260713T141937CST
 current_v19_artifact_root_sha256=6357b6c999fd016699c54bcadf921be8d7693cfa12f8d0c2bd4eb0572ae4eb01
 next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_retry_only
+
+## CARLA Source-Only K8 Probe Rootless Loader Execution Failure Review
+
+The unique loader-remediated runtime attempt used the independently reviewed
+relative CARLA-dependency and PhysX library paths. The packaged process reached
+the UE 4.26.2 banner, proving that direct shared-library resolution advanced,
+then exited `1` before RPC readiness. It created no UE log and reported only
+`Exiting abnormally (error code: 1)`, so the exact internal UE cause is not
+established. No capture, materialization, worker, fixed-DP inference, candidate,
+lifting receipt, metric, outcome, or holdout access occurred.
+
+The retained failed stage/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_rootless_loader_retry_7d67160b_20260713T141937CST.tmp`
+and `91b0ff001536212a4ab430b940db3cc61f9a99929c7057fe1d575473309bc01a`.
+It records server PID 36458, readiness false, no pipeline exit codes, zero
+outcome counters, unchanged binary SHA256
+`03bcd413615fa1fc61a5b846342dbdc4e6b3541320a40d6bf17ff927039731f9`,
+`/root` mode 700, absent runtime Saved after evidence retention, and
+`50,571,284,480` free bytes.
+
+The first independent-review wrapper sealed a valid 18-check payload/root at
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_rootless_loader_retry_independent_review_89767dba_20260713T142546CST`
+and `ca56fcb49d3c337ad7493c9e41d4750bb1cdf5fc3c2db1762135fa6f9c5d526c`,
+then returned nonzero after sealing because its wrapper omitted `import sys`.
+That wrapper is retained but is not the authoritative review gate.
+
+The minimal manifest-only retry preserved and rehashed both source and prior
+review artifacts, exited zero, and passed all 11 checks. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_rootless_loader_retry_independent_review_retry_89767dba_20260713T142655CST`
+and `188ba10301cb0e4f428a1d624891cfa9f7b04a477d1b42ab58419dbf2ab17d41`.
+It reconfirmed no related job or port, no runtime Saved path, unchanged CAMP/DP
+heads and binary, tracked-clean state, the disk floor, and zero candidate or
+outcome access.
+
+Three CARLA runtime starts have now failed before readiness: root execution was
+rejected by Unreal, rootless execution exposed inaccessible absolute-origin
+library resolution, and the reviewed relative-loader remediation reached UE
+but exited before log/RPC creation. No fourth automatic runtime attempt is
+authorized. Continuing requires a user decision to provide an accessible
+non-root CARLA runtime path/mount or to authorize a narrowly reviewed
+parent-path execute-permission contract; either path requires fresh disk and
+security preflight. The claim taxonomy remains unchanged: performance is
+no-claim, bounded offline proxy improvement is supported, closed-loop safety is
+not yet supported, and broad CAMP-over-native-DP-Top1 is not supported.
+
+current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_failure_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_failure_independent_review_no_candidate_or_outcome
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_rootless_loader_retry_independent_review_retry_89767dba_20260713T142655CST
+current_v19_artifact_root_sha256=188ba10301cb0e4f428a1d624891cfa9f7b04a477d1b42ab58419dbf2ab17d41
+next_work_target=user_decision_required_before_carla_nonroot_runtime_access_contract_or_runtime_relocation
