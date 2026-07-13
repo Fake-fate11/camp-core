@@ -3538,3 +3538,48 @@ current_v19_artifact_scope=missing_vulkan_loader_remediation_runtime_attempt_1_p
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_vulkan_loader_execution_controller_a964961e_20260713T201212CST_execution_review_retry1
 current_v19_artifact_root_sha256=de9119a29557ac071b64bbb5f2fb87555ea0c6d15a7ee5be1bb0c56fcc621af9
 next_work_target=v19_carla_post_vulkan_loader_failure_read_only_root_cause_diagnosis_only_continuous_authorization
+
+## Post-Loader Graphics and Headless EGL-ICD Diagnosis
+
+At synchronized CAMP/GitHub/AutoDL
+`6cfbaea0f06616b33df5495d5288309960c55a3e`, a compiled, temporary no-CARLA
+probe exercised Vulkan loader, NVIDIA ICD, instance creation, and physical-
+device enumeration. The first evidence-capture run encountered only a
+non-UTF-8 loader-debug decoding error; its temporary executable was still
+removed and the evidence reader was narrowed to replacement decoding.
+
+The corrected root and UID 65534 probes both load `libvulkan.so.1`, report
+loader 1.3.204, and enumerate two instance extensions, but `vkCreateInstance`
+returns `VK_ERROR_INCOMPATIBLE_DRIVER (-9)`. `VK_LOADER_DEBUG=all` reports that
+the configured `libGLX_nvidia.so.0` cannot yield `vkCreateInstance` through
+`vk_icdGetInstanceProcAddr`; forcing the same ICD JSON produces the same result.
+The loader/driver/kernel versions and libraries are present and aligned at
+595.71.05. Probe/review roots are
+`92a9a10a12fb7bc23bc1851e22e78601d5a29ae97e53e2c12820dafb4c10d66f`
+and `81a9c2703f974fb41b1e7e2e63d29878f1a2f5cce8c3a482ef9824cfa3cfa934`.
+
+Direct negotiation against `libGLX_nvidia.so.0` verifies all expected symbols
+are exported, but requested loader interfaces 0, 1 through 8, and 10 all return
+`VK_ERROR_INITIALIZATION_FAILED (-3)`, leave the version unchanged, and return
+a null create pointer. UID 65534 independently reproduces versions 5 through 7.
+The source/review roots are
+`54bcdcb4d7b9dd92e4521707d8a6bb05fe4e93389c1d22ff10758c34450f3c26`
+and `6087121e51d9141b8e0a48dde81f031695d96cc228de93dc6783e93506fb1b8c`.
+
+Finally, an A/B probe created a temporary ICD JSON that differed only by
+pointing to the already installed `libEGL_nvidia.so.0`. Root and UID 65534 both
+then completed loader discovery, instance creation, and physical-device
+enumeration with exit 0. The independent reviewer replayed UID 65534 and
+confirmed the result. `/etc` and system ICD files were never modified; both
+temporary probe/manifest files were explicitly removed. Source/review roots are
+`371e2a466b6a370e8e990937d994f3da8a768ee75a97edb6bd84c0c4f5fbf2fd`
+and `7ef2b3586fd7635dba7aba166da6d8632f7f71f7b67e0736b7fd64f6ccf0e5ce`.
+This supports a minimal temporary headless EGL-ICD environment remediation,
+but does not yet establish CARLA readiness or prior exit-1 sole causality. No
+runtime, ACL, candidate, outcome, metric, or holdout activity occurred.
+
+current_v19_status=v19_carla_post_loader_graphics_diagnosis_headless_egl_icd_probe_independent_review_passed
+current_v19_artifact_scope=post_loader_vulkan_icd_negotiation_and_temporary_headless_egl_icd_ab_probe_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_headless_egl_icd_probe_6cfbaea0_20260713T202749CST_independent_review
+current_v19_artifact_root_sha256=7ef2b3586fd7635dba7aba166da6d8632f7f71f7b67e0736b7fd64f6ccf0e5ce
+next_work_target=v19_carla_headless_egl_icd_runtime_attempt_preflight_only_continuous_authorization
