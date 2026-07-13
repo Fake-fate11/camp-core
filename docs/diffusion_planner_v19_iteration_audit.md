@@ -3978,3 +3978,49 @@ current_v19_artifact_scope=zero_support_complete_candidate_x80_source_only_failu
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_source_only_breakdown_a27e292f_20260713T213118CST_independent_review
 current_v19_artifact_root_sha256=d540bf6b195db9a33cf31c6b6769d52d1d82d01cda5a19135ac6934c805e5b34
 next_work_target=v19_zero_support_scientific_contract_redesign_design_spec_static_review_and_tdd_plan_only
+
+## Zero-Support Contract Redesign Static Review Passed
+
+The source-only redesign spec and inline TDD plan were committed at
+synchronized CAMP/GitHub/AutoDL
+`17a2c5a9a4621e428c1146fc987035585f4a5a27`. Their paths and SHA256 values are:
+
+- `docs/superpowers/specs/2026-07-13-v19-zero-support-source-contract-redesign.md`:
+  `58ecc1a7e90efcc4c1c983c13792442b929a9a5e8453470f87d57003dce623d7`;
+- `docs/superpowers/plans/2026-07-13-v19-zero-support-source-contract-redesign.md`:
+  `0a29b7481a69e986547a3d9c2c83f1c783ab877819493177498f43730dd62486`.
+
+Independent static review passed all 24 checks. It rehashed the sealed
+640-point breakdown/review, fixed DP/candidate literals, official CARLA and
+ASAM sources, the float32 formula, the eight-map bound, all three route-policy
+alternatives, RED/GREEN steps, no-runtime guards, and the unchanged
+implementation source.
+
+The unique selected implementation fix is limited to the API precision defect.
+The previous census passed only stations already quantized by CARLA, whereas
+production passes double chord-interpolated stations through CARLA's `float s`
+API. The preregistered map-only formula takes half the maximum float32 spacing
+over every road length in the eight frozen XODRs, yielding
+`3.0517578125e-05 m`, then adds the unchanged `1e-9 m` allowance. The only
+authorized source change is a named frozen tolerance with station and
+continuity values `3.0518578125e-05 m`; geometry remains
+`1.5273609989704584 m` and z remains `1e-9 m`.
+
+The review explicitly records `route_contract_selected=false` and
+`new_source_probe_authorized_by_review=false`. Official map semantics do not
+choose among retaining strict future-only exclusion, adding a predecessor plus
+exact boundary representation, or redefining endpoint/transition matching.
+Current-candidate coverage is not used to decide among them. No CARLA server,
+DP worker, pipeline, candidate generation, outcome, metric, or holdout access
+occurred.
+
+The static-review artifact/root is
+`/root/autodl-tmp/camp_dp_v19_zero_support_contract_redesign_static_review_17a2c5a9_20260713T213823CST`
+and `5c2b6ba0c82c4d37c1474ea8c33597195513151d466631f8a9c87c6ff1855db6`.
+Claim taxonomy and zero legal paired support remain unchanged.
+
+current_v19_status=v19_zero_support_contract_redesign_spec_tdd_plan_static_review_passed
+current_v19_artifact_scope=zero_support_contract_redesign_float32_station_precision_fix_only_route_contract_unselected_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_contract_redesign_static_review_17a2c5a9_20260713T213823CST
+current_v19_artifact_root_sha256=5c2b6ba0c82c4d37c1474ea8c33597195513151d466631f8a9c87c6ff1855db6
+next_work_target=v19_zero_support_float32_xodr_station_tolerance_tdd_implementation_and_static_review_only

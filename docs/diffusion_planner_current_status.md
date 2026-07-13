@@ -1302,6 +1302,33 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_source_only_break
 current_v19_artifact_root_sha256=d540bf6b195db9a33cf31c6b6769d52d1d82d01cda5a19135ac6934c805e5b34
 next_work_target=v19_zero_support_scientific_contract_redesign_design_spec_static_review_and_tdd_plan_only
 
+### Zero-Support Contract Redesign Static Review Passed
+
+At synchronized CAMP/GitHub/AutoDL
+`17a2c5a9a4621e428c1146fc987035585f4a5a27`, the separately preregistered
+redesign spec and TDD plan passed 24/24 static-review checks. The spec/plan
+SHA256 values are
+`58ecc1a7e90efcc4c1c983c13792442b929a9a5e8453470f87d57003dce623d7`
+and `0a29b7481a69e986547a3d9c2c83f1c783ab877819493177498f43730dd62486`.
+
+The review accepts exactly one implementation correction: account for the
+official CARLA `float s` API boundary with the eight-map outcome-free
+station bound, producing frozen station/continuity epsilons of
+`3.0518578125e-05 m`. Geometry and z tolerances, route construction/matching,
+candidate data, DP, and eligibility remain unchanged. It does not select among
+strict future-only exclusion, a predecessor/boundary halo, or a new
+endpoint/transition representation. Therefore it does not authorize a new K=8
+probe. No CARLA, DP worker, pipeline, outcome, metric, or holdout ran. The
+static-review artifact/root is
+`/root/autodl-tmp/camp_dp_v19_zero_support_contract_redesign_static_review_17a2c5a9_20260713T213823CST`
+and `5c2b6ba0c82c4d37c1474ea8c33597195513151d466631f8a9c87c6ff1855db6`.
+
+current_v19_status=v19_zero_support_contract_redesign_spec_tdd_plan_static_review_passed
+current_v19_artifact_scope=zero_support_contract_redesign_float32_station_precision_fix_only_route_contract_unselected_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_zero_support_contract_redesign_static_review_17a2c5a9_20260713T213823CST
+current_v19_artifact_root_sha256=5c2b6ba0c82c4d37c1474ea8c33597195513151d466631f8a9c87c6ff1855db6
+next_work_target=v19_zero_support_float32_xodr_station_tolerance_tdd_implementation_and_static_review_only
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this
