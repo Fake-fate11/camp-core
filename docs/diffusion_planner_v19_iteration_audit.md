@@ -1958,3 +1958,29 @@ current_v19_artifact_scope=approved_route_constrained_2d_to_3d_opendrive_lifting
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_spec_review_final_dbe1b2af_20260713T091826CST
 current_v19_artifact_root_sha256=45d7c214fda7e06774a87b2e7aecc1028f889e7df3714349cdd3a320c5b98b98
 next_work_target=v19_carla_route_constrained_lifting_tdd_plan_only
+
+## CARLA Route-Constrained Lifting TDD Plan Reviewed
+
+The approved design was expanded into a five-task TDD plan at
+`docs/superpowers/plans/2026-07-13-v19-carla-route-constrained-lifting.md`
+with SHA256
+`d1e68d6736f812ff23a874efdbfe96acae7db876852f3c9e6d5db55a164f4499`.
+The plan covers the pure route-surface kernel, full K8 plus operational Top-1
+receipts, active provenance naming, the existing exact-speed census CLI, and
+pre-outcome tolerance/probe/census/freeze gates. It creates no runner,
+controller, dependency, DP change, or outcome path.
+
+Independent review verified five complete tasks, TDD RED/GREEN cycles, type and
+name consistency, full 80-point failure receipts, spec SHA, fixed DP, clean
+heads, no CARLA process, and the 10 GiB floor. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_tdd_plan_review_b83ead33_20260713T092456CST`
+and `a5135ca42ef1555e9a8c17d45bbf7578f3fb0b603ace238e24e4ea7fb9d7240e`.
+The user preselected Inline Execution on current main, so no further execution
+choice is required. No simulator, planner, candidate tensor, metric, holdout,
+or outcome call occurred; no rung or scenario was selected or frozen.
+
+current_v19_status=v19_carla_route_constrained_lifting_tdd_plan_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_five_task_tdd_plan
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_tdd_plan_review_b83ead33_20260713T092456CST
+current_v19_artifact_root_sha256=a5135ca42ef1555e9a8c17d45bbf7578f3fb0b603ace238e24e4ea7fb9d7240e
+next_work_target=v19_carla_route_constrained_lifting_task1_tdd_implementation_only
