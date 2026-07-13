@@ -3007,3 +3007,74 @@ current_v19_artifact_scope=xdg_user_dirs_exclude_aware_integrity_exact_uid_no_ca
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_exclude_aware_install_execution_248baa8d_20260713T174326CST_independent_review
 current_v19_artifact_root_sha256=23c45897ecedfdae5b3576c5b64e1719367837e2e6949b6b8498a279f55ff2ba
 next_work_target=user_decision_required_before_any_additional_carla_runtime_attempt_after_v19_xdg_user_dirs_exact_environment_validation
+
+## Continuous-Authorization CARLA Runtime Attempt Readiness
+
+The user replaced ordinary per-gate and per-attempt approval stops with
+continuous v19 authorization inside the existing fixed scientific and
+reversible-system contract. Local, GitHub, origin, and AutoDL CAMP were
+`2d6693db59673976f78ad6e7a769943160da372a`; fixed DP remained tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. The stale blocked goal metadata
+was not treated as an execution boundary.
+
+A new read-only execution-readiness driver rehashed the prior runtime-attempt
+preflight/review and the successful signed-package execution/review roots. It
+created a new unique execution stage/final pair, while reusing the unchanged
+audited runtime runner and execute-only ACL wrapper. The preflight verified:
+
+- exact CAMP/origin/GitHub and fixed DP heads with both repos tracked-clean;
+- signed `xdg-user-dirs 0.17-2ubuntu4`, executable SHA, all 124 individually
+  allowed `path-exclude` missing entries, and the frozen UID/GID 65534 helper
+  result `CarlaUE4/Saved/home`;
+- unchanged CARLA binary, Town01 files, Python client import, GPU, harness,
+  worker, checkpoint, fixed args, selector, atom scales, and static weights;
+- mode-700 root with no UID 65534 read/write/list/traverse, trusted ACL tools,
+  absent runtime Saved path, execution paths, related process, and listener;
+- more than the 10 GiB disk floor and a validate-only runner/test pass.
+
+Two preflight launcher directories failed before their drivers began because
+the launcher and driver both required exclusive directory creation. A third
+attempt failed before mutation on a 60-second GitHub `ls-remote` timeout.
+Those directories were retained. Loading `/etc/network_turbo` resolved the
+independent network condition. The successful no-mutation preflight passed at
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_2d6693db_20260713T184609CST`
+with root
+`2c95412295bdc77c62b05967da6e3b2a81adb7ab7647418ca34557f48df29d5d`.
+Independent review passed at the corresponding `_independent_review` path
+with root
+`a9318a958a229f2aaa58a205666da4fcd00b9bbe02f58835a5c9152ae9529196`.
+
+Readback caught a fail-closed evidence error before execution: the preflight
+had recorded its wrapper, plan, and runner under the staging `.tmp` path,
+which no longer existed after the artifact was renamed. A minimal correction
+artifact rehashed both sources, preserved the unique execution pair and all
+frozen files, but changed only those three command paths to the final artifact
+directory. Its independent review required each command file to exist,
+reran `bash -n` and runner `--validate-only`, and rechecked heads, package,
+root permissions, absent execution paths, and disk floor.
+
+The corrected preflight passed at
+`/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST`
+with root
+`c3ea71c31bcd63aec15821d31b57339a67d071c08d521b7cf20ea5dd35cfbe7f`.
+Independent review passed at the corresponding `_independent_review` path
+with root
+`ea112274570064bc55a74148a8523a68002ae4f6c6fc6c59d0d08b2d32d4441a`.
+The exact authorized execution command is now:
+
+```text
+/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST/acl_runtime_attempt.sh /root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_source_only_k8_execution_2d6693db_20260713T184609CST.tmp /root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST/execution_plan.json /root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST/runtime_attempt.py
+```
+
+No ACL mutation, CARLA/UE, worker, pipeline, candidate, receipt, metric,
+outcome, or holdout operation occurred. The package remains retained under
+its reviewed success contract, and the prior CARLA exit-1 cause remains
+unknown. Performance remains no-claim, bounded offline proxy improvement
+remains supported, closed-loop safety remains unsupported, and broad
+CAMP-over-DP-operational-Top-1 remains unsupported.
+
+current_v19_status=v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_independent_review_passed
+current_v19_artifact_scope=carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST_independent_review
+current_v19_artifact_root_sha256=ea112274570064bc55a74148a8523a68002ae4f6c6fc6c59d0d08b2d32d4441a
+next_work_target=v19_carla_xdg_closed_dependency_source_only_k8_execution_only_continuous_authorization

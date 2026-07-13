@@ -713,11 +713,36 @@ improvement remains supported, closed-loop safety remains unsupported, and
 broad CAMP-over-DP-operational-Top-1 remains unsupported. A new explicit user
 decision is required before any additional CARLA runtime attempt.
 
-current_v19_status=v19_xdg_user_dirs_exclude_aware_integrity_exact_uid_no_carla_validation_independent_review_passed
-current_v19_artifact_scope=xdg_user_dirs_exclude_aware_integrity_exact_uid_no_carla_validation_package_temporarily_retained
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_xdg_user_dirs_exclude_aware_install_execution_248baa8d_20260713T174326CST_independent_review
-current_v19_artifact_root_sha256=23c45897ecedfdae5b3576c5b64e1719367837e2e6949b6b8498a279f55ff2ba
-next_work_target=user_decision_required_before_any_additional_carla_runtime_attempt_after_v19_xdg_user_dirs_exact_environment_validation
+The user subsequently granted continuous v19 authorization for ordinary,
+reversible frozen-contract gates, including the next ACL-trapped CARLA
+attempt. A fresh readiness preflight at CAMP
+`2d6693db59673976f78ad6e7a769943160da372a` and fixed DP rehashed the prior
+runtime-runner, ACL, package, and asset evidence. It reconfirmed the retained
+signed package and all 124 allowed excludes, exact UID helper success, the
+unchanged CARLA binary, Town01, client, GPU, selector assets, runner, worker,
+and 10 GiB disk floor. No peer, port-2000 listener, runtime Saved path,
+execution staging path, ACL mutation, candidate, metric, outcome, or holdout
+access existed.
+
+Two artifact-directory initialization errors and one transient GitHub timeout
+failed before state checks or mutation and were retained. The successful
+preflight/review roots were
+`2c95412295bdc77c62b05967da6e3b2a81adb7ab7647418ca34557f48df29d5d`
+and `a9318a958a229f2aaa58a205666da4fcd00b9bbe02f58835a5c9152ae9529196`.
+A post-review readback then found that their recorded exact command used the
+renamed-away preflight `.tmp` path. A fail-closed correction preserved all
+checks but froze the three preflight-owned command files under the final
+artifact path; independent review proved they exist and revalidated the plan.
+The corrected preflight/review roots are
+`c3ea71c31bcd63aec15821d31b57339a67d071c08d521b7cf20ea5dd35cfbe7f`
+and `ea112274570064bc55a74148a8523a68002ae4f6c6fc6c59d0d08b2d32d4441a`.
+CARLA has not been started in this gate. The claim taxonomy is unchanged.
+
+current_v19_status=v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_independent_review_passed
+current_v19_artifact_scope=carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_corrected_2d6693db_20260713T184808CST_independent_review
+current_v19_artifact_root_sha256=ea112274570064bc55a74148a8523a68002ae4f6c6fc6c59d0d08b2d32d4441a
+next_work_target=v19_carla_xdg_closed_dependency_source_only_k8_execution_only_continuous_authorization
 
 ## Current V18 Status
 

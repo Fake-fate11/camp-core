@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_xdg_user_dirs_exclude_aware_integrity_exact_uid_no_carla_"
-        "validation_independent_review_passed"
+        "v19_carla_xdg_closed_dependency_runtime_attempt_preflight_path_"
+        "corrected_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "user_decision_required_before_any_additional_carla_runtime_attempt_"
-        "after_v19_xdg_user_dirs_exact_environment_validation"
+        "v19_carla_xdg_closed_dependency_source_only_k8_execution_only_"
+        "continuous_authorization"
     )
