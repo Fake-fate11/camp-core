@@ -1,4 +1,5 @@
 import importlib
+import hashlib
 import json
 from pathlib import Path
 
@@ -44,6 +45,20 @@ def _request_metadata(module, *, arm: str = "camp") -> dict[str, object]:
         speed_source_policy="full_window_exact_speed",
         selector_hashes=("d" * 64, "e" * 64, "f" * 64),
     )
+
+
+def _request_evidence(metadata: dict[str, object]) -> dict[str, object]:
+    return {
+        "causal_input_sha256": metadata["causal_input_sha256"],
+        "simulation_time_us": metadata["simulation_time_us"],
+        "tick_seed": metadata["tick_seed"],
+        "pair_run_key": metadata["pair_run_key"],
+        "dp_head": metadata["dp_head"],
+        "scenario_token": metadata["scenario_token"],
+        "request_metadata_sha256": hashlib.sha256(
+            json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    }
 
 
 def test_paired_run_key_is_stable_and_arm_keys_are_distinct() -> None:
@@ -361,12 +376,56 @@ def test_response_rejects_request_speed_source_policy_mismatch(tmp_path: Path) -
         ),
         "dp_default_source_complete": True,
         "eligible_candidate_count": 8,
+        "request_evidence": _request_evidence(metadata),
     }
     with pytest.raises(ValueError, match="speed-source policy mismatch"):
         module.write_response(
             tmp_path,
             {
                 "candidates": np.zeros((8, 80, 4), dtype=np.float32),
+                "route_speed_source_eligible_mask": np.ones(8, dtype=bool),
+            },
+            response,
+        )
+
+
+@pytest.mark.parametrize("tamper", ("missing", "unknown", "changed"))
+def test_response_with_request_requires_exact_request_evidence(
+    tmp_path: Path, tamper: str
+) -> None:
+    module = _bridge()
+    directory = tmp_path / tamper
+    arrays = _causal_arrays()
+    request = _request_metadata(module)
+    module.write_request(directory, arrays, request)
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    response = {
+        "schema_version": module.BRIDGE_SCHEMA_VERSION,
+        "arm": "camp",
+        "run_key": request["run_key"],
+        "iteration_index": 7,
+        "operation": "source_probe",
+        "speed_source_policy": "full_window_exact_speed",
+        "status": "ok",
+        "native_ranked_top1": False,
+        "candidate_sha256_before": module.array_sha256(candidates),
+        "candidate_sha256_after": module.array_sha256(candidates),
+        "dp_default_source_complete": True,
+        "eligible_candidate_count": 8,
+        "request_evidence": _request_evidence(request),
+    }
+    if tamper == "missing":
+        del response["request_evidence"]
+    elif tamper == "unknown":
+        response["request_evidence"]["unknown"] = None
+    else:
+        response["request_evidence"]["causal_input_sha256"] = "0" * 64
+
+    with pytest.raises(ValueError, match="request evidence"):
+        module.write_response(
+            directory,
+            {
+                "candidates": candidates,
                 "route_speed_source_eligible_mask": np.ones(8, dtype=bool),
             },
             response,

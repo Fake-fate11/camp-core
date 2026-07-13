@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import sys
 from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
@@ -26,6 +27,10 @@ from camp_core.integrations.carla_exact_speed_source import (  # noqa: E402
     canonical_json_sha256,
     parse_opendrive_speed_index,
 )
+from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (  # noqa: E402
+    DP_OPERATIONAL_TOP1_NAME,
+    DP_OPERATIONAL_TOP1_PROVENANCE,
+)
 
 
 _FORBIDDEN_FIELD_PARTS = (
@@ -37,6 +42,68 @@ _FORBIDDEN_FIELD_PARTS = (
     "latency",
     "ade",
     "fde",
+)
+_LIFTING_RECEIPT_FIELDS = frozenset(
+    {
+        "record_source_eligible",
+        "reason",
+        "selected_index",
+        "candidate_tensor_sha256",
+        "candidate_tensor_sha256_before",
+        "candidate_tensor_sha256_after",
+        "candidate0_sha256",
+        "operational_top1_sha256",
+        "operational_top1_sha256_before",
+        "operational_top1_sha256_after",
+        "candidate_source_eligible_mask",
+        "candidate_source_reasons",
+        "source_complete_candidate_count",
+        "paired_source_support_eligible",
+        "paired_source_support_reason",
+        "candidate_receipts",
+        "operational_top1_receipt",
+        "dp_operational_top1_source_complete",
+        "candidate0_operational_top1_equivalent",
+        "map_sha256",
+        "source_sha256",
+        "route_graph_sha256",
+        "provenance",
+        "lifting_receipt_sha256",
+    }
+)
+_LIFTING_DECISION_FIELDS = frozenset(
+    {"eligible", "reason", "trajectory_lifting_sha256", "points"}
+)
+_LIFTED_POINT_FIELDS = frozenset(
+    {
+        "candidate_index",
+        "point_index",
+        "ego_x",
+        "ego_y",
+        "world_x",
+        "world_y",
+        "road_id",
+        "section_id",
+        "lane_id",
+        "s",
+        "z",
+        "lateral_residual_m",
+        "unique_identity",
+        "unique_station",
+        "topology_continuous",
+        "reason",
+    }
+)
+_LIFTING_PROVENANCE_FIELDS = frozenset(
+    {
+        "scenario_token",
+        "agents_from_world_tf_sha256",
+        "baseline_name",
+        "baseline_provenance",
+        "native_ranked_top1",
+        "capture_sha256",
+        "lifting_corridor_sha256",
+    }
 )
 
 
@@ -87,15 +154,59 @@ def _actor_values(path: Optional[Path]) -> Dict[SegmentKey, Tuple[float, ...]]:
     return values
 
 
+def _require_exact_fields(
+    value: Mapping[str, Any], expected: frozenset[str], name: str
+) -> None:
+    if not isinstance(value, dict) or set(value) != expected:
+        raise ValueError(f"{name} fields mismatch")
+
+
+def _validate_lifted_point(point: Mapping[str, Any]) -> None:
+    _require_exact_fields(point, _LIFTED_POINT_FIELDS, "point receipt")
+    if (
+        type(point["candidate_index"]) is not int
+        or type(point["point_index"]) is not int
+        or type(point["reason"]) is not str
+        or any(
+            type(point[field]) is not bool
+            for field in ("unique_identity", "unique_station", "topology_continuous")
+        )
+    ):
+        raise ValueError("point receipt types mismatch")
+    if any(
+        type(point[field]) is not float or not math.isfinite(point[field])
+        for field in ("ego_x", "ego_y", "world_x", "world_y")
+    ):
+        raise ValueError("point receipt types mismatch")
+    if point["road_id"] is not None and type(point["road_id"]) is not str:
+        raise ValueError("point receipt types mismatch")
+    if any(
+        point[field] is not None and type(point[field]) is not int
+        for field in ("section_id", "lane_id")
+    ):
+        raise ValueError("point receipt types mismatch")
+    if any(
+        point[field] is not None
+        and (type(point[field]) is not float or not math.isfinite(point[field]))
+        for field in ("s", "z", "lateral_residual_m")
+    ):
+        raise ValueError("point receipt types mismatch")
+
+
 def _validate_lifting_decision(
     decision: Mapping[str, Any], candidate_index: int
 ) -> None:
+    _require_exact_fields(decision, _LIFTING_DECISION_FIELDS, "candidate decision")
+    if type(decision["eligible"]) is not bool or type(decision["reason"]) is not str:
+        raise ValueError("candidate decision types mismatch")
+    _require_sha256(decision["trajectory_lifting_sha256"], "trajectory lifting")
     points = decision.get("points")
     if not isinstance(points, list) or len(points) != 80:
         raise ValueError("candidate must retain exactly 80 point receipts")
     for point_index, point in enumerate(points):
         if not isinstance(point, dict):
             raise ValueError("point receipt must be an object")
+        _validate_lifted_point(point)
         if point.get("candidate_index") != candidate_index:
             raise ValueError("point candidate index mismatch")
         if point.get("point_index") != point_index:
@@ -131,12 +242,28 @@ def _validate_lifting_decision(
 
 
 def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
+    _require_exact_fields(receipt, _LIFTING_RECEIPT_FIELDS, "lifting receipt")
     payload = dict(receipt)
     sealed = payload.pop("lifting_receipt_sha256", None)
     if sealed != canonical_json_sha256(payload):
         raise ValueError("lifting receipt SHA mismatch")
     if "selected_index" not in receipt or receipt["selected_index"] is not None:
         raise ValueError("selected index must be None")
+    if (
+        type(receipt["record_source_eligible"]) is not bool
+        or type(receipt["reason"]) is not str
+        or type(receipt["paired_source_support_eligible"]) is not bool
+        or type(receipt["paired_source_support_reason"]) is not str
+        or type(receipt["dp_operational_top1_source_complete"]) is not bool
+        or type(receipt["candidate0_operational_top1_equivalent"]) is not bool
+        or not isinstance(receipt["candidate_source_eligible_mask"], list)
+        or len(receipt["candidate_source_eligible_mask"]) != 8
+        or any(type(item) is not bool for item in receipt["candidate_source_eligible_mask"])
+        or not isinstance(receipt["candidate_source_reasons"], list)
+        or len(receipt["candidate_source_reasons"]) != 8
+        or any(type(item) is not str for item in receipt["candidate_source_reasons"])
+    ):
+        raise ValueError("lifting receipt types mismatch")
     for field, name in (
         ("candidate_tensor_sha256", "candidate tensor"),
         ("candidate_tensor_sha256_before", "candidate tensor"),
@@ -154,10 +281,26 @@ def _validate_lifting_receipt(receipt: Mapping[str, Any]) -> None:
     if not isinstance(provenance, Mapping):
         raise ValueError("lifting receipt provenance is missing")
     _reject_forbidden_receipt_fields(provenance)
-    _require_sha256(provenance.get("capture_sha256"), "capture provenance")
-    _require_sha256(
-        provenance.get("lifting_corridor_sha256"), "lifting corridor provenance"
-    )
+    provenance_fields = set(provenance)
+    if provenance_fields - {"record_id"} != _LIFTING_PROVENANCE_FIELDS:
+        raise ValueError("lifting receipt provenance fields mismatch")
+    if "record_id" in provenance and type(provenance["record_id"]) is not str:
+        raise ValueError("lifting receipt provenance types mismatch")
+    for field, name in (
+        ("scenario_token", "scenario token"),
+        ("agents_from_world_tf_sha256", "agents transform provenance"),
+        ("capture_sha256", "capture provenance"),
+        ("lifting_corridor_sha256", "lifting corridor provenance"),
+    ):
+        _require_sha256(provenance.get(field), name)
+    if (
+        type(provenance.get("baseline_name")) is not str
+        or provenance["baseline_name"] != DP_OPERATIONAL_TOP1_NAME
+        or type(provenance.get("baseline_provenance")) is not str
+        or provenance["baseline_provenance"] != DP_OPERATIONAL_TOP1_PROVENANCE
+        or provenance.get("native_ranked_top1") is not False
+    ):
+        raise ValueError("lifting receipt provenance mismatch")
     candidates = receipt.get("candidate_receipts")
     if not isinstance(candidates, list) or len(candidates) != 8:
         raise ValueError("lifting receipt must contain eight candidates")
@@ -332,6 +475,12 @@ def build_lifted_report(
     rung: str,
     actor_observations_path: Optional[Path],
 ) -> Dict[str, Any]:
+    xodr_bytes = xodr_path.read_bytes()
+    try:
+        xodr_text = xodr_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("OpenDRIVE must be UTF-8") from exc
+    xodr_sha256 = hashlib.sha256(xodr_bytes).hexdigest()
     payload = json.loads(lifting_receipt_path.read_text(encoding="utf-8"))
     _reject_outcome_fields(payload)
     records_raw = payload.get("records")
@@ -341,12 +490,14 @@ def build_lifted_report(
         if not isinstance(receipt, dict):
             raise ValueError("lifting receipt record must be an object")
         _validate_lifting_receipt(receipt)
-    index = parse_opendrive_speed_index(xodr_path.read_text(encoding="utf-8"))
+        if receipt["map_sha256"] != xodr_sha256:
+            raise ValueError("lifting receipt map SHA mismatch")
+    index = parse_opendrive_speed_index(xodr_text)
     actors = _actor_values(actor_observations_path)
     records = [_lifted_record(receipt, index, actors, rung) for receipt in records_raw]
     return {
         "rung": rung,
-        "xodr_sha256": _sha256(xodr_path),
+        "xodr_sha256": xodr_sha256,
         "lifting_receipt_input_sha256": _sha256(lifting_receipt_path),
         "actor_observations_sha256": (
             _sha256(actor_observations_path)

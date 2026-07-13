@@ -752,3 +752,29 @@ def test_k8_receipt_rejects_forbidden_provenance_markers(marker: str) -> None:
             operational_top1_sha256=array_sha256(candidates[0]),
             provenance={marker: False},
         )
+
+
+@pytest.mark.parametrize(
+    "marker",
+    ("fallback_speed", "trajectory_mutation", "candidate_repair", "trajectory_blend"),
+)
+def test_k8_receipt_rejects_nested_forbidden_provenance_markers(marker: str) -> None:
+    candidates = _k8_candidates()
+    provenance = _lifting_provenance()
+    provenance["baseline_provenance"] = {"nested": {marker: False}}
+
+    with pytest.raises(ValueError, match="forbidden outcome field"):
+        lift_k8_route_receipt(
+            candidates=candidates,
+            operational_top1=candidates[0].copy(),
+            agents_from_world_tf=(
+                (1.0, 0.0, 0.0),
+                (0.0, 1.0, 0.0),
+                (0.0, 0.0, 1.0),
+            ),
+            context=_route_context(_surface_samples()),
+            map_api=_FakeXodrMap(),
+            candidate_tensor_sha256=array_sha256(candidates),
+            operational_top1_sha256=array_sha256(candidates[0]),
+            provenance=provenance,
+        )

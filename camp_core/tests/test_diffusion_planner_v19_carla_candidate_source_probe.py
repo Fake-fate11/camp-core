@@ -4,6 +4,7 @@ from copy import deepcopy
 import hashlib
 import importlib
 import json
+import shutil
 from types import SimpleNamespace
 
 import numpy as np
@@ -175,6 +176,20 @@ def _stub_receipt_responses(monkeypatch, probe, camp_dir, provenances=None) -> N
         )
         or {},
     )
+
+
+def _request_evidence(metadata: dict[str, object]) -> dict[str, object]:
+    return {
+        "causal_input_sha256": metadata["causal_input_sha256"],
+        "simulation_time_us": metadata["simulation_time_us"],
+        "tick_seed": metadata["tick_seed"],
+        "pair_run_key": metadata["pair_run_key"],
+        "dp_head": metadata["dp_head"],
+        "scenario_token": metadata["scenario_token"],
+        "request_metadata_sha256": hashlib.sha256(
+            json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    }
 
 
 def test_deterministic_route_rejects_multiple_unseen_successors() -> None:
@@ -480,6 +495,101 @@ def test_lifting_receipt_rejects_mixed_capture_request_arrays(
             capture=capture,
             context_path=context_path,
             camp_request_dir=other_camp_dir,
+            default_request_dir=default_dir,
+            map_api=SimpleNamespace(to_opendrive=lambda: xodr),
+            output_path=tmp_path / "receipt.json",
+        )
+
+
+def test_lifting_receipt_rejects_responses_from_other_same_route_request(
+    tmp_path, monkeypatch
+) -> None:
+    probe, capture, xodr, camp_dir, default_dir, context_path = (
+        _write_receipt_inputs(tmp_path / "trusted")
+    )
+    other_capture = deepcopy(capture)
+    other_capture["decision_timestamp_us"] += 100_000
+    for frame in other_capture["frames"]:
+        frame["timestamp_us"] += 100_000
+        frame["ego_state"][0] += 1.0
+    _, _, _, other_camp_dir, other_default_dir, _ = _write_receipt_inputs(
+        tmp_path / "other", other_capture
+    )
+    bridge = importlib.import_module(
+        "camp_core.integrations.diffusion_planner_v19_nuplan_bridge"
+    )
+    other_camp_request = json.loads(
+        (other_camp_dir / "request.json").read_text(encoding="utf-8")
+    )
+    other_default_request = json.loads(
+        (other_default_dir / "request.json").read_text(encoding="utf-8")
+    )
+    trusted_camp_request = json.loads(
+        (camp_dir / "request.json").read_text(encoding="utf-8")
+    )
+    assert other_camp_request["run_key"] == trusted_camp_request["run_key"]
+    assert (
+        other_camp_request["causal_input_sha256"]
+        != trusted_camp_request["causal_input_sha256"]
+    )
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    trajectory = np.zeros((80, 4), dtype=np.float32)
+    bridge.write_response(
+        other_camp_dir,
+        {
+            "candidates": candidates,
+            "route_speed_source_eligible_mask": np.zeros(8, dtype=bool),
+        },
+        {
+            "schema_version": bridge.BRIDGE_SCHEMA_VERSION,
+            "arm": "camp",
+            "run_key": other_camp_request["run_key"],
+            "iteration_index": 0,
+            "operation": "source_probe",
+            "speed_source_policy": "candidate_local_exact_speed",
+            "status": "ok",
+            "native_ranked_top1": False,
+            "candidate_sha256_before": bridge.array_sha256(candidates),
+            "candidate_sha256_after": bridge.array_sha256(candidates),
+            "dp_default_source_complete": False,
+            "eligible_candidate_count": 0,
+            "request_evidence": _request_evidence(other_camp_request),
+        },
+    )
+    bridge.write_response(
+        other_default_dir,
+        {"selected_trajectory": trajectory},
+        {
+            "schema_version": bridge.BRIDGE_SCHEMA_VERSION,
+            "arm": "dp_default",
+            "run_key": other_default_request["run_key"],
+            "iteration_index": 0,
+            "operation": "plan_tick",
+            "speed_source_policy": "candidate_local_exact_speed",
+            "status": "ok",
+            "native_ranked_top1": False,
+            "baseline_name": bridge.DP_OPERATIONAL_TOP1_NAME,
+            "baseline_provenance": bridge.DP_OPERATIONAL_TOP1_PROVENANCE,
+            "selected_trajectory_sha256": bridge.array_sha256(trajectory),
+            "selected_planned_red_light_cost": 0.0,
+            "planned_red_source": "fixed_dp_red_cost_v18",
+            "worker_latency_ms": {"dp_inference": 1.0, "atom_selector": 0.0},
+            "request_evidence": _request_evidence(other_default_request),
+        },
+    )
+    for source, target in (
+        (other_camp_dir, camp_dir),
+        (other_default_dir, default_dir),
+    ):
+        for name in ("response.npz", "response.json"):
+            shutil.copyfile(source / name, target / name)
+    monkeypatch.setattr(probe, "lift_k8_route_receipt", lambda **_kwargs: {})
+
+    with pytest.raises(ValueError, match="request evidence"):
+        probe.write_lifting_receipt(
+            capture=capture,
+            context_path=context_path,
+            camp_request_dir=camp_dir,
             default_request_dir=default_dir,
             map_api=SimpleNamespace(to_opendrive=lambda: xodr),
             output_path=tmp_path / "receipt.json",

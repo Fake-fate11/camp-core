@@ -28,6 +28,20 @@ _RECEIPT_PROVENANCE_FIELDS = frozenset(
         "lifting_corridor_sha256",
     }
 )
+_RECEIPT_OUTCOME_MARKERS = (
+    "expert_future",
+    "holdout",
+    "label",
+    "outcome",
+    "metric",
+    "safety_cost",
+)
+_RECEIPT_FORBIDDEN_MARKERS = _RECEIPT_OUTCOME_MARKERS + (
+    "fallback",
+    "mutation",
+    "repair",
+    "blend",
+)
 
 
 SegmentKey = Tuple[str, int, int]
@@ -486,17 +500,22 @@ def _validate_sha256(value: str, name: str) -> None:
 
 
 def _reject_forbidden_receipt_fields(value: Any) -> None:
-    _reject_forbidden_receipt_markers(value)
-    if not isinstance(value, Mapping) or set(value) - _RECEIPT_PROVENANCE_FIELDS:
+    if not isinstance(value, Mapping):
         raise ValueError("lifting receipt provenance fields mismatch")
+    unknown = set(value) - _RECEIPT_PROVENANCE_FIELDS
+    for key in unknown:
+        if any(part in str(key).casefold() for part in _RECEIPT_OUTCOME_MARKERS):
+            raise ValueError(f"forbidden outcome field: {key}")
+    if unknown:
+        raise ValueError("lifting receipt provenance fields mismatch")
+    _reject_forbidden_receipt_markers(value)
 
 
 def _reject_forbidden_receipt_markers(value: Any) -> None:
-    forbidden = ("expert_future", "holdout", "label", "outcome", "metric", "safety_cost")
     if isinstance(value, Mapping):
         for key, item in value.items():
             normalized = str(key).casefold()
-            if any(part in normalized for part in forbidden):
+            if any(part in normalized for part in _RECEIPT_FORBIDDEN_MARKERS):
                 raise ValueError(f"forbidden outcome field: {key}")
             _reject_forbidden_receipt_markers(item)
     elif isinstance(value, (list, tuple)):

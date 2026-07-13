@@ -22,6 +22,7 @@ from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
     DP_OPERATIONAL_TOP1_PROVENANCE,
     array_sha256,
     read_request,
+    request_evidence,
     write_response,
 )
 
@@ -80,6 +81,7 @@ def process_request(
         "operation": operation,
         "native_ranked_top1": False,
         "speed_source_policy": request.metadata["speed_source_policy"],
+        "request_evidence": request_evidence(request.metadata),
     }
     if arm == "dp_default":
         response_metadata.update(

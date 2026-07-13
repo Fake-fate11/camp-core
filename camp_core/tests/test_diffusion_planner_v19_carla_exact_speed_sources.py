@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -14,7 +15,11 @@ from camp_core.integrations.carla_exact_speed_source import (
     lift_k8_route_receipt,
     route_identity_directions,
 )
-from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import array_sha256
+from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
+    DP_OPERATIONAL_TOP1_NAME,
+    DP_OPERATIONAL_TOP1_PROVENANCE,
+    array_sha256,
+)
 from scripts.integrations.audit_diffusion_planner_dp_camp_v19_carla_exact_speed_sources import (
     build_lifted_report,
     build_report,
@@ -27,6 +32,7 @@ XODR = """<OpenDRIVE>
 <road id="3" junction="-1"><type s="0"><speed max="10" unit="m/s"/></type><lanes><laneSection s="0"><left><lane id="1" type="driving"/></left></laneSection></lanes></road>
 <junction id="9"><connection id="0" incomingRoad="1" connectingRoad="2"/></junction>
 </OpenDRIVE>"""
+XODR_SHA256 = hashlib.sha256(XODR.encode("utf-8")).hexdigest()
 
 
 def _write_inputs(tmp_path: Path) -> tuple[Path, Path]:
@@ -125,7 +131,7 @@ def _lifting_context() -> RouteLiftingContext:
         identity_directions=route_identity_directions(samples, 1e-6),
         route_sample_step_m=1.0,
         tolerances=LiftingTolerances(1e-6, 1e-6, 1e-6, 1e-6),
-        map_sha256="a" * 64,
+        map_sha256=XODR_SHA256,
         source_sha256="b" * 64,
         route_graph_sha256="c" * 64,
     )
@@ -160,6 +166,10 @@ def _lifting_receipt(
         operational_top1_sha256=array_sha256(operational),
         provenance={
             "record_id": "record-1",
+            "scenario_token": "f" * 64,
+            "agents_from_world_tf_sha256": "a" * 64,
+            "baseline_name": DP_OPERATIONAL_TOP1_NAME,
+            "baseline_provenance": DP_OPERATIONAL_TOP1_PROVENANCE,
             "native_ranked_top1": False,
             "capture_sha256": "d" * 64,
             "lifting_corridor_sha256": "e" * 64,
@@ -171,7 +181,7 @@ def _lifting_receipt(
 
 def _write_lifting_inputs(tmp_path: Path, receipt=None) -> tuple[Path, Path]:
     xodr = tmp_path / "TownTest.xodr"
-    xodr.write_text(XODR, encoding="utf-8")
+    xodr.write_text(XODR, encoding="utf-8", newline="")
     lifting = tmp_path / "lifting.json"
     lifting.write_text(
         json.dumps({"records": [receipt or _lifting_receipt()]}, sort_keys=True),
@@ -184,6 +194,14 @@ def _reseal_tick(receipt: dict) -> None:
     payload = dict(receipt)
     payload.pop("lifting_receipt_sha256", None)
     receipt["lifting_receipt_sha256"] = canonical_json_sha256(payload)
+
+
+def _reseal_decision(decision: dict) -> None:
+    trajectory = [
+        {key: value for key, value in point.items() if key != "candidate_index"}
+        for point in decision["points"]
+    ]
+    decision["trajectory_lifting_sha256"] = canonical_json_sha256(trajectory)
 
 
 def test_lifted_report_intersects_lifting_and_speed_masks(tmp_path: Path) -> None:
@@ -279,6 +297,99 @@ def test_lifted_report_reuses_provenance_allowlist(
     xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
 
     with pytest.raises(ValueError, match="provenance fields"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+def test_lifted_report_rejects_same_identity_xodr_with_changed_speed(
+    tmp_path: Path,
+) -> None:
+    xodr, lifting = _write_lifting_inputs(tmp_path)
+    xodr.write_text(
+        XODR.replace('max="10"', 'max="20"', 1),
+        encoding="utf-8",
+        newline="",
+    )
+
+    with pytest.raises(ValueError, match="map SHA"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+@pytest.mark.parametrize(
+    "marker",
+    ("fallback_speed", "trajectory_mutation", "candidate_repair", "trajectory_blend"),
+)
+def test_lifted_report_rejects_nested_forbidden_provenance_marker(
+    tmp_path: Path, marker: str
+) -> None:
+    receipt = _lifting_receipt()
+    receipt["provenance"]["baseline_provenance"] = {
+        "nested": {marker: False}
+    }
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="forbidden outcome field"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("baseline_name", "other baseline"),
+        ("baseline_provenance", "other provenance"),
+        ("native_ranked_top1", True),
+    ),
+)
+def test_lifted_report_rejects_altered_frozen_provenance(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    receipt = _lifting_receipt()
+    receipt["provenance"][field] = value
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="provenance"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+@pytest.mark.parametrize("field", ("selected_candidate", "unexpected_field"))
+def test_lifted_report_rejects_unknown_top_level_receipt_field(
+    tmp_path: Path, field: str
+) -> None:
+    receipt = _lifting_receipt()
+    receipt[field] = None
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="receipt fields"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+@pytest.mark.parametrize("carrier", ("decision", "point"))
+def test_lifted_report_rejects_unknown_nested_receipt_field(
+    tmp_path: Path, carrier: str
+) -> None:
+    receipt = _lifting_receipt()
+    decision = receipt["candidate_receipts"][0 if carrier == "decision" else 3]
+    if carrier == "decision":
+        decision["unexpected_field"] = None
+    else:
+        decision["points"][0]["unexpected_field"] = None
+        _reseal_decision(decision)
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="decision fields|point receipt fields"):
+        build_lifted_report(xodr, lifting, "B", None)
+
+
+def test_lifted_report_rejects_boolean_point_index(tmp_path: Path) -> None:
+    receipt = _lifting_receipt()
+    receipt["candidate_receipts"][0]["points"][0]["candidate_index"] = False
+    _reseal_tick(receipt)
+    xodr, lifting = _write_lifting_inputs(tmp_path, receipt)
+
+    with pytest.raises(ValueError, match="point receipt types"):
         build_lifted_report(xodr, lifting, "B", None)
 
 

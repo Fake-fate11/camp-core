@@ -35,6 +35,17 @@ _FORBIDDEN_KEY_PARTS = (
     "safety_cost",
     "metric_result",
 )
+_REQUEST_EVIDENCE_FIELDS = frozenset(
+    {
+        "causal_input_sha256",
+        "simulation_time_us",
+        "tick_seed",
+        "pair_run_key",
+        "dp_head",
+        "scenario_token",
+        "request_metadata_sha256",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -59,6 +70,19 @@ def causal_input_sha256(data: Mapping[str, Any]) -> str:
         digest.update(b"\0")
         digest.update(array.tobytes())
     return digest.hexdigest()
+
+
+def request_evidence(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    evidence = {
+        field: metadata.get(field)
+        for field in _REQUEST_EVIDENCE_FIELDS - {"request_metadata_sha256"}
+    }
+    evidence["request_metadata_sha256"] = hashlib.sha256(
+        json.dumps(
+            dict(metadata), sort_keys=True, separators=(",", ":"), allow_nan=False
+        ).encode("utf-8")
+    ).hexdigest()
+    return evidence
 
 
 def paired_run_key(log_name: str, scenario_token: str, scenario_seed: int) -> str:
@@ -156,7 +180,7 @@ def write_response(
     arrays: Mapping[str, Any],
     metadata: Mapping[str, Any],
 ) -> None:
-    _require_response_policy_match(Path(directory), metadata)
+    _require_response_request_match(Path(directory), metadata)
     prepared = _validate_response(arrays, metadata)
     _write_message(Path(directory), "response", prepared, metadata)
 
@@ -169,7 +193,7 @@ def read_response(
 ) -> BridgeMessage:
     message = _read_message(Path(directory), "response")
     _require_identity(message.metadata, expected_run_key, expected_iteration_index)
-    _require_response_policy_match(Path(directory), message.metadata)
+    _require_response_request_match(Path(directory), message.metadata)
     prepared = _validate_response(message.arrays, message.metadata)
     return BridgeMessage(prepared, message.metadata)
 
@@ -413,15 +437,28 @@ def _require_speed_source_policy(value: str) -> None:
         raise ValueError("request speed-source policy is invalid")
 
 
-def _require_response_policy_match(
+def _require_response_request_match(
     directory: Path, metadata: Mapping[str, Any]
 ) -> None:
     request_path = directory / "request.json"
     if not request_path.is_file():
         return
     request = json.loads(request_path.read_text(encoding="utf-8"))
-    if request.get("speed_source_policy") != metadata.get("speed_source_policy"):
-        raise ValueError("response/request speed-source policy mismatch")
+    evidence = metadata.get("request_evidence")
+    if (
+        not isinstance(evidence, Mapping)
+        or set(evidence) != _REQUEST_EVIDENCE_FIELDS
+        or dict(evidence) != request_evidence(request)
+    ):
+        raise ValueError("response/request evidence mismatch")
+    for field, name in (
+        ("arm", "arm"),
+        ("run_key", "run key"),
+        ("iteration_index", "iteration"),
+        ("speed_source_policy", "speed-source policy"),
+    ):
+        if request.get(field) != metadata.get(field):
+            raise ValueError(f"response/request {name} mismatch")
 
 
 def _require_identity(

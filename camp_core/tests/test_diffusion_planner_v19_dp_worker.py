@@ -1,4 +1,6 @@
 import importlib
+import hashlib
+import json
 
 import numpy as np
 import pytest
@@ -67,6 +69,20 @@ def _request(
     )
     write_request(tmp_path, arrays, metadata)
     return metadata
+
+
+def _request_evidence(metadata: dict[str, object]) -> dict[str, object]:
+    return {
+        "causal_input_sha256": metadata["causal_input_sha256"],
+        "simulation_time_us": metadata["simulation_time_us"],
+        "tick_seed": metadata["tick_seed"],
+        "pair_run_key": metadata["pair_run_key"],
+        "dp_head": metadata["dp_head"],
+        "scenario_token": metadata["scenario_token"],
+        "request_metadata_sha256": hashlib.sha256(
+            json.dumps(metadata, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    }
 
 
 def test_default_and_candidate0_are_independent_zero_latent_calls() -> None:
@@ -209,6 +225,7 @@ def test_process_default_provenance_writes_independent_equivalence(tmp_path) -> 
     assert response.metadata["baseline_provenance"] == (
         "unmodified single DP output; independently equivalent to K=8 candidate 0"
     )
+    assert response.metadata["request_evidence"] == _request_evidence(metadata)
 
 
 def test_process_default_tick_records_planned_red_without_generating_k8(
@@ -317,6 +334,7 @@ def test_source_probe_writes_only_unchanged_candidates_and_source_mask(
         "candidate_sha256_after"
     ]
     assert response.metadata["eligible_candidate_count"] == 8
+    assert response.metadata["request_evidence"] == _request_evidence(metadata)
 
 
 def test_source_probe_rejects_dp_default_arm(tmp_path) -> None:
