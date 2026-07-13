@@ -604,11 +604,22 @@ fixed heads and assets, absent execution roots, no related process/listener,
 `/root` restored at mode 700 without ACL, and `50,568,769,536` free bytes.
 No ACL mutation or CARLA runtime occurred in this gate.
 
-current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_independent_review_passed
-current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_independent_review_no_execution
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_retry2_independent_review_dd5d8122_20260713T153946CST
-current_v19_artifact_root_sha256=eeafefda6607faaae001a0f0b665c35237596cbbaac7da8f3f31ec958bf538c6
-next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_only
+The execution-readiness recheck and independent review then rehashed both
+cache-safe preflight roots, queried GitHub `main`, and reconfirmed local,
+origin, and AutoDL at `30feaec8a47f47aed8696cc7699cf857c44bc21c` with
+fixed clean DP. They also reconfirmed the exact single command, absent
+execution roots and runtime Saved path, no related process/listener, frozen
+scripts/assets/binary, trusted ACL package, `/root` mode 700 with no ACL, and
+`50,567,270,400` free bytes. The readiness/review roots are
+`6379e24a5878bfca482c2289573eb15a85cb6027b9b3d81eba26b6cc9cdcc877` and
+`33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225`.
+No ACL mutation or runtime occurred in the recheck.
+
+current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_30feaec8_20260713T154919CST
+current_v19_artifact_root_sha256=33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225
+next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_only
 
 ## Current V18 Status
 

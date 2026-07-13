@@ -2642,3 +2642,41 @@ current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attemp
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_preflight_cache_safe_retry2_independent_review_dd5d8122_20260713T153946CST
 current_v19_artifact_root_sha256=eeafefda6607faaae001a0f0b665c35237596cbbaac7da8f3f31ec958bf538c6
 next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_only
+
+## CARLA Non-Root ACL Runtime Attempt Execution Readiness Recheck
+
+After the cache-safe preflight checkpoint, GitHub, local, origin, and AutoDL
+all resolved to `30feaec8a47f47aed8696cc7699cf857c44bc21c`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, and both repositories were
+tracked-clean. The recheck fully rehashed the preflight and review roots,
+runner, ACL wrapper, execution plan, harness, worker, checkpoint, fixed args,
+selector artifacts, binary, and Town01 client prerequisites. The sole frozen
+execution stage/final roots and runtime Saved path remained absent, with no
+related process or port 2000 listener.
+
+The exact authorized command remains the reviewed ACL wrapper followed by the
+single execution stage, frozen plan, and frozen runner:
+`acl_runtime_attempt.sh <execution-stage> execution_plan.json runtime_attempt.py`.
+The recorded absolute argv is in the artifact and authorizes exactly one new
+runtime attempt under user-selected option A. Before execution, `/root`
+remained mode 700 with no access/default ACL xattr; UID 65534 could not read,
+write, list, or traverse it. The ACL package remained `acl 2.3.1-1`, disk free
+space was `50,567,270,400` bytes, and CUDA plus the frozen CARLA client import
+remained available.
+
+The passed readiness artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_30feaec8_20260713T154831CST`
+and `6379e24a5878bfca482c2289573eb15a85cb6027b9b3d81eba26b6cc9cdcc877`.
+Independent review rehashed it before and after all read-only checks, compared
+the exact argv and attempt budget, and reproduced the heads, root ACL, disk,
+no-job, no-listener, and absent-root conditions at
+`/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_30feaec8_20260713T154919CST`
+with root `33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225`.
+No ACL mutation, runtime, worker, candidate, metric, outcome, holdout,
+promotion, deployment, activation, or claim ran.
+
+current_v19_status=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_no_execution
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_readiness_recheck_independent_review_30feaec8_20260713T154919CST
+current_v19_artifact_root_sha256=33be35b2b727441c89458dadfb21f203f0b53f455111f542b447d602d6d0a225
+next_work_target=v19_carla_nonroot_acl_source_only_k8_probe_runtime_attempt_execution_only
