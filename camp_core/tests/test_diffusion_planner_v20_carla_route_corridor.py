@@ -154,6 +154,22 @@ def test_corridor_adds_unique_predecessor_without_changing_route() -> None:
     assert len(corridor["corridor_sha256"]) == 64
 
 
+def test_corridor_requires_five_meter_step_before_predecessor_lookup() -> None:
+    route, map_api = _route_and_map(predecessor_count=1)
+
+    with pytest.raises(ValueError, match="route step must equal 5.0"):
+        build_pre_generation_route_corridor(
+            route=route,
+            map_api=map_api,
+            opendrive_xml=XODR,
+            route_sample_step_m=4.0,
+            station_allowance_m=3.0518578125e-05,
+            contact_tolerance_m=0.01,
+        )
+
+    assert route[0].previous_calls == []
+
+
 @pytest.mark.parametrize("predecessor_count", [0, 2])
 def test_corridor_requires_exactly_one_predecessor(predecessor_count: int) -> None:
     route, map_api = _route_and_map(predecessor_count=predecessor_count)

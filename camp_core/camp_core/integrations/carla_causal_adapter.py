@@ -146,6 +146,8 @@ def build_pre_generation_route_corridor(
     ):
         if not math.isfinite(value) or value <= 0.0:
             raise ValueError(f"{name} must be finite and positive")
+    if route_sample_step_m != 5.0:
+        raise ValueError("route step must equal 5.0")
     if not math.isfinite(contact_tolerance_m) or contact_tolerance_m < 0.0:
         raise ValueError("contact tolerance must be finite and nonnegative")
     predecessors = list(route[0].previous(route_sample_step_m))
