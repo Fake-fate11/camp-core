@@ -2238,3 +2238,39 @@ current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_prefli
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_independent_review_7fcfb32efa_20260713T114845CST
 current_v19_artifact_root_sha256=3691a86781588d94b28ee43e953918eead1324ad7943bebbc694d8788a53b3e2
 next_work_target=v19_carla_route_constrained_lifting_route_sidecar_tdd_implementation_only
+
+## CARLA Route-Constrained Lifting Route-Sidecar TDD
+
+The missing decision-time sidecar builder was implemented test-first at CAMP
+commit `efe2a58c647bcb9bf726b48cac369899cf8a1a33`. The RED test failed only
+because `build_route_lifting_context` did not exist. The minimal GREEN reuses
+the existing `LaneSurfaceSample`, `RouteLiftingContext`, canonical JSON SHA,
+and context validator. It accepts only the preregistered
+`current_map_topology_successors` source, exact frozen sample fields, and
+explicit directed route identities; it hashes the ordered source geometry,
+map, graph, sample step, and frozen tolerances without importing CARLA or
+calling a global map lookup.
+
+AutoDL Python 3.9 reproduced `49 passed`; py_compile and diff checks passed.
+The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_route_sidecar_tdd_efe2a58c_20260713T115724CST`
+and `1dd3aa7093ba2d22fc171bff94e94b227d97c56c90a1dcad8a56619df73a1998`.
+An earlier evidence wrapper stopped before creating staging because it compared
+against an incorrectly expanded short CAMP SHA; the successful artifact
+records that non-runtime attempt.
+
+Independent review rehashed the source artifact, reproduced `9 passed`, and
+confirmed strict sample/edge validation, tolerance-bound canonical source
+hashing, route-only provenance, validator reuse, and absence of CARLA/global
+lookup calls. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_efe2a58c_20260713T115753CST`
+and `b7f9f0f88e90ad6c45b7421fd330f6bbe7e77c41afd8e93155540aff4cfa29c8`.
+No candidate, checkpoint worker, simulator, metric, holdout, rung, scenario, or
+claim was produced. The next gate is one read-only preflight retry against the
+same frozen probe command and upstream evidence.
+
+current_v19_status=v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_decision_time_route_sidecar_tdd_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_efe2a58c_20260713T115753CST
+current_v19_artifact_root_sha256=b7f9f0f88e90ad6c45b7421fd330f6bbe7e77c41afd8e93155540aff4cfa29c8
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_only

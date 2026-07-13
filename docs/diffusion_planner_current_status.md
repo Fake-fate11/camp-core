@@ -501,13 +501,17 @@ remains fail-closed. All upstream roots, fixed assets, heads, disk, worker, and
 receipt census are ready. The sole missing input is a CAMP-side decision-time
 builder from the preregistered route waypoints to the canonical lifting
 sidecar. No request, candidate, worker, simulator, metric, or outcome ran. The
-next gate is the minimal TDD implementation of that builder.
+minimal route-sidecar builder has now passed TDD and independent review at CAMP
+`efe2a58c647bcb9bf726b48cac369899cf8a1a33`. It reuses the existing lifting
+types, canonical SHA, and validator, accepts only the preregistered route
+source, and makes no CARLA/global lookup call. The next gate is one read-only
+probe preflight retry; no candidate or runtime outcome has been produced.
 
-current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_review_passed_execution_not_ready
-current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_preflight_independent_review_and_route_sidecar_gap
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_independent_review_7fcfb32efa_20260713T114845CST
-current_v19_artifact_root_sha256=3691a86781588d94b28ee43e953918eead1324ad7943bebbc694d8788a53b3e2
-next_work_target=v19_carla_route_constrained_lifting_route_sidecar_tdd_implementation_only
+current_v19_status=v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_decision_time_route_sidecar_tdd_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_route_sidecar_tdd_independent_review_efe2a58c_20260713T115753CST
+current_v19_artifact_root_sha256=b7f9f0f88e90ad6c45b7421fd330f6bbe7e77c41afd8e93155540aff4cfa29c8
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_retry_only
 
 ## Current V18 Status
 
