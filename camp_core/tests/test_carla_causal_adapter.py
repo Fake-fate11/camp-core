@@ -7,8 +7,10 @@ import pytest
 
 from camp_core.integrations.carla_causal_adapter import (
     build_carla_history_batch,
+    build_route_lifting_context,
     materialize_carla_snapshot,
 )
+from camp_core.integrations.carla_exact_speed_source import LiftingTolerances
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
 )
@@ -206,3 +208,78 @@ def test_history_collector_rejects_outcome_fields() -> None:
 
     with pytest.raises(ValueError, match="forbidden source field"):
         build_carla_history_batch(frames)
+
+
+def _route_samples() -> list[dict[str, object]]:
+    return [
+        {
+            "road_id": road,
+            "section_id": 0,
+            "lane_id": -1,
+            "s": s,
+            "x": x,
+            "y": 0.0,
+            "z": 1.0,
+            "lane_width": 3.5,
+            "is_junction": road == "2",
+        }
+        for road, s, x in (
+            ("1", 0.0, 0.0),
+            ("1", 5.0, 5.0),
+            ("2", 0.0, 10.0),
+            ("2", 5.0, 15.0),
+        )
+    ]
+
+
+def test_route_lifting_context_is_deterministic_and_route_only() -> None:
+    kwargs = {
+        "route_source": "current_map_topology_successors",
+        "route_samples": _route_samples(),
+        "directed_edges": [(("1", 0, -1), ("2", 0, -1))],
+        "route_sample_step_m": 5.0,
+        "tolerances": LiftingTolerances(1.5, 1e-9, 1e-9, 1e-9),
+        "map_sha256": "a" * 64,
+    }
+
+    first = build_route_lifting_context(**kwargs)
+    second = build_route_lifting_context(**kwargs)
+
+    assert first == second
+    assert tuple(sample.identity for sample in first.samples) == (
+        ("1", 0, -1),
+        ("1", 0, -1),
+        ("2", 0, -1),
+        ("2", 0, -1),
+    )
+    assert first.edges == ((("1", 0, -1), ("2", 0, -1)),)
+    assert len(first.source_sha256) == len(first.route_graph_sha256) == 64
+
+
+def test_route_lifting_context_rejects_nonroute_and_outcome_sources() -> None:
+    common = {
+        "route_samples": _route_samples(),
+        "directed_edges": [],
+        "route_sample_step_m": 5.0,
+        "tolerances": LiftingTolerances(1.5, 1e-9, 1e-9, 1e-9),
+        "map_sha256": "a" * 64,
+    }
+    with pytest.raises(ValueError, match="current_map_topology_successors"):
+        build_route_lifting_context(route_source="global_map", **common)
+
+    samples = _route_samples()
+    samples[0]["future_outcome"] = 1.0
+    with pytest.raises(ValueError, match="forbidden source field"):
+        build_route_lifting_context(
+            route_source="current_map_topology_successors",
+            **{**common, "route_samples": samples},
+        )
+
+    with pytest.raises(ValueError, match="route edge identity"):
+        build_route_lifting_context(
+            route_source="current_map_topology_successors",
+            **{
+                **common,
+                "directed_edges": [(("1", 0.5, -1), ("2", 0, -1))],
+            },
+        )

@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 import math
+from dataclasses import asdict
 from types import SimpleNamespace
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
+from camp_core.integrations.carla_exact_speed_source import (
+    LaneSurfaceSample,
+    LiftingTolerances,
+    RouteLiftingContext,
+    _validate_lifting_context,
+    canonical_json_sha256,
+)
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CausalDPMaterialization,
     materialize_causal_dp_input,
@@ -23,6 +31,17 @@ _FORBIDDEN_SOURCE_PARTS = (
     "ade",
     "fde",
 )
+_ROUTE_SAMPLE_FIELDS = {
+    "road_id",
+    "section_id",
+    "lane_id",
+    "s",
+    "x",
+    "y",
+    "z",
+    "lane_width",
+    "is_junction",
+}
 
 
 def _reject_forbidden_source_fields(value: Any) -> None:
@@ -144,6 +163,96 @@ def build_carla_history_batch(
         neigh_types=types[None],
         agents_from_world_tf=transform[None],
     )
+
+
+def build_route_lifting_context(
+    *,
+    route_source: str,
+    route_samples: Sequence[Mapping[str, Any]],
+    directed_edges: Sequence[Sequence[Sequence[Any]]],
+    route_sample_step_m: float,
+    tolerances: LiftingTolerances,
+    map_sha256: str,
+) -> RouteLiftingContext:
+    """Freeze the decision-time route samples into the pure lifting contract."""
+    if route_source != "current_map_topology_successors":
+        raise ValueError("route source must be current_map_topology_successors")
+    _reject_forbidden_source_fields(route_samples)
+
+    samples = []
+    for raw in route_samples:
+        if set(raw) != _ROUTE_SAMPLE_FIELDS:
+            raise ValueError("route sample fields do not match the frozen contract")
+        if (
+            not isinstance(raw["road_id"], str)
+            or not raw["road_id"]
+            or isinstance(raw["section_id"], bool)
+            or not isinstance(raw["section_id"], int)
+            or isinstance(raw["lane_id"], bool)
+            or not isinstance(raw["lane_id"], int)
+            or not isinstance(raw["is_junction"], bool)
+        ):
+            raise ValueError("route sample identity metadata is invalid")
+        samples.append(
+            LaneSurfaceSample(
+                road_id=raw["road_id"],
+                section_id=raw["section_id"],
+                lane_id=raw["lane_id"],
+                s=float(raw["s"]),
+                x=float(raw["x"]),
+                y=float(raw["y"]),
+                z=float(raw["z"]),
+                lane_width=float(raw["lane_width"]),
+                is_junction=raw["is_junction"],
+            )
+        )
+
+    def identity(raw: Sequence[Any]) -> Tuple[str, int, int]:
+        if (
+            len(raw) != 3
+            or not isinstance(raw[0], str)
+            or not raw[0]
+            or isinstance(raw[1], bool)
+            or not isinstance(raw[1], int)
+            or isinstance(raw[2], bool)
+            or not isinstance(raw[2], int)
+        ):
+            raise ValueError("route edge identity is invalid")
+        return (raw[0], raw[1], raw[2])
+
+    edges = []
+    for raw in directed_edges:
+        if len(raw) != 2:
+            raise ValueError("route edge must contain source and target identities")
+        edges.append((identity(raw[0]), identity(raw[1])))
+
+    route_graph_sha256 = canonical_json_sha256(
+        {
+            "identities": sorted({sample.identity for sample in samples}),
+            "directed_edges": edges,
+        }
+    )
+    source_sha256 = canonical_json_sha256(
+        {
+            "route_source": route_source,
+            "route_samples": [asdict(sample) for sample in samples],
+            "route_sample_step_m": float(route_sample_step_m),
+            "tolerances": asdict(tolerances),
+            "map_sha256": map_sha256,
+            "route_graph_sha256": route_graph_sha256,
+        }
+    )
+    context = RouteLiftingContext(
+        samples=tuple(samples),
+        edges=tuple(edges),
+        route_sample_step_m=float(route_sample_step_m),
+        tolerances=tolerances,
+        map_sha256=map_sha256,
+        source_sha256=source_sha256,
+        route_graph_sha256=route_graph_sha256,
+    )
+    _validate_lifting_context(context)
+    return context
 
 
 def materialize_carla_snapshot(
