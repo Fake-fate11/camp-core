@@ -264,13 +264,172 @@ def lift_candidate_to_route_surface(
             previous = receipt
         else:
             previous = None
-    payload = [asdict(point) for point in points]
+    payload = [
+        {key: value for key, value in asdict(point).items() if key != "candidate_index"}
+        for point in points
+    ]
     return CandidateLiftDecision(
         eligible=first_failure is None,
         points=tuple(points),
         reason="source_complete" if first_failure is None else first_failure,
         trajectory_lifting_sha256=canonical_json_sha256(payload),
     )
+
+
+def lift_k8_route_receipt(
+    *,
+    candidates: Any,
+    operational_top1: Any,
+    agents_from_world_tf: Any,
+    context: RouteLiftingContext,
+    map_api: Any,
+    candidate_tensor_sha256: str,
+    operational_top1_sha256: str,
+    provenance: Mapping[str, Any],
+) -> dict[str, Any]:
+    _reject_forbidden_receipt_fields(provenance)
+    candidate_before = _array_sha256(candidates, (8, 80, 4), "candidates")
+    operational_before = _array_sha256(
+        operational_top1, (80, 4), "operational Top-1"
+    )
+    _validate_sha256(candidate_tensor_sha256, "candidate tensor")
+    _validate_sha256(operational_top1_sha256, "operational Top-1")
+
+    decisions = tuple(
+        lift_candidate_to_route_surface(
+            candidate_index=index,
+            candidate=candidates[index],
+            agents_from_world_tf=agents_from_world_tf,
+            context=context,
+            map_api=map_api,
+        )
+        for index in range(8)
+    )
+    default = lift_candidate_to_route_surface(
+        candidate_index=0,
+        candidate=operational_top1,
+        agents_from_world_tf=agents_from_world_tf,
+        context=context,
+        map_api=map_api,
+    )
+    candidate_after = _array_sha256(candidates, (8, 80, 4), "candidates")
+    operational_after = _array_sha256(
+        operational_top1, (80, 4), "operational Top-1"
+    )
+    mask = [decision.eligible for decision in decisions]
+    reasons = [decision.reason for decision in decisions]
+    equivalent = (
+        _array_sha256(candidates[0], (80, 4), "candidate 0")
+        == operational_before
+        and decisions[0].trajectory_lifting_sha256
+        == default.trajectory_lifting_sha256
+    )
+    reason = _tick_failure_reason(
+        mask=mask,
+        candidate0_complete=decisions[0].eligible,
+        operational_complete=default.eligible,
+        equivalent=equivalent,
+        candidate_expected=candidate_tensor_sha256,
+        candidate_before=candidate_before,
+        candidate_after=candidate_after,
+        operational_expected=operational_top1_sha256,
+        operational_before=operational_before,
+        operational_after=operational_after,
+    )
+    payload = {
+        "record_source_eligible": reason == "source_complete",
+        "reason": reason,
+        "selected_index": None,
+        "candidate_tensor_sha256": candidate_tensor_sha256,
+        "candidate_tensor_sha256_before": candidate_before,
+        "candidate_tensor_sha256_after": candidate_after,
+        "operational_top1_sha256": operational_top1_sha256,
+        "operational_top1_sha256_before": operational_before,
+        "operational_top1_sha256_after": operational_after,
+        "candidate_source_eligible_mask": mask,
+        "candidate_source_reasons": reasons,
+        "candidate_receipts": [_decision_payload(item) for item in decisions],
+        "operational_top1_receipt": _decision_payload(default),
+        "dp_operational_top1_source_complete": default.eligible,
+        "candidate0_operational_top1_equivalent": equivalent,
+        "map_sha256": context.map_sha256,
+        "source_sha256": context.source_sha256,
+        "route_graph_sha256": context.route_graph_sha256,
+        "provenance": dict(provenance),
+    }
+    payload["lifting_receipt_sha256"] = canonical_json_sha256(payload)
+    return payload
+
+
+def _array_sha256(value: Any, shape: Tuple[int, ...], name: str) -> str:
+    try:
+        actual_shape = tuple(int(item) for item in value.shape)
+        dtype = str(value.dtype)
+        payload = value.tobytes(order="C")
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a float32 array with shape {shape}") from exc
+    if actual_shape != shape or dtype != "float32":
+        raise ValueError(f"{name} must be a float32 array with shape {shape}")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _validate_sha256(value: str, name: str) -> None:
+    if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+        raise ValueError(f"{name} SHA256 is invalid")
+
+
+def _reject_forbidden_receipt_fields(value: Any) -> None:
+    forbidden = ("expert_future", "holdout", "label", "outcome", "metric", "safety_cost")
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            normalized = str(key).casefold()
+            if any(part in normalized for part in forbidden):
+                raise ValueError(f"forbidden outcome field: {key}")
+            _reject_forbidden_receipt_fields(item)
+    elif isinstance(value, (list, tuple)):
+        for item in value:
+            _reject_forbidden_receipt_fields(item)
+
+
+def _decision_payload(decision: CandidateLiftDecision) -> dict[str, Any]:
+    return {
+        "eligible": decision.eligible,
+        "reason": decision.reason,
+        "trajectory_lifting_sha256": decision.trajectory_lifting_sha256,
+        "points": [asdict(point) for point in decision.points],
+    }
+
+
+def _tick_failure_reason(
+    *,
+    mask: Sequence[bool],
+    candidate0_complete: bool,
+    operational_complete: bool,
+    equivalent: bool,
+    candidate_expected: str,
+    candidate_before: str,
+    candidate_after: str,
+    operational_expected: str,
+    operational_before: str,
+    operational_after: str,
+) -> str:
+    if candidate_expected != candidate_before:
+        return "candidate_sha256_mismatch"
+    if operational_expected != operational_before:
+        return "operational_sha256_mismatch"
+    if candidate_before != candidate_after:
+        return "candidate_tensor_mutated"
+    if operational_before != operational_after:
+        return "operational_top1_mutated"
+    if not any(mask):
+        return "all_k_source_ineligible"
+    if not candidate0_complete:
+        return "candidate0_source_incomplete"
+    if not operational_complete:
+        return "dp_operational_top1_source_incomplete"
+    if not equivalent:
+        return "candidate0_operational_top1_mismatch"
+    return "source_complete"
 
 
 def _validate_lifting_context(context: RouteLiftingContext) -> None:

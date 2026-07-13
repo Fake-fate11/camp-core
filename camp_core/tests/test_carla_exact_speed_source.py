@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 from camp_core.integrations.carla_exact_speed_source import (
@@ -16,12 +17,14 @@ from camp_core.integrations.carla_exact_speed_source import (
     SegmentRef,
     candidate_source_mask,
     freeze_lifting_tolerances,
+    lift_k8_route_receipt,
     lift_candidate_to_route_surface,
     project_world_point_to_segment,
     resolve_landmark_segment_speed,
     parse_opendrive_speed_index,
     resolve_segment_speed,
 )
+from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import array_sha256
 
 
 XODR = """
@@ -461,3 +464,160 @@ def test_tolerance_freeze_is_deterministic_and_source_sensitive() -> None:
     assert first.station_epsilon_m > 0.02
     assert first.z_epsilon_m > 0.03
     assert first.continuity_epsilon_m == first.station_epsilon_m
+
+
+def _k8_candidates(*, y: float = 0.0) -> np.ndarray:
+    candidate = np.asarray(_candidate(y=y), dtype=np.float32)
+    return np.repeat(candidate[None, :, :], 8, axis=0)
+
+
+def _lifting_provenance() -> dict[str, object]:
+    return {
+        "scenario_token": "source-only-scenario",
+        "agents_from_world_tf_sha256": "d" * 64,
+        "baseline_name": "DP operational Top-1",
+        "native_ranked_top1": False,
+    }
+
+
+def _lift_k8(
+    candidates: np.ndarray,
+    *,
+    operational_top1: np.ndarray | None = None,
+    map_api=None,
+    candidate_tensor_sha256: str | None = None,
+    operational_top1_sha256: str | None = None,
+):
+    default = candidates[0].copy() if operational_top1 is None else operational_top1
+    return lift_k8_route_receipt(
+        candidates=candidates,
+        operational_top1=default,
+        agents_from_world_tf=(
+            (1.0, 0.0, -10.0),
+            (0.0, 1.0, -20.0),
+            (0.0, 0.0, 1.0),
+        ),
+        context=_route_context(_surface_samples()),
+        map_api=_FakeXodrMap() if map_api is None else map_api,
+        candidate_tensor_sha256=(
+            array_sha256(candidates)
+            if candidate_tensor_sha256 is None
+            else candidate_tensor_sha256
+        ),
+        operational_top1_sha256=(
+            array_sha256(default)
+            if operational_top1_sha256 is None
+            else operational_top1_sha256
+        ),
+        provenance=_lifting_provenance(),
+    )
+
+
+def test_k8_receipt_preserves_tensor_and_matches_operational_top1() -> None:
+    candidates = _k8_candidates()
+    before = candidates.copy()
+
+    receipt = _lift_k8(candidates)
+
+    np.testing.assert_array_equal(candidates, before)
+    assert receipt["record_source_eligible"] is True
+    assert receipt["candidate_source_eligible_mask"] == [True] * 8
+    assert receipt["dp_operational_top1_source_complete"] is True
+    assert receipt["candidate0_operational_top1_equivalent"] is True
+    assert receipt["selected_index"] is None
+    assert (
+        receipt["candidate_receipts"][0]["trajectory_lifting_sha256"]
+        == receipt["operational_top1_receipt"]["trajectory_lifting_sha256"]
+    )
+    assert (
+        receipt["candidate_receipts"][0]["trajectory_lifting_sha256"]
+        == receipt["candidate_receipts"][1]["trajectory_lifting_sha256"]
+    )
+
+
+@pytest.mark.parametrize("sha_field", ["candidate", "operational"])
+def test_k8_receipt_fails_closed_on_input_sha_drift(sha_field: str) -> None:
+    candidates = _k8_candidates()
+    kwargs = {
+        "candidate_tensor_sha256": "0" * 64,
+    } if sha_field == "candidate" else {
+        "operational_top1_sha256": "0" * 64,
+    }
+
+    receipt = _lift_k8(candidates, **kwargs)
+
+    assert receipt["record_source_eligible"] is False
+    assert receipt["reason"] == f"{sha_field}_sha256_mismatch"
+    assert len(receipt["candidate_source_eligible_mask"]) == 8
+    assert receipt["selected_index"] is None
+
+
+def test_k8_receipt_fails_closed_on_operational_xy_drift() -> None:
+    candidates = _k8_candidates()
+    operational = candidates[0].copy()
+    operational[0, 0] += np.float32(0.25)
+
+    receipt = _lift_k8(candidates, operational_top1=operational)
+
+    assert receipt["record_source_eligible"] is False
+    assert receipt["reason"] == "candidate0_operational_top1_mismatch"
+    assert receipt["candidate0_operational_top1_equivalent"] is False
+    assert receipt["selected_index"] is None
+
+
+class _OperationalZDriftMap(_FakeXodrMap):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    def get_waypoint_xodr(self, road_id: int, lane_id: int, s: float):
+        self.calls += 1
+        self.z = 3.5 if self.calls <= 640 else 4.0
+        return super().get_waypoint_xodr(road_id, lane_id, s)
+
+
+def test_k8_receipt_fails_closed_on_independent_lifting_drift() -> None:
+    receipt = _lift_k8(_k8_candidates(), map_api=_OperationalZDriftMap())
+
+    assert receipt["record_source_eligible"] is False
+    assert receipt["reason"] == "candidate0_operational_top1_mismatch"
+    assert receipt["candidate0_operational_top1_equivalent"] is False
+
+
+def test_k8_receipt_requires_candidate0_source_complete() -> None:
+    candidates = _k8_candidates()
+    candidates[0, :, 1] = np.float32(10.0)
+
+    receipt = _lift_k8(candidates)
+
+    assert receipt["record_source_eligible"] is False
+    assert receipt["reason"] == "candidate0_source_incomplete"
+    assert receipt["candidate_source_eligible_mask"][0] is False
+    assert any(receipt["candidate_source_eligible_mask"][1:])
+    assert receipt["selected_index"] is None
+
+
+def test_k8_receipt_retains_all_reasons_when_all_k_ineligible() -> None:
+    receipt = _lift_k8(_k8_candidates(y=10.0))
+
+    assert receipt["record_source_eligible"] is False
+    assert receipt["reason"] == "all_k_source_ineligible"
+    assert receipt["candidate_source_eligible_mask"] == [False] * 8
+    assert len(receipt["candidate_source_reasons"]) == 8
+    assert receipt["selected_index"] is None
+
+
+def test_k8_receipt_rejects_outcome_provenance() -> None:
+    candidates = _k8_candidates()
+
+    with pytest.raises(ValueError, match="forbidden outcome field"):
+        lift_k8_route_receipt(
+            candidates=candidates,
+            operational_top1=candidates[0].copy(),
+            agents_from_world_tf=((1.0, 0.0, 0.0),) * 3,
+            context=_route_context(_surface_samples()),
+            map_api=_FakeXodrMap(),
+            candidate_tensor_sha256=array_sha256(candidates),
+            operational_top1_sha256=array_sha256(candidates[0]),
+            provenance={"safety_cost": 0.0},
+        )
