@@ -489,11 +489,18 @@ confirmed no global projection, candidate writes, CARLA import in the pure
 module, outcome access, or active legacy baseline name. An earlier wrapper
 with an incomplete call-graph slice is retained as invalid evidence.
 
-current_v19_status=v19_carla_route_constrained_lifting_implementation_static_review_passed
-current_v19_artifact_scope=route_constrained_lifting_tasks1_4_combined_static_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_implementation_static_review_final_d63b6a21fe_20260713T111027CST
-current_v19_artifact_root_sha256=69e0012e75c66e60935dd2355ccc43a3d64ed76c0b706d0ad92275f7b7cd21ec
-next_work_target=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_only
+The map-only tolerance freeze now passes independent review. Offline official
+CARLA maps produced `25091` valid XODR round trips and `22601` consecutive
+5 m chords with zero failures. Frozen geometry/station/z/continuity epsilons
+are `1.5273609989704584`, `1.0000017763568395e-9`, `1e-9`, and
+`1.0000017763568395e-9` metres. No DP candidate, server, outcome, or metric was
+used.
+
+current_v19_status=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_review_passed
+current_v19_artifact_scope=route_constrained_lifting_official_map_only_tolerance_freeze_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_map_only_tolerance_freeze_independent_review_147c0d56_20260713T111805CST
+current_v19_artifact_root_sha256=966a9f6169248186e470c0b1d89a177485794ba916df92c65aef2804fdae986b
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_only
 
 ## Current V18 Status
 

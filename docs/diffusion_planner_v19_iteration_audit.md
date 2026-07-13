@@ -2169,3 +2169,35 @@ current_v19_artifact_scope=route_constrained_lifting_tasks1_4_combined_static_re
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_implementation_static_review_final_d63b6a21fe_20260713T111027CST
 current_v19_artifact_root_sha256=69e0012e75c66e60935dd2355ccc43a3d64ed76c0b706d0ad92275f7b7cd21ec
 next_work_target=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_only
+
+## CARLA Route-Constrained Lifting Map-Only Tolerance Freeze
+
+The outcome-free tolerance census used offline `carla.Map` with the official
+CARLA 0.9.16 Town01-Town07 and Town10HD XODRs and the preregistered `5.0 m`
+route sampling step. It did not start CarlaUE4 or access DP candidates,
+scenarios, outcomes, metrics, holdout, or formal seeds.
+
+Across `25091` generated driving waypoints, official `get_waypoint_xodr`
+round trips retained identity with zero failures. Across `22601` consecutive
+same-identity chords, the maximum midpoint chord residual was
+`1.5273609979704583 m`; maximum XY round-trip error was `0.0`, maximum station
+error was `1.7763568394002505e-15 m`, maximum z error was `0.0`, and coordinate
+scale was `810.0 m`. The frozen deterministic formula produced geometry,
+station, z, and continuity epsilons of `1.5273609989704584`,
+`1.0000017763568395e-9`, `1e-9`, and `1.0000017763568395e-9` metres.
+
+The source artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_map_only_tolerance_freeze_147c0d56_20260713T111727CST`
+and `1683f40e56df022b2f60bf8e39fe54beac26491362e2982014d4bbc0186e1a47`.
+Independent review rehashed all eight maps, recomputed every JSONL maximum,
+row/chord count, combined map SHA, floating allowance, and final tolerance.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_map_only_tolerance_freeze_independent_review_147c0d56_20260713T111805CST`
+and `966a9f6169248186e470c0b1d89a177485794ba916df92c65aef2804fdae986b`.
+All access counters remain zero and claim taxonomy is unchanged.
+
+current_v19_status=v19_carla_route_constrained_lifting_map_only_tolerance_freeze_review_passed
+current_v19_artifact_scope=route_constrained_lifting_official_map_only_tolerance_freeze_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_map_only_tolerance_freeze_independent_review_147c0d56_20260713T111805CST
+current_v19_artifact_root_sha256=966a9f6169248186e470c0b1d89a177485794ba916df92c65aef2804fdae986b
+next_work_target=v19_carla_route_constrained_lifting_source_only_k8_probe_preflight_only
