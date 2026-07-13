@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_post_loader_graphics_diagnosis_headless_egl_icd_probe_"
-        "independent_review_passed"
+        "v19_carla_headless_egl_icd_runtime_attempt_preflight_independent_"
+        "review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_headless_egl_icd_runtime_attempt_preflight_only_continuous_"
+        "v19_carla_headless_egl_icd_runtime_attempt_execution_only_continuous_"
         "authorization"
     )

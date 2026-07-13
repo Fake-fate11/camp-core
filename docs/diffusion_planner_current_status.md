@@ -1079,6 +1079,32 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_headless_egl_icd_probe_6cfbaea
 current_v19_artifact_root_sha256=7ef2b3586fd7635dba7aba166da6d8632f7f71f7b67e0736b7fd64f6ccf0e5ce
 next_work_target=v19_carla_headless_egl_icd_runtime_attempt_preflight_only_continuous_authorization
 
+### Headless EGL-ICD Runtime Attempt Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`87301d4d47c43bf4bf1a0d4dbfd2729ed5faa231`, the no-runtime preflight
+substituted fresh stage/final paths and added only server environment variable
+`VK_ICD_FILENAMES=/tmp/camp_dp_v19_nvidia_egl_icd_87301d4d.json` to the last
+reviewed plan. The manifest is fixed at SHA256
+`25e77ea0175e0c4e7af36d7e002db235ba50305dd8d2f801487a17513184ec65`,
+mode 0644, pointing only to installed `libEGL_nvidia.so.0`; the execution
+controller must create it immediately before the wrapper and delete it in a
+`finally` path after success, failure, or interruption.
+
+Whole-plan comparison proves server argv, absolute XDG/full-log settings,
+Town01/RPC/readiness, all five source-only steps, fixed DP/assets/selectors,
+K=8 and all scientific contracts unchanged. UID 65534 Vulkan chain replay
+passed twice and each temporary probe/manifest was removed. No peer/listener,
+Saved/staging, ACL mutation, or runtime was present. Preflight/review roots are
+`b40e6228d40cb869a68a6c54cf73e331ab81a1a973337cf09984ed7406bb7311`
+and `0f673bc72a082a1378cf8dc7f27e130379aaf4d3c858b32365b140deab3a5f73`.
+
+current_v19_status=v19_carla_headless_egl_icd_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=headless_egl_icd_temporary_manifest_runtime_attempt_preflight_and_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_headless_egl_icd_runtime_attempt_preflight_87301d4d_20260713T203124CST_independent_review
+current_v19_artifact_root_sha256=0f673bc72a082a1378cf8dc7f27e130379aaf4d3c858b32365b140deab3a5f73
+next_work_target=v19_carla_headless_egl_icd_runtime_attempt_execution_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this
