@@ -1226,6 +1226,42 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_har
 current_v19_artifact_root_sha256=a8c2bff7cc79830f86f60d905f10a090f216798f7e384d79a39ffb670ba58f45
 next_work_target=v19_carla_materialize_git_head_remediation_runtime_attempt_1_execution_only_continuous_authorization
 
+### Source-Only K=8 Probe Passed With Zero Legal Paired Support
+
+At synchronized CAMP/GitHub/AutoDL
+`c8953d6c6d650219103626ddbde33bfed416cdfc`, the corrected controller passed
+static review and launched the frozen runtime once. CARLA reached readiness and
+all five source-only commands exited 0: capture, materialize, CAMP fixed-DP
+worker, default-provenance fixed-DP worker, and receipt. The post-runtime
+controller initially failed only because its evidence validator added the repo
+root rather than `repo/camp_core` to `sys.path`; the corrected evidence-only
+validation reused the same immutable execution and did not restart CARLA.
+
+Independent review confirms the K=8 tensor SHA is unchanged, candidate 0 is
+equivalent to the immutable DP operational Top-1, and outcome/metric/holdout
+counts are all 0. However, the frozen route-constrained lifting receipt is
+`record_source_eligible=false`, `selected_index=null`, reason
+`all_k_source_ineligible`, with eligibility mask eight false values and eligible
+count 0. Thus there is no legal paired support for matched closed-loop work.
+Execution/review roots are
+`d4632d9cdcfece6c82edad73a4e3a9bc937508107cee3ee6f587af0d9a0d4652`
+and `46d65dc6942e3890085acf727a72675106866e9872f5b7a03fb4c82bceb745fb`.
+ACL/stat/xattrs restored byte-equally, the manifest was removed, and no process
+or listener remains.
+
+This is the authorized zero-legal-paired-support hard stop. Repeating the run
+cannot change eligibility under the frozen contract; continuing would require
+an explicit decision to change a frozen route/lifting/source/tolerance/
+eligibility scientific boundary. Performance and closed-loop safety remain
+no-claim; broad CAMP-over-DP, promotion, deployment, and activation remain
+unsupported and unauthorized.
+
+current_v19_status=v19_carla_source_only_k8_probe_runtime_passed_zero_legal_paired_support_independent_review_passed
+current_v19_artifact_scope=source_only_fixed_dp_k8_probe_runtime_passed_candidate_immutable_zero_legal_paired_support_hard_stop_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_corrected_execution_controller_c8953d6c_20260713T210038CST_execution_review
+current_v19_artifact_root_sha256=46d65dc6942e3890085acf727a72675106866e9872f5b7a03fb4c82bceb745fb
+next_work_target=user_decision_required_before_any_frozen_scientific_contract_change_after_zero_legal_paired_support_hard_stop
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

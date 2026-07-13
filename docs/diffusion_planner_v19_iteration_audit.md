@@ -3821,3 +3821,84 @@ current_v19_artifact_scope=materialize_git_head_remediation_harness_sha_correcte
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_harness_sha_corrected_runtime_preflight_a85109ff_20260713T205709CST_independent_review
 current_v19_artifact_root_sha256=a8c2bff7cc79830f86f60d905f10a090f216798f7e384d79a39ffb670ba58f45
 next_work_target=v19_carla_materialize_git_head_remediation_runtime_attempt_1_execution_only_continuous_authorization
+
+## Source-Only K=8 Runtime Passed: Zero Legal Paired Support Hard Stop
+
+At synchronized CAMP/GitHub/AutoDL
+`c8953d6c6d650219103626ddbde33bfed416cdfc`, the execution controller was
+derived from the last sealed controller by replacing only current HEAD and the
+harness-SHA-corrected preflight/review roots. Static controller source/review
+roots are
+`8b73b24f517a22fc1bddb8751b4c3835751c67de830664260e7710ef398d9cc6`
+and `87c75fa5be895abfeefe97a16cd53c3d50198d5a6c73c9b2148dd2dba790557f`;
+controller SHA256 is
+`e44d24738d25394ca0cbd0d1d8f6fa3ce952b84f064fc07a35804ed733de7176`.
+
+The unique launch guard passed synchronized local/origin/GitHub CAMP HEAD,
+fixed clean DP, exact package, corrected harness pin, no peer/listener/Saved/
+staging state, root restoration, disk, and frozen-plan checks. It created the
+exact temporary EGL-ICD manifest, entered the UID 65534 execute-only ACL
+wrapper, and launched CARLA. CARLA reached RPC readiness. The complete source-
+only pipeline then reported exit 0 for all steps:
+
+- `capture=0`
+- `materialize=0`
+- `camp_worker=0`
+- `default_worker=0`
+- `receipt=0`
+
+Runtime result passed in `32.86031484603882` seconds. Both workers used the
+fixed DP HEAD, checkpoint, args, selectors, K=8 contract, and CUDA path. The
+wrapper returned 0. The ACL trap restored original ACL/stat/xattrs byte-
+equally, UID 65534 traversal is blocked, the temporary manifest and live Saved
+tree are absent, and no related process/listener remains. Guard and wrapper-
+capture roots are
+`059587f9813d1eee116346a1b1045827c0a55078f7ef707d42803b4b59a3e4ce`
+and `54fa3a0c8c2835ba055497defb2e068f7be71b7bf6826133486406e44f040448`.
+
+The controller's first post-runtime evidence-validation call failed after the
+passed result because it inserted `/root/autodl-tmp/camp_core` instead of
+`/root/autodl-tmp/camp_core/camp_core` before importing
+`camp_core.integrations`. No runtime rerun occurred. A bounded evidence-only
+finalizer added the correct package root, executed the controller's original
+restore/inventory/log/K=8 validation functions twice against the same immutable
+execution, sealed it, and independently reviewed the seal.
+
+The source-only scientific receipt is exact and fail-closed:
+
+- candidate tensor SHA256 before/current/after:
+  `8ca8c2e35de6363d40a154033ebee08e326114da0d7ae6790013329988f6a42c`
+- DP operational Top-1 SHA256 before/current/after:
+  `d01bd26929034d356e57d8f731bf90b5aba8b93b54839ee36b0f74f58a4d967c`
+- candidate 0 equivalent to DP operational Top-1: `true`
+- native ranked Top-1: `false`
+- selected index: `null`
+- record source eligible: `false`
+- eligibility mask: `[false, false, false, false, false, false, false, false]`
+- eligible candidate count: `0`
+- reason: `all_k_source_ineligible`
+- simulator arm advances / outcome reads / metric calls / holdout reads:
+  `0 / 0 / 0 / 0`
+
+Execution and independent-review roots are
+`d4632d9cdcfece6c82edad73a4e3a9bc937508107cee3ee6f587af0d9a0d4652`
+and `46d65dc6942e3890085acf727a72675106866e9872f5b7a03fb4c82bceb745fb`.
+The captured logs include server signal 11 after the pipeline, but the pipeline
+and receipt had already passed; this record makes no causal claim about that
+signal. It also makes no closed-loop or safety claim.
+
+This is the continuous-authorization hard stop for zero legal paired support.
+A retry under the identical frozen contract cannot create eligibility. Any
+attempt to change route construction, speed source, lifting source, tolerances,
+eligibility, candidate data, or another frozen scientific field requires a new
+explicit user decision. No matched closed-loop arm, SafetyCost, official metric,
+or latency comparison is legal from this record. The claim taxonomy remains:
+performance no-claim; bounded offline proxy supported; closed-loop safety not
+supported; broad CAMP-over-DP operational Top-1 not supported; promotion,
+deployment, and activation not authorized.
+
+current_v19_status=v19_carla_source_only_k8_probe_runtime_passed_zero_legal_paired_support_independent_review_passed
+current_v19_artifact_scope=source_only_fixed_dp_k8_probe_runtime_passed_candidate_immutable_zero_legal_paired_support_hard_stop_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_materialize_git_head_corrected_execution_controller_c8953d6c_20260713T210038CST_execution_review
+current_v19_artifact_root_sha256=46d65dc6942e3890085acf727a72675106866e9872f5b7a03fb4c82bceb745fb
+next_work_target=user_decision_required_before_any_frozen_scientific_contract_change_after_zero_legal_paired_support_hard_stop

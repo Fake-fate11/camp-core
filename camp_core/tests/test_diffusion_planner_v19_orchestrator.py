@@ -72,10 +72,10 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_materialize_git_head_remediation_harness_sha_corrected_"
-        "runtime_preflight_independent_review_passed"
+        "v19_carla_source_only_k8_probe_runtime_passed_zero_legal_paired_"
+        "support_independent_review_passed"
     )
     assert pointer["next_work_target"] == (
-        "v19_carla_materialize_git_head_remediation_runtime_attempt_1_"
-        "execution_only_continuous_authorization"
+        "user_decision_required_before_any_frozen_scientific_contract_change_"
+        "after_zero_legal_paired_support_hard_stop"
     )
