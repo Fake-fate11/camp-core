@@ -469,11 +469,18 @@ XY/lifting, candidate-0, operational-output, and all-K mismatches before any
 selection. Independent Python 3.9 review reproduced `38 passed` and a fresh
 dynamic equivalence receipt. No simulator, metric, holdout, or outcome ran.
 
-current_v19_status=v19_carla_route_constrained_lifting_task2_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_task2_k8_operational_top1_receipt_independent_review
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_independent_review_f85dc7446a_20260713T104706CST
-current_v19_artifact_root_sha256=1925a0641d106b5013326429c35e2f346cc0955d19a5957665a76ddc2e42bdd9
-next_work_target=v19_carla_route_constrained_lifting_task3_tdd_implementation_only
+Task 3 now passes independent review. Active worker, bridge, adapter, smoke
+validator, and future source-support freeze configs use `DP operational Top-1`
+with provenance `unmodified single DP output; independently equivalent to K=8
+candidate 0`, while `native_ranked_top1=false` remains mandatory. Historical
+evidence was not rewritten. AutoDL reproduced `57 passed`; no simulator,
+metric, holdout, or outcome ran.
+
+current_v19_status=v19_carla_route_constrained_lifting_task3_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task3_operational_top1_active_provenance_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task3_independent_review_78c82091a0_20260713T105608CST
+current_v19_artifact_root_sha256=15823afc672546512c07d5c93bf1d764a91e01b589a9129baf2f2bfe58fb73ef
+next_work_target=v19_carla_route_constrained_lifting_task4_tdd_implementation_only
 
 ## Current V18 Status
 

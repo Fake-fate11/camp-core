@@ -2065,3 +2065,37 @@ current_v19_artifact_scope=route_constrained_lifting_task2_k8_operational_top1_r
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task2_independent_review_f85dc7446a_20260713T104706CST
 current_v19_artifact_root_sha256=1925a0641d106b5013326429c35e2f346cc0955d19a5957665a76ddc2e42bdd9
 next_work_target=v19_carla_route_constrained_lifting_task3_tdd_implementation_only
+
+## CARLA Route-Constrained Lifting Task 3 Reviewed
+
+Task 3 updated only active v19 runtime/report provenance at CAMP commit
+`78c82091a0dec5963d975e393ad9aac990a7eb71`. One shared bridge constant now
+defines `DP operational Top-1` and the exact provenance `unmodified single DP
+output; independently equivalent to K=8 candidate 0`. The worker includes both
+fields on successful and fail-closed DP responses; the bridge validates them;
+the adapter exposes the active planner name; the smoke config validates both;
+and future source-support freeze/review configs replace superseded aliases.
+Every path still requires `native_ranked_top1=false`, so this is not native
+K-ranking evidence. Historical v18 artifacts and prose were not rewritten.
+
+Local Python 3.12 reproduced `56 passed, 1 skipped`; AutoDL Python 3.9 with the
+official runtime reproduced `57 passed` with 18 existing matplotlib/pyparsing
+deprecation warnings. `py_compile`, `git diff --check`, and the active-source
+old-name absence check passed. The implementation artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task3_78c82091a0_20260713T105538CST`
+and `802e54d58e8dbf539beec865c667711c980f7303b8a9942acabb2083d7e95c07`.
+
+Independent review reverified the source manifest/root, clean matching CAMP
+heads and fixed DP, reproduced all `57` tests, found no superseded active
+baseline string, and verified failed-response plus future-freeze provenance.
+Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task3_independent_review_78c82091a0_20260713T105608CST`
+and `15823afc672546512c07d5c93bf1d764a91e01b589a9129baf2f2bfe58fb73ef`.
+No simulator, planner outcome, metric, holdout, rung, scenario, or claim was
+produced. Claim taxonomy remains unchanged.
+
+current_v19_status=v19_carla_route_constrained_lifting_task3_independent_review_passed
+current_v19_artifact_scope=route_constrained_lifting_task3_operational_top1_active_provenance_independent_review
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_task3_independent_review_78c82091a0_20260713T105608CST
+current_v19_artifact_root_sha256=15823afc672546512c07d5c93bf1d764a91e01b589a9129baf2f2bfe58fb73ef
+next_work_target=v19_carla_route_constrained_lifting_task4_tdd_implementation_only
