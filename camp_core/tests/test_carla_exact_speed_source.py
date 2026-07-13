@@ -15,6 +15,7 @@ from camp_core.integrations.carla_exact_speed_source import (
     LiftingTolerances,
     RouteLiftingContext,
     SegmentRef,
+    _surface_chords,
     candidate_source_mask,
     freeze_lifting_tolerances,
     lift_k8_route_receipt,
@@ -362,6 +363,14 @@ def test_route_lift_uses_unique_surface_and_official_xodr_z() -> None:
     assert result.points[-1].point_index == 79
     assert len(result.trajectory_lifting_sha256) == 64
     assert tuple(candidate) == before
+
+
+def test_surface_chords_preserve_decreasing_station_route_order() -> None:
+    samples = _decreasing_surface_samples()
+
+    assert _surface_chords(_route_context(samples)) == tuple(
+        zip(samples, samples[1:])
+    )
 
 
 def test_route_lift_accepts_decreasing_station_in_travel_order() -> None:
