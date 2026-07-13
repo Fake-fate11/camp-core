@@ -863,6 +863,27 @@ current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_runtime_dir
 current_v19_artifact_root_sha256=d5e384fe5adf1bb37ca01dc91383495024c2fb1b77ba39558abcbc93bd1ebb8c
 next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_only_continuous_authorization
 
+### Absolute-XDG Full-Log Runtime Attempt Preflight
+
+At synchronized CAMP/GitHub/AutoDL
+`8010cdd7058442e3990e34df336d77a91f51caec`, a no-runtime attempt-1 preflight
+changed only `XDG_RUNTIME_DIR` from `CarlaUE4/Saved/xdg` to
+`/root/autodl-tmp/carla_0.9.16/runtime/CarlaUE4/Saved/xdg`. A whole-plan
+comparison proved all other environment values, full-log flags, server argv,
+Town01/RPC settings, five source-only steps, fixed DP/assets, candidates, and
+scientific fields unchanged. Exact UID 65534 `systemd-path user-runtime`
+returned the absolute path with exit 0. Plan tests, runner validate-only, and
+independent review passed without ACL/runtime/candidate/outcome activity. The
+preflight/review roots are
+`ee2e5c757d63ba7e5d3d5dba32c587ec64800bd0fff4afaee16a16684bdac0e1`
+and `742d9f7d69e3dae9b317395d6b1d8333df212335a82e5b2f69774a485a88383d`.
+
+current_v19_status=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_8010cdd7_20260713T193613CST_independent_review
+current_v19_artifact_root_sha256=742d9f7d69e3dae9b317395d6b1d8333df212335a82e5b2f69774a485a88383d
+next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_execution_only_continuous_authorization
+
 ## Current V18 Status
 
 Reader contract: this named section is the only v18 pointer source in this

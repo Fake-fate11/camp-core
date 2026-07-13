@@ -3279,3 +3279,45 @@ current_v19_artifact_scope=carla_full_stdout_log_diagnostic_execution_failure_an
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_runtime_dir_read_only_diagnosis_d36a98e8_20260713T193206CST_independent_review
 current_v19_artifact_root_sha256=d5e384fe5adf1bb37ca01dc91383495024c2fb1b77ba39558abcbc93bd1ebb8c
 next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_only_continuous_authorization
+
+## Absolute-XDG Full-Log Runtime Attempt Preflight
+
+The first remediation attempt for the independently established relative-XDG
+contract defect began with a no-runtime preflight at CAMP/GitHub/AutoDL
+`8010cdd7058442e3990e34df336d77a91f51caec` and fixed clean DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It rehashed the full-log plan,
+absolute-XDG diagnosis/review, wrapper, runner, scripts, assets, and binary;
+reconfirmed the disk floor, mode-700 root, absent UID traversal, and no peer,
+listener, Saved, or execution path.
+
+A whole-object contract test built the new unique plan from the reviewed
+full-log plan and proved the sole environment change:
+
+```text
+XDG_RUNTIME_DIR:
+  CarlaUE4/Saved/xdg
+  -> /root/autodl-tmp/carla_0.9.16/runtime/CarlaUE4/Saved/xdg
+```
+
+HOME, PATH, LD_LIBRARY_PATH, cwd, UID/GID, the four logging arguments, Town01,
+RPC port, readiness timeout, all five pipeline steps, fixed DP/checkpoint/
+args/selector hashes, K=8 contract, seed, and forbidden-operation exclusions
+remain unchanged. Under UID/GID 65534 with the proposed environment,
+`systemd-path user-runtime` exited zero, printed the exact absolute path, and
+had empty stderr. `bash -n`, plan tests, and runner validate-only passed.
+
+The preflight/root is
+`/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_8010cdd7_20260713T193613CST`
+and `ee2e5c757d63ba7e5d3d5dba32c587ec64800bd0fff4afaee16a16684bdac0e1`.
+Independent review replayed every comparison and validation, left the source
+manifest unchanged, and passed at the corresponding `_independent_review`
+path with root
+`742d9f7d69e3dae9b317395d6b1d8333df212335a82e5b2f69774a485a88383d`.
+No ACL, CARLA, worker, candidate, receipt, metric, outcome, or holdout activity
+occurred, and no claim boundary changed.
+
+current_v19_status=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_independent_review_passed
+current_v19_artifact_scope=carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_independent_review_no_runtime_no_acl_mutation
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_preflight_8010cdd7_20260713T193613CST_independent_review
+current_v19_artifact_root_sha256=742d9f7d69e3dae9b317395d6b1d8333df212335a82e5b2f69774a485a88383d
+next_work_target=v19_carla_absolute_xdg_full_stdout_log_runtime_attempt_execution_only_continuous_authorization
