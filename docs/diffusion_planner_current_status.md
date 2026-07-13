@@ -574,11 +574,27 @@ execute permission, followed by new disk/security preflight. Neither choice is
 authorized automatically. The authoritative independent-review root is
 `188ba10301cb0e4f428a1d624891cfa9f7b04a477d1b42ab58419dbf2ab17d41`.
 
-current_v19_status=v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_failure_independent_review_passed
-current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootless_loader_execution_failure_independent_review_no_candidate_or_outcome
-current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_rootless_loader_retry_independent_review_retry_89767dba_20260713T142655CST
-current_v19_artifact_root_sha256=188ba10301cb0e4f428a1d624891cfa9f7b04a477d1b42ab58419dbf2ab17d41
-next_work_target=user_decision_required_before_carla_nonroot_runtime_access_contract_or_runtime_relocation
+The user then explicitly selected the narrow parent-path ACL contract. A fresh
+read-only audit reconfirmed synchronized CAMP/DP heads, no related process or
+listener, and `/root` as the only inaccessible path component. Ubuntu's signed
+package index supplied only `acl 2.3.1-1`; the downloaded deb SHA256
+`42d0071e8c1898fb2910ce7b8f7e8fbe353fdada4416148530fd22bddab7e0b1`
+matched that index, installed no service, and added no other package.
+
+The reviewed transaction grants only `u:65534:--x` on `/root`. Its restore
+drill exercised success, controlled failure, and TERM paths. In every case the
+original ACL, stat, and ACL xattrs were byte-equal after the fail-closed EXIT
+trap; UID 65534 could traverse the frozen runtime but could not read, write, or
+list `/root`. The final drill/review roots are
+`93962da25efcbf3726c2d2f90fefdb6ee8b9c0f65ab54f874a36d3d102ae3c42` and
+`2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a`.
+No CARLA runtime, worker, candidate, metric, outcome, or holdout ran.
+
+current_v19_status=v19_carla_nonroot_execute_only_acl_restore_drill_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_execute_only_acl_tooling_contract_restore_drill_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_restore_drill_independent_review_633fc40e_20260713T151413CST
+current_v19_artifact_root_sha256=2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a
+next_work_target=v19_carla_nonroot_execute_only_acl_runtime_attempt_preflight_only
 
 ## Current V18 Status
 

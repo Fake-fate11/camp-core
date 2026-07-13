@@ -2522,3 +2522,73 @@ current_v19_artifact_scope=route_constrained_lifting_source_only_k8_probe_rootle
 current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_route_constrained_lifting_source_only_k8_probe_execution_rootless_loader_retry_independent_review_retry_89767dba_20260713T142655CST
 current_v19_artifact_root_sha256=188ba10301cb0e4f428a1d624891cfa9f7b04a477d1b42ab58419dbf2ab17d41
 next_work_target=user_decision_required_before_carla_nonroot_runtime_access_contract_or_runtime_relocation
+
+## CARLA Non-Root Execute-Only ACL Tooling and Restore Drill
+
+The user explicitly selected the narrow parent-path ACL option without
+expanding any DP, candidate, holdout, runtime-relocation, deployment, or claim
+boundary. A fresh read-only audit at CAMP/GitHub/AutoDL
+`633fc40ee1140166bb3336133e38ee42a75fee4d` and fixed DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4` found no tracked drift, related
+process, listener, runtime `Saved` path, or peer ACL artifact. All frozen CARLA
+components below `/root` remained mode 755; `/root` alone remained mode 700
+with no access/default ACL xattr. Free space was `50,570,862,592` bytes.
+
+The container initially lacked `getfacl` and `setfacl`. Its unchanged Ubuntu
+22.04 package configuration uses the Huawei Ubuntu mirror with Ubuntu archive
+keys. A signed-index refresh and install simulation authorized only one new
+package, `acl 2.3.1-1`, with zero upgrades or removals. The downloaded deb SHA
+`42d0071e8c1898fb2910ce7b8f7e8fbe353fdada4416148530fd22bddab7e0b1`
+matched the signed package index; installed tool bytes matched the deb and the
+package added no service. The first wrapper installed the package but failed
+only because it expected extracted usrmerge tools under `/usr/bin` instead of
+the package's `/bin` paths. Its retained failed artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_acl_tool_preparation_633fc40e_20260713T150320CST.tmp`
+and `26205df785c8b9a6746481643c6e6150db18997f4bc2b9dc2c51ae18d022241f`.
+Manifest-only result review corrected that evidence-path assumption and passed
+at
+`/root/autodl-tmp/camp_dp_v19_carla_acl_tool_preparation_result_review_633fc40e_20260713T150758CST`
+with root `7804fc41726a3fad2f01a7a45bf31239322c2477f3d0ac779880df9f707e6da6`.
+No ACL or runtime mutation occurred in that gate.
+
+The mutation contract preflight saved numeric `getfacl`, mode/owner/device/
+inode, and raw ACL xattr state before any mutation. It uses one exact
+`setfacl -m u:65534:--x /root` call and an EXIT restore trap, with HUP, INT, and
+TERM converted to trapped exits. It prohibits recursive ACL, chmod, chown,
+read, write, or list access and starts no runtime. Its artifact/root is
+`/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_contract_preflight_633fc40e_20260713T151028CST`
+and `f0cf867f2c4dcf7745dee87755bdd51e949a578ae4afb5dbace9fa107dc82bb1`.
+The first static review root
+`40039aafb5b1e95ca80f6631eb7832d00b0864bd141598daea2bd5f7be3984f6`
+was superseded because a non-contract FINAL_STATE probe placed `setpriv` inside
+`[`. A first retry also remained non-authoritative because its handwritten ACL
+string omitted `getfacl`'s final blank line; its retained root is
+`ce95e63c69d2e27dd35c04ada7d92cb7d31b970efc104f6436b37c34b2790256`.
+The minimal shell-native retry then rehashed all sources and compared the live
+ACL/stat/xattr bytes directly. It passed at
+`/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_contract_preflight_independent_review_retry2_633fc40e_20260713T151232CST`
+with root `09afd4f83958aa9d3f8402684bea3c4813e6763dbbd24c3ada19474320dcf180`.
+
+The exact reviewed transaction then ran three restore-drill cases: normal
+success exited 0, controlled command failure exited 23, and TERM exited 143.
+Each case temporarily exposed only execute traversal on `/root`; UID 65534
+could resolve the frozen binary and packaged libraries while read, write, and
+directory listing remained denied. Absolute-path `ldd` reported zero missing
+libraries. Every EXIT trap restored successfully, and original versus restored
+ACL, stat, and xattr snapshots were byte-equal. The live final state is again
+mode 700 with no extended ACL and no UID 65534 traversal. The drill artifact/
+root is
+`/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_restore_drill_633fc40e_20260713T151333CST`
+and `93962da25efcbf3726c2d2f90fefdb6ee8b9c0f65ab54f874a36d3d102ae3c42`.
+Independent review reproduced all three restore receipts, exact execute-only
+ACL, access denials, binary SHA, no-job state, and final byte comparisons at
+`/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_restore_drill_independent_review_633fc40e_20260713T151413CST`
+with root `2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a`.
+Free space remained `50,569,920,512` bytes. No CARLA server, worker, candidate,
+metric, outcome, holdout, promotion, deployment, or claim ran.
+
+current_v19_status=v19_carla_nonroot_execute_only_acl_restore_drill_independent_review_passed
+current_v19_artifact_scope=carla_nonroot_execute_only_acl_tooling_contract_restore_drill_independent_review_no_runtime
+current_v19_artifact=/root/autodl-tmp/camp_dp_v19_carla_acl_execute_only_traverse_restore_drill_independent_review_633fc40e_20260713T151413CST
+current_v19_artifact_root_sha256=2319ec75e5c0710698d6c4dc1b8bdb165c93a5d650887a73081d5f472057405a
+next_work_target=v19_carla_nonroot_execute_only_acl_runtime_attempt_preflight_only

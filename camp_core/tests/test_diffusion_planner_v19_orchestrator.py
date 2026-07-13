@@ -72,10 +72,9 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_route_constrained_lifting_source_only_k8_probe_rootless_loader_"
-        "execution_failure_independent_review_passed"
+        "v19_carla_nonroot_execute_only_acl_restore_drill_independent_review_"
+        "passed"
     )
     assert pointer["next_work_target"] == (
-        "user_decision_required_before_carla_nonroot_runtime_access_contract_or_"
-        "runtime_relocation"
+        "v19_carla_nonroot_execute_only_acl_runtime_attempt_preflight_only"
     )
