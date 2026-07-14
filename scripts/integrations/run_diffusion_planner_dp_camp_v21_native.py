@@ -422,6 +422,10 @@ class NativeCampPredictBatch:
                     "status": "ok",
                     "selected_index": selected_index,
                     "selected_trajectory_sha256": array_sha256(selected),
+                    "score_contract": str(selection["score_contract"]),
+                    "eligibility_mask_name": str(
+                        selection["eligibility_mask_name"]
+                    ),
                     "npc_operational_outputs_unchanged": True,
                     "default_turn_indicators_retained": True,
                     "physical_feasible_mask": np.asarray(
@@ -1244,6 +1248,23 @@ def _validate_arm_receipt(
                     masks[name] = values
                 if not masks["source_valid_mask"][selected_index]:
                     raise ValueError("CAMP selected a source-invalid candidate")
+                expected_mask_name = (
+                    "source_valid_mask"
+                    if expected_selection_policy == V22_SOURCE_VALID_SELECTION
+                    else "physical_feasible_mask"
+                )
+                scores = np.asarray(tick.get("scores"), dtype=np.float64)
+                if (
+                    tick.get("score_contract") != "score_k(w)=a_k^T w"
+                    or tick.get("eligibility_mask_name") != expected_mask_name
+                    or scores.shape != (8,)
+                    or not np.isfinite(scores).all()
+                ):
+                    raise ValueError("CAMP affine score receipt is invalid")
+                eligible = np.asarray(masks[expected_mask_name], dtype=bool)
+                expected_index = int(np.argmin(np.where(eligible, scores, np.inf)))
+                if selected_index != expected_index:
+                    raise ValueError("CAMP selected index is not the affine argmin")
                 identity = _mapping(tick, "default_candidate0_identity")
                 default_sha = tick.get("default_output_sha256")
                 if (
@@ -1255,8 +1276,17 @@ def _validate_arm_receipt(
                     or identity.get("candidate0_sha256") != default_sha
                 ):
                     raise ValueError("DP operational default/candidate 0 identity failed")
-                if not isinstance(tick.get("all_k_high_risk"), bool):
-                    raise ValueError("all_k_high_risk must be boolean")
+                expected_high_risk = bool(
+                    np.asarray(masks["source_valid_mask"], dtype=bool).all()
+                    and not np.asarray(
+                        masks["physical_feasible_mask"], dtype=bool
+                    ).any()
+                )
+                if (
+                    not isinstance(tick.get("all_k_high_risk"), bool)
+                    or tick["all_k_high_risk"] != expected_high_risk
+                ):
+                    raise ValueError("all_k_high_risk receipt mismatch")
 
     if not require_summary:
         return
@@ -2001,6 +2031,9 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
         tick.update(
             {
                 "selection_policy": str(receipt["selection_policy"]),
+                "score_contract": str(receipt["score_contract"]),
+                "eligibility_mask_name": str(receipt["eligibility_mask_name"]),
+                "scores": [float(value) for value in receipt["scores"]],
                 "selected_index": int(receipt["selected_index"]),
                 "default_candidate0_identity": dict(
                     _mapping(receipt, "default_candidate0_identity")

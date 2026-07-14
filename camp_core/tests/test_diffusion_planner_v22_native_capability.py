@@ -73,6 +73,9 @@ def _v22_camp_tick() -> dict:
         "latency_ms": {"total_planning": 1.0},
         "default_output_sha256": digest,
         "selection_policy": "v22_source_valid",
+        "score_contract": "score_k(w)=a_k^T w",
+        "eligibility_mask_name": "source_valid_mask",
+        "scores": [8.0, 7.0, 6.0, 0.0, 4.0, 3.0, 2.0, 1.0],
         "candidate_tensor_sha256_before": "3" * 64,
         "candidate_tensor_sha256_after": "3" * 64,
         "atom_matrix_sha256": "4" * 64,
@@ -113,6 +116,10 @@ def test_public_v22_tick_retains_selection_policy() -> None:
     public = module._public_tick_receipt(tick, "camp")
 
     assert public["selection_policy"] == "v22_source_valid"
+    assert public["score_contract"] == "score_k(w)=a_k^T w"
+    assert public["eligibility_mask_name"] == "source_valid_mask"
+    assert public["scores"] == tick["scores"]
+    assert public["scores"][public["selected_index"]] == min(public["scores"])
 
 
 def test_v22_capability_receipt_validator_requires_identity_and_policy() -> None:
@@ -139,6 +146,19 @@ def test_v22_capability_receipt_validator_requires_identity_and_policy() -> None
 
     tick["default_candidate0_identity"]["candidate0_sha256"] = "a" * 64
     with pytest.raises(ValueError, match="candidate 0 identity"):
+        module._validate_arm_receipt(
+            receipt,
+            "camp",
+            expected_ticks=1,
+            require_summary=False,
+            expected_selection_policy="v22_source_valid",
+        )
+
+    tick["default_candidate0_identity"]["candidate0_sha256"] = tick[
+        "default_output_sha256"
+    ]
+    tick["scores"][0] = -1.0
+    with pytest.raises(ValueError, match="affine argmin"):
         module._validate_arm_receipt(
             receipt,
             "camp",
