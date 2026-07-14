@@ -2,6 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 
@@ -192,3 +193,100 @@ def test_corpus_script_has_no_parallel_native_replay_loop() -> None:
     assert "run_route_replay" not in text
     assert "advance_scene_mpc" not in text
     assert "build_native_arm_runner" in text
+
+
+def _snapshot() -> dict:
+    return {
+        "schema_version": "v22_native_decision_snapshot_v1",
+        "feature_payload": {
+            "atom_matrix": np.ones((8, 14), dtype=np.float64).tolist(),
+            "source_valid_mask": [True] * 8,
+            "candidate_row_sha256": [_sha(f"row:{index}") for index in range(8)],
+        },
+        "sidecar": {
+            "tick_index": 5,
+            "candidate_tensor_sha256_before": _sha("tensor"),
+            "candidate_tensor_sha256_after": _sha("tensor"),
+            "causal_input_sha256": _sha("causal"),
+            "physical_feasible_mask": [False] * 8,
+            "all_k_high_risk": True,
+            "offline_label_provenance": (
+                "pending_train_only_offline_supervision_sidecar"
+            ),
+        },
+    }
+
+
+def test_content_addressed_writer_keeps_identity_in_sidecar_and_deduplicates(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    writer = module.CorpusSnapshotWriter(
+        output_dir=tmp_path,
+        split="train",
+        logical_map_sha256=_sha("map"),
+        route_identity_sha256=_sha("route"),
+        group_sha256=_sha("group"),
+        seed=22001,
+    )
+
+    first = writer(_snapshot())
+    second = writer(_snapshot())
+
+    assert first == second
+    assert len(list((tmp_path / "snapshots").glob("*.json"))) == 1
+    payload = json.loads((tmp_path / "snapshots" / f"{first}.json").read_text())
+    assert set(payload["feature_payload"]) == {
+        "atom_matrix",
+        "source_valid_mask",
+        "candidate_row_sha256",
+    }
+    assert not set(payload["feature_payload"]).intersection(
+        {"logical_map_sha256", "route_identity_sha256", "group_sha256", "split", "seed"}
+    )
+    assert payload["sidecar"]["split"] == "train"
+    assert payload["sidecar"]["seed"] == 22001
+    assert writer.snapshot_sha256 == [first]
+
+
+def test_writer_rejects_holdout_or_candidate_tensor_mismatch(tmp_path: Path) -> None:
+    module = _module()
+    kwargs = {
+        "output_dir": tmp_path,
+        "logical_map_sha256": _sha("map"),
+        "route_identity_sha256": _sha("route"),
+        "group_sha256": _sha("group"),
+        "seed": 22001,
+    }
+    with pytest.raises(ValueError, match="holdout"):
+        module.CorpusSnapshotWriter(split="holdout", **kwargs)
+
+    writer = module.CorpusSnapshotWriter(split="train", **kwargs)
+    snapshot = _snapshot()
+    snapshot["sidecar"]["candidate_tensor_sha256_after"] = _sha("mutated")
+    with pytest.raises(ValueError, match="candidate tensor SHA256"):
+        writer(snapshot)
+
+
+def test_writer_retains_failed_route_seed_receipt(tmp_path: Path) -> None:
+    module = _module()
+    writer = module.CorpusSnapshotWriter(
+        output_dir=tmp_path,
+        split="train",
+        logical_map_sha256=_sha("map"),
+        route_identity_sha256=_sha("route"),
+        group_sha256=_sha("group"),
+        seed=22001,
+    )
+    path = writer.write_run_receipt(
+        status="failed",
+        failure_stage="tracker",
+        failure_reason="objective execution failure",
+    )
+
+    receipt = json.loads(path.read_text())
+    assert receipt["status"] == "failed"
+    assert receipt["failure_stage"] == "tracker"
+    assert receipt["failure_reason"] == "objective execution failure"
+    assert receipt["snapshot_sha256"] == []
+    assert receipt["retained_in_denominator"] is True

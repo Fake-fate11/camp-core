@@ -166,6 +166,7 @@ def _hook(
     *,
     materialize=_materialize,
     selection_policy: str | None = None,
+    decision_sink=None,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -187,6 +188,8 @@ def _hook(
     }
     if selection_policy is not None:
         kwargs["selection_policy"] = selection_policy
+    if decision_sink is not None:
+        kwargs["decision_sink"] = decision_sink
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
 
@@ -316,6 +319,73 @@ def test_v22_hook_selects_all_k_high_risk_without_fallback() -> None:
     assert receipt["selected_trajectory_sha256"] == module.array_sha256(
         predictions["ego"]
     )
+
+
+def test_v22_decision_sink_samples_every_five_ticks_after_immutability() -> None:
+    module = _runner()
+    model = _FakeModel()
+    snapshots = []
+    hook, _ = _hook(
+        module,
+        model,
+        selection_policy="v22_source_valid",
+        decision_sink=snapshots.append,
+    )
+
+    for _ in range(11):
+        hook(
+            model,
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            _Scene(),
+            ["ego"],
+            "cpu",
+        )
+
+    assert [item["sidecar"]["tick_index"] for item in snapshots] == [0, 5, 10]
+    for snapshot in snapshots:
+        assert set(snapshot["feature_payload"]) == {
+            "atom_matrix",
+            "source_valid_mask",
+            "candidate_row_sha256",
+        }
+        assert np.asarray(snapshot["feature_payload"]["atom_matrix"]).shape == (8, 14)
+        assert snapshot["feature_payload"]["source_valid_mask"] == [True] * 8
+        assert len(snapshot["feature_payload"]["candidate_row_sha256"]) == 8
+        assert snapshot["sidecar"]["candidate_tensor_sha256_before"] == snapshot[
+            "sidecar"
+        ]["candidate_tensor_sha256_after"]
+        assert snapshot["sidecar"]["causal_input_sha256"]
+        assert snapshot["sidecar"]["offline_label_provenance"] == (
+            "pending_train_only_offline_supervision_sidecar"
+        )
+
+
+def test_v22_decision_sink_is_not_called_after_candidate_mutation() -> None:
+    module = _runner()
+    model = _FakeModel()
+    snapshots = []
+
+    def mutate(**kwargs):
+        result = _materialize(**kwargs)
+        kwargs["candidates"][0, 0, 0] = 99.0
+        return result
+
+    hook, _ = _hook(
+        module,
+        model,
+        materialize=mutate,
+        selection_policy="v22_source_valid",
+        decision_sink=snapshots.append,
+    )
+    with pytest.raises(ValueError, match="mutated"):
+        hook(
+            model,
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            _Scene(),
+            ["ego"],
+            "cpu",
+        )
+    assert snapshots == []
 
 
 def test_hook_detects_candidate_mutation() -> None:

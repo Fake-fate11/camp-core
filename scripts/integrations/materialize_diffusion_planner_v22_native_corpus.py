@@ -14,6 +14,8 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
+import numpy as np
+
 from camp_core.integrations.diffusion_planner_v22_split import (
     validate_feature_fields,
     validate_split_manifest,
@@ -42,6 +44,147 @@ IDENTITY_FIELDS = frozenset(
     }
 )
 FORMAL_SEEDS = frozenset({11, 12, 13})
+
+
+class CorpusSnapshotWriter:
+    def __init__(
+        self,
+        *,
+        output_dir: Path,
+        split: str,
+        logical_map_sha256: str,
+        route_identity_sha256: str,
+        group_sha256: str,
+        seed: int,
+    ) -> None:
+        if split not in {"train", "calibration"}:
+            raise ValueError("holdout snapshots are forbidden")
+        for name, value in (
+            ("logical_map_sha256", logical_map_sha256),
+            ("route_identity_sha256", route_identity_sha256),
+            ("group_sha256", group_sha256),
+        ):
+            if not _is_sha256(value):
+                raise ValueError(f"{name} must be lowercase SHA256")
+        if (
+            isinstance(seed, bool)
+            or not isinstance(seed, int)
+            or seed < 0
+            or seed in FORMAL_SEEDS
+        ):
+            raise ValueError("seed must be non-formal nonnegative integer")
+        self.output_dir = Path(output_dir)
+        self.split = split
+        self.logical_map_sha256 = logical_map_sha256
+        self.route_identity_sha256 = route_identity_sha256
+        self.group_sha256 = group_sha256
+        self.seed = seed
+        self.snapshot_sha256: list[str] = []
+        (self.output_dir / "snapshots").mkdir(parents=True, exist_ok=True)
+
+    def __call__(self, snapshot: Mapping[str, Any]) -> str:
+        payload = json.loads(json.dumps(snapshot, allow_nan=False))
+        if payload.get("schema_version") != "v22_native_decision_snapshot_v1":
+            raise ValueError("decision snapshot schema mismatch")
+        features = _mapping(payload, "feature_payload")
+        if list(features) != list(FEATURE_PAYLOAD_FIELDS):
+            raise ValueError("feature payload schema mismatch")
+        if IDENTITY_FIELDS.intersection(features):
+            raise ValueError("identity is forbidden in feature payload")
+        atoms = np.asarray(features["atom_matrix"], dtype=np.float64)
+        if atoms.shape != (8, 14) or not np.isfinite(atoms).all():
+            raise ValueError("atom matrix must be finite [8,14]")
+        source_valid = features["source_valid_mask"]
+        if (
+            not isinstance(source_valid, list)
+            or len(source_valid) != 8
+            or any(not isinstance(value, bool) for value in source_valid)
+        ):
+            raise ValueError("source-valid mask must contain eight booleans")
+        row_sha = features["candidate_row_sha256"]
+        if (
+            not isinstance(row_sha, list)
+            or len(row_sha) != 8
+            or any(not _is_sha256(value) for value in row_sha)
+        ):
+            raise ValueError("candidate row SHA256 receipt mismatch")
+
+        sidecar = dict(_mapping(payload, "sidecar"))
+        before = sidecar.get("candidate_tensor_sha256_before")
+        after = sidecar.get("candidate_tensor_sha256_after")
+        if not _is_sha256(before) or before != after:
+            raise ValueError("candidate tensor SHA256 mismatch")
+        if not _is_sha256(sidecar.get("causal_input_sha256")):
+            raise ValueError("causal input SHA256 mismatch")
+        physical = sidecar.get("physical_feasible_mask")
+        if (
+            not isinstance(physical, list)
+            or len(physical) != 8
+            or any(not isinstance(value, bool) for value in physical)
+        ):
+            raise ValueError("physical-risk mask must contain eight booleans")
+        sidecar.update(
+            {
+                "logical_map_sha256": self.logical_map_sha256,
+                "route_identity_sha256": self.route_identity_sha256,
+                "group_sha256": self.group_sha256,
+                "split": self.split,
+                "seed": self.seed,
+            }
+        )
+        payload["sidecar"] = sidecar
+
+        content = _canonical_json_bytes(payload)
+        digest = hashlib.sha256(content).hexdigest()
+        path = self.output_dir / "snapshots" / f"{digest}.json"
+        if path.exists():
+            if path.read_bytes() != content:
+                raise ValueError("content-addressed snapshot collision")
+        else:
+            temporary = path.with_suffix(".json.tmp")
+            temporary.write_bytes(content)
+            temporary.replace(path)
+        if digest not in self.snapshot_sha256:
+            self.snapshot_sha256.append(digest)
+        return digest
+
+    def write_run_receipt(
+        self,
+        *,
+        status: str,
+        failure_stage: str | None = None,
+        failure_reason: str | None = None,
+    ) -> Path:
+        if status not in {"ok", "failed"}:
+            raise ValueError("run receipt status must be ok or failed")
+        if status == "failed" and (not failure_stage or not failure_reason):
+            raise ValueError("failed run receipt requires stage and reason")
+        receipt = {
+            "schema_version": "v22_native_corpus_run_receipt_v1",
+            "status": status,
+            "split": self.split,
+            "logical_map_sha256": self.logical_map_sha256,
+            "route_identity_sha256": self.route_identity_sha256,
+            "group_sha256": self.group_sha256,
+            "seed": self.seed,
+            "snapshot_sha256": list(self.snapshot_sha256),
+            "failure_stage": failure_stage,
+            "failure_reason": failure_reason,
+            "retained_in_denominator": True,
+        }
+        path = (
+            self.output_dir
+            / "receipts"
+            / self.split
+            / self.route_identity_sha256
+            / f"seed_{self.seed}.json"
+        )
+        path.parent.mkdir(parents=True, exist_ok=True)
+        content = _canonical_json_bytes(receipt)
+        temporary = path.with_suffix(".json.tmp")
+        temporary.write_bytes(content)
+        temporary.replace(path)
+        return path
 
 
 def validate_corpus_preflight(
@@ -200,6 +343,27 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
         }
     )
     return summary
+
+
+def _canonical_json_bytes(value: Mapping[str, Any]) -> bytes:
+    return (
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _is_sha256(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and set(value) <= set("0123456789abcdef")
+    )
 
 
 def _mapping(value: Mapping[str, Any], name: str) -> Mapping[str, Any]:

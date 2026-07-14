@@ -162,6 +162,7 @@ class NativeCampPredictBatch:
         route_sha256: str,
         pre_safety: Callable[[dict[str, Any], Any], None] | None = None,
         selection_policy: str = V21_PHYSICAL_SELECTION,
+        decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -178,6 +179,9 @@ class NativeCampPredictBatch:
         if selection_policy not in _SELECTION_POLICIES:
             raise ValueError("unknown selection policy")
         self.selection_policy = selection_policy
+        if decision_sink is not None and selection_policy != V22_SOURCE_VALID_SELECTION:
+            raise ValueError("decision sink requires v22 source-valid selection")
+        self.decision_sink = decision_sink
         if self.atom_scales.shape != (14,) or self.weights.shape != (14,):
             raise ValueError("atom scales and weights must each have shape [14]")
 
@@ -459,6 +463,48 @@ class NativeCampPredictBatch:
                 receipt["scores"] = np.asarray(
                     selection["scores"], dtype=np.float64
                 ).tolist()
+            if self.decision_sink is not None and tick_index % 5 == 0:
+                atom_matrix = np.asarray(
+                    materialized.get("atom_matrix"), dtype=np.float64
+                )
+                source_valid = np.asarray(
+                    receipt["source_valid_mask"], dtype=bool
+                )
+                if atom_matrix.shape != (8, 14) or not np.isfinite(atom_matrix).all():
+                    raise ValueError("decision snapshot atom matrix must be finite [8,14]")
+                if source_valid.shape != (8,):
+                    raise ValueError("decision snapshot source-valid mask must be [8]")
+                snapshot = {
+                    "schema_version": "v22_native_decision_snapshot_v1",
+                    "feature_payload": {
+                        "atom_matrix": atom_matrix.tolist(),
+                        "source_valid_mask": source_valid.tolist(),
+                        "candidate_row_sha256": [
+                            array_sha256(candidate_tensor[index])
+                            for index in range(8)
+                        ],
+                    },
+                    "sidecar": {
+                        "tick_index": tick_index,
+                        "route_sha256": self.route_sha256,
+                        "candidate_tensor_sha256_before": before_sha,
+                        "candidate_tensor_sha256_after": str(
+                            receipt["candidate_tensor_sha256_after"]
+                        ),
+                        "causal_input_sha256": str(
+                            boundary.receipt["input_sha256"]
+                        ),
+                        "physical_feasible_mask": list(
+                            receipt["physical_feasible_mask"]
+                        ),
+                        "all_k_high_risk": bool(receipt["all_k_high_risk"]),
+                        "offline_label_provenance": (
+                            "pending_train_only_offline_supervision_sidecar"
+                        ),
+                    },
+                }
+                self.decision_sink(snapshot)
+                receipt["decision_snapshot_emitted"] = True
             receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
             return (
                 (direct_predictions, turns)
@@ -1603,6 +1649,7 @@ def build_native_arm_runner(
         config: Mapping[str, Any],
         output_dir: Path,
         max_steps: int,
+        decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
@@ -1657,6 +1704,7 @@ def build_native_arm_runner(
                 route_sha256=str(route["sha256"]),
                 pre_safety=pre_safety,
                 selection_policy=_selection_policy(config),
+                decision_sink=decision_sink,
             )
         else:
             replacement = NativeDpObserveBatch(
