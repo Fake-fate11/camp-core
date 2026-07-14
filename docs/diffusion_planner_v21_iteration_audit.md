@@ -339,13 +339,61 @@ holdout access, formal seed, claim, promotion, deployment, activation, or DP
 modification occurred. The next work is Task 1 test-first causal input and
 K=8 pure contracts only.
 
+## Task 1: Causal Input and K=8 Pure Contracts
+
+Status: passed.
+
+Gate C was committed, pushed, and fast-forwarded on AutoDL at
+`14b1a2394ba3e75ff5744e408f77e71be8f15d1b`. Task 1 then followed the
+frozen red/green order. The red test failed only because the planned v21
+module did not exist. The minimum CAMP-side module and its tests were added at
+source HEAD `abda0bcf5d5874d0994bda4f8187879eaff614f3`.
+
+The pure boundary now:
+
+- copies the native materialized input, deletes only
+  `ego_agent_future`/`neighbor_agents_future`, rejects every other future,
+  label, outcome, holdout, safety-cost, or metric-result key, and validates
+  the existing causal schema after copying the first 32 neighbor slots;
+- records source/used/padded/truncated frame counts under
+  `native_zero_left_pad_to_31_v1`, per-array shape/dtype/SHA, and a sorted-key
+  dtype/shape/raw-C-byte input SHA;
+- derives deterministic route/tick candidate seeds and produces local
+  float32 K=8 latent tensors with candidate 0 all-zero and candidates 1-7 at
+  frozen scale 1.0 without touching global Python or NumPy RNG state;
+- fails closed unless direct default and independent candidate 0 have equal
+  shape/dtype, exact elements, zero maximum difference, and equal SHA;
+- fails closed if the K=8 candidate tensor SHA changes after downstream work.
+
+The local and AutoDL target suites each report `27 passed` across the new 16
+contract tests and 11 adjacent v19 worker regressions. `py_compile` and
+`git diff --check` passed. AutoDL CAMP and fixed DP were tracked-clean, and no
+related v21 run was active.
+
+Immutable Task 1 artifact:
+
+- path:
+  `/root/autodl-tmp/camp_dp_v21_native_task1_causal_k8_contracts_abda0bcf_20260714T160847CST`;
+- root SHA256:
+  `99cef3fed4ff2b570c67f5cea6de5f17ac43db0942bd449c722ba61065eb5447`;
+- stdout SHA256:
+  `8cdc00a4f27dfc57c269652b3b6c9017e4e4cf5ec4626325e64cac931bff8b3d`;
+- `run.exit=0`, empty stderr, all nine payload hashes independently
+  reverified, directory mode 555 and every file mode 444.
+
+The artifact contains heads, exact command, stdout/stderr, source and test,
+JSON/Markdown review, SHA256SUMS, and root SHA. No model load, inference,
+simulator run, candidate trajectory generation, training, holdout access,
+formal seed, claim, promotion, deployment, activation, new dependency, or DP
+modification occurred. The next work is Task 2 native hook TDD only.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_minimal_tdd_plan_review_passed
-current_v21_artifact_source_head=90937b0eda431e1365d41f1f5ef55864568d0a2d
-current_v21_prior_gate_final_synced_head=90937b0eda431e1365d41f1f5ef55864568d0a2d
+current_v21_status=v21_native_simulator_task1_causal_input_and_k8_contracts_passed
+current_v21_artifact_source_head=abda0bcf5d5874d0994bda4f8187879eaff614f3
+current_v21_prior_gate_final_synced_head=14b1a2394ba3e75ff5744e408f77e71be8f15d1b
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_minimal_tdd_plan_90937b0e_20260714T155950CST
-current_v21_artifact_root_sha256=2625188c0d9346e5d1f53ec4d8cb8bc1390a9c0bec428cfb0dddff47b186f40e
-next_work_target=v21_native_simulator_task1_causal_input_and_k8_contracts_tdd_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task1_causal_k8_contracts_abda0bcf_20260714T160847CST
+current_v21_artifact_root_sha256=99cef3fed4ff2b570c67f5cea6de5f17ac43db0942bd449c722ba61065eb5447
+next_work_target=v21_native_simulator_task2_native_hook_and_immutable_selection_tdd_only
