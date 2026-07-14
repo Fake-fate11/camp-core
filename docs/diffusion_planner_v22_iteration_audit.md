@@ -264,11 +264,28 @@ The next gate is read-only static review plus a minimal TDD implementation
 plan. It may inspect code and write tests/plans but may not load the model,
 execute the simulator, train, or open holdout.
 
+The first AutoDL evidence attempt was sealed at
+`/root/autodl-tmp/camp_dp_v22_route_family_split_design_7ee8a2cf_20260714T192722CST`
+with root SHA256
+`385774d8cc815405c8189f628afe0c44496a675208105f9f0dfb75519438be73`
+and `run.exit=1`. AutoDL fast-forwarded correctly, but the harness compared
+the live commit against another manually guessed full SHA. The failed artifact
+is retained and its payload and root manifests reverify.
+
+The corrected immutable design artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_design_rerun_7ee8a2cf_20260714T192814CST`
+with root SHA256
+`071fe5939d34800bf517c16ff6c0c4a878e12714b15c522c31b46a49b0adec91`.
+It records `run.exit=0`, matched full CAMP HEAD/origin, the fixed DP HEAD,
+tracked-clean repositories, exact command, stdout/stderr, summary JSON/MD,
+`SHA256SUMS`, and `ROOT_SHA256SUMS`. Local and AutoDL v21/v22 contract tests
+passed `19 / 19`; py_compile and diff checks passed.
+
 current_v22_status=v22_native_route_family_split_design_ready_for_static_review
-current_v22_artifact_source_head=pending_v22_design_source_commit
-current_v22_prior_gate_final_synced_head=a94ad0a50640a86583e9dcc74b33bd68a00c1382
+current_v22_artifact_source_head=7ee8a2cfe8d49d42e222535b203b90bd559e1332
+current_v22_prior_gate_final_synced_head=7ee8a2cfe8d49d42e222535b203b90bd559e1332
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=pending_v22_route_family_split_design_evidence
-current_v22_artifact_root_sha256=pending_v22_route_family_split_design_evidence
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_design_rerun_7ee8a2cf_20260714T192814CST
+current_v22_artifact_root_sha256=071fe5939d34800bf517c16ff6c0c4a878e12714b15c522c31b46a49b0adec91
 next_work_target=v22_native_route_family_split_design_static_review_and_tdd_plan_only
