@@ -1082,6 +1082,7 @@ calibration or holdout route/outcome was read, no simulator ran, and no claim
 is authorized. Next gate is a read-only preflight for generating native causal
 decision snapshots on the already frozen 30-route, 3-seed calibration split;
 it may not alter train weights, scales, atom schema, or holdout state.
+Its exact target was `v22_native_calibration_corpus_preflight_only`.
 
 ## Native Calibration Corpus TDD
 
@@ -1119,11 +1120,49 @@ preflight only: verify frozen roots/assets/counts, process guard, output
 absence, storage, and all 90 planned run configs without starting the native
 runner.
 
-current_v22_status=v22_native_calibration_corpus_tdd_passed
-current_v22_artifact_source_head=16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0
-current_v22_prior_gate_final_synced_head=16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0
+## Native Calibration Corpus Static Preflight
+
+Status: passed; one frozen 90-attempt calibration corpus execution is
+authorized.
+
+At CAMP HEAD `606aa838084337bd0e9546458ab59e3b771d3824`, the
+read-only AutoDL preflight rehashed both the frozen route-family split artifact
+and the preceding calibration TDD artifact, including their nested
+SHA256SUMS. Their roots matched
+`b231ba9fe425e40a129e30ce0b37044f1059354f84744d91911608f09f87baa5`
+and
+`afee77845876ec7f6d20793ec169cfa5969e9391cae88a343bd9191201bac124`.
+
+Static validation retained the frozen inventory of 4 train, 30 calibration,
+and 100 holdout routes with disjoint 8, 3, and 5 seed namespaces. It selected
+only calibration and validated exactly `30 x 3 = 90` native run configs. The
+maximum snapshot count is `1,170` at 0.5-second cadence. Every run config keeps
+K=8 fixed-candidate selection, source-valid-only eligibility, affine/simplex
+scoring, training disabled, calibration enabled, and holdout/formal-seed/claim
+access disabled.
+
+The planned execution output
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_execution_606aa838`
+was absent. No matching execution process existed and AutoDL had
+`50,334,998,528` free bytes. The static command did not build the runner,
+load a model, execute a simulator, read outcomes, or open holdout.
+
+The immutable preflight artifact is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_preflight_606aa838_20260714T235357CST`
+with root SHA256
+`122d4e12fc44f7a4a9b90386c8acc2d370870480f960f34c6e4923b5f702ea42`
+and exit 0. CAMP/origin matched; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The next gate may start exactly one calibration-corpus execution for all 90
+frozen route-seed attempts. It must retain success and failure receipts, may
+not replace or redraw any route, and may not read holdout.
+
+current_v22_status=v22_native_calibration_corpus_preflight_passed
+current_v22_artifact_source_head=606aa838084337bd0e9546458ab59e3b771d3824
+current_v22_prior_gate_final_synced_head=606aa838084337bd0e9546458ab59e3b771d3824
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_tdd_16d580a5_20260714T235050CST
-current_v22_artifact_root_sha256=afee77845876ec7f6d20793ec169cfa5969e9391cae88a343bd9191201bac124
-next_work_target=v22_native_calibration_corpus_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_preflight_606aa838_20260714T235357CST
+current_v22_artifact_root_sha256=122d4e12fc44f7a4a9b90386c8acc2d370870480f960f34c6e4923b5f702ea42
+next_work_target=v22_native_calibration_corpus_execution_only
