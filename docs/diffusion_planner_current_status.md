@@ -96,17 +96,28 @@ remain in retained pair rows and the denominator. The immutable artifact is
 `/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST`
 with root SHA256
 `c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478`;
-`88 / 88` relevant AutoDL tests passed. Native single-tick and tiny multi-route
-capability preflight is next; it precedes any model load.
+`88 / 88` relevant AutoDL tests passed.
 
-current_v22_status=v22_task3_speed_retained_failures_passed
-current_v22_artifact_source_head=d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd
-current_v22_prior_gate_final_synced_head=d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd
+The native capability static preflight passed at CAMP HEAD
+`f964c0f5fef3937cad46e4be09564f2bc0d7da04`. It reuses the existing native
+runner, preserves the v21 default, and freezes a v22 source-valid diagnostic
+configuration using only the two already-observed v21 routes. The routes are
+not holdout, the v18 weights are ablation-only, and claim/training/holdout/formal
+seed access remain false. The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST`
+with root SHA256
+`4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98`;
+`28 / 28` AutoDL checks passed. It contains zero routes, zero arms, and no
+receipts: no model or simulator ran. Single-tick capability execution is next.
+
+current_v22_status=v22_native_capability_preflight_passed
+current_v22_artifact_source_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04
+current_v22_prior_gate_final_synced_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST
-current_v22_artifact_root_sha256=c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478
-next_work_target=v22_native_single_tick_and_tiny_multi_route_capability_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST
+current_v22_artifact_root_sha256=4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98
+next_work_target=v22_native_single_tick_capability_execution_only
 
 ## Current V21 Status
 

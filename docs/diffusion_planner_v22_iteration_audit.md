@@ -484,3 +484,42 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST
 current_v22_artifact_root_sha256=c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478
 next_work_target=v22_native_single_tick_and_tiny_multi_route_capability_preflight_only
+
+## Native Capability Static Preflight
+
+Status: passed.
+
+The existing v21 native runner now validates a narrowly scoped v22 capability
+configuration by normalizing only its v22 policy metadata back to the frozen
+v21 base contract. The v21 config and default physical-eligibility policy are
+unchanged. The v22 config opts into `v22_source_valid`, identifies the frozen
+v18 weights as `v18_ablation_capability_only`, fixes the tiny regression at
+four ticks, and labels both already-observed v21 routes as
+`diagnostic_v21_observed_not_holdout`. Claim, training, holdout access, and
+formal seeds remain unauthorized.
+
+The immutable AutoDL artifact is
+`/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST`
+with root SHA256
+`4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98`.
+It records `run.exit=0`, empty stderr, matched CAMP HEAD/origin, fixed DP HEAD,
+tracked-clean CAMP and DP repositories, exact command, verified config/assets,
+stdout/stderr, summary JSON/MD, `SHA256SUMS`, and `ROOT_SHA256SUMS`. AutoDL
+py_compile and capability/v21-runner/v21-hook/v22-pointer tests passed `28 / 28`.
+The preflight result contains zero routes, zero arms, and no receipts.
+
+No model was loaded, no simulator was executed, no candidate was generated,
+no training ran, no holdout was opened, and no claim was made. The next gate
+is the one-tick CAMP capability execution on the diagnostic normal route. It
+must prove the live v22 source-valid policy, exact K=8 candidate and candidate-0
+identity evidence, selected-candidate immutability, and native causal-history
+receipt before any tiny multi-route execution.
+
+current_v22_status=v22_native_capability_preflight_passed
+current_v22_artifact_source_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04
+current_v22_prior_gate_final_synced_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST
+current_v22_artifact_root_sha256=4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98
+next_work_target=v22_native_single_tick_capability_execution_only
