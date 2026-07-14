@@ -1,5 +1,7 @@
 import hashlib
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -321,3 +323,18 @@ def test_cli_requires_exactly_one_mode_and_single_use_output(tmp_path) -> None:
                 str(output),
             ]
         )
+
+
+def test_direct_script_bootstraps_repo_root_for_reused_integration_imports() -> None:
+    script = ROOT / "scripts" / "integrations" / "run_diffusion_planner_dp_camp_v21_native.py"
+    package_root = ROOT / "camp_core"
+    code = (
+        "import runpy,sys;"
+        f"sys.path.insert(0,{str(package_root)!r});"
+        f"runpy.run_path({str(script)!r},run_name='v21_native_test');"
+        f"assert {str(ROOT)!r} in sys.path"
+    )
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
