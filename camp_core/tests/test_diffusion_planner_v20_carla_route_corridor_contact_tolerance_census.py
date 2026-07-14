@@ -226,11 +226,127 @@ def test_fail_closed_inputs_and_second_pass_drift(
     assert freezes == freeze_count
 
 
+def test_predecessor_topology_diagnosis_classifies_preregistered_branches(
+    monkeypatch,
+):
+    census = _module()
+    root_map = FakeMap(predecessor_count=0)
+    root_map.route[0].s = 0.0
+    root_map.route[0].transform.location.x = 0.0
+    linked_xodr = XODR.replace(
+        '<road id="1" length="200">',
+        '<road id="1" length="200"><link>'
+        '<predecessor elementType="road" elementId="0" contactPoint="end"/>'
+        '</link>',
+    ).replace(
+        '<right><lane id="-1" type="driving"/></right>',
+        '<right><lane id="-1" type="driving"><link>'
+        '<predecessor id="-1"/></link></lane></right>',
+        1,
+    ).replace(
+        "<OpenDRIVE>",
+        '<OpenDRIVE><road id="0" length="10"><lanes><laneSection s="0">'
+        '<right><lane id="-1" type="driving"/></right>'
+        '</laneSection></lanes></road>',
+    )
+    road_only_xodr = linked_xodr.replace(
+        '<lane id="-1" type="driving"><link>'
+        '<predecessor id="-1"/></link></lane>',
+        '<lane id="-1" type="driving"/>',
+        1,
+    )
+    unrelated_junction_xodr = XODR.replace(
+        '<road id="1" length="200">',
+        '<road id="1" junction="9" length="200">',
+    ).replace(
+        "</OpenDRIVE>",
+        '<junction id="9"><connection id="0" incomingRoad="0" '
+        'connectingRoad="1" contactPoint="start">'
+        '<laneLink from="-1" to="-2"/></connection></junction></OpenDRIVE>',
+    )
+    cases = (
+        (
+            root_map,
+            XODR,
+            "root_boundary_no_predecessor",
+            True,
+            "no",
+            0,
+        ),
+        (
+            FakeMap(predecessor_count=0),
+            linked_xodr,
+            "candidate_free_map_level_route_selection_only",
+            False,
+            "yes",
+            1,
+        ),
+        (
+            FakeMap(predecessor_count=0),
+            road_only_xodr,
+            "candidate_free_map_level_route_selection_only",
+            False,
+            "undetermined",
+            0,
+        ),
+        (
+            FakeMap(predecessor_count=0),
+            unrelated_junction_xodr,
+            "candidate_free_map_level_route_selection_only",
+            False,
+            "undetermined",
+            0,
+        ),
+        (
+            FakeMap(predecessor_count=1),
+            XODR,
+            "cardinality_one_builder_implementation_check",
+            False,
+            "no",
+            0,
+        ),
+        (
+            FakeMap(predecessor_count=2),
+            XODR,
+            "ambiguity_fail_closed",
+            False,
+            "no",
+            0,
+        ),
+    )
+
+    for map_api, xodr, branch, topology_root, lookup_omission, proof_count in cases:
+        monkeypatch.setattr(
+            census, "XODR_SHA256", hashlib.sha256(xodr.encode()).hexdigest()
+        )
+        receipt = census.diagnose_route_predecessor_topology(
+            map_api=map_api,
+            opendrive_xml=xodr,
+            camp_execution_head="a" * 40,
+        )
+        sealed = dict(receipt)
+        receipt_sha256 = sealed.pop("receipt_sha256")
+
+        assert receipt_sha256 == canonical_json_sha256(sealed)
+        assert receipt["branch"] == branch
+        assert receipt["topology"]["true_opendrive_topology_root"] is topology_root
+        assert (
+            receipt["topology"]["lookup_omitted_legal_predecessor"]
+            == lookup_omission
+        )
+        assert len(receipt["topology"]["legal_predecessor_proofs"]) == proof_count
+        assert receipt["route_start"]["identity"] == ["1", 0, -1]
+        assert all(
+            value == 0 for value in receipt["forbidden_access_counters"].values()
+        )
+
+
 def test_cli_preflight_and_execution_roles_are_separate(monkeypatch, tmp_path):
     census = _module()
     calls = Counter()
     preflight_output = tmp_path / "preflight.json"
     execution_output = tmp_path / "receipt.json"
+    diagnosis_output = tmp_path / "diagnosis.json"
     runtime = {"carla_python": {"path": "/sealed/python"}}
     production_import = {"module_paths": {"runner": "/sealed/runner.py"}}
     provenance = {
@@ -304,6 +420,28 @@ def test_cli_preflight_and_execution_roles_are_separate(monkeypatch, tmp_path):
     assert calls == {"preflight": 1, "map": 1, "census": 1}
     assert not execution_output.with_suffix(".json.tmp").exists()
 
+    monkeypatch.setattr(
+        census,
+        "diagnose_route_predecessor_topology",
+        lambda **kwargs: calls.update(diagnosis=1) or {"diagnosis": "ok"},
+    )
+    assert (
+        census.main(
+            [
+                "--diagnose-predecessor-topology-only",
+                "--preflight-json",
+                str(preflight_output),
+                "--camp-head",
+                "a" * 40,
+                "--output-json",
+                str(diagnosis_output),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(diagnosis_output.read_text()) == {"diagnosis": "ok"}
+    assert calls == {"preflight": 1, "map": 2, "census": 1, "diagnosis": 1}
+
     missing_key = json.loads(preflight_output.read_text())
     missing_key.pop("no_server")
     invalid_preflight = tmp_path / "invalid-preflight.json"
@@ -342,7 +480,7 @@ def test_cli_preflight_and_execution_roles_are_separate(monkeypatch, tmp_path):
                 str(tmp_path / "drifted.json"),
             ]
         )
-    assert calls == {"preflight": 1, "map": 1, "census": 1}
+    assert calls == {"preflight": 1, "map": 2, "census": 1, "diagnosis": 1}
 
 
 @pytest.mark.parametrize("occupied", ("output", "tmp"))

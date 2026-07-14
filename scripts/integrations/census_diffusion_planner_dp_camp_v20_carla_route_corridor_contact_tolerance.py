@@ -11,16 +11,21 @@ import os
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from importlib.metadata import version as distribution_version
 from pathlib import Path, PurePosixPath
 from typing import Any, Mapping, Sequence
 
 from camp_core.integrations.carla_causal_adapter import (
+    _lane_surface_sample_payload,
+    _opendrive_driving_lane_direction,
+    _waypoint_identity,
     build_pre_generation_route_corridor,
 )
 from camp_core.integrations.carla_exact_speed_source import (
     canonical_json_sha256,
     freeze_lifting_tolerances,
+    parse_opendrive_lane_section_bounds,
 )
 from scripts.integrations.run_diffusion_planner_dp_camp_v19_carla_candidate_source_probe import (
     FIXED_DP_HEAD,
@@ -32,6 +37,7 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v19_carla_candidate_sour
 
 SCHEMA = "dp_camp_v20_carla_route_corridor_contact_tolerance_census_v1"
 PREFLIGHT_SCHEMA = "v20_production_import_runtime_v1"
+TOPOLOGY_DIAGNOSIS_SCHEMA = "dp_camp_v20_carla_predecessor_topology_diagnosis_v1"
 CAMP_GATE_START_HEAD = "9537f1998100a32b74cdb6cc6dc36db4837c77f4"
 EXPECTED_FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 CARLA_VERSION = "0.9.16"
@@ -157,6 +163,271 @@ def _route_records(route: Sequence[Any]) -> list[dict[str, object]]:
             }
         )
     return records
+
+
+def diagnose_route_predecessor_topology(
+    *, map_api: Any, opendrive_xml: str, camp_execution_head: str
+) -> dict[str, Any]:
+    if not re.fullmatch(r"[0-9a-f]{40}", camp_execution_head):
+        raise ValueError("CAMP execution head must be 40 lowercase hex")
+    if getattr(map_api, "name", None) != MAP_NAME:
+        raise ValueError("map name mismatch")
+    if _sha256_bytes(opendrive_xml.encode("utf-8")) != XODR_SHA256:
+        raise ValueError("XODR SHA mismatch")
+
+    route = _deterministic_route(map_api, 5.0, 81)
+    first = route[0]
+    first_identity = _waypoint_identity(first)
+    first_sample = _lane_surface_sample_payload(first)
+    predecessors = list(first.previous(5.0))
+    predecessor_records = []
+    for waypoint in predecessors:
+        sample = _lane_surface_sample_payload(waypoint)
+        predecessor_records.append(
+            {
+                "identity": [sample["road_id"], sample["section_id"], sample["lane_id"]],
+                "s": sample["s"],
+                "xyz": [sample[axis] for axis in ("x", "y", "z")],
+                "is_junction": sample["is_junction"],
+            }
+        )
+    predecessor_records.sort(key=_canonical_bytes)
+
+    root = ET.fromstring(opendrive_xml)
+    roads = [item for item in root.findall("road") if item.get("id") == first_identity[0]]
+    if len(roads) != 1:
+        raise ValueError("route-start OpenDRIVE road evidence is not unique")
+    road = roads[0]
+    sections = road.findall("./lanes/laneSection")
+    if not 0 <= first_identity[1] < len(sections):
+        raise ValueError("route-start OpenDRIVE lane-section evidence is missing")
+    side = "left" if first_identity[2] > 0 else "right"
+    lanes = [
+        lane
+        for lane in sections[first_identity[1]].findall(f"./{side}/lane")
+        if lane.get("id") == str(first_identity[2])
+    ]
+    if len(lanes) != 1 or lanes[0].get("type") != "driving":
+        raise ValueError("route-start OpenDRIVE driving-lane evidence is not unique")
+    lane = lanes[0]
+    direction, road_rule, lane_direction = _opendrive_driving_lane_direction(
+        opendrive_xml, first_identity
+    )
+    entry_link_kind = "predecessor" if direction == 1 else "successor"
+    at_entry_section = (
+        first_identity[1] == 0
+        if direction == 1
+        else first_identity[1] == len(sections) - 1
+    )
+
+    def link_receipts(parent: ET.Element) -> dict[str, list[dict[str, str]]]:
+        return {
+            kind: [dict(sorted(node.attrib.items())) for node in parent.findall(f"./link/{kind}")]
+            for kind in ("predecessor", "successor")
+        }
+
+    road_links = link_receipts(road)
+    lane_links = link_receipts(lane)
+    road_junction_raw = road.get("junction", "-1")
+    road_junction_id = None if road_junction_raw in {"", "-1"} else road_junction_raw
+    junction_connections = []
+    for junction in root.findall("junction"):
+        for connection in junction.findall("connection"):
+            roles = [
+                role
+                for role in ("connectingRoad", "incomingRoad", "linkedRoad")
+                if connection.get(role) == first_identity[0]
+            ]
+            if roles:
+                junction_connections.append(
+                    {
+                        "junction_id": junction.get("id"),
+                        "route_start_roles": roles,
+                        "attributes": dict(sorted(connection.attrib.items())),
+                        "lane_links": [
+                            dict(sorted(item.attrib.items()))
+                            for item in connection.findall("laneLink")
+                        ],
+                    }
+                )
+    junction_connections.sort(key=lambda item: _canonical_bytes(item))
+
+    road_index: dict[str, list[ET.Element]] = {}
+    for item in root.findall("road"):
+        road_index.setdefault(str(item.get("id")), []).append(item)
+
+    def boundary_driving_lane_exists(
+        road_id: str, contact: str, lane_id: str
+    ) -> bool:
+        linked_roads = road_index.get(road_id, [])
+        if len(linked_roads) != 1 or contact not in {"start", "end"}:
+            return False
+        linked_sections = linked_roads[0].findall("./lanes/laneSection")
+        if not linked_sections:
+            return False
+        linked_section = linked_sections[0 if contact == "start" else -1]
+        linked_side = "left" if int(lane_id) > 0 else "right"
+        return (
+            len(
+                [
+                    item
+                    for item in linked_section.findall(f"./{linked_side}/lane")
+                    if item.get("id") == lane_id and item.get("type") == "driving"
+                ]
+            )
+            == 1
+        )
+
+    proofs = []
+    uncertainties = []
+    entry_road_nodes = road.findall(f"./link/{entry_link_kind}")
+    entry_lane_nodes = lane.findall(f"./link/{entry_link_kind}")
+    if not at_entry_section:
+        adjacent_index = first_identity[1] - direction
+        if not 0 <= adjacent_index < len(sections):
+            uncertainties.append("adjacent_lane_section_missing")
+        for lane_link in entry_lane_nodes:
+            target_lane_id = lane_link.get("id", "")
+            target_side = "left" if target_lane_id.startswith("-") is False else "right"
+            target_lanes = [
+                item
+                for item in sections[adjacent_index].findall(f"./{target_side}/lane")
+                if item.get("id") == target_lane_id and item.get("type") == "driving"
+            ] if 0 <= adjacent_index < len(sections) else []
+            if len(target_lanes) == 1:
+                proofs.append(
+                    {
+                        "source": "same_road_adjacent_lane_section",
+                        "road_id": first_identity[0],
+                        "lane_id": target_lane_id,
+                    }
+                )
+            else:
+                uncertainties.append("adjacent_lane_link_target_not_unique_driving")
+    elif len(entry_road_nodes) == 1 and entry_road_nodes[0].get("elementType") == "road":
+        road_link = entry_road_nodes[0]
+        target_road_id = road_link.get("elementId", "")
+        contact = road_link.get("contactPoint", "")
+        if not entry_lane_nodes:
+            uncertainties.append("road_link_without_route_lane_link")
+        for lane_link in entry_lane_nodes:
+            target_lane_id = lane_link.get("id", "")
+            if boundary_driving_lane_exists(target_road_id, contact, target_lane_id):
+                proofs.append(
+                    {
+                        "source": "direct_road_and_lane_link",
+                        "road_id": target_road_id,
+                        "lane_id": target_lane_id,
+                        "contact_point": contact,
+                    }
+                )
+            else:
+                uncertainties.append("direct_lane_link_target_not_unique_driving")
+    elif entry_road_nodes or entry_lane_nodes:
+        uncertainties.append("route_entry_link_not_directly_lane_resolved")
+
+    if junction_connections:
+        uncertainties.append("junction_lane_specific_predecessor_not_proven")
+    proofs.sort(key=_canonical_bytes)
+    uncertainties = sorted(set(uncertainties))
+
+    bounds = next(
+        (
+            item
+            for item in parse_opendrive_lane_section_bounds(opendrive_xml)
+            if (item.road_id, item.section_id) == first_identity[:2]
+        ),
+        None,
+    )
+    if bounds is None:
+        raise ValueError("route-start OpenDRIVE lane-section bounds are missing")
+    entry_boundary_s = bounds.start_s if direction == 1 else bounds.end_s
+    at_entry_boundary = (
+        abs(first_sample["s"] - entry_boundary_s)
+        <= FROZEN_LIFTING_TOLERANCES.station_epsilon_m
+    )
+    topology_evidence_present = bool(
+        entry_road_nodes
+        or entry_lane_nodes
+        or junction_connections
+        or road_junction_id is not None
+        or not at_entry_section
+    )
+    explicit_predecessor = bool(proofs)
+    true_root = bool(
+        at_entry_boundary
+        and at_entry_section
+        and road_junction_id is None
+        and not topology_evidence_present
+    )
+    cardinality = len(predecessors)
+    if cardinality:
+        lookup_omission = "no"
+    elif explicit_predecessor:
+        lookup_omission = "yes"
+    elif true_root:
+        lookup_omission = "no"
+    else:
+        lookup_omission = "undetermined"
+    if cardinality == 1:
+        branch = "cardinality_one_builder_implementation_check"
+    elif cardinality > 1:
+        branch = "ambiguity_fail_closed"
+    elif true_root:
+        branch = "root_boundary_no_predecessor"
+    else:
+        branch = "candidate_free_map_level_route_selection_only"
+
+    route_records = _route_records(route)
+    payload = {
+        "schema_version": TOPOLOGY_DIAGNOSIS_SCHEMA,
+        "provenance": {
+            "camp_execution_head": camp_execution_head,
+            "fixed_dp_head": FIXED_DP_HEAD,
+            "carla_version": CARLA_VERSION,
+            "map_name": MAP_NAME,
+            "xodr_sha256": XODR_SHA256,
+        },
+        "route": {
+            "point_count": len(route_records),
+            "sample_step_m": 5.0,
+            "sha256": canonical_json_sha256(route_records),
+        },
+        "route_start": {
+            "identity": list(first_identity),
+            "s": first_sample["s"],
+            "xyz": [first_sample[axis] for axis in ("x", "y", "z")],
+            "is_junction": first_sample["is_junction"],
+        },
+        "predecessor": {
+            "cardinality": cardinality,
+            "route_step_m": 5.0,
+            "records": predecessor_records,
+        },
+        "topology": {
+            "station_direction": direction,
+            "road_rule": road_rule,
+            "lane_direction": lane_direction,
+            "road_junction_id": road_junction_id,
+            "entry_link_kind": entry_link_kind,
+            "entry_boundary_s": entry_boundary_s,
+            "at_entry_boundary": at_entry_boundary,
+            "at_entry_section": at_entry_section,
+            "road_links": road_links,
+            "lane_links": lane_links,
+            "junction_connections": junction_connections,
+            "legal_predecessor_proofs": proofs,
+            "topology_uncertainties": uncertainties,
+            "explicit_legal_predecessor_link": explicit_predecessor,
+            "true_opendrive_topology_root": true_root,
+            "lookup_omitted_legal_predecessor": lookup_omission,
+        },
+        "branch": branch,
+        "call_counters": {"_deterministic_route": 1, "waypoint.previous": 1},
+        "forbidden_access_counters": dict(FORBIDDEN_COUNTERS),
+    }
+    payload["receipt_sha256"] = canonical_json_sha256(payload)
+    return payload
 
 
 def _boundary_projection(
@@ -519,6 +790,7 @@ def _production_import_evidence() -> dict[str, Any]:
         raise ValueError("NumPy version mismatch")
     callables = {
         "census": callable(runner.census_route_corridor_contact_tolerance),
+        "diagnosis": callable(runner.diagnose_route_predecessor_topology),
         "main": callable(runner.main),
         "builder": callable(builder.build_pre_generation_route_corridor),
         "freezer": callable(freezer.freeze_lifting_tolerances),
@@ -585,11 +857,14 @@ def _verified_preflight_receipt(path: Path) -> dict[str, Any]:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--diagnose-predecessor-topology-only", action="store_true")
     parser.add_argument("--preflight-json", type=Path)
     parser.add_argument("--camp-head")
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
     _ensure_output_absent(args.output_json)
+    if args.preflight_only and args.diagnose_predecessor_topology_only:
+        raise ValueError("preflight and topology diagnosis modes are exclusive")
 
     if args.preflight_only:
         receipt = _production_preflight_receipt()
@@ -612,16 +887,23 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ValueError(f"preflight {key} mismatch")
         carla = _load_sealed_carla(provenance)
         map_api = carla.Map(MAP_NAME, provenance["opendrive_xml"])
-        receipt = census_route_corridor_contact_tolerance(
-            map_api=map_api,
-            opendrive_xml=provenance["opendrive_xml"],
-            camp_execution_head=args.camp_head,
-            carla_version=provenance["carla_version"],
-            carla_module_path=provenance["carla_module_path"],
-            carla_module_sha256=provenance["carla_module_sha256"],
-            client_manifest_sha256=provenance["client_manifest_sha256"],
-            carla_source_root_sha256=provenance["carla_source_root_sha256"],
-        )
+        if args.diagnose_predecessor_topology_only:
+            receipt = diagnose_route_predecessor_topology(
+                map_api=map_api,
+                opendrive_xml=provenance["opendrive_xml"],
+                camp_execution_head=args.camp_head,
+            )
+        else:
+            receipt = census_route_corridor_contact_tolerance(
+                map_api=map_api,
+                opendrive_xml=provenance["opendrive_xml"],
+                camp_execution_head=args.camp_head,
+                carla_version=provenance["carla_version"],
+                carla_module_path=provenance["carla_module_path"],
+                carla_module_sha256=provenance["carla_module_sha256"],
+                client_manifest_sha256=provenance["client_manifest_sha256"],
+                carla_source_root_sha256=provenance["carla_source_root_sha256"],
+            )
     _write_json_atomic(args.output_json, receipt)
     return 0
 
