@@ -414,17 +414,47 @@ immutability passed `1,170 / 1,170`; all provenance receipts are corrected.
 Review artifact/root:
 `/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST`
 / `c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a`.
-No holdout was opened and no safety claim is authorized. Next is calibration
-selector-freeze and pilot-preflight TDD only.
+No holdout was opened and no safety claim is authorized.
 
-current_v22_status=v22_corrected_native_calibration_corpus_and_independent_review_passed
-current_v22_artifact_source_head=b8bab7a0460496d896d4efdb527281731f5aafa8
-current_v22_prior_gate_final_synced_head=b8bab7a0460496d896d4efdb527281731f5aafa8
+Calibration-selector freeze TDD then passed at HEAD
+`16a1df277d5837b7b00d5e3e530cbf6b920526ab`. It extends the same trainer
+with a no-retrain/no-solver calibration-freeze mode and seals the v22 model,
+train-only scales, affine/simplex score, 0.1 m/s primary tolerance, and the
+pre-registered claim contract. AutoDL v22 regression passed 89 tests.
+Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_tdd_16a1df27_20260715T020840CST`
+/ `aea24c3e3289b19f8662742211a16b2407ca41a4a56b3f5bfa8dbd517f6363b5`.
+
+The first read-only preflight honestly failed because the loader equated
+snapshot route-seed coverage with completed runs. The one hard-source failure
+has valid partial causal snapshots, so all 90 retained route-seeds are present
+while only 89 runs completed. Failure artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_preflight_16a1df27_20260715T020916CST`
+/ `653b33a8a4b97614810febbb913a9e2ed1bc6eed17048c66dbe6e6a8af425a06`.
+
+The retention assertion and regression test were corrected at HEAD
+`a54e71e7185343d8b52e131743c18c4dbc814602`; AutoDL v22 regression passed
+90 tests. Remediation TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_retention_remediation_tdd_a54e71e7_20260715T021322CST`
+/ `fea6ae367be46e4d2de9400211bec1315304e91ac243bd3df497b4064a13ef7b`.
+
+Corrected preflight then passed. It rehashed every sealed upstream root and
+verified the frozen model plus 1,170 snapshots, 30 routes, 3 seeds, 90
+retained route-seeds, 89 complete runs, 1 hard-source failure, 5
+all-K-high-risk snapshots, and route coverage 1.0. No selector, solver,
+simulator, pilot, or holdout ran. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST`
+/ `342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829`.
+Next is calibration-freeze execution only.
+
+current_v22_status=v22_calibration_selector_freeze_corrected_preflight_passed
+current_v22_artifact_source_head=a54e71e7185343d8b52e131743c18c4dbc814602
+current_v22_prior_gate_final_synced_head=a54e71e7185343d8b52e131743c18c4dbc814602
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST
-current_v22_artifact_root_sha256=c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a
-next_work_target=v22_calibration_selector_freeze_and_pilot_preflight_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST
+current_v22_artifact_root_sha256=342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829
+next_work_target=v22_calibration_selector_freeze_execution_only
 
 ## Current V21 Status
 

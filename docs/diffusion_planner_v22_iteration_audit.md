@@ -1342,18 +1342,74 @@ The immutable review artifact/root is
 with `run.exit=0`. The review loaded no model and ran no solver or simulator.
 No holdout outcome was read and no claim is authorized.
 
-The next target is TDD for calibration-only selector freeze and pilot
-preflight. It may use calibration snapshots to compare the already trained
-v22 candidate and v18 ablation under the frozen causal surrogate and speed
-tolerance sensitivity, but may not retrain weights, alter train-only scales,
-read holdout, or start pilot execution before the freeze artifact and static
-preflight pass.
+## Calibration Selector Freeze TDD and Corrected Preflight
 
-current_v22_status=v22_corrected_native_calibration_corpus_and_independent_review_passed
-current_v22_artifact_source_head=b8bab7a0460496d896d4efdb527281731f5aafa8
-current_v22_prior_gate_final_synced_head=b8bab7a0460496d896d4efdb527281731f5aafa8
+Status: passed; calibration selector freeze execution is next.
+
+At CAMP HEAD `16a1df277d5837b7b00d5e3e530cbf6b920526ab`, the existing
+train-only selector script gained one calibration-freeze mode. It reads the
+already trained v22 model and corrected calibration causal snapshots, compares
+the v22 candidate with the named v18 ablation under the frozen causal
+soft-risk surrogate, and writes runtime weights/scales plus a freeze manifest.
+It cannot invoke the solver, retrain, read holdout, or authorize pilot/main or
+a claim. Train-only scales and the affine/nonnegative-simplex score remain
+unchanged. Primary speed tolerance is frozen at 0.1 m/s; 0/0.05/0.1/0.2 m/s
+sensitivity remains scheduled for true pilot closed-loop outcomes, not the
+snapshot surrogate.
+
+The loader requires calibration split, exact split-specific provenance,
+content-addressed snapshots, the three-field identity-free feature payload,
+candidate tensor before/after equality, candidate-0/default byte identity,
+finite 8 x 14 atoms, source-valid eligibility, physical-risk receipts, and
+all-K-high-risk consistency. It separately preserves planned/retained,
+complete, and hard-source-failure accounting. Local and AutoDL v22 regression
+initially passed 89 tests. Immutable TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_tdd_16a1df27_20260715T020840CST`
+/ `aea24c3e3289b19f8662742211a16b2407ca41a4a56b3f5bfa8dbd517f6363b5`.
+No model, selector, simulator, or holdout was opened by that TDD artifact.
+
+The first read-only preflight is preserved as an honest failure. Its loader
+wrongly asserted that snapshot route-seed coverage must equal 89 completed
+runs. The sealed corpus correctly contains partial causal snapshots from the
+one failed route-seed, so snapshot coverage is all 90 retained route-seeds.
+Failure artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_preflight_16a1df27_20260715T020916CST`
+/ `653b33a8a4b97614810febbb913a9e2ed1bc6eed17048c66dbe6e6a8af425a06`,
+with exit 1 before selector execution.
+
+At CAMP HEAD `a54e71e7185343d8b52e131743c18c4dbc814602`, the assertion was
+corrected to compare observed snapshot route-seeds with the retained
+denominator. A regression test now requires partial snapshots from a failed
+route-seed to remain accepted and counted, while complete and hard-source
+failure counts remain distinct. Local and AutoDL v22 regression passed 90
+tests. Remediation TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_retention_remediation_tdd_a54e71e7_20260715T021322CST`
+/ `fea6ae367be46e4d2de9400211bec1315304e91ac243bd3df497b4064a13ef7b`.
+
+The corrected read-only preflight rehashed all sealed training, training
+review, corrected calibration corpus, calibration review, and v18 ablation
+roots. It verified model SHA
+`33d4d9b23e7cc505e546a8bf33ca7477f072118ea1fda6dad9744969fc00956a`
+and calibration config SHA
+`87f58033528f30a1f1ee38c92dcf56c0abbc9cc9a15340a55ba24c93da7f3eaf`.
+Observed counts are 1,170 snapshots, 30 routes, 3 seeds, 90 retained
+route-seeds, 89 complete runs, 1 hard-source failure, 5 all-K-high-risk
+snapshots, and route coverage 1.0. It executed no selector, solver, simulator,
+or holdout. Corrected preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST`
+/ `342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829`.
+
+One controller attempt before the remediation TDD artifact guessed the new
+full CAMP SHA incorrectly and stopped before artifact creation or any model,
+selector, or simulator action. Live reconciliation confirmed the actual SHA
+above. The next gate may execute calibration freeze exactly once. Pilot and
+holdout remain unopened.
+
+current_v22_status=v22_calibration_selector_freeze_corrected_preflight_passed
+current_v22_artifact_source_head=a54e71e7185343d8b52e131743c18c4dbc814602
+current_v22_prior_gate_final_synced_head=a54e71e7185343d8b52e131743c18c4dbc814602
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST
-current_v22_artifact_root_sha256=c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a
-next_work_target=v22_calibration_selector_freeze_and_pilot_preflight_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST
+current_v22_artifact_root_sha256=342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829
+next_work_target=v22_calibration_selector_freeze_execution_only
