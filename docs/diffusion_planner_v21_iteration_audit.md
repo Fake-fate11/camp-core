@@ -497,13 +497,69 @@ holdout access, formal seed, claim, promotion, deployment, activation, new
 dependency, or DP modification occurred. The next work is Task 4 paired runner
 and frozen smoke config TDD only.
 
+## Task 4: Paired Runner and Frozen Native Smoke Configuration
+
+Status: passed without model load, inference, or simulator execution.
+
+Task 3 evidence was committed, pushed, and fast-forwarded on AutoDL at
+`12e98803f3f0fa2b0b3eccc1279d8b41756c2496`. Task 4 followed the frozen
+red/green order: the first red run exposed the missing config/runner, and the
+provenance red run exposed missing sealed `HEADS`, `COMMAND`, and config
+receipts. The runner/config implementation was committed at
+`b8184a08e59d3fd670fc134836aa84898c2e21e2`; the provenance-only harness fix
+produced the artifact source HEAD
+`ac9cf98cafa0f27bc30acc7ca51d90f3d96766b8`.
+
+The runner now freezes:
+
+- exact fixed-DP/checkpoint/args/native-source/map/route/selector hashes and
+  every native `SpawnConfig` field, including MPC 20/5, disabled SG smoothing,
+  no NPZ dump/reward config, traffic lights on, and 64 paired ticks;
+- non-formal seeds 3417/3418/3419, exactly two existing frozen routes, and
+  fresh arm order DP then CAMP with equal initial state/input receipts;
+- native default-only observation for the DP arm and the Task 2 immutable K=8
+  causal selector hook only for CAMP, without copying the native replay loop;
+- exact `native_zero_left_pad_to_31_v1` receipts, post-divergence causal input
+  hashes, candidate/atom/selection/tracker/safety/latency receipts, and
+  fail-closed partial, duplicate, asymmetric, missing-source, or failed arms;
+- SafetyCost Native v1, secondary metrics, paired CAMP-minus-DP deltas,
+  padding strata, and atomic single-use per-tick/per-arm/per-pair evidence;
+- `--preflight`, `--capability-smoke`, and `--paired-smoke`, with
+  `claim_authorized=false` in every result.
+
+Local and AutoDL target suites each report `43 passed`; `py_compile` and
+`git diff --check` passed. AutoDL CAMP and DP were tracked-clean, and no
+related v21 run was active. The CLI preflight independently verified all
+frozen assets and native source hashes without loading the model. Its artifact
+is
+`/root/autodl-tmp/camp_dp_v21_native_task4_runner_preflight_ac9cf98c_20260714T165206CST`
+with root SHA256
+`44a861b85f4335dfbd0dc02e92d7da3ea889c4093539ea4ac616b3b1290a9fc0`.
+
+Immutable Task 4 artifact:
+
+- path:
+  `/root/autodl-tmp/camp_dp_v21_native_task4_paired_runner_ac9cf98c_20260714T165318CST`;
+- root SHA256:
+  `443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6`;
+- `run.exit=0`, empty stderr, all ten payload hashes and the root independently
+  reverified, directory mode 555 and every file mode 444.
+
+The artifact contains heads, exact commands, stdout/stderr, runner/test/config,
+JSON/Markdown review, SHA256SUMS, and root SHA. No simulator execution occurred;
+there is still no real candidate, atom, padding, tracker, safety, or
+latency evidence. No model load, inference, training, holdout access, formal
+seed, claim, promotion, deployment, activation, dependency change, or DP
+modification occurred. The next work is the one-tick Gate D capability smoke;
+its scientific checks remain fail-closed and it cannot make a claim.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_task3_safetycost_native_v1_reducers_passed
-current_v21_artifact_source_head=ba527d439188617f729a3951038524108d1b2024
-current_v21_prior_gate_final_synced_head=467004f685fe7f3da8d5fea62ad63360993ebb08
+current_v21_status=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_passed
+current_v21_artifact_source_head=ac9cf98cafa0f27bc30acc7ca51d90f3d96766b8
+current_v21_prior_gate_final_synced_head=12e98803f3f0fa2b0b3eccc1279d8b41756c2496
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task3_safety_reducers_ba527d43_20260714T162656CST
-current_v21_artifact_root_sha256=b1cf4a8c7ff6ae21805a520a29d172b60be2e73c135967353ac775cf998d9814
-next_work_target=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_tdd_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task4_paired_runner_ac9cf98c_20260714T165318CST
+current_v21_artifact_root_sha256=443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6
+next_work_target=v21_native_simulator_gate_d_one_tick_capability_smoke

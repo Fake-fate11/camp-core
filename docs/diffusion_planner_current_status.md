@@ -116,18 +116,34 @@ Task 3 root `b1cf4a8c7ff6ae21805a520a29d172b60be2e73c135967353ac775cf998d9814`
 was independently rehashed. The next target is Task 4 paired runner and frozen
 smoke config TDD only.
 
-`current_v21_final_synced_head` is pending for the current Task 3 docs commit.
-The exact prior Task 2 final synced HEAD is separately recorded, so the
+Task 4 passed red/green at artifact source HEAD
+`ac9cf98cafa0f27bc30acc7ca51d90f3d96766b8`. It freezes every native config
+field and asset/source hash, DP then CAMP fresh-arm order, exact initial
+receipts, native default observation, causal immutable K=8 CAMP selection,
+`native_zero_left_pad_to_31_v1`, SafetyCost/secondary/latency receipts, paired
+deltas, and single-use SHA-sealed evidence. Local and AutoDL target suites each
+report `43 passed`; compile and diff checks passed.
+
+The asset-only CLI preflight root
+`44a861b85f4335dfbd0dc02e92d7da3ea889c4093539ea4ac616b3b1290a9fc0`
+and Task 4 root
+`443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6`
+were independently rehashed. No model load, inference, simulator, training,
+holdout, formal seed, or claim occurred. The next target is the one-tick Gate
+D capability smoke.
+
+`current_v21_final_synced_head` is pending for the current Task 4 docs commit.
+The exact prior Task 3 final synced HEAD is separately recorded, so the
 pending marker cannot be mistaken for artifact-source or endpoint drift.
 
-current_v21_status=v21_native_simulator_task3_safetycost_native_v1_reducers_passed
-current_v21_artifact_source_head=ba527d439188617f729a3951038524108d1b2024
-current_v21_prior_gate_final_synced_head=467004f685fe7f3da8d5fea62ad63360993ebb08
+current_v21_status=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_passed
+current_v21_artifact_source_head=ac9cf98cafa0f27bc30acc7ca51d90f3d96766b8
+current_v21_prior_gate_final_synced_head=12e98803f3f0fa2b0b3eccc1279d8b41756c2496
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task3_safety_reducers_ba527d43_20260714T162656CST
-current_v21_artifact_root_sha256=b1cf4a8c7ff6ae21805a520a29d172b60be2e73c135967353ac775cf998d9814
-next_work_target=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_tdd_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task4_paired_runner_ac9cf98c_20260714T165318CST
+current_v21_artifact_root_sha256=443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6
+next_work_target=v21_native_simulator_gate_d_one_tick_capability_smoke
 
 ## Current V20 Status
 
