@@ -579,3 +579,73 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST
 current_v22_artifact_root_sha256=0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80
 next_work_target=v22_native_tiny_multi_route_capability_tdd_only
+
+## Native Tiny Multi-route Capability
+
+Status: passed.
+
+TDD added a `tiny-capability-smoke` mode to the same native runner. It is
+restricted to the v22 diagnostic config and runs exactly the two already
+observed v21 routes, CAMP-only, for four ticks each. The v21 one-tick and
+64-step paired modes remain unchanged. The v22 validator requires the frozen
+0.1 m/s operational speed protocol, K=8 source-valid masks, candidate
+immutability/default identity, and the explicit affine score receipt.
+
+The first tiny execution completed successfully at source HEAD `bf26d566` and
+is preserved at
+`/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_bf26d566_20260714T203658CST`
+with root SHA256
+`25be90dc1983c37d98380393f32f332b8e5a7c3eee6c4536bdab8a6054fc4c31`.
+Review found that its public tick receipts omitted the already-computed affine
+score vector, so the artifact could not independently prove that a selected
+candidate 0 in an all-K-high-risk tick was a real score argmin rather than a
+fallback. The execution was not renamed as gate success. TDD then made the
+public receipt retain `score_k(w)=a_k^T w`, the eligibility mask name, and all
+eight finite scores; the validator independently recomputes the masked argmin.
+
+The corrected immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_score_receipts_ea741985_20260714T204030CST`
+with root SHA256
+`56f9e35bbf12140d365acfc74f2de6f13a4cf71fda582d9d976175ceff1be42c`.
+Independent `SHA256SUMS` and `ROOT_SHA256SUMS` checks passed. It records
+`run.exit=0`, matched CAMP/fixed-DP HEADS, exact command, stdout/stderr,
+summary JSON/MD, two routes, two CAMP arms, eight complete tick receipts, and
+zero failures. AutoDL py_compile and capability/v21-runner/v21-hook/v22-metric/
+v22-pointer tests passed `38 / 38` immediately before execution.
+
+Every tick used 31 observed causal frames and zero padding. Candidate tensors
+were immutable and the independent DP operational default was byte-identical
+to candidate 0 on all eight ticks. On the normal diagnostic route, all eight
+candidates were source-valid and physically feasible at every tick; selected
+indices were `7, 7, 6, 7`. On the traffic-light/corridor diagnostic route, all
+eight candidates remained source-valid; physical-feasible counts were
+`7, 0, 0, 0`. The last three ticks were therefore the preregistered
+all-K-high-risk/stress condition. CAMP continued the closed loop and selected
+`2, 2, 0`; each selection exactly equaled the persisted source-valid masked
+affine argmin. The final candidate-0 selection had the minimum score
+`0.8657153899128988`; it was not forced and no fallback ran.
+
+Both four-tick diagnostic arms had SafetyCost `0.0`; every collision,
+near-miss, offroad, wrong-way, red-light, strict-speed, and 0.1 m/s operational
+speed event count was zero, with maximum speed excess `0.0 m/s`. Route
+completion was `0.017858330066413797` and `0.005420877832714185`. Mean latency
+in milliseconds for normal/stress respectively was: DP default inference
+`147.9857 / 54.0229`, K8 candidate inference `374.5511 / 375.2012`, atom
+materialization `24.3869 / 32.7212`, selector `0.1266 / 0.1223`, tracker
+`8.1096 / 8.5967`, and total planning `605.8580 / 497.1656`.
+
+These are capability diagnostics, not paired DP/CAMP outcomes. The v18 weights
+remain ablation-only; no native training corpus was generated, no evaluation
+split or holdout was opened, and no safety or CAMP-over-DP claim was made. The
+next gate is the outcome-blind route-family/corridor census and pre-outcome
+train/calibration/holdout split freeze. It must retain every preregistered
+route and failure and must not use any capability outcome as a split input.
+
+current_v22_status=v22_native_tiny_multi_route_capability_passed
+current_v22_artifact_source_head=ea741985ad43176b897f3086ff267654c339eacc
+current_v22_prior_gate_final_synced_head=ea741985ad43176b897f3086ff267654c339eacc
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_score_receipts_ea741985_20260714T204030CST
+current_v22_artifact_root_sha256=56f9e35bbf12140d365acfc74f2de6f13a4cf71fda582d9d976175ceff1be42c
+next_work_target=v22_outcome_blind_route_family_census_and_split_freeze_tdd_only

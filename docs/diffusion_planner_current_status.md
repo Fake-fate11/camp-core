@@ -122,17 +122,33 @@ with root SHA256
 `0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80`.
 Two sealed pre-execution harness failures are fully attributed in the v22
 audit; neither loaded the model nor ran the simulator. This diagnostic used
-ablation weights, opened no holdout, and supports no claim. Tiny two-route,
-four-tick capability TDD is next.
+ablation weights, opened no holdout, and supports no claim.
 
-current_v22_status=v22_native_single_tick_capability_passed
-current_v22_artifact_source_head=480b6fda746db9e8b75d598fc9bbd56991b59721
-current_v22_prior_gate_final_synced_head=480b6fda746db9e8b75d598fc9bbd56991b59721
+The corrected tiny multi-route capability passed at CAMP HEAD
+`ea741985ad43176b897f3086ff267654c339eacc`. It ran both diagnostic routes for
+four CAMP-only ticks. All eight ticks retained 31 observed causal frames,
+candidate immutability, DP-default/candidate-0 byte identity, explicit affine
+scores, and exact source-valid masked argmins. On the corridor route, physical
+feasibility was `0 / 8` for the last three ticks while source validity stayed
+`8 / 8`; CAMP continued and selected `2, 2, 0` without fallback. The immutable
+artifact is
+`/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_score_receipts_ea741985_20260714T204030CST`
+with root SHA256
+`56f9e35bbf12140d365acfc74f2de6f13a4cf71fda582d9d976175ceff1be42c`;
+`38 / 38` AutoDL checks passed. Both four-tick SafetyCosts were `0.0`, but this
+is unpaired capability evidence only. An earlier score-omitting artifact is
+preserved and explicitly not used as the gate pass. No training or holdout ran
+and no claim was made. Outcome-blind route-family census and split freeze are
+next.
+
+current_v22_status=v22_native_tiny_multi_route_capability_passed
+current_v22_artifact_source_head=ea741985ad43176b897f3086ff267654c339eacc
+current_v22_prior_gate_final_synced_head=ea741985ad43176b897f3086ff267654c339eacc
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST
-current_v22_artifact_root_sha256=0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80
-next_work_target=v22_native_tiny_multi_route_capability_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_score_receipts_ea741985_20260714T204030CST
+current_v22_artifact_root_sha256=56f9e35bbf12140d365acfc74f2de6f13a4cf71fda582d9d976175ceff1be42c
+next_work_target=v22_outcome_blind_route_family_census_and_split_freeze_tdd_only
 
 ## Current V21 Status
 
