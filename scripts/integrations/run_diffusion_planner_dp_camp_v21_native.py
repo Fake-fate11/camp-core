@@ -346,9 +346,25 @@ class NativeCampPredictBatch:
             receipt.update(
                 verify_candidate_tensor_immutable(candidate_tensor, before_sha)
             )
+            selector_diagnostics = {
+                "candidate_reasons": [
+                    list(value) for value in selection.get("candidate_reasons", [])
+                ],
+                "physical_feasible_mask": np.asarray(
+                    selection.get("physical_feasible_mask", []), dtype=bool
+                ).tolist(),
+                "source_complete_mask": np.asarray(
+                    materialized.get("route_speed_source_eligible_mask", []),
+                    dtype=bool,
+                ).tolist(),
+            }
+            receipt.update(selector_diagnostics)
             if selection.get("status") != "ok":
                 reason = str(selection.get("failure_reason") or "selector_failed")
-                raise RuntimeError(reason)
+                raise RuntimeError(
+                    f"{reason}; selector_diagnostics="
+                    f"{json.dumps(selector_diagnostics, sort_keys=True)}"
+                )
             selected_index = int(selection["selected_index"])
             selected = np.asarray(selection["selected_trajectory"])
             if (

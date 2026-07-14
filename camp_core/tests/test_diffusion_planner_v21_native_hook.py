@@ -259,6 +259,11 @@ def test_hook_fails_closed_without_candidate0_fallback(failure: str) -> None:
         )
     assert state.receipts[-1]["status"] == "failed"
     assert "selected_index" not in state.receipts[-1]
+    expected_feasible = [False] * 8 if failure == "all_k_infeasible" else [True] * 8
+    assert state.receipts[-1]["physical_feasible_mask"] == expected_feasible
+    assert state.receipts[-1]["source_complete_mask"] == [True] * 8
+    assert state.receipts[-1]["candidate_reasons"] == [[] for _ in range(8)]
+    assert "selector_diagnostics=" in state.receipts[-1]["failure_reason"]
 
 
 def test_hook_detects_candidate_mutation() -> None:
