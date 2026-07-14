@@ -774,11 +774,49 @@ no train, calibration, or holdout route ran, holdout outcomes were not read,
 and no claim was authorized. Next is a train-only execution harness and its
 static preflight before any native corpus run.
 
-current_v22_status=v22_native_decision_sink_and_corpus_writer_tdd_passed
-current_v22_artifact_source_head=203a3368663018e8855ba46176ff4f9a30675537
-current_v22_prior_gate_final_synced_head=203a3368663018e8855ba46176ff4f9a30675537
+## Native Train Corpus Execution Harness and Preflight
+
+Status: passed; execution authorized but not started.
+
+Source HEAD `70dd163727fddf3ebd965c44e54d8491d2fd7305` added the
+train-only execution harness. It derives and validates all 32 / 32 frozen run
+configs before runtime. Every run is the CAMP collection arm only; it injects
+the route-seed namespace value into the scenario, candidate, and spawn seed,
+uses exactly 64 native ticks, and reuses one lazy-loaded model through the
+existing `build_native_arm_runner`. No parallel replay loop exists.
+
+The harness attempts every frozen train route-seed even after a run-level
+source/simulator/tracker failure. It records a retained failure receipt rather
+than deleting or replacing the route, plus per route-seed wall-clock, total
+wall-clock, snapshot counts by source stratum and all-K-high-risk snapshot
+counts. Calibration and holdout are absent from the call inventory. Formal
+seeds and Full36 remain forbidden.
+
+The first preflight artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_70dd1637_20260714T213842CST`
+with root SHA256
+`3682434e21939e148f63a52640c7846e8130157926192b376ef32f91f160ea5f`.
+Its checks passed, but review found a stale next-work pointer left from the
+decision-sink gate. It is preserved and is not the execution authorization.
+TDD at source HEAD `0d4046c08a7f922d402a1d6f518dbb963862c8b7` locked the
+correct pointer. The corrected immutable preflight artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST`
+with root SHA256
+`c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387`
+and `run.exit=0`; `62 / 62` AutoDL tests passed.
+
+No model was loaded and no simulator executed in either preflight. The
+corrected summary reports 4 / 30 / 100 routes, 8 / 3 / 5 seeds, 32 train runs,
+416 theoretical snapshots, no reachable 5k/10k/20k/50k level, and
+`next_work_target=v22_native_train_corpus_execution_only`. Holdout outcomes
+were not read and no claim was authorized. Next is exactly one train-corpus
+execution; an existing related process must be monitored rather than restarted.
+
+current_v22_status=v22_native_train_corpus_execution_preflight_passed
+current_v22_artifact_source_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
+current_v22_prior_gate_final_synced_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_decision_sink_writer_203a3368_20260714T212738CST
-current_v22_artifact_root_sha256=94db868dcbd2a7d2711dda8158ed90f6901c45442f2f173c2d0f343fbd3ff5de
-next_work_target=v22_native_train_corpus_execution_harness_tdd_and_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST
+current_v22_artifact_root_sha256=c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387
+next_work_target=v22_native_train_corpus_execution_only

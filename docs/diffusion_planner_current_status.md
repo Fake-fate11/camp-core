@@ -191,17 +191,29 @@ receipts in the denominator. The immutable artifact is
 with root SHA256
 `94db868dcbd2a7d2711dda8158ed90f6901c45442f2f173c2d0f343fbd3ff5de`;
 `58 / 58` AutoDL tests passed. No model was loaded and no simulator executed.
-Next is the train-only corpus execution harness TDD and preflight; holdout
-remains sealed.
 
-current_v22_status=v22_native_decision_sink_and_corpus_writer_tdd_passed
-current_v22_artifact_source_head=203a3368663018e8855ba46176ff4f9a30675537
-current_v22_prior_gate_final_synced_head=203a3368663018e8855ba46176ff4f9a30675537
+The train-corpus execution harness and corrected static preflight passed at
+CAMP HEAD `0d4046c08a7f922d402a1d6f518dbb963862c8b7`. All `32 / 32`
+frozen run configs validate before model load; each uses the CAMP collection
+arm only and injects the same frozen seed into scenario, candidate, and spawn
+state. The harness retains failures, route-seed wall-clock, and stratum plus
+all-K-high-risk snapshot counts. The corrected artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST`
+with root SHA256
+`c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387`;
+`62 / 62` AutoDL tests passed. A prior preflight artifact with a stale
+next-work pointer is preserved in the audit and is not the gate pass. No model
+was loaded and no simulator executed; holdout outcomes were not read. The next
+gate is the single frozen train-corpus execution.
+
+current_v22_status=v22_native_train_corpus_execution_preflight_passed
+current_v22_artifact_source_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
+current_v22_prior_gate_final_synced_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_decision_sink_writer_203a3368_20260714T212738CST
-current_v22_artifact_root_sha256=94db868dcbd2a7d2711dda8158ed90f6901c45442f2f173c2d0f343fbd3ff5de
-next_work_target=v22_native_train_corpus_execution_harness_tdd_and_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST
+current_v22_artifact_root_sha256=c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387
+next_work_target=v22_native_train_corpus_execution_only
 
 ## Current V21 Status
 
