@@ -139,10 +139,84 @@ parallel framework; and identify the smallest shared hard-valid/soft-risk
 boundary change. It may not load the model, execute the simulator, train,
 open holdout, or make a claim.
 
-current_v22_status=v22_native_larger_paired_closed_loop_startup_reconciliation_passed
-current_v22_artifact_source_head=cba4327989335fbcd522b7717b151fdaa2788c45
-camp_github_autodl_head=cba4327989335fbcd522b7717b151fdaa2788c45
+## Gate 1: Contract, Capability, and Native Inventory Audit
+
+Status: read-only audit passed; frozen split contract reached a hard stop.
+
+The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_contract_capability_audit_9ebed6e2_20260714T190011CST`
+with root SHA256
+`56b214e25ba4b275d3eb4aa7575302be9e627b3e7457d1118e96fa2779e13787`.
+It has `run.exit=0`, empty stderr, matched CAMP/DP heads, exact command,
+summary JSON/Markdown, `SHA256SUMS`, and `ROOT_SHA256SUMS`; both manifests
+reverified independently before this record.
+
+### Shared implementation path
+
+The v21 native runner remains the single correct simulator path. No parallel
+runner or DP-side change is needed. The minimum later implementation would:
+
+- split true source validity from risk inside
+  `diffusion_planner_causal_atoms.py`; today `lane_corridor` and predicted OBB
+  collision are folded into `physical_feasible_mask`, and all-K false returns
+  before the finite 14D atom matrix is produced;
+- make the shared `select_camp_candidate` consume a v22 `source_valid_mask`
+  while leaving v21's historical physical-mask behavior unchanged;
+- retain lane overrun, collision/clearance, red exposure, speed excess,
+  progress/stuck, and comfort as finite audited atoms/severities, including an
+  `all-K-high-risk/stress` receipt instead of fallback;
+- reuse `run_diffusion_planner_dp_camp_v21_native.py`, exact indexed candidate
+  selection, candidate-0/default SHA proof, native MPC, and evidence sealing;
+- reuse `robust_margin_master.py`, whose CLARABEL cutting-plane master already
+  enforces finite nonnegative cost atoms and simplex weights while reporting
+  iterations, gap, cuts, solver status, and solver name.
+
+No implementation began because inventory exposed a prior frozen-contract
+failure.
+
+### Outcome-blind native inventory
+
+AutoDL contains 7 existing route assets but only 2 logical maps. The six OSM
+files are ROS/no-ROS or packaging variants of the same sample-map and
+nishishinjuku families, not six independent maps. No third existing Lanelet2
+map was found under `/root/autodl-tmp`, `/autodl-pub/data`, or other `/root`
+paths.
+
+Read-only Lanelet2 topology construction succeeded without model load or
+simulation:
+
+- nishishinjuku: 979 cached lanelets, 887 drivable lanelets, 282
+  traffic-light lanelets, and 759 deterministic topology routes at least
+  80 m;
+- sample map: 190 cached lanelets, 184 drivable lanelets, 24 traffic-light
+  lanelets, and 156 deterministic topology routes at least 80 m;
+- deterministic route capacity: `759 / 156`, totaling 915 deterministic
+  topology routes.
+
+Thus route count is not the blocker: an outcome-blind route census can exceed
+the 30-route pilot and 100-route main targets without repeating a route.
+However, the frozen contract requires train, calibration, and holdout to have
+map/route/seed group-level zero-overlap. Under the leakage-safe interpretation
+that logical map identity itself cannot cross those three splits, strict
+three-way map-identity zero-overlap is impossible with two maps.
+
+Using ROS/no-ROS copies as separate maps would fabricate independence.
+Partitioning one map into route regions would relax map-identity zero-overlap.
+Downloading or licensing another map is outside current authorization. The
+only honest next actions therefore require a user decision: provide/authorize
+a third independent native Lanelet2 map, or explicitly change the scientific
+contract to permit shared logical maps while keeping route identities and seed
+namespaces split-disjoint. No design spec, implementation, corpus, training,
+pilot, or holdout may proceed under the current contradiction.
+
+No model was loaded, no simulator was executed, no candidate was generated,
+no training ran, no holdout was opened, and no claim was made.
+
+current_v22_status=v22_native_contract_capability_audit_hard_stop_two_logical_maps
+current_v22_artifact_source_head=9ebed6e2c7da57088503eed717061b36a3b70b8e
+current_v22_prior_gate_final_synced_head=9ebed6e2c7da57088503eed717061b36a3b70b8e
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_startup_reconciliation_rerun_cba43279_20260714T185046CST
-current_v22_artifact_root_sha256=7dfda9dbae23156f31c55a404bf162fa1c951454a8be67f1b7faf579b0b976e6
-next_work_target=v22_native_contract_capability_audit_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_contract_capability_audit_9ebed6e2_20260714T190011CST
+current_v22_artifact_root_sha256=56b214e25ba4b275d3eb4aa7575302be9e627b3e7457d1118e96fa2779e13787
+next_work_target=user_decision_required_before_v22_map_zero_overlap_contract_change_or_new_map_assets
