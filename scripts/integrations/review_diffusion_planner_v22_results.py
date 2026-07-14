@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
@@ -60,7 +61,10 @@ def review_execution(
     config = _load_json(config_path)
     manifest = _load_json(Path(str(config["source_split"]["manifest_path"])))
     validate_split_manifest(manifest)
-    schedule = build_pair_schedule(config, manifest, mode=mode)
+    schedule_config = deepcopy(config)
+    if mode == "pilot":
+        schedule_config["pilot_execution_authorized"] = True
+    schedule = build_pair_schedule(schedule_config, manifest, mode=mode)
     expected_keys = {str(item["pair_key"]) for item in schedule}
 
     checks = 0
