@@ -1,0 +1,125 @@
+{
+  "schema_version": "camp_dp_v21_native_smoke_v1",
+  "fixed_dp": {
+    "repo": "/root/autodl-tmp/Diffusion-Planner",
+    "head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    "checkpoint": {
+      "path": "/root/autodl-tmp/camp_dp_assets/diffusion_planner.pth",
+      "sha256": "4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75"
+    },
+    "args_json": {
+      "path": "/root/autodl-tmp/camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_20260710T220921CST/fixed_dp_args.json",
+      "sha256": "42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa"
+    },
+    "native_source_sha256": {
+      "scenario_generation/replay.py": "92158e32f8e2626a20aeee1783501d1afad228f06d5948f3426716d93320c5eb",
+      "scenario_generation/simulate.py": "de4542fbc8685718379dbf0626499113d8bca6f7dead1c4456d2d34ffd0b9e4e",
+      "scenario_generation/tensor_converter.py": "af0a087dcfa910e5f0ad4732c5d1ebabb2fe5c41d2d61a4aa7aaf0f4351d36a7",
+      "scenario_generation/mpc_tracker.py": "bf2fdc6398898a42eda4ab3d12045c5204eb5ce8a993dbf96feee975de04395a",
+      "scenario_generation/traffic_light.py": "5a1659fe753102c514528c0bd93c261124bdf8de11bbc00ba5b941c151956af4"
+    }
+  },
+  "selector": {
+    "root": "/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e",
+    "root_sha256": "afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7",
+    "atom_scales": {
+      "path": "/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e/models/corrected14d_scales.json",
+      "sha256": "a4122b0fa56912818af92eacf90449633addf9872966aed975317b4307076952"
+    },
+    "weights": {
+      "path": "/root/autodl-tmp/camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_79c9570b_0c22f85e/models/corrected14d_weights.npy",
+      "sha256": "922ae11db719a2bda983bccf0c6bca842c37a899c4df222a1f7a5ac733285134"
+    },
+    "score_contract": "score_k(w)=a_k^T w",
+    "nonnegative_simplex": true,
+    "candidate_k": 8
+  },
+  "map": {
+    "path": "/root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm",
+    "sha256": "a81f937c00158324c83688adc5459e90478f5b3c69a51225ad7f965b80d58036"
+  },
+  "routes": [
+    {
+      "name": "sample_map_smoke_route",
+      "path": "/root/autodl-tmp/camp_dp_assets/sample_map_smoke_route.pkl",
+      "sha256": "b8b5417c3269bbdbe72efe49388d32af04751b25cffcec297a04b25a50140c13"
+    },
+    {
+      "name": "sample_map_tl_route_59_to_86",
+      "path": "/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl",
+      "sha256": "dc9b3906bace09ee9e99062ac702df1c5b2d2f4620d0a7fa14022faa9a39e4c4"
+    }
+  ],
+  "seeds": {
+    "scenario": 3417,
+    "candidate": 3418,
+    "bootstrap": 3419,
+    "formal_forbidden": [11, 12, 13]
+  },
+  "spawn_config": {
+    "spawn_period_steps": 10,
+    "max_active_npcs": 8,
+    "spawn_probability": 0.3,
+    "min_spawn_distance": 15.0,
+    "max_spawn_distance": 60.0,
+    "despawn_distance": 120.0,
+    "forward_bias": 0.8,
+    "min_npc_separation": 8.0,
+    "goal_tolerance_m": 2.0,
+    "max_steps": 64,
+    "seed": 3417,
+    "ego_overlap_ratio": 0.3,
+    "npc_min_speed": 3.0,
+    "npc_max_speed": 12.0,
+    "npc_route_length_m": 120.0,
+    "npc_goal_min_dist_from_ego_route": 50.0,
+    "curvature_threshold": 0.3,
+    "goal_pass_window_m": 25.0,
+    "map_refresh_steps": 5,
+    "max_map_lanelets": 2000,
+    "map_mask_range_m": 200.0,
+    "sg_smooth_enabled": false,
+    "sg_filter_window": 11,
+    "sg_filter_order": 3,
+    "advance_mode": "mpc",
+    "mpc_horizon_steps": 20,
+    "mpc_n_knots": 5,
+    "ego_length": 4.5,
+    "ego_width": 1.9,
+    "ego_wheelbase": 2.925,
+    "ego_max_steer": 0.6,
+    "inference_delay": 0,
+    "enable_traffic_lights": true,
+    "overlay_metrics_on_png": false,
+    "dump_npz_dir": null,
+    "dump_neighbor_count": 320,
+    "reward_config_path": null,
+    "ego_init_speed": null,
+    "sequential_inference": false,
+    "static_npc_count": 0,
+    "static_npc_spacing_m": 50.0,
+    "static_npc_shoulder_margin_m": 0.3,
+    "static_npc_seed": null,
+    "parked_vehicles_yaml": null,
+    "parked_vehicle_visibility_m": 125.0,
+    "turn_indicator_keep_bias": 0.25,
+    "turn_indicator_hold_steps": 0
+  },
+  "protocol": {
+    "arm_order": ["dp", "camp"],
+    "route_order": [
+      "sample_map_smoke_route",
+      "sample_map_tl_route_59_to_86"
+    ],
+    "capability_route": "sample_map_smoke_route",
+    "capability_steps": 1,
+    "paired_steps": 64,
+    "padding_policy": "native_zero_left_pad_to_31_v1",
+    "padding_strata": ["0", "1-5", "6-15", "16-30"],
+    "safety_schema": "safety_cost_native_v1",
+    "claim_authorized": false,
+    "training_authorized": false,
+    "holdout_access_authorized": false,
+    "formal_seeds_authorized": false
+  }
+}
