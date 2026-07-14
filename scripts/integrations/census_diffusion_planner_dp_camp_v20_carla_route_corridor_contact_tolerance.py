@@ -175,7 +175,9 @@ def diagnose_route_predecessor_topology(
     if _sha256_bytes(opendrive_xml.encode("utf-8")) != XODR_SHA256:
         raise ValueError("XODR SHA mismatch")
 
-    route = _deterministic_route(map_api, 5.0, 81)
+    route = _deterministic_route(
+        map_api, 5.0, 81, require_unique_predecessor=False
+    )
     first = route[0]
     first_identity = _waypoint_identity(first)
     first_sample = _lane_surface_sample_payload(first)

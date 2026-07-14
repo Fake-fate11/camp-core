@@ -13,22 +13,24 @@ Reader contract: this named section is the only v20 pointer source in this
 file. The EOF of `docs/diffusion_planner_v20_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-The fail-closed census and result-review artifacts were produced from CAMP
-head `9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1`. Their record-only closeout was
-then synchronized across local, origin, GitHub, and AutoDL at
-`3260576186f4efd8d462dc0d5937f9677943b333`. Fixed DP remains
+The candidate-free predecessor topology diagnosis ran once from CAMP head
+`4ede23266956eb657c151737d8f860024fd66460`, synchronized across local,
+origin/GitHub, and AutoDL. Fixed DP remains
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 
-The sealed execution produced no receipt and left no CARLA process or
-listener. Independent review recorded `Critical=0`, `Important=1`, and
-`Minor=0`. The user has now authorized one candidate-free, read-only
-predecessor topology diagnosis before any revised contract or census.
+The frozen route's first waypoint has two CARLA predecessors, is not a true
+OpenDRIVE topology root, and did not expose a lookup omission. The authorized
+`cardinality > 1` branch therefore remains ambiguity fail-closed. The
+candidate-free map-level deterministic route selection is implemented and
+locally verified; no predecessor/source exception was introduced. Its single
+static review found one Important raw-successor ambiguity, now closed by
+requiring exactly one raw unseen successor.
 
-current_v20_status=v20_carla_route_corridor_map_only_census_fail_closed_closeout_synced
-current_v20_artifact_source_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
-camp_github_autodl_head=3260576186f4efd8d462dc0d5937f9677943b333
+current_v20_status=v20_carla_route_corridor_candidate_free_route_selection_tdd_ready_review_finding_closed
+current_v20_artifact_source_head=4ede23266956eb657c151737d8f860024fd66460
+camp_github_autodl_head=4ede23266956eb657c151737d8f860024fd66460
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-next_work_target=v20_carla_route_corridor_predecessor_topology_diagnosis_only
+next_work_target=v20_carla_route_corridor_candidate_free_route_selection_autodl_validation_and_preflight_only
 
 ## Current V19 Status
 

@@ -192,20 +192,64 @@ def _request_evidence(metadata: dict[str, object]) -> dict[str, object]:
     }
 
 
-def test_deterministic_route_rejects_multiple_unseen_successors() -> None:
-    left = SimpleNamespace(road_id=1, section_id=0, lane_id=-1, s=5.0)
-    right = SimpleNamespace(road_id=2, section_id=0, lane_id=-1, s=5.0)
-    start = SimpleNamespace(
+def test_deterministic_route_selects_first_candidate_free_unique_path() -> None:
+    predecessor = object()
+    ambiguous_predecessor = SimpleNamespace(
         road_id=1,
         section_id=0,
         lane_id=-1,
         s=0.0,
+        previous=lambda _step: [predecessor, object()],
+        next=lambda _step: [],
+    )
+    left = SimpleNamespace(road_id=2, section_id=0, lane_id=-1, s=5.0)
+    right = SimpleNamespace(road_id=3, section_id=0, lane_id=-1, s=5.0)
+    ambiguous_successor = SimpleNamespace(
+        road_id=2,
+        section_id=0,
+        lane_id=-1,
+        s=0.0,
+        previous=lambda _step: [predecessor],
         next=lambda _step: [left, right],
     )
-    map_api = SimpleNamespace(generate_waypoints=lambda _step: [start])
+    repeated_end = SimpleNamespace(road_id=3, section_id=0, lane_id=-1, s=5.0)
+    repeated = SimpleNamespace(
+        road_id=3,
+        section_id=0,
+        lane_id=-1,
+        s=0.0,
+        previous=lambda _step: [predecessor],
+    )
+    repeated.next = lambda _step: [repeated, repeated_end]
+    end = SimpleNamespace(road_id=4, section_id=0, lane_id=-1, s=5.0)
+    valid = SimpleNamespace(
+        road_id=4,
+        section_id=0,
+        lane_id=-1,
+        s=0.0,
+        previous=lambda _step: [predecessor],
+        next=lambda _step: [end],
+    )
+    map_api = SimpleNamespace(
+        generate_waypoints=lambda _step: [
+            valid,
+            repeated,
+            ambiguous_successor,
+            ambiguous_predecessor,
+        ]
+    )
 
-    with pytest.raises(ValueError, match="multiple unseen successors"):
-        _probe()._deterministic_route(map_api, 5.0, 2)
+    assert _probe()._deterministic_route(map_api, 5.0, 2) == [valid, end]
+
+    invalid_map = SimpleNamespace(
+        generate_waypoints=lambda _step: [
+            repeated,
+            ambiguous_successor,
+            ambiguous_predecessor,
+        ]
+    )
+    with pytest.raises(ValueError, match="no deterministic CARLA route"):
+        _probe()._deterministic_route(invalid_map, 5.0, 2)
 
 
 def test_materialization_keeps_corridor_out_of_fixed_dp_route() -> None:

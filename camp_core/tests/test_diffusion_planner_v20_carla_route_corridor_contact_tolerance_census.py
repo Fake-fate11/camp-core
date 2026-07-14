@@ -178,8 +178,8 @@ def test_nonzero_two_identity_two_pass_receipt_is_reconstructible(monkeypatch):
     ("case", "message", "freeze_count"),
     (
         ("nonfinite", "invalid", 0),
-        ("predecessor0", "predecessor", 0),
-        ("predecessor2", "predecessor", 0),
+        ("predecessor0", "no deterministic CARLA route", 0),
+        ("predecessor2", "no deterministic CARLA route", 0),
         ("ceiling", "contact", 0),
         ("drift", "evidence changed", 1),
     ),

@@ -90,17 +90,19 @@ def test_checked_in_current_v20_pointer_matches_v20_audit_eof() -> None:
     )
 
     assert pointer["current_v20_status"] == (
-        "v20_carla_route_corridor_map_only_census_fail_closed_closeout_synced"
+        "v20_carla_route_corridor_candidate_free_route_selection_tdd_ready_"
+        "review_finding_closed"
     )
     assert pointer["current_v20_artifact_source_head"] == (
-        "9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1"
+        "4ede23266956eb657c151737d8f860024fd66460"
     )
     assert pointer["camp_github_autodl_head"] == (
-        "3260576186f4efd8d462dc0d5937f9677943b333"
+        "4ede23266956eb657c151737d8f860024fd66460"
     )
     assert pointer["fixed_dp_head"] == (
         "7a1d33da277a1992ec474b5383a0c963c72e04e4"
     )
     assert pointer["next_work_target"] == (
-        "v20_carla_route_corridor_predecessor_topology_diagnosis_only"
+        "v20_carla_route_corridor_candidate_free_route_selection_autodl_"
+        "validation_and_preflight_only"
     )

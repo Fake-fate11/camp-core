@@ -136,3 +136,74 @@ current_v20_artifact_source_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
 camp_github_autodl_head=3260576186f4efd8d462dc0d5937f9677943b333
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 next_work_target=v20_carla_route_corridor_predecessor_topology_diagnosis_only
+
+## Candidate-Free Predecessor Topology Diagnosis
+
+The diagnosis executed once against official CARLA 0.9.16 Town10HD_Opt XODR
+at CAMP head `4ede23266956eb657c151737d8f860024fd66460`, with fixed DP unchanged.
+It loaded no candidates, DP worker, outcomes, metrics, future labels, holdout,
+or CARLA server.
+
+The source execution is sealed at:
+
+`/root/autodl-tmp/camp_dp_v20_predecessor_topology_diagnosis_execution_20260714T054917Z`
+
+Root SHA256: `79bd60e6622427212870ff1b7699ae68e510ac8c4a05daca3bb2b335059658ae`.
+Receipt SHA256: `d05580d711f226f9335c696842821f7e1ca929092e8b280c7c61b7b01af8e0f1`.
+
+The receipt records start identity `['0', 0, -2]`, predecessor cardinality
+`2`, road predecessor link `road 3 / contactPoint end`, lane predecessor
+`-2`, `is_junction=false`, and two CARLA predecessor waypoints
+`['566', 0, -2]` and `['630', 0, -1]`. The start is not a true OpenDRIVE
+topology root and the lookup did not omit a legal predecessor. All forbidden
+access counters are zero.
+
+The execution wrapper's malformed result summary and blank invocation counter
+were repaired evidence-only, without rerunning CARLA or the diagnosis, at:
+
+`/root/autodl-tmp/camp_dp_v20_predecessor_topology_diagnosis_evidence_remediation_20260714T055031Z`
+
+Root SHA256: `ccdc41bd704beb26afc1bd8ed70624b3162709d52296136be1366e32daee3242`.
+This remediation validates the source receipt, seal, timestamps, exit status,
+and absence of related processes; it explicitly records
+`diagnosis_reexecuted=false`.
+
+The preregistered `cardinality > 1` branch is selected. Ambiguity remains
+fail-closed. The minimal design and TDD plan freeze a candidate-free map-level
+route selection and prohibit choosing a route from candidate coverage or any
+outcome.
+
+## Authoritative EOF Pointer
+
+current_v20_status=v20_carla_route_corridor_predecessor_topology_diagnosed_cardinality_two_ambiguity_fail_closed
+current_v20_artifact_source_head=4ede23266956eb657c151737d8f860024fd66460
+camp_github_autodl_head=4ede23266956eb657c151737d8f860024fd66460
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+next_work_target=v20_carla_route_corridor_candidate_free_map_level_deterministic_route_selection_tdd_implementation_only
+
+## Candidate-Free Route Selection TDD and Static Review
+
+The existing deterministic-route helper now considers starts in canonical
+map order, accepts only a start with exactly one 5 m predecessor, and accepts
+each forward step only when the raw successor list contains exactly one
+previously unseen waypoint. Invalid starts are skipped; absence of an 81-point
+route fails closed. The diagnosis-only call explicitly preserves the former
+route helper behavior so the already-sealed diagnosis remains reproducible.
+
+Local verification recorded `48 passed` focused and `174 passed` merged, with
+clean `py_compile` and `git diff --check`. The one independent static review
+recorded `Critical=0`, `Important=1`, and `Minor=0`. Its Important finding was
+closed: a raw `[seen, unseen]` successor list can no longer be reduced to one
+apparently valid unseen successor. No second review round was opened.
+
+No candidate, DP worker, outcome, metric, future label, holdout, CARLA server,
+or census was used by this gate. The next gate is AutoDL ff-only validation
+and no-map preflight before the single authorized revised census.
+
+## Authoritative EOF Pointer
+
+current_v20_status=v20_carla_route_corridor_candidate_free_route_selection_tdd_ready_review_finding_closed
+current_v20_artifact_source_head=4ede23266956eb657c151737d8f860024fd66460
+camp_github_autodl_head=4ede23266956eb657c151737d8f860024fd66460
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+next_work_target=v20_carla_route_corridor_candidate_free_route_selection_autodl_validation_and_preflight_only

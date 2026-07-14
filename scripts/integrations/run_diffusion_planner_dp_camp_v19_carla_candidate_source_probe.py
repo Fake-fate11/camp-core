@@ -485,19 +485,27 @@ def write_lifting_receipt(
     )
 
 
-def _deterministic_route(map_api: Any, step: float, count: int) -> list[Any]:
+def _deterministic_route(
+    map_api: Any,
+    step: float,
+    count: int,
+    *,
+    require_unique_predecessor: bool = True,
+) -> list[Any]:
     if not math.isfinite(step) or step <= 0 or count < 2:
         raise ValueError("route sampling contract is invalid")
     for start in sorted(map_api.generate_waypoints(step), key=_waypoint_key):
+        if require_unique_predecessor and len(start.previous(step)) != 1:
+            continue
         route = [start]
         seen = {_waypoint_key(start)}
         while len(route) < count:
-            successors = [item for item in route[-1].next(step) if _waypoint_key(item) not in seen]
-            if not successors:
-                break
+            successors = route[-1].next(step)
             if len(successors) != 1:
-                raise ValueError("CARLA route step has multiple unseen successors")
-            current = sorted(successors, key=_waypoint_key)[0]
+                break
+            current = successors[0]
+            if _waypoint_key(current) in seen:
+                break
             route.append(current)
             seen.add(_waypoint_key(current))
         if len(route) == count:
