@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train v22 static affine selectors from sealed train-only causal labels."""
+"""Train and calibration-freeze v22 static affine selectors."""
 
 from __future__ import annotations
 
@@ -378,6 +378,306 @@ def evaluate_v18_ablation(
     }
 
 
+def calibrate_selector_models(
+    atoms: np.ndarray,
+    source_valid: np.ndarray,
+    physical_feasible: np.ndarray,
+    *,
+    models: Mapping[str, Mapping[str, Any]],
+    v18_weights: np.ndarray,
+    v18_scales: np.ndarray,
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    contract = _validate_calibration_freeze_config(config)
+    matrix = np.asarray(atoms, dtype=np.float64)
+    valid = np.asarray(source_valid, dtype=bool)
+    physical = np.asarray(physical_feasible, dtype=bool)
+    if (
+        matrix.ndim != 3
+        or matrix.shape[1:] != (8, 14)
+        or valid.shape != matrix.shape[:2]
+        or physical.shape != matrix.shape[:2]
+        or matrix.shape[0] != int(config["expected_snapshot_count"])
+        or not np.isfinite(matrix).all()
+        or np.any(matrix < 0.0)
+        or not valid.any(axis=1).all()
+        or not models
+    ):
+        raise ValueError("calibration atoms, masks, count, or model set are invalid")
+
+    ordered_models = {
+        str(name): _validate_calibration_model(model, str(name))
+        for name, model in sorted(models.items())
+    }
+    first = next(iter(ordered_models.values()))
+    label_scales = np.asarray(first["atom_scales"], dtype=np.float64)
+    for name, model in ordered_models.items():
+        if not np.array_equal(
+            np.asarray(model["atom_scales"], dtype=np.float64), label_scales
+        ):
+            raise ValueError(f"calibration candidate {name} changed train-only scales")
+
+    from scripts.integrations.materialize_diffusion_planner_v22_labels import (
+        causal_soft_risk_labels,
+    )
+
+    costs, oracle = causal_soft_risk_labels(
+        matrix,
+        source_valid=valid,
+        physical_feasible=physical,
+        scales=label_scales,
+        atom_severity_weights=np.asarray(
+            contract["atom_severity_weights"], dtype=np.float64
+        ),
+        physical_risk_penalty=float(contract["physical_risk_penalty"]),
+        normalized_atom_clip=float(contract["normalized_atom_clip"]),
+    )
+    evaluations = {}
+    for name, model in ordered_models.items():
+        normalized = np.clip(
+            matrix / label_scales.reshape(1, 1, -1),
+            0.0,
+            float(model["normalized_atom_clip"]),
+        )
+        scores = np.einsum(
+            "nkr,r->nk", normalized, np.asarray(model["weights"], dtype=np.float64)
+        )
+        evaluations[name] = {
+            "level_name": name,
+            "model_sha256": model.get("model_sha256"),
+            "metrics": _calibration_metrics(scores, costs, valid, oracle),
+        }
+    selected_level = min(
+        evaluations,
+        key=lambda name: (
+            evaluations[name]["metrics"]["selected_surrogate_cost_mean"],
+            name,
+        ),
+    )
+    selected_source = ordered_models[selected_level]
+    selected = dict(evaluations[selected_level])
+    selected.update(
+        {
+            "weights": list(selected_source["weights"]),
+            "atom_scales": list(selected_source["atom_scales"]),
+            "atom_names": list(selected_source["atom_names"]),
+            "atom_schema_version": selected_source["atom_schema_version"],
+            "supported_atom_mask": list(selected_source["supported_atom_mask"]),
+            "normalized_atom_clip": float(
+                selected_source["normalized_atom_clip"]
+            ),
+            "score_contract": selected_source["score_contract"],
+            "oracle_eligibility": selected_source["oracle_eligibility"],
+        }
+    )
+    v18 = evaluate_v18_ablation(
+        matrix,
+        costs,
+        valid,
+        weights=v18_weights,
+        scales=v18_scales,
+    )
+    v18["calibration_executed"] = True
+    speed = config["speed_protocol"]
+    return {
+        "schema_version": "v22_calibrated_selector_freeze_v1",
+        "status": "complete",
+        "selected_level": selected_level,
+        "selected_model": selected,
+        "candidate_model_metrics": evaluations,
+        "v18_ablation": v18,
+        "snapshot_count": int(matrix.shape[0]),
+        "surrogate_oracle_candidate0_count": int(np.sum(oracle == 0)),
+        "surrogate_oracle_non_candidate0_count": int(np.sum(oracle != 0)),
+        "all_k_high_risk_snapshot_count": int(
+            np.sum(valid.all(axis=1) & ~physical.any(axis=1))
+        ),
+        "primary_model_frozen": True,
+        "model_retrained": False,
+        "solver_invoked": False,
+        "calibration_executed": True,
+        "actual_closed_loop_outcomes_read": False,
+        "primary_operational_tolerance_mps": float(
+            speed["primary_operational_tolerance_mps"]
+        ),
+        "speed_sensitivity_tolerances_mps": list(
+            speed["calibration_sensitivity_tolerances_mps"]
+        ),
+        "speed_sensitivity_pending_pilot_closed_loop": True,
+        "claim_contract": dict(config["claim_contract"]),
+        "holdout_executed": False,
+        "holdout_outcomes_read": False,
+        "claim_authorized": False,
+        "pilot_execution_authorized": False,
+        "next_work_target": "v22_native_paired_protocol_and_pilot_preflight_tdd_only",
+    }
+
+
+def write_calibration_freeze_outputs(
+    result: Mapping[str, Any], output_dir: Path
+) -> dict[str, Any]:
+    if result.get("primary_model_frozen") is not True:
+        raise ValueError("calibration result did not freeze a primary model")
+    selected = result.get("selected_model")
+    if not isinstance(selected, Mapping):
+        raise ValueError("selected calibration model is missing")
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=False)
+    runtime = output / "runtime"
+    runtime.mkdir()
+    weights_path = runtime / "weights.npy"
+    scales_path = runtime / "atom_scales.json"
+    weights = np.asarray(selected["weights"], dtype=np.float64)
+    np.save(weights_path, weights, allow_pickle=False)
+    scales_payload = {
+        "schema_version": "dp_camp_v10_14d",
+        "atom_schema_version": selected["atom_schema_version"],
+        "atom_names": list(selected["atom_names"]),
+        "scales": list(selected["atom_scales"]),
+        "fit_scope": "v22_train_snapshots_only",
+        "frozen_by": "v22_calibration_model_selection",
+    }
+    scales_path.write_bytes(_canonical_json_bytes(scales_payload))
+    manifest = json.loads(json.dumps(result, allow_nan=False))
+    manifest["runtime_assets"] = {
+        "weights": {
+            "path": "runtime/weights.npy",
+            "sha256": hashlib.sha256(weights_path.read_bytes()).hexdigest(),
+        },
+        "atom_scales": {
+            "path": "runtime/atom_scales.json",
+            "sha256": hashlib.sha256(scales_path.read_bytes()).hexdigest(),
+        },
+    }
+    (output / "freeze_manifest.json").write_bytes(_canonical_json_bytes(manifest))
+    return manifest
+
+
+def _calibration_metrics(
+    scores: np.ndarray,
+    costs: np.ndarray,
+    source_valid: np.ndarray,
+    oracle: np.ndarray,
+) -> dict[str, Any]:
+    selected = np.argmin(np.where(source_valid, scores, np.inf), axis=1)
+    row = np.arange(selected.size)
+    selected_cost = costs[row, selected]
+    return {
+        "oracle_agreement_count": int(np.sum(selected == oracle)),
+        "oracle_agreement_rate": float(np.mean(selected == oracle)),
+        "candidate0_selection_count": int(np.sum(selected == 0)),
+        "non_candidate0_selection_count": int(np.sum(selected != 0)),
+        "selected_surrogate_cost_mean": float(np.mean(selected_cost)),
+        "candidate0_surrogate_cost_mean": float(np.mean(costs[:, 0])),
+        "selected_minus_candidate0_surrogate_cost_mean": float(
+            np.mean(selected_cost - costs[:, 0])
+        ),
+    }
+
+
+def _validate_calibration_model(
+    model: Mapping[str, Any], level_name: str
+) -> dict[str, Any]:
+    result = dict(model)
+    weights = np.asarray(result.get("weights"), dtype=np.float64)
+    scales = np.asarray(result.get("atom_scales"), dtype=np.float64)
+    supported = np.asarray(result.get("supported_atom_mask"), dtype=bool)
+    solver = result.get("solver")
+    if (
+        result.get("schema_version") != "v22_static_affine_selector_model_v1"
+        or result.get("level_name") != level_name
+        or result.get("training_source") != "v22_train_snapshots_only"
+        or result.get("atom_schema_version") != "dp_camp_v10_14d"
+        or result.get("atom_names") != list(DP_CAMP_ATOM_NAMES_V10)
+        or result.get("score_contract") != "score_k(w)=a_k^T w"
+        or result.get("oracle_eligibility") != "source_valid_mask_only"
+        or weights.shape != (14,)
+        or not np.isfinite(weights).all()
+        or np.any(weights < 0.0)
+        or not np.isclose(weights.sum(), 1.0, atol=1e-8, rtol=0.0)
+        or scales.shape != (14,)
+        or not np.isfinite(scales).all()
+        or np.any(scales <= 0.0)
+        or supported.shape != (14,)
+        or np.any(weights[~supported] != 0.0)
+        or not isinstance(solver, Mapping)
+        or solver.get("name") != "CLARABEL"
+        or solver.get("status") != "optimal"
+        or solver.get("converged") is not True
+        or result.get("actual_closed_loop_outcome") is not False
+        or result.get("calibration_executed") is not False
+        or result.get("holdout_executed") is not False
+        or result.get("claim_authorized") is not False
+    ):
+        raise ValueError(f"calibration candidate model {level_name} is invalid")
+    return result
+
+
+def _validate_calibration_freeze_config(
+    config: Mapping[str, Any],
+) -> Mapping[str, Any]:
+    if (
+        config.get("schema_version") != "camp_dp_v22_calibration_freeze_v1"
+        or config.get("execution_split") != "calibration"
+        or config.get("model_selection_metric")
+        != "mean_causal_soft_risk_surrogate_cost"
+        or config.get("model_selection_tie_break")
+        != "level_name_lexicographic"
+    ):
+        raise ValueError("calibration freeze config schema or selection mismatch")
+    for name in (
+        "retraining_authorized",
+        "solver_authorized",
+        "formal_seeds_authorized",
+        "holdout_execution_authorized",
+        "claim_authorized",
+    ):
+        if config.get(name) is not False:
+            raise ValueError(f"{name} must remain false during calibration freeze")
+    for name in (
+        "expected_snapshot_count",
+        "expected_route_count",
+        "expected_seed_count",
+        "expected_route_seed_count",
+    ):
+        value = config.get(name)
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"{name} must be a positive integer")
+    speed = config.get("speed_protocol")
+    if not isinstance(speed, Mapping) or (
+        float(speed.get("primary_operational_tolerance_mps", -1.0)) != 0.1
+        or speed.get("calibration_sensitivity_tolerances_mps")
+        != [0.0, 0.05, 0.1, 0.2]
+        or speed.get("sensitivity_source")
+        != "pilot_closed_loop_outcomes_not_snapshot_surrogate"
+    ):
+        raise ValueError("calibration speed protocol mismatch")
+    contract = config.get("label_contract")
+    if not isinstance(contract, Mapping) or (
+        contract.get("schema_version") != "v22_causal_soft_risk_surrogate_v1"
+        or contract.get("oracle_eligibility") != "source_valid_mask_only"
+        or contract.get("physical_risk_semantics")
+        != "finite_additive_cost_not_veto"
+        or contract.get("actual_closed_loop_outcome") is not False
+    ):
+        raise ValueError("calibration causal label contract mismatch")
+    weights = np.asarray(contract.get("atom_severity_weights"), dtype=np.float64)
+    if weights.shape != (14,) or not np.isfinite(weights).all() or np.any(weights < 0):
+        raise ValueError("calibration severity weights must be finite nonnegative 14D")
+    claim = config.get("claim_contract")
+    if not isinstance(claim, Mapping) or claim != {
+        "overall_mean_delta_strictly_below_zero": True,
+        "cluster_ci95_upper_strictly_below_zero": True,
+        "better_pairs_must_exceed_worse_pairs": True,
+        "additional_collision_pairs_max": 0,
+        "additional_red_light_pairs_max": 0,
+        "offroad_wrong_way_mean_delta_max": 0.0,
+        "offroad_wrong_way_ci95_upper_max": 0.005,
+    }:
+        raise ValueError("calibration claim contract mismatch")
+    return contract
+
+
 def load_v18_ablation_model(artifact: Path) -> tuple[np.ndarray, np.ndarray, dict[str, str]]:
     model_dir = Path(artifact) / "models"
     weights_path = model_dir / "corrected14d_weights.npy"
@@ -467,6 +767,81 @@ def load_training_corpus(
         "route_family_group_count": len(groups),
         "seed_count": len(seeds),
         "route_seed_count": len(route_seeds),
+    }
+
+
+def load_calibration_corpus(
+    artifact: Path,
+    *,
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    _validate_calibration_freeze_config(config)
+    root = Path(artifact)
+    snapshot_dir = root / "corpus" / "snapshots"
+    paths = sorted(snapshot_dir.glob("*.json"))
+    expected_snapshots = int(config["expected_snapshot_count"])
+    if len(paths) != expected_snapshots:
+        raise ValueError("calibration snapshot count mismatch")
+    summary = json.loads(
+        (root / "corpus" / "corpus_summary.json").read_text(encoding="utf-8")
+    )
+    _validate_calibration_corpus_summary(summary, config)
+
+    atoms = []
+    source_valid = []
+    physical_feasible = []
+    digests = []
+    maps = set()
+    routes = set()
+    groups = set()
+    seeds = set()
+    route_seeds = set()
+    all_k_high_risk = 0
+    for path in paths:
+        content = path.read_bytes()
+        digest = hashlib.sha256(content).hexdigest()
+        if path.stem != digest:
+            raise ValueError("calibration snapshot content SHA mismatch")
+        snapshot = json.loads(content)
+        _validate_calibration_snapshot(snapshot)
+        features = snapshot["feature_payload"]
+        sidecar = snapshot["sidecar"]
+        atoms.append(features["atom_matrix"])
+        source_valid.append(features["source_valid_mask"])
+        physical_feasible.append(sidecar["physical_feasible_mask"])
+        digests.append(digest)
+        maps.add(str(sidecar["logical_map_sha256"]))
+        route = str(sidecar["route_identity_sha256"])
+        seed = int(sidecar["seed"])
+        routes.add(route)
+        groups.add(str(sidecar["group_sha256"]))
+        seeds.add(seed)
+        route_seeds.add((route, seed))
+        all_k_high_risk += int(sidecar["all_k_high_risk"])
+
+    complete = int(summary["complete_route_seed_runs"])
+    if (
+        len(routes) != int(config["expected_route_count"])
+        or len(seeds) != int(config["expected_seed_count"])
+        or len(route_seeds) != complete
+        or all_k_high_risk != int(summary["all_k_high_risk_snapshot_count"])
+    ):
+        raise ValueError("calibration route, seed, or stratum count mismatch")
+    return {
+        "atoms": np.asarray(atoms, dtype=np.float64),
+        "source_valid_mask": np.asarray(source_valid, dtype=bool),
+        "physical_feasible_mask": np.asarray(physical_feasible, dtype=bool),
+        "snapshot_sha256": digests,
+        "logical_map_count": len(maps),
+        "route_count": len(routes),
+        "route_family_group_count": len(groups),
+        "seed_count": len(seeds),
+        "complete_route_seed_count": complete,
+        "retained_route_seed_count": int(summary["retained_route_seed_runs"]),
+        "hard_source_failure_count": int(summary["failed_route_seed_runs"]),
+        "all_k_high_risk_snapshot_count": all_k_high_risk,
+        "route_coverage": float(summary["route_coverage"]),
+        "failures": list(summary["failures"]),
     }
 
 
@@ -611,6 +986,34 @@ def _validate_label_manifest(
 
 
 def _validate_snapshot(snapshot: Mapping[str, Any]) -> None:
+    _validate_snapshot_for_split(snapshot, "train")
+
+
+def _validate_calibration_snapshot(snapshot: Mapping[str, Any]) -> None:
+    _validate_snapshot_for_split(snapshot, "calibration")
+    features = snapshot["feature_payload"]
+    sidecar = snapshot["sidecar"]
+    if sidecar.get("offline_label_provenance") != (
+        "calibration_causal_candidate_cost_sidecar_only_not_selector_feature"
+    ):
+        raise ValueError("calibration offline-label provenance mismatch")
+    physical = sidecar.get("physical_feasible_mask")
+    if (
+        not isinstance(physical, list)
+        or len(physical) != 8
+        or any(not isinstance(value, bool) for value in physical)
+        or not isinstance(sidecar.get("all_k_high_risk"), bool)
+    ):
+        raise ValueError("calibration physical-risk receipt is invalid")
+    valid = np.asarray(features["source_valid_mask"], dtype=bool)
+    expected_high_risk = bool(valid.all() and not np.asarray(physical).any())
+    if sidecar["all_k_high_risk"] != expected_high_risk:
+        raise ValueError("calibration all-K-high-risk receipt mismatch")
+
+
+def _validate_snapshot_for_split(
+    snapshot: Mapping[str, Any], expected_split: str
+) -> None:
     if snapshot.get("schema_version") != "v22_native_decision_snapshot_v1":
         raise ValueError("decision snapshot schema mismatch")
     features = snapshot.get("feature_payload")
@@ -621,8 +1024,8 @@ def _validate_snapshot(snapshot: Mapping[str, Any]) -> None:
         or IDENTITY_FIELDS.intersection(features)
     ):
         raise ValueError("feature payload contains forbidden identity or schema")
-    if not isinstance(sidecar, Mapping) or sidecar.get("split") != "train":
-        raise ValueError("selector snapshots must be train split")
+    if not isinstance(sidecar, Mapping) or sidecar.get("split") != expected_split:
+        raise ValueError(f"selector snapshots must be {expected_split} split")
     seed = sidecar.get("seed")
     if isinstance(seed, bool) or not isinstance(seed, int) or seed in FORMAL_SEEDS:
         raise ValueError("formal seed is forbidden")
@@ -656,6 +1059,36 @@ def _validate_snapshot(snapshot: Mapping[str, Any]) -> None:
         or sidecar["default_candidate0_identity"].get("elementwise_equal") is not True
     ):
         raise ValueError("candidate0/default identity receipt failed")
+
+
+def _validate_calibration_corpus_summary(
+    summary: Mapping[str, Any], config: Mapping[str, Any]
+) -> None:
+    planned = int(config["expected_route_seed_count"])
+    retained = int(config.get("expected_retained_route_seed_count", planned))
+    complete = int(config.get("expected_complete_route_seed_count", planned))
+    failed = int(config.get("expected_hard_source_failure_count", 0))
+    failures = summary.get("failures")
+    if (
+        summary.get("execution_split") != "calibration"
+        or summary.get("planned_route_seed_runs") != planned
+        or summary.get("retained_route_seed_runs") != retained
+        or summary.get("complete_route_seed_runs") != complete
+        or summary.get("failed_route_seed_runs") != failed
+        or retained != planned
+        or complete + failed != planned
+        or float(summary.get("route_coverage", -1.0)) != 1.0
+        or summary.get("calibration_executed") is not True
+        or summary.get("holdout_executed") is not False
+        or summary.get("holdout_outcomes_read") is not False
+        or summary.get("claim_authorized") is not False
+        or not isinstance(failures, list)
+        or len(failures) != failed
+        or isinstance(summary.get("all_k_high_risk_snapshot_count"), bool)
+        or not isinstance(summary.get("all_k_high_risk_snapshot_count"), int)
+        or int(summary["all_k_high_risk_snapshot_count"]) < 0
+    ):
+        raise ValueError("calibration corpus retention or failure summary mismatch")
 
 
 def _validate_label(
@@ -717,15 +1150,134 @@ def _artifact_root_sha256(path: Path) -> str:
     return hashlib.sha256(manifest.read_bytes()).hexdigest()
 
 
+def execute_calibration_freeze(config_path: Path, output: Path) -> dict[str, Any]:
+    config_bytes = Path(config_path).read_bytes()
+    config = json.loads(config_bytes)
+    _validate_calibration_freeze_config(config)
+    training = config.get("training_candidate")
+    calibration = config.get("calibration_corpus")
+    v18 = config.get("v18_ablation")
+    if not all(isinstance(value, Mapping) for value in (training, calibration, v18)):
+        raise ValueError("calibration freeze artifact config is incomplete")
+
+    training_artifact = _verify_configured_artifact(
+        training["artifact"], training["artifact_root_sha256"], "training"
+    )
+    _verify_configured_artifact(
+        training["independent_review_artifact"],
+        training["independent_review_root_sha256"],
+        "training independent review",
+    )
+    calibration_artifact = _verify_configured_artifact(
+        calibration["artifact"],
+        calibration["artifact_root_sha256"],
+        "calibration corpus",
+    )
+    _verify_configured_artifact(
+        calibration["independent_review_artifact"],
+        calibration["independent_review_root_sha256"],
+        "calibration corpus independent review",
+    )
+    v18_artifact = _verify_configured_artifact(
+        v18["artifact"], v18["artifact_root_sha256"], "v18 ablation"
+    )
+
+    model_path = Path(str(training["model_path"]))
+    if not model_path.resolve().is_relative_to(training_artifact.resolve()):
+        raise ValueError("training model must stay inside the sealed artifact")
+    model_content = model_path.read_bytes()
+    model_sha256 = hashlib.sha256(model_content).hexdigest()
+    if model_sha256 != training.get("model_sha256"):
+        raise ValueError("training model SHA mismatch")
+    model = json.loads(model_content)
+    model["model_sha256"] = model_sha256
+    scale_sha256 = hashlib.sha256(
+        _canonical_json_bytes(model.get("atom_scales"))
+    ).hexdigest()
+    if scale_sha256 != training.get("train_atom_scales_sha256"):
+        raise ValueError("training atom-scale SHA mismatch")
+
+    corpus = load_calibration_corpus(calibration_artifact, config=config)
+    v18_weights, v18_scales, v18_hashes = load_v18_ablation_model(v18_artifact)
+    result = calibrate_selector_models(
+        corpus["atoms"],
+        corpus["source_valid_mask"],
+        corpus["physical_feasible_mask"],
+        models={str(model["level_name"]): model},
+        v18_weights=v18_weights,
+        v18_scales=v18_scales,
+        config=config,
+    )
+    result.update(
+        {
+            "calibration_config_sha256": hashlib.sha256(config_bytes).hexdigest(),
+            "training_artifact_root_sha256": training["artifact_root_sha256"],
+            "training_independent_review_root_sha256": training[
+                "independent_review_root_sha256"
+            ],
+            "calibration_corpus_root_sha256": calibration[
+                "artifact_root_sha256"
+            ],
+            "calibration_corpus_independent_review_root_sha256": calibration[
+                "independent_review_root_sha256"
+            ],
+            "v18_ablation_artifact_root_sha256": v18["artifact_root_sha256"],
+            "v18_ablation_model_hashes": v18_hashes,
+            "calibration_corpus_receipt": {
+                key: corpus[key]
+                for key in (
+                    "logical_map_count",
+                    "route_count",
+                    "route_family_group_count",
+                    "seed_count",
+                    "complete_route_seed_count",
+                    "retained_route_seed_count",
+                    "hard_source_failure_count",
+                    "all_k_high_risk_snapshot_count",
+                    "route_coverage",
+                    "failures",
+                )
+            },
+        }
+    )
+    return write_calibration_freeze_outputs(result, Path(output))
+
+
+def _verify_configured_artifact(
+    path_value: Any, expected_root_sha256: Any, label: str
+) -> Path:
+    path = Path(str(path_value))
+    if not _is_sha256(expected_root_sha256) or (
+        _artifact_root_sha256(path) != expected_root_sha256
+    ):
+        raise ValueError(f"{label} artifact root SHA mismatch")
+    return path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--mode", choices=("train", "calibration-freeze"), default="train"
+    )
     parser.add_argument("--config", required=True, type=Path)
-    parser.add_argument("--label-artifact", required=True, type=Path)
-    parser.add_argument("--label-artifact-root-sha256", required=True)
-    parser.add_argument("--v18-ablation-artifact", required=True, type=Path)
-    parser.add_argument("--v18-ablation-root-sha256", required=True)
+    parser.add_argument("--label-artifact", type=Path)
+    parser.add_argument("--label-artifact-root-sha256")
+    parser.add_argument("--v18-ablation-artifact", type=Path)
+    parser.add_argument("--v18-ablation-root-sha256")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
+    if args.mode == "calibration-freeze":
+        manifest = execute_calibration_freeze(args.config, args.output)
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+        return 0
+    for name in (
+        "label_artifact",
+        "label_artifact_root_sha256",
+        "v18_ablation_artifact",
+        "v18_ablation_root_sha256",
+    ):
+        if getattr(args, name) is None:
+            parser.error(f"--{name.replace('_', '-')} is required in train mode")
     config_bytes = args.config.read_bytes()
     config = json.loads(config_bytes)
     source = config.get("source_corpus")
