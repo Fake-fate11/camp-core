@@ -168,6 +168,7 @@ def test_preflight_accepts_train_only_and_reports_no_reachable_tier(tmp_path: Pa
     assert summary["model_loaded"] is False
     assert summary["simulator_executed"] is False
     assert summary["holdout_outcomes_read"] is False
+    assert summary["next_work_target"] == "v22_native_train_corpus_execution_only"
 
 
 @pytest.mark.parametrize(

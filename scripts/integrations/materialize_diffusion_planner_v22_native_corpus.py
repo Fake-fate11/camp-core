@@ -523,7 +523,7 @@ def validate_corpus_preflight(
         "holdout_executed": False,
         "holdout_outcomes_read": False,
         "claim_authorized": False,
-        "next_work_target": "v22_native_decision_sink_and_corpus_writer_tdd_only",
+        "next_work_target": "v22_native_train_corpus_execution_only",
     }
 
 
