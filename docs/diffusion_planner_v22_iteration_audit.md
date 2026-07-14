@@ -28,11 +28,19 @@ rerun, rewritten, or renamed as success.
 
 ## Frozen Route-Retention Contract
 
-Route inventory, route selection, and map/route/seed group split are
-outcome-blind. Train, calibration, and holdout route identities must be frozen
-before any CAMP or DP outcome is observed, with zero group overlap. The two
-already observed v21 routes may enter train/calibration/diagnostic work only;
-they may not enter the v22 holdout.
+Route inventory, route selection, and route-family/corridor group split are
+outcome-blind. Logical maps may be reused across splits. Train, calibration,
+and holdout route identity, route family, and seed namespace must be frozen
+before any CAMP or DP outcome is observed, with zero overlap. Routes with a
+shared lanelet, overlapping corridor, or the same highly correlated topology
+family stay in one split. The two already observed v21 routes may enter
+train/calibration/diagnostic work only; they may not enter the v22 holdout.
+
+Map ID, route ID, and split identity are forbidden from CAMP atoms, features,
+online input, and DP input. The claim scope is limited to unseen
+route-family/corridor and seed within the two fixed logical maps. No unseen-map
+generalization claim is permitted. A third map is a future external-validation
+extension and does not block the current protocol.
 
 Every route selected by the preregistered outcome-blind rule must remain in the
 evaluation denominator, per-route receipt set, and complete failure
@@ -220,3 +228,47 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_contract_capability_audit_9ebed6e2_20260714T190011CST
 current_v22_artifact_root_sha256=56b214e25ba4b275d3eb4aa7575302be9e627b3e7457d1118e96fa2779e13787
 next_work_target=user_decision_required_before_v22_map_zero_overlap_contract_change_or_new_map_assets
+
+## Gate 1 Contract Resolution and Gate 2 Design
+
+Status: the Gate 1 evidence remains passed and unchanged; its scientific hard
+stop was explicitly resolved by the user, and the v22 design is ready for
+static review.
+
+The user authorized that logical maps may be reused across splits. The split
+unit is now the outcome-blind route-family/corridor group. Route identity, route
+family, and seed namespace remain strictly zero-overlap. A shared lanelet,
+overlapping corridor, or highly correlated topology family is indivisible and
+must remain in one split. The split is frozen before any CAMP or DP outcome.
+All preregistered routes and hard-invalid failures remain in the denominator,
+receipts, and failure accounting without replacement.
+
+The restriction is explicit: map ID, route ID, and split identity are forbidden
+from selector atoms, features, or online input. The eligible claim is only within the two fixed
+logical maps on unseen route-family/corridor and seed. No unseen-map generalization claim
+is authorized; a third map is a future
+external-validation extension and is not a blocker for v22 training, pilot,
+or main evaluation.
+
+The design is frozen at
+`docs/superpowers/specs/2026-07-14-v22-native-route-family-safety-design.md`.
+It defines a source-only leakage graph, connected route-family/corridor groups,
+whole-group allocation, pre-outcome validation, route retention, the
+source-valid versus soft-risk boundary, all-K-high-risk selection, native
+training, speed diagnostics, paired metrics, and fixed claim/no-go thresholds.
+It reuses the v21 native runner and existing convex master; no DP change,
+model load, simulation, corpus generation, training, or holdout opening
+occurred in this documentation gate.
+
+The next gate is read-only static review plus a minimal TDD implementation
+plan. It may inspect code and write tests/plans but may not load the model,
+execute the simulator, train, or open holdout.
+
+current_v22_status=v22_native_route_family_split_design_ready_for_static_review
+current_v22_artifact_source_head=pending_v22_design_source_commit
+current_v22_prior_gate_final_synced_head=a94ad0a50640a86583e9dcc74b33bd68a00c1382
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=pending_v22_route_family_split_design_evidence
+current_v22_artifact_root_sha256=pending_v22_route_family_split_design_evidence
+next_work_target=v22_native_route_family_split_design_static_review_and_tdd_plan_only

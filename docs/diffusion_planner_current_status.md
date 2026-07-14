@@ -34,21 +34,28 @@ with root SHA256
 `7dfda9dbae23156f31c55a404bf162fa1c951454a8be67f1b7faf579b0b976e6`.
 One failed harness-input attempt remains sealed and recorded in the v22 audit.
 
-Gate 1 then found 7 existing route assets and 915 deterministic topology route
-starts across 2 logical native maps. Route scale is available, but strict
-train/calibration/holdout map-identity zero-overlap is impossible with only two
-logical maps. No third existing Lanelet2 map exists on AutoDL. Continuing
-would require either a new map asset or a change to the frozen split contract,
-so v22 is stopped at the authorized hard boundary before design or execution.
+Gate 1 found 7 existing route assets and 915 deterministic topology route
+starts across 2 logical native maps. Its sealed evidence and original hard-stop
+record remain unchanged. The user then explicitly authorized logical-map reuse
+across splits, with pre-outcome route-family/corridor groups as the indivisible
+split unit and strict route identity, route family, and seed-namespace
+zero-overlap. Shared lanelets, overlapping corridors, and highly correlated
+topology families stay in one split.
 
-current_v22_status=v22_native_contract_capability_audit_hard_stop_two_logical_maps
-current_v22_artifact_source_head=9ebed6e2c7da57088503eed717061b36a3b70b8e
-current_v22_prior_gate_final_synced_head=9ebed6e2c7da57088503eed717061b36a3b70b8e
+The v22 design now freezes that outcome-blind split, forbids map/route/split
+identity from selector inputs, retains every preregistered route and failure,
+and limits any claim to unseen route-family/corridor and seed within the two
+fixed maps. It makes no unseen-map claim; a third map is future external
+validation only. Static review and the minimal shared-code TDD plan are next.
+
+current_v22_status=v22_native_route_family_split_design_ready_for_static_review
+current_v22_artifact_source_head=pending_v22_design_source_commit
+current_v22_prior_gate_final_synced_head=a94ad0a50640a86583e9dcc74b33bd68a00c1382
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_contract_capability_audit_9ebed6e2_20260714T190011CST
-current_v22_artifact_root_sha256=56b214e25ba4b275d3eb4aa7575302be9e627b3e7457d1118e96fa2779e13787
-next_work_target=user_decision_required_before_v22_map_zero_overlap_contract_change_or_new_map_assets
+current_v22_artifact=pending_v22_route_family_split_design_evidence
+current_v22_artifact_root_sha256=pending_v22_route_family_split_design_evidence
+next_work_target=v22_native_route_family_split_design_static_review_and_tdd_plan_only
 
 ## Current V21 Status
 

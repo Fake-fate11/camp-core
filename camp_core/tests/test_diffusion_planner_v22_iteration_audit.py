@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_contract_capability_audit_hard_stop_two_logical_maps",
-    "current_v22_artifact_source_head=9ebed6e2c7da57088503eed717061b36a3b70b8e",
-    "current_v22_prior_gate_final_synced_head=9ebed6e2c7da57088503eed717061b36a3b70b8e",
+    "current_v22_status=v22_native_route_family_split_design_ready_for_static_review",
+    "current_v22_artifact_source_head=pending_v22_design_source_commit",
+    "current_v22_prior_gate_final_synced_head=a94ad0a50640a86583e9dcc74b33bd68a00c1382",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_contract_capability_audit_9ebed6e2_20260714T190011CST",
-    "current_v22_artifact_root_sha256=56b214e25ba4b275d3eb4aa7575302be9e627b3e7457d1118e96fa2779e13787",
-    "next_work_target=user_decision_required_before_v22_map_zero_overlap_contract_change_or_new_map_assets",
+    "current_v22_artifact=pending_v22_route_family_split_design_evidence",
+    "current_v22_artifact_root_sha256=pending_v22_route_family_split_design_evidence",
+    "next_work_target=v22_native_route_family_split_design_static_review_and_tdd_plan_only",
 )
 
 
@@ -75,5 +75,22 @@ def test_v22_capability_audit_records_real_inventory_hard_stop() -> None:
         "No third existing",
         "user_decision_required_before_v22_map_zero_overlap_contract_change_or_new_map_assets",
         "No model was loaded",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_authorized_map_contract_resolution_without_rewriting_gate1() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "logical maps may be reused across splits",
+        "route-family/corridor group",
+        "route identity, route family, and seed namespace",
+        "shared lanelet",
+        "overlapping corridor",
+        "before any CAMP or DP outcome",
+        "map ID, route ID, and split identity are forbidden",
+        "within the two fixed logical maps",
+        "No unseen-map generalization claim",
+        "future external-validation extension",
     ):
         assert phrase in text
