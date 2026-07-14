@@ -338,3 +338,39 @@ def test_direct_script_bootstraps_repo_root_for_reused_integration_imports() -> 
         [sys.executable, "-I", "-c", code], capture_output=True, text=True
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_frozen_selector_scale_loader_accepts_exact_legacy_metadata_only(
+    tmp_path,
+) -> None:
+    module = _runner()
+    from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
+
+    version, names = atom_schema_for_dimension(14)
+    path = tmp_path / "scales.json"
+    path.write_text(
+        json.dumps({"atom_names": list(names), "scales": [1.0] * 14}),
+        encoding="utf-8",
+    )
+    scales, contract = module._load_frozen_selector_scales(path)
+    assert scales.tolist() == [1.0] * 14
+    assert contract == {
+        "declared_atom_schema_version": None,
+        "effective_atom_schema_version": version,
+        "compatibility_policy": "exact_atom_names_on_frozen_sha_v1",
+    }
+    payload = json.loads(path.read_text())
+    payload["atom_names"][0] = "wrong"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="schema"):
+        module._load_frozen_selector_scales(path)
+
+    weights_path = tmp_path / "weights.npy"
+    import numpy as np
+
+    np.save(weights_path, np.full(14, 1.0 / 14.0))
+    weights = module._load_frozen_selector_weights(weights_path)
+    assert weights.shape == (14,)
+    np.save(weights_path, np.array([-1.0] + [2.0 / 13.0] * 13))
+    with pytest.raises(ValueError, match="simplex"):
+        module._load_frozen_selector_weights(weights_path)

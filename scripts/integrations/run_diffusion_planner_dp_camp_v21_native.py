@@ -702,6 +702,8 @@ def verify_config_assets(config: Mapping[str, Any]) -> dict[str, str]:
             raise ValueError(f"asset SHA256 mismatch: {path}")
         verified[str(path)] = digest
     selector = _mapping(config, "selector")
+    _load_frozen_selector_scales(Path(str(selector["atom_scales"]["path"])))
+    _load_frozen_selector_weights(Path(str(selector["weights"]["path"])))
     selector_sums = Path(str(selector["root"])) / "SHA256SUMS"
     selector_root = _file_sha256(selector_sums)
     if selector_root != selector["root_sha256"]:
@@ -876,6 +878,44 @@ def verify_evidence_hashes(root: str | Path) -> dict[str, Any]:
     if relative != "SHA256SUMS" or _file_sha256(sums) != root_sha:
         raise ValueError("evidence root SHA256 mismatch")
     return {"root_sha256": root_sha, "payload_count": len(sums.read_text().splitlines())}
+
+
+def _load_frozen_selector_scales(
+    path: str | Path,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    from camp_core.integrations.diffusion_planner import atom_schema_for_dimension
+
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise ValueError("selector scale payload must be a mapping")
+    scales = np.asarray(payload.get("scales"), dtype=np.float64)
+    expected_version, expected_names = atom_schema_for_dimension(14)
+    declared_version = payload.get("atom_schema_version")
+    if (
+        scales.shape != (14,)
+        or not np.isfinite(scales).all()
+        or np.any(scales <= 0.0)
+        or tuple(payload.get("atom_names") or ()) != expected_names
+        or declared_version not in {None, expected_version}
+    ):
+        raise ValueError("frozen selector scale schema mismatch")
+    return scales, {
+        "declared_atom_schema_version": declared_version,
+        "effective_atom_schema_version": expected_version,
+        "compatibility_policy": "exact_atom_names_on_frozen_sha_v1",
+    }
+
+
+def _load_frozen_selector_weights(path: str | Path) -> np.ndarray:
+    weights = np.load(Path(path), allow_pickle=False)
+    if (
+        weights.shape != (14,)
+        or not np.isfinite(weights).all()
+        or np.any(weights < 0.0)
+        or not np.isclose(weights.sum(), 1.0, rtol=0.0, atol=1e-8)
+    ):
+        raise ValueError("frozen selector weights must be a nonnegative simplex [14]")
+    return np.asarray(weights, dtype=np.float64)
 
 
 def _mapping(container: Mapping[str, Any], name: str) -> Mapping[str, Any]:
@@ -1241,7 +1281,6 @@ def build_native_arm_runner(
 
         from camp_core.integrations.diffusion_planner import (
             install_lanelet2_projection_fallback,
-            load_dp_camp_atom_scales,
         )
         from camp_core.integrations.diffusion_planner_causal_atoms import (
             materialize_canonical_14d,
@@ -1272,7 +1311,6 @@ def build_native_arm_runner(
                 "LaneletSceneBuilder": LaneletSceneBuilder,
                 "Route": Route,
                 "install_projection": install_lanelet2_projection_fallback,
-                "load_scales": load_dp_camp_atom_scales,
                 "materialize": materialize_canonical_14d,
                 "red_cost": _fixed_dp_red_cost,
                 "signal_mask": candidate_signal_source_available_mask,
@@ -1315,13 +1353,13 @@ def build_native_arm_runner(
         def after_tracker(receipt: dict[str, Any], scene: Any) -> None:
             _capture_post_safety(receipt, scene, builder, route_ids, replay)
 
+        selector_scale_contract = None
         if arm == "camp":
-            scales = context["load_scales"](
+            scales, selector_scale_contract = _load_frozen_selector_scales(
                 Path(str(config["selector"]["atom_scales"]["path"]))
             )
-            weights = np.load(
-                Path(str(config["selector"]["weights"]["path"])),
-                allow_pickle=False,
+            weights = _load_frozen_selector_weights(
+                Path(str(config["selector"]["weights"]["path"]))
             )
             replacement = NativeCampPredictBatch(
                 state=state,
@@ -1396,6 +1434,7 @@ def build_native_arm_runner(
             native_result=native_result,
             builder=builder,
             route_ids=route_ids,
+            selector_scale_contract=selector_scale_contract,
         )
 
     return run_arm
@@ -1619,6 +1658,7 @@ def _build_native_arm_receipt(
     native_result: Mapping[str, Any],
     builder: Any,
     route_ids: list[int],
+    selector_scale_contract: Mapping[str, Any] | None,
 ) -> dict[str, Any]:
     executed = [receipt for receipt in state.receipts if "_safety_record" in receipt]
     if not executed:
@@ -1662,6 +1702,8 @@ def _build_native_arm_receipt(
             termination_reason=str(native_result["reason"]),
         )
         result["latency"] = _summarize_latency(ticks)
+    if selector_scale_contract is not None:
+        result["selector_scale_contract"] = dict(selector_scale_contract)
     return result
 
 
