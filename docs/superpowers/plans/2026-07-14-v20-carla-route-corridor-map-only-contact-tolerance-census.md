@@ -210,7 +210,8 @@ printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
   "$(git rev-parse origin/main)" \
   "$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD)" > "$ROOT/HEADS"
 sha256sum docs/superpowers/plans/2026-07-14-v20-carla-route-corridor-map-only-contact-tolerance-census.md > "$ROOT/SOURCE_SHA256SUMS"
-python3.12 - <<'PY' > "$ROOT/PROCESSES"
+python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
+import json
 from pathlib import Path
 targets = {
     "CarlaUE4-Linux-Shipping",
@@ -226,9 +227,10 @@ for path in Path("/proc").glob("[0-9]*/cmdline"):
     if any(Path(arg).name in targets for arg in argv):
         rows.append({"pid": int(path.parent.name), "argv": argv})
 if rows:
-    raise SystemExit(str(rows))
+    print(json.dumps(rows, sort_keys=True))
 PY
-ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS"
+ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stderr" || \
+  printf 'listener_capture_failed\n' > "$ROOT/LISTENERS"
 cat > "$ROOT/COMMAND" <<'SH'
 set -euo pipefail
 python3.12 - <<'PY'
@@ -272,6 +274,8 @@ checks = {
         and plan.count(argument_call) == 2
     ),
     "exactly_once": "### Task 5: Execute exactly once" in plan,
+    "processes_empty": not (root / "PROCESSES").read_text(),
+    "listeners_empty": not (root / "LISTENERS").read_text(),
 }
 result = {"status": "pass" if all(checks.values()) else "fail", "checks": checks}
 (root / "review.json").write_text(
@@ -288,7 +292,7 @@ raise SystemExit(0 if result["status"] == "pass" else 1)
 PY
 SH
 set +e
-ARTIFACT_ROOT="$ROOT" bash "$ROOT/COMMAND" > "$ROOT/stdout" 2> "$ROOT/stderr"
+ARTIFACT_ROOT="$ROOT" bash "$ROOT/COMMAND" > "$ROOT/stdout" 2>> "$ROOT/stderr"
 STATUS=$?
 set -e
 printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
@@ -400,6 +404,7 @@ import hashlib
 import json
 import math
 import sys
+from collections import Counter
 from copy import deepcopy
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
@@ -508,8 +513,45 @@ def run_census(monkeypatch, map_api=None):
 
 
 def test_two_pass_nonzero_gap_formula_and_determinism(monkeypatch):
-    first = run_census(monkeypatch)
-    second = run_census(monkeypatch)
+    calls = Counter()
+    original_route = census._deterministic_route
+    original_builder = census.build_pre_generation_route_corridor
+    original_freeze = census.freeze_lifting_tolerances
+
+    def observed_route(*args, **kwargs):
+        calls["_deterministic_route"] += 1
+        return original_route(*args, **kwargs)
+
+    def observed_builder(*args, **kwargs):
+        calls["build_pre_generation_route_corridor"] += 1
+        return original_builder(*args, **kwargs)
+
+    def observed_freeze(*args, **kwargs):
+        calls["freeze_lifting_tolerances"] += 1
+        return original_freeze(*args, **kwargs)
+
+    monkeypatch.setattr(census, "_deterministic_route", observed_route)
+    monkeypatch.setattr(
+        census, "build_pre_generation_route_corridor", observed_builder
+    )
+    monkeypatch.setattr(census, "freeze_lifting_tolerances", observed_freeze)
+    first_map = FakeMap()
+    first = run_census(monkeypatch, first_map)
+    expected_calls = {
+        "_deterministic_route": 1,
+        "build_pre_generation_route_corridor": 2,
+        "freeze_lifting_tolerances": 1,
+    }
+    assert dict(calls) == expected_calls
+    assert first["call_counters"] == expected_calls
+    assert (
+        first_map.actor_spawns,
+        first_map.world_ticks,
+        first_map.server_connections,
+    ) == (0, 0, 0)
+    calls.clear()
+    second_map = FakeMap()
+    second = run_census(monkeypatch, second_map)
     tolerance = first["tolerance"]
     corridor = first["corridor"]
 
@@ -526,11 +568,13 @@ def test_two_pass_nonzero_gap_formula_and_determinism(monkeypatch):
     assert tolerance["allowance_m"] == pytest.approx(
         expected_allowance, rel=0.0, abs=1e-15
     )
-    assert first["call_counters"] == {
-        "_deterministic_route": 1,
-        "build_pre_generation_route_corridor": 2,
-        "freeze_lifting_tolerances": 1,
-    }
+    assert dict(calls) == expected_calls
+    assert second["call_counters"] == expected_calls
+    assert (
+        second_map.actor_spawns,
+        second_map.world_ticks,
+        second_map.server_connections,
+    ) == (0, 0, 0)
 
 
 def test_nonfinite_predecessor_and_ceiling_fail_closed(monkeypatch):
@@ -589,11 +633,21 @@ def test_receipt_hashes_and_forbidden_access_are_reconstructible(monkeypatch):
     assert corridor["boundary_identity_receipts_sha256"] == canonical_json_sha256(
         corridor["boundary_identity_receipts"]
     )
-    assert set(receipt["forbidden_access_counters"].values()) == {0}
+    assert receipt["forbidden_access_counters"] == census.FORBIDDEN_COUNTERS
     text = json.dumps(
         {key: value for key, value in receipt.items() if key != "forbidden_access_counters"}
     ).lower()
-    for forbidden in ("candidate", "outcome", "metric", "holdout", "selector"):
+    for forbidden in (
+        "candidate",
+        "outcome",
+        "metric",
+        "holdout",
+        "selector",
+        "dp_request",
+        "dp_worker",
+        "future_label",
+        "eligibility",
+    ):
         assert forbidden not in text
 
 
@@ -634,12 +688,18 @@ def test_cli_uses_one_offline_map_and_atomic_output(monkeypatch, tmp_path):
     assert not output.with_suffix(".json.tmp").exists()
 
 
-def test_cli_rejects_existing_output_before_input_access(monkeypatch, tmp_path):
-    output = tmp_path / "receipt.json"
-    output.write_text("occupied", encoding="utf-8")
+def test_cli_rejects_existing_output_or_tmp_before_input_access(monkeypatch, tmp_path):
     monkeypatch.setattr(census, "XODR_PATH", tmp_path / "missing.xodr")
-    with pytest.raises(FileExistsError):
-        census.main(["--camp-head", "a" * 40, "--output-json", str(output)])
+    for suffix in ("output", "tmp"):
+        output = tmp_path / f"receipt-{suffix}.json"
+        occupied = (
+            output
+            if suffix == "output"
+            else output.with_suffix(output.suffix + ".tmp")
+        )
+        occupied.write_text("occupied", encoding="utf-8")
+        with pytest.raises(FileExistsError):
+            census.main(["--camp-head", "a" * 40, "--output-json", str(output)])
 ~~~
 
 - [ ] **Step 3: Run RED and verify behavior failure**
@@ -1063,7 +1123,8 @@ sha256sum \
   camp_core/camp_core/integrations/carla_exact_speed_source.py \
   scripts/integrations/run_diffusion_planner_dp_camp_v19_carla_candidate_source_probe.py \
   > "$ROOT/SOURCE_SHA256SUMS"
-python3.12 - <<'PY' > "$ROOT/PROCESSES"
+python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
+import json
 from pathlib import Path
 targets = {
     "CarlaUE4-Linux-Shipping",
@@ -1079,9 +1140,10 @@ for path in Path("/proc").glob("[0-9]*/cmdline"):
     if any(Path(arg).name in targets for arg in argv):
         rows.append({"pid": int(path.parent.name), "argv": argv})
 if rows:
-    raise SystemExit(str(rows))
+    print(json.dumps(rows, sort_keys=True))
 PY
-ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS"
+ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stderr" || \
+  printf 'listener_capture_failed\n' > "$ROOT/LISTENERS"
 cat > "$ROOT/COMMAND" <<'SH'
 set -euo pipefail
 export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
@@ -1104,6 +1166,8 @@ set +e
 bash "$ROOT/COMMAND" > "$ROOT/stdout" 2> "$ROOT/stderr"
 STATUS=$?
 set -e
+test ! -s "$ROOT/PROCESSES" || STATUS=1
+test ! -s "$ROOT/LISTENERS" || STATUS=1
 printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
 ARTIFACT_ROOT="$ROOT" STATUS="$STATUS" CAMP_HEAD="$CAMP_HEAD" python3.12 - <<'PY'
 import json
@@ -1156,36 +1220,50 @@ The authorized controller performs its git network action with the required
 network prefix, then runs:
 
 ~~~bash
-set -euo pipefail
+set -uo pipefail
 source /etc/network_turbo >/dev/null 2>&1 || true
 cd /root/autodl-tmp/camp_core
-git fetch --prune origin
-git pull --ff-only
-CAMP_HEAD=$(git rev-parse HEAD)
-test "$CAMP_HEAD" = "$(git rev-parse origin/main)"
-test -z "$(git status --short --untracked-files=no)"
-DP_HEAD=$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD)
-test "$DP_HEAD" = 7a1d33da277a1992ec474b5383a0c963c72e04e4
-test -z "$(git -C /root/autodl-tmp/Diffusion-Planner status --short --untracked-files=no)"
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_preflight_$STAMP
 EXECUTION_ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_$STAMP
 test ! -e "$ROOT"
-test ! -e "$EXECUTION_ROOT"
-test ! -e "$EXECUTION_ROOT.tmp"
 mkdir "$ROOT"
-PYTHON=$(readlink -f "$(command -v python3.12)")
-test "$("$PYTHON" -c 'import sys; print(sys.version_info[:2] == (3, 12))')" = True
+: > "$ROOT/stdout"
+: > "$ROOT/stderr"
+: > "$ROOT/PROCESSES"
+: > "$ROOT/LISTENERS"
+STATUS=0
+fail() {
+  printf '%s\n' "$1" >> "$ROOT/stderr"
+  STATUS=1
+}
+source /etc/network_turbo >/dev/null 2>&1 || true
+git fetch --prune origin >> "$ROOT/stdout" 2>> "$ROOT/stderr" || fail git_fetch_failed
+git pull --ff-only >> "$ROOT/stdout" 2>> "$ROOT/stderr" || fail git_pull_failed
+CAMP_HEAD=$(git rev-parse HEAD 2>/dev/null || printf missing)
+ORIGIN_HEAD=$(git rev-parse origin/main 2>/dev/null || printf missing)
+DP_HEAD=$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD 2>/dev/null || printf missing)
+PYTHON_COMMAND=$(command -v python3.12 2>/dev/null || true)
+PYTHON=$(readlink -f "$PYTHON_COMMAND" 2>/dev/null || printf missing)
 printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
-  "$CAMP_HEAD" "$(git rev-parse origin/main)" "$DP_HEAD" > "$ROOT/HEADS"
+  "$CAMP_HEAD" "$ORIGIN_HEAD" "$DP_HEAD" > "$ROOT/HEADS"
+cat > "$ROOT/COMMAND" <<EOF
+PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core $PYTHON /root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py --camp-head $CAMP_HEAD --output-json $EXECUTION_ROOT/receipt.json
+EOF
+test "$CAMP_HEAD" = "$ORIGIN_HEAD" || fail camp_origin_head_mismatch
+test -z "$(git status --short --untracked-files=no)" || fail camp_tracked_tree_dirty
+test "$DP_HEAD" = 7a1d33da277a1992ec474b5383a0c963c72e04e4 || fail fixed_dp_head_mismatch
+test -z "$(git -C /root/autodl-tmp/Diffusion-Planner status --short --untracked-files=no)" || fail fixed_dp_tracked_tree_dirty
+test "$("$PYTHON" -c 'import sys; print(sys.version_info[:2] == (3, 12))' 2>> "$ROOT/stderr")" = True || fail python_version_mismatch
 sha256sum \
   scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py \
   camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py \
   camp_core/camp_core/integrations/carla_causal_adapter.py \
   camp_core/camp_core/integrations/carla_exact_speed_source.py \
   scripts/integrations/run_diffusion_planner_dp_camp_v19_carla_candidate_source_probe.py \
-  > "$ROOT/SOURCE_SHA256SUMS"
-python3.12 - <<'PY' > "$ROOT/PROCESSES"
+  > "$ROOT/SOURCE_SHA256SUMS" 2>> "$ROOT/stderr" || fail source_hash_generation_failed
+python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || fail process_capture_failed
+import json
 from pathlib import Path
 targets = {
     "CarlaUE4-Linux-Shipping",
@@ -1201,66 +1279,82 @@ for path in Path("/proc").glob("[0-9]*/cmdline"):
     if any(Path(arg).name in targets for arg in argv):
         rows.append({"pid": int(path.parent.name), "argv": argv})
 if rows:
-    raise SystemExit(str(rows))
+    print(json.dumps(rows, sort_keys=True))
 PY
-ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS"
-test ! -s "$ROOT/PROCESSES"
-test ! -s "$ROOT/LISTENERS"
-FREE_BYTES=$(df --output=avail -B1 /root/autodl-tmp | tail -1 | tr -d ' ')
-test "$FREE_BYTES" -ge 10737418240
+ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stderr" || fail listener_capture_failed
+test ! -s "$ROOT/PROCESSES" || fail related_process_detected
+test ! -s "$ROOT/LISTENERS" || fail carla_listener_detected
+FREE_BYTES=$(df --output=avail -B1 /root/autodl-tmp 2>> "$ROOT/stderr" | tail -1 | tr -d ' ')
+case "$FREE_BYTES" in
+  ''|*[!0-9]*) fail disk_query_failed; FREE_BYTES=0 ;;
+esac
+test "$FREE_BYTES" -ge 10737418240 || fail disk_floor_failed
 XODR=/root/autodl-tmp/carla_0.9.16/runtime/CarlaUE4/Content/Carla/Maps/OpenDrive/Town10HD_Opt.xodr
-test "$(sha256sum "$XODR" | awk '{print $1}')" = 5d883b799f634030af92be1e9d79d107845540ba04338e8c60e095be1aef7be7
-test "$(sha256sum /root/autodl-tmp/camp_v19_carla_client/CLIENT_SHA256SUMS | awk '{print $1}')" = ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e
-LIBCARLA=$(find /root/autodl-tmp/camp_v19_carla_client -type f -name 'libcarla.cpython-312-x86_64-linux-gnu.so' -print)
-test "$(printf '%s\n' "$LIBCARLA" | sed '/^$/d' | wc -l)" -eq 1
-test "$(sha256sum "$LIBCARLA" | awk '{print $1}')" = c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2
-test "$(awk '{print $1; exit}' /root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST/ROOT_SHA256)" = 2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce
-PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client "$PYTHON" - <<'PY'
+test "$(sha256sum "$XODR" 2>> "$ROOT/stderr" | awk '{print $1}')" = 5d883b799f634030af92be1e9d79d107845540ba04338e8c60e095be1aef7be7 || fail xodr_hash_mismatch
+test "$(sha256sum /root/autodl-tmp/camp_v19_carla_client/CLIENT_SHA256SUMS 2>> "$ROOT/stderr" | awk '{print $1}')" = ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e || fail client_manifest_hash_mismatch
+LIBCARLA=$(find /root/autodl-tmp/camp_v19_carla_client -type f -name 'libcarla.cpython-312-x86_64-linux-gnu.so' -print 2>> "$ROOT/stderr") || fail libcarla_search_failed
+test "$(printf '%s\n' "$LIBCARLA" | sed '/^$/d' | wc -l)" -eq 1 || fail libcarla_count_mismatch
+test "$(sha256sum "$LIBCARLA" 2>> "$ROOT/stderr" | awk '{print $1}')" = c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2 || fail libcarla_hash_mismatch
+test "$(awk '{print $1; exit}' /root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST/ROOT_SHA256)" = 2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce || fail source_root_hash_mismatch
+IMPORTED_LIBCARLA=$(PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client "$PYTHON" - 2>> "$ROOT/stderr" <<'PY'
 from importlib.metadata import version
 import carla.libcarla as libcarla
 assert version("carla") == "0.9.16"
-print(libcarla.__file__)
+from pathlib import Path
+print(Path(libcarla.__file__).resolve())
 PY
-cat > "$ROOT/COMMAND" <<EOF
-PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core $PYTHON /root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py --camp-head $CAMP_HEAD --output-json $EXECUTION_ROOT/receipt.json
-EOF
-test "$(grep -Eoc -- '--host|--port|CarlaUE4|carla.Client' "$ROOT/COMMAND")" -eq 0
+) || fail carla_import_failed
+printf '%s\n' "$IMPORTED_LIBCARLA" > "$ROOT/CARLA_MODULE_PATH"
+test "$IMPORTED_LIBCARLA" = "$(readlink -f "$LIBCARLA")" || fail imported_libcarla_path_mismatch
+test ! -e "$EXECUTION_ROOT" || fail execution_root_exists
+test ! -e "$EXECUTION_ROOT/receipt.json" || fail output_json_exists
+test ! -e "$EXECUTION_ROOT/receipt.json.tmp" || fail output_tmp_exists
+test "$(grep -Eoc -- '--host|--port|CarlaUE4|carla.Client' "$ROOT/COMMAND")" -eq 0 || fail forbidden_execution_argv
+COMMAND_SHA256=$(sha256sum "$ROOT/COMMAND" | awk '{print $1}')
 ARTIFACT_ROOT="$ROOT" EXECUTION_ROOT="$EXECUTION_ROOT" PYTHON_PATH="$PYTHON" \
-FREE_BYTES="$FREE_BYTES" LIBCARLA_PATH="$LIBCARLA" CAMP_HEAD="$CAMP_HEAD" \
+FREE_BYTES="$FREE_BYTES" LIBCARLA_PATH="$LIBCARLA" \
+IMPORTED_LIBCARLA_PATH="$IMPORTED_LIBCARLA" COMMAND_SHA256="$COMMAND_SHA256" \
+CAMP_HEAD="$CAMP_HEAD" STATUS="$STATUS" \
 python3.12 - <<'PY'
 import json
 import os
 from pathlib import Path
 root = Path(os.environ["ARTIFACT_ROOT"])
+status = int(os.environ["STATUS"])
 data = {
-    "status": "pass",
+    "status": "pass" if status == 0 else "fail",
+    "exit_status": status,
     "camp_head": os.environ["CAMP_HEAD"],
     "python_path": os.environ["PYTHON_PATH"],
     "carla_version": "0.9.16",
-    "carla_module_path": os.environ["LIBCARLA_PATH"],
+    "selected_libcarla_path": os.environ["LIBCARLA_PATH"],
+    "imported_libcarla_path": os.environ["IMPORTED_LIBCARLA_PATH"],
     "map_constructor": 'carla.Map("Carla/Maps/Town10HD_Opt", opendrive_xml)',
     "execution_root": os.environ["EXECUTION_ROOT"],
     "output_json": os.environ["EXECUTION_ROOT"] + "/receipt.json",
     "output_tmp": os.environ["EXECUTION_ROOT"] + "/receipt.json.tmp",
     "free_bytes": int(os.environ["FREE_BYTES"]),
-    "related_processes": [],
-    "listeners_2000_2001": [],
+    "command_sha256": os.environ["COMMAND_SHA256"],
+    "related_processes": (root / "PROCESSES").read_text().splitlines(),
+    "listeners_2000_2001": (root / "LISTENERS").read_text().splitlines(),
 }
 (root / "preflight.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 (root / "preflight.md").write_text(
-    "# V20 contact-tolerance census no-run preflight\n\nstatus: pass\n"
+    "# V20 contact-tolerance census no-run preflight\n\n"
+    f"status: {data['status']}\nexit_status: {status}\n"
 )
 PY
-: > "$ROOT/stdout"
-: > "$ROOT/stderr"
-printf '0\n' > "$ROOT/EXIT_STATUS"
-(cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS preflight.json preflight.md PROCESSES LISTENERS SOURCE_SHA256SUMS > SHA256SUMS)
+printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
+(cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS preflight.json preflight.md PROCESSES LISTENERS SOURCE_SHA256SUMS CARLA_MODULE_PATH > SHA256SUMS)
 (cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256)
+test "$STATUS" -eq 0
 ~~~
 
-Expected: no map is constructed; EXIT_STATUS is 0; preflight.json status is
-pass; PROCESSES, LISTENERS, stdout, and stderr are empty; execution_root,
-output_json, output_tmp, Python, heads, hashes, and argv are exact.
+Expected pass: no map is constructed; EXIT_STATUS is 0; preflight.json status
+is pass; PROCESSES and LISTENERS are empty; the imported and selected libcarla
+paths match exactly and are sealed; execution_root, output_json, output_tmp,
+Python, heads, hashes, and argv are exact. Any failed check records status fail,
+its evidence and stderr, then seals before the final nonzero exit.
 
 - [ ] **Step 2: Independently review the preflight without execution**
 
@@ -1301,6 +1395,10 @@ data = json.loads(Path(sys.argv[1]).read_text())
 assert data["status"] == "pass"
 assert data["free_bytes"] >= 10737418240
 assert data["map_constructor"] == 'carla.Map("Carla/Maps/Town10HD_Opt", opendrive_xml)'
+assert data["selected_libcarla_path"] == data["imported_libcarla_path"]
+assert data["command_sha256"] == __import__("hashlib").sha256(
+    (Path(sys.argv[1]).parent / "COMMAND").read_bytes()
+).hexdigest()
 for key in ("execution_root", "output_json", "output_tmp"):
     assert not Path(data[key]).exists()
 PY
@@ -1327,9 +1425,11 @@ carla.Map.
 - [ ] **Step 1: Derive the unique reviewed preflight and run its frozen command once**
 
 ~~~bash
-set -euo pipefail
+set -uo pipefail
 cd /root/autodl-tmp/camp_core
 CAMP_HEAD=$(git rev-parse HEAD)
+ORIGIN_HEAD=$(git rev-parse origin/main)
+DP_HEAD=$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD)
 PREFLIGHT_ROOT=$(python3.12 - "$CAMP_HEAD" <<'PY'
 import json
 import sys
@@ -1343,29 +1443,101 @@ for path in Path("/root/autodl-tmp").glob(
     if data.get("status") == "pass" and data.get("camp_head") == head:
         matches.append(path.parent)
 if len(matches) != 1:
-    raise SystemExit(f"expected one passing preflight, found {len(matches)}")
-print(matches[0])
+    print("")
+else:
+    print(matches[0])
 PY
 )
-EXECUTION_ROOT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1]))["execution_root"])' "$PREFLIGHT_ROOT/preflight.json")
-OUTPUT_JSON=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1]))["output_json"])' "$PREFLIGHT_ROOT/preflight.json")
-OUTPUT_TMP=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1]))["output_tmp"])' "$PREFLIGHT_ROOT/preflight.json")
-test ! -e "$EXECUTION_ROOT"
-test ! -e "$OUTPUT_JSON"
-test ! -e "$OUTPUT_TMP"
+EXECUTION_ROOT_FROM_PREFLIGHT=
+if test -n "$PREFLIGHT_ROOT"; then
+  EXECUTION_ROOT_FROM_PREFLIGHT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("execution_root", ""))' "$PREFLIGHT_ROOT/preflight.json")
+fi
+case "$EXECUTION_ROOT_FROM_PREFLIGHT" in
+  /root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_*)
+    EXECUTION_ROOT=$EXECUTION_ROOT_FROM_PREFLIGHT
+    ;;
+  *)
+  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+  EXECUTION_ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_selection_failure_$STAMP
+    ;;
+esac
+ROOT_WAS_ABSENT=true
+if test -e "$EXECUTION_ROOT"; then
+  ROOT_WAS_ABSENT=false
+  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+  EXECUTION_ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_existing_root_failure_$STAMP
+fi
 mkdir "$EXECUTION_ROOT"
-cp "$PREFLIGHT_ROOT/HEADS" "$EXECUTION_ROOT/HEADS"
-cp "$PREFLIGHT_ROOT/COMMAND" "$EXECUTION_ROOT/COMMAND"
-cp "$PREFLIGHT_ROOT/preflight.json" "$EXECUTION_ROOT/preflight.json"
-cp "$PREFLIGHT_ROOT/SOURCE_SHA256SUMS" "$EXECUTION_ROOT/SOURCE_SHA256SUMS"
-cp "$PREFLIGHT_ROOT/PROCESSES" "$EXECUTION_ROOT/PROCESSES.before"
-cp "$PREFLIGHT_ROOT/LISTENERS" "$EXECUTION_ROOT/LISTENERS.before"
-set +e
-bash "$EXECUTION_ROOT/COMMAND" > "$EXECUTION_ROOT/stdout" 2> "$EXECUTION_ROOT/stderr"
-STATUS=$?
-set -e
-printf '%s\n' "$STATUS" > "$EXECUTION_ROOT/EXIT_STATUS"
-python3.12 - <<'PY' > "$EXECUTION_ROOT/PROCESSES.after"
+printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
+  "$CAMP_HEAD" "$ORIGIN_HEAD" "$DP_HEAD" > "$EXECUTION_ROOT/HEADS"
+: > "$EXECUTION_ROOT/COMMAND"
+: > "$EXECUTION_ROOT/SOURCE_SHA256SUMS"
+printf '{}\n' > "$EXECUTION_ROOT/preflight.json"
+: > "$EXECUTION_ROOT/stdout"
+: > "$EXECUTION_ROOT/stderr"
+: > "$EXECUTION_ROOT/PROCESSES.before"
+: > "$EXECUTION_ROOT/LISTENERS.before"
+: > "$EXECUTION_ROOT/PROCESSES.after"
+: > "$EXECUTION_ROOT/LISTENERS.after"
+STATUS=0
+CENSUS_INVOKED=false
+PREFLIGHT_REVERIFIED=false
+fail() {
+  printf '%s\n' "$1" >> "$EXECUTION_ROOT/stderr"
+  STATUS=1
+}
+test -n "$PREFLIGHT_ROOT" || fail unique_passing_preflight_not_found
+test -n "$EXECUTION_ROOT_FROM_PREFLIGHT" || fail frozen_execution_root_missing_or_invalid
+test "$ROOT_WAS_ABSENT" = true || fail frozen_execution_root_already_existed
+if test -n "$PREFLIGHT_ROOT"; then
+  cp "$PREFLIGHT_ROOT/COMMAND" "$EXECUTION_ROOT/COMMAND" || fail preflight_command_copy_failed
+  cp "$PREFLIGHT_ROOT/preflight.json" "$EXECUTION_ROOT/preflight.json" || fail preflight_json_copy_failed
+  cp "$PREFLIGHT_ROOT/SOURCE_SHA256SUMS" "$EXECUTION_ROOT/SOURCE_SHA256SUMS" || fail preflight_source_manifest_copy_failed
+  cp "$PREFLIGHT_ROOT/CARLA_MODULE_PATH" "$EXECUTION_ROOT/CARLA_MODULE_PATH" || fail preflight_carla_path_copy_failed
+  (cd "$PREFLIGHT_ROOT" && sha256sum -c SHA256SUMS) \
+    >> "$EXECUTION_ROOT/stdout" 2>> "$EXECUTION_ROOT/stderr" \
+    || fail preflight_manifest_invalid
+  test "$(cd "$PREFLIGHT_ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$PREFLIGHT_ROOT/ROOT_SHA256")" \
+    || fail preflight_root_hash_invalid
+  (cd /root/autodl-tmp/camp_core && sha256sum -c "$PREFLIGHT_ROOT/SOURCE_SHA256SUMS") \
+    >> "$EXECUTION_ROOT/stdout" 2>> "$EXECUTION_ROOT/stderr" \
+    || fail preflight_source_hashes_drifted
+  test "$(cat "$PREFLIGHT_ROOT/EXIT_STATUS")" = 0 || fail preflight_exit_nonzero
+  PREFLIGHT_STATUS=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("status"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_JSON_EXIT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("exit_status"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_CAMP_HEAD=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("camp_head"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_COMMAND_SHA=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("command_sha256"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_OUTPUT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("output_json"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_OUTPUT_TMP=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("output_tmp"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_PYTHON=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("python_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_SELECTED_LIB=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("selected_libcarla_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_IMPORTED_LIB=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("imported_libcarla_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_HEAD_CAMP=$(awk -F= '$1=="camp_head" {print $2}' "$PREFLIGHT_ROOT/HEADS")
+  PREFLIGHT_HEAD_ORIGIN=$(awk -F= '$1=="origin_main" {print $2}' "$PREFLIGHT_ROOT/HEADS")
+  PREFLIGHT_HEAD_DP=$(awk -F= '$1=="fixed_dp_head" {print $2}' "$PREFLIGHT_ROOT/HEADS")
+  test "$PREFLIGHT_STATUS" = pass || fail preflight_status_not_pass
+  test "$PREFLIGHT_JSON_EXIT" = 0 || fail preflight_json_exit_nonzero
+  test "$PREFLIGHT_CAMP_HEAD" = "$CAMP_HEAD" || fail preflight_camp_head_mismatch
+  test "$PREFLIGHT_HEAD_CAMP" = "$CAMP_HEAD" || fail preflight_heads_camp_mismatch
+  test "$PREFLIGHT_HEAD_ORIGIN" = "$ORIGIN_HEAD" || fail preflight_heads_origin_mismatch
+  test "$PREFLIGHT_HEAD_DP" = "$DP_HEAD" || fail preflight_heads_fixed_dp_mismatch
+  test "$PREFLIGHT_SELECTED_LIB" = "$PREFLIGHT_IMPORTED_LIB" || fail preflight_libcarla_path_mismatch
+  test "$(cat "$PREFLIGHT_ROOT/CARLA_MODULE_PATH")" = "$PREFLIGHT_IMPORTED_LIB" || fail preflight_libcarla_evidence_mismatch
+  test "$CAMP_HEAD" = "$ORIGIN_HEAD" || fail point_of_use_origin_head_mismatch
+  test "$DP_HEAD" = 7a1d33da277a1992ec474b5383a0c963c72e04e4 || fail point_of_use_fixed_dp_head_mismatch
+  test -z "$(git status --short --untracked-files=no)" || fail point_of_use_camp_tree_dirty
+  test -z "$(git -C /root/autodl-tmp/Diffusion-Planner status --short --untracked-files=no)" || fail point_of_use_fixed_dp_tree_dirty
+  test "$(sha256sum "$EXECUTION_ROOT/COMMAND" | awk '{print $1}')" = "$PREFLIGHT_COMMAND_SHA" || fail frozen_command_hash_mismatch
+  EXPECTED_COMMAND="PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core $PREFLIGHT_PYTHON /root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py --camp-head $CAMP_HEAD --output-json $PREFLIGHT_OUTPUT"
+  test "$(cat "$EXECUTION_ROOT/COMMAND")" = "$EXPECTED_COMMAND" || fail frozen_command_literal_mismatch
+  test "$(grep -Eoc -- '--host|--port|CarlaUE4|carla.Client' "$EXECUTION_ROOT/COMMAND")" -eq 0 || fail forbidden_execution_argv
+  test "$PREFLIGHT_OUTPUT" = "$EXECUTION_ROOT/receipt.json" || fail frozen_output_path_mismatch
+  test "$PREFLIGHT_OUTPUT_TMP" = "$EXECUTION_ROOT/receipt.json.tmp" || fail frozen_tmp_path_mismatch
+  test ! -e "$PREFLIGHT_OUTPUT" || fail output_json_exists
+  test ! -e "$PREFLIGHT_OUTPUT_TMP" || fail output_tmp_exists
+fi
+python3.12 - <<'PY' > "$EXECUTION_ROOT/PROCESSES.before" 2>> "$EXECUTION_ROOT/stderr" || fail point_of_use_process_capture_failed
+import json
 from pathlib import Path
 targets = {
     "CarlaUE4-Linux-Shipping",
@@ -1381,10 +1553,47 @@ for path in Path("/proc").glob("[0-9]*/cmdline"):
     if any(Path(arg).name in targets for arg in argv):
         rows.append({"pid": int(path.parent.name), "argv": argv})
 if rows:
-    raise SystemExit(str(rows))
+    print(json.dumps(rows, sort_keys=True))
 PY
-ss -H -ltnp 'sport = :2000 or sport = :2001' > "$EXECUTION_ROOT/LISTENERS.after"
-ARTIFACT_ROOT="$EXECUTION_ROOT" STATUS="$STATUS" python3.12 - <<'PY'
+ss -H -ltnp 'sport = :2000 or sport = :2001' > "$EXECUTION_ROOT/LISTENERS.before" 2>> "$EXECUTION_ROOT/stderr" || fail point_of_use_listener_capture_failed
+test ! -s "$EXECUTION_ROOT/PROCESSES.before" || fail point_of_use_related_process_detected
+test ! -s "$EXECUTION_ROOT/LISTENERS.before" || fail point_of_use_carla_listener_detected
+if test "$STATUS" -eq 0; then
+  PREFLIGHT_REVERIFIED=true
+  CENSUS_INVOKED=true
+  bash "$EXECUTION_ROOT/COMMAND" >> "$EXECUTION_ROOT/stdout" 2>> "$EXECUTION_ROOT/stderr"
+  STATUS=$?
+fi
+if test "$CENSUS_INVOKED" = true; then
+  test -f "$EXECUTION_ROOT/receipt.json" || fail receipt_missing
+  test ! -e "$EXECUTION_ROOT/receipt.json.tmp" || fail output_tmp_left_behind
+fi
+python3.12 - <<'PY' > "$EXECUTION_ROOT/PROCESSES.after" 2>> "$EXECUTION_ROOT/stderr" || fail post_execution_process_capture_failed
+import json
+from pathlib import Path
+targets = {
+    "CarlaUE4-Linux-Shipping",
+    "census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py",
+    "run_diffusion_planner_dp_camp_v19_worker.py",
+}
+rows = []
+for path in Path("/proc").glob("[0-9]*/cmdline"):
+    try:
+        argv = [part.decode(errors="replace") for part in path.read_bytes().split(b"\0") if part]
+    except (FileNotFoundError, PermissionError, ProcessLookupError):
+        continue
+    if any(Path(arg).name in targets for arg in argv):
+        rows.append({"pid": int(path.parent.name), "argv": argv})
+if rows:
+    print(json.dumps(rows, sort_keys=True))
+PY
+ss -H -ltnp 'sport = :2000 or sport = :2001' > "$EXECUTION_ROOT/LISTENERS.after" 2>> "$EXECUTION_ROOT/stderr" || fail post_execution_listener_capture_failed
+test ! -s "$EXECUTION_ROOT/PROCESSES.after" || fail post_execution_related_process_detected
+test ! -s "$EXECUTION_ROOT/LISTENERS.after" || fail post_execution_carla_listener_detected
+printf '%s\n' "$STATUS" > "$EXECUTION_ROOT/EXIT_STATUS"
+ARTIFACT_ROOT="$EXECUTION_ROOT" STATUS="$STATUS" \
+PREFLIGHT_REVERIFIED="$PREFLIGHT_REVERIFIED" CENSUS_INVOKED="$CENSUS_INVOKED" \
+python3.12 - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1394,6 +1603,10 @@ data = {
     "status": "pass" if status == 0 and (root / "receipt.json").is_file() else "fail",
     "exit_status": status,
     "receipt_present": (root / "receipt.json").is_file(),
+    "preflight_reverified": os.environ["PREFLIGHT_REVERIFIED"] == "true",
+    "census_invoked": os.environ["CENSUS_INVOKED"] == "true",
+    "point_of_use_process_rows": (root / "PROCESSES.before").read_text().splitlines(),
+    "point_of_use_listener_rows": (root / "LISTENERS.before").read_text().splitlines(),
 }
 (root / "result.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 (root / "result.md").write_text(
@@ -1404,17 +1617,14 @@ PY
 (cd "$EXECUTION_ROOT" && find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name ROOT_SHA256 -printf '%f\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS)
 (cd "$EXECUTION_ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256)
 test "$STATUS" -eq 0
-test -f "$OUTPUT_JSON"
-test ! -e "$OUTPUT_TMP"
-test ! -s "$EXECUTION_ROOT/PROCESSES.before"
-test ! -s "$EXECUTION_ROOT/PROCESSES.after"
-test ! -s "$EXECUTION_ROOT/LISTENERS.before"
-test ! -s "$EXECUTION_ROOT/LISTENERS.after"
 ~~~
 
-Expected: the frozen COMMAND is invoked exactly once; EXIT_STATUS is 0;
-receipt.json and result.json/result.md exist; no temp, process, or listener
-evidence exists; all files are sealed. Any failure is terminal and retained.
+Expected pass: the copied and point-of-use-reverified COMMAND is invoked
+exactly once; EXIT_STATUS is 0; receipt.json and result.json/result.md exist;
+fresh process/listener evidence is empty; all files are sealed. If any
+preflight, source, provenance, command, output-path, process, or listener check
+fails, census_invoked is false, no census command runs, and the nonzero failure
+artifact is still sealed. A post-execution detection also seals terminal fail.
 
 ---
 
@@ -1433,21 +1643,26 @@ evidence exists; all files are sealed. Any failure is terminal and retained.
 - [ ] **Step 1: Run the exact independent reconstruction**
 
 ~~~bash
-set -euo pipefail
+set -uo pipefail
 cd /root/autodl-tmp/camp_core
 CAMP_HEAD=$(git rev-parse HEAD)
 EXECUTION_ROOT=$(python3.12 - "$CAMP_HEAD" <<'PY'
-import json
 import sys
 from pathlib import Path
 head = sys.argv[1]
 matches = []
-for path in Path("/root/autodl-tmp").glob(
-    "camp_dp_v20_carla_contact_tolerance_execution_*/receipt.json"
+for root in Path("/root/autodl-tmp").glob(
+    "camp_dp_v20_carla_contact_tolerance_execution_*"
 ):
-    receipt = json.loads(path.read_text())
-    if receipt["provenance"]["camp_execution_head"] == head:
-        matches.append(path.parent)
+    heads_path = root / "HEADS"
+    exit_path = root / "EXIT_STATUS"
+    if not heads_path.is_file() or not exit_path.is_file():
+        continue
+    heads = dict(
+        line.split("=", 1) for line in heads_path.read_text().splitlines()
+    )
+    if heads.get("camp_head") == head:
+        matches.append(root)
 if len(matches) != 1:
     raise SystemExit(f"expected one execution, found {len(matches)}")
 print(matches[0])
@@ -1458,8 +1673,11 @@ ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_review_$STAM
 test ! -e "$ROOT"
 mkdir "$ROOT"
 cp "$EXECUTION_ROOT/HEADS" "$ROOT/HEADS"
-cp "$EXECUTION_ROOT/SOURCE_SHA256SUMS" "$ROOT/SOURCE_SHA256SUMS"
-python3.12 - <<'PY' > "$ROOT/PROCESSES"
+cp "$EXECUTION_ROOT/SOURCE_SHA256SUMS" "$ROOT/SOURCE_SHA256SUMS" 2>/dev/null || : > "$ROOT/SOURCE_SHA256SUMS"
+: > "$ROOT/stdout"
+: > "$ROOT/stderr"
+python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
+import json
 from pathlib import Path
 targets = {
     "CarlaUE4-Linux-Shipping",
@@ -1475,105 +1693,163 @@ for path in Path("/proc").glob("[0-9]*/cmdline"):
     if any(Path(arg).name in targets for arg in argv):
         rows.append({"pid": int(path.parent.name), "argv": argv})
 if rows:
-    raise SystemExit(str(rows))
+    print(json.dumps(rows, sort_keys=True))
 PY
-ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS"
+ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stderr" \
+  || printf 'listener_capture_failed\n' > "$ROOT/LISTENERS"
 cat > "$ROOT/COMMAND" <<'SH'
-set -euo pipefail
+set -uo pipefail
 PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core \
 python3.12 - <<'PY'
 import json
 import math
 import os
+import traceback
 from pathlib import Path
 from camp_core.integrations.carla_exact_speed_source import (
     canonical_json_sha256,
     freeze_lifting_tolerances,
 )
+from scripts.integrations.run_diffusion_planner_dp_camp_v19_carla_candidate_source_probe import (
+    FROZEN_LIFTING_TOLERANCES,
+)
 
 execution = Path(os.environ["EXECUTION_ROOT"])
 review = Path(os.environ["ARTIFACT_ROOT"])
-receipt = json.loads((execution / "receipt.json").read_text())
-sealed = dict(receipt)
-receipt_sha = sealed.pop("receipt_sha256")
 heads = dict(
     line.split("=", 1)
     for line in (execution / "HEADS").read_text().splitlines()
 )
-provenance = receipt["provenance"]
-corridor = receipt["corridor"]
-tolerance = receipt["tolerance"]
-evidence = corridor["evidence"]
-measurement = dict(evidence)
-measurement["contact_tolerance_m"] = tolerance["measurement_ceiling_m"]
-final = dict(evidence)
-final["contact_tolerance_m"] = tolerance["frozen_contact_tolerance_m"]
-boundaries = corridor["boundary_identity_receipts"]
-gaps = [
-    row["contact_to_next_m"]
-    for row in boundaries[:-1]
-]
-coordinates = [
-    float(value)
-    for row in boundaries
-    for key in ("entry_xyz", "exit_xyz")
-    for value in row[key]
-]
-scale = max(abs(value) for value in coordinates)
-maximum = max(gaps)
-frozen = freeze_lifting_tolerances(
-    max_chord_error_m=maximum,
-    max_station_roundtrip_error_m=0.0,
-    max_z_roundtrip_error_m=0.0,
-    coordinate_scale_m=scale,
+execution_exit = (execution / "EXIT_STATUS").read_text().strip()
+receipt_path = execution / "receipt.json"
+BOUNDARY_KEYS = (
+    "identity",
+    "direction",
+    "exact_entry_s",
+    "exact_exit_s",
+    "lookup_entry_s",
+    "lookup_exit_s",
+    "entry_xyz",
+    "exit_xyz",
+    "contact_to_next_m",
+    "identity_verified",
 )
 expected_calls = {
     "_deterministic_route": 1,
     "build_pre_generation_route_corridor": 2,
     "freeze_lifting_tolerances": 1,
 }
+expected_forbidden = {
+    "server_connections": 0,
+    "server_launches": 0,
+    "world_gets": 0,
+    "actor_spawns": 0,
+    "world_ticks": 0,
+    "candidate_reads": 0,
+    "dp_request_reads": 0,
+    "dp_worker_calls": 0,
+    "outcome_reads": 0,
+    "metric_calls": 0,
+    "future_label_reads": 0,
+    "holdout_reads": 0,
+    "selector_calls": 0,
+    "eligibility_calls": 0,
+}
 checks = {
-    "execution_exit_zero": (execution / "EXIT_STATUS").read_text().strip() == "0",
-    "schema": receipt["schema_version"] == "dp_camp_v20_carla_route_corridor_contact_tolerance_census_v1",
-    "camp_gate_start": provenance["camp_gate_start_head"] == "9537f1998100a32b74cdb6cc6dc36db4837c77f4",
-    "camp_execution_head": provenance["camp_execution_head"] == heads["camp_head"] == heads["origin_main"],
-    "fixed_dp_head": provenance["fixed_dp_head"] == heads["fixed_dp_head"] == "7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "carla_version": provenance["carla_version"] == "0.9.16",
-    "carla_source_root": provenance["carla_source_root_sha256"] == "2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce",
-    "carla_module": provenance["carla_module_sha256"] == "c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2" and provenance["carla_module_path"].startswith("/root/autodl-tmp/camp_v19_carla_client/"),
-    "client_manifest": provenance["client_manifest_sha256"] == "ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e",
-    "map_name": provenance["map_name"] == "Carla/Maps/Town10HD_Opt",
-    "xodr_sha": provenance["xodr_sha256"] == "5d883b799f634030af92be1e9d79d107845540ba04338e8c60e095be1aef7be7",
-    "receipt_sha": receipt_sha == canonical_json_sha256(sealed),
-    "route_contract": receipt["route"]["point_count"] == 81 and receipt["route"]["sample_step_m"] == 5.0 and len(receipt["route"]["records"]) == 81,
-    "route_sha": receipt["route"]["sha256"] == canonical_json_sha256(receipt["route"]["records"]),
-    "evidence_sha": corridor["evidence_sha256"] == canonical_json_sha256(evidence),
-    "boundary_sha": corridor["boundary_identity_receipts_sha256"] == canonical_json_sha256(boundaries),
-    "measurement_corridor_sha": corridor["measurement_sha256"] == canonical_json_sha256(measurement),
-    "final_corridor_sha": corridor["final_sha256"] == canonical_json_sha256(final),
-    "raw_gaps": gaps == corridor["raw_contact_gaps_m"],
-    "maximum": maximum == corridor["max_contact_gap_m"],
-    "coordinate_scale": scale == tolerance["coordinate_scale_m"],
-    "frozen_tolerance": frozen.geometry_epsilon_m == tolerance["frozen_contact_tolerance_m"],
-    "builder_tolerances": tolerance["builder_contact_tolerances_m"] == [tolerance["measurement_ceiling_m"], tolerance["frozen_contact_tolerance_m"]],
-    "allowance": math.isclose(
-        tolerance["allowance_m"],
-        max(1e-9, 64.0 * math.ulp(scale)),
-        rel_tol=0.0,
-        abs_tol=1e-15,
-    ),
-    "final_within_tolerance": maximum <= tolerance["frozen_contact_tolerance_m"],
-    "call_counters": receipt["call_counters"] == expected_calls,
-    "forbidden_counters": set(receipt["forbidden_access_counters"].values()) == {0},
+    "execution_manifest_valid": os.environ["EXECUTION_MANIFEST_VALID"] == "true",
+    "execution_root_hash_valid": os.environ["EXECUTION_ROOT_HASH_VALID"] == "true",
+    "source_hashes_valid": os.environ["SOURCE_HASHES_VALID"] == "true",
+    "execution_exit_zero": execution_exit == "0",
+    "receipt_present": receipt_path.is_file(),
     "processes_empty": not (execution / "PROCESSES.before").read_text() and not (execution / "PROCESSES.after").read_text(),
     "listeners_empty": not (execution / "LISTENERS.before").read_text() and not (execution / "LISTENERS.after").read_text(),
+    "review_processes_empty": not (review / "PROCESSES").read_text(),
+    "review_listeners_empty": not (review / "LISTENERS").read_text(),
 }
+error = None
+if receipt_path.is_file():
+    try:
+        receipt = json.loads(receipt_path.read_text())
+        sealed = dict(receipt)
+        receipt_sha = sealed.pop("receipt_sha256")
+        provenance = receipt["provenance"]
+        corridor = receipt["corridor"]
+        tolerance = receipt["tolerance"]
+        evidence = corridor["evidence"]
+        evidence_boundaries = evidence["boundary_receipts"]
+        documented_boundaries = [
+            {key: row[key] for key in BOUNDARY_KEYS}
+            for row in evidence_boundaries
+        ]
+        boundaries = corridor["boundary_identity_receipts"]
+        gaps = [row["contact_to_next_m"] for row in boundaries[:-1]]
+        maximum = max(gaps)
+        coordinates = [
+            float(value)
+            for row in boundaries
+            for key in ("entry_xyz", "exit_xyz")
+            for value in row[key]
+        ]
+        scale = max(abs(value) for value in coordinates)
+        frozen = freeze_lifting_tolerances(
+            max_chord_error_m=maximum,
+            max_station_roundtrip_error_m=0.0,
+            max_z_roundtrip_error_m=0.0,
+            coordinate_scale_m=scale,
+        )
+        measurement = dict(evidence)
+        measurement["contact_tolerance_m"] = tolerance["measurement_ceiling_m"]
+        final = dict(evidence)
+        final["contact_tolerance_m"] = tolerance["frozen_contact_tolerance_m"]
+        allowance_from_freezer = frozen.geometry_epsilon_m - maximum
+        allowance_from_formula = max(1e-9, 64.0 * math.ulp(scale))
+        checks.update({
+            "schema": receipt["schema_version"] == "dp_camp_v20_carla_route_corridor_contact_tolerance_census_v1",
+            "camp_gate_start": provenance["camp_gate_start_head"] == "9537f1998100a32b74cdb6cc6dc36db4837c77f4",
+            "camp_execution_head": provenance["camp_execution_head"] == heads["camp_head"] == heads["origin_main"],
+            "fixed_dp_head": provenance["fixed_dp_head"] == heads["fixed_dp_head"] == "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "carla_version": provenance["carla_version"] == "0.9.16",
+            "carla_source_root": provenance["carla_source_root_sha256"] == "2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce",
+            "carla_module": provenance["carla_module_sha256"] == "c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2" and provenance["carla_module_path"].startswith("/root/autodl-tmp/camp_v19_carla_client/"),
+            "client_manifest": provenance["client_manifest_sha256"] == "ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e",
+            "map_name": provenance["map_name"] == "Carla/Maps/Town10HD_Opt",
+            "xodr_sha": provenance["xodr_sha256"] == "5d883b799f634030af92be1e9d79d107845540ba04338e8c60e095be1aef7be7",
+            "receipt_sha": receipt_sha == canonical_json_sha256(sealed),
+            "route_contract": receipt["route"]["point_count"] == 81 and receipt["route"]["sample_step_m"] == 5.0 and len(receipt["route"]["records"]) == 81,
+            "route_sha": receipt["route"]["sha256"] == canonical_json_sha256(receipt["route"]["records"]),
+            "evidence_sha": corridor["evidence_sha256"] == canonical_json_sha256(evidence),
+            "boundary_projection": boundaries == documented_boundaries,
+            "boundary_sha": corridor["boundary_identity_receipts_sha256"] == canonical_json_sha256(boundaries),
+            "measurement_ceiling_exact": tolerance["measurement_ceiling_m"] == FROZEN_LIFTING_TOLERANCES.geometry_epsilon_m,
+            "measured_max_within_ceiling": maximum <= tolerance["measurement_ceiling_m"],
+            "measurement_corridor_sha": corridor["measurement_sha256"] == canonical_json_sha256(measurement),
+            "final_corridor_sha": corridor["final_sha256"] == canonical_json_sha256(final),
+            "raw_gaps": gaps == corridor["raw_contact_gaps_m"],
+            "maximum": maximum == corridor["max_contact_gap_m"] == evidence["max_contact_gap_m"],
+            "coordinate_scale": scale == tolerance["coordinate_scale_m"],
+            "frozen_tolerance": frozen.geometry_epsilon_m == tolerance["frozen_contact_tolerance_m"],
+            "builder_tolerances": tolerance["builder_contact_tolerances_m"] == [FROZEN_LIFTING_TOLERANCES.geometry_epsilon_m, frozen.geometry_epsilon_m],
+            "allowance_from_freezer": math.isclose(tolerance["allowance_m"], allowance_from_freezer, rel_tol=0.0, abs_tol=1e-15),
+            "allowance_from_formula": math.isclose(tolerance["allowance_m"], allowance_from_formula, rel_tol=0.0, abs_tol=1e-15),
+            "final_within_tolerance": maximum <= frozen.geometry_epsilon_m,
+            "call_counters_exact": receipt["call_counters"] == expected_calls,
+            "forbidden_counters_exact": receipt["forbidden_access_counters"] == expected_forbidden,
+        })
+    except Exception:
+        error = traceback.format_exc()
+        checks["scientific_reconstruction"] = False
+else:
+    error = "receipt.json is absent; terminal execution failure retained"
+
+passed = all(checks.values())
 result = {
-    "status": "pass" if all(checks.values()) else "fail",
+    "status": "pass" if passed else "fail",
     "checks": checks,
+    "execution_exit_status": execution_exit,
+    "scientific_reconstruction_error": error,
     "next_work_target": (
         "v20_carla_route_corridor_source_only_fixed_dp_k8_probe_once"
-        if all(checks.values())
+        if passed
         else "stop_failed_map_only_contact_tolerance_census_review"
     ),
 }
@@ -1584,27 +1860,45 @@ result = {
     + "\n"
 )
 print(json.dumps(result, sort_keys=True))
-raise SystemExit(0 if result["status"] == "pass" else 1)
+raise SystemExit(0 if passed else 1)
 PY
 SH
+EXECUTION_MANIFEST_VALID=false
+(cd "$EXECUTION_ROOT" && sha256sum -c SHA256SUMS) >> "$ROOT/stdout" 2>> "$ROOT/stderr" \
+  && EXECUTION_MANIFEST_VALID=true
+EXECUTION_ROOT_HASH_VALID=false
+test "$(cd "$EXECUTION_ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$EXECUTION_ROOT/ROOT_SHA256")" \
+  && EXECUTION_ROOT_HASH_VALID=true
+SOURCE_HASHES_VALID=false
+test -s "$EXECUTION_ROOT/SOURCE_SHA256SUMS" \
+  && (cd /root/autodl-tmp/camp_core && sha256sum -c "$EXECUTION_ROOT/SOURCE_SHA256SUMS") >> "$ROOT/stdout" 2>> "$ROOT/stderr" \
+  && SOURCE_HASHES_VALID=true
 set +e
-EXECUTION_ROOT="$EXECUTION_ROOT" ARTIFACT_ROOT="$ROOT" bash "$ROOT/COMMAND" > "$ROOT/stdout" 2> "$ROOT/stderr"
+EXECUTION_ROOT="$EXECUTION_ROOT" ARTIFACT_ROOT="$ROOT" \
+EXECUTION_MANIFEST_VALID="$EXECUTION_MANIFEST_VALID" \
+EXECUTION_ROOT_HASH_VALID="$EXECUTION_ROOT_HASH_VALID" \
+SOURCE_HASHES_VALID="$SOURCE_HASHES_VALID" \
+bash "$ROOT/COMMAND" >> "$ROOT/stdout" 2>> "$ROOT/stderr"
 STATUS=$?
-set -e
+test -f "$ROOT/review.json" || {
+  printf '{"status":"fail","checks":{"review_command_completed":false},"next_work_target":"stop_failed_map_only_contact_tolerance_census_review"}\n' > "$ROOT/review.json"
+  printf '# V20 map-only contact-tolerance census result review\n\nstatus: fail\nreview command did not complete\n' > "$ROOT/review.md"
+  STATUS=1
+}
+test ! -s "$ROOT/PROCESSES" || STATUS=1
+test ! -s "$ROOT/LISTENERS" || STATUS=1
 printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
-(cd "$EXECUTION_ROOT" && sha256sum -c SHA256SUMS)
-(cd /root/autodl-tmp/camp_core && sha256sum -c "$EXECUTION_ROOT/SOURCE_SHA256SUMS")
-test "$(cd "$EXECUTION_ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$EXECUTION_ROOT/ROOT_SHA256")"
 (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS review.json review.md PROCESSES LISTENERS SOURCE_SHA256SUMS > SHA256SUMS)
 (cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256)
 test "$STATUS" -eq 0
-test ! -s "$ROOT/PROCESSES"
-test ! -s "$ROOT/LISTENERS"
 ~~~
 
-Expected: every check is true, EXIT_STATUS is 0, and the review artifact is
-sealed. This command never imports CARLA, constructs a map, or reruns the
-census.
+Expected for a successful execution: every check is true, EXIT_STATUS is 0,
+and the review artifact is sealed. For a nonzero execution or missing receipt,
+the review records terminal fail and the retained execution status/error,
+still seals its own artifact, and exits nonzero. Discovery and review use only
+HEADS/EXIT_STATUS plus retained files; this command never imports CARLA,
+constructs a map, or reruns the census.
 
 - [ ] **Step 2: Stop or advance exactly one gate**
 
