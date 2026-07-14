@@ -391,3 +391,47 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST
 current_v22_artifact_root_sha256=5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215
 next_work_target=v22_task2_affine_source_valid_selection_and_all_k_high_risk_receipts_tdd_only
+
+## Task 2: Source-valid Affine Selection and All-K-high-risk Receipts
+
+Status: passed.
+
+The shared v19 selector now accepts an explicit eligibility mask name. Its
+default remains `physical_feasible_mask`; v22 may opt into
+`source_valid_mask`. Scores, positive scales, and nonnegative simplex weights
+are unchanged. The selector computes the same affine scores for all K and masks
+only hard source-invalid rows. It returns both masks, the eligibility policy,
+and `all_k_high_risk`; it has no fallback and does not force candidate 0.
+
+The existing v21 native hook now accepts an explicit selection policy whose
+default preserves v21. Under `v22_source_valid`, it passes the matching policy
+to the shared materializer and selector, then records the policy, both masks,
+source-complete mask, all-K-high-risk flag, scores, selected index/SHA, and
+candidate tensor before/after SHA. Exact indexed selection and candidate
+immutability remain mandatory. No parallel native runner was added.
+
+The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST`
+with root SHA256
+`9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e`.
+It records `run.exit=0`, empty stderr, matched CAMP HEAD/origin, fixed DP HEAD,
+tracked-clean repositories, no related running job, exact command,
+stdout/stderr, summary JSON/MD, `SHA256SUMS`, and `ROOT_SHA256SUMS`. The
+complete relevant AutoDL v18/v19/v21 plus v22-pointer set passed `68 / 68`.
+Local selector/hook/runner tests passed `30 / 30`, materializer regression
+passed `6 / 6`, and py_compile/diff checks passed.
+
+No model was loaded, no simulator was executed, no candidate was generated,
+no training ran, no holdout was opened, and no claim was made. Next is Task 3
+TDD: implement raw strict speed events, frozen 0.1 m/s operational events,
+continuous excess severity, 0/0.05/0.1/0.2 sensitivity, and denominator-retained
+source/execution failure rows.
+
+current_v22_status=v22_task2_source_valid_selector_receipts_passed
+current_v22_artifact_source_head=f83f76c62e6e9670396d1e822de92f3f458758f1
+current_v22_prior_gate_final_synced_head=f83f76c62e6e9670396d1e822de92f3f458758f1
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST
+current_v22_artifact_root_sha256=9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e
+next_work_target=v22_task3_speed_protocol_and_retained_failure_rows_tdd_only

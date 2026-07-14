@@ -76,14 +76,26 @@ and `66 / 66` relevant AutoDL tests passed. The first collection-only failure
 from missing `PYTHONPATH` remains preserved and attributed in the audit. Task
 2 affine source-valid selection and all-K-high-risk receipts are next.
 
-current_v22_status=v22_task1_source_valid_materialization_passed
-current_v22_artifact_source_head=1009b3da15ee25a8325e25169d0374e54da4bb70
-current_v22_prior_gate_final_synced_head=1009b3da15ee25a8325e25169d0374e54da4bb70
+Task 2 passed at CAMP HEAD
+`f83f76c62e6e9670396d1e822de92f3f458758f1`. The shared selector and existing
+native hook now have an opt-in v22 source-valid policy while their v21 default
+remains physical fail-closed. All-K-high-risk ticks use the unchanged affine
+argmin across source-valid candidates, retain both masks and exact SHA
+receipts, and use no fallback or candidate-0 forcing. The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST`
+with root SHA256
+`9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e`;
+`68 / 68` relevant AutoDL tests passed. Task 3 speed protocol and retained
+failure-row TDD is next.
+
+current_v22_status=v22_task2_source_valid_selector_receipts_passed
+current_v22_artifact_source_head=f83f76c62e6e9670396d1e822de92f3f458758f1
+current_v22_prior_gate_final_synced_head=f83f76c62e6e9670396d1e822de92f3f458758f1
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST
-current_v22_artifact_root_sha256=5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215
-next_work_target=v22_task2_affine_source_valid_selection_and_all_k_high_risk_receipts_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST
+current_v22_artifact_root_sha256=9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e
+next_work_target=v22_task3_speed_protocol_and_retained_failure_rows_tdd_only
 
 ## Current V21 Status
 

@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_task1_source_valid_materialization_passed",
-    "current_v22_artifact_source_head=1009b3da15ee25a8325e25169d0374e54da4bb70",
-    "current_v22_prior_gate_final_synced_head=1009b3da15ee25a8325e25169d0374e54da4bb70",
+    "current_v22_status=v22_task2_source_valid_selector_receipts_passed",
+    "current_v22_artifact_source_head=f83f76c62e6e9670396d1e822de92f3f458758f1",
+    "current_v22_prior_gate_final_synced_head=f83f76c62e6e9670396d1e822de92f3f458758f1",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST",
-    "current_v22_artifact_root_sha256=5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215",
-    "next_work_target=v22_task2_affine_source_valid_selection_and_all_k_high_risk_receipts_tdd_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST",
+    "current_v22_artifact_root_sha256=9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e",
+    "next_work_target=v22_task3_speed_protocol_and_retained_failure_rows_tdd_only",
 )
 
 
