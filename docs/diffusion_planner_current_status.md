@@ -524,14 +524,45 @@ closure. Artifact/root:
 / `534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7`.
 The pilot and holdout remained unopened; no claim is authorized.
 
-current_v22_status=v22_native_paired_capability_independent_review_passed
-current_v22_artifact_source_head=a7b239718777dc30cc3537fa031115c44cc2d375
-current_v22_prior_gate_final_synced_head=54cbaad34b3d240a133e8f85a0af976cd46478c3
+The 90-pair calibration pilot then ran once at CAMP HEAD
+`452bb54ed8d40896ec12fda6c39b343b63262d67`. Planned / retained / complete /
+hard-invalid were `90 / 90 / 89 / 1`; route coverage was 1.0 and execution
+failures were zero. The known symmetric hard-source-invalid route-seed stayed
+in the denominator. Better / tie / worse were `12 / 75 / 2`, with mean /
+median delta `-0.02457865168539326 / 0.0`. The diagnostic hierarchical CI95
+was `[-0.3704627028714107, 0.3855468749999981]`, so pilot does not support a
+performance claim. Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_execution_452bb54e_20260715T025248CST`
+/ `00f1ad297645db8b735a3d06780be267d8467ddb40c1a3ebaaf4a06382f37daa`.
+
+The first pilot reviewer passed 31,030 / 0 checks and confirmed 30 routes x 3
+seeds, 10 all-K-high-risk pairs, full hash/receipt closure, and no critical
+collision or red-light regression. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_independent_review_452bb54e_20260715T035415CST`
+/ `3267fe24e9e30d1dea20855fc4b73b8378d4a1b61faa011c8b74c7adb270b448`.
+
+At HEAD `cc0ab63266772a266071c71d729c3d43cb66c616`, the frozen result reviewer
+and four-level bootstrap statistics passed 164 AutoDL tests. Pilot execution
+is locked; main is authorized once; bootstrap is 5,000 resamples at seed
+12,345; holdout remains false. TDD root:
+`4966e9466fabce15c266dc31498a3742904ea1863e10c80cbdb2f41a020aea48`.
+Static preflight validated 593 configs and 500 main keys without building the
+runner or loading the model; root
+`7a1ada1df21dfb9c26813751a99c7400e1f72189c1b0f53603aa65256a9516be`.
+The frozen reviewer then reproduced the sealed pilot in 31,105 / 0 checks and
+kept an honest no-claim. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST`
+/ `4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df`.
+The main holdout remained unopened.
+
+current_v22_status=v22_main_reviewer_pilot_freeze_preflight_passed
+current_v22_artifact_source_head=cc0ab63266772a266071c71d729c3d43cb66c616
+current_v22_prior_gate_final_synced_head=452bb54ed8d40896ec12fda6c39b343b63262d67
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST
-current_v22_artifact_root_sha256=534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7
-next_work_target=v22_native_paired_pilot_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST
+current_v22_artifact_root_sha256=4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df
+next_work_target=v22_native_paired_main_execution_only
 
 ## Current V21 Status
 

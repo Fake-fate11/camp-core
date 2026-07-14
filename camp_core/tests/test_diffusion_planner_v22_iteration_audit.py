@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_paired_capability_independent_review_passed",
-    "current_v22_artifact_source_head=a7b239718777dc30cc3537fa031115c44cc2d375",
-    "current_v22_prior_gate_final_synced_head=54cbaad34b3d240a133e8f85a0af976cd46478c3",
+    "current_v22_status=v22_main_reviewer_pilot_freeze_preflight_passed",
+    "current_v22_artifact_source_head=cc0ab63266772a266071c71d729c3d43cb66c616",
+    "current_v22_prior_gate_final_synced_head=452bb54ed8d40896ec12fda6c39b343b63262d67",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST",
-    "current_v22_artifact_root_sha256=534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7",
-    "next_work_target=v22_native_paired_pilot_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST",
+    "current_v22_artifact_root_sha256=4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df",
+    "next_work_target=v22_native_paired_main_execution_only",
 )
 
 
@@ -368,5 +368,34 @@ def test_v22_records_capability_failure_remediation_execution_and_review() -> No
         "534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7",
         "pilot and holdout remained unopened",
         "v22_native_paired_pilot_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_pilot_review_statistics_and_main_preflight() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "90 / 90 / 89 / 1",
+        "1f621dfd5ef7d16c036520249f7521772f8377257e4ac57f63d060990221c957",
+        "3,444 s",
+        "12 / 75 / 2",
+        "-0.02457865168539326",
+        "[-0.3704627028714107, 0.3855468749999981]",
+        "10 all-K-high-risk pairs",
+        "3,186 / 2,510",
+        "250 all-K-high-risk ticks",
+        "00f1ad297645db8b735a3d06780be267d8467ddb40c1a3ebaaf4a06382f37daa",
+        "31,030 / 0",
+        "3267fe24e9e30d1dea20855fc4b73b8378d4a1b61faa011c8b74c7adb270b448",
+        "164 tests",
+        "5,000 / 12,345",
+        "4966e9466fabce15c266dc31498a3742904ea1863e10c80cbdb2f41a020aea48",
+        "validated 593 run configs",
+        "7a1ada1df21dfb9c26813751a99c7400e1f72189c1b0f53603aa65256a9516be",
+        "31,105 / 0",
+        "4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df",
+        "pilot execution is locked",
+        "main holdout remained unopened",
+        "v22_native_paired_main_execution_only",
     ):
         assert phrase in text

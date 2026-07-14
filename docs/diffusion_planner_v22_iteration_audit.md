@@ -1577,11 +1577,106 @@ artifact/root:
 / `534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7`,
 with `run.exit=0`. Exact next target: `v22_native_paired_pilot_execution_only`.
 
-current_v22_status=v22_native_paired_capability_independent_review_passed
-current_v22_artifact_source_head=a7b239718777dc30cc3537fa031115c44cc2d375
-current_v22_prior_gate_final_synced_head=54cbaad34b3d240a133e8f85a0af976cd46478c3
+## Native Paired Pilot, Independent Review, and Main Freeze Preflight
+
+Status: passed; the one-shot 500-pair main holdout execution is next.
+
+Exactly one pilot task ran at CAMP HEAD
+`452bb54ed8d40896ec12fda6c39b343b63262d67` and fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It executed the frozen 30
+calibration routes x seeds 22101/22102/22103. Planned / retained / complete /
+hard-invalid were `90 / 90 / 89 / 1`; route coverage was 1.0, paired-complete
+rate was 89/90, and execution-failure count was zero. The symmetric failed row
+was the previously known route identity
+`1f621dfd5ef7d16c036520249f7521772f8377257e4ac57f63d060990221c957`
+at seed 22102. Both arms recorded `native safety metric source is incomplete`
+at source validation. It stayed in the denominator and was not replaced,
+redrawn, retried, or skipped.
+
+Across 89 complete pairs, better / tie / worse were `12 / 75 / 2`; mean /
+median CAMP-minus-DP SafetyCost were `-0.02457865168539326 / 0.0`. The
+diagnostic four-level cluster CI95 was
+`[-0.3704627028714107, 0.3855468749999981]`, which crosses zero. All 89
+complete pairs were in stress strata; no normal pair occurred. The 10
+all-K-high-risk pairs had mean delta 0.515625 and diagnostic CI95
+[-1.5972222222222223, 3.5625]. CAMP chose candidate 0 / non-candidate 0 on
+`3,186 / 2,510` ticks, and 250 all-K-high-risk ticks continued with the same
+source-valid affine argmin.
+
+Mean component deltas were collision 0.0, near miss
+-0.00017556179775280898, offroad -0.000526685393258427, red light 0.0,
+operational 0.1 m/s speed violation -0.016678370786516853, and wrong-way
+0.007724719101123595. Additional collision/red-light pairs were zero. Speed
+event-rate mean deltas at 0/0.05/0.1/0.2 m/s were
+-0.016853932584269662 / -0.017029494382022472 /
+-0.016678370786516853 / -0.021769662921348316. Continuous excess-duration
+and magnitude-duration deltas were -0.10786516853932585 s and
+-0.13124274967522725 m. Mean route-progress/completion deltas were
+-0.49811148518857606 m / -0.003837582692701754. Mean jerk and lateral-
+acceleration deltas were 0.4073339746868509 m/s3 and
+0.005140651141000633 m/s2.
+
+Mean DP default-inference/tracker/total latency was
+60.89297082478932 / 9.879273154494383 / 73.68797296927669 ms. Mean CAMP
+default/K8-candidate/atom/selector/tracker/total latency was
+57.43055212429776 / 399.4572035228231 / 27.85615089676966 /
+0.10874277352528089 / 9.985087305301967 / 515.0230139306531 ms. Pilot
+wall-clock was `3,444 s`. Its 12,573 hashed files verified. Immutable
+execution artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_execution_452bb54e_20260715T025248CST`
+/ `00f1ad297645db8b735a3d06780be267d8467ddb40c1a3ebaaf4a06382f37daa`,
+with `run.exit=0`. This is calibration pilot evidence only and cannot support
+the final claim.
+
+The first independent pilot reviewer passed `31,030 / 0` checks. It rehashed
+all 12,573 source files, matched all 90 preregistered keys, preserved the one
+symmetric hard-source failure, and revalidated all 5,696 complete CAMP ticks:
+candidate immutability, candidate-0/default identity, source-valid affine
+argmin, selected fixed-row identity, arm symmetry, and feature identity
+denylist. It used the existing repository diagnostic bootstrap convention and
+changed no model, atom, threshold, or 0.1 m/s primary tolerance. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_independent_review_452bb54e_20260715T035415CST`
+/ `3267fe24e9e30d1dea20855fc4b73b8378d4a1b61faa011c8b74c7adb270b448`,
+with `run.exit=0`. Main holdout was unopened and pilot performance claim was
+unauthorized.
+
+At CAMP HEAD `cc0ab63266772a266071c71d729c3d43cb66c616`, the minimum frozen
+statistics/reviewer implementation added exact planned/observed-key checks,
+separate retained/complete/hard-invalid accounting, overall/normal/stress/all-
+K reports, components, speed sensitivities, secondary and latency metrics,
+and hierarchical logical-map/group/route/seed bootstrap. The pre-existing
+repository bootstrap convention is frozen at `5,000 / 12,345`; claim gates
+remain exactly the preregistered thresholds. Pilot execution is locked,
+one-shot main execution is authorized, and `holdout_opened=false`. Local and
+AutoDL regression passed 164 tests. TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_main_statistics_tdd_cc0ab632_20260715T040615CST`
+/ `4966e9466fabce15c266dc31498a3742904ea1863e10c80cbdb2f41a020aea48`.
+It ran no model, solver, simulator, pilot, or holdout.
+
+The main static preflight rehashed the pilot execution/review, split,
+selector/review, both maps, 134 selected routes, and runtime assets. It
+validated 593 run configs: capability 3, pilot 90, and main 500. Route counts
+remain train/calibration/holdout 4/30/100 and seed counts 8/3/5. It built no
+runner, loaded no model, and read no holdout outcome. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_main_holdout_static_preflight_cc0ab632_20260715T040700CST`
+/ `7a1ada1df21dfb9c26813751a99c7400e1f72189c1b0f53603aa65256a9516be`,
+with `run.exit=0`.
+
+Finally, the frozen repository reviewer reran over the already sealed pilot
+artifact and passed `31,105 / 0` checks. It reproduced planned / retained /
+complete `90 / 90 / 89`, the exact mean/median/CI, components, and an
+`honest_no_claim` diagnostic decision. This proves the main result-review
+chain before holdout; it is not a second pilot execution. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST`
+/ `4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df`,
+with `run.exit=0`. The pilot execution is locked and the main holdout remained
+unopened. Exact next target: `v22_native_paired_main_execution_only`.
+
+current_v22_status=v22_main_reviewer_pilot_freeze_preflight_passed
+current_v22_artifact_source_head=cc0ab63266772a266071c71d729c3d43cb66c616
+current_v22_prior_gate_final_synced_head=452bb54ed8d40896ec12fda6c39b343b63262d67
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST
-current_v22_artifact_root_sha256=534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7
-next_work_target=v22_native_paired_pilot_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST
+current_v22_artifact_root_sha256=4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df
+next_work_target=v22_native_paired_main_execution_only
