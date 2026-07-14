@@ -1158,11 +1158,75 @@ The next gate may start exactly one calibration-corpus execution for all 90
 frozen route-seed attempts. It must retain success and failure receipts, may
 not replace or redraw any route, and may not read holdout.
 
-current_v22_status=v22_native_calibration_corpus_preflight_passed
-current_v22_artifact_source_head=606aa838084337bd0e9546458ab59e3b771d3824
-current_v22_prior_gate_final_synced_head=606aa838084337bd0e9546458ab59e3b771d3824
+Its exact target was `v22_native_calibration_corpus_execution_only`.
+
+## First Native Calibration Corpus Execution and Independent Review
+
+Status: execution complete; evidence review no-pass due to one metadata
+provenance defect; remediation TDD is next.
+
+The one authorized execution ran at CAMP HEAD
+`83c090761c6c928e71de7fd99f58a21c15abd1f6` and fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It attempted every frozen
+calibration route-seed exactly once: planned / retained / complete / failed
+were `90 / 90 / 89 / 1`. Route coverage is `1.0`. The sole retained failure
+was route identity
+`1f621dfd5ef7d16c036520249f7521772f8377257e4ac57f63d060990221c957`
+at seed 22102, stage `native_arm_execution`, reason
+`native safety metric source is incomplete`. It remains in the denominator;
+hard-source-failure rate is `1 / 90 = 0.011111111111111112`. No route was
+deleted, replaced, redrawn, or forced to candidate 0.
+
+The execution retained the full theoretical `1,170 / 1,170` causal snapshots,
+including the failed row's already emitted 13 snapshots. Five snapshots are
+all-K-high-risk. Successful-run source-stratum snapshot counts are 1,157
+branch-intersection, 1,157 tight-corridor, and 494 traffic-light. The
+collection policy remained the v18 selector as an ablation-only behavior
+policy; the v22 trained candidate was not frozen or loaded as primary. Total
+wall-clock was `2,863 s`.
+
+The immutable execution artifact is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_execution_606aa838`
+with root SHA256
+`a2304f73892b13f952850a41e300f00710b2f11b2017948776f06f80d2b338e4`
+and `run.exit=0`. Its status is execution complete pending review, not a claim
+or gate pass. Holdout was not executed or read.
+
+The first independent reviewer preserved root
+`f356391a3c0d01fee4ec5f0d66d07e619018975d949a1c41cb7443c26e70128b`
+and exited 1. It correctly found the provenance defect, but also compared
+canonical JSON's sorted feature-key load order against insertion order and
+therefore produced 1,170 false-positive feature-schema failures. No source
+artifact was altered. A corrected review-only harness instead compares the
+exact feature key set.
+
+The corrected independent review performed `24,224` checks. Candidate-0 / DP
+operational-default identity and candidate-tensor immutability passed
+`1,170 / 1,170`. All 90 receipt identities, route retention, exact tick
+coverage, source-valid/physical masks, all-K-high-risk receipts, feature
+identity denylist, source strata, content hashes, and holdout absence passed.
+Its only `1,170` failed checks are
+`offline_label_provenance`: every calibration snapshot retained the hook's
+train-only string `pending_train_only_offline_supervision_sidecar`, instead of
+the frozen calibration provenance
+`calibration_causal_candidate_cost_sidecar_only_not_selector_feature`.
+
+The corrected no-pass review artifact is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_independent_review_corrected_83c09076_20260715T005600CST`
+with root SHA256
+`f2e97e3c85886275d29c06775d0632ae9bc7efc05d0c8c2e67a5517fb9723866`
+and `run.exit=1`. It loaded no model and ran no solver or simulator. The first
+execution cannot be renamed as success and its snapshots cannot be rewritten
+in place. The next target is minimal TDD that makes the shared writer stamp
+split-specific offline-label provenance before content hashing. It may not
+change feature payloads, DP, candidates, trajectories, score, split, or
+failure-retention behavior.
+
+current_v22_status=v22_native_calibration_corpus_independent_review_no_pass_provenance_only
+current_v22_artifact_source_head=83c090761c6c928e71de7fd99f58a21c15abd1f6
+current_v22_prior_gate_final_synced_head=83c090761c6c928e71de7fd99f58a21c15abd1f6
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_preflight_606aa838_20260714T235357CST
-current_v22_artifact_root_sha256=122d4e12fc44f7a4a9b90386c8acc2d370870480f960f34c6e4923b5f702ea42
-next_work_target=v22_native_calibration_corpus_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_independent_review_corrected_83c09076_20260715T005600CST
+current_v22_artifact_root_sha256=f2e97e3c85886275d29c06775d0632ae9bc7efc05d0c8c2e67a5517fb9723866
+next_work_target=v22_native_calibration_corpus_label_provenance_receipt_remediation_tdd_only
