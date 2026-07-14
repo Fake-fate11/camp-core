@@ -42,11 +42,11 @@ split unit and strict route identity, route family, and seed-namespace
 zero-overlap. Shared lanelets, overlapping corridors, and highly correlated
 topology families stay in one split.
 
-The v22 design now freezes that outcome-blind split, forbids map/route/split
+The v22 design freezes that outcome-blind split, forbids map/route/split
 identity from selector inputs, retains every preregistered route and failure,
 and limits any claim to unseen route-family/corridor and seed within the two
 fixed maps. It makes no unseen-map claim; a third map is future external
-validation only. Static review and the minimal shared-code TDD plan are next.
+validation only.
 
 The corrected immutable design evidence is
 `/root/autodl-tmp/camp_dp_v22_route_family_split_design_rerun_7ee8a2cf_20260714T192814CST`
@@ -55,14 +55,23 @@ with root SHA256
 and `run.exit=0`. A prior `run.exit=1` artifact caused only by a wrong manually
 expanded full commit SHA remains preserved in the v22 audit.
 
-current_v22_status=v22_native_route_family_split_design_ready_for_static_review
-current_v22_artifact_source_head=7ee8a2cfe8d49d42e222535b203b90bd559e1332
-current_v22_prior_gate_final_synced_head=7ee8a2cfe8d49d42e222535b203b90bd559e1332
+Gate 3 static review and the eight-task TDD plan passed at source HEAD
+`30885f0f1a9b02215ee7fd5c7d9998f4ee49b922`. The immutable review artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_plan_static_review_30885f0f_20260714T193535CST`
+with root SHA256
+`3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a`.
+It confirms the shared materializer/selector/existing native hook path, no
+parallel runner or DP edit, and `25 / 25` local/AutoDL contract tests. Task 1
+source-valid materialization TDD is next.
+
+current_v22_status=v22_native_route_family_split_plan_static_review_passed
+current_v22_artifact_source_head=30885f0f1a9b02215ee7fd5c7d9998f4ee49b922
+current_v22_prior_gate_final_synced_head=30885f0f1a9b02215ee7fd5c7d9998f4ee49b922
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_design_rerun_7ee8a2cf_20260714T192814CST
-current_v22_artifact_root_sha256=071fe5939d34800bf517c16ff6c0c4a878e12714b15c522c31b46a49b0adec91
-next_work_target=v22_native_route_family_split_design_static_review_and_tdd_plan_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_plan_static_review_30885f0f_20260714T193535CST
+current_v22_artifact_root_sha256=3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a
+next_work_target=v22_task1_source_valid_materialization_tdd_only
 
 ## Current V21 Status
 

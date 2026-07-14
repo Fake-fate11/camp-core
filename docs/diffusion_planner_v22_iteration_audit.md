@@ -289,3 +289,46 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_design_rerun_7ee8a2cf_20260714T192814CST
 current_v22_artifact_root_sha256=071fe5939d34800bf517c16ff6c0c4a878e12714b15c522c31b46a49b0adec91
 next_work_target=v22_native_route_family_split_design_static_review_and_tdd_plan_only
+
+## Gate 3: Static Review and TDD Implementation Plan
+
+Status: passed.
+
+Static review confirmed that the minimum production change is confined to the
+shared causal materializer, shared affine selector, and existing v21 native
+hook with an explicit v22 policy whose default preserves v21 behavior. The
+existing convex `robust_margin_master.py` already enforces nonnegative simplex
+weights and reports iterations, master gap, cuts, convergence, solver status,
+and solver name. No new solver and no parallel native runner are needed.
+
+The executable eight-task RED/GREEN plan is
+`docs/superpowers/plans/2026-07-14-v22-native-route-family-safety-tdd.md`.
+It covers source-valid versus soft-risk materialization, affine selection and
+all-K-high-risk receipts, speed metrics and retained failures, pre-outcome
+route-family split freeze, 0.5 s native corpus sampling, 5k/10k/20k/50k convex
+learning curves, calibration freeze, capability/pilot, one-shot main holdout,
+cluster statistics, independent review, and honest claim/no-claim closeout.
+
+The immutable static-review artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_plan_static_review_30885f0f_20260714T193535CST`
+with root SHA256
+`3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a`.
+It records `run.exit=0`, matched CAMP HEAD/origin, fixed DP HEAD, tracked-clean
+repositories, exact command, stdout/stderr, summary JSON/MD, `SHA256SUMS`, and
+`ROOT_SHA256SUMS`. Local and AutoDL v21/v22 audit/design/plan contract tests
+passed `25 / 25`; py_compile, placeholder scan, shared-runner guards, and diff
+checks passed.
+
+No model was loaded, no simulator was executed, no candidate was generated,
+no training ran, no holdout was opened, and no claim was made. The next gate
+is Task 1 TDD only: add a v22 source-valid materialization policy while keeping
+the v21 physical-eligibility default byte-for-byte behaviorally compatible.
+
+current_v22_status=v22_native_route_family_split_plan_static_review_passed
+current_v22_artifact_source_head=30885f0f1a9b02215ee7fd5c7d9998f4ee49b922
+current_v22_prior_gate_final_synced_head=30885f0f1a9b02215ee7fd5c7d9998f4ee49b922
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_plan_static_review_30885f0f_20260714T193535CST
+current_v22_artifact_root_sha256=3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a
+next_work_target=v22_task1_source_valid_materialization_tdd_only
