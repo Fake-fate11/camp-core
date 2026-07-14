@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_paired_pilot_corrected_preflight_passed",
-    "current_v22_artifact_source_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81",
-    "current_v22_prior_gate_final_synced_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81",
+    "current_v22_status=v22_native_paired_capability_independent_review_passed",
+    "current_v22_artifact_source_head=a7b239718777dc30cc3537fa031115c44cc2d375",
+    "current_v22_prior_gate_final_synced_head=54cbaad34b3d240a133e8f85a0af976cd46478c3",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST",
-    "current_v22_artifact_root_sha256=705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782",
-    "next_work_target=v22_native_paired_capability_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST",
+    "current_v22_artifact_root_sha256=534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7",
+    "next_work_target=v22_native_paired_pilot_execution_only",
 )
 
 
@@ -346,5 +346,27 @@ def test_v22_records_paired_protocol_tdd_remediation_and_corrected_preflight() -
         "90 pilot, and 500 main",
         "705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782",
         "v22_native_paired_capability_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_capability_failure_remediation_execution_and_review() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "validator required aggregate safety on a one-tick arm receipt",
+        "d27906500471b36badab20010970a3f7f93f5dcbb8dff6ffcb05975bcbb81a10",
+        "one-tick receipt remains a pure capability diagnostic",
+        "151 tests",
+        "e453dcdd821de7875bcbfe56f254acd0cc9d83dc4386538b9ad7d06f54124669",
+        "3 / 3 / 3",
+        "18 tick files",
+        "d19068aeb64c8911380e43130bfc4e6c80b6ef6a83de70ddc35907509474227e",
+        "paired_delta mapping as a scalar",
+        "12271cccda4d98cd9508e30a57165c17b499d7938751a681f4b0536e3bda06a4",
+        "289 / 0",
+        "9 / 9 candidate immutability and candidate-0/default identity",
+        "534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7",
+        "pilot and holdout remained unopened",
+        "v22_native_paired_pilot_execution_only",
     ):
         assert phrase in text

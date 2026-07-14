@@ -492,16 +492,46 @@ selected routes, the frozen selector/review, fixed DP, and runtime assets.
 Main remains unauthorized and holdout unopened. Artifact/root:
 `/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST`
 / `705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782`.
-Next is capability-chain execution only.
+The first capability execution is preserved as no-pass. Both one-tick arms
+ran, but pair validation incorrectly required aggregate SafetyCost from a
+one-tick receipt. It stopped before tiny multi-route, pilot, or holdout.
+Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_execution_54cbaad3_20260715T023703CST`
+/ `d27906500471b36badab20010970a3f7f93f5dcbb8dff6ffcb05975bcbb81a10`.
 
-current_v22_status=v22_native_paired_pilot_corrected_preflight_passed
-current_v22_artifact_source_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
-current_v22_prior_gate_final_synced_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
+At HEAD `a7b239718777dc30cc3537fa031115c44cc2d375`, the one-tick receipt remains a
+pure capability diagnostic without invented SafetyCost; multi-tick receipts
+still require full safety, secondary, and latency summaries. AutoDL regression
+passed 151 tests. Remediation artifact/root:
+`/root/autodl-tmp/camp_dp_v22_single_tick_receipt_remediation_tdd_a7b23971_20260715T024236CST`
+/ `e453dcdd821de7875bcbfe56f254acd0cc9d83dc4386538b9ad7d06f54124669`.
+
+The fresh capability retry passed planned / retained / complete `3 / 3 / 3`
+with 18 tick files across both arms, zero hard-invalid or execution failures,
+and route coverage 1.0. Candidate 0 / non-candidate 0 selections were 4 / 5.
+Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_execution_retry_a7b23971_20260715T024413CST`
+/ `d19068aeb64c8911380e43130bfc4e6c80b6ef6a83de70ddc35907509474227e`.
+
+The first independent reviewer is preserved no-pass because it treated the
+structured paired_delta mapping as a scalar; root
+`12271cccda4d98cd9508e30a57165c17b499d7938751a681f4b0536e3bda06a4`.
+The corrected reviewer passed 289 / 0 checks, including 9 / 9 candidate
+immutability and candidate-0/default identity receipts, source-valid affine
+argmin, selected fixed-row identity, arm symmetry, route retention, and SHA
+closure. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST`
+/ `534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7`.
+The pilot and holdout remained unopened; no claim is authorized.
+
+current_v22_status=v22_native_paired_capability_independent_review_passed
+current_v22_artifact_source_head=a7b239718777dc30cc3537fa031115c44cc2d375
+current_v22_prior_gate_final_synced_head=54cbaad34b3d240a133e8f85a0af976cd46478c3
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST
-current_v22_artifact_root_sha256=705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782
-next_work_target=v22_native_paired_capability_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST
+current_v22_artifact_root_sha256=534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7
+next_work_target=v22_native_paired_pilot_execution_only
 
 ## Current V21 Status
 

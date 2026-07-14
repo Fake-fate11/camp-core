@@ -1512,13 +1512,76 @@ false and the holdout is unopened. Corrected preflight artifact/root:
 `/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST`
 / `705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782`,
 with exit 0. It did not build the runner, load the DP model, or execute the
-simulator.
+simulator. Its exact next target was
+`v22_native_paired_capability_execution_only`.
 
-current_v22_status=v22_native_paired_pilot_corrected_preflight_passed
-current_v22_artifact_source_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
-current_v22_prior_gate_final_synced_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
+## Native Paired Capability Execution, Remediation, and Independent Review
+
+Status: passed; the 90-pair calibration pilot is next.
+
+The first capability execution is preserved as an honest no-pass. Its DP and
+CAMP one-tick arms both executed, then validation stopped with `validator
+required aggregate safety on a one-tick arm receipt`. Tiny multi-route did not
+execute, and pilot and holdout remained unopened. The immutable failure
+artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_execution_54cbaad3_20260715T023703CST`
+/ `d27906500471b36badab20010970a3f7f93f5dcbb8dff6ffcb05975bcbb81a10`,
+with `run.exit=1`. An earlier process guard matched only its own inspection
+command and created no artifact, model, or simulator output.
+
+At CAMP HEAD `a7b239718777dc30cc3537fa031115c44cc2d375`, minimal TDD exposes the
+existing `require_summary` validator boundary. A one-tick receipt remains a
+pure capability diagnostic: it must prove causal input, fixed K8 candidate
+identity, candidate immutability, operational-default/candidate-0 identity,
+source-valid affine argmin, selected fixed-row identity, and tracker execution,
+but it must not invent aggregate SafetyCost. Every multi-tick receipt still
+requires safety, secondary, and latency summaries. Local regression passed
+158 tests; the exact AutoDL gate passed 151 tests. Remediation artifact/root:
+`/root/autodl-tmp/camp_dp_v22_single_tick_receipt_remediation_tdd_a7b23971_20260715T024236CST`
+/ `e453dcdd821de7875bcbfe56f254acd0cc9d83dc4386538b9ad7d06f54124669`.
+It ran no model, simulator, pilot, or holdout.
+
+After an exact `/proc` executable-and-argument guard found no related process,
+one fresh capability task ran at the same CAMP HEAD and fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Planned / retained / complete
+were `3 / 3 / 3`: one pair at one tick and two route-seed pairs at four ticks.
+All 18 tick files across both arms are present. Route coverage and paired-
+complete rate are 1.0; hard-invalid and execution-failure counts are zero.
+The two multi-tick diagnostics tied at delta 0.0. This tiny result is a logic
+check, not a pilot result or safety claim. Candidate 0 / non-candidate 0 was
+selected 4 / 5 times; no all-K-high-risk tick occurred in this tiny sample.
+Execution wall-clock was 12 s. All 85 hashed files verified. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_execution_retry_a7b23971_20260715T024413CST`
+/ `d19068aeb64c8911380e43130bfc4e6c80b6ef6a83de70ddc35907509474227e`,
+with `run.exit=0`.
+
+The first independent reviewer is preserved as no-pass. It rehashed the
+source execution but then treated the structured `paired_delta mapping as a
+scalar`; this was reviewer logic, not a source execution failure. Its finalized
+artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_a7b23971_20260715T024642CST`
+/ `12271cccda4d98cd9508e30a57165c17b499d7938751a681f4b0536e3bda06a4`,
+with `run.exit=1`.
+
+The corrected reviewer reads `paired_delta.delta` and passed `289 / 0`
+independent checks. It verified all 85 source hashes; all 3 route rows retained
+in the denominator and complete; DP/CAMP route, map, fixed-DP assets, seed,
+spawn, and initial-state/input symmetry; 9 / 9 candidate immutability and
+candidate-0/default identity receipts; source-valid-only affine argmin; exact
+selected fixed-row hashes; speed tolerance 0.1 m/s on multi-tick summaries;
+and the absence of aggregate SafetyCost from the one-tick diagnostic. The
+review observed 4 candidate-0 and 5 non-candidate-0 selections. The pilot and
+holdout remained unopened, and no claim is authorized. Corrected review
+artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST`
+/ `534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7`,
+with `run.exit=0`. Exact next target: `v22_native_paired_pilot_execution_only`.
+
+current_v22_status=v22_native_paired_capability_independent_review_passed
+current_v22_artifact_source_head=a7b239718777dc30cc3537fa031115c44cc2d375
+current_v22_prior_gate_final_synced_head=54cbaad34b3d240a133e8f85a0af976cd46478c3
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST
-current_v22_artifact_root_sha256=705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782
-next_work_target=v22_native_paired_capability_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_capability_independent_review_corrected_a7b23971_20260715T024800CST
+current_v22_artifact_root_sha256=534676ea0f7c97e63d97bfb6b6674da7a64b5928f8fca7c8490adfcd9c8062c7
+next_work_target=v22_native_paired_pilot_execution_only
