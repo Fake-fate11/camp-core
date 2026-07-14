@@ -18,20 +18,20 @@ The candidate-free predecessor topology diagnosis ran once from CAMP head
 origin/GitHub, and AutoDL. Fixed DP remains
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 
-The candidate-free route-selection implementation passed local and AutoDL
-verification. Its no-map preflight and exactly-once revised Town10HD_Opt
-census passed at CAMP head `a8238ba14b20c43176e4d5889f3eb713e877f249`,
-with fixed DP unchanged. The census froze route SHA256
-`4bd077585527913491461dd2d446bcc1621aa44c811ca7f0826e3ef461a783b6`
-and contact tolerance `0.0007186350973698577 m`. Independent result review
-recorded `Critical=0`, `Important=0`, and `Minor=0`, authorizing one
-source-only fixed-DP K=8 probe and forbidding another census.
+The single source-only fixed-DP K=8 probe completed at CAMP head
+`3b69cde1849d258b9e328abedd3819e232f81b98`, with fixed DP unchanged.
+Candidate tensor and operational Top-1 hashes remained immutable, and
+candidate 0 exactly equals operational Top-1. However, the source-complete
+mask is all false, so candidate 0 plus an additional source-complete candidate
+does not exist. Independent review recorded `Critical=0`, `Important=0`, and
+`Minor=0` and confirmed the honest `all_k_source_ineligible` hard stop. Tiny
+matched closed-loop smoke is not authorized.
 
-current_v20_status=v20_carla_route_corridor_revised_map_only_census_independent_review_passed
-current_v20_artifact_source_head=a8238ba14b20c43176e4d5889f3eb713e877f249
-camp_github_autodl_head=a8238ba14b20c43176e4d5889f3eb713e877f249
+current_v20_status=v20_carla_route_corridor_source_only_k8_zero_legal_paired_support_hard_stop_reviewed
+current_v20_artifact_source_head=3b69cde1849d258b9e328abedd3819e232f81b98
+camp_github_autodl_head=3b69cde1849d258b9e328abedd3819e232f81b98
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-next_work_target=v20_carla_route_corridor_source_only_fixed_dp_k8_probe_preflight_then_once
+next_work_target=no_further_action_v20_zero_legal_paired_support_honest_source_ineligible_closeout
 
 ## Current V19 Status
 

@@ -259,3 +259,74 @@ current_v20_artifact_source_head=a8238ba14b20c43176e4d5889f3eb713e877f249
 camp_github_autodl_head=a8238ba14b20c43176e4d5889f3eb713e877f249
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 next_work_target=v20_carla_route_corridor_source_only_fixed_dp_k8_probe_preflight_then_once
+
+## Single Source-Only Fixed-DP K=8 Probe and Hard Stop
+
+At synchronized CAMP/GitHub/AutoDL head
+`3b69cde1849d258b9e328abedd3819e232f81b98`, with fixed DP
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the no-runtime K=8 preflight
+preserved the fixed checkpoint, args, selectors, worker, server contract, and
+DP request semantics. It changed only fresh artifact paths, current CAMP head
+and runner hash, and the census-frozen contact tolerance:
+
+`/root/autodl-tmp/camp_dp_v20_carla_source_only_k8_probe_preflight_20260714T061756Z`
+
+Root SHA256: `c7b9f855ac4cd5d93b95b52cbac27f79db698adc5b565db8be76338068181a1c`.
+
+The probe was then invoked exactly once. Its guard and execution are:
+
+- `/root/autodl-tmp/camp_dp_v20_carla_source_only_k8_probe_launch_guard_20260714T061756Z`
+  with root SHA256
+  `0bba2b3f973a8fad936d6a62b58ee85e20952f381c14b777a368f0e41345b27e`;
+- `/root/autodl-tmp/camp_dp_v20_carla_source_only_k8_probe_execution_20260714T061756Z`
+  with root SHA256
+  `14324d41b6eb21db8a374dc1e30677a0ef8b880b68eac81e744f07512fd6f2a2`.
+
+Invocation count is `0 / 1`; wrapper, runner, capture, materialize, CAMP
+worker, DP-default worker, and receipt exits are all `0`. The source artifact
+retains exit `1` only because its post-runtime validator compared rich capture
+route records directly with the census's compact records. Normalizing the same
+81 points closes that evidence defect without rerunning the probe:
+
+`/root/autodl-tmp/camp_dp_v20_carla_source_only_k8_probe_evidence_remediation_20260714T062333Z`
+
+Root SHA256: `c6e5a00ab88a3a74129693e360852d08530aa5bdc34544e0f8d03f4b27691299`.
+The normalized route SHA256 is the frozen
+`4bd077585527913491461dd2d446bcc1621aa44c811ca7f0826e3ef461a783b6`,
+and the capture corridor SHA256 equals the census final corridor SHA256
+`1fa5173bc1f2d88d7db003357ae214027736d7aff896d39692377d4349bd6114`.
+
+Scientific result:
+
+- candidate tensor before/current/after SHA256:
+  `1a32c4f7245281636accd995a423ae248a7dcad5c1ac63a28540646fe358244b`;
+- operational Top-1 before/current/after and candidate 0 SHA256:
+  `8a566ef7c03445ad5b19ad4ade5382c7e602c3284bd8c528e4bdd1347a266e28`;
+- candidate 0 equivalent to operational Top-1: `true`;
+- source-complete mask: `[false, false, false, false, false, false, false, false]`;
+- source-complete candidate count: `0`;
+- paired support / reason: `false / all_k_source_ineligible`;
+- selected index: `null`;
+- outcome reads / metric calls / holdout reads / simulator arm advances:
+  `0 / 0 / 0 / 0`.
+
+The one independent result review recorded `Critical=0`, `Important=0`, and
+`Minor=0`, verified the SHA chains and evidence-only remediation, and confirmed
+that candidate 0 plus an additional source-complete candidate does not exist:
+
+`/root/autodl-tmp/camp_dp_v20_carla_source_only_k8_probe_result_review_20260714T062838Z`
+
+Root SHA256: `cc5e4424506f2fac72a34caf0e518bde7889af342a440f678daefe3bfa349544`.
+
+This is the authorized hard stop. The probe, route, tolerance, source contract,
+or candidate tensor must not be adapted or retried. Tiny matched closed-loop
+SafetyCost smoke is not authorized. No closed-loop safety, CAMP-over-DP,
+promotion, deployment, activation, or broad claim is supported.
+
+## Authoritative EOF Pointer
+
+current_v20_status=v20_carla_route_corridor_source_only_k8_zero_legal_paired_support_hard_stop_reviewed
+current_v20_artifact_source_head=3b69cde1849d258b9e328abedd3819e232f81b98
+camp_github_autodl_head=3b69cde1849d258b9e328abedd3819e232f81b98
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+next_work_target=no_further_action_v20_zero_legal_paired_support_honest_source_ineligible_closeout
