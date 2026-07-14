@@ -47,6 +47,10 @@ IDENTITY_FIELDS = frozenset(
     }
 )
 FORMAL_SEEDS = frozenset({11, 12, 13})
+TRAIN_PENDING_LABEL_PROVENANCE = "pending_train_only_offline_supervision_sidecar"
+CALIBRATION_LABEL_PROVENANCE = (
+    "calibration_causal_candidate_cost_sidecar_only_not_selector_feature"
+)
 
 
 class CorpusSnapshotWriter:
@@ -60,6 +64,7 @@ class CorpusSnapshotWriter:
         group_sha256: str,
         seed: int,
         source_stratum: Mapping[str, Any] | None = None,
+        offline_label_provenance: str | None = None,
     ) -> None:
         if split not in {"train", "calibration"}:
             raise ValueError("holdout snapshots are forbidden")
@@ -87,6 +92,14 @@ class CorpusSnapshotWriter:
             str(name): bool(value)
             for name, value in (source_stratum or {}).items()
         }
+        expected_provenance = (
+            TRAIN_PENDING_LABEL_PROVENANCE
+            if split == "train"
+            else CALIBRATION_LABEL_PROVENANCE
+        )
+        if offline_label_provenance not in {None, expected_provenance}:
+            raise ValueError("offline label provenance differs from corpus split")
+        self.offline_label_provenance = expected_provenance
         self.snapshot_sha256: list[str] = []
         self.all_k_high_risk_snapshot_count = 0
         (self.output_dir / "snapshots").mkdir(parents=True, exist_ok=True)
@@ -162,6 +175,7 @@ class CorpusSnapshotWriter:
                 "split": self.split,
                 "seed": self.seed,
                 "source_stratum": dict(self.source_stratum),
+                "offline_label_provenance": self.offline_label_provenance,
             }
         )
         payload["sidecar"] = sidecar
@@ -319,6 +333,11 @@ def execute_manifest_split(
                 group_sha256=str(route["group_sha256"]),
                 seed=seed,
                 source_stratum=route.get("source_stratum", {}),
+                offline_label_provenance=(
+                    str(config["offline_label_provenance"])
+                    if split == "calibration"
+                    else TRAIN_PENDING_LABEL_PROVENANCE
+                ),
             )
             native_output = (
                 output_dir
@@ -527,6 +546,12 @@ def validate_corpus_preflight(
         execution_split == "calibration"
     ):
         raise ValueError("calibration authorization differs from execution split")
+    if (
+        execution_split == "calibration"
+        and config.get("offline_label_provenance")
+        != CALIBRATION_LABEL_PROVENANCE
+    ):
+        raise ValueError("calibration offline label provenance mismatch")
 
     splits = _mapping(manifest, "splits")
     route_counts = {

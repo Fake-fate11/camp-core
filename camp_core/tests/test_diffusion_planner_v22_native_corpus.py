@@ -139,6 +139,9 @@ def _calibration_config(manifest: dict) -> dict:
     del collection["theoretical_max_train_snapshots"]
     collection["expected_calibration_route_seed_runs"] = 1
     collection["theoretical_max_calibration_snapshots"] = 13
+    config["offline_label_provenance"] = (
+        "calibration_causal_candidate_cost_sidecar_only_not_selector_feature"
+    )
     config["calibration_execution_authorized"] = True
     return config
 
@@ -190,6 +193,9 @@ def test_tracked_calibration_config_freezes_30_by_3_without_holdout() -> None:
     }
     assert collection["expected_calibration_route_seed_runs"] == 90
     assert collection["theoretical_max_calibration_snapshots"] == 1170
+    assert config["offline_label_provenance"] == (
+        "calibration_causal_candidate_cost_sidecar_only_not_selector_feature"
+    )
     assert config["calibration_execution_authorized"] is True
     assert config["holdout_execution_authorized"] is False
     assert config["claim_authorized"] is False
@@ -254,6 +260,10 @@ def test_shared_manifest_executor_attempts_only_calibration_rows(
     assert summary["complete_route_seed_runs"] == 1
     assert summary["retained_route_seed_runs"] == 1
     assert len(list((output / "receipts" / "calibration").rglob("seed_*.json"))) == 1
+    snapshot = json.loads(next((output / "snapshots").glob("*.json")).read_text())
+    assert snapshot["sidecar"]["offline_label_provenance"] == (
+        config["offline_label_provenance"]
+    )
     assert not (output / "receipts" / "train").exists()
     assert not (output / "receipts" / "holdout").exists()
 
