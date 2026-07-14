@@ -257,3 +257,29 @@ def test_paired_delta_uses_camp_minus_dp_and_exact_tolerance() -> None:
     assert aggregate["better_tie_worse"] == {"better": 1, "tie": 1, "worse": 1}
     assert aggregate["mean_delta"] == pytest.approx(0.0)
     assert aggregate["median_delta"] == pytest.approx(tie["delta"])
+
+
+def test_route_projection_uses_native_geometry_not_line_type_channel_13() -> None:
+    from camp_core.integrations import diffusion_planner_causal_atoms
+
+    candidates = np.zeros((1, 80, 4), dtype=np.float32)
+    candidates[0, :, 0] = np.linspace(0.1, 15.0, 80)
+    candidates[0, :, 2] = 1.0
+    route = np.zeros((25, 20, 33), dtype=np.float32)
+    route[0, :, 0] = np.linspace(0.0, 20.0, 20)
+    route[0, :, 2] = 1.0
+    route[0, :, 5] = 2.0
+    route[0, :, 7] = -2.0
+    route[0, :, 17] = 1.0
+    assert not route[..., 13].any()
+    limits = np.zeros((25, 1), dtype=np.float32)
+    limits[0] = 10.0
+    has_limits = np.zeros((25, 1), dtype=bool)
+    has_limits[0] = True
+
+    result = diffusion_planner_causal_atoms.project_candidates_to_route(
+        candidates, route, limits, has_limits
+    )
+
+    assert result["route_speed_source_eligible_mask"].tolist() == [True]
+    assert result["route_progress"][0] > 14.0

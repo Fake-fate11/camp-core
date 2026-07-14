@@ -291,7 +291,7 @@ def project_candidates_to_route(
     right_offsets = []
     speeds = []
     for slot in range(route.shape[0]):
-        valid = route[slot, :, 13] > 0.5
+        valid = np.any(np.abs(route[slot, :, :8]) > 1e-8, axis=1)
         if not valid.any():
             continue
         speed_available = bool(
