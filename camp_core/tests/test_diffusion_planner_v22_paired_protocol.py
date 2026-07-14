@@ -383,7 +383,11 @@ def test_capability_chain_runs_single_tick_then_tiny_multi_route(tmp_path: Path)
     def run_arm(*, route, arm, config, output_dir, max_steps):
         del output_dir
         calls.append((route["name"], arm, max_steps))
-        return _arm(route, arm, config)
+        receipt = _arm(route, arm, config)
+        if max_steps == 1:
+            for name in ("safety", "secondary", "latency"):
+                receipt.pop(name)
+        return receipt
 
     result = _module().execute_capability_chain(
         _config(), _manifest(), _base_config(), _freeze(),
@@ -394,5 +398,6 @@ def test_capability_chain_runs_single_tick_then_tiny_multi_route(tmp_path: Path)
     assert result["planned_pair_count"] == 3
     assert result["retained_pair_count"] == 3
     assert result["paired_complete_count"] == 3
+    assert "aggregate_complete_pairs" not in result["single_tick"]
     assert result["pilot_executed"] is False
     assert result["holdout_opened"] is False

@@ -1561,6 +1561,7 @@ def validate_native_arm_receipt(
     arm: str,
     *,
     expected_ticks: int,
+    require_summary: bool = True,
     expected_selection_policy: str | None = None,
     expected_safety_schema: str = "safety_cost_native_v22",
 ) -> None:
@@ -1568,6 +1569,7 @@ def validate_native_arm_receipt(
         receipt,
         arm,
         expected_ticks=expected_ticks,
+        require_summary=require_summary,
         expected_selection_policy=expected_selection_policy,
         expected_safety_schema=expected_safety_schema,
     )

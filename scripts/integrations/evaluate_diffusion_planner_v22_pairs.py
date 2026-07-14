@@ -194,12 +194,17 @@ def validate_successful_pair(
 ) -> None:
     steps = int(_mapping(run_config, "protocol")["evaluation_steps"])
     validate_native_arm_receipt(
-        dp_arm, "dp", expected_ticks=steps, expected_safety_schema="safety_cost_native_v22"
+        dp_arm,
+        "dp",
+        expected_ticks=steps,
+        require_summary=steps > 1,
+        expected_safety_schema="safety_cost_native_v22",
     )
     validate_native_arm_receipt(
         camp_arm,
         "camp",
         expected_ticks=steps,
+        require_summary=steps > 1,
         expected_selection_policy=V22_SOURCE_VALID_SELECTION,
         expected_safety_schema="safety_cost_native_v22",
     )
@@ -244,6 +249,7 @@ def execute_paired_evaluation(
         run_config = build_evaluation_run_config(
             config, base_config, planned, mode=mode
         )
+        steps = int(_mapping(run_config, "protocol")["evaluation_steps"])
         native_route = run_config["routes"][0]
         pair_root = output / planned["receipt_key"].removesuffix("/pair.json")
         arms: dict[str, dict[str, Any]] = {}
@@ -256,7 +262,7 @@ def execute_paired_evaluation(
                         arm=arm,
                         config=run_config,
                         output_dir=pair_root / "native_runs" / arm,
-                        max_steps=int(run_config["protocol"]["evaluation_steps"]),
+                        max_steps=steps,
                     )
                 )
             except Exception as exc:
@@ -292,7 +298,7 @@ def execute_paired_evaluation(
                 "route_retained": True,
             }
         )
-        if row["paired_complete"]:
+        if row["paired_complete"] and steps > 1:
             dp_safety = arms["dp"]["safety"]
             camp_safety = arms["camp"]["safety"]
             row.update(
@@ -313,6 +319,8 @@ def execute_paired_evaluation(
                     "camp_latency": arms["camp"]["latency"],
                 }
             )
+        elif row["paired_complete"]:
+            row["single_tick_capability"] = True
         _write_json(pair_root / "pair.json", row)
         rows.append(row)
 
@@ -337,9 +345,10 @@ def execute_paired_evaluation(
         "final_claim_authorized": False,
         "holdout_opened": mode == "main",
     }
-    if complete:
+    complete_safety = [row for row in complete if "paired_delta" in row]
+    if complete_safety:
         summary["aggregate_complete_pairs"] = aggregate_paired_safety(
-            [row["paired_delta"] for row in complete]
+            [row["paired_delta"] for row in complete_safety]
         )
     _write_json(output / "pair_rows.json", rows)
     _write_json(output / "summary.json", summary)
