@@ -14,8 +14,24 @@ runner receives one offline native CARLA map, performs one measurement pass
 and one final pass, and atomically writes one reconstructible receipt. No
 builder refactor, dependency, server, or new orchestrator is added.
 
-**Tech Stack:** Python 3.12, pytest, Python standard library, existing CAMP
-CARLA integration code, official CARLA 0.9.16 cp312 client.
+**Tech Stack:** Frozen TEST_PYTHON
+/root/autodl-tmp/camp_v19_nuplan_env/bin/python (resolving exactly to
+/root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9, Python 3.9.23, SHA256
+d3f0bc59e0eb9c8ea292b68fcb2f0f2711491ec8a5176200494919ca7c7a0e6c)
+for repo tests, py_compile, and auxiliary evidence scripts; frozen CARLA_PYTHON
+/root/miniconda3/bin/python3.12 (resolving exactly to itself, Python 3.12.3,
+SHA256 0c05a22b0b180580a76437114a95cf138f67c8f46245acad26017c803b42b8c1)
+only for the sealed cp312 CARLA import and the one census command; pytest,
+Python standard library, existing CAMP CARLA integration code, and official
+CARLA 0.9.16 cp312 client.
+
+## Runtime Authority
+
+The exact AutoDL interpreter receipts above are authoritative. TEST_PYTHON
+owns every remote repo test, py_compile, process scan, JSON read/write, and
+other auxiliary script. CARLA_PYTHON owns only the sealed cp312 CARLA import
+and the one frozen census COMMAND. Neither interpreter may be PATH-discovered,
+substituted, installed, relinked, or mutated.
 
 ## Global Constraints
 
@@ -34,6 +50,17 @@ CARLA integration code, official CARLA 0.9.16 cp312 client.
   ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e,
   and libcarla SHA256
   c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2.
+- TEST_PYTHON is exactly /root/autodl-tmp/camp_v19_nuplan_env/bin/python,
+  resolves to /root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9, reports
+  Python 3.9.23, and has SHA256
+  d3f0bc59e0eb9c8ea292b68fcb2f0f2711491ec8a5176200494919ca7c7a0e6c.
+  It is the only interpreter for remote repo tests, py_compile, and auxiliary
+  evidence JSON/process scripts.
+- CARLA_PYTHON is exactly /root/miniconda3/bin/python3.12, resolves to itself,
+  reports Python 3.12.3, and has SHA256
+  0c05a22b0b180580a76437114a95cf138f67c8f46245acad26017c803b42b8c1.
+  It is used only for the sealed cp312 CARLA import and frozen census COMMAND.
+  Do not download, install, relink, or mutate either environment.
 - Production constructs exactly
   carla.Map("Carla/Maps/Town10HD_Opt", opendrive_xml). It never imports or
   calls carla.Client and never launches or connects to a server.
@@ -88,7 +115,8 @@ def census_route_corridor_contact_tolerance(
 The CLI is:
 
 ~~~bash
-python census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py \
+CARLA_PYTHON=/root/miniconda3/bin/python3.12
+"$CARLA_PYTHON" census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py \
   --camp-head "$(git rev-parse HEAD)" \
   --output-json /tmp/v20_contact_tolerance_receipt.json
 ~~~
@@ -199,6 +227,7 @@ Run on AutoDL after the plan commit is pushed by an authorized controller:
 set -euo pipefail
 source /etc/network_turbo >/dev/null 2>&1 || true
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 git fetch --prune origin
 git pull --ff-only
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
@@ -210,7 +239,7 @@ printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
   "$(git rev-parse origin/main)" \
   "$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD)" > "$ROOT/HEADS"
 sha256sum docs/superpowers/plans/2026-07-14-v20-carla-route-corridor-map-only-contact-tolerance-census.md > "$ROOT/SOURCE_SHA256SUMS"
-python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
+"$TEST_PYTHON" - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
 import json
 from pathlib import Path
 targets = {
@@ -233,7 +262,8 @@ ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stde
   printf 'listener_capture_failed\n' > "$ROOT/LISTENERS"
 cat > "$ROOT/COMMAND" <<'SH'
 set -euo pipefail
-python3.12 - <<'PY'
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
+"$TEST_PYTHON" - <<'PY'
 import json
 import os
 import re
@@ -250,6 +280,7 @@ required = (
     "**Goal:**",
     "**Architecture:**",
     "**Tech Stack:**",
+    "## Runtime Authority",
     "## Global Constraints",
     "### Task 1: Static-review this plan before implementation",
     "### Task 2: Add behavioral RED tests",
@@ -262,6 +293,27 @@ required = (
 argument_call = "parser." + "add_argument("
 camp_argument = argument_call + chr(34) + "--camp-head" + chr(34)
 output_argument = argument_call + chr(34) + "--output-json" + chr(34)
+bash_blocks = re.findall(r"~~~bash\n(.*?)\n~~~", plan, flags=re.S)
+unsafe_remote_python = []
+remote_shell_lines = []
+for block_index, block in enumerate(bash_blocks, 1):
+    in_python = False
+    for line_index, line in enumerate(block.splitlines(), 1):
+        if in_python:
+            if line == "PY":
+                in_python = False
+            continue
+        remote_shell_lines.append(line)
+        if (
+            re.search(r"(?<![/\w.-])python3\.12(?=[\s)]|$)", line)
+            or re.search(r"\bcommand\s+-v\s+python3\.12\b", line)
+        ):
+            unsafe_remote_python.append((block_index, line_index, line))
+        if "<<'PY'" in line:
+            in_python = True
+remote_shell = "\n".join(remote_shell_lines)
+test_python_assignments = re.findall(r"(?m)^TEST_PYTHON=(\S+)$", remote_shell)
+carla_python_assignments = re.findall(r"(?m)^CARLA_PYTHON=(\S+)$", remote_shell)
 checks = {
     "required_sections": all(item in plan for item in required),
     "checkbox_count": plan.count("- [ ]") >= 15,
@@ -274,6 +326,15 @@ checks = {
         and plan.count(argument_call) == 2
     ),
     "exactly_once": "### Task 5: Execute exactly once" in plan,
+    "absolute_dual_runtime_assignments": (
+        bool(test_python_assignments)
+        and set(test_python_assignments)
+        == {"/root/autodl-tmp/camp_v19_nuplan_env/bin/python"}
+        and bool(carla_python_assignments)
+        and set(carla_python_assignments)
+        == {"/root/miniconda3/bin/python3.12"}
+    ),
+    "no_remote_path_python3_12": not unsafe_remote_python,
     "processes_empty": not (root / "PROCESSES").read_text(),
     "listeners_empty": not (root / "LISTENERS").read_text(),
 }
@@ -313,8 +374,9 @@ Run this read-only verification:
 ~~~bash
 set -euo pipefail
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 CAMP_HEAD=$(git rev-parse HEAD)
-ROOT=$(python3.12 - "$CAMP_HEAD" <<'PY'
+ROOT=$("$TEST_PYTHON" - "$CAMP_HEAD" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -340,7 +402,7 @@ test "$(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$ROOT/
 test "$(cat "$ROOT/EXIT_STATUS")" = 0
 test ! -s "$ROOT/PROCESSES"
 test ! -s "$ROOT/LISTENERS"
-python3.12 -c 'import json,sys; assert json.load(open(sys.argv[1]))["status"] == "pass"' "$ROOT/review.json"
+"$TEST_PYTHON" -c 'import json,sys; assert json.load(open(sys.argv[1]))["status"] == "pass"' "$ROOT/review.json"
 ~~~
 
 No test or runner file may be created until this exits 0. Failure keeps
@@ -1110,6 +1172,7 @@ After an authorized controller pushes the reviewed commit, run:
 set -euo pipefail
 source /etc/network_turbo >/dev/null 2>&1 || true
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 git fetch --prune origin
 git pull --ff-only
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
@@ -1127,7 +1190,7 @@ sha256sum \
   camp_core/camp_core/integrations/carla_exact_speed_source.py \
   scripts/integrations/run_diffusion_planner_dp_camp_v19_carla_candidate_source_probe.py \
   > "$ROOT/SOURCE_SHA256SUMS"
-python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
+"$TEST_PYTHON" - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
 import json
 from pathlib import Path
 targets = {
@@ -1150,8 +1213,9 @@ ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stde
   printf 'listener_capture_failed\n' > "$ROOT/LISTENERS"
 cat > "$ROOT/COMMAND" <<'SH'
 set -euo pipefail
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 export PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core
-python3.12 -m pytest \
+"$TEST_PYTHON" -m pytest \
   camp_core/tests/test_carla_exact_speed_source.py \
   camp_core/tests/test_carla_causal_adapter.py \
   camp_core/tests/test_diffusion_planner_v19_carla_candidate_source_probe.py \
@@ -1160,7 +1224,7 @@ python3.12 -m pytest \
   camp_core/tests/test_diffusion_planner_v19_nuplan_bridge.py \
   camp_core/tests/test_diffusion_planner_v20_carla_route_corridor.py \
   camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py -q
-python3.12 -m py_compile \
+"$TEST_PYTHON" -m py_compile \
   scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py \
   camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py
 git diff --check
@@ -1173,7 +1237,7 @@ set -e
 test ! -s "$ROOT/PROCESSES" || STATUS=1
 test ! -s "$ROOT/LISTENERS" || STATUS=1
 printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
-ARTIFACT_ROOT="$ROOT" STATUS="$STATUS" CAMP_HEAD="$CAMP_HEAD" python3.12 - <<'PY'
+ARTIFACT_ROOT="$ROOT" STATUS="$STATUS" CAMP_HEAD="$CAMP_HEAD" "$TEST_PYTHON" - <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1227,6 +1291,14 @@ network prefix, then runs:
 set -uo pipefail
 source /etc/network_turbo >/dev/null 2>&1 || true
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
+EXPECTED_TEST_PYTHON_RESOLVED=/root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9
+EXPECTED_TEST_PYTHON_VERSION='Python 3.9.23'
+EXPECTED_TEST_PYTHON_SHA256=d3f0bc59e0eb9c8ea292b68fcb2f0f2711491ec8a5176200494919ca7c7a0e6c
+CARLA_PYTHON=/root/miniconda3/bin/python3.12
+EXPECTED_CARLA_PYTHON_RESOLVED=/root/miniconda3/bin/python3.12
+EXPECTED_CARLA_PYTHON_VERSION='Python 3.12.3'
+EXPECTED_CARLA_PYTHON_SHA256=0c05a22b0b180580a76437114a95cf138f67c8f46245acad26017c803b42b8c1
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_preflight_$STAMP
 EXECUTION_ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_$STAMP
@@ -1246,18 +1318,30 @@ git pull --ff-only >> "$ROOT/stdout" 2>> "$ROOT/stderr" || fail git_pull_failed
 CAMP_HEAD=$(git rev-parse HEAD 2>/dev/null || printf missing)
 ORIGIN_HEAD=$(git rev-parse origin/main 2>/dev/null || printf missing)
 DP_HEAD=$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD 2>/dev/null || printf missing)
-PYTHON_COMMAND=$(command -v python3.12 2>/dev/null || true)
-PYTHON=$(readlink -f "$PYTHON_COMMAND" 2>/dev/null || printf missing)
+test -x "$TEST_PYTHON" || fail test_python_not_executable
+test -x "$CARLA_PYTHON" || fail carla_python_not_executable
+TEST_PYTHON_RESOLVED=$(readlink -f "$TEST_PYTHON" 2>/dev/null || printf missing)
+CARLA_PYTHON_RESOLVED=$(readlink -f "$CARLA_PYTHON" 2>/dev/null || printf missing)
+TEST_PYTHON_VERSION=$("$TEST_PYTHON" --version 2>&1) || fail test_python_version_query_failed
+CARLA_PYTHON_VERSION=$("$CARLA_PYTHON" --version 2>&1) || fail carla_python_version_query_failed
+TEST_PYTHON_SHA256=$(sha256sum "$TEST_PYTHON_RESOLVED" 2>> "$ROOT/stderr" | awk '{print $1}') || fail test_python_hash_failed
+CARLA_PYTHON_SHA256=$(sha256sum "$CARLA_PYTHON_RESOLVED" 2>> "$ROOT/stderr" | awk '{print $1}') || fail carla_python_hash_failed
 printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
   "$CAMP_HEAD" "$ORIGIN_HEAD" "$DP_HEAD" > "$ROOT/HEADS"
 cat > "$ROOT/COMMAND" <<EOF
-PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core $PYTHON /root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py --camp-head $CAMP_HEAD --output-json $EXECUTION_ROOT/receipt.json
+PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core $CARLA_PYTHON /root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py --camp-head $CAMP_HEAD --output-json $EXECUTION_ROOT/receipt.json
 EOF
 test "$CAMP_HEAD" = "$ORIGIN_HEAD" || fail camp_origin_head_mismatch
 test -z "$(git status --short --untracked-files=no)" || fail camp_tracked_tree_dirty
 test "$DP_HEAD" = 7a1d33da277a1992ec474b5383a0c963c72e04e4 || fail fixed_dp_head_mismatch
 test -z "$(git -C /root/autodl-tmp/Diffusion-Planner status --short --untracked-files=no)" || fail fixed_dp_tracked_tree_dirty
-test "$("$PYTHON" -c 'import sys; print(sys.version_info[:2] == (3, 12))' 2>> "$ROOT/stderr")" = True || fail python_version_mismatch
+test "$TEST_PYTHON_RESOLVED" = "$EXPECTED_TEST_PYTHON_RESOLVED" || fail test_python_resolved_path_mismatch
+test "$CARLA_PYTHON_RESOLVED" = "$EXPECTED_CARLA_PYTHON_RESOLVED" || fail carla_python_resolved_path_mismatch
+test "$TEST_PYTHON_VERSION" = "$EXPECTED_TEST_PYTHON_VERSION" || fail test_python_version_mismatch
+test "$CARLA_PYTHON_VERSION" = "$EXPECTED_CARLA_PYTHON_VERSION" || fail carla_python_version_mismatch
+test "$TEST_PYTHON_SHA256" = "$EXPECTED_TEST_PYTHON_SHA256" || fail test_python_sha256_mismatch
+test "$CARLA_PYTHON_SHA256" = "$EXPECTED_CARLA_PYTHON_SHA256" || fail carla_python_sha256_mismatch
+sha256sum "$TEST_PYTHON_RESOLVED" "$CARLA_PYTHON_RESOLVED" > "$ROOT/RUNTIME_SHA256SUMS" 2>> "$ROOT/stderr" || fail runtime_hash_generation_failed
 sha256sum \
   scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py \
   camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py \
@@ -1265,7 +1349,7 @@ sha256sum \
   camp_core/camp_core/integrations/carla_exact_speed_source.py \
   scripts/integrations/run_diffusion_planner_dp_camp_v19_carla_candidate_source_probe.py \
   > "$ROOT/SOURCE_SHA256SUMS" 2>> "$ROOT/stderr" || fail source_hash_generation_failed
-python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || fail process_capture_failed
+"$TEST_PYTHON" - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || fail process_capture_failed
 import json
 from pathlib import Path
 targets = {
@@ -1299,7 +1383,7 @@ LIBCARLA=$(find /root/autodl-tmp/camp_v19_carla_client -type f -name 'libcarla.c
 test "$(printf '%s\n' "$LIBCARLA" | sed '/^$/d' | wc -l)" -eq 1 || fail libcarla_count_mismatch
 test "$(sha256sum "$LIBCARLA" 2>> "$ROOT/stderr" | awk '{print $1}')" = c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2 || fail libcarla_hash_mismatch
 test "$(awk '{print $1; exit}' /root/autodl-tmp/camp_dp_v19_carla_extraction_626cd5ae11_20260713T000320CST/ROOT_SHA256)" = 2d9df1315e941f60caf650fb7c8b9ea72b960bb880066355081b71eaedf912ce || fail source_root_hash_mismatch
-IMPORTED_LIBCARLA=$(PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client "$PYTHON" - 2>> "$ROOT/stderr" <<'PY'
+IMPORTED_LIBCARLA=$(PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client "$CARLA_PYTHON" - 2>> "$ROOT/stderr" <<'PY'
 from importlib.metadata import version
 import carla.libcarla as libcarla
 assert version("carla") == "0.9.16"
@@ -1315,11 +1399,15 @@ test ! -e "$EXECUTION_ROOT/receipt.json.tmp" || fail output_tmp_exists
 test "$(grep -Eoc -- '--host|--port|CarlaUE4|carla.Client' "$ROOT/COMMAND")" -eq 0 || fail forbidden_execution_argv
 COMMAND_SHA256=$(sha256sum "$ROOT/COMMAND" | awk '{print $1}')
 write_summary() {
-  ARTIFACT_ROOT="$ROOT" EXECUTION_ROOT="$EXECUTION_ROOT" PYTHON_PATH="$PYTHON" \
+  ARTIFACT_ROOT="$ROOT" EXECUTION_ROOT="$EXECUTION_ROOT" PYTHON_PATH="$CARLA_PYTHON" \
+  TEST_PYTHON_PATH="$TEST_PYTHON" TEST_PYTHON_RESOLVED="$TEST_PYTHON_RESOLVED" \
+  TEST_PYTHON_VERSION="$TEST_PYTHON_VERSION" TEST_PYTHON_SHA256="$TEST_PYTHON_SHA256" \
+  CARLA_PYTHON_RESOLVED="$CARLA_PYTHON_RESOLVED" CARLA_PYTHON_VERSION="$CARLA_PYTHON_VERSION" \
+  CARLA_PYTHON_SHA256="$CARLA_PYTHON_SHA256" \
   FREE_BYTES="$FREE_BYTES" LIBCARLA_PATH="$LIBCARLA" \
   IMPORTED_LIBCARLA_PATH="$IMPORTED_LIBCARLA" COMMAND_SHA256="$COMMAND_SHA256" \
   CAMP_HEAD="$CAMP_HEAD" STATUS="$STATUS" \
-  python3.12 - 2>> "$ROOT/stderr" <<'PY'
+  "$TEST_PYTHON" - 2>> "$ROOT/stderr" <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1330,6 +1418,14 @@ data = {
     "exit_status": status,
     "camp_head": os.environ["CAMP_HEAD"],
     "python_path": os.environ["PYTHON_PATH"],
+    "test_python_path": os.environ["TEST_PYTHON_PATH"],
+    "test_python_resolved": os.environ["TEST_PYTHON_RESOLVED"],
+    "test_python_version": os.environ["TEST_PYTHON_VERSION"],
+    "test_python_sha256": os.environ["TEST_PYTHON_SHA256"],
+    "carla_python_path": os.environ["PYTHON_PATH"],
+    "carla_python_resolved": os.environ["CARLA_PYTHON_RESOLVED"],
+    "carla_python_version": os.environ["CARLA_PYTHON_VERSION"],
+    "carla_python_sha256": os.environ["CARLA_PYTHON_SHA256"],
     "carla_version": "0.9.16",
     "selected_libcarla_path": os.environ["LIBCARLA_PATH"],
     "imported_libcarla_path": os.environ["IMPORTED_LIBCARLA_PATH"],
@@ -1352,7 +1448,7 @@ PY
 seal() {
   test "$SUMMARY_OK" = true \
     && printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS" \
-    && (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS preflight.json preflight.md PROCESSES LISTENERS SOURCE_SHA256SUMS CARLA_MODULE_PATH > SHA256SUMS) \
+    && (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS preflight.json preflight.md PROCESSES LISTENERS SOURCE_SHA256SUMS RUNTIME_SHA256SUMS CARLA_MODULE_PATH > SHA256SUMS) \
     && (cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256) \
     && (cd "$ROOT" && sha256sum -c SHA256SUMS > /dev/null) 2>> "$ROOT/stderr" \
     && test "$(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$ROOT/ROOT_SHA256")"
@@ -1384,8 +1480,9 @@ Run:
 ~~~bash
 set -euo pipefail
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 CAMP_HEAD=$(git rev-parse HEAD)
-ROOT=$(python3.12 - "$CAMP_HEAD" <<'PY'
+ROOT=$("$TEST_PYTHON" - "$CAMP_HEAD" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -1404,17 +1501,27 @@ PY
 )
 (cd "$ROOT" && sha256sum -c SHA256SUMS)
 (cd /root/autodl-tmp/camp_core && sha256sum -c "$ROOT/SOURCE_SHA256SUMS")
+(cd / && sha256sum -c "$ROOT/RUNTIME_SHA256SUMS")
 test "$(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$ROOT/ROOT_SHA256")"
 test "$(cat "$ROOT/EXIT_STATUS")" = 0
 test ! -s "$ROOT/PROCESSES"
 test ! -s "$ROOT/LISTENERS"
-python3.12 - "$ROOT/preflight.json" <<'PY'
+"$TEST_PYTHON" - "$ROOT/preflight.json" <<'PY'
 import json
 import sys
 from pathlib import Path
 data = json.loads(Path(sys.argv[1]).read_text())
 assert data["status"] == "pass"
 assert data["free_bytes"] >= 10737418240
+assert data["python_path"] == "/root/miniconda3/bin/python3.12"
+assert data["test_python_path"] == "/root/autodl-tmp/camp_v19_nuplan_env/bin/python"
+assert data["test_python_resolved"] == "/root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9"
+assert data["test_python_version"] == "Python 3.9.23"
+assert data["test_python_sha256"] == "d3f0bc59e0eb9c8ea292b68fcb2f0f2711491ec8a5176200494919ca7c7a0e6c"
+assert data["carla_python_path"] == "/root/miniconda3/bin/python3.12"
+assert data["carla_python_resolved"] == "/root/miniconda3/bin/python3.12"
+assert data["carla_python_version"] == "Python 3.12.3"
+assert data["carla_python_sha256"] == "0c05a22b0b180580a76437114a95cf138f67c8f46245acad26017c803b42b8c1"
 assert data["map_constructor"] == 'carla.Map("Carla/Maps/Town10HD_Opt", opendrive_xml)'
 assert data["selected_libcarla_path"] == data["imported_libcarla_path"]
 assert data["command_sha256"] == __import__("hashlib").sha256(
@@ -1448,10 +1555,18 @@ carla.Map.
 ~~~bash
 set -uo pipefail
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
+EXPECTED_TEST_PYTHON_RESOLVED=/root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9
+EXPECTED_TEST_PYTHON_VERSION='Python 3.9.23'
+EXPECTED_TEST_PYTHON_SHA256=d3f0bc59e0eb9c8ea292b68fcb2f0f2711491ec8a5176200494919ca7c7a0e6c
+CARLA_PYTHON=/root/miniconda3/bin/python3.12
+EXPECTED_CARLA_PYTHON_RESOLVED=/root/miniconda3/bin/python3.12
+EXPECTED_CARLA_PYTHON_VERSION='Python 3.12.3'
+EXPECTED_CARLA_PYTHON_SHA256=0c05a22b0b180580a76437114a95cf138f67c8f46245acad26017c803b42b8c1
 CAMP_HEAD=$(git rev-parse HEAD)
 ORIGIN_HEAD=$(git rev-parse origin/main)
 DP_HEAD=$(git -C /root/autodl-tmp/Diffusion-Planner rev-parse HEAD)
-PREFLIGHT_ROOT=$(python3.12 - "$CAMP_HEAD" <<'PY'
+PREFLIGHT_ROOT=$("$TEST_PYTHON" - "$CAMP_HEAD" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -1471,7 +1586,7 @@ PY
 )
 EXECUTION_ROOT_FROM_PREFLIGHT=
 if test -n "$PREFLIGHT_ROOT"; then
-  EXECUTION_ROOT_FROM_PREFLIGHT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("execution_root", ""))' "$PREFLIGHT_ROOT/preflight.json")
+  EXECUTION_ROOT_FROM_PREFLIGHT=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("execution_root", ""))' "$PREFLIGHT_ROOT/preflight.json")
 fi
 case "$EXECUTION_ROOT_FROM_PREFLIGHT" in
   /root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_*)
@@ -1493,6 +1608,7 @@ printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
   "$CAMP_HEAD" "$ORIGIN_HEAD" "$DP_HEAD" > "$EXECUTION_ROOT/HEADS"
 : > "$EXECUTION_ROOT/COMMAND"
 : > "$EXECUTION_ROOT/SOURCE_SHA256SUMS"
+: > "$EXECUTION_ROOT/RUNTIME_SHA256SUMS"
 printf '{}\n' > "$EXECUTION_ROOT/preflight.json"
 : > "$EXECUTION_ROOT/stdout"
 : > "$EXECUTION_ROOT/stderr"
@@ -1514,6 +1630,7 @@ if test -n "$PREFLIGHT_ROOT"; then
   cp "$PREFLIGHT_ROOT/COMMAND" "$EXECUTION_ROOT/COMMAND" || fail preflight_command_copy_failed
   cp "$PREFLIGHT_ROOT/preflight.json" "$EXECUTION_ROOT/preflight.json" || fail preflight_json_copy_failed
   cp "$PREFLIGHT_ROOT/SOURCE_SHA256SUMS" "$EXECUTION_ROOT/SOURCE_SHA256SUMS" || fail preflight_source_manifest_copy_failed
+  cp "$PREFLIGHT_ROOT/RUNTIME_SHA256SUMS" "$EXECUTION_ROOT/RUNTIME_SHA256SUMS" || fail preflight_runtime_manifest_copy_failed
   cp "$PREFLIGHT_ROOT/CARLA_MODULE_PATH" "$EXECUTION_ROOT/CARLA_MODULE_PATH" || fail preflight_carla_path_copy_failed
   (cd "$PREFLIGHT_ROOT" && sha256sum -c SHA256SUMS) \
     >> "$EXECUTION_ROOT/stdout" 2>> "$EXECUTION_ROOT/stderr" \
@@ -1523,16 +1640,20 @@ if test -n "$PREFLIGHT_ROOT"; then
   (cd /root/autodl-tmp/camp_core && sha256sum -c "$PREFLIGHT_ROOT/SOURCE_SHA256SUMS") \
     >> "$EXECUTION_ROOT/stdout" 2>> "$EXECUTION_ROOT/stderr" \
     || fail preflight_source_hashes_drifted
+  (cd / && sha256sum -c "$PREFLIGHT_ROOT/RUNTIME_SHA256SUMS") \
+    >> "$EXECUTION_ROOT/stdout" 2>> "$EXECUTION_ROOT/stderr" \
+    || fail preflight_runtime_hashes_drifted
   test "$(cat "$PREFLIGHT_ROOT/EXIT_STATUS")" = 0 || fail preflight_exit_nonzero
-  PREFLIGHT_STATUS=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("status"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_JSON_EXIT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("exit_status"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_CAMP_HEAD=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("camp_head"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_COMMAND_SHA=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("command_sha256"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_OUTPUT=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("output_json"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_OUTPUT_TMP=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("output_tmp"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_PYTHON=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("python_path"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_SELECTED_LIB=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("selected_libcarla_path"))' "$PREFLIGHT_ROOT/preflight.json")
-  PREFLIGHT_IMPORTED_LIB=$(python3.12 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("imported_libcarla_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_STATUS=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("status"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_JSON_EXIT=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("exit_status"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_CAMP_HEAD=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("camp_head"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_COMMAND_SHA=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("command_sha256"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_OUTPUT=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("output_json"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_OUTPUT_TMP=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("output_tmp"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_PYTHON=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("python_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_TEST_PYTHON=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("test_python_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_SELECTED_LIB=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("selected_libcarla_path"))' "$PREFLIGHT_ROOT/preflight.json")
+  PREFLIGHT_IMPORTED_LIB=$("$TEST_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("imported_libcarla_path"))' "$PREFLIGHT_ROOT/preflight.json")
   PREFLIGHT_HEAD_CAMP=$(awk -F= '$1=="camp_head" {print $2}' "$PREFLIGHT_ROOT/HEADS")
   PREFLIGHT_HEAD_ORIGIN=$(awk -F= '$1=="origin_main" {print $2}' "$PREFLIGHT_ROOT/HEADS")
   PREFLIGHT_HEAD_DP=$(awk -F= '$1=="fixed_dp_head" {print $2}' "$PREFLIGHT_ROOT/HEADS")
@@ -1542,6 +1663,16 @@ if test -n "$PREFLIGHT_ROOT"; then
   test "$PREFLIGHT_HEAD_CAMP" = "$CAMP_HEAD" || fail preflight_heads_camp_mismatch
   test "$PREFLIGHT_HEAD_ORIGIN" = "$ORIGIN_HEAD" || fail preflight_heads_origin_mismatch
   test "$PREFLIGHT_HEAD_DP" = "$DP_HEAD" || fail preflight_heads_fixed_dp_mismatch
+  test "$PREFLIGHT_PYTHON" = /root/miniconda3/bin/python3.12 || fail preflight_carla_python_mismatch
+  test "$PREFLIGHT_TEST_PYTHON" = "$TEST_PYTHON" || fail preflight_test_python_mismatch
+  test -x "$TEST_PYTHON" || fail point_of_use_test_python_not_executable
+  test -x "$CARLA_PYTHON" || fail point_of_use_carla_python_not_executable
+  test "$(readlink -f "$TEST_PYTHON")" = "$EXPECTED_TEST_PYTHON_RESOLVED" || fail point_of_use_test_python_resolved_path_mismatch
+  test "$(readlink -f "$CARLA_PYTHON")" = "$EXPECTED_CARLA_PYTHON_RESOLVED" || fail point_of_use_carla_python_resolved_path_mismatch
+  test "$("$TEST_PYTHON" --version 2>&1)" = "$EXPECTED_TEST_PYTHON_VERSION" || fail point_of_use_test_python_version_mismatch
+  test "$("$CARLA_PYTHON" --version 2>&1)" = "$EXPECTED_CARLA_PYTHON_VERSION" || fail point_of_use_carla_python_version_mismatch
+  test "$(sha256sum "$EXPECTED_TEST_PYTHON_RESOLVED" | awk '{print $1}')" = "$EXPECTED_TEST_PYTHON_SHA256" || fail point_of_use_test_python_sha256_mismatch
+  test "$(sha256sum "$EXPECTED_CARLA_PYTHON_RESOLVED" | awk '{print $1}')" = "$EXPECTED_CARLA_PYTHON_SHA256" || fail point_of_use_carla_python_sha256_mismatch
   test "$PREFLIGHT_SELECTED_LIB" = "$PREFLIGHT_IMPORTED_LIB" || fail preflight_libcarla_path_mismatch
   test "$(cat "$PREFLIGHT_ROOT/CARLA_MODULE_PATH")" = "$PREFLIGHT_IMPORTED_LIB" || fail preflight_libcarla_evidence_mismatch
   test "$CAMP_HEAD" = "$ORIGIN_HEAD" || fail point_of_use_origin_head_mismatch
@@ -1557,7 +1688,7 @@ if test -n "$PREFLIGHT_ROOT"; then
   test ! -e "$PREFLIGHT_OUTPUT" || fail output_json_exists
   test ! -e "$PREFLIGHT_OUTPUT_TMP" || fail output_tmp_exists
 fi
-python3.12 - <<'PY' > "$EXECUTION_ROOT/PROCESSES.before" 2>> "$EXECUTION_ROOT/stderr" || fail point_of_use_process_capture_failed
+"$TEST_PYTHON" - <<'PY' > "$EXECUTION_ROOT/PROCESSES.before" 2>> "$EXECUTION_ROOT/stderr" || fail point_of_use_process_capture_failed
 import json
 from pathlib import Path
 targets = {
@@ -1589,7 +1720,7 @@ if test "$CENSUS_INVOKED" = true; then
   test -f "$EXECUTION_ROOT/receipt.json" || fail receipt_missing
   test ! -e "$EXECUTION_ROOT/receipt.json.tmp" || fail output_tmp_left_behind
 fi
-python3.12 - <<'PY' > "$EXECUTION_ROOT/PROCESSES.after" 2>> "$EXECUTION_ROOT/stderr" || fail post_execution_process_capture_failed
+"$TEST_PYTHON" - <<'PY' > "$EXECUTION_ROOT/PROCESSES.after" 2>> "$EXECUTION_ROOT/stderr" || fail post_execution_process_capture_failed
 import json
 from pathlib import Path
 targets = {
@@ -1614,7 +1745,7 @@ test ! -s "$EXECUTION_ROOT/LISTENERS.after" || fail post_execution_carla_listene
 write_summary() {
   ARTIFACT_ROOT="$EXECUTION_ROOT" STATUS="$STATUS" \
   PREFLIGHT_REVERIFIED="$PREFLIGHT_REVERIFIED" CENSUS_INVOKED="$CENSUS_INVOKED" \
-  python3.12 - 2>> "$EXECUTION_ROOT/stderr" <<'PY'
+  "$TEST_PYTHON" - 2>> "$EXECUTION_ROOT/stderr" <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1656,7 +1787,8 @@ fi
 test "$STATUS" -eq 0
 ~~~
 
-Expected pass: the copied and point-of-use-reverified COMMAND is invoked
+Expected pass: both sealed interpreter identities are point-of-use-reverified,
+and the copied COMMAND is invoked
 exactly once; EXIT_STATUS is 0; receipt.json and result.json/result.md exist;
 fresh process/listener evidence is empty; all files are sealed. If any
 preflight, source, provenance, command, output-path, process, or listener check
@@ -1684,8 +1816,9 @@ fail-marked reseal; failure of that reseal exits nonzero.
 ~~~bash
 set -uo pipefail
 cd /root/autodl-tmp/camp_core
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 CAMP_HEAD=$(git rev-parse HEAD)
-EXECUTION_ROOT=$(python3.12 - "$CAMP_HEAD" <<'PY'
+EXECUTION_ROOT=$("$TEST_PYTHON" - "$CAMP_HEAD" <<'PY'
 import sys
 from pathlib import Path
 head = sys.argv[1]
@@ -1712,9 +1845,10 @@ ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_review_$STAM
 mkdir "$ROOT" || { printf 'artifact root allocation failed: %s\n' "$ROOT" >&2; exit 1; }
 cp "$EXECUTION_ROOT/HEADS" "$ROOT/HEADS"
 cp "$EXECUTION_ROOT/SOURCE_SHA256SUMS" "$ROOT/SOURCE_SHA256SUMS" 2>/dev/null || : > "$ROOT/SOURCE_SHA256SUMS"
+cp "$EXECUTION_ROOT/RUNTIME_SHA256SUMS" "$ROOT/RUNTIME_SHA256SUMS" 2>/dev/null || : > "$ROOT/RUNTIME_SHA256SUMS"
 : > "$ROOT/stdout"
 : > "$ROOT/stderr"
-python3.12 - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
+"$TEST_PYTHON" - <<'PY' > "$ROOT/PROCESSES" 2>> "$ROOT/stderr" || printf '{"capture_error":"process_scan_failed"}\n' > "$ROOT/PROCESSES"
 import json
 from pathlib import Path
 targets = {
@@ -1737,8 +1871,9 @@ ss -H -ltnp 'sport = :2000 or sport = :2001' > "$ROOT/LISTENERS" 2>> "$ROOT/stde
   || printf 'listener_capture_failed\n' > "$ROOT/LISTENERS"
 cat > "$ROOT/COMMAND" <<'SH'
 set -uo pipefail
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
 PYTHONPATH=/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core \
-python3.12 - <<'PY'
+"$TEST_PYTHON" - <<'PY'
 import json
 import math
 import os
@@ -1797,6 +1932,7 @@ checks = {
     "execution_manifest_valid": os.environ["EXECUTION_MANIFEST_VALID"] == "true",
     "execution_root_hash_valid": os.environ["EXECUTION_ROOT_HASH_VALID"] == "true",
     "source_hashes_valid": os.environ["SOURCE_HASHES_VALID"] == "true",
+    "runtime_hashes_valid": os.environ["RUNTIME_HASHES_VALID"] == "true",
     "execution_exit_zero": execution_exit == "0",
     "receipt_present": receipt_path.is_file(),
     "processes_empty": not (execution / "PROCESSES.before").read_text() and not (execution / "PROCESSES.after").read_text(),
@@ -1912,11 +2048,16 @@ SOURCE_HASHES_VALID=false
 test -s "$EXECUTION_ROOT/SOURCE_SHA256SUMS" \
   && (cd /root/autodl-tmp/camp_core && sha256sum -c "$EXECUTION_ROOT/SOURCE_SHA256SUMS") >> "$ROOT/stdout" 2>> "$ROOT/stderr" \
   && SOURCE_HASHES_VALID=true
+RUNTIME_HASHES_VALID=false
+test -s "$EXECUTION_ROOT/RUNTIME_SHA256SUMS" \
+  && (cd / && sha256sum -c "$EXECUTION_ROOT/RUNTIME_SHA256SUMS") >> "$ROOT/stdout" 2>> "$ROOT/stderr" \
+  && RUNTIME_HASHES_VALID=true
 set +e
 EXECUTION_ROOT="$EXECUTION_ROOT" ARTIFACT_ROOT="$ROOT" \
 EXECUTION_MANIFEST_VALID="$EXECUTION_MANIFEST_VALID" \
 EXECUTION_ROOT_HASH_VALID="$EXECUTION_ROOT_HASH_VALID" \
 SOURCE_HASHES_VALID="$SOURCE_HASHES_VALID" \
+RUNTIME_HASHES_VALID="$RUNTIME_HASHES_VALID" \
 bash "$ROOT/COMMAND" >> "$ROOT/stdout" 2>> "$ROOT/stderr"
 STATUS=$?
 test ! -s "$ROOT/PROCESSES" || STATUS=1
@@ -1924,13 +2065,13 @@ test ! -s "$ROOT/LISTENERS" || STATUS=1
 SUMMARY_OK=false
 if test -s "$ROOT/review.json" \
   && test -s "$ROOT/review.md" \
-  && python3.12 -m json.tool "$ROOT/review.json" > /dev/null 2>> "$ROOT/stderr"; then
+  && "$TEST_PYTHON" -m json.tool "$ROOT/review.json" > /dev/null 2>> "$ROOT/stderr"; then
   SUMMARY_OK=true
 else
   STATUS=1
 fi
 mark_summary_failed() {
-  ARTIFACT_ROOT="$ROOT" STATUS="$STATUS" python3.12 - 2>> "$ROOT/stderr" <<'PY'
+  ARTIFACT_ROOT="$ROOT" STATUS="$STATUS" "$TEST_PYTHON" - 2>> "$ROOT/stderr" <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1960,7 +2101,7 @@ PY
 seal() {
   test "$SUMMARY_OK" = true \
     && printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS" \
-    && (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS review.json review.md PROCESSES LISTENERS SOURCE_SHA256SUMS > SHA256SUMS) \
+    && (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS review.json review.md PROCESSES LISTENERS SOURCE_SHA256SUMS RUNTIME_SHA256SUMS > SHA256SUMS) \
     && (cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256) \
     && (cd "$ROOT" && sha256sum -c SHA256SUMS > /dev/null) 2>> "$ROOT/stderr" \
     && test "$(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$ROOT/ROOT_SHA256")"
