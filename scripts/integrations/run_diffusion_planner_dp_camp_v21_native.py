@@ -872,6 +872,11 @@ def execute_smoke(
     staging.mkdir(parents=True)
     arms: list[dict[str, Any]] = []
     pairs: list[dict[str, Any]] = []
+    expected_selection_policy = (
+        _selection_policy(config)
+        if config.get("schema_version") == "camp_dp_v22_native_capability_v1"
+        else None
+    )
     try:
         routes = {route["name"]: route for route in config["routes"]}
         if mode == "capability-smoke":
@@ -888,7 +893,11 @@ def execute_smoke(
                 )
             )
             _validate_arm_receipt(
-                receipt, "camp", expected_ticks=1, require_summary=False
+                receipt,
+                "camp",
+                expected_ticks=1,
+                require_summary=False,
+                expected_selection_policy=expected_selection_policy,
             )
             arms.append(receipt)
         elif mode == "paired-smoke":
@@ -910,7 +919,13 @@ def execute_smoke(
                             max_steps=64,
                         )
                     )
-                    _validate_arm_receipt(receipt, arm)
+                    _validate_arm_receipt(
+                        receipt,
+                        arm,
+                        expected_selection_policy=(
+                            expected_selection_policy if arm == "camp" else None
+                        ),
+                    )
                     route_arms[arm] = receipt
                     arms.append(receipt)
                 pairs.append(
@@ -1092,6 +1107,7 @@ def _validate_arm_receipt(
     *,
     expected_ticks: int | None = None,
     require_summary: bool = True,
+    expected_selection_policy: str | None = None,
 ) -> None:
     if receipt.get("status") != "ok":
         raise ValueError(f"{arm} arm failed")
@@ -1164,6 +1180,45 @@ def _validate_arm_receipt(
                 != tick["candidate_tensor_sha256_after"]
             ):
                 raise ValueError("CAMP candidate tensor was modified")
+            if expected_selection_policy is not None:
+                if tick.get("selection_policy") != expected_selection_policy:
+                    raise ValueError("CAMP selection policy mismatch")
+                selected_index = tick.get("selected_index")
+                if (
+                    isinstance(selected_index, bool)
+                    or not isinstance(selected_index, int)
+                    or not 0 <= selected_index < 8
+                ):
+                    raise ValueError("CAMP selected index is outside fixed K=8")
+                masks = {}
+                for name in (
+                    "source_valid_mask",
+                    "physical_feasible_mask",
+                    "source_complete_mask",
+                ):
+                    values = tick.get(name)
+                    if (
+                        not isinstance(values, list)
+                        or len(values) != 8
+                        or any(not isinstance(value, bool) for value in values)
+                    ):
+                        raise ValueError(f"CAMP {name} must be a boolean K=8 mask")
+                    masks[name] = values
+                if not masks["source_valid_mask"][selected_index]:
+                    raise ValueError("CAMP selected a source-invalid candidate")
+                identity = _mapping(tick, "default_candidate0_identity")
+                default_sha = tick.get("default_output_sha256")
+                if (
+                    identity.get("elementwise_equal") is not True
+                    or float(identity.get("max_abs_difference", float("nan"))) != 0.0
+                    or identity.get("native_ranked_k8") is not False
+                    or not _is_sha256(default_sha)
+                    or identity.get("default_output_sha256") != default_sha
+                    or identity.get("candidate0_sha256") != default_sha
+                ):
+                    raise ValueError("DP operational default/candidate 0 identity failed")
+                if not isinstance(tick.get("all_k_high_risk"), bool):
+                    raise ValueError("all_k_high_risk must be boolean")
 
     if not require_summary:
         return
@@ -1897,6 +1952,7 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             tick[name] = str(receipt[name])
         tick.update(
             {
+                "selection_policy": str(receipt["selection_policy"]),
                 "selected_index": int(receipt["selected_index"]),
                 "default_candidate0_identity": dict(
                     _mapping(receipt, "default_candidate0_identity")

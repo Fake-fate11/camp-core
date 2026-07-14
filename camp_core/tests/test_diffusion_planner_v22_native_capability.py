@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "configs" / "diffusion_planner_v22_native_capability.json"
@@ -54,6 +56,96 @@ def test_existing_native_runner_reads_v22_selection_policy() -> None:
     config = _config()
 
     assert module._selection_policy(config) == "v22_source_valid"
+
+
+def _v22_camp_tick() -> dict:
+    digest = "1" * 64
+    return {
+        "tick_index": 0,
+        "input_sha256": "2" * 64,
+        "padding": {
+            "observed_frames": 1,
+            "padded_frames": 30,
+            "padding_policy": "native_zero_left_pad_to_31_v1",
+        },
+        "tracker": {"status": "ok"},
+        "safety": {"source_complete": True},
+        "latency_ms": {"total_planning": 1.0},
+        "default_output_sha256": digest,
+        "selection_policy": "v22_source_valid",
+        "candidate_tensor_sha256_before": "3" * 64,
+        "candidate_tensor_sha256_after": "3" * 64,
+        "atom_matrix_sha256": "4" * 64,
+        "selected_trajectory_sha256": "5" * 64,
+        "selected_index": 3,
+        "default_candidate0_identity": {
+            "elementwise_equal": True,
+            "max_abs_difference": 0.0,
+            "default_output_sha256": digest,
+            "candidate0_sha256": digest,
+            "native_ranked_k8": False,
+        },
+        "source_valid_mask": [True] * 8,
+        "physical_feasible_mask": [True] * 8,
+        "source_complete_mask": [True] * 8,
+        "all_k_high_risk": False,
+    }
+
+
+def test_public_v22_tick_retains_selection_policy() -> None:
+    module = _runner()
+    tick = _v22_camp_tick()
+    tick.update(
+        {
+            "causal_input": {
+                "input_sha256": tick["input_sha256"],
+                "observed_frames": 1,
+                "padded_frames": 30,
+                "padding_policy": "native_zero_left_pad_to_31_v1",
+            },
+            "_safety_record": tick["safety"],
+            "candidate_neighbor_sha256": "6" * 64,
+            "global_rng_sha256_before": "7" * 64,
+            "global_rng_sha256_after": "7" * 64,
+        }
+    )
+
+    public = module._public_tick_receipt(tick, "camp")
+
+    assert public["selection_policy"] == "v22_source_valid"
+
+
+def test_v22_capability_receipt_validator_requires_identity_and_policy() -> None:
+    module = _runner()
+    tick = _v22_camp_tick()
+    receipt = {
+        "status": "ok",
+        "route_name": "diagnostic",
+        "route_sha256": "8" * 64,
+        "arm": "camp",
+        "initial_state_sha256": "9" * 64,
+        "initial_input_sha256": tick["input_sha256"],
+        "ticks": [tick],
+        "claim_authorized": False,
+    }
+
+    module._validate_arm_receipt(
+        receipt,
+        "camp",
+        expected_ticks=1,
+        require_summary=False,
+        expected_selection_policy="v22_source_valid",
+    )
+
+    tick["default_candidate0_identity"]["candidate0_sha256"] = "a" * 64
+    with pytest.raises(ValueError, match="candidate 0 identity"):
+        module._validate_arm_receipt(
+            receipt,
+            "camp",
+            expected_ticks=1,
+            require_summary=False,
+            expected_selection_policy="v22_source_valid",
+        )
 
 
 def test_v22_capability_preflight_writes_no_execution_receipt(tmp_path) -> None:
