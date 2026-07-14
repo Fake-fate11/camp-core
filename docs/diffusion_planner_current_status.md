@@ -3,9 +3,37 @@
 Last verified: 2026-07-14, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v21_iteration_audit.md`. V20 and earlier
-audits are historical evidence and remain frozen except for explicit
-qualifications.
+new writes is `docs/diffusion_planner_v22_iteration_audit.md`. V21 and earlier
+audits are historical evidence and remain frozen.
+
+## Current V22 Status
+
+Reader contract: this named section is the only v22 pointer source in this
+file. The EOF of `docs/diffusion_planner_v22_iteration_audit.md` is the sole
+current-gate authority, and the tuple below must match it exactly.
+
+V22 is an independent native-simulator training and paired closed-loop study.
+Startup reconciliation found local `main`, local `origin/main`, live GitHub
+`main`, and AutoDL CAMP identical and tracked-clean at
+`0a9b19b4f3993460a1a28d28e25211ac7087997b`. AutoDL fixed DP was tracked-clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, and no related native v21/v22
+task was active. V21 remains a read-only honest no-claim diagnosis; no v21
+gate will be rerun or renamed.
+
+The frozen v22 route-retention contract keeps every outcome-blind selected
+route in the denominator, receipts, and failure accounting. Source-valid K=8
+candidates remain selectable even when all are high risk; CAMP must choose the
+relative minimum under the same frozen affine/simplex score and continue the
+closed loop. Only source/execution invalidity can stop an arm, and such a route
+still remains in the denominator without replacement.
+
+current_v22_status=v22_native_larger_paired_closed_loop_startup_reconciled
+current_v22_artifact_source_head=0a9b19b4f3993460a1a28d28e25211ac7087997b
+camp_github_autodl_head=0a9b19b4f3993460a1a28d28e25211ac7087997b
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=pending_gate_0_evidence_package
+current_v22_artifact_root_sha256=pending_gate_0_evidence_package
+next_work_target=v22_native_contract_capability_audit_only
 
 ## Current V21 Status
 
