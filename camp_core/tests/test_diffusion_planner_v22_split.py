@@ -221,6 +221,75 @@ def test_true_ceiling_no_go_keeps_every_source_record_accounted() -> None:
     )
 
 
+def test_global_group_allocation_prioritizes_pilot_and_main_hard_targets() -> None:
+    module = _split_module()
+    records = []
+    groups = []
+    offset = 0
+    for group_index, (size, holdout_forbidden) in enumerate(
+        ((759, False), (152, True), (4, False))
+    ):
+        members = []
+        identities = []
+        for index in range(size):
+            route = _route(
+                f"g{group_index}-{index}",
+                y=float(offset + index) * 10.0,
+                logical_map=f"map-{group_index}",
+            )
+            route["holdout_forbidden"] = holdout_forbidden
+            records.append(route)
+            members.append(route["record_key"])
+            identities.append(route["identity_sha256"])
+        offset += size
+        groups.append(
+            {
+                "group_sha256": _sha(f"group-{group_index}"),
+                "route_record_keys": members,
+                "route_identity_sha256": sorted(identities),
+                "route_record_count": size,
+                "unique_route_count": size,
+                "logical_map_sha256": [_sha(f"map-{group_index}")],
+                "source_stratum_counts": {
+                    "traffic_light": 0,
+                    "branch_intersection": 0,
+                    "tight_corridor": 0,
+                    "short_progress_opportunity": 0,
+                },
+                "holdout_forbidden": holdout_forbidden,
+            }
+        )
+    grouping = {
+        "schema_version": "v22_route_leakage_groups_v1",
+        "route_records": records,
+        "groups": groups,
+        "edges": [],
+    }
+
+    manifest = module.freeze_split_manifest(
+        grouping,
+        seed_namespaces={
+            "train": [22001, 22002, 22003, 22004, 22005, 22006, 22007, 22008],
+            "calibration": [22101, 22102, 22103],
+            "holdout": [22201, 22202, 22203, 22204, 22205],
+        },
+        targets={"train": 500, "calibration": 30, "holdout": 100},
+    )
+
+    assert manifest["status"] == "frozen"
+    assert manifest["achieved_route_counts"] == {
+        "train": 4,
+        "calibration": 30,
+        "holdout": 100,
+    }
+    assert manifest["target_reached"] == {
+        "train": False,
+        "calibration": True,
+        "holdout": True,
+    }
+    assert len(manifest["expected_pairs"]) == 622
+
+
 def test_split_manifest_is_byte_deterministic() -> None:
     module = _split_module()
     routes = [_route(str(index), y=100.0 * index) for index in range(6)]

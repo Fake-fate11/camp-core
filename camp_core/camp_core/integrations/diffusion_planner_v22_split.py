@@ -5,7 +5,7 @@ import json
 import math
 from collections import defaultdict
 from copy import deepcopy
-from itertools import combinations
+from itertools import combinations, product
 from typing import Any, Iterable, Mapping
 
 import numpy as np
@@ -289,19 +289,12 @@ def freeze_split_manifest(
     assigned_groups: dict[str, str] = {}
     excluded = []
     selected_identities: set[str] = set()
-    split_map_counts: dict[str, dict[str, int]] = {
-        split: defaultdict(int) for split in SPLITS
-    }
-    split_stress_counts: dict[str, int] = {split: 0 for split in SPLITS}
+    ordered_groups = sorted(groups, key=lambda item: item["group_sha256"])
+    allocation = _assign_group_splits(ordered_groups, frozen_targets)
 
-    for group in sorted(groups, key=lambda item: item["group_sha256"]):
-        eligible_splits = [
-            split
-            for split in SPLITS
-            if split_payload[split]["achieved_route_count"] < frozen_targets[split]
-            and not (split == "holdout" and group.get("holdout_forbidden"))
-        ]
-        if not eligible_splits:
+    for group in ordered_groups:
+        split = allocation[group["group_sha256"]]
+        if split is None:
             for record_key in group["route_record_keys"]:
                 route = records[record_key]
                 excluded.append(
@@ -312,20 +305,6 @@ def freeze_split_manifest(
                     )
                 )
             continue
-        map_sha = str(group["logical_map_sha256"][0])
-        stress = sum(int(value) for value in group["source_stratum_counts"].values())
-
-        def priority(split: str) -> tuple[float, int, int, int]:
-            achieved = split_payload[split]["achieved_route_count"]
-            deficit = (frozen_targets[split] - achieved) / frozen_targets[split]
-            return (
-                deficit,
-                -split_map_counts[split][map_sha],
-                -split_stress_counts[split],
-                -SPLITS.index(split),
-            )
-
-        split = max(eligible_splits, key=priority)
         assigned_groups[group["group_sha256"]] = split
         split_payload[split]["group_sha256"].append(group["group_sha256"])
         remaining = frozen_targets[split] - split_payload[split]["achieved_route_count"]
@@ -361,8 +340,6 @@ def freeze_split_manifest(
                 }
             )
         split_payload[split]["achieved_route_count"] += selected_here
-        split_map_counts[split][map_sha] += selected_here
-        split_stress_counts[split] += stress
 
     expected_pairs = []
     for split in SPLITS:
@@ -391,7 +368,11 @@ def freeze_split_manifest(
     }
     manifest = {
         "schema_version": "v22_route_family_split_manifest_v1",
-        "status": "frozen" if all(target_reached.values()) else "no_go_true_ceiling",
+        "status": (
+            "frozen"
+            if target_reached["calibration"] and target_reached["holdout"]
+            else "no_go_true_ceiling"
+        ),
         "source_only": True,
         "outcome_fields_consumed": [],
         "claim_scope": (
@@ -399,7 +380,7 @@ def freeze_split_manifest(
         ),
         "unseen_map_generalization_authorized": False,
         "allocation_policy": (
-            "group_sha_order_max_normalized_target_deficit_source_balance_v1"
+            "source_only_global_eval_target_first_then_training_ceiling_v1"
         ),
         "targets": frozen_targets,
         "achieved_route_counts": achieved,
@@ -436,6 +417,77 @@ def freeze_split_manifest(
     manifest["split_freeze_sha256"] = canonical_json_sha256(manifest)
     validate_split_manifest(manifest)
     return manifest
+
+
+def _assign_group_splits(
+    groups: list[Mapping[str, Any]], targets: Mapping[str, int]
+) -> dict[str, str | None]:
+    if len(groups) <= 9:
+        choices: tuple[str | None, ...] = (*SPLITS, None)
+        best_assignment = None
+        best_key = None
+        for assignment in product(choices, repeat=len(groups)):
+            if any(
+                split == "holdout" and group.get("holdout_forbidden")
+                for group, split in zip(groups, assignment)
+            ):
+                continue
+            capacity = {split: 0 for split in SPLITS}
+            for group, split in zip(groups, assignment):
+                if split is not None:
+                    capacity[split] += int(group["unique_route_count"])
+            ratios = {
+                split: min(capacity[split], targets[split]) / targets[split]
+                for split in SPLITS
+            }
+            eval_reached = sum(
+                ratios[split] >= 1.0 for split in ("calibration", "holdout")
+            )
+            assigned_capacity = sum(
+                int(group["unique_route_count"])
+                for group, split in zip(groups, assignment)
+                if split is not None
+            )
+            tie_break = tuple(
+                -(choices.index(split)) for split in assignment
+            )
+            key = (
+                eval_reached,
+                min(ratios["calibration"], ratios["holdout"]),
+                ratios["train"],
+                sum(ratios.values()),
+                -assigned_capacity,
+                tie_break,
+            )
+            if best_key is None or key > best_key:
+                best_key = key
+                best_assignment = assignment
+        if best_assignment is None:
+            raise ValueError("no source-only group allocation exists")
+        return {
+            group["group_sha256"]: split
+            for group, split in zip(groups, best_assignment)
+        }
+
+    achieved = {split: 0 for split in SPLITS}
+    result: dict[str, str | None] = {}
+    for group in groups:
+        eligible = [
+            split
+            for split in ("holdout", "calibration", "train")
+            if achieved[split] < targets[split]
+            and not (split == "holdout" and group.get("holdout_forbidden"))
+        ]
+        if not eligible:
+            result[group["group_sha256"]] = None
+            continue
+        split = max(
+            eligible,
+            key=lambda name: (targets[name] - achieved[name]) / targets[name],
+        )
+        result[group["group_sha256"]] = split
+        achieved[split] += int(group["unique_route_count"])
+    return result
 
 
 def validate_split_manifest(manifest: Mapping[str, Any]) -> None:
