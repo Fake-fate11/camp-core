@@ -1457,12 +1457,68 @@ artifact/root:
 / `fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a`,
 with exit 0. Solver, retraining, simulator, pilot, and holdout were not
 executed; no claim is authorized.
+Its exact next target was `v22_native_paired_pilot_protocol_tdd_only`.
 
-current_v22_status=v22_calibration_selector_freeze_and_independent_review_passed
-current_v22_artifact_source_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
-current_v22_prior_gate_final_synced_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
+## Native Paired Pilot Protocol TDD and Corrected Preflight
+
+Status: passed; capability-chain execution is next.
+
+At CAMP HEAD `66499753d07004ae6c773dfdd53c1126eff1e095`, Task 7 added a
+thin paired evaluator that imports the existing `build_native_arm_runner`.
+It contains no second replay loop. Every preregistered route-seed produces a
+retained pair row even if either arm raises or is source-invalid; no route,
+seed, candidate, or arm is retried, replaced, or redrawn. DP then CAMP share
+the same route/map bytes, fixed DP/checkpoint/args hashes, scenario/candidate
+seed, SpawnConfig hash, and initial state/input receipts.
+
+The shared runner now records all eight candidate-row hashes on every CAMP
+tick. Validation requires candidate tensor before/after equality, operational
+default/candidate-0 byte identity, source-valid-only affine argmin, and exact
+selected-trajectory SHA equality with the selected fixed K8 row. All-K-high-
+risk rows continue with the same affine argmin; no fallback or candidate-0
+force is permitted. Pilot uses calibration only, main remains locked, and
+every pilot summary sets final claim authorization false.
+
+Local and AutoDL v21/v22 regression initially passed 150 tests. Immutable TDD
+artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_protocol_tdd_66499753_20260715T023126CST`
+/ `8cd813abb1ecd24e0374821d9f8e500bdb619649408f274245c10bed686073b4`.
+No runner/model/simulator/pilot/holdout was opened.
+
+The first read-only preflight passed its then-tracked 2-route x 4-tick
+capability plan and verified 90 pilot plus 500 main pairs, but self-review
+found it omitted the separately required single-tick stage. Its artifact/root
+is preserved as incomplete for the frozen capability contract:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_preflight_66499753_20260715T023152CST`
+/ `f0a3fc369e3fcaf6136f66beffa27da65de03644bbf4a74885d1eb93e17fdfc7`.
+It built no runner, loaded no model, and executed no simulator, so no outcome
+was observed.
+
+At CAMP HEAD `d70c80b0429c8b1a6367cf2fb1a61536884bfc81`, minimal TDD froze a
+two-stage capability chain: one calibration route-seed pair at 1 tick,
+followed by two calibration route-seed pairs at 4 ticks. Both stages use the
+same shared runner factory and remain diagnostic/non-claim. Local and AutoDL
+regression passed 151 tests. Remediation TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_chain_remediation_tdd_d70c80b0_20260715T023350CST`
+/ `8e5f0dc521db1635196d165cb6fa4280012efcdc5c7880eca942865c9e4ec4a7`.
+
+The corrected static preflight rehashed the split, frozen selector/review,
+two logical maps, 134 selected route assets, fixed DP assets, and runtime
+weights/scales. It validated 593 run configs: 1 single-tick capability, 2
+tiny multi-route capability, 90 pilot, and 500 main. Frozen route counts are
+4 / 30 / 100 and seed counts 8 / 3 / 5. Primary speed tolerance is 0.1 m/s;
+0/0.05/0.1/0.2 sensitivities remain frozen. Main execution authorization is
+false and the holdout is unopened. Corrected preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST`
+/ `705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782`,
+with exit 0. It did not build the runner, load the DP model, or execute the
+simulator.
+
+current_v22_status=v22_native_paired_pilot_corrected_preflight_passed
+current_v22_artifact_source_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
+current_v22_prior_gate_final_synced_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST
-current_v22_artifact_root_sha256=fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a
-next_work_target=v22_native_paired_pilot_protocol_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST
+current_v22_artifact_root_sha256=705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782
+next_work_target=v22_native_paired_capability_execution_only

@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_calibration_selector_freeze_and_independent_review_passed",
-    "current_v22_artifact_source_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5",
-    "current_v22_prior_gate_final_synced_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5",
+    "current_v22_status=v22_native_paired_pilot_corrected_preflight_passed",
+    "current_v22_artifact_source_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81",
+    "current_v22_prior_gate_final_synced_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST",
-    "current_v22_artifact_root_sha256=fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a",
-    "next_work_target=v22_native_paired_pilot_protocol_tdd_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST",
+    "current_v22_artifact_root_sha256=705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782",
+    "next_work_target=v22_native_paired_capability_execution_only",
 )
 
 
@@ -325,5 +325,26 @@ def test_v22_records_calibration_freeze_execution_and_corrected_review() -> None
         "same affine argmin without fallback",
         "fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a",
         "v22_native_paired_pilot_protocol_tdd_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_paired_protocol_tdd_remediation_and_corrected_preflight() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "imports the existing `build_native_arm_runner`",
+        "no second replay loop",
+        "retained pair row",
+        "exact selected-trajectory SHA equality",
+        "8cd813abb1ecd24e0374821d9f8e500bdb619649408f274245c10bed686073b4",
+        "preserved as incomplete",
+        "f0a3fc369e3fcaf6136f66beffa27da65de03644bbf4a74885d1eb93e17fdfc7",
+        "one calibration route-seed pair at 1 tick",
+        "151 tests",
+        "8e5f0dc521db1635196d165cb6fa4280012efcdc5c7880eca942865c9e4ec4a7",
+        "validated 593 run configs",
+        "90 pilot, and 500 main",
+        "705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782",
+        "v22_native_paired_capability_execution_only",
     ):
         assert phrase in text

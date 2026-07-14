@@ -464,16 +464,44 @@ candidate immutability/default identities, all-K affine argmin, and metric
 recomputation. Artifact/root:
 `/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST`
 / `fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a`.
-No simulator, pilot, holdout, or claim ran. Next is paired pilot protocol TDD.
+No simulator, pilot, holdout, or claim ran.
 
-current_v22_status=v22_calibration_selector_freeze_and_independent_review_passed
-current_v22_artifact_source_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
-current_v22_prior_gate_final_synced_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
+Paired protocol TDD passed at HEAD
+`66499753d07004ae6c773dfdd53c1126eff1e095`. The thin evaluator imports the
+shared v21 native runner, retains every planned failure row, and validates
+arm symmetry plus exact fixed-K8 selected-row hashes. AutoDL regression passed
+150 tests. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_protocol_tdd_66499753_20260715T023126CST`
+/ `8cd813abb1ecd24e0374821d9f8e500bdb619649408f274245c10bed686073b4`.
+
+The first preflight root
+`f0a3fc369e3fcaf6136f66beffa27da65de03644bbf4a74885d1eb93e17fdfc7`
+is preserved as incomplete: it froze only the 2-route x 4-tick capability and
+omitted the required single-tick stage. No runner/model/simulator ran.
+
+Capability-chain remediation passed at HEAD
+`d70c80b0429c8b1a6367cf2fb1a61536884bfc81`: 1 pair x 1 tick, then 2 pairs
+x 4 ticks, all through the same runner. AutoDL regression passed 151 tests.
+TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_capability_chain_remediation_tdd_d70c80b0_20260715T023350CST`
+/ `8e5f0dc521db1635196d165cb6fa4280012efcdc5c7880eca942865c9e4ec4a7`.
+
+Corrected preflight validated 593 configs: capability 1+2, pilot 90, main
+500; route counts 4/30/100 and seed counts 8/3/5. It rehashed 2 maps, 134
+selected routes, the frozen selector/review, fixed DP, and runtime assets.
+Main remains unauthorized and holdout unopened. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST`
+/ `705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782`.
+Next is capability-chain execution only.
+
+current_v22_status=v22_native_paired_pilot_corrected_preflight_passed
+current_v22_artifact_source_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
+current_v22_prior_gate_final_synced_head=d70c80b0429c8b1a6367cf2fb1a61536884bfc81
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST
-current_v22_artifact_root_sha256=fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a
-next_work_target=v22_native_paired_pilot_protocol_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_pilot_corrected_preflight_d70c80b0_20260715T023414CST
+current_v22_artifact_root_sha256=705f6bd36048b2d4889cbb20464c5de05beb7250739046ba6eea8a4b7d000782
+next_work_target=v22_native_paired_capability_execution_only
 
 ## Current V21 Status
 
