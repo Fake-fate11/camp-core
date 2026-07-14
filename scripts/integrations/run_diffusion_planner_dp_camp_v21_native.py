@@ -806,9 +806,97 @@ def validate_v22_capability_config(config: Mapping[str, Any]) -> None:
     validate_smoke_config(_v21_compatible_capability_config(config))
 
 
+def validate_v22_corpus_run_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") != "camp_dp_v22_native_corpus_run_v1":
+        raise ValueError("v22 corpus run config schema mismatch")
+    fixed_dp = _mapping(config, "fixed_dp")
+    if fixed_dp.get("head") != FIXED_DP_HEAD:
+        raise ValueError("fixed DP HEAD mismatch")
+    if fixed_dp.get("native_source_sha256") != NATIVE_SOURCE_SHA256:
+        raise ValueError("fixed DP native source hashes mismatch")
+    _asset_entry(fixed_dp, "checkpoint")
+    _asset_entry(fixed_dp, "args_json")
+
+    selector = _mapping(config, "selector")
+    if selector.get("root_sha256") != (
+        "afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7"
+    ):
+        raise ValueError("selector root mismatch")
+    _asset_entry(selector, "atom_scales")
+    _asset_entry(selector, "weights")
+    if (
+        selector.get("score_contract") != "score_k(w)=a_k^T w"
+        or selector.get("nonnegative_simplex") is not True
+        or selector.get("candidate_k") != 8
+        or selector.get("selection_policy") != V22_SOURCE_VALID_SELECTION
+        or selector.get("role") != "v18_ablation_corpus_collection_only"
+    ):
+        raise ValueError("v22 corpus selector contract mismatch")
+    _asset_entry(config, "map")
+
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v22 corpus run requires exactly one route")
+    route = _asset_entry_value(routes[0], "route")
+    if not _is_sha256(route.get("name")):
+        raise ValueError("v22 corpus route name must be its identity SHA256")
+
+    seeds = _mapping(config, "seeds")
+    seed = seeds.get("scenario")
+    if (
+        isinstance(seed, bool)
+        or not isinstance(seed, int)
+        or seed < 0
+        or seed in {11, 12, 13}
+        or seeds
+        != {
+            "scenario": seed,
+            "candidate": seed,
+            "bootstrap": seed,
+            "formal_forbidden": [11, 12, 13],
+        }
+    ):
+        raise ValueError("v22 corpus seed schedule mismatch")
+
+    spawn = _mapping(config, "spawn_config")
+    if set(spawn) != SPAWN_CONFIG_FIELDS:
+        raise ValueError("SpawnConfig fields do not exactly match native source")
+    critical = {
+        "seed": seed,
+        "max_steps": 64,
+        "advance_mode": "mpc",
+        "mpc_horizon_steps": 20,
+        "mpc_n_knots": 5,
+        "sequential_inference": False,
+        "sg_smooth_enabled": False,
+        "dump_npz_dir": None,
+        "reward_config_path": None,
+        "enable_traffic_lights": True,
+        "map_refresh_steps": 5,
+    }
+    if any(spawn.get(name) != value for name, value in critical.items()):
+        raise ValueError("critical v22 corpus SpawnConfig value mismatch")
+
+    protocol = _mapping(config, "protocol")
+    if (
+        protocol.get("corpus_steps") != 64
+        or protocol.get("sample_every_ticks") != 5
+        or protocol.get("safety_schema") != "safety_cost_native_v22"
+        or protocol.get("route_role") != "train_corpus_collection"
+        or protocol.get("training_authorized") is not True
+        or protocol.get("holdout_access_authorized") is not False
+        or protocol.get("formal_seeds_authorized") is not False
+        or protocol.get("claim_authorized") is not False
+    ):
+        raise ValueError("v22 corpus protocol mismatch")
+
+
 def _validate_native_config(config: Mapping[str, Any]) -> None:
     if config.get("schema_version") == "camp_dp_v22_native_capability_v1":
         validate_v22_capability_config(config)
+        return
+    if config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
+        validate_v22_corpus_run_config(config)
         return
     validate_smoke_config(config)
 
@@ -1653,9 +1741,13 @@ def build_native_arm_runner(
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
-        allowed_steps = {1, int(config["protocol"]["paired_steps"])}
-        if "tiny_steps" in config["protocol"]:
-            allowed_steps.add(int(config["protocol"]["tiny_steps"]))
+        protocol = _mapping(config, "protocol")
+        if config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
+            allowed_steps = {int(protocol["corpus_steps"])}
+        else:
+            allowed_steps = {1, int(protocol["paired_steps"])}
+            if "tiny_steps" in protocol:
+                allowed_steps.add(int(protocol["tiny_steps"]))
         if max_steps not in allowed_steps:
             raise ValueError("native smoke step count is not frozen")
         context = ensure_runtime()

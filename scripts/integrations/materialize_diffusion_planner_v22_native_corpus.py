@@ -9,10 +9,12 @@ does not build the runner, load the model, or execute the simulator.
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Mapping
+import time
+from typing import Any, Callable, Mapping
 
 import numpy as np
 
@@ -23,6 +25,7 @@ from camp_core.integrations.diffusion_planner_v22_split import (
 from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (
     build_native_arm_runner,
     validate_v22_capability_config,
+    validate_v22_corpus_run_config,
     verify_config_assets,
 )
 
@@ -56,6 +59,7 @@ class CorpusSnapshotWriter:
         route_identity_sha256: str,
         group_sha256: str,
         seed: int,
+        source_stratum: Mapping[str, Any] | None = None,
     ) -> None:
         if split not in {"train", "calibration"}:
             raise ValueError("holdout snapshots are forbidden")
@@ -79,7 +83,12 @@ class CorpusSnapshotWriter:
         self.route_identity_sha256 = route_identity_sha256
         self.group_sha256 = group_sha256
         self.seed = seed
+        self.source_stratum = {
+            str(name): bool(value)
+            for name, value in (source_stratum or {}).items()
+        }
         self.snapshot_sha256: list[str] = []
+        self.all_k_high_risk_snapshot_count = 0
         (self.output_dir / "snapshots").mkdir(parents=True, exist_ok=True)
 
     def __call__(self, snapshot: Mapping[str, Any]) -> str:
@@ -130,6 +139,7 @@ class CorpusSnapshotWriter:
                 "group_sha256": self.group_sha256,
                 "split": self.split,
                 "seed": self.seed,
+                "source_stratum": dict(self.source_stratum),
             }
         )
         payload["sidecar"] = sidecar
@@ -146,6 +156,8 @@ class CorpusSnapshotWriter:
             temporary.replace(path)
         if digest not in self.snapshot_sha256:
             self.snapshot_sha256.append(digest)
+            if bool(sidecar.get("all_k_high_risk")):
+                self.all_k_high_risk_snapshot_count += 1
         return digest
 
     def write_run_receipt(
@@ -154,6 +166,7 @@ class CorpusSnapshotWriter:
         status: str,
         failure_stage: str | None = None,
         failure_reason: str | None = None,
+        wall_clock_s: float | None = None,
     ) -> Path:
         if status not in {"ok", "failed"}:
             raise ValueError("run receipt status must be ok or failed")
@@ -171,6 +184,7 @@ class CorpusSnapshotWriter:
             "failure_stage": failure_stage,
             "failure_reason": failure_reason,
             "retained_in_denominator": True,
+            "wall_clock_s": wall_clock_s,
         }
         path = (
             self.output_dir
@@ -185,6 +199,204 @@ class CorpusSnapshotWriter:
         temporary.write_bytes(content)
         temporary.replace(path)
         return path
+
+
+def build_corpus_run_config(
+    base_config: Mapping[str, Any],
+    route: Mapping[str, Any],
+    *,
+    seed: int,
+    max_steps: int,
+) -> dict[str, Any]:
+    validate_v22_capability_config(base_config)
+    if max_steps != 64:
+        raise ValueError("v22 corpus run must use 64 steps")
+    asset = _mapping(route, "route_asset")
+    route_spec = _mapping(route, "route_spec")
+    if route.get("logical_map_sha256") != _mapping(base_config, "map").get(
+        "sha256"
+    ) or route_spec.get("map_path") != _mapping(base_config, "map").get("path"):
+        raise ValueError("train route logical map differs from native base config")
+
+    config = deepcopy(dict(base_config))
+    config["schema_version"] = "camp_dp_v22_native_corpus_run_v1"
+    config["selector"]["role"] = "v18_ablation_corpus_collection_only"
+    config["routes"] = [
+        {
+            "name": str(route["identity_sha256"]),
+            "path": str(asset["path"]),
+            "sha256": str(asset["sha256"]),
+        }
+    ]
+    config["seeds"] = {
+        "scenario": seed,
+        "candidate": seed,
+        "bootstrap": seed,
+        "formal_forbidden": [11, 12, 13],
+    }
+    config["spawn_config"]["seed"] = seed
+    config["spawn_config"]["max_steps"] = max_steps
+    config["protocol"] = {
+        "corpus_steps": max_steps,
+        "sample_every_ticks": 5,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "safety_schema": "safety_cost_native_v22",
+        "route_role": "train_corpus_collection",
+        "training_authorized": True,
+        "holdout_access_authorized": False,
+        "formal_seeds_authorized": False,
+        "claim_authorized": False,
+    }
+    validate_v22_corpus_run_config(config)
+    return config
+
+
+def execute_train_manifest(
+    config: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    base_config: Mapping[str, Any],
+    *,
+    output_dir: Path,
+    run_arm: Callable[..., Mapping[str, Any]],
+) -> dict[str, Any]:
+    preflight = validate_corpus_preflight(config, manifest)
+    validate_v22_capability_config(base_config)
+    output_dir = Path(output_dir)
+    if output_dir.exists():
+        raise FileExistsError(output_dir)
+    output_dir.mkdir(parents=True)
+
+    collection = _mapping(config, "collection")
+    max_steps = int(collection["max_steps"])
+    train = _mapping(_mapping(manifest, "splits"), "train")
+    routes = sorted(train.get("routes", []), key=lambda item: item["identity_sha256"])
+    seeds = sorted(int(value) for value in train.get("seed_namespace", []))
+    complete = 0
+    failed = 0
+    failures = []
+    run_timings = []
+    snapshot_count_by_source_stratum: dict[str, int] = {}
+    all_k_high_risk_snapshot_count = 0
+    execution_started = time.perf_counter()
+    for route in routes:
+        for seed in seeds:
+            writer = CorpusSnapshotWriter(
+                output_dir=output_dir,
+                split="train",
+                logical_map_sha256=str(route["logical_map_sha256"]),
+                route_identity_sha256=str(route["identity_sha256"]),
+                group_sha256=str(route["group_sha256"]),
+                seed=seed,
+                source_stratum=route.get("source_stratum", {}),
+            )
+            native_output = (
+                output_dir
+                / "native_runs"
+                / str(route["identity_sha256"])
+                / f"seed_{seed}"
+            )
+            run_started = time.perf_counter()
+            try:
+                run_config = build_corpus_run_config(
+                    base_config, route, seed=seed, max_steps=max_steps
+                )
+                native_route = run_config["routes"][0]
+                result = run_arm(
+                    route=native_route,
+                    arm="camp",
+                    config=run_config,
+                    output_dir=native_output,
+                    max_steps=max_steps,
+                    decision_sink=writer,
+                )
+                if result.get("status") != "ok":
+                    raise RuntimeError(
+                        str(result.get("failure_reason") or "native arm failed")
+                    )
+            except Exception as exc:
+                wall_clock_s = time.perf_counter() - run_started
+                failed += 1
+                failure = {
+                    "route_identity_sha256": route["identity_sha256"],
+                    "seed": seed,
+                    "failure_stage": "native_arm_execution",
+                    "failure_reason": str(exc),
+                }
+                failures.append(failure)
+                writer.write_run_receipt(
+                    status="failed",
+                    failure_stage=failure["failure_stage"],
+                    failure_reason=failure["failure_reason"],
+                    wall_clock_s=wall_clock_s,
+                )
+                run_timings.append(
+                    {
+                        "route_identity_sha256": route["identity_sha256"],
+                        "seed": seed,
+                        "status": "failed",
+                        "wall_clock_s": wall_clock_s,
+                    }
+                )
+                continue
+            wall_clock_s = time.perf_counter() - run_started
+            complete += 1
+            writer.write_run_receipt(status="ok", wall_clock_s=wall_clock_s)
+            run_timings.append(
+                {
+                    "route_identity_sha256": route["identity_sha256"],
+                    "seed": seed,
+                    "status": "ok",
+                    "wall_clock_s": wall_clock_s,
+                }
+            )
+            snapshot_count = len(writer.snapshot_sha256)
+            strata = {
+                str(name): bool(value)
+                for name, value in route.get("source_stratum", {}).items()
+            }
+            active_strata = [name for name, value in strata.items() if value]
+            if not active_strata:
+                active_strata = ["normal"]
+            for stratum in active_strata:
+                snapshot_count_by_source_stratum[stratum] = (
+                    snapshot_count_by_source_stratum.get(stratum, 0)
+                    + snapshot_count
+                )
+            all_k_high_risk_snapshot_count += (
+                writer.all_k_high_risk_snapshot_count
+            )
+
+    planned = len(routes) * len(seeds)
+    summary = {
+        "schema_version": "camp_dp_v22_native_train_corpus_summary_v1",
+        "status": (
+            "complete" if failed == 0 else "complete_with_retained_failures"
+        ),
+        "planned_route_seed_runs": planned,
+        "complete_route_seed_runs": complete,
+        "failed_route_seed_runs": failed,
+        "retained_route_seed_runs": complete + failed,
+        "route_coverage": (complete + failed) / planned if planned else 0.0,
+        "snapshot_count": len(list((output_dir / "snapshots").glob("*.json"))),
+        "snapshot_count_by_source_stratum": dict(
+            sorted(snapshot_count_by_source_stratum.items())
+        ),
+        "all_k_high_risk_snapshot_count": all_k_high_risk_snapshot_count,
+        "theoretical_max_train_snapshots": preflight[
+            "theoretical_max_train_snapshots"
+        ],
+        "failures": failures,
+        "route_seed_timings": run_timings,
+        "wall_clock_s": time.perf_counter() - execution_started,
+        "calibration_executed": False,
+        "holdout_executed": False,
+        "holdout_outcomes_read": False,
+        "claim_authorized": False,
+    }
+    (output_dir / "corpus_summary.json").write_bytes(
+        _canonical_json_bytes(summary)
+    )
+    return summary
 
 
 def validate_corpus_preflight(
@@ -332,6 +544,19 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
     verified_assets = verify_config_assets(base_config)
 
     summary = validate_corpus_preflight(config, manifest)
+    train = _mapping(_mapping(manifest, "splits"), "train")
+    routes = sorted(train.get("routes", []), key=lambda item: item["identity_sha256"])
+    seeds = sorted(int(value) for value in train.get("seed_namespace", []))
+    run_configs = [
+        build_corpus_run_config(
+            base_config,
+            route,
+            seed=seed,
+            max_steps=int(_mapping(config, "collection")["max_steps"]),
+        )
+        for route in routes
+        for seed in seeds
+    ]
     summary.update(
         {
             "source_manifest": str(manifest_path),
@@ -340,9 +565,46 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
             "base_native_config_sha256": base["sha256"],
             "verified_base_asset_count": len(verified_assets),
             "runner_factory": build_native_arm_runner.__name__,
+            "validated_run_config_count": len(run_configs),
+            "execution_arm": "camp",
+            "execute_train_mode_available": True,
         }
     )
     return summary
+
+
+def execute_train_corpus(
+    config_path: Path, output_dir: Path, *, device: str
+) -> dict[str, Any]:
+    run_static_preflight(config_path)
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    source = _mapping(config, "source_split")
+    manifest = json.loads(
+        Path(str(source["manifest_path"])).read_text(encoding="utf-8")
+    )
+    base = _mapping(config, "base_native_config")
+    base_config = json.loads(
+        Path(str(base["path"])).read_text(encoding="utf-8")
+    )
+    train = _mapping(_mapping(manifest, "splits"), "train")
+    routes = sorted(train.get("routes", []), key=lambda item: item["identity_sha256"])
+    seeds = sorted(int(value) for value in train.get("seed_namespace", []))
+    if not routes or not seeds:
+        raise ValueError("frozen train split must contain routes and seeds")
+    first_config = build_corpus_run_config(
+        base_config,
+        routes[0],
+        seed=seeds[0],
+        max_steps=int(_mapping(config, "collection")["max_steps"]),
+    )
+    run_arm = build_native_arm_runner(first_config, device=device)
+    return execute_train_manifest(
+        config,
+        manifest,
+        base_config,
+        output_dir=output_dir,
+        run_arm=run_arm,
+    )
 
 
 def _canonical_json_bytes(value: Mapping[str, Any]) -> bytes:
@@ -384,8 +646,23 @@ def _file_sha256(path: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True, type=Path)
+    parser.add_argument(
+        "--mode",
+        choices=("static-preflight", "execute-train"),
+        default="static-preflight",
+    )
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     args = parser.parse_args()
-    print(json.dumps(run_static_preflight(args.config), indent=2, sort_keys=True))
+    if args.mode == "execute-train":
+        if args.output is None:
+            parser.error("--output is required for execute-train")
+        summary = execute_train_corpus(args.config, args.output, device=args.device)
+    else:
+        if args.output is not None:
+            parser.error("--output is only valid for execute-train")
+        summary = run_static_preflight(args.config)
+    print(json.dumps(summary, indent=2, sort_keys=True))
     return 0
 
 

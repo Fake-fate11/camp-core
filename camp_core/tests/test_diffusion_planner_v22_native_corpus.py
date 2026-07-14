@@ -8,6 +8,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "configs" / "integrations" / "diffusion_planner_v22_native_corpus.json"
+BASE_NATIVE_CONFIG = ROOT / "configs" / "diffusion_planner_v22_native_capability.json"
 SCRIPT = (
     ROOT
     / "scripts"
@@ -32,10 +33,18 @@ def _route(tmp_path: Path, split: str) -> dict:
     return {
         "identity_sha256": _sha(f"identity:{split}"),
         "group_sha256": _sha(f"group:{split}"),
-        "logical_map_sha256": _sha("map"),
+        "logical_map_sha256": (
+            "a81f937c00158324c83688adc5459e90478f5b3c69a51225ad7f965b80d58036"
+        ),
         "route_asset": {
             "path": str(path),
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        },
+        "route_spec": {
+            "map_path": (
+                "/root/autodl-tmp/camp_dp_assets/sample-map-planning/"
+                "sample-map-planning/lanelet2_map_no_ros.osm"
+            )
         },
     }
 
@@ -290,3 +299,113 @@ def test_writer_retains_failed_route_seed_receipt(tmp_path: Path) -> None:
     assert receipt["failure_reason"] == "objective execution failure"
     assert receipt["snapshot_sha256"] == []
     assert receipt["retained_in_denominator"] is True
+
+
+def test_corpus_run_config_injects_only_frozen_train_seed(tmp_path: Path) -> None:
+    module = _module()
+    runner = __import__(
+        "scripts.integrations.run_diffusion_planner_dp_camp_v21_native",
+        fromlist=["validate_v22_corpus_run_config"],
+    )
+    route = _route(tmp_path, "train")
+    base = json.loads(BASE_NATIVE_CONFIG.read_text(encoding="utf-8"))
+
+    run_config = module.build_corpus_run_config(
+        base, route, seed=22001, max_steps=64
+    )
+
+    runner.validate_v22_corpus_run_config(run_config)
+    assert run_config["seeds"]["scenario"] == 22001
+    assert run_config["seeds"]["candidate"] == 22001
+    assert run_config["spawn_config"]["seed"] == 22001
+    assert run_config["routes"] == [
+        {
+            "name": route["identity_sha256"],
+            "path": route["route_asset"]["path"],
+            "sha256": route["route_asset"]["sha256"],
+        }
+    ]
+    assert run_config["protocol"]["route_role"] == "train_corpus_collection"
+    assert run_config["protocol"]["holdout_access_authorized"] is False
+
+
+def test_execution_harness_attempts_only_train_rows_and_writes_receipts(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    manifest = _manifest(tmp_path)
+    config = _config(manifest)
+    base = json.loads(BASE_NATIVE_CONFIG.read_text(encoding="utf-8"))
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        calls.append((route["name"], arm, config["seeds"]["scenario"], max_steps))
+        decision_sink(_snapshot())
+        return {"status": "ok"}
+
+    output = tmp_path / "corpus"
+    summary = module.execute_train_manifest(
+        config,
+        manifest,
+        base,
+        output_dir=output,
+        run_arm=run_arm,
+    )
+
+    train_identity = manifest["splits"]["train"]["routes"][0]["identity_sha256"]
+    assert calls == [
+        (train_identity, "camp", 22001, 64),
+        (train_identity, "camp", 22002, 64),
+    ]
+    assert summary["planned_route_seed_runs"] == 2
+    assert summary["complete_route_seed_runs"] == 2
+    assert summary["failed_route_seed_runs"] == 0
+    assert summary["snapshot_count"] == 2
+    assert summary["snapshot_count_by_source_stratum"] == {"normal": 2}
+    assert summary["all_k_high_risk_snapshot_count"] == 2
+    assert len(summary["route_seed_timings"]) == 2
+    assert summary["wall_clock_s"] >= 0.0
+    receipts = list((output / "receipts" / "train").rglob("seed_*.json"))
+    assert len(receipts) == 2
+    assert all(json.loads(path.read_text())["status"] == "ok" for path in receipts)
+    assert all(json.loads(path.read_text())["wall_clock_s"] >= 0.0 for path in receipts)
+    assert not (output / "receipts" / "calibration").exists()
+    assert not (output / "receipts" / "holdout").exists()
+
+
+def test_execution_harness_retains_failure_and_continues(tmp_path: Path) -> None:
+    module = _module()
+    manifest = _manifest(tmp_path)
+    config = _config(manifest)
+    base = json.loads(BASE_NATIVE_CONFIG.read_text(encoding="utf-8"))
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        del route, arm, output_dir, max_steps
+        seed = config["seeds"]["scenario"]
+        calls.append(seed)
+        if seed == 22001:
+            raise RuntimeError("objective execution failure")
+        decision_sink(_snapshot())
+        return {"status": "ok"}
+
+    output = tmp_path / "corpus"
+    summary = module.execute_train_manifest(
+        config,
+        manifest,
+        base,
+        output_dir=output,
+        run_arm=run_arm,
+    )
+
+    assert calls == [22001, 22002]
+    assert summary["status"] == "complete_with_retained_failures"
+    assert summary["complete_route_seed_runs"] == 1
+    assert summary["failed_route_seed_runs"] == 1
+    receipts = [
+        json.loads(path.read_text())
+        for path in (output / "receipts" / "train").rglob("seed_*.json")
+    ]
+    failed = next(item for item in receipts if item["status"] == "failed")
+    assert failed["failure_stage"] == "native_arm_execution"
+    assert failed["retained_in_denominator"] is True
