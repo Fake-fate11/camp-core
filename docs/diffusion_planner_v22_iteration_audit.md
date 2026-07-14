@@ -948,15 +948,59 @@ and `run.exit=0`.
 
 No calibration or holdout data or outcome was read. No model was loaded and no
 simulator executed. No safety or CAMP-over-DP claim is authorized. Since no
-5k/10k/20k/50k tier is reachable, the next gate trains exactly the frozen
+5k/10k/20k/50k tier is reachable, the next target
+`v22_convex_selector_training_tdd_only` trains exactly the frozen
 all-available-416 level using the existing convex master and reports the true
 sub-5k ceiling.
 
-current_v22_status=v22_train_causal_label_materialization_and_independent_review_passed
-current_v22_artifact_source_head=fb7d1032955c03b1c56bcb9311a3adc1570bd482
-current_v22_prior_gate_final_synced_head=fb7d1032955c03b1c56bcb9311a3adc1570bd482
+## Convex Selector Training TDD
+
+Status: passed; implementation is ready for a read-only execution preflight.
+
+At CAMP HEAD `fdbbf1c5e7a98d77847ce78895052fd0c710b565`, focused
+TDD reuses the unchanged robust-margin master through CVXPY/CLARABEL. It sorts
+snapshots by content SHA, converts lower-is-better surrogate costs with
+`outcome_oracle_and_margins(-cost, source_valid, ...)`, and trains only the
+honest `all_available_416` level because every preregistered 5k/10k/20k/50k
+level is unreachable. Solver acceptance requires exact `optimal`, convergence,
+zero final new cuts, a projected final gap at most `1e-6`, and a finite
+nonnegative simplex.
+
+Only the 11 supported atoms enter the convex master. The three unsupported
+canonical atoms expand back into the 14D runtime model with strict zero learned
+weight. The frozen transform is `clip(raw_atom/scale,0,10.0)` using the already
+sealed train-only scales; no scale is recomputed. The output records solver
+name/status, iterations, gap, cuts, convergence, history, offline wall-clock,
+and train surrogate-ranking diagnostics without calling iterations epochs.
+
+Loader tests prove train-only split and non-formal seeds, exact candidate-0
+identity and candidate-tensor immutability, label-to-source root linkage, and
+the feature identity denylist before solver invocation. The v18 frozen
+corrected14d selector is ablation-only and cannot become the v22 primary model.
+Calibration, holdout, simulator execution, and claims remain disabled.
+
+Local regression passed `81` tests with one expected skip because the local
+environment lacks CVXPY. AutoDL ran the focused trainer and actual
+CVXPY/CLARABEL Benders contract with `13 / 13` tests passing, plus py_compile
+and diff checks. Its immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_convex_selector_training_tdd_fdbbf1c5_20260714T232226CST`
+with root SHA256
+`e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd`
+and `run.exit=0`.
+
+One earlier controller invocation used an incorrect guessed full CAMP SHA and
+exited immediately after the successful ff-only update, before artifact
+creation, tests, solver use, or training. The corrected invocation above used
+the live full SHA. No production model was trained, no simulator ran, and no
+calibration/holdout data or outcome was read. Next gate is a read-only
+preflight of every frozen root, input count, solver availability, output
+absence, and process guard.
+
+current_v22_status=v22_convex_selector_training_tdd_passed
+current_v22_artifact_source_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565
+current_v22_prior_gate_final_synced_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_train_causal_labels_independent_review_fb7d1032_20260714T230052CST
-current_v22_artifact_root_sha256=f8e646e6b030efb2b613ec3a30b2a712e4a5fb55b79aa4daa386ee390560971c
-next_work_target=v22_convex_selector_training_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_tdd_fdbbf1c5_20260714T232226CST
+current_v22_artifact_root_sha256=e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd
+next_work_target=v22_convex_selector_training_preflight_only

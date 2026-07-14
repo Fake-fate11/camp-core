@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_train_causal_label_materialization_and_independent_review_passed",
-    "current_v22_artifact_source_head=fb7d1032955c03b1c56bcb9311a3adc1570bd482",
-    "current_v22_prior_gate_final_synced_head=fb7d1032955c03b1c56bcb9311a3adc1570bd482",
+    "current_v22_status=v22_convex_selector_training_tdd_passed",
+    "current_v22_artifact_source_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565",
+    "current_v22_prior_gate_final_synced_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_train_causal_labels_independent_review_fb7d1032_20260714T230052CST",
-    "current_v22_artifact_root_sha256=f8e646e6b030efb2b613ec3a30b2a712e4a5fb55b79aa4daa386ee390560971c",
-    "next_work_target=v22_convex_selector_training_tdd_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_tdd_fdbbf1c5_20260714T232226CST",
+    "current_v22_artifact_root_sha256=e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd",
+    "next_work_target=v22_convex_selector_training_preflight_only",
 )
 
 
@@ -225,5 +225,24 @@ def test_v22_records_train_only_causal_label_materialization_and_review() -> Non
         "No calibration or holdout data or outcome was read",
         "No model was loaded and no simulator executed",
         "v22_convex_selector_training_tdd_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_convex_selector_training_tdd_without_execution() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "13 / 13",
+        "CVXPY/CLARABEL",
+        "all_available_416",
+        "11 supported atoms",
+        "strict zero learned weight",
+        "clip(raw_atom/scale,0,10.0)",
+        "v18 frozen corrected14d selector is ablation-only",
+        "label-to-source root linkage",
+        "solver invocation",
+        "e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd",
+        "No production model was trained",
+        "v22_convex_selector_training_preflight_only",
     ):
         assert phrase in text
