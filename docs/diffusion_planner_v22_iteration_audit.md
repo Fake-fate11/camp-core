@@ -812,11 +812,59 @@ corrected summary reports 4 / 30 / 100 routes, 8 / 3 / 5 seeds, 32 train runs,
 were not read and no claim was authorized. Next is exactly one train-corpus
 execution; an existing related process must be monitored rather than restarted.
 
-current_v22_status=v22_native_train_corpus_execution_preflight_passed
-current_v22_artifact_source_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
-current_v22_prior_gate_final_synced_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
+## First Native Train Corpus Execution and Candidate-0 Receipt Remediation
+
+Status: execution complete; evidence review no-pass; receipt remediation TDD
+passed; one corrected train-corpus rerun authorized.
+
+The first train-only native corpus execution at source HEAD
+`8ecd346c110b0f7ebd66c290be2d06d8f466708a` completed all `32 / 32 route-seed
+runs`, retained `416 / 416 snapshots`, and had zero execution failures. All 32
+frozen denominator rows remain present. The immutable execution artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_8ecd346c_20260714T214316CST`
+with root SHA256
+`d270e094902401c791bebb21e6f88bf6e7a2bafae4f7daeaf874340156d5abb0`.
+Its total wall-clock was `1037.325977530796 s`; per-run wall-clock mean, median,
+minimum, and maximum were `32.4159 / 32.0706 / 30.9441 / 34.9905 s`. All 416
+snapshots carried the branch-intersection, short-progress-opportunity, and
+tight-corridor source strata; none was marked all-K-high-risk. Calibration and
+holdout were not executed.
+
+Independent review verified the source root and execution counts but found
+that all `416 / 416 snapshots omit` both `default_output_sha256` and
+`default_candidate0_identity`. Candidate-row and candidate-tensor immutability
+SHAs were present, and the live hook had checked the identity internally, but
+the artifact could not independently prove at every sampled tick that candidate
+0 was the byte-identical DP operational default. Therefore the execution is
+preserved as complete but is not a gate pass and is not renamed as success.
+The immutable no-pass review is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_independent_review_no_pass_8ecd346c_20260714T220605CST`
+with root SHA256
+`c32c9110015b069f3300b5d3878ade0286d829f22aa0a42cff83504d14986983`
+and `run.exit=1`.
+
+Minimal TDD at source HEAD `b5880e25816bfde2058746eca8b37c3d36461aa9`
+now persists the existing operational-default SHA, candidate-0 SHA, and full
+default/candidate-0 identity receipt in each snapshot sidecar. The corpus writer
+rejects a missing SHA, a row-0 mismatch, a candidate-0 mismatch, or a false
+identity receipt. It does not modify DP, the candidate tensor, any trajectory,
+the selector score, or the split. The immutable AutoDL TDD artifact is
+`/root/autodl-tmp/camp_dp_v22_candidate0_identity_receipt_tdd_b5880e25_20260714T221217CST`
+with root SHA256
+`15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e`;
+`69 / 69` relevant tests, py_compile, and git diff checks passed.
+
+No calibration or holdout outcome was read, and no claim was authorized. Since
+the missing per-tick evidence cannot be reconstructed from the first artifact,
+the next gate is one corrected train-corpus rerun at the fixed split and seeds.
+It must not run in parallel with any existing related task and must be followed
+by an independent full-snapshot evidence review before label construction.
+
+current_v22_status=v22_native_train_corpus_evidence_no_pass_candidate0_identity_receipt_fix_passed
+current_v22_artifact_source_head=b5880e25816bfde2058746eca8b37c3d36461aa9
+current_v22_prior_gate_final_synced_head=b5880e25816bfde2058746eca8b37c3d36461aa9
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST
-current_v22_artifact_root_sha256=c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387
-next_work_target=v22_native_train_corpus_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_candidate0_identity_receipt_tdd_b5880e25_20260714T221217CST
+current_v22_artifact_root_sha256=15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e
+next_work_target=v22_native_train_corpus_corrected_execution_only

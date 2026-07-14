@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_train_corpus_execution_preflight_passed",
-    "current_v22_artifact_source_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7",
-    "current_v22_prior_gate_final_synced_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7",
+    "current_v22_status=v22_native_train_corpus_evidence_no_pass_candidate0_identity_receipt_fix_passed",
+    "current_v22_artifact_source_head=b5880e25816bfde2058746eca8b37c3d36461aa9",
+    "current_v22_prior_gate_final_synced_head=b5880e25816bfde2058746eca8b37c3d36461aa9",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST",
-    "current_v22_artifact_root_sha256=c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387",
-    "next_work_target=v22_native_train_corpus_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_candidate0_identity_receipt_tdd_b5880e25_20260714T221217CST",
+    "current_v22_artifact_root_sha256=15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e",
+    "next_work_target=v22_native_train_corpus_corrected_execution_only",
 )
 
 
@@ -164,5 +164,25 @@ def test_v22_records_corpus_execution_harness_preflight() -> None:
         "c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387",
         "No model was loaded and no simulator executed",
         "v22_native_train_corpus_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_first_corpus_as_execution_complete_but_evidence_no_pass() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "32 / 32 route-seed runs",
+        "416 / 416 snapshots",
+        "zero execution failures",
+        "not a gate pass",
+        "416 / 416 snapshots omit",
+        "d270e094902401c791bebb21e6f88bf6e7a2bafae4f7daeaf874340156d5abb0",
+        "c32c9110015b069f3300b5d3878ade0286d829f22aa0a42cff83504d14986983",
+        "15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e",
+        "default_output_sha256",
+        "default_candidate0_identity",
+        "69 / 69",
+        "corrected train-corpus rerun",
+        "No calibration or holdout outcome was read",
     ):
         assert phrase in text

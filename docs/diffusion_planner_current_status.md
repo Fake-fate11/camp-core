@@ -206,14 +206,39 @@ next-work pointer is preserved in the audit and is not the gate pass. No model
 was loaded and no simulator executed; holdout outcomes were not read. The next
 gate is the single frozen train-corpus execution.
 
-current_v22_status=v22_native_train_corpus_execution_preflight_passed
-current_v22_artifact_source_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
-current_v22_prior_gate_final_synced_head=0d4046c08a7f922d402a1d6f518dbb963862c8b7
+The first train-only execution at CAMP HEAD `8ecd346c110b0f7ebd66c290be2d06d8f466708a`
+completed 32 / 32 frozen route-seed runs with zero execution failures and
+retained all 416 / 416 snapshots. Its immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_8ecd346c_20260714T214316CST`
+with root SHA256
+`d270e094902401c791bebb21e6f88bf6e7a2bafae4f7daeaf874340156d5abb0`.
+Independent review found all 416 snapshots missing the persisted per-tick DP
+operational-default/candidate-0 identity receipt, so this execution is preserved
+but is not a gate pass. The no-pass review artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_independent_review_no_pass_8ecd346c_20260714T220605CST`
+with root SHA256
+`c32c9110015b069f3300b5d3878ade0286d829f22aa0a42cff83504d14986983`.
+
+Minimal receipt TDD passed at CAMP HEAD
+`b5880e25816bfde2058746eca8b37c3d36461aa9`. Snapshots now persist
+`default_output_sha256`, `candidate0_sha256`, and
+`default_candidate0_identity`; the writer rejects any row-0/default/candidate-0
+inconsistency. Its immutable AutoDL artifact is
+`/root/autodl-tmp/camp_dp_v22_candidate0_identity_receipt_tdd_b5880e25_20260714T221217CST`
+with root SHA256
+`15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e`;
+69 / 69 relevant tests passed. No calibration or holdout outcome was read.
+Exactly one corrected train-only corpus rerun is next, followed by independent
+full-snapshot review before label construction.
+
+current_v22_status=v22_native_train_corpus_evidence_no_pass_candidate0_identity_receipt_fix_passed
+current_v22_artifact_source_head=b5880e25816bfde2058746eca8b37c3d36461aa9
+current_v22_prior_gate_final_synced_head=b5880e25816bfde2058746eca8b37c3d36461aa9
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_execution_preflight_pointer_fixed_0d4046c0_20260714T214002CST
-current_v22_artifact_root_sha256=c635be46ae3d511c496af2d0175812ea3611acc71da8beed1d72651bae108387
-next_work_target=v22_native_train_corpus_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_candidate0_identity_receipt_tdd_b5880e25_20260714T221217CST
+current_v22_artifact_root_sha256=15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e
+next_work_target=v22_native_train_corpus_corrected_execution_only
 
 ## Current V21 Status
 
