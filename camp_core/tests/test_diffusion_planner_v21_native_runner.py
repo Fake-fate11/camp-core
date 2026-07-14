@@ -221,6 +221,9 @@ def test_paired_protocol_is_fresh_ordered_symmetric_and_writes_atomic_receipts(
     assert (output / "run.exit").read_text().strip() == "0"
     assert (output / "SHA256SUMS").is_file()
     assert (output / "ROOT_SHA256SUMS").is_file()
+    assert "camp_source_head=" in (output / "HEADS").read_text()
+    assert "mode=paired-smoke" in (output / "COMMAND").read_text()
+    assert json.loads((output / "smoke_config.json").read_text()) == config
     for route in config["routes"]:
         for arm in ("dp", "camp"):
             assert (output / "receipts" / route["name"] / f"{arm}.json").is_file()

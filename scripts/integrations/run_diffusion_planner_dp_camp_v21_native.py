@@ -746,6 +746,8 @@ def execute_smoke(
     *,
     mode: str,
     run_arm: Callable[..., Mapping[str, Any]] | None,
+    verified_assets: Mapping[str, str] | None = None,
+    command: str | None = None,
 ) -> dict[str, Any]:
     validate_smoke_config(config)
     if mode not in {"preflight", "capability-smoke", "paired-smoke"}:
@@ -817,6 +819,8 @@ def execute_smoke(
             "padding_strata": padding,
             "claim_authorized": False,
         }
+        if verified_assets is not None:
+            result["verified_assets"] = dict(verified_assets)
         if pairs:
             result["pairs"] = pairs
             result["aggregate"] = aggregate_paired_safety(
@@ -827,7 +831,14 @@ def execute_smoke(
         else:
             result["preflight"] = {"config_valid": True, "asset_checks": "external"}
 
-        _write_evidence_payloads(staging, result, arms, pairs)
+        _write_evidence_payloads(
+            staging,
+            config,
+            result,
+            arms,
+            pairs,
+            command=command,
+        )
         root_sha = _seal_evidence(staging)
         staging.replace(output)
         result["root_sha256"] = root_sha
@@ -995,10 +1006,29 @@ def _padding_stratum(padded_frames: int) -> str:
 
 def _write_evidence_payloads(
     root: Path,
+    config: Mapping[str, Any],
     result: Mapping[str, Any],
     arms: list[Mapping[str, Any]],
     pairs: list[Mapping[str, Any]],
+    *,
+    command: str | None,
 ) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    camp_head = subprocess.run(
+        ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    (root / "HEADS").write_text(
+        f"camp_source_head={camp_head}\nfixed_dp_head={config['fixed_dp']['head']}\n",
+        encoding="ascii",
+    )
+    (root / "COMMAND").write_text(
+        f"mode={result['mode']}\n{command or 'execute_smoke(injected_run_arm=true)'}\n",
+        encoding="utf-8",
+    )
+    _write_json(root / "smoke_config.json", config)
     _write_json(root / "summary.json", result)
     summary = (
         "# CAMP/DP v21 native simulator smoke\n\n"
@@ -1720,7 +1750,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> dict[str, Any]:
     args = parse_args(argv)
     config = json.loads(args.config.read_text(encoding="utf-8"))
-    verify_config_assets(config)
+    verified_assets = verify_config_assets(config)
     run_arm = None
     if args.mode != "preflight":
         run_arm = build_native_arm_runner(config, device=args.device)
@@ -1729,6 +1759,12 @@ def main(argv: list[str] | None = None) -> dict[str, Any]:
         args.output_dir,
         mode=args.mode,
         run_arm=run_arm,
+        verified_assets=verified_assets,
+        command=(
+            f"{sys.executable} {Path(__file__).resolve()} --{args.mode} "
+            f"--config {args.config.resolve()} --output-dir {args.output_dir.resolve()} "
+            f"--device {args.device}"
+        ),
     )
 
 
