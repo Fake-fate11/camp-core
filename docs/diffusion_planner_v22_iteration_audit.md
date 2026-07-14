@@ -1083,11 +1083,47 @@ is authorized. Next gate is a read-only preflight for generating native causal
 decision snapshots on the already frozen 30-route, 3-seed calibration split;
 it may not alter train weights, scales, atom schema, or holdout state.
 
-current_v22_status=v22_convex_selector_training_execution_and_independent_review_passed
-current_v22_artifact_source_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5
-current_v22_prior_gate_final_synced_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5
+## Native Calibration Corpus TDD
+
+Status: passed; the shared native corpus runner is ready for a read-only
+calibration preflight.
+
+At CAMP HEAD `16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0`, TDD
+parameterized the existing train corpus path for exactly one `train` or
+`calibration` split. It did not create a parallel runner. The existing train
+entry point remains backward compatible, while the new calibration entry
+point generates run configs with training disabled, calibration enabled, and
+holdout/formal-seed/claim access disabled. The shared v21 native validator
+enforces those mutually exclusive roles.
+
+The tracked calibration config binds the already frozen source-only split
+manifest: `30 routes x 3 non-formal seeds = 90 route-seed attempts`, with a
+maximum of `1,170` causal snapshots at 0.5-second cadence. All preregistered
+routes remain in the attempt set and denominator. A native failure writes a
+retained failure receipt and cannot trigger route deletion, replacement,
+redraw, candidate-0 fallback, or holdout access. Identity fields remain
+receipt-only and the feature payload remains exactly atom matrix,
+source-valid mask, and candidate-row hashes.
+
+Local and AutoDL regression both passed `102 tests`; py_compile, diff check,
+and tracked-clean checks also passed. The immutable AutoDL artifact is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_tdd_16d580a5_20260714T235050CST`
+with root SHA256
+`afee77845876ec7f6d20793ec169cfa5969e9391cae88a343bd9191201bac124`
+and exit 0. CAMP/origin HEADs matched, and fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+No model was loaded and no simulator, solver, calibration outcome, holdout
+outcome, training, or claim ran. Next gate is static calibration-corpus
+preflight only: verify frozen roots/assets/counts, process guard, output
+absence, storage, and all 90 planned run configs without starting the native
+runner.
+
+current_v22_status=v22_native_calibration_corpus_tdd_passed
+current_v22_artifact_source_head=16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0
+current_v22_prior_gate_final_synced_head=16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_independent_review_017aa8d9_20260714T233449CST
-current_v22_artifact_root_sha256=8cf7c4b2b85d27a027d05589d50d5adb901c90774752f5cf506c6cecea7904e5
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_tdd_16d580a5_20260714T235050CST
+current_v22_artifact_root_sha256=afee77845876ec7f6d20793ec169cfa5969e9391cae88a343bd9191201bac124
 next_work_target=v22_native_calibration_corpus_preflight_only

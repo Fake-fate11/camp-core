@@ -6,13 +6,13 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_convex_selector_training_execution_and_independent_review_passed",
-    "current_v22_artifact_source_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5",
-    "current_v22_prior_gate_final_synced_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5",
+    "current_v22_status=v22_native_calibration_corpus_tdd_passed",
+    "current_v22_artifact_source_head=16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0",
+    "current_v22_prior_gate_final_synced_head=16d580a5ce7f43401e7bcc840a3ebbd23a31e0f0",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_independent_review_017aa8d9_20260714T233449CST",
-    "current_v22_artifact_root_sha256=8cf7c4b2b85d27a027d05589d50d5adb901c90774752f5cf506c6cecea7904e5",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_tdd_16d580a5_20260714T235050CST",
+    "current_v22_artifact_root_sha256=afee77845876ec7f6d20793ec169cfa5969e9391cae88a343bd9191201bac124",
     "next_work_target=v22_native_calibration_corpus_preflight_only",
 )
 
