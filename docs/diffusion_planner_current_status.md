@@ -18,19 +18,20 @@ The candidate-free predecessor topology diagnosis ran once from CAMP head
 origin/GitHub, and AutoDL. Fixed DP remains
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 
-The frozen route's first waypoint has two CARLA predecessors, is not a true
-OpenDRIVE topology root, and did not expose a lookup omission. The authorized
-`cardinality > 1` branch therefore remains ambiguity fail-closed. The
-candidate-free map-level deterministic route selection is implemented and
-locally verified; no predecessor/source exception was introduced. Its single
-static review found one Important raw-successor ambiguity, now closed by
-requiring exactly one raw unseen successor.
+The candidate-free route-selection implementation passed local and AutoDL
+verification. Its no-map preflight and exactly-once revised Town10HD_Opt
+census passed at CAMP head `a8238ba14b20c43176e4d5889f3eb713e877f249`,
+with fixed DP unchanged. The census froze route SHA256
+`4bd077585527913491461dd2d446bcc1621aa44c811ca7f0826e3ef461a783b6`
+and contact tolerance `0.0007186350973698577 m`. Independent result review
+recorded `Critical=0`, `Important=0`, and `Minor=0`, authorizing one
+source-only fixed-DP K=8 probe and forbidding another census.
 
-current_v20_status=v20_carla_route_corridor_candidate_free_route_selection_tdd_ready_review_finding_closed
-current_v20_artifact_source_head=4ede23266956eb657c151737d8f860024fd66460
-camp_github_autodl_head=4ede23266956eb657c151737d8f860024fd66460
+current_v20_status=v20_carla_route_corridor_revised_map_only_census_independent_review_passed
+current_v20_artifact_source_head=a8238ba14b20c43176e4d5889f3eb713e877f249
+camp_github_autodl_head=a8238ba14b20c43176e4d5889f3eb713e877f249
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-next_work_target=v20_carla_route_corridor_candidate_free_route_selection_autodl_validation_and_preflight_only
+next_work_target=v20_carla_route_corridor_source_only_fixed_dp_k8_probe_preflight_then_once
 
 ## Current V19 Status
 

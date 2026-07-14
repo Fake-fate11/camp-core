@@ -207,3 +207,55 @@ current_v20_artifact_source_head=4ede23266956eb657c151737d8f860024fd66460
 camp_github_autodl_head=4ede23266956eb657c151737d8f860024fd66460
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 next_work_target=v20_carla_route_corridor_candidate_free_route_selection_autodl_validation_and_preflight_only
+
+## Candidate-Free Route Selection Validation and Revised Census
+
+AutoDL ff-only synchronized CAMP at
+`a8238ba14b20c43176e4d5889f3eb713e877f249`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The first TDD seal stopped before
+tests because `ss` was unavailable. It is preserved fail-marked at:
+
+`/root/autodl-tmp/camp_dp_v20_candidate_free_route_selection_tdd_20260714T060607Z`
+
+Root SHA256: `d3f99d739aab044a6ea0cd52fe6528d3619d307dda80504bfe9b704f04fdd5f9`.
+The `/proc/net/tcp*` listener-check remediation ran `174 passed`, compile and
+diff checks, without CARLA or census:
+
+`/root/autodl-tmp/camp_dp_v20_candidate_free_route_selection_tdd_listener_remediation_20260714T060709Z`
+
+Root SHA256: `2512bb67e0dd8affca91017b9deed200cfdc0d3080aea3e8e3337d2fea033332`.
+The no-map/no-census/no-server production preflight passed at:
+
+`/root/autodl-tmp/camp_dp_v20_candidate_free_route_selection_preflight_20260714T060828Z`
+
+Root SHA256: `331ce41bef60b17b86da5b78a222f4724a6e4819b4a8891a82c7a87acc1d2840`.
+
+The revised map-only census then executed exactly once. Its before/after
+invocation counters are `0 / 1`; runner and artifact exits are `0`; all
+forbidden counters, related processes, and listeners are zero. It is sealed at:
+
+`/root/autodl-tmp/camp_dp_v20_candidate_free_route_selection_revised_census_execution_20260714T060933Z`
+
+Root SHA256: `a3884f6cb4cf001bd65fe2fdcfcb5eb90b2fc3be1553b20011440e131ca0ed25`.
+Receipt SHA256 is `a0c9960b74bdc605983f0c86dd2a2e2c27f0154e6414d20a604640b00699a311`;
+route SHA256 is `4bd077585527913491461dd2d446bcc1621aa44c811ca7f0826e3ef461a783b6`;
+maximum contact gap is `0.0007186340973698577 m`; frozen tolerance is
+`0.0007186350973698577 m`.
+
+The one independent result review passed 33 checks with
+`Critical=0`, `Important=0`, and `Minor=0`, without rerunning the census:
+
+`/root/autodl-tmp/camp_dp_v20_candidate_free_route_selection_revised_census_result_review_20260714T061321Z`
+
+Root SHA256: `277a8b3cf9cfebfb70f53b0c3df089b5a53d6cec7ed379ef330619dd6a7294f1`.
+It authorizes exactly one source-only fixed-DP K=8 probe and forbids another
+census. No outcome, metric, future label, holdout, promotion, deployment, or
+claim is authorized.
+
+## Authoritative EOF Pointer
+
+current_v20_status=v20_carla_route_corridor_revised_map_only_census_independent_review_passed
+current_v20_artifact_source_head=a8238ba14b20c43176e4d5889f3eb713e877f249
+camp_github_autodl_head=a8238ba14b20c43176e4d5889f3eb713e877f249
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+next_work_target=v20_carla_route_corridor_source_only_fixed_dp_k8_probe_preflight_then_once
