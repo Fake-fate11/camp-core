@@ -1222,11 +1222,49 @@ split-specific offline-label provenance before content hashing. It may not
 change feature payloads, DP, candidates, trajectories, score, split, or
 failure-retention behavior.
 
-current_v22_status=v22_native_calibration_corpus_independent_review_no_pass_provenance_only
-current_v22_artifact_source_head=83c090761c6c928e71de7fd99f58a21c15abd1f6
-current_v22_prior_gate_final_synced_head=83c090761c6c928e71de7fd99f58a21c15abd1f6
+Its exact target was
+`v22_native_calibration_corpus_label_provenance_receipt_remediation_tdd_only`.
+
+## Calibration Provenance Receipt Remediation TDD
+
+Status: passed; a corrected execution preflight is next.
+
+At CAMP HEAD `810f050bded6b6e4a77008fde98887b15482e870`, the
+minimal remediation leaves the shared native runner and all feature/candidate
+paths untouched. `CorpusSnapshotWriter` stamps exactly one split-specific
+offline-label provenance value before canonical JSON hashing. Calibration must
+use
+`calibration_causal_candidate_cost_sidecar_only_not_selector_feature`; a
+different tracked config value fails preflight. Train snapshots retain the
+historical `pending_train_only_offline_supervision_sidecar` value.
+
+TDD first reproduced the defect: a calibration snapshot lacked the tracked
+provenance. After the fix, its content-addressed sidecar matches the frozen
+calibration config. The test also proves calibration remains training-disabled
+and holdout-disabled. Feature payloads remain exactly atom matrix,
+source-valid mask, and candidate-row hashes. No map/route/group/split/seed
+identity enters features. DP, K=8 candidates, candidate-0 identity, trajectories,
+affine/simplex scoring, source-valid eligibility, all-K-high-risk selection,
+and failure retention are unchanged.
+
+Local and AutoDL regression each passed `102 tests`; AutoDL py_compile, diff,
+and tracked-clean checks also passed. Immutable TDD artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_provenance_remediation_tdd_810f050b_20260715T010014CST`
+/ `9d4cb7820956bfc0ef828612a7ae6e920ec69d6617f8b1ec1c8db08bcb94219b`,
+with exit 0. No model, solver, simulator, calibration outcome, or holdout was
+opened by this gate.
+
+The first execution and both no-pass review artifacts remain immutable and are
+not renamed. Next is read-only preflight for one corrected rerun over the same
+frozen 30 routes and 3 seeds. It must verify all upstream roots, exact output
+absence, process guard, 90 configs, and the provenance contract before any
+simulator starts.
+
+current_v22_status=v22_calibration_provenance_remediation_tdd_passed
+current_v22_artifact_source_head=810f050bded6b6e4a77008fde98887b15482e870
+current_v22_prior_gate_final_synced_head=810f050bded6b6e4a77008fde98887b15482e870
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_independent_review_corrected_83c09076_20260715T005600CST
-current_v22_artifact_root_sha256=f2e97e3c85886275d29c06775d0632ae9bc7efc05d0c8c2e67a5517fb9723866
-next_work_target=v22_native_calibration_corpus_label_provenance_receipt_remediation_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_provenance_remediation_tdd_810f050b_20260715T010014CST
+current_v22_artifact_root_sha256=9d4cb7820956bfc0ef828612a7ae6e920ec69d6617f8b1ec1c8db08bcb94219b
+next_work_target=v22_corrected_native_calibration_corpus_execution_preflight_only
