@@ -288,13 +288,64 @@ No model load, inference, simulator run, training, holdout access, formal seed,
 claim, promotion, deployment, activation, or DP modification occurred. No
 scientific ambiguity remains before a minimal TDD plan.
 
+## Gate C: Minimal Native Simulator TDD Plan
+
+Status: passed.
+
+Gate B was committed, pushed, and fast-forwarded on AutoDL at
+`90937b0eda431e1365d41f1f5ef55864568d0a2d`. This is Gate B's final synced
+HEAD and Gate C's evidence source HEAD; the source/final roles remain
+explicit.
+
+The executable plan is frozen in
+`docs/superpowers/plans/2026-07-14-v21-native-simulator-paired-closed-loop-tdd.md`.
+It keeps implementation CAMP-side and orders six test-first slices:
+
+1. pure causal-input, padding, deterministic hash/seed, K=8 latent, default
+   identity, and candidate immutability contracts;
+2. a signature-compatible native replay hook that reuses native batching and
+   the existing causal 14D selector without copying `run_route_replay`;
+3. pure SafetyCost Native v1 reducers, including the honestly named Lanelet2
+   five-point drivable proxy;
+4. a paired runner plus fully frozen native smoke configuration;
+5. one-tick Gate D capability execution and independent review;
+6. two-route Gate E paired smoke and independent recomputation review.
+
+Every implementation slice must show the intended red failure, the minimum
+green code, target plus adjacent regression tests, `py_compile`, and
+`git diff --check` before its exact-file commit/push and AutoDL fast-forward.
+No DP edit, new dependency, parallel simulator, training in Gates C-E,
+holdout access, formal seed, fallback selection, candidate repair, or smoke
+claim is permitted.
+
+Immutable Gate C artifact:
+
+- path:
+  `/root/autodl-tmp/camp_dp_v21_native_simulator_minimal_tdd_plan_90937b0e_20260714T155950CST`;
+- root SHA256:
+  `2625188c0d9346e5d1f53ec4d8cb8bc1390a9c0bec428cfb0dddff47b186f40e`;
+- stdout SHA256:
+  `918b7b6297d5dad25346161323349412e7adf59dc1b0e5472d870d2f5ffde4fc`;
+- `run.exit=0`, empty stderr, all ten payload hashes independently
+  reverified, directory mode 555 and payload mode 444.
+
+The artifact includes heads, commands, the frozen plan, its contract test,
+local target-test output, JSON/Markdown review, stdout/stderr,
+`SHA256SUMS`, and `ROOT_SHA256SUMS`. Plan, design, and pointer tests report
+`9 passed`.
+
+No model load, inference, simulator run, candidate generation, training,
+holdout access, formal seed, claim, promotion, deployment, activation, or DP
+modification occurred. The next work is Task 1 test-first causal input and
+K=8 pure contracts only.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_paired_closed_loop_design_self_review_passed
-current_v21_artifact_source_head=0937174beead161854b6e273020e53fcca589409
-current_v21_prior_gate_final_synced_head=0937174beead161854b6e273020e53fcca589409
+current_v21_status=v21_native_simulator_minimal_tdd_plan_review_passed
+current_v21_artifact_source_head=90937b0eda431e1365d41f1f5ef55864568d0a2d
+current_v21_prior_gate_final_synced_head=90937b0eda431e1365d41f1f5ef55864568d0a2d
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_design_self_review_0937174b_20260714T155319CST
-current_v21_artifact_root_sha256=5fa62b35bdc1b3f65b26077d98b2d150d3e274186d36e747ddaa3159c01221d1
-next_work_target=v21_native_simulator_minimal_tdd_plan_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_minimal_tdd_plan_90937b0e_20260714T155950CST
+current_v21_artifact_root_sha256=2625188c0d9346e5d1f53ec4d8cb8bc1390a9c0bec428cfb0dddff47b186f40e
+next_work_target=v21_native_simulator_task1_causal_input_and_k8_contracts_tdd_only
