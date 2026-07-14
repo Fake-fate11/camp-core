@@ -3,9 +3,59 @@
 Last verified: 2026-07-14, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v20_iteration_audit.md`. V19 and earlier
+new writes is `docs/diffusion_planner_v21_iteration_audit.md`. V20 and earlier
 audits are historical evidence and remain frozen except for explicit
 qualifications.
+
+## Current V21 Status
+
+Reader contract: this named section is the only v21 pointer source in this
+file. The EOF of `docs/diffusion_planner_v21_iteration_audit.md` is the sole
+current-gate authority, and the tuple below must match it exactly.
+
+V21 starts from live CAMP source HEAD
+`b419acf31eea7323232f117e8009f5eb9e19e318`. Local `main`, `origin/main`,
+GitHub `main`, and AutoDL CAMP were identical and tracked-clean. Fixed DP was
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no related run was
+active. The v20 artifact source HEAD remains `3b69cde1...`, while the v20
+final docs-sync HEAD is `b419acf3...`. Those are different roles, not drift.
+V20 remains an honest no-claim, read-only closeout and CARLA is stopped.
+
+Gate A audited the fixed DP `scenario_generation` route-replay path without
+loading the model or running inference. The native path supplies authored
+routes, 31-frame causal history at 0.1 s, native deterministic left-zero
+padding, all-agent closed-loop replanning, deterministic seeded traffic-light
+state, exact route speed limits, regulatory stop lines, realized OBB
+clearance, and the native MPC tracker. The existing CAMP no-ROS Lanelet2
+projection compatibility shim is required on AutoDL and passed a live map
+load.
+
+Future-derived NPZ goals, the NPZ heading future fallback, and post-hoc future
+backfill are forbidden. Native SG prediction smoothing must be disabled, and
+the tiny smoke must remain below 400 ticks so the native stuck-nudge path is
+unreachable. Static source audit says every canonical `dp_camp_v10_14d` atom
+has a possible native source, but runtime materialization remains fail-closed.
+Candidate 0 is not yet called operational Top-1: Gate D must prove exact
+independent output equality and immutable bytes first.
+
+The Gate A artifact was sealed and independently rehashed at root
+`47016fa5e4e397eec27b705cb122cab0c7d3f23c50cf03f84b41cf175ea15ac2`.
+No inference, simulation, training, holdout access, formal seed, claim,
+promotion, deployment, or activation occurred. Gate B is design/spec and
+self-review only.
+
+`current_v21_final_synced_head` is intentionally pending in this first v21
+docs commit. The artifact source HEAD is fixed; after this docs commit exists,
+the next v21 entry must record that exact commit as Gate A's final synced HEAD.
+The pending marker therefore cannot be interpreted as source drift.
+
+current_v21_status=v21_native_scenario_generation_capability_provenance_audit_passed
+current_v21_artifact_source_head=b419acf31eea7323232f117e8009f5eb9e19e318
+current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_capability_audit_b419acf3_20260714T154035CST
+current_v21_artifact_root_sha256=47016fa5e4e397eec27b705cb122cab0c7d3f23c50cf03f84b41cf175ea15ac2
+next_work_target=v21_native_simulator_paired_closed_loop_design_spec_and_self_review_only
 
 ## Current V20 Status
 
