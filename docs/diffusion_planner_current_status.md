@@ -179,16 +179,29 @@ with root SHA256
 `b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370`;
 `44 / 44` AutoDL tests passed. No model was loaded and no simulator executed;
 calibration/holdout execution stayed false and holdout outcomes were not read.
-The next gate is the native decision-sink and corpus-writer TDD only.
 
-current_v22_status=v22_native_train_corpus_static_preflight_passed_sub_5k_ceiling
-current_v22_artifact_source_head=74005ca49849d4601c11c1eed23038582f1062a7
-current_v22_prior_gate_final_synced_head=74005ca49849d4601c11c1eed23038582f1062a7
+Decision-sink and corpus-writer TDD passed at CAMP HEAD
+`203a3368663018e8855ba46176ff4f9a30675537`. The existing native CAMP hook
+emits only ticks `0, 5, 10, ...` after a finite `8 x 14` atom matrix and
+candidate tensor before/after SHA256 equality are proven. The writer stores
+each content-addressed snapshot once, keeps all identity fields only in the
+sidecar, rejects holdout and tensor mismatch, and retains failed route-seed
+receipts in the denominator. The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_native_decision_sink_writer_203a3368_20260714T212738CST`
+with root SHA256
+`94db868dcbd2a7d2711dda8158ed90f6901c45442f2f173c2d0f343fbd3ff5de`;
+`58 / 58` AutoDL tests passed. No model was loaded and no simulator executed.
+Next is the train-only corpus execution harness TDD and preflight; holdout
+remains sealed.
+
+current_v22_status=v22_native_decision_sink_and_corpus_writer_tdd_passed
+current_v22_artifact_source_head=203a3368663018e8855ba46176ff4f9a30675537
+current_v22_prior_gate_final_synced_head=203a3368663018e8855ba46176ff4f9a30675537
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_static_preflight_74005ca4_20260714T211622CST
-current_v22_artifact_root_sha256=b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370
-next_work_target=v22_native_decision_sink_and_corpus_writer_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_decision_sink_writer_203a3368_20260714T212738CST
+current_v22_artifact_root_sha256=94db868dcbd2a7d2711dda8158ed90f6901c45442f2f173c2d0f343fbd3ff5de
+next_work_target=v22_native_train_corpus_execution_harness_tdd_and_preflight_only
 
 ## Current V21 Status
 
