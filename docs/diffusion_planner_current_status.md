@@ -129,21 +129,46 @@ The asset-only CLI preflight root
 and Task 4 root
 `443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6`
 were independently rehashed. No model load, inference, simulator, training,
-holdout, formal seed, or claim occurred. The next target is the one-tick Gate
-D capability smoke.
+holdout, formal seed, or claim occurred.
 
-`current_v21_final_synced_head` is pending for the current Task 4 docs commit.
-The exact prior Task 3 final synced HEAD is separately recorded, so the
+Gate D passed one frozen native CAMP decision tick and one MPC tracker advance
+at source HEAD `11f1421646780b1ffe2a4c0fe7957b17158456d0`. Observed / padded
+history was `31 / 0`. The K=8 tensor stayed byte-identical at SHA256
+`86f91da26f61f00a2e73cddab9a900b2526b7781a940dd983cf4649c6290fd1b`;
+independent native default and candidate 0 were elementwise equal with maximum
+difference zero and SHA256
+`823b2e604297bf2229e8079999e5d57c0a74949bfdeb0ec91fd41a841de72913`.
+All atom sources were complete, all eight candidates passed the frozen mask,
+and exact indexed selection chose candidate 7. The native path has no ranked
+K=8 output, so this is operational-default identity, not a fabricated native
+Top-1 rank.
+
+The capability artifact root
+`125d14dc3de12bd4bf515f0f00ed5bc31b457e88248f604450142caadb3a83fa`
+and independent-review root
+`852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c`
+were independently rehashed. Review reports 26 passed, 0 failed and 77 AutoDL
+tests passed. Three distinct failed attempts remain sealed with their actual
+causes: direct-script import, exact-name legacy scale version compatibility,
+and native route-row geometry validity. No failure was overwritten.
+
+Gate D used no training, holdout, formal seed, claim, promotion, deployment,
+activation, or DP modification. Single-tick latency is diagnostic only. The
+next target is the frozen two-route Gate E paired closed-loop smoke; it cannot
+support a safety or CAMP-over-DP claim.
+
+`current_v21_final_synced_head` is pending for the current Gate D docs commit.
+The exact prior Task 4 final synced HEAD is separately recorded, so the
 pending marker cannot be mistaken for artifact-source or endpoint drift.
 
-current_v21_status=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_passed
-current_v21_artifact_source_head=ac9cf98cafa0f27bc30acc7ca51d90f3d96766b8
-current_v21_prior_gate_final_synced_head=12e98803f3f0fa2b0b3eccc1279d8b41756c2496
+current_v21_status=v21_native_simulator_gate_d_capability_and_independent_review_passed
+current_v21_artifact_source_head=11f1421646780b1ffe2a4c0fe7957b17158456d0
+current_v21_prior_gate_final_synced_head=4e79dc3999045fb8cd293c0794f2226b64084000
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task4_paired_runner_ac9cf98c_20260714T165318CST
-current_v21_artifact_root_sha256=443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6
-next_work_target=v21_native_simulator_gate_d_one_tick_capability_smoke
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_d_independent_review_11f14216_20260714T171411CST
+current_v21_artifact_root_sha256=852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c
+next_work_target=v21_native_simulator_gate_e_two_route_paired_smoke
 
 ## Current V20 Status
 

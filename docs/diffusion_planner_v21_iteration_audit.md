@@ -553,13 +553,96 @@ seed, claim, promotion, deployment, activation, dependency change, or DP
 modification occurred. The next work is the one-tick Gate D capability smoke;
 its scientific checks remain fail-closed and it cannot make a claim.
 
+## Gate D: One-Tick Native Capability Smoke and Independent Review
+
+Status: passed as chain/capability evidence only.
+
+Gate D ran from source HEAD
+`11f1421646780b1ffe2a4c0fe7957b17158456d0`; the prior Task 4 docs-sync
+HEAD was `4e79dc3999045fb8cd293c0794f2226b64084000`. The fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The successful capability smoke used one frozen sample-route CAMP arm for
+exactly one decision tick and one native MPC tracker advance. It recorded
+observed / padded frames `31 / 0` under
+`native_zero_left_pad_to_31_v1`. Native DP produced exactly K=8 candidates.
+The candidate tensor SHA256 before and after atom/selector work was identical:
+`86f91da26f61f00a2e73cddab9a900b2526b7781a940dd983cf4649c6290fd1b`.
+The independent default and candidate 0 were elementwise equal with maximum
+absolute difference zero and shared SHA256
+`823b2e604297bf2229e8079999e5d57c0a74949bfdeb0ec91fd41a841de72913`.
+This proves default/candidate-0 identity only for the frozen native path; the
+native output is not a ranked K=8 tensor, so it is recorded as the operational
+default rather than relabelled as a native Top-1 ranking.
+
+All eight candidates had complete native sources and passed the frozen
+physical-feasibility mask. The exact 14D atom tensor SHA256 was
+`c19bf3b55f2eb2a530a875af967fd8e9e7fc6df6679fb86fd3d09b428d5579ec`.
+The affine simplex selector chose selected index 7 with exact selected-trajectory
+SHA256 `8a40bcc45bc1dfd106f0e7cd0844b659370888dcf6e51e1b7c3152fa1eaf6239`;
+no candidate generation, repair, rewrite, or blending occurred. The legacy
+scale artifact omitted a declared schema version, but it was accepted only
+because all 14 atom names matched the frozen current schema exactly and its
+asset SHA was frozen. This effective contract is explicit in the receipt.
+
+Recorded latency in milliseconds was input 106.553151, independent default
+inference 422.988578, K=8 candidate inference 368.754908, atoms 24.487224,
+selector 0.120177, tracker 11.344897, native hook total 940.949404, and total
+planning 953.220759. These are single-tick smoke measurements, not performance
+claims.
+
+The immutable preflight artifact is
+`/root/autodl-tmp/camp_dp_v21_native_gate_d_preflight_11f14216_20260714T171247CST`
+with root SHA256
+`317b3e2410135b72c7a90ceeb7d7b8b55f41571470e5b443636f40f95b6ddab0`.
+The immutable capability artifact is
+`/root/autodl-tmp/camp_dp_v21_native_gate_d_capability_11f14216_20260714T171247CST`
+with root SHA256
+`125d14dc3de12bd4bf515f0f00ed5bc31b457e88248f604450142caadb3a83fa`.
+Its `run.exit=0`, sealed stderr was empty, and all payload and root hashes were
+independently reverified.
+
+Three distinct fail-closed attempts are preserved rather than hidden:
+
+- root `c4aa2f392ec1831bcc00bece1e4f6773e6fe160f95174228129476e383120937`
+  stopped before model load because direct script execution could not import
+  the repository package;
+- root `f812e14178e8920204f9282eb7f97ad016b0078c67abdb91cb7f3ac32407d650`
+  stopped in preflight because the exact-name legacy selector scale JSON had
+  no schema-version field;
+- root `25d729350cb3f57747f988ae17348cb72547ad4289d1f3f0af3984d14e03d868`
+  stopped after K=8 inference because the CAMP route projector treated native
+  channel 13 as a validity sentinel and rejected valid geometry.
+
+The fixes were surgical: direct-script repository bootstrap, strict legacy
+scale compatibility only for the exact current 14-atom name list, and native
+route-row validity derived only from the first eight geometry channels. The
+last fix was proven red/green and committed at the Gate D source HEAD.
+
+Independent review artifact
+`/root/autodl-tmp/camp_dp_v21_native_gate_d_independent_review_11f14216_20260714T171411CST`
+has root SHA256
+`852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c`.
+It reports `26 / 0` checks passed, rehashed the successful preflight and
+capability artifacts plus all three failures, verified K=8 shape, candidate
+immutability, exact indexed selection, RNG isolation, and default/candidate-0
+identity, and reran 77 AutoDL regression tests successfully. Its `run.exit=0`,
+sealed stderr was empty, and every payload/root hash was independently
+reverified.
+
+No training, holdout access, formal seed, promotion, deployment, online
+activation, or DP modification occurred.
+Gate D cannot support a safety or CAMP-over-DP claim. The next authorized gate
+is the frozen two-route paired
+closed-loop smoke, which remains chain evidence only.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_passed
-current_v21_artifact_source_head=ac9cf98cafa0f27bc30acc7ca51d90f3d96766b8
-current_v21_prior_gate_final_synced_head=12e98803f3f0fa2b0b3eccc1279d8b41756c2496
+current_v21_status=v21_native_simulator_gate_d_capability_and_independent_review_passed
+current_v21_artifact_source_head=11f1421646780b1ffe2a4c0fe7957b17158456d0
+current_v21_prior_gate_final_synced_head=4e79dc3999045fb8cd293c0794f2226b64084000
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task4_paired_runner_ac9cf98c_20260714T165318CST
-current_v21_artifact_root_sha256=443a2a663347e4b5a825336da96653bc3803dd8fed787f8e721275f402e705a6
-next_work_target=v21_native_simulator_gate_d_one_tick_capability_smoke
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_d_independent_review_11f14216_20260714T171411CST
+current_v21_artifact_root_sha256=852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c
+next_work_target=v21_native_simulator_gate_e_two_route_paired_smoke
