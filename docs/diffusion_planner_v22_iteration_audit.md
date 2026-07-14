@@ -523,3 +523,59 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST
 current_v22_artifact_root_sha256=4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98
 next_work_target=v22_native_single_tick_capability_execution_only
+
+## Native Single-tick Capability Execution
+
+Status: passed.
+
+Two pre-execution harness failures occurred before the successful run. The
+first used an incorrectly hand-expanded full CAMP SHA in the HEAD guard. It is
+sealed at
+`/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_harness_head_guard_480b6fda_20260714T202203CST`
+with root SHA256
+`81e57eebae00443dc83a2f891aad8e600339979359c071c6d711c585f4ad0cb1`.
+The second used a broad `pgrep` expression that matched its own bash wrapper,
+not a Python runner. It is sealed at
+`/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_harness_process_guard_480b6fda_20260714T202255CST`
+with root SHA256
+`00a3c9cf6e702482c56e3934c47bf25f25a1af20b7a98c05b1395aeb0039a2a3`.
+Both record `run.exit=1`, the failure stage and cause, and
+`model_loaded=false` / `simulator_executed=false`. The corrected process guard
+inspected independent `/proc/*/cmdline` argv entries and found no active native
+runner.
+
+The one-tick diagnostic capability execution then passed on the already
+observed normal v21 route. The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST`
+with root SHA256
+`0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80`.
+Independent `SHA256SUMS` and `ROOT_SHA256SUMS` checks passed. It records
+`run.exit=0`, CAMP/fixed-DP HEADS, exact command, stdout/stderr, summary JSON/MD,
+one route, one CAMP arm, and one complete tick receipt. AutoDL py_compile and
+capability/v21-runner/v21-hook/v22-pointer tests passed `30 / 30` immediately
+before execution.
+
+The native tick used 31 observed causal frames and zero padding. All eight
+candidates were source-valid and physically feasible; `all_k_high_risk=false`.
+The frozen affine selector chose candidate 7 under `v22_source_valid`. The K=8
+candidate tensor SHA was identical before and after selection. The independent
+DP operational default and candidate 0 were elementwise and byte-hash equal
+with max absolute difference `0.0`; both SHA256 values are
+`823b2e604297bf2229e8079999e5d57c0a74949bfdeb0ec91fd41a841de72913`.
+The receipt explicitly keeps `native_ranked_k8=false` and makes no native
+K-ranking provenance claim.
+
+This was diagnostic capability only: the v18 weights remain ablation-only,
+no training ran, no holdout was opened, and no safety or CAMP-over-DP claim was
+made. Next is TDD for the four-tick, two-route diagnostic capability mode on
+the same shared runner; it must not run 64-step v21 paired smoke or access any
+v22 evaluation split.
+
+current_v22_status=v22_native_single_tick_capability_passed
+current_v22_artifact_source_head=480b6fda746db9e8b75d598fc9bbd56991b59721
+current_v22_prior_gate_final_synced_head=480b6fda746db9e8b75d598fc9bbd56991b59721
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST
+current_v22_artifact_root_sha256=0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80
+next_work_target=v22_native_tiny_multi_route_capability_tdd_only

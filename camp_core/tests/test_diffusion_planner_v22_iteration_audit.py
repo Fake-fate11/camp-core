@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_capability_preflight_passed",
-    "current_v22_artifact_source_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04",
-    "current_v22_prior_gate_final_synced_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04",
+    "current_v22_status=v22_native_single_tick_capability_passed",
+    "current_v22_artifact_source_head=480b6fda746db9e8b75d598fc9bbd56991b59721",
+    "current_v22_prior_gate_final_synced_head=480b6fda746db9e8b75d598fc9bbd56991b59721",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST",
-    "current_v22_artifact_root_sha256=4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98",
-    "next_work_target=v22_native_single_tick_capability_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST",
+    "current_v22_artifact_root_sha256=0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80",
+    "next_work_target=v22_native_tiny_multi_route_capability_tdd_only",
 )
 
 

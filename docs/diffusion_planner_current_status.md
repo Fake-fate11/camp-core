@@ -108,16 +108,31 @@ seed access remain false. The immutable artifact is
 with root SHA256
 `4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98`;
 `28 / 28` AutoDL checks passed. It contains zero routes, zero arms, and no
-receipts: no model or simulator ran. Single-tick capability execution is next.
+receipts: no model or simulator ran.
 
-current_v22_status=v22_native_capability_preflight_passed
-current_v22_artifact_source_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04
-current_v22_prior_gate_final_synced_head=f964c0f5fef3937cad46e4be09564f2bc0d7da04
+The single-tick diagnostic capability then passed at CAMP HEAD
+`480b6fda746db9e8b75d598fc9bbd56991b59721`. The one native CAMP tick had 31
+observed frames, zero padding, eight source-valid and physically feasible
+candidates, and selected index 7 under the v22 source-valid affine policy. The
+candidate tensor was immutable; DP operational default and candidate 0 were
+byte-identical. The receipt preserves `native_ranked_k8=false`. The immutable
+artifact is
+`/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST`
+with root SHA256
+`0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80`.
+Two sealed pre-execution harness failures are fully attributed in the v22
+audit; neither loaded the model nor ran the simulator. This diagnostic used
+ablation weights, opened no holdout, and supports no claim. Tiny two-route,
+four-tick capability TDD is next.
+
+current_v22_status=v22_native_single_tick_capability_passed
+current_v22_artifact_source_head=480b6fda746db9e8b75d598fc9bbd56991b59721
+current_v22_prior_gate_final_synced_head=480b6fda746db9e8b75d598fc9bbd56991b59721
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_capability_preflight_f964c0f5_20260714T201537CST
-current_v22_artifact_root_sha256=4dc22b6c193867a15c672a5710af7516d05111ca55a901518b2a1983b5dedd98
-next_work_target=v22_native_single_tick_capability_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_single_tick_capability_480b6fda_20260714T202326CST
+current_v22_artifact_root_sha256=0c65c4a2af758dba7d9658f1fda95cac152271b43afeb6e7024d2818658efe80
+next_work_target=v22_native_tiny_multi_route_capability_tdd_only
 
 ## Current V21 Status
 
