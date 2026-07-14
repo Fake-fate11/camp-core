@@ -871,9 +871,47 @@ def execute_smoke(
             "mode": mode,
             "status": "failed",
             "failure_reason": str(exc),
+            "completed_arm_count": len(arms),
+            "completed_pair_count": len(pairs),
             "claim_authorized": False,
         }
+        repo_root = Path(__file__).resolve().parents[2]
+        camp_head = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        (staging / "HEADS").write_text(
+            f"camp_source_head={camp_head}\n"
+            f"fixed_dp_head={config['fixed_dp']['head']}\n",
+            encoding="ascii",
+        )
+        (staging / "COMMAND").write_text(
+            f"mode={mode}\n{command or 'execute_smoke(injected_run_arm=true)'}\n",
+            encoding="utf-8",
+        )
+        _write_json(staging / "smoke_config.json", config)
         _write_json(staging / "failure.json", failure)
+        for arm_receipt in arms:
+            route_root = staging / "receipts" / str(arm_receipt["route_name"])
+            arm_name = str(arm_receipt["arm"])
+            _write_json(route_root / f"{arm_name}.json", arm_receipt)
+            for tick in arm_receipt["ticks"]:
+                _write_json(
+                    route_root
+                    / arm_name
+                    / f"tick_{int(tick['tick_index']):04d}.json",
+                    tick,
+                )
+        for pair_receipt in pairs:
+            _write_json(
+                staging
+                / "receipts"
+                / str(pair_receipt["route_name"])
+                / "pair.json",
+                pair_receipt,
+            )
         (staging / "stderr.txt").write_text(str(exc) + "\n", encoding="utf-8")
         (staging / "stdout.txt").write_text("", encoding="utf-8")
         (staging / "run.exit").write_text("1\n", encoding="ascii")

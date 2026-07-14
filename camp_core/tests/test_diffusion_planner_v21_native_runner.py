@@ -273,6 +273,49 @@ def test_pair_validation_rejects_asymmetry_partial_duplicate_or_arm_failure(
         module.validate_pair_receipts(dp, camp)
 
 
+def test_failed_paired_smoke_seals_provenance_and_partial_receipts(tmp_path) -> None:
+    module = _runner()
+    config = _config()
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps):
+        del config, output_dir, max_steps
+        calls.append((route["name"], arm))
+        if route["name"] == config_routes[1]["name"] and arm == "camp":
+            raise RuntimeError("all_candidates_physically_infeasible")
+        return _arm(route, arm)
+
+    config_routes = config["routes"]
+    output = tmp_path / "failed"
+    with pytest.raises(RuntimeError, match="all_candidates_physically_infeasible"):
+        module.execute_smoke(
+            config,
+            output,
+            mode="paired-smoke",
+            run_arm=run_arm,
+            command="frozen paired command",
+        )
+
+    assert calls == [
+        (config_routes[0]["name"], "dp"),
+        (config_routes[0]["name"], "camp"),
+        (config_routes[1]["name"], "dp"),
+        (config_routes[1]["name"], "camp"),
+    ]
+    failure = json.loads((output / "failure.json").read_text())
+    assert failure["completed_arm_count"] == 3
+    assert failure["completed_pair_count"] == 1
+    assert "camp_source_head=" in (output / "HEADS").read_text()
+    assert "frozen paired command" in (output / "COMMAND").read_text()
+    assert json.loads((output / "smoke_config.json").read_text()) == config
+    assert (output / "receipts" / config_routes[0]["name"] / "pair.json").is_file()
+    assert (
+        output / "receipts" / config_routes[1]["name"] / "dp.json"
+    ).is_file()
+    assert (output / "run.exit").read_text().strip() == "1"
+    assert module.verify_evidence_hashes(output)["root_sha256"]
+
+
 def test_capability_smoke_runs_only_one_camp_tick_and_never_claims(tmp_path) -> None:
     module = _runner()
     config = _config()
