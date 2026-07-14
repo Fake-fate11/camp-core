@@ -13,21 +13,20 @@ Reader contract: this named section is the only v20 pointer source in this
 file. The EOF of `docs/diffusion_planner_v20_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-At CAMP, GitHub, and AutoDL head
-`61c607d144688a42ea71a0b2418fa6bf483540c5`, with fixed DP head
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the v20 CARLA route-corridor
-TDD implementation is ready. Independent final review recorded `Critical=0`
-and `Important=0`; the local and AutoDL seven-file suites each recorded
-`159 passed`.
+At CAMP, GitHub, and AutoDL start head
+`9537f1998100a32b74cdb6cc6dc36db4837c77f4`, with fixed DP head
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the offline map-only
+contact-tolerance census TDD plan is ready. It binds official CARLA 0.9.16
+`Carla/Maps/Town10HD_Opt` through native `carla.Map` without a server.
 
-This documentation bootstrap ran no candidate, outcome, metric, holdout,
-simulator, promotion, deployment, or broad claim. The next gate is map-only
-contact-tolerance census planning.
+This plan-only gate ran no CARLA server, map census, candidate, DP worker,
+outcome, metric, holdout, promotion, deployment, or claim. The next gate is
+plan static review only.
 
-current_v20_status=v20_carla_route_corridor_tdd_ready_independent_final_review_passed
-camp_github_autodl_head=61c607d144688a42ea71a0b2418fa6bf483540c5
+current_v20_status=v20_carla_route_corridor_map_only_contact_tolerance_census_plan_ready
+camp_github_autodl_head=9537f1998100a32b74cdb6cc6dc36db4837c77f4
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-next_work_target=v20_carla_route_corridor_map_only_contact_tolerance_census_plan_only
+next_work_target=v20_carla_route_corridor_map_only_contact_tolerance_census_plan_static_review_only
 
 ## Current V19 Status
 
