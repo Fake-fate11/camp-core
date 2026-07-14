@@ -148,6 +148,92 @@ def test_v22_capability_receipt_validator_requires_identity_and_policy() -> None
         )
 
 
+def _v22_camp_arm(route: dict) -> dict:
+    ticks = []
+    for index in range(4):
+        tick = _v22_camp_tick()
+        tick["tick_index"] = index
+        tick["input_sha256"] = f"{index + 2:x}" * 64
+        tick["padding"]["observed_frames"] = index + 1
+        tick["padding"]["padded_frames"] = 30 - index
+        ticks.append(tick)
+    components = {
+        "collision_any": 0.0,
+        "near_miss_noncollision_rate": 0.0,
+        "offroad_rate": 0.0,
+        "wrong_way_rate": 0.0,
+        "red_light_violation_any": 0.0,
+        "speed_limit_violation_rate": 0.0,
+    }
+    return {
+        "status": "ok",
+        "route_name": route["name"],
+        "route_sha256": route["sha256"],
+        "arm": "camp",
+        "initial_state_sha256": "b" * 64,
+        "initial_input_sha256": ticks[0]["input_sha256"],
+        "ticks": ticks,
+        "safety": {
+            "schema_version": "safety_cost_native_v22",
+            "safety_cost": 0.0,
+            "components": components,
+            "speed_protocol": {
+                "schema_version": "speed_protocol_v22",
+                "operational_tolerance_mps": 0.1,
+            },
+        },
+        "secondary": {},
+        "latency": {},
+        "claim_authorized": False,
+    }
+
+
+def test_tiny_capability_runs_two_diagnostic_routes_four_camp_ticks(tmp_path) -> None:
+    module = _runner()
+    config = _config()
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps):
+        del config, output_dir
+        calls.append((route["name"], arm, max_steps))
+        return _v22_camp_arm(route)
+
+    output = tmp_path / "tiny"
+    result = module.execute_smoke(
+        config,
+        output,
+        mode="tiny-capability-smoke",
+        run_arm=run_arm,
+    )
+
+    assert calls == [
+        ("sample_map_smoke_route", "camp", 4),
+        ("sample_map_tl_route_59_to_86", "camp", 4),
+    ]
+    assert result["route_count"] == 2
+    assert result["arm_count"] == 2
+    assert len(result["capability_arms"]) == 2
+    assert result["claim_authorized"] is False
+    for route in config["routes"]:
+        receipt = output / "receipts" / route["name"] / "camp.json"
+        assert len(json.loads(receipt.read_text())["ticks"]) == 4
+
+
+def test_cli_exposes_tiny_capability_as_exclusive_mode(tmp_path) -> None:
+    module = _runner()
+    args = module.parse_args(
+        [
+            "--tiny-capability-smoke",
+            "--config",
+            str(CONFIG),
+            "--output-dir",
+            str(tmp_path / "tiny"),
+        ]
+    )
+
+    assert args.mode == "tiny-capability-smoke"
+
+
 def test_v22_capability_preflight_writes_no_execution_receipt(tmp_path) -> None:
     module = _runner()
     config = _config()

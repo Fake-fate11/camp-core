@@ -863,7 +863,12 @@ def execute_smoke(
     command: str | None = None,
 ) -> dict[str, Any]:
     _validate_native_config(config)
-    if mode not in {"preflight", "capability-smoke", "paired-smoke"}:
+    if mode not in {
+        "preflight",
+        "capability-smoke",
+        "tiny-capability-smoke",
+        "paired-smoke",
+    }:
         raise ValueError("unsupported v21 native smoke mode")
     output = Path(output_dir)
     staging = output.with_name(output.name + ".tmp")
@@ -900,6 +905,36 @@ def execute_smoke(
                 expected_selection_policy=expected_selection_policy,
             )
             arms.append(receipt)
+        elif mode == "tiny-capability-smoke":
+            if config.get("schema_version") != "camp_dp_v22_native_capability_v1":
+                raise ValueError("tiny capability requires the v22 config")
+            if run_arm is None:
+                raise ValueError("tiny capability requires a native arm runner")
+            tiny_steps = int(config["protocol"]["tiny_steps"])
+            for route_name in config["protocol"]["route_order"]:
+                route = routes[route_name]
+                receipt = dict(
+                    run_arm(
+                        route=route,
+                        arm="camp",
+                        config=config,
+                        output_dir=staging
+                        / "native_runs"
+                        / route_name
+                        / "camp",
+                        max_steps=tiny_steps,
+                    )
+                )
+                _validate_arm_receipt(
+                    receipt,
+                    "camp",
+                    expected_ticks=tiny_steps,
+                    expected_selection_policy=expected_selection_policy,
+                    expected_safety_schema=str(
+                        config["protocol"]["safety_schema"]
+                    ),
+                )
+                arms.append(receipt)
         elif mode == "paired-smoke":
             if run_arm is None:
                 raise ValueError("paired smoke requires a native arm runner")
@@ -954,8 +989,10 @@ def execute_smoke(
             result["aggregate"] = aggregate_paired_safety(
                 [pair["paired_delta"] for pair in pairs]
             )
-        elif arms:
+        elif len(arms) == 1:
             result["capability_arm"] = arms[0]
+        elif arms:
+            result["capability_arms"] = arms
         else:
             result["preflight"] = {"config_valid": True, "asset_checks": "external"}
 
@@ -1108,6 +1145,7 @@ def _validate_arm_receipt(
     expected_ticks: int | None = None,
     require_summary: bool = True,
     expected_selection_policy: str | None = None,
+    expected_safety_schema: str = "safety_cost_native_v1",
 ) -> None:
     if receipt.get("status") != "ok":
         raise ValueError(f"{arm} arm failed")
@@ -1223,7 +1261,7 @@ def _validate_arm_receipt(
     if not require_summary:
         return
     safety = _mapping(receipt, "safety")
-    if safety.get("schema_version") != "safety_cost_native_v1":
+    if safety.get("schema_version") != expected_safety_schema:
         raise ValueError("safety schema mismatch")
     components = _mapping(safety, "components")
     expected_cost = safety_cost_native_v1(components)
@@ -1232,6 +1270,13 @@ def _validate_arm_receipt(
         actual_cost, expected_cost, rtol=0.0, atol=1e-12
     ):
         raise ValueError("safety cost does not match components")
+    if expected_safety_schema == "safety_cost_native_v22":
+        speed = _mapping(safety, "speed_protocol")
+        if (
+            speed.get("schema_version") != "speed_protocol_v22"
+            or float(speed.get("operational_tolerance_mps", float("nan"))) != 0.1
+        ):
+            raise ValueError("v22 operational speed protocol mismatch")
     _mapping(receipt, "secondary")
     _mapping(receipt, "latency")
 
@@ -1531,7 +1576,10 @@ def build_native_arm_runner(
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
-        if max_steps not in {1, int(config["protocol"]["paired_steps"])}:
+        allowed_steps = {1, int(config["protocol"]["paired_steps"])}
+        if "tiny_steps" in config["protocol"]:
+            allowed_steps.add(int(config["protocol"]["tiny_steps"]))
+        if max_steps not in allowed_steps:
             raise ValueError("native smoke step count is not frozen")
         context = ensure_runtime()
         replay = context["replay"]
@@ -1996,6 +2044,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         dest="mode",
         action="store_const",
         const="capability-smoke",
+    )
+    modes.add_argument(
+        "--tiny-capability-smoke",
+        dest="mode",
+        action="store_const",
+        const="tiny-capability-smoke",
     )
     modes.add_argument(
         "--paired-smoke",
