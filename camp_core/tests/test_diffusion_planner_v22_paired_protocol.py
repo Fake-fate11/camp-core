@@ -114,6 +114,12 @@ def _config() -> dict:
             "offroad_wrong_way_mean_delta_max": 0.0,
             "offroad_wrong_way_ci95_upper_max": 0.005,
         },
+        "statistics": {
+            "bootstrap_hierarchy": ["logical_map_sha256", "group_sha256", "route_identity_sha256", "seed"],
+            "bootstrap_resamples": 5000,
+            "bootstrap_seed": 12345,
+            "tie_tolerance": 1e-12,
+        },
         "pilot_execution_authorized": True,
         "main_execution_authorized": False,
         "holdout_opened": False,
@@ -268,7 +274,7 @@ def _arm(route: dict, arm: str, run_config: dict, *, all_high: bool = False) -> 
     }
 
 
-def test_tracked_evaluation_config_freezes_pilot_and_keeps_main_closed() -> None:
+def test_tracked_evaluation_config_freezes_review_and_authorizes_main_once() -> None:
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
 
     assert config["modes"]["pilot"] == {"split": "calibration", "route_count": 30, "seed_count": 3, "max_steps": 64}
@@ -276,7 +282,14 @@ def test_tracked_evaluation_config_freezes_pilot_and_keeps_main_closed() -> None
     assert config["modes"]["main"] == {"split": "holdout", "route_count": 100, "seed_count": 5, "max_steps": 64}
     assert config["frozen_selector"]["artifact_root_sha256"] == "5e8ebdff441d10f8c824ed3104eda3f4d484c2235ad85184b45223c780b41fed"
     assert config["primary_speed_tolerance_mps"] == 0.1
-    assert config["main_execution_authorized"] is False
+    assert config["statistics"] == {
+        "bootstrap_hierarchy": ["logical_map_sha256", "group_sha256", "route_identity_sha256", "seed"],
+        "bootstrap_resamples": 5000,
+        "bootstrap_seed": 12345,
+        "tie_tolerance": 1e-12,
+    }
+    assert config["pilot_execution_authorized"] is False
+    assert config["main_execution_authorized"] is True
     assert config["holdout_opened"] is False
 
 

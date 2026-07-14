@@ -61,8 +61,20 @@
     "offroad_wrong_way_mean_delta_max": 0.0,
     "offroad_wrong_way_ci95_upper_max": 0.005
   },
-  "pilot_execution_authorized": true,
-  "main_execution_authorized": false,
+  "statistics": {
+    "bootstrap_hierarchy": ["logical_map_sha256", "group_sha256", "route_identity_sha256", "seed"],
+    "bootstrap_resamples": 5000,
+    "bootstrap_seed": 12345,
+    "tie_tolerance": 1e-12
+  },
+  "pilot_review": {
+    "execution_artifact": "/root/autodl-tmp/camp_dp_v22_native_paired_pilot_execution_452bb54e_20260715T025248CST",
+    "execution_root_sha256": "00f1ad297645db8b735a3d06780be267d8467ddb40c1a3ebaaf4a06382f37daa",
+    "independent_review_artifact": "/root/autodl-tmp/camp_dp_v22_native_paired_pilot_independent_review_452bb54e_20260715T035415CST",
+    "independent_review_root_sha256": "3267fe24e9e30d1dea20855fc4b73b8378d4a1b61faa011c8b74c7adb270b448"
+  },
+  "pilot_execution_authorized": false,
+  "main_execution_authorized": true,
   "holdout_opened": false,
   "formal_seeds_authorized": false,
   "full36_authorized": false,

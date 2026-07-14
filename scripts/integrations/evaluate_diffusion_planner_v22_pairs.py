@@ -412,6 +412,30 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
         if _file_sha256(Path(str(asset["path"]))) != asset["sha256"]:
             raise ValueError(f"frozen selector {name} SHA mismatch")
 
+    pilot_review = _mapping(config, "pilot_review")
+    _verify_artifact_root(
+        pilot_review["execution_artifact"],
+        pilot_review["execution_root_sha256"],
+        "pilot execution",
+    )
+    pilot_review_artifact = _verify_artifact_root(
+        pilot_review["independent_review_artifact"],
+        pilot_review["independent_review_root_sha256"],
+        "pilot independent review",
+    )
+    pilot_summary = json.loads(
+        (pilot_review_artifact / "summary.json").read_text(encoding="utf-8")
+    )
+    if (
+        pilot_summary.get("status") != "passed"
+        or pilot_summary.get("pilot_scale_gate_passed") is not True
+        or pilot_summary.get("pilot_performance_claim_authorized") is not False
+        or pilot_summary.get("main_holdout_opened") is not False
+        or pilot_summary.get("source_execution_root_sha256")
+        != pilot_review["execution_root_sha256"]
+    ):
+        raise ValueError("pilot independent review receipt mismatch")
+
     maps = {
         str(item["sha256"]): item
         for item in config.get("maps", [])
@@ -448,7 +472,9 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
     single_tick = build_pair_schedule(
         single_tick_config, manifest, mode="capability"
     )
-    pilot = build_pair_schedule(config, manifest, mode="pilot")
+    pilot_config = deepcopy(dict(config))
+    pilot_config["pilot_execution_authorized"] = True
+    pilot = build_pair_schedule(pilot_config, manifest, mode="pilot")
     main_config = deepcopy(dict(config))
     main_config["main_execution_authorized"] = True
     main = build_pair_schedule(main_config, manifest, mode="main")
@@ -472,7 +498,9 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
             for item in capability
         ],
         "pilot": [
-            build_evaluation_run_config(config, base_config, item, mode="pilot")
+            build_evaluation_run_config(
+                pilot_config, base_config, item, mode="pilot"
+            )
             for item in pilot
         ],
         "main": [
@@ -498,6 +526,10 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
         "frozen_selector_review_root_sha256": frozen[
             "independent_review_root_sha256"
         ],
+        "pilot_execution_root_sha256": pilot_review["execution_root_sha256"],
+        "pilot_independent_review_root_sha256": pilot_review[
+            "independent_review_root_sha256"
+        ],
         "route_counts": route_counts,
         "seed_counts": seed_counts,
         "planned_pair_counts": {
@@ -514,15 +546,18 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
         "shared_runner_factory": build_native_arm_runner.__name__,
         "primary_speed_tolerance_mps": 0.1,
         "speed_sensitivity_tolerances_mps": [0.0, 0.05, 0.1, 0.2],
+        "statistics": dict(_mapping(config, "statistics")),
         "model_loaded": False,
         "runner_built": False,
         "simulator_executed": False,
-        "pilot_executed": False,
+        "pilot_executed_by_preflight": False,
+        "pilot_execution_reviewed": True,
+        "pilot_execution_authorized": False,
         "holdout_opened": False,
         "holdout_outcomes_read": False,
         "claim_authorized": False,
-        "main_execution_authorized": False,
-        "next_work_target": "v22_native_paired_capability_execution_only",
+        "main_execution_authorized": True,
+        "next_work_target": "v22_native_paired_main_execution_only",
     }
 
 
@@ -687,6 +722,19 @@ def _validate_evaluation_config(config: Mapping[str, Any]) -> None:
             "offroad_wrong_way_mean_delta_max": 0.0,
             "offroad_wrong_way_ci95_upper_max": 0.005,
         }
+        or config.get("statistics")
+        != {
+            "bootstrap_hierarchy": [
+                "logical_map_sha256",
+                "group_sha256",
+                "route_identity_sha256",
+                "seed",
+            ],
+            "bootstrap_resamples": 5000,
+            "bootstrap_seed": 12345,
+            "tie_tolerance": 1e-12,
+        }
+        or config.get("holdout_opened") is not False
         or config.get("formal_seeds_authorized") is not False
         or config.get("full36_authorized") is not False
         or config.get("claim_authorized") is not False
