@@ -515,7 +515,7 @@ ablation.
 - [ ] **Step 4: Run GREEN and solver regression**
 
 ```powershell
-& 'C:\Users\lenovo\anaconda3\python.exe' -m pytest camp_core/tests/test_diffusion_planner_v22_selector_training.py camp_core/tests/test_robust_margin_master.py -q
+& 'C:\Users\lenovo\anaconda3\python.exe' -m pytest camp_core/tests/test_diffusion_planner_v22_selector_training.py camp_core/tests/test_diffusion_planner_benders_atom_contract.py -q
 & 'C:\Users\lenovo\anaconda3\python.exe' -m py_compile scripts/integrations/train_diffusion_planner_v22_selector.py
 git diff --check
 ```
