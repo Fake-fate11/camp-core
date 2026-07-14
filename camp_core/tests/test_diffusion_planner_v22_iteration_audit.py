@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_route_family_split_frozen_with_4_route_training_ceiling",
-    "current_v22_artifact_source_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe",
-    "current_v22_prior_gate_final_synced_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe",
+    "current_v22_status=v22_native_train_corpus_static_preflight_passed_sub_5k_ceiling",
+    "current_v22_artifact_source_head=74005ca49849d4601c11c1eed23038582f1062a7",
+    "current_v22_prior_gate_final_synced_head=74005ca49849d4601c11c1eed23038582f1062a7",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST",
-    "current_v22_artifact_root_sha256=2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6",
-    "next_work_target=v22_native_train_corpus_static_preflight_with_frozen_4_route_training_ceiling_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_static_preflight_74005ca4_20260714T211622CST",
+    "current_v22_artifact_root_sha256=b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370",
+    "next_work_target=v22_native_decision_sink_and_corpus_writer_tdd_only",
 )
 
 
@@ -111,5 +111,24 @@ def test_v22_records_frozen_route_family_split_and_independent_review() -> None:
         "holdout map is absent from train",
         "unseen-map generalization remains unauthorized",
         "claim_authorized=false",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_train_corpus_static_preflight_without_execution() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "train-only static preflight",
+        "4 / 30 / 100 route counts",
+        "8 / 3 / 5 seed counts",
+        "32 train route-seed runs",
+        "13 snapshots per complete 64-tick run",
+        "theoretical ceiling is 416 snapshots",
+        "no 5k/10k/20k/50k level is reachable",
+        "v18_ablation_corpus_collection_only",
+        "b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370",
+        "process-guard self-match",
+        "No model was loaded and no simulator executed",
+        "holdout outcomes were not read",
     ):
         assert phrase in text

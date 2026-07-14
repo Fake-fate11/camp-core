@@ -703,11 +703,50 @@ inventory and unseen route-family/corridor plus seed. `claim_authorized=false`.
 Next is a static train-corpus preflight using only the four frozen train routes
 and eight train seeds; it must not execute calibration or holdout routes.
 
-current_v22_status=v22_route_family_split_frozen_with_4_route_training_ceiling
-current_v22_artifact_source_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
-current_v22_prior_gate_final_synced_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
+## Native Train Corpus Static Preflight
+
+Status: passed with a preregistered sub-5k ceiling.
+
+The train-only static preflight at source HEAD
+`74005ca49849d4601c11c1eed23038582f1062a7` added a frozen corpus contract and
+a preflight mode to the planned corpus CLI. The CLI imports
+`build_native_arm_runner` from the existing v21 native script and contains no
+copied replay loop. The feature payload is limited to `atom_matrix`,
+`source_valid_mask`, and `candidate_row_sha256`; logical-map, route, group,
+split, and seed identities remain receipt-only. The collection behavior policy
+is explicitly `v18_ablation_corpus_collection_only`; it is not the v22 primary
+model and no identity or outcome enters selector features.
+
+The validated freeze has 4 / 30 / 100 route counts and 8 / 3 / 5 seed counts
+for train/calibration/holdout. This gate authorizes only the 32 train route-seed
+runs. A complete run has 64 native 0.1 s ticks and samples ticks divisible by
+five, giving 13 snapshots per complete 64-tick run. The theoretical ceiling is
+416 snapshots. Therefore no 5k/10k/20k/50k level is reachable under the frozen
+split. Corpus generation must retain all actual failures and train on all
+available valid snapshots without repeating routes or pretending that any
+preregistered tier was reached.
+
+The first remote controller attempt performed the ff-only sync, then its
+process guard matched the controller's own future command text and exited 45.
+It created no artifact, ran no test, loaded no model, and executed no simulator.
+The process-guard self-match was isolated by a separate read-only process check,
+which found no related task. The corrected immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_static_preflight_74005ca4_20260714T211622CST`
+with root SHA256
+`b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370`
+and `run.exit=0`. It contains HEADS, COMMAND, stdout/stderr, summary JSON/MD,
+SHA256SUMS, and ROOT_SHA256SUMS; `44 / 44` relevant AutoDL tests passed.
+
+No model was loaded and no simulator executed. Calibration and holdout were not
+executed, holdout outcomes were not read, and no claim was authorized. Next is
+TDD for the optional decision sink and content-addressed train corpus writer;
+holdout remains sealed.
+
+current_v22_status=v22_native_train_corpus_static_preflight_passed_sub_5k_ceiling
+current_v22_artifact_source_head=74005ca49849d4601c11c1eed23038582f1062a7
+current_v22_prior_gate_final_synced_head=74005ca49849d4601c11c1eed23038582f1062a7
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST
-current_v22_artifact_root_sha256=2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6
-next_work_target=v22_native_train_corpus_static_preflight_with_frozen_4_route_training_ceiling_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_static_preflight_74005ca4_20260714T211622CST
+current_v22_artifact_root_sha256=b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370
+next_work_target=v22_native_decision_sink_and_corpus_writer_tdd_only

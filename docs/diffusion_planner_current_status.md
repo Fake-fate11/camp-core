@@ -163,17 +163,32 @@ No model or simulator ran and no CAMP or DP outcome was read. Because the
 holdout map is absent from train, unseen-map generalization remains
 unauthorized; any eventual wording stays inside the fixed two-map inventory
 and concerns only unseen route-family/corridor and seed. `claim_authorized=false`.
-The next gate is train-corpus static preflight under the frozen four-route
-ceiling; holdout remains sealed.
 
-current_v22_status=v22_route_family_split_frozen_with_4_route_training_ceiling
-current_v22_artifact_source_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
-current_v22_prior_gate_final_synced_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
+The train-only static preflight passed at CAMP HEAD
+`74005ca49849d4601c11c1eed23038582f1062a7`. It reuses the existing native
+runner factory and freezes `4 / 30 / 100` route counts, `8 / 3 / 5` seed
+counts, 32 train route-seed runs, 64 ticks per run, and one snapshot every five
+native 0.1 s ticks. This yields 13 snapshots per complete run and a theoretical
+ceiling of 416 snapshots, so no preregistered 5k/10k/20k/50k level is
+reachable; all actually available snapshots must be used and the ceiling
+reported. The v18 selector role is limited to
+`v18_ablation_corpus_collection_only` behavior policy. The immutable artifact
+is
+`/root/autodl-tmp/camp_dp_v22_native_train_corpus_static_preflight_74005ca4_20260714T211622CST`
+with root SHA256
+`b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370`;
+`44 / 44` AutoDL tests passed. No model was loaded and no simulator executed;
+calibration/holdout execution stayed false and holdout outcomes were not read.
+The next gate is the native decision-sink and corpus-writer TDD only.
+
+current_v22_status=v22_native_train_corpus_static_preflight_passed_sub_5k_ceiling
+current_v22_artifact_source_head=74005ca49849d4601c11c1eed23038582f1062a7
+current_v22_prior_gate_final_synced_head=74005ca49849d4601c11c1eed23038582f1062a7
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST
-current_v22_artifact_root_sha256=2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6
-next_work_target=v22_native_train_corpus_static_preflight_with_frozen_4_route_training_ceiling_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_static_preflight_74005ca4_20260714T211622CST
+current_v22_artifact_root_sha256=b1090808c9c3176eaf63cd92db8fbf6249d65e0549efdcc240492654f47f5370
+next_work_target=v22_native_decision_sink_and_corpus_writer_tdd_only
 
 ## Current V21 Status
 
