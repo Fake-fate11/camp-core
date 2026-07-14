@@ -647,6 +647,10 @@ def test_receipt_hashes_and_forbidden_access_are_reconstructible(monkeypatch):
         "dp_worker",
         "future_label",
         "eligibility",
+        "server",
+        "world",
+        "actor",
+        "tick",
     ):
         assert forbidden not in text
 
@@ -1226,8 +1230,7 @@ cd /root/autodl-tmp/camp_core
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_preflight_$STAMP
 EXECUTION_ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_$STAMP
-test ! -e "$ROOT"
-mkdir "$ROOT"
+mkdir "$ROOT" || { printf 'artifact root allocation failed: %s\n' "$ROOT" >&2; exit 1; }
 : > "$ROOT/stdout"
 : > "$ROOT/stderr"
 : > "$ROOT/PROCESSES"
@@ -1311,11 +1314,12 @@ test ! -e "$EXECUTION_ROOT/receipt.json" || fail output_json_exists
 test ! -e "$EXECUTION_ROOT/receipt.json.tmp" || fail output_tmp_exists
 test "$(grep -Eoc -- '--host|--port|CarlaUE4|carla.Client' "$ROOT/COMMAND")" -eq 0 || fail forbidden_execution_argv
 COMMAND_SHA256=$(sha256sum "$ROOT/COMMAND" | awk '{print $1}')
-ARTIFACT_ROOT="$ROOT" EXECUTION_ROOT="$EXECUTION_ROOT" PYTHON_PATH="$PYTHON" \
-FREE_BYTES="$FREE_BYTES" LIBCARLA_PATH="$LIBCARLA" \
-IMPORTED_LIBCARLA_PATH="$IMPORTED_LIBCARLA" COMMAND_SHA256="$COMMAND_SHA256" \
-CAMP_HEAD="$CAMP_HEAD" STATUS="$STATUS" \
-python3.12 - <<'PY'
+write_summary() {
+  ARTIFACT_ROOT="$ROOT" EXECUTION_ROOT="$EXECUTION_ROOT" PYTHON_PATH="$PYTHON" \
+  FREE_BYTES="$FREE_BYTES" LIBCARLA_PATH="$LIBCARLA" \
+  IMPORTED_LIBCARLA_PATH="$IMPORTED_LIBCARLA" COMMAND_SHA256="$COMMAND_SHA256" \
+  CAMP_HEAD="$CAMP_HEAD" STATUS="$STATUS" \
+  python3.12 - 2>> "$ROOT/stderr" <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1344,9 +1348,24 @@ data = {
     f"status: {data['status']}\nexit_status: {status}\n"
 )
 PY
-printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
-(cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS preflight.json preflight.md PROCESSES LISTENERS SOURCE_SHA256SUMS CARLA_MODULE_PATH > SHA256SUMS)
-(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256)
+}
+seal() {
+  test "$SUMMARY_OK" = true \
+    && printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS" \
+    && (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS preflight.json preflight.md PROCESSES LISTENERS SOURCE_SHA256SUMS CARLA_MODULE_PATH > SHA256SUMS) \
+    && (cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256) \
+    && (cd "$ROOT" && sha256sum -c SHA256SUMS > /dev/null) 2>> "$ROOT/stderr" \
+    && test "$(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$ROOT/ROOT_SHA256")"
+}
+SUMMARY_OK=false
+write_summary && SUMMARY_OK=true
+test "$SUMMARY_OK" = true || STATUS=1
+if ! seal; then
+  STATUS=1
+  SUMMARY_OK=false
+  write_summary && SUMMARY_OK=true
+  seal || exit 1
+fi
 test "$STATUS" -eq 0
 ~~~
 
@@ -1354,7 +1373,9 @@ Expected pass: no map is constructed; EXIT_STATUS is 0; preflight.json status
 is pass; PROCESSES and LISTENERS are empty; the imported and selected libcarla
 paths match exactly and are sealed; execution_root, output_json, output_tmp,
 Python, heads, hashes, and argv are exact. Any failed check records status fail,
-its evidence and stderr, then seals before the final nonzero exit.
+its evidence and stderr, then seals before the final nonzero exit. A summary or
+first-seal failure sets STATUS=1 and permits exactly one fail-marked reseal;
+failure of that reseal exits nonzero.
 
 - [ ] **Step 2: Independently review the preflight without execution**
 
@@ -1462,12 +1483,12 @@ case "$EXECUTION_ROOT_FROM_PREFLIGHT" in
     ;;
 esac
 ROOT_WAS_ABSENT=true
-if test -e "$EXECUTION_ROOT"; then
+if ! mkdir "$EXECUTION_ROOT" 2>/dev/null; then
   ROOT_WAS_ABSENT=false
   STAMP=$(date -u +%Y%m%dT%H%M%SZ)
   EXECUTION_ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_existing_root_failure_$STAMP
+  mkdir "$EXECUTION_ROOT" || { printf 'artifact root allocation failed: %s\n' "$EXECUTION_ROOT" >&2; exit 1; }
 fi
-mkdir "$EXECUTION_ROOT"
 printf 'camp_head=%s\norigin_main=%s\nfixed_dp_head=%s\n' \
   "$CAMP_HEAD" "$ORIGIN_HEAD" "$DP_HEAD" > "$EXECUTION_ROOT/HEADS"
 : > "$EXECUTION_ROOT/COMMAND"
@@ -1590,10 +1611,10 @@ PY
 ss -H -ltnp 'sport = :2000 or sport = :2001' > "$EXECUTION_ROOT/LISTENERS.after" 2>> "$EXECUTION_ROOT/stderr" || fail post_execution_listener_capture_failed
 test ! -s "$EXECUTION_ROOT/PROCESSES.after" || fail post_execution_related_process_detected
 test ! -s "$EXECUTION_ROOT/LISTENERS.after" || fail post_execution_carla_listener_detected
-printf '%s\n' "$STATUS" > "$EXECUTION_ROOT/EXIT_STATUS"
-ARTIFACT_ROOT="$EXECUTION_ROOT" STATUS="$STATUS" \
-PREFLIGHT_REVERIFIED="$PREFLIGHT_REVERIFIED" CENSUS_INVOKED="$CENSUS_INVOKED" \
-python3.12 - <<'PY'
+write_summary() {
+  ARTIFACT_ROOT="$EXECUTION_ROOT" STATUS="$STATUS" \
+  PREFLIGHT_REVERIFIED="$PREFLIGHT_REVERIFIED" CENSUS_INVOKED="$CENSUS_INVOKED" \
+  python3.12 - 2>> "$EXECUTION_ROOT/stderr" <<'PY'
 import json
 import os
 from pathlib import Path
@@ -1614,8 +1635,24 @@ data = {
     f"status: {data['status']}\nexit_status: {status}\n"
 )
 PY
-(cd "$EXECUTION_ROOT" && find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name ROOT_SHA256 -printf '%f\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS)
-(cd "$EXECUTION_ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256)
+}
+seal() {
+  test "$SUMMARY_OK" = true \
+    && printf '%s\n' "$STATUS" > "$EXECUTION_ROOT/EXIT_STATUS" \
+    && (cd "$EXECUTION_ROOT" && find . -maxdepth 1 -type f ! -name SHA256SUMS ! -name ROOT_SHA256 -printf '%f\n' | LC_ALL=C sort | xargs sha256sum > SHA256SUMS) \
+    && (cd "$EXECUTION_ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256) \
+    && (cd "$EXECUTION_ROOT" && sha256sum -c SHA256SUMS > /dev/null) 2>> "$EXECUTION_ROOT/stderr" \
+    && test "$(cd "$EXECUTION_ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$EXECUTION_ROOT/ROOT_SHA256")"
+}
+SUMMARY_OK=false
+write_summary && SUMMARY_OK=true
+test "$SUMMARY_OK" = true || STATUS=1
+if ! seal; then
+  STATUS=1
+  SUMMARY_OK=false
+  write_summary && SUMMARY_OK=true
+  seal || exit 1
+fi
 test "$STATUS" -eq 0
 ~~~
 
@@ -1625,6 +1662,8 @@ fresh process/listener evidence is empty; all files are sealed. If any
 preflight, source, provenance, command, output-path, process, or listener check
 fails, census_invoked is false, no census command runs, and the nonzero failure
 artifact is still sealed. A post-execution detection also seals terminal fail.
+A summary or first-seal failure sets STATUS=1 and permits exactly one
+fail-marked reseal; failure of that reseal exits nonzero.
 
 ---
 
@@ -1670,8 +1709,7 @@ PY
 )
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 ROOT=/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_execution_review_$STAMP
-test ! -e "$ROOT"
-mkdir "$ROOT"
+mkdir "$ROOT" || { printf 'artifact root allocation failed: %s\n' "$ROOT" >&2; exit 1; }
 cp "$EXECUTION_ROOT/HEADS" "$ROOT/HEADS"
 cp "$EXECUTION_ROOT/SOURCE_SHA256SUMS" "$ROOT/SOURCE_SHA256SUMS" 2>/dev/null || : > "$ROOT/SOURCE_SHA256SUMS"
 : > "$ROOT/stdout"
@@ -1830,6 +1868,7 @@ if receipt_path.is_file():
             "frozen_tolerance": frozen.geometry_epsilon_m == tolerance["frozen_contact_tolerance_m"],
             "builder_tolerances": tolerance["builder_contact_tolerances_m"] == [FROZEN_LIFTING_TOLERANCES.geometry_epsilon_m, frozen.geometry_epsilon_m],
             "allowance_from_freezer": math.isclose(tolerance["allowance_m"], allowance_from_freezer, rel_tol=0.0, abs_tol=1e-15),
+            "allowance_formula_literal": tolerance["allowance_formula"] == "max(1e-9, 64*ulp(coordinate_scale_m))",
             "allowance_from_formula": math.isclose(tolerance["allowance_m"], allowance_from_formula, rel_tol=0.0, abs_tol=1e-15),
             "final_within_tolerance": maximum <= frozen.geometry_epsilon_m,
             "call_counters_exact": receipt["call_counters"] == expected_calls,
@@ -1880,16 +1919,58 @@ EXECUTION_ROOT_HASH_VALID="$EXECUTION_ROOT_HASH_VALID" \
 SOURCE_HASHES_VALID="$SOURCE_HASHES_VALID" \
 bash "$ROOT/COMMAND" >> "$ROOT/stdout" 2>> "$ROOT/stderr"
 STATUS=$?
-test -f "$ROOT/review.json" || {
-  printf '{"status":"fail","checks":{"review_command_completed":false},"next_work_target":"stop_failed_map_only_contact_tolerance_census_review"}\n' > "$ROOT/review.json"
-  printf '# V20 map-only contact-tolerance census result review\n\nstatus: fail\nreview command did not complete\n' > "$ROOT/review.md"
-  STATUS=1
-}
 test ! -s "$ROOT/PROCESSES" || STATUS=1
 test ! -s "$ROOT/LISTENERS" || STATUS=1
-printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS"
-(cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS review.json review.md PROCESSES LISTENERS SOURCE_SHA256SUMS > SHA256SUMS)
-(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256)
+SUMMARY_OK=false
+if test -s "$ROOT/review.json" \
+  && test -s "$ROOT/review.md" \
+  && python3.12 -m json.tool "$ROOT/review.json" > /dev/null 2>> "$ROOT/stderr"; then
+  SUMMARY_OK=true
+else
+  STATUS=1
+fi
+mark_summary_failed() {
+  ARTIFACT_ROOT="$ROOT" STATUS="$STATUS" python3.12 - 2>> "$ROOT/stderr" <<'PY'
+import json
+import os
+from pathlib import Path
+
+root = Path(os.environ["ARTIFACT_ROOT"])
+try:
+    data = json.loads((root / "review.json").read_text())
+except Exception:
+    data = {}
+if not isinstance(data, dict):
+    data = {}
+checks = data.get("checks")
+if not isinstance(checks, dict):
+    checks = {"review_command_completed": False}
+    data["checks"] = checks
+checks["initial_artifact_seal"] = False
+data.update({
+    "status": "fail",
+    "review_exit_status": int(os.environ["STATUS"]),
+    "next_work_target": "stop_failed_map_only_contact_tolerance_census_review",
+})
+(root / "review.json").write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+previous = (root / "review.md").read_text(errors="replace") if (root / "review.md").is_file() else "# V20 map-only contact-tolerance census result review\n"
+(root / "review.md").write_text(previous.rstrip() + "\n\ninitial_artifact_seal: false\n")
+PY
+}
+seal() {
+  test "$SUMMARY_OK" = true \
+    && printf '%s\n' "$STATUS" > "$ROOT/EXIT_STATUS" \
+    && (cd "$ROOT" && sha256sum HEADS COMMAND stdout stderr EXIT_STATUS review.json review.md PROCESSES LISTENERS SOURCE_SHA256SUMS > SHA256SUMS) \
+    && (cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}' > ROOT_SHA256) \
+    && (cd "$ROOT" && sha256sum -c SHA256SUMS > /dev/null) 2>> "$ROOT/stderr" \
+    && test "$(cd "$ROOT" && sha256sum SHA256SUMS | awk '{print $1}')" = "$(cat "$ROOT/ROOT_SHA256")"
+}
+if ! seal; then
+  STATUS=1
+  SUMMARY_OK=false
+  mark_summary_failed && SUMMARY_OK=true
+  seal || exit 1
+fi
 test "$STATUS" -eq 0
 ~~~
 
@@ -1898,7 +1979,9 @@ and the review artifact is sealed. For a nonzero execution or missing receipt,
 the review records terminal fail and the retained execution status/error,
 still seals its own artifact, and exits nonzero. Discovery and review use only
 HEADS/EXIT_STATUS plus retained files; this command never imports CARLA,
-constructs a map, or reruns the census.
+constructs a map, or reruns the census. A summary or first-seal failure sets
+STATUS=1 and permits exactly one fail-marked reseal; failure of that reseal
+exits nonzero without rerunning the scientific review.
 
 - [ ] **Step 2: Stop or advance exactly one gate**
 
