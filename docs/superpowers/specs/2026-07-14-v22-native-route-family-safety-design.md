@@ -162,6 +162,23 @@ holdout. Holdout outcomes are never used for atom selection, training,
 threshold selection, retries, or replacement; main holdout is opened once
 after freeze.
 
+The frozen train corpus has no K-way actual counterfactual closed-loop outcome:
+one behavior-selected arm cannot label the seven unexecuted candidates. V22
+therefore uses `v22_causal_soft_risk_surrogate_v1`, not an actual-outcome
+label. For train snapshot `n` and candidate `k`, it freezes
+`cost_nk = 100 * physical_risk_nk + sum_r(q_r * clip(a_nkr / s_r, 0, 10))`.
+The physical-risk term is a finite additive cost and never an eligibility veto;
+when all K are high risk its common penalty cancels and the relative minimum
+continuous severity wins. `source_valid_mask` is the only oracle eligibility
+mask. Scales `s_r` are train-only 95th percentiles with a `1e-6` floor. The
+fixed `q` vector is recorded in the training config and maps existing native
+SafetyCost/secondary priorities onto the canonical 14D atoms without adding a
+new source. Identity and future/outcome fields are forbidden. Atoms without
+positive cross-candidate train support remain in the 14D schema but are marked
+unsupported and receive zero learned weight. This surrogate is only offline
+supervision; final evidence still comes from paired native closed-loop
+SafetyCost.
+
 Speed calibration reports raw strict overspeed, operational events at
 0/0.05/0.1/0.2 m/s tolerances, and continuous excess magnitude-duration.
 The primary operational tolerance is frozen at 0.1 m/s regardless of holdout;

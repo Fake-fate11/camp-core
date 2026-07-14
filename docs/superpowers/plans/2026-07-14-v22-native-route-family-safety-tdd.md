@@ -479,8 +479,10 @@ git push origin main
 
 **Interfaces:**
 - Consumes train corpus atoms, source-valid masks, and lower-is-better offline
-  candidate costs; uses `outcome_oracle_and_margins(-cost, source_valid, ...)`
-  and `solve_robust_margin_cutting_plane(...)`.
+  `v22_causal_soft_risk_surrogate_v1` candidate costs; physical risk is a
+  finite additive penalty, while source-valid remains the only oracle mask.
+  It uses `outcome_oracle_and_margins(-cost, source_valid, ...)` and
+  `solve_robust_margin_cutting_plane(...)`.
 - Produces sealed models for reachable 5k/10k/20k/50k levels and one
   calibration-selected frozen primary model.
 
