@@ -13,20 +13,22 @@ Reader contract: this named section is the only v20 pointer source in this
 file. The EOF of `docs/diffusion_planner_v20_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-At CAMP, GitHub, and AutoDL start head
-`9537f1998100a32b74cdb6cc6dc36db4837c77f4`, with fixed DP head
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the offline map-only
-contact-tolerance census TDD plan is ready. It binds official CARLA 0.9.16
-`Carla/Maps/Town10HD_Opt` through native `carla.Map` without a server.
+At CAMP, GitHub, and AutoDL head
+`9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1`, with fixed DP head
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the production-import preflight
+passed and the offline map-only census was invoked exactly once. It failed
+closed before tolerance freezing because the frozen deterministic route did
+not provide exactly one 5 m predecessor at its first waypoint.
 
-This plan-only gate ran no CARLA server, map census, candidate, DP worker,
-outcome, metric, holdout, promotion, deployment, or claim. The next gate is
-plan static review only.
+The sealed execution produced no receipt and left no CARLA process or
+listener. Independent review recorded `Critical=0`, `Important=1`, and
+`Minor=0`: continuing would require changing the frozen route choice or
+predecessor/source contract. No census retry or K=8 probe is authorized.
 
-current_v20_status=v20_carla_route_corridor_map_only_contact_tolerance_census_plan_ready
-camp_github_autodl_head=9537f1998100a32b74cdb6cc6dc36db4837c77f4
+current_v20_status=v20_carla_route_corridor_map_only_contact_tolerance_census_failed_closed_frozen_route_predecessor_contract_unsatisfied
+camp_github_autodl_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-next_work_target=v20_carla_route_corridor_map_only_contact_tolerance_census_plan_static_review_only
+next_work_target=user_decision_required_before_any_v20_frozen_route_corridor_contract_change_or_census_retry
 
 ## Current V19 Status
 

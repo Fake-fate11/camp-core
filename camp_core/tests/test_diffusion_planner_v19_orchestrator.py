@@ -90,14 +90,16 @@ def test_checked_in_current_v20_pointer_matches_v20_audit_eof() -> None:
     )
 
     assert pointer["current_v20_status"] == (
-        "v20_carla_route_corridor_map_only_contact_tolerance_census_plan_ready"
+        "v20_carla_route_corridor_map_only_contact_tolerance_census_failed_closed_"
+        "frozen_route_predecessor_contract_unsatisfied"
     )
     assert pointer["camp_github_autodl_head"] == (
-        "9537f1998100a32b74cdb6cc6dc36db4837c77f4"
+        "9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1"
     )
     assert pointer["fixed_dp_head"] == (
         "7a1d33da277a1992ec474b5383a0c963c72e04e4"
     )
     assert pointer["next_work_target"] == (
-        "v20_carla_route_corridor_map_only_contact_tolerance_census_plan_static_review_only"
+        "user_decision_required_before_any_v20_frozen_route_corridor_contract_"
+        "change_or_census_retry"
     )
