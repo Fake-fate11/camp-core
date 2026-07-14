@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_train_corpus_corrected_execution_and_independent_review_passed",
-    "current_v22_artifact_source_head=ac13fa415e4a59e7557504a506f6618468b7dc77",
-    "current_v22_prior_gate_final_synced_head=ac13fa415e4a59e7557504a506f6618468b7dc77",
+    "current_v22_status=v22_train_causal_label_materialization_and_independent_review_passed",
+    "current_v22_artifact_source_head=fb7d1032955c03b1c56bcb9311a3adc1570bd482",
+    "current_v22_prior_gate_final_synced_head=fb7d1032955c03b1c56bcb9311a3adc1570bd482",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_corrected_independent_review_ac13fa41_20260714T224107CST",
-    "current_v22_artifact_root_sha256=cf3622d49f8933e16868618b9dd7eaa6736b07a3978af22a1d4463df5402ecd1",
-    "next_work_target=v22_train_only_offline_label_contract_and_tdd_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_train_causal_labels_independent_review_fb7d1032_20260714T230052CST",
+    "current_v22_artifact_root_sha256=f8e646e6b030efb2b613ec3a30b2a712e4a5fb55b79aa4daa386ee390560971c",
+    "next_work_target=v22_convex_selector_training_tdd_only",
 )
 
 
@@ -203,5 +203,27 @@ def test_v22_records_corrected_corpus_and_full_independent_review() -> None:
         "all 416 available snapshots",
         "No calibration or holdout route/outcome was executed or read",
         "v22_train_only_offline_label_contract_and_tdd_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_train_only_causal_label_materialization_and_review() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "v22_causal_soft_risk_surrogate_v1",
+        "causal soft-risk surrogate, not an actual closed-loop outcome",
+        "source-valid mask is the only eligibility boundary",
+        "finite additive penalty of 100",
+        "416 / 416 label sidecars",
+        "12 / 404",
+        "11 supported atoms",
+        "lane_deviation, planned_red_light_cost, and red_stopping_margin_cost",
+        "1da8ff585eca04c11fae9cd1a5629c4f077d26f050d075f97a6f5c1c9810a740",
+        "86be3a18fb7f1fe3efdee1ee4a1c7b1399baac9c7421ea784d21b349bde89a4f",
+        "3,759 independent checks",
+        "f8e646e6b030efb2b613ec3a30b2a712e4a5fb55b79aa4daa386ee390560971c",
+        "No calibration or holdout data or outcome was read",
+        "No model was loaded and no simulator executed",
+        "v22_convex_selector_training_tdd_only",
     ):
         assert phrase in text
