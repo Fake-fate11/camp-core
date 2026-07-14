@@ -387,13 +387,67 @@ simulator run, candidate trajectory generation, training, holdout access,
 formal seed, claim, promotion, deployment, activation, new dependency, or DP
 modification occurred. The next work is Task 2 native hook TDD only.
 
+## Task 2: Native Replay Hook and Immutable Selection
+
+Status: passed with fake-model contract tests only.
+
+Task 1 evidence was committed, pushed, and fast-forwarded on AutoDL at
+`1e2f750e38cdc957f25ab9bc1c35abd3860a0253`. Task 2 then followed the
+frozen red/green order: the red test failed only because the planned runner
+did not exist. The minimum thin hook and its tests were added at source HEAD
+`4364c149f09203f2a6558155ebb8d6cbb652628b`.
+
+The hook now:
+
+- verifies the exact native `_predict_batch` signature and all five frozen
+  replay/simulate/converter/tracker/traffic-light source hashes before patching;
+- reproduces native ordered `to_model_tensors` concatenation, direct output-0
+  interpretation, and turn-indicator KEEP bias;
+- reuses direct ego and first-32 neighbor bytes for candidate 0, then performs
+  exactly seven extra calls whose nonzero latent is confined to the ego batch
+  row while every NPC batch row remains zero-latent;
+- returns the selected exact ego candidate plus byte-identical direct native
+  NPC outputs and unchanged direct turn-indicator classes;
+- reuses the existing causal 14D materializer/affine selector dependency
+  boundary, verifies candidate SHA before/after atom and selector work, and
+  fails closed without candidate-0 fallback on missing sources, all-K
+  infeasibility, mutation, or non-indexed selection;
+- records input/default/candidate/neighbor/atom/selected SHA, source masks,
+  scores, global RNG state hashes, and nonnegative segmented latency;
+- restores both replay predictor and tracker symbols in `finally` on normal or
+  exceptional exit.
+
+The local and AutoDL target suites each report `33 passed`: six new hook
+contracts, sixteen Task 1 contracts, and eleven adjacent v19 worker
+regressions. `py_compile`, `git diff --check`, and all five live fixed-DP
+source hashes passed. AutoDL CAMP and DP were tracked-clean, and no related
+v21 run was active.
+
+Immutable Task 2 artifact:
+
+- path:
+  `/root/autodl-tmp/camp_dp_v21_native_task2_replay_hook_4364c149_20260714T161856CST`;
+- root SHA256:
+  `d86d38433a99e13f6429c9498833b85739a4831ea8f340334f9f15be301dba41`;
+- stdout SHA256:
+  `31cd39c06c07bab1c3cc762d5396cb2fbc7f69e00d5b01b03e5230cba1402a7e`;
+- `run.exit=0`, empty stderr, all ten payload hashes independently
+  reverified, directory mode 555 and every file mode 444.
+
+The artifact contains heads, exact command, stdout/stderr, runner/core/test,
+JSON/Markdown review, SHA256SUMS, and root SHA. Tests use an injected fake
+model only. No fixed model load or inference, native simulator run, candidate
+trajectory evidence, training, holdout access, formal seed, claim, promotion,
+deployment, activation, new dependency, or DP modification occurred. The next
+work is Task 3 SafetyCost Native v1 pure reducers TDD only.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_task1_causal_input_and_k8_contracts_passed
-current_v21_artifact_source_head=abda0bcf5d5874d0994bda4f8187879eaff614f3
-current_v21_prior_gate_final_synced_head=14b1a2394ba3e75ff5744e408f77e71be8f15d1b
+current_v21_status=v21_native_simulator_task2_native_hook_and_immutable_selection_passed
+current_v21_artifact_source_head=4364c149f09203f2a6558155ebb8d6cbb652628b
+current_v21_prior_gate_final_synced_head=1e2f750e38cdc957f25ab9bc1c35abd3860a0253
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task1_causal_k8_contracts_abda0bcf_20260714T160847CST
-current_v21_artifact_root_sha256=99cef3fed4ff2b570c67f5cea6de5f17ac43db0942bd449c722ba61065eb5447
-next_work_target=v21_native_simulator_task2_native_hook_and_immutable_selection_tdd_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task2_replay_hook_4364c149_20260714T161856CST
+current_v21_artifact_root_sha256=d86d38433a99e13f6429c9498833b85739a4831ea8f340334f9f15be301dba41
+next_work_target=v21_native_simulator_task3_safetycost_native_v1_reducers_tdd_only

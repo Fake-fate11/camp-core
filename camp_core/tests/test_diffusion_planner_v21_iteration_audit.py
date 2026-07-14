@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v21_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v21_status=v21_native_simulator_task1_causal_input_and_k8_contracts_passed",
-    "current_v21_artifact_source_head=abda0bcf5d5874d0994bda4f8187879eaff614f3",
-    "current_v21_prior_gate_final_synced_head=14b1a2394ba3e75ff5744e408f77e71be8f15d1b",
+    "current_v21_status=v21_native_simulator_task2_native_hook_and_immutable_selection_passed",
+    "current_v21_artifact_source_head=4364c149f09203f2a6558155ebb8d6cbb652628b",
+    "current_v21_prior_gate_final_synced_head=1e2f750e38cdc957f25ab9bc1c35abd3860a0253",
     "current_v21_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task1_causal_k8_contracts_abda0bcf_20260714T160847CST",
-    "current_v21_artifact_root_sha256=99cef3fed4ff2b570c67f5cea6de5f17ac43db0942bd449c722ba61065eb5447",
-    "next_work_target=v21_native_simulator_task2_native_hook_and_immutable_selection_tdd_only",
+    "current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task2_replay_hook_4364c149_20260714T161856CST",
+    "current_v21_artifact_root_sha256=d86d38433a99e13f6429c9498833b85739a4831ea8f340334f9f15be301dba41",
+    "next_work_target=v21_native_simulator_task3_safetycost_native_v1_reducers_tdd_only",
 )
 
 
