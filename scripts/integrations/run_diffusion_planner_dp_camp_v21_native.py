@@ -36,6 +36,9 @@ from camp_core.integrations.diffusion_planner_v21_native import (
     verify_candidate_tensor_immutable,
     verify_default_candidate0_identity,
 )
+from camp_core.integrations.diffusion_planner_v22_native import (
+    summarize_safety_cost_native_v22,
+)
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
@@ -1787,7 +1790,9 @@ def _build_native_arm_receipt(
     if max_steps > 1:
         if not all(bool(record["source_complete"]) for record in records):
             raise ValueError("native safety metric source is incomplete")
-        result["safety"] = summarize_safety_cost_native_v1(records)
+        result["safety"] = _summarize_safety_records(
+            records, str(config["protocol"]["safety_schema"])
+        )
         result["secondary"] = summarize_route_comfort_native(
             records,
             dt=0.1,
@@ -1799,6 +1804,16 @@ def _build_native_arm_receipt(
     if selector_scale_contract is not None:
         result["selector_scale_contract"] = dict(selector_scale_contract)
     return result
+
+
+def _summarize_safety_records(
+    records: list[Mapping[str, Any]], safety_schema: str
+) -> dict[str, Any]:
+    if safety_schema == "safety_cost_native_v1":
+        return summarize_safety_cost_native_v1(records)
+    if safety_schema == "safety_cost_native_v22":
+        return summarize_safety_cost_native_v22(records)
+    raise ValueError("unknown native safety schema")
 
 
 def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]:
