@@ -641,11 +641,73 @@ next gate is the outcome-blind route-family/corridor census and pre-outcome
 train/calibration/holdout split freeze. It must retain every preregistered
 route and failure and must not use any capability outcome as a split input.
 
-current_v22_status=v22_native_tiny_multi_route_capability_passed
-current_v22_artifact_source_head=ea741985ad43176b897f3086ff267654c339eacc
-current_v22_prior_gate_final_synced_head=ea741985ad43176b897f3086ff267654c339eacc
+## Outcome-blind Route-family Census and Split Freeze
+
+Status: passed with a frozen four-route training ceiling.
+
+Task 4 TDD added only a source-side route census, leakage graph, group
+allocator, split validator, and frozen asset writer. It reused the fixed DP
+Lanelet scene builder without loading the model or executing the simulator.
+The source inventory contains 915 source routes: 759 on the nish map and 156
+on the sample map. Route identity, shared lanelet/boundary, overlapping
+corridor, and topology-family edges produced 7,917 leakage edges and three
+indivisible connected groups sized `759 / 152 / 4`. All 915 source identities
+remain explicitly accounted; the 781 routes above the preregistered targets
+are frozen as source-only `frozen_capacity_above_target` exclusions before any
+outcome, not silently deleted, replaced, or redrawn.
+
+The first execution at source HEAD `27f73889` used a greedy split allocator.
+It wrote a complete `run.exit=0` artifact at
+`/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_27f73889_20260714T205535CST`
+with root SHA256
+`9391d2f58335faac5874f2467f057af5ff4a1e45982b6e72f967a9cb6a9ae1d1`,
+but allocated `152 / 4 / 100` routes to train/calibration/holdout and therefore
+reported a no-go. Review identified this as allocator policy, not a native
+inventory ceiling: its train-first greedy choice had consumed the only group
+large enough for the frozen 30-route pilot. This artifact remains immutable
+and is not renamed as the gate pass.
+
+TDD at source HEAD `b36f98ae0c0efb2b55fcbe442172a0e6b52389fe`
+replaced the three-group greedy decision with an exhaustive deterministic
+global assignment that first satisfies the hard pilot/main targets, then
+maximizes reachable training support. The corrected immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_global_eval_first_b36f98ae_20260714T210012CST`
+with root SHA256
+`b231ba9fe425e40a129e30ce0b37044f1059354f84744d91911608f09f87baa5`.
+Its split freeze SHA256 is
+`00394a1ad67f6d760f8c12f28532c6f661663fe7709a233adb79dc3b05904bc8`.
+The train/calibration/holdout route counts are 4 / 30 / 100 and their disjoint
+seed namespaces produce 32 / 90 / 500 expected paired runs. The 134 selected
+route assets, every source identity, source hash, grouping edge, assignment,
+and outcome-blind exclusion are persisted. Formal seeds `11/12/13` and Full36
+are absent.
+
+The independent exhaustive review artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST`
+with root SHA256
+`2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6`
+and `run.exit=0`. It independently rehashed the source artifact and all 134
+selected route assets, enumerated every assignment of the three groups, found
+four assignments that satisfy the 30-route pilot and 100-route main minimums,
+and proved that the maximum reachable train count is exactly 4. This true
+training ceiling is frozen for corpus generation; 5k/10k/20k/50k learning
+curve tiers may therefore be unreachable and must be reported honestly rather
+than filled with correlated or repeated routes.
+
+No model was loaded and no simulator executed. No CAMP or DP outcome was read.
+The holdout remains sealed. The holdout map is absent from train as a
+consequence of the source-only connected groups. Therefore unseen-map
+generalization remains unauthorized even though the contract permits logical
+map reuse; any eventual claim wording is restricted to the fixed two-map
+inventory and unseen route-family/corridor plus seed. `claim_authorized=false`.
+Next is a static train-corpus preflight using only the four frozen train routes
+and eight train seeds; it must not execute calibration or holdout routes.
+
+current_v22_status=v22_route_family_split_frozen_with_4_route_training_ceiling
+current_v22_artifact_source_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
+current_v22_prior_gate_final_synced_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_score_receipts_ea741985_20260714T204030CST
-current_v22_artifact_root_sha256=56f9e35bbf12140d365acfc74f2de6f13a4cf71fda582d9d976175ceff1be42c
-next_work_target=v22_outcome_blind_route_family_census_and_split_freeze_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST
+current_v22_artifact_root_sha256=2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6
+next_work_target=v22_native_train_corpus_static_preflight_with_frozen_4_route_training_ceiling_only

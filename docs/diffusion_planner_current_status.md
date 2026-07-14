@@ -138,17 +138,42 @@ with root SHA256
 `38 / 38` AutoDL checks passed. Both four-tick SafetyCosts were `0.0`, but this
 is unpaired capability evidence only. An earlier score-omitting artifact is
 preserved and explicitly not used as the gate pass. No training or holdout ran
-and no claim was made. Outcome-blind route-family census and split freeze are
-next.
+and no claim was made.
 
-current_v22_status=v22_native_tiny_multi_route_capability_passed
-current_v22_artifact_source_head=ea741985ad43176b897f3086ff267654c339eacc
-current_v22_prior_gate_final_synced_head=ea741985ad43176b897f3086ff267654c339eacc
+The outcome-blind route-family census and split freeze passed at CAMP HEAD
+`b36f98ae0c0efb2b55fcbe442172a0e6b52389fe`. It accounts for all 915 source
+routes before outcomes and freezes 134 selected route assets in three
+indivisible source-only groups of `759 / 152 / 4`. The frozen
+train/calibration/holdout route counts are `4 / 30 / 100`, with disjoint seed
+namespaces giving `32 / 90 / 500` expected paired runs. The split freeze SHA256
+is `00394a1ad67f6d760f8c12f28532c6f661663fe7709a233adb79dc3b05904bc8`.
+The immutable source artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_global_eval_first_b36f98ae_20260714T210012CST`
+with root SHA256
+`b231ba9fe425e40a129e30ce0b37044f1059354f84744d91911608f09f87baa5`.
+
+Independent review proves that, while retaining the 30-route pilot and
+100-route main targets, the maximum reachable train count is exactly four.
+That true ceiling is frozen rather than hidden by route deletion, replacement,
+or redrawing. The review artifact is
+`/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST`
+with root SHA256
+`2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6`.
+No model or simulator ran and no CAMP or DP outcome was read. Because the
+holdout map is absent from train, unseen-map generalization remains
+unauthorized; any eventual wording stays inside the fixed two-map inventory
+and concerns only unseen route-family/corridor and seed. `claim_authorized=false`.
+The next gate is train-corpus static preflight under the frozen four-route
+ceiling; holdout remains sealed.
+
+current_v22_status=v22_route_family_split_frozen_with_4_route_training_ceiling
+current_v22_artifact_source_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
+current_v22_prior_gate_final_synced_head=b36f98ae0c0efb2b55fcbe442172a0e6b52389fe
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_tiny_multi_route_capability_score_receipts_ea741985_20260714T204030CST
-current_v22_artifact_root_sha256=56f9e35bbf12140d365acfc74f2de6f13a4cf71fda582d9d976175ceff1be42c
-next_work_target=v22_outcome_blind_route_family_census_and_split_freeze_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_freeze_independent_review_b36f98ae_20260714T210148CST
+current_v22_artifact_root_sha256=2ba80e30c40f92dac61bfe0996fd66f94e544c9a454429cb379bfe59afd7e7b6
+next_work_target=v22_native_train_corpus_static_preflight_with_frozen_4_route_training_ceiling_only
 
 ## Current V21 Status
 
