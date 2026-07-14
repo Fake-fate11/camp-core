@@ -33,6 +33,39 @@ other auxiliary script. CARLA_PYTHON owns only the sealed cp312 CARLA import
 and the one frozen census COMMAND. Neither interpreter may be PATH-discovered,
 substituted, installed, relinked, or mutated.
 
+## Complexity Budget Authority
+
+The checked-in runner and focused test, plus the commands and criteria below,
+supersede this plan's embedded implementation snippets. This closure addresses
+only production-import proof, interpreter identity before first functional use,
+and noninterchangeable TEST_PYTHON/CARLA_PYTHON roles.
+
+~~~bash
+set -euo pipefail
+TEST_PYTHON=/root/autodl-tmp/camp_v19_nuplan_env/bin/python
+CARLA_PYTHON=/root/miniconda3/bin/python3.12
+TEST_PYTHON_RESOLVED=$(readlink -f "$TEST_PYTHON")
+CARLA_PYTHON_RESOLVED=$(readlink -f "$CARLA_PYTHON")
+test -x "$TEST_PYTHON" && test -x "$CARLA_PYTHON"
+test "$TEST_PYTHON_RESOLVED" = /root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9
+test "$CARLA_PYTHON_RESOLVED" = /root/miniconda3/bin/python3.12
+test "$(sha256sum "$TEST_PYTHON_RESOLVED")" = "d3f0bc59e0eb9c8ea292b68fcb2f0f2711491ec8a5176200494919ca7c7a0e6c  /root/autodl-tmp/camp_v19_nuplan_env/bin/python3.9"
+test "$(sha256sum "$CARLA_PYTHON_RESOLVED")" = "0c05a22b0b180580a76437114a95cf138f67c8f46245acad26017c803b42b8c1  /root/miniconda3/bin/python3.12"
+test "$("$TEST_PYTHON" --version 2>&1)" = "Python 3.9.23"
+test "$("$CARLA_PYTHON" --version 2>&1)" = "Python 3.12.3"
+RUNNER=/root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_dp_camp_v20_carla_route_corridor_contact_tolerance.py
+"$TEST_PYTHON" -m pytest camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py camp_core/tests/test_diffusion_planner_v20_carla_route_corridor.py -q
+"$TEST_PYTHON" -m py_compile "$RUNNER" camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py
+PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core "$CARLA_PYTHON" "$RUNNER" --preflight-only --output-json /root/autodl-tmp/v20_contact_tolerance_preflight.json
+"$TEST_PYTHON" -m json.tool /root/autodl-tmp/v20_contact_tolerance_preflight.json > /dev/null
+PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core "$CARLA_PYTHON" "$RUNNER" --camp-head "$(git rev-parse HEAD)" --output-json /root/autodl-tmp/v20_contact_tolerance_receipt.json
+~~~
+
+Success requires every identity/check command to exit 0, preflight booleans
+no_map/no_census/no_server to be true, and one atomic census receipt with no
+`.tmp`. Any identity, import, provenance, existing-output, or census mismatch
+exits nonzero; execute only after the preflight succeeds.
+
 ## Global Constraints
 
 - Work starts from CAMP/GitHub/AutoDL head
