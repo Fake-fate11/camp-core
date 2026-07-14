@@ -154,21 +154,51 @@ and native route-row geometry validity. No failure was overwritten.
 
 Gate D used no training, holdout, formal seed, claim, promotion, deployment,
 activation, or DP modification. Single-tick latency is diagnostic only. The
-next target is the frozen two-route Gate E paired closed-loop smoke; it cannot
-support a safety or CAMP-over-DP claim.
+next target was the frozen two-route Gate E paired closed-loop smoke.
 
-`current_v21_final_synced_head` is pending for the current Gate D docs commit.
-The exact prior Task 4 final synced HEAD is separately recorded, so the
+Gate E passed asset/source preflight and `78` AutoDL tests at final source HEAD
+`f04dbeb867b783d211621c52ea2bf2385a6f5733`, with fixed DP unchanged. The
+provenance-complete paired artifact root is
+`f359cd81786399b377dc5eeb5d423398b4ab678acef8181bc8977c3d30de9eaa`.
+It completed 3 / 4 arms and 1 / 2 pairs: both arms on the normal sample route
+and only the DP arm on route 59-to-86. All 192 completed ticks used 31 observed
+and 0 padded frames, complete metric sources, and immutable CAMP candidates.
+
+The one complete pair had descriptive SafetyCost DP 0.0, CAMP 7.1875, delta
++7.1875 (`worse`), caused solely by 46 / 64 CAMP speed-limit-violation ticks;
+all collision, near-miss, offroad, wrong-way, and red-light counts were zero.
+Route completion was 0.305987 / 0.308718 for DP / CAMP. Mean total planning
+latency was 80.8311 ms for DP and 538.785 ms for CAMP; CAMP mean candidate,
+atom, selector, and tracker segments were 418.039, 25.2197, 0.118289, and
+9.40422 ms. This single pair is not an aggregate result.
+
+The route 59-to-86 CAMP arm failed at tick 0: all eight immutable candidates
+had complete sources, but all eight failed the frozen `lane_corridor` physical
+mask. The design requires the arm/pair to fail with no candidate-0 fallback.
+Changing route, corridor, physical mask, or fallback after observing the
+outcome would change the scientific contract.
+
+Independent review root
+`032f50f51588abc6a95522cfc07bff5b90ebfb7b7e5aa6239310dced6da1789b`
+reports 38 passed, 0 failed and independently recomputed all completed
+SafetyCost, secondary, latency, padding, identity, immutability, and hash
+receipts. Gate E failed frozen acceptance; Gate F is not authorized. No
+training, holdout, formal seed, claim, promotion, deployment, activation, DP
+edit, candidate repair, rewrite, or fallback occurred. A user decision is
+required before any contract change or retry.
+
+`current_v21_final_synced_head` is pending for the current Gate E docs commit.
+The exact prior Gate D final synced HEAD is separately recorded, so the
 pending marker cannot be mistaken for artifact-source or endpoint drift.
 
-current_v21_status=v21_native_simulator_gate_d_capability_and_independent_review_passed
-current_v21_artifact_source_head=11f1421646780b1ffe2a4c0fe7957b17158456d0
-current_v21_prior_gate_final_synced_head=4e79dc3999045fb8cd293c0794f2226b64084000
+current_v21_status=v21_native_simulator_gate_e_frozen_two_pair_smoke_failed_all_k_lane_corridor
+current_v21_artifact_source_head=f04dbeb867b783d211621c52ea2bf2385a6f5733
+current_v21_prior_gate_final_synced_head=74be718236dfb8b6e50be2b24b7504f2cd990865
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_d_independent_review_11f14216_20260714T171411CST
-current_v21_artifact_root_sha256=852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c
-next_work_target=v21_native_simulator_gate_e_two_route_paired_smoke
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_e_failure_independent_review_f04dbeb8_20260714T174815CST
+current_v21_artifact_root_sha256=032f50f51588abc6a95522cfc07bff5b90ebfb7b7e5aa6239310dced6da1789b
+next_work_target=user_decision_required_before_v21_gate_e_contract_change_or_retry
 
 ## Current V20 Status
 

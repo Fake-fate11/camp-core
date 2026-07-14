@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v21_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v21_status=v21_native_simulator_gate_d_capability_and_independent_review_passed",
-    "current_v21_artifact_source_head=11f1421646780b1ffe2a4c0fe7957b17158456d0",
-    "current_v21_prior_gate_final_synced_head=4e79dc3999045fb8cd293c0794f2226b64084000",
+    "current_v21_status=v21_native_simulator_gate_e_frozen_two_pair_smoke_failed_all_k_lane_corridor",
+    "current_v21_artifact_source_head=f04dbeb867b783d211621c52ea2bf2385a6f5733",
+    "current_v21_prior_gate_final_synced_head=74be718236dfb8b6e50be2b24b7504f2cd990865",
     "current_v21_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_d_independent_review_11f14216_20260714T171411CST",
-    "current_v21_artifact_root_sha256=852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c",
-    "next_work_target=v21_native_simulator_gate_e_two_route_paired_smoke",
+    "current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_e_failure_independent_review_f04dbeb8_20260714T174815CST",
+    "current_v21_artifact_root_sha256=032f50f51588abc6a95522cfc07bff5b90ebfb7b7e5aa6239310dced6da1789b",
+    "next_work_target=user_decision_required_before_v21_gate_e_contract_change_or_retry",
 )
 
 
@@ -69,5 +69,21 @@ def test_v21_gate_d_records_one_tick_capability_without_claim() -> None:
         "125d14dc3de12bd4bf515f0f00ed5bc31b457e88248f604450142caadb3a83fa",
         "26 / 0",
         "Gate D cannot support a safety or CAMP-over-DP claim",
+    ):
+        assert phrase in text
+
+
+def test_v21_gate_e_records_frozen_pair_failure_without_claim() -> None:
+    text = AUDIT.read_text(encoding="utf-8")
+    for phrase in (
+        "3 / 4 arms",
+        "1 / 2 pairs",
+        "0.0 / 7.1875 / +7.1875",
+        "8 / 8 candidates",
+        "lane_corridor",
+        "f359cd81786399b377dc5eeb5d423398b4ab678acef8181bc8977c3d30de9eaa",
+        "032f50f51588abc6a95522cfc07bff5b90ebfb7b7e5aa6239310dced6da1789b",
+        "38 / 0",
+        "Gate E failed its frozen acceptance",
     ):
         assert phrase in text

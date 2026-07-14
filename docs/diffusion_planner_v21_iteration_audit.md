@@ -636,13 +636,109 @@ Gate D cannot support a safety or CAMP-over-DP claim. The next authorized gate
 is the frozen two-route paired
 closed-loop smoke, which remains chain evidence only.
 
+## Gate E: Frozen Two-Route Paired Smoke Failed Closed
+
+Status: failed its frozen two-pair acceptance; user decision required before
+any contract change or retry.
+
+Gate E ran from final source HEAD
+`f04dbeb867b783d211621c52ea2bf2385a6f5733`; the prior Gate D docs-sync
+HEAD was `74be718236dfb8b6e50be2b24b7504f2cd990865`. Fixed DP remained
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`, no related task was
+active, and the frozen Python 3.12 target suite passed `78` tests.
+
+The final asset/source preflight artifact is
+`/root/autodl-tmp/camp_dp_v21_native_gate_e_preflight_f04dbeb8_20260714T174548CST`
+with root SHA256
+`af39edb010c945d73d0e4cb16cc07b5932ea0e46e40dedfba7baa8cdd16b2c80`.
+Every fixed checkpoint, args, selector, map, route, native source, and DP HEAD
+hash reverified before execution.
+
+The provenance-complete failed paired artifact is
+`/root/autodl-tmp/camp_dp_v21_native_gate_e_paired_f04dbeb8_20260714T174548CST`
+with root SHA256
+`f359cd81786399b377dc5eeb5d423398b4ab678acef8181bc8977c3d30de9eaa`.
+Its `run.exit=1`; all payload and root hashes independently reverified. It
+contains `HEADS`, exact `COMMAND`, frozen config, native logs, the complete
+first pair, the complete second-route DP arm, per-tick receipts, and the exact
+failure. In total, `3 / 4 arms` and `1 / 2 pairs` completed, each completed
+arm having 64 tracker ticks. All 192 completed ticks recorded `31 / 0`
+observed / padded frames, complete safety sources, and no future-derived input.
+Every completed CAMP tick retained identical candidate SHA before/after and
+exact default/candidate-0 identity.
+
+For the complete `sample_map_smoke_route` pair, the descriptive SafetyCost
+DP / CAMP / CAMP-minus-DP values were `0.0 / 7.1875 / +7.1875`, classified
+`worse`. DP had zero events in every SafetyCost component. CAMP also had zero
+collision, near-miss, offroad, wrong-way, and red-light events, but had 46 / 64
+speed-limit-violation ticks, rate 0.71875 and maximum excess 0.0927605 m/s.
+Minimum realized OBB clearance was 45.4505 m for DP and 45.4927 m for CAMP.
+This single completed pair is not an aggregate result or claim.
+
+Selected secondary values for DP / CAMP were: route completion
+0.305987 / 0.308718, route progress 52.6668 / 53.1368 m, distance traveled
+51.9168 / 52.3869 m, and mean speed 8.24185 / 8.31685 m/s. Mean absolute
+acceleration was 0.125528 / 0.167703 m/s2; mean absolute jerk was
+0.432252 / 1.067511 m/s3; mean absolute lateral acceleration was
+0.0318142 / 0.0516168 m/s2. Both arms terminated at the frozen 64-tick maximum.
+
+Mean / median latency in milliseconds for that pair was:
+
+- DP total planning 80.8311 / 69.4771, default inference
+  69.1071 / 61.6106, and tracker 8.74821 / 7.63985;
+- CAMP total planning 538.785 / 528.869, default inference
+  60.5999 / 60.3292, K=8 candidate inference 418.039 / 413.471, atom
+  materialization 25.2197 / 24.1206, selector 0.118289 / 0.116157, and tracker
+  9.40422 / 7.62920.
+
+The second-route DP-only arm completed 64 ticks with SafetyCost 0.0, no hard
+event, route completion 0.0486669, progress 24.4276 m, distance 24.0634 m, and
+mean speed 3.83854 m/s. Its mean / median total planning latency was
+78.3138 / 74.7923 ms, default inference 63.0977 / 61.4645 ms, and tracker
+11.3280 / 9.77315 ms. These DP-only values have no paired interpretation.
+
+The frozen `sample_map_tl_route_59_to_86` CAMP arm failed at tick 0. All
+`8 / 8 candidates` had complete sources, but every candidate was rejected by
+the same `lane_corridor` physical-feasibility condition; the physical mask was
+0 / 8. The frozen design explicitly requires an all-K infeasible arm and pair
+to fail without candidate-0 fallback. Replacing the route after observing this
+outcome, widening or removing the corridor, changing the physical mask, or
+adding fallback would change the frozen scientific contract and is not
+authorized.
+
+The first failure at source `74be7182...` was sealed at root
+`0d36b589ad1b7adfd20bb8d91a35e4d6439bf0de75ff9d5b370e099071507c15`.
+A diagnostic-only change preserved per-candidate masks/reasons without changing
+selection; the exact failure then repeated at source `6f02ee79...`, root
+`f8a7aec4bc39d5ed72986893696ba6c7c5f6243d3fb4f864a079f561e1c5bb91`.
+A second harness-only change added failure HEADS/COMMAND/config and partial
+receipts; the provenance-complete source and root are the final ones above.
+No failed evidence was deleted or overwritten.
+
+Independent failure review artifact
+`/root/autodl-tmp/camp_dp_v21_native_gate_e_failure_independent_review_f04dbeb8_20260714T174815CST`
+has root SHA256
+`032f50f51588abc6a95522cfc07bff5b90ebfb7b7e5aa6239310dced6da1789b`.
+It reports `38 / 0` checks passed and independently rehashed all three failure
+artifacts plus the final preflight, recomputed SafetyCost, secondary metrics,
+latency, pair identity/delta, padding, source completeness, candidate
+immutability, and no-claim guards. Its `run.exit=0`, stderr was empty, and the
+artifact is immutable.
+
+Gate E failed its frozen acceptance. There is no two-route aggregate,
+better/tie/worse table, CI, safety claim, or CAMP-over-DP claim, and Gate F is
+not authorized. No training, holdout access, formal seed, promotion,
+deployment, activation, DP edit, candidate repair, trajectory rewrite, or
+fallback occurred. The next action is a user decision on whether to revise the
+frozen Gate E route/feasibility contract; absent that decision, do not rerun.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_gate_d_capability_and_independent_review_passed
-current_v21_artifact_source_head=11f1421646780b1ffe2a4c0fe7957b17158456d0
-current_v21_prior_gate_final_synced_head=4e79dc3999045fb8cd293c0794f2226b64084000
+current_v21_status=v21_native_simulator_gate_e_frozen_two_pair_smoke_failed_all_k_lane_corridor
+current_v21_artifact_source_head=f04dbeb867b783d211621c52ea2bf2385a6f5733
+current_v21_prior_gate_final_synced_head=74be718236dfb8b6e50be2b24b7504f2cd990865
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_d_independent_review_11f14216_20260714T171411CST
-current_v21_artifact_root_sha256=852c5c2190d828cc6f8825ab0f0edbb211859e941743d8e16600eccdd59a3a1c
-next_work_target=v21_native_simulator_gate_e_two_route_paired_smoke
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_gate_e_failure_independent_review_f04dbeb8_20260714T174815CST
+current_v21_artifact_root_sha256=032f50f51588abc6a95522cfc07bff5b90ebfb7b7e5aa6239310dced6da1789b
+next_work_target=user_decision_required_before_v21_gate_e_contract_change_or_retry
