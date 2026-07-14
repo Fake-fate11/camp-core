@@ -582,6 +582,32 @@ def test_materialize_canonical_14d_excludes_all_k_infeasible_without_fallback() 
     assert result["progress_reference"] is None
 
 
+def test_materialize_v22_keeps_source_valid_all_k_high_risk() -> None:
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    neighbors[:, 0, :, :2] = candidates[:, None, :, :2][:, 0]
+
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=valid,
+        signal_mask=np.ones(8, dtype=bool),
+        planned_red_light_cost=np.arange(8, dtype=np.float64),
+        dt=0.1,
+        eligibility_policy="v22_source_valid",
+    )
+
+    assert result["canonical_eligible"] is True
+    assert result["source_valid_mask"].tolist() == [True] * 8
+    assert result["physical_feasible_mask"].tolist() == [False] * 8
+    assert result["all_k_high_risk"] is True
+    assert result["atom_matrix"].shape == (8, 14)
+    assert np.isfinite(result["atom_matrix"]).all()
+    assert result["progress_reference"] == pytest.approx(
+        result["route_progress"][result["source_valid_mask"]].max()
+    )
+
+
 def _materialization_output_fixture(tmp_path, module):
     candidate_root = tmp_path / "candidates"
     candidate_root.mkdir()

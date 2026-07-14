@@ -32,6 +32,11 @@ CANDIDATE_LOCAL_EXACT_SPEED = "candidate_local_exact_speed"
 _SPEED_SOURCE_POLICIES = frozenset(
     {FULL_WINDOW_EXACT_SPEED, CANDIDATE_LOCAL_EXACT_SPEED}
 )
+V21_PHYSICAL_ELIGIBILITY = "v21_physical"
+V22_SOURCE_VALID_ELIGIBILITY = "v22_source_valid"
+_ELIGIBILITY_POLICIES = frozenset(
+    {V21_PHYSICAL_ELIGIBILITY, V22_SOURCE_VALID_ELIGIBILITY}
+)
 
 
 @dataclass(frozen=True)
@@ -569,7 +574,12 @@ def materialize_canonical_14d(
     planned_red_light_cost: np.ndarray,
     dt: float,
     speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
+    eligibility_policy: str = V21_PHYSICAL_ELIGIBILITY,
 ) -> dict[str, object]:
+    if eligibility_policy not in _ELIGIBILITY_POLICIES:
+        raise ValueError(
+            f"eligibility_policy must be one of {sorted(_ELIGIBILITY_POLICIES)}"
+        )
     errors = validate_causal_dp_input(causal_input)
     if errors:
         raise ValueError("invalid causal input: " + "; ".join(errors))
@@ -609,8 +619,10 @@ def materialize_canonical_14d(
     source_complete = np.asarray(
         projection["route_speed_source_eligible_mask"], dtype=bool
     )
+    signal = np.asarray(feasibility["signal_mask"], dtype=bool)
+    source_valid = signal & source_complete
     physical = np.asarray(feasibility["physical_feasible_mask"], dtype=bool).copy()
-    physical &= source_complete
+    physical &= source_valid
     candidate_reasons = tuple(
         tuple(reasons)
         + (() if source_complete[index] else ("route_speed_source_unavailable",))
@@ -632,21 +644,30 @@ def materialize_canonical_14d(
         "exclusion_reason": None,
         "route_progress": projection["route_progress"],
         "route_speed_source_eligible_mask": source_complete,
+        "source_valid_mask": source_valid,
         "minimum_obb_clearance": feasibility["minimum_obb_clearance"],
         "progress_reference": None,
+        "all_k_high_risk": bool(source_valid.all() and not physical.any()),
+        "eligibility_policy": eligibility_policy,
     }
-    signal = np.asarray(feasibility["signal_mask"], dtype=bool)
-    if not signal.all():
-        result["exclusion_reason"] = "signal_source_incomplete"
-        return result
-    if not source_complete.any():
-        result["exclusion_reason"] = (
-            "all_candidates_route_speed_source_ineligible"
-        )
-        return result
-    if not physical.any():
-        result["exclusion_reason"] = "all_candidates_physically_infeasible"
-        return result
+    if eligibility_policy == V21_PHYSICAL_ELIGIBILITY:
+        if not signal.all():
+            result["exclusion_reason"] = "signal_source_incomplete"
+            return result
+        if not source_complete.any():
+            result["exclusion_reason"] = (
+                "all_candidates_route_speed_source_ineligible"
+            )
+            return result
+        if not physical.any():
+            result["exclusion_reason"] = "all_candidates_physically_infeasible"
+            return result
+        eligibility = physical
+    else:
+        if not source_valid.any():
+            result["exclusion_reason"] = "all_candidates_source_invalid"
+            return result
+        eligibility = source_valid
 
     xy = trajectories[:, :, :2]
     velocity = np.diff(xy, axis=1) / float(dt)
@@ -696,7 +717,7 @@ def materialize_canonical_14d(
         axis=1,
     )
     progress = np.asarray(projection["route_progress"], dtype=np.float64)
-    progress_reference = float(np.max(progress[physical]))
+    progress_reference = float(np.max(progress[eligibility]))
     progress_shortfall = np.maximum(progress_reference - progress, 0.0)
     lateral_acceleration = compute_lateral_comfort_shadow_costs(
         trajectories, float(dt)
