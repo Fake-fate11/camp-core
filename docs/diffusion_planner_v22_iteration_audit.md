@@ -1398,18 +1398,71 @@ snapshots, and route coverage 1.0. It executed no selector, solver, simulator,
 or holdout. Corrected preflight artifact/root:
 `/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST`
 / `342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829`.
+Its exact next target was `v22_calibration_selector_freeze_execution_only`.
 
 One controller attempt before the remediation TDD artifact guessed the new
 full CAMP SHA incorrectly and stopped before artifact creation or any model,
 selector, or simulator action. Live reconciliation confirmed the actual SHA
-above. The next gate may execute calibration freeze exactly once. Pilot and
-holdout remain unopened.
+above.
 
-current_v22_status=v22_calibration_selector_freeze_corrected_preflight_passed
-current_v22_artifact_source_head=a54e71e7185343d8b52e131743c18c4dbc814602
-current_v22_prior_gate_final_synced_head=a54e71e7185343d8b52e131743c18c4dbc814602
+## Calibration Selector Freeze Execution and Independent Review
+
+Status: passed; paired pilot protocol TDD is next.
+
+The one authorized freeze execution ran at CAMP HEAD
+`22b40e126f87dffa509d25c2b59a361ad0f29bb5` and fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It selected the only reachable
+v22 learning-curve candidate, `all_available_416`, without invoking a solver
+or retraining. Frozen weights remain exactly 0.47543440765511247 on
+`speed_limit_margin_0_0` and 0.5245655923448875 on `clearance`; all other
+weights, including every unsupported atom, are zero. Runtime weights/scales
+SHA256 are
+`bf826226c3abdfdb94a33d3c5d9d530195e20d7ea600513b7bc326624ebf1f5c`
+/ `f78e639d901c51280d7331727372bc91bb31e30ac02604221fa27955427919d6`.
+
+On the 1,170 calibration causal snapshots, the frozen v22 selector chose
+candidate 0 / non-candidate 0 on `841 / 329` snapshots. Its causal-surrogate
+oracle agreement was `313 / 1,170`; selected / candidate-0 / delta mean
+surrogate costs were `25.791873026412482 / 40.64472352018626 /
+-14.852850493773781`. The v18 ablation chose candidate 0 / non-candidate 0 on
+`19 / 1,151` snapshots and had selected mean surrogate cost
+`39.022899679812944`. These are offline causal-surrogate diagnostics, not
+closed-loop safety results and not a CAMP-over-DP claim.
+
+The freeze receipt preserves 30 routes, 3 seeds, 90 retained route-seeds, 89
+complete runs, 1 hard-source failure, route coverage 1.0, and 5
+all-K-high-risk snapshots. The primary operational speed tolerance is 0.1
+m/s. Sensitivities 0/0.05/0.1/0.2 remain pending true pilot closed-loop
+outcomes. Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_execution_22b40e12_20260715T021645CST`
+/ `5e8ebdff441d10f8c824ed3104eda3f4d484c2235ad85184b45223c780b41fed`,
+with exit 0. No simulator, pilot, or holdout ran.
+
+The first independent reviewer is preserved as no-pass at
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_22b40e12_20260715T021755CST`
+/ `81bbde1582df5c640228fb0e35866e1da17d02c445460f1fc9c75c66abd31261`.
+Its only failed check hard-coded the two expected nonzero atom indices as 0
+and 4, while the canonical schema names place them at 4 and 8. No source asset
+failed, and the reviewer did not modify the source execution.
+
+The corrected reviewer resolves those positions from canonical atom names. It
+rehashed the full execution and all upstream roots; independently checked
+1,170 content hashes, split/provenance/identity-free features, candidate
+immutability and candidate-0/default identity, finite atoms and masks,
+all-K-high-risk receipts, runtime asset equality, nonnegative simplex, and
+every reported surrogate metric. All-K-high-risk rows use the same affine
+argmin without fallback. It passed `11,756 / 0` checks. Corrected review
+artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST`
+/ `fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a`,
+with exit 0. Solver, retraining, simulator, pilot, and holdout were not
+executed; no claim is authorized.
+
+current_v22_status=v22_calibration_selector_freeze_and_independent_review_passed
+current_v22_artifact_source_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
+current_v22_prior_gate_final_synced_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST
-current_v22_artifact_root_sha256=342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829
-next_work_target=v22_calibration_selector_freeze_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST
+current_v22_artifact_root_sha256=fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a
+next_work_target=v22_native_paired_pilot_protocol_tdd_only

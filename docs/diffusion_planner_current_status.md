@@ -445,16 +445,35 @@ all-K-high-risk snapshots, and route coverage 1.0. No selector, solver,
 simulator, pilot, or holdout ran. Artifact/root:
 `/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST`
 / `342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829`.
-Next is calibration-freeze execution only.
 
-current_v22_status=v22_calibration_selector_freeze_corrected_preflight_passed
-current_v22_artifact_source_head=a54e71e7185343d8b52e131743c18c4dbc814602
-current_v22_prior_gate_final_synced_head=a54e71e7185343d8b52e131743c18c4dbc814602
+Calibration freeze execution then passed at CAMP HEAD
+`22b40e126f87dffa509d25c2b59a361ad0f29bb5`. `all_available_416` remains
+the frozen primary candidate. On 1,170 causal calibration snapshots it chose
+candidate 0 / non-candidate 0 `841 / 329`; selected / candidate-0 / delta mean
+surrogate costs were `25.791873026412482 / 40.64472352018626 /
+-14.852850493773781`. This is not a closed-loop safety result. Runtime
+weights/scales SHA are `bf826226...` / `f78e639d...`. Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_execution_22b40e12_20260715T021645CST`
+/ `5e8ebdff441d10f8c824ed3104eda3f4d484c2235ad85184b45223c780b41fed`.
+
+The first independent reviewer is preserved no-pass because it hard-coded
+the wrong canonical atom indices; root `81bbde1582df5c640228fb0e35866e1da17d02c445460f1fc9c75c66abd31261`.
+The corrected reviewer resolved atoms by name and passed `11,756 / 0` checks,
+including full hashes, runtime asset equality, nonnegative simplex, 1,170
+candidate immutability/default identities, all-K affine argmin, and metric
+recomputation. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST`
+/ `fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a`.
+No simulator, pilot, holdout, or claim ran. Next is paired pilot protocol TDD.
+
+current_v22_status=v22_calibration_selector_freeze_and_independent_review_passed
+current_v22_artifact_source_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
+current_v22_prior_gate_final_synced_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST
-current_v22_artifact_root_sha256=342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829
-next_work_target=v22_calibration_selector_freeze_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST
+current_v22_artifact_root_sha256=fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a
+next_work_target=v22_native_paired_pilot_protocol_tdd_only
 
 ## Current V21 Status
 

@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_calibration_selector_freeze_corrected_preflight_passed",
-    "current_v22_artifact_source_head=a54e71e7185343d8b52e131743c18c4dbc814602",
-    "current_v22_prior_gate_final_synced_head=a54e71e7185343d8b52e131743c18c4dbc814602",
+    "current_v22_status=v22_calibration_selector_freeze_and_independent_review_passed",
+    "current_v22_artifact_source_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5",
+    "current_v22_prior_gate_final_synced_head=22b40e126f87dffa509d25c2b59a361ad0f29bb5",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_corrected_preflight_a54e71e7_20260715T021350CST",
-    "current_v22_artifact_root_sha256=342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829",
-    "next_work_target=v22_calibration_selector_freeze_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_freeze_independent_review_corrected_22b40e12_20260715T021900CST",
+    "current_v22_artifact_root_sha256=fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a",
+    "next_work_target=v22_native_paired_pilot_protocol_tdd_only",
 )
 
 
@@ -304,5 +304,26 @@ def test_v22_records_calibration_freeze_tdd_failure_remediation_and_preflight() 
         "342e2efe8441daddbe2852a76e9399681787980b4f51de3be840ded528f99829",
         "executed no selector, solver, simulator, or holdout",
         "v22_calibration_selector_freeze_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_calibration_freeze_execution_and_corrected_review() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "all_available_416",
+        "0.47543440765511247",
+        "0.5245655923448875",
+        "bf826226c3abdfdb94a33d3c5d9d530195e20d7ea600513b7bc326624ebf1f5c",
+        "841 / 329",
+        "25.791873026412482 / 40.64472352018626",
+        "offline causal-surrogate diagnostics",
+        "5e8ebdff441d10f8c824ed3104eda3f4d484c2235ad85184b45223c780b41fed",
+        "preserved as no-pass",
+        "81bbde1582df5c640228fb0e35866e1da17d02c445460f1fc9c75c66abd31261",
+        "11,756 / 0",
+        "same affine argmin without fallback",
+        "fdf4fdb5d0a7ea036b66b6e524427f127e5525822bf32abbf583f2b43f14aa8a",
+        "v22_native_paired_pilot_protocol_tdd_only",
     ):
         assert phrase in text
