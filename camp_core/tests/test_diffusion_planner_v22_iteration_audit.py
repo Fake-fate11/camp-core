@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_convex_selector_training_preflight_passed",
-    "current_v22_artifact_source_head=b4389693c78d6c293c7238d389a9c3d54215ee31",
-    "current_v22_prior_gate_final_synced_head=b4389693c78d6c293c7238d389a9c3d54215ee31",
+    "current_v22_status=v22_convex_selector_training_execution_and_independent_review_passed",
+    "current_v22_artifact_source_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5",
+    "current_v22_prior_gate_final_synced_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST",
-    "current_v22_artifact_root_sha256=b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c",
-    "next_work_target=v22_convex_selector_training_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_independent_review_017aa8d9_20260714T233449CST",
+    "current_v22_artifact_root_sha256=8cf7c4b2b85d27a027d05589d50d5adb901c90774752f5cf506c6cecea7904e5",
+    "next_work_target=v22_native_calibration_corpus_preflight_only",
 )
 
 
@@ -264,5 +264,25 @@ def test_v22_records_convex_selector_training_preflight_without_solver() -> None
         "b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c",
         "No solver was invoked",
         "v22_convex_selector_training_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_convex_training_execution_and_independent_review() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "aab747c7ab835d11421bbb6f77e8aeb53aeba97b666adeb0fb6f7e98918ca23a",
+        "33d4d9b23e7cc505e546a8bf33ca7477f072118ea1fda6dad9744969fc00956a",
+        "0.47543440765511247 / 0.5245655923448875",
+        "2 / 4.39870362356487e-13 / 434",
+        "0.7657483862712979 s",
+        "305 / 111",
+        "96 / 416",
+        "2.7545079763521803 / 5.66610969706022 / -2.9116017207080387",
+        "2,546 independent checks",
+        "8cf7c4b2b85d27a027d05589d50d5adb901c90774752f5cf506c6cecea7904e5",
+        "primary_model_frozen=false",
+        "No calibration or holdout route/outcome was read",
+        "v22_native_calibration_corpus_preflight_only",
     ):
         assert phrase in text

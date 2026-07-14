@@ -1034,11 +1034,60 @@ with root SHA256
 `b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c`
 and `run.exit=0`.
 
-current_v22_status=v22_convex_selector_training_preflight_passed
-current_v22_artifact_source_head=b4389693c78d6c293c7238d389a9c3d54215ee31
-current_v22_prior_gate_final_synced_head=b4389693c78d6c293c7238d389a9c3d54215ee31
+The exact authorized execution target was
+`v22_convex_selector_training_execution_only`.
+
+## Convex Selector Training Execution and Independent Review
+
+Status: passed; one v22 train-derived candidate model is sealed for
+calibration. It is not yet the frozen primary selector.
+
+The only reachable level, `all_available_416`, completed once on AutoDL. Its
+immutable execution artifact is
+`/root/autodl-tmp/camp_dp_v22_convex_selector_training_execution_fdbbf1c5`
+with root SHA256
+`aab747c7ab835d11421bbb6f77e8aeb53aeba97b666adeb0fb6f7e98918ca23a`
+and `run.exit=0`. Total artifact wall-clock was `1.1904628276824951 s`.
+Model SHA256 is
+`33d4d9b23e7cc505e546a8bf33ca7477f072118ea1fda6dad9744969fc00956a`.
+
+CLARABEL returned exact `optimal` and converged. Solver iterations / final
+projected master gap / total cuts were `2 / 4.39870362356487e-13 / 434`;
+solver wall-clock was `0.7657483862712979 s`. The canonical 14D simplex has
+only two nonzero weights: speed_limit_margin_0_0 / clearance are
+`0.47543440765511247 / 0.5245655923448875`. All other weights, including the
+three unsupported atoms, are exactly zero. The frozen atom transform remains
+`clip(raw_atom/scale,0,10.0)`.
+
+Train surrogate diagnostics selected candidate 0 / non-candidate 0 in
+`305 / 111` snapshots and agreed with the surrogate oracle in `96 / 416`.
+Selected / candidate-0 / delta mean surrogate costs were
+`2.7545079763521803 / 5.66610969706022 / -2.9116017207080387`. These are
+train-only surrogate diagnostics, not actual closed-loop outcomes or safety
+evidence. The previously reported v18 selector remains ablation-only.
+
+The independent reviewer rehashed the execution artifact and model, then
+recomputed all 416 source/label links, candidate identity and immutability
+receipts, clipped scores, source-valid selections, surrogate oracles, margins,
+violations, CVaR, train metrics, and v18 ablation. It performed `2,546
+independent checks` with zero failures and did not invoke the solver or retrain
+the model. Its artifact is
+`/root/autodl-tmp/camp_dp_v22_convex_selector_training_independent_review_017aa8d9_20260714T233449CST`
+with root SHA256
+`8cf7c4b2b85d27a027d05589d50d5adb901c90774752f5cf506c6cecea7904e5`
+and `run.exit=0`.
+
+The execution manifest explicitly records `primary_model_frozen=false`. No
+calibration or holdout route/outcome was read, no simulator ran, and no claim
+is authorized. Next gate is a read-only preflight for generating native causal
+decision snapshots on the already frozen 30-route, 3-seed calibration split;
+it may not alter train weights, scales, atom schema, or holdout state.
+
+current_v22_status=v22_convex_selector_training_execution_and_independent_review_passed
+current_v22_artifact_source_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5
+current_v22_prior_gate_final_synced_head=017aa8d9fe9179972b1873c391116bf3ee5bc2c5
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST
-current_v22_artifact_root_sha256=b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c
-next_work_target=v22_convex_selector_training_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_independent_review_017aa8d9_20260714T233449CST
+current_v22_artifact_root_sha256=8cf7c4b2b85d27a027d05589d50d5adb901c90774752f5cf506c6cecea7904e5
+next_work_target=v22_native_calibration_corpus_preflight_only
