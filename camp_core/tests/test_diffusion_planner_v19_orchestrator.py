@@ -72,10 +72,32 @@ def test_checked_in_current_v19_pointer_matches_v19_audit_eof() -> None:
     )
 
     assert pointer["current_v19_status"] == (
-        "v19_carla_source_only_k8_probe_runtime_passed_zero_legal_paired_"
-        "support_independent_review_passed"
+        "v19_zero_support_precision_defect_fixed_route_contract_nonunique_"
+        "honest_no_claim_closeout"
     )
     assert pointer["next_work_target"] == (
-        "user_decision_required_before_any_frozen_scientific_contract_change_"
-        "after_zero_legal_paired_support_hard_stop"
+        "no_further_action_v19_zero_legal_paired_support_route_contract_"
+        "nonunique_honest_no_claim_complete"
+    )
+
+
+def test_checked_in_current_v20_pointer_matches_v20_audit_eof() -> None:
+    module = _orchestrator()
+
+    pointer = module.read_v20_status_pointer(
+        module.Path("docs/diffusion_planner_current_status.md"),
+        module.Path("docs/diffusion_planner_v20_iteration_audit.md"),
+    )
+
+    assert pointer["current_v20_status"] == (
+        "v20_carla_route_corridor_tdd_ready_independent_final_review_passed"
+    )
+    assert pointer["camp_github_autodl_head"] == (
+        "61c607d144688a42ea71a0b2418fa6bf483540c5"
+    )
+    assert pointer["fixed_dp_head"] == (
+        "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+    )
+    assert pointer["next_work_target"] == (
+        "v20_carla_route_corridor_map_only_contact_tolerance_census_plan_only"
     )

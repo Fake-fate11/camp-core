@@ -1,11 +1,33 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-12, Asia/Shanghai.
+Last verified: 2026-07-14, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v19_iteration_audit.md`. V18 and earlier
+new writes is `docs/diffusion_planner_v20_iteration_audit.md`. V19 and earlier
 audits are historical evidence and remain frozen except for explicit
 qualifications.
+
+## Current V20 Status
+
+Reader contract: this named section is the only v20 pointer source in this
+file. The EOF of `docs/diffusion_planner_v20_iteration_audit.md` is the sole
+current-gate authority, and the tuple below must match it exactly.
+
+At CAMP, GitHub, and AutoDL head
+`61c607d144688a42ea71a0b2418fa6bf483540c5`, with fixed DP head
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the v20 CARLA route-corridor
+TDD implementation is ready. Independent final review recorded `Critical=0`
+and `Important=0`; the local and AutoDL seven-file suites each recorded
+`159 passed`.
+
+This documentation bootstrap ran no candidate, outcome, metric, holdout,
+simulator, promotion, deployment, or broad claim. The next gate is map-only
+contact-tolerance census planning.
+
+current_v20_status=v20_carla_route_corridor_tdd_ready_independent_final_review_passed
+camp_github_autodl_head=61c607d144688a42ea71a0b2418fa6bf483540c5
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+next_work_target=v20_carla_route_corridor_map_only_contact_tolerance_census_plan_only
 
 ## Current V19 Status
 
