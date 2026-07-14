@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_convex_selector_training_tdd_passed",
-    "current_v22_artifact_source_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565",
-    "current_v22_prior_gate_final_synced_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565",
+    "current_v22_status=v22_convex_selector_training_preflight_passed",
+    "current_v22_artifact_source_head=b4389693c78d6c293c7238d389a9c3d54215ee31",
+    "current_v22_prior_gate_final_synced_head=b4389693c78d6c293c7238d389a9c3d54215ee31",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_tdd_fdbbf1c5_20260714T232226CST",
-    "current_v22_artifact_root_sha256=e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd",
-    "next_work_target=v22_convex_selector_training_preflight_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST",
+    "current_v22_artifact_root_sha256=b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c",
+    "next_work_target=v22_convex_selector_training_execution_only",
 )
 
 
@@ -244,5 +244,25 @@ def test_v22_records_convex_selector_training_tdd_without_execution() -> None:
         "e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd",
         "No production model was trained",
         "v22_convex_selector_training_preflight_only",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_convex_selector_training_preflight_without_solver() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "1 / 4 / 1 / 8 / 32",
+        "416 snapshots",
+        "CVXPY 1.6.7",
+        "50,336,387,072 free bytes",
+        "six frozen upstream roots",
+        "all_available_416",
+        "planned output was absent",
+        "186 / 416",
+        "10 / 406",
+        "5.770243907042391 / 5.66610969706022",
+        "b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c",
+        "No solver was invoked",
+        "v22_convex_selector_training_execution_only",
     ):
         assert phrase in text

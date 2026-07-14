@@ -994,13 +994,51 @@ creation, tests, solver use, or training. The corrected invocation above used
 the live full SHA. No production model was trained, no simulator ran, and no
 calibration/holdout data or outcome was read. Next gate is a read-only
 preflight of every frozen root, input count, solver availability, output
-absence, and process guard.
+absence, and process guard. Its exact target is
+`v22_convex_selector_training_preflight_only`.
 
-current_v22_status=v22_convex_selector_training_tdd_passed
-current_v22_artifact_source_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565
-current_v22_prior_gate_final_synced_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565
+## Convex Selector Training Execution Preflight
+
+Status: passed; the one train-only solve is authorized.
+
+The read-only AutoDL preflight ran at CAMP HEAD
+`b4389693c78d6c293c7238d389a9c3d54215ee31` with fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It independently rehashed all
+six frozen upstream roots: corrected source corpus, source review, causal label
+corpus, label review, v18 ablation freeze, and v18 review. All matched their
+preregistered SHA256 values.
+
+The loader retained all `416 snapshots`. Train inventory counts for logical
+maps / routes / route-family groups / seeds / route-seeds were
+`1 / 4 / 1 / 8 / 32`. Eleven atoms were supported and three unsupported. No
+5k/10k/20k/50k level was reachable, so the only planned solve remains
+`all_available_416`. Snapshot filenames were exact content SHAs and their
+order was lexicographically frozen before any solver use.
+
+AutoDL had CVXPY 1.6.7 with CLARABEL installed and `50,336,387,072 free
+bytes`. No related Python process existed. The planned output was absent:
+`/root/autodl-tmp/camp_dp_v22_convex_selector_training_execution_fdbbf1c5`.
+The v18 ablation-only dry evaluation agreed with the surrogate
+oracle for `186 / 416` snapshots and selected candidate 0 / non-candidate 0 in
+`10 / 406`; its selected versus candidate-0 mean surrogate costs were
+`5.770243907042391 / 5.66610969706022`. These are train-only ablation
+diagnostics, not closed-loop outcomes or a performance claim.
+
+No solver was invoked, no model was trained, no simulator ran, and no
+calibration/holdout data or outcome was read. A first local orchestration
+attempt had a quoting SyntaxError before SSH connection or artifact creation;
+the corrected read-only attempt below is the only remote preflight execution.
+Its immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST`
+with root SHA256
+`b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c`
+and `run.exit=0`.
+
+current_v22_status=v22_convex_selector_training_preflight_passed
+current_v22_artifact_source_head=b4389693c78d6c293c7238d389a9c3d54215ee31
+current_v22_prior_gate_final_synced_head=b4389693c78d6c293c7238d389a9c3d54215ee31
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_tdd_fdbbf1c5_20260714T232226CST
-current_v22_artifact_root_sha256=e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd
-next_work_target=v22_convex_selector_training_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST
+current_v22_artifact_root_sha256=b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c
+next_work_target=v22_convex_selector_training_execution_only

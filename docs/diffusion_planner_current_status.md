@@ -289,14 +289,30 @@ AutoDL passed `13 / 13` focused trainer and Benders tests. TDD artifact/root:
 No production model was trained; no simulator, calibration, holdout, or claim
 ran. Next gate is read-only training preflight.
 
-current_v22_status=v22_convex_selector_training_tdd_passed
-current_v22_artifact_source_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565
-current_v22_prior_gate_final_synced_head=fdbbf1c5e7a98d77847ce78895052fd0c710b565
+Train-only execution preflight passed at CAMP HEAD
+`b4389693c78d6c293c7238d389a9c3d54215ee31`. It rehashed all six source,
+label, independent-review, and v18-ablation roots; retained 416 snapshots with
+map/route/group/seed/route-seed counts `1 / 4 / 1 / 8 / 32`; and confirmed
+CVXPY 1.6.7 plus CLARABEL. The only reachable level is
+`all_available_416`. Planned output was absent and free space was
+`50,336,387,072` bytes.
+
+V18 ablation-only surrogate-oracle agreement was `186 / 416`, candidate-0 /
+non-candidate-0 selections were `10 / 406`, and selected/default mean
+surrogate costs were `5.770243907042391 / 5.66610969706022`. No solver was
+invoked, no model was trained, and no simulator/calibration/holdout/claim ran.
+Preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST`
+/ `b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c`.
+
+current_v22_status=v22_convex_selector_training_preflight_passed
+current_v22_artifact_source_head=b4389693c78d6c293c7238d389a9c3d54215ee31
+current_v22_prior_gate_final_synced_head=b4389693c78d6c293c7238d389a9c3d54215ee31
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_tdd_fdbbf1c5_20260714T232226CST
-current_v22_artifact_root_sha256=e63260e1ed636672a42fa8f2f19ac2b3ba34093fb18af082c7f5f2f44a5d18fd
-next_work_target=v22_convex_selector_training_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_convex_selector_training_preflight_b4389693_20260714T232907CST
+current_v22_artifact_root_sha256=b89a653114b82405cdcc2eb73f63f3537c979a9bb55baab239118448ae74949c
+next_work_target=v22_convex_selector_training_execution_only
 
 ## Current V21 Status
 
