@@ -8,6 +8,12 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG = ROOT / "configs" / "integrations" / "diffusion_planner_v22_native_corpus.json"
+CALIBRATION_CONFIG = (
+    ROOT
+    / "configs"
+    / "integrations"
+    / "diffusion_planner_v22_native_calibration_corpus.json"
+)
 BASE_NATIVE_CONFIG = ROOT / "configs" / "diffusion_planner_v22_native_capability.json"
 SCRIPT = (
     ROOT
@@ -125,6 +131,18 @@ def _config(manifest: dict) -> dict:
     }
 
 
+def _calibration_config(manifest: dict) -> dict:
+    config = _config(manifest)
+    collection = config["collection"]
+    collection["execution_splits"] = ["calibration"]
+    del collection["expected_train_route_seed_runs"]
+    del collection["theoretical_max_train_snapshots"]
+    collection["expected_calibration_route_seed_runs"] = 1
+    collection["theoretical_max_calibration_snapshots"] = 13
+    config["calibration_execution_authorized"] = True
+    return config
+
+
 def test_tracked_preflight_freezes_reachable_train_ceiling() -> None:
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
     collection = config["collection"]
@@ -155,6 +173,91 @@ def test_tracked_preflight_freezes_reachable_train_ceiling() -> None:
     assert config["claim_authorized"] is False
 
 
+def test_tracked_calibration_config_freezes_30_by_3_without_holdout() -> None:
+    config = json.loads(CALIBRATION_CONFIG.read_text(encoding="utf-8"))
+    collection = config["collection"]
+
+    assert collection["execution_splits"] == ["calibration"]
+    assert collection["expected_route_counts"] == {
+        "train": 4,
+        "calibration": 30,
+        "holdout": 100,
+    }
+    assert collection["expected_seed_counts"] == {
+        "train": 8,
+        "calibration": 3,
+        "holdout": 5,
+    }
+    assert collection["expected_calibration_route_seed_runs"] == 90
+    assert collection["theoretical_max_calibration_snapshots"] == 1170
+    assert config["calibration_execution_authorized"] is True
+    assert config["holdout_execution_authorized"] is False
+    assert config["claim_authorized"] is False
+
+
+def test_calibration_preflight_and_run_config_are_not_training_or_holdout(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    manifest = _manifest(tmp_path)
+    config = _calibration_config(manifest)
+
+    summary = module.validate_corpus_preflight(config, manifest)
+    run_config = module.build_corpus_run_config(
+        json.loads(BASE_NATIVE_CONFIG.read_text(encoding="utf-8")),
+        manifest["splits"]["calibration"]["routes"][0],
+        seed=22101,
+        max_steps=64,
+        split="calibration",
+    )
+
+    assert summary["execution_split"] == "calibration"
+    assert summary["status"] == "passed_with_sub_5k_calibration_ceiling"
+    assert summary["route_seed_runs"] == 1
+    assert summary["theoretical_max_snapshots"] == 13
+    assert summary["next_work_target"] == "v22_native_calibration_corpus_execution_only"
+    assert run_config["protocol"]["route_role"] == "calibration_corpus_collection"
+    assert run_config["protocol"]["training_authorized"] is False
+    assert run_config["protocol"]["calibration_authorized"] is True
+    assert run_config["protocol"]["holdout_access_authorized"] is False
+
+
+def test_shared_manifest_executor_attempts_only_calibration_rows(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    manifest = _manifest(tmp_path)
+    config = _calibration_config(manifest)
+    base = json.loads(BASE_NATIVE_CONFIG.read_text(encoding="utf-8"))
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        del output_dir
+        calls.append((route["name"], arm, config["seeds"]["scenario"], max_steps))
+        decision_sink(_snapshot())
+        return {"status": "ok"}
+
+    output = tmp_path / "calibration-corpus"
+    summary = module.execute_manifest_split(
+        config,
+        manifest,
+        base,
+        split="calibration",
+        output_dir=output,
+        run_arm=run_arm,
+    )
+
+    identity = manifest["splits"]["calibration"]["routes"][0]["identity_sha256"]
+    assert calls == [(identity, "camp", 22101, 64)]
+    assert summary["execution_split"] == "calibration"
+    assert summary["planned_route_seed_runs"] == 1
+    assert summary["complete_route_seed_runs"] == 1
+    assert summary["retained_route_seed_runs"] == 1
+    assert len(list((output / "receipts" / "calibration").rglob("seed_*.json"))) == 1
+    assert not (output / "receipts" / "train").exists()
+    assert not (output / "receipts" / "holdout").exists()
+
+
 def test_preflight_accepts_train_only_and_reports_no_reachable_tier(tmp_path: Path) -> None:
     module = _module()
     manifest = _manifest(tmp_path)
@@ -174,7 +277,7 @@ def test_preflight_accepts_train_only_and_reports_no_reachable_tier(tmp_path: Pa
 @pytest.mark.parametrize(
     ("mutation", "match"),
     (
-        ("holdout", "train-only"),
+        ("holdout", "one train or calibration"),
         ("identity_feature", "feature payload"),
         ("asset", "route asset SHA256"),
     ),

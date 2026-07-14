@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Preflight and materialize the v22 native decision corpus.
 
-The execution implementation reuses ``build_native_arm_runner``. This first
-gate is intentionally static: it validates the frozen train-only inputs and
-does not build the runner, load the model, or execute the simulator.
+The execution implementation reuses ``build_native_arm_runner``. Static
+preflight validates one frozen train or calibration split without building the
+runner, loading the model, or executing the simulator.
 """
 
 from __future__ import annotations
@@ -229,8 +229,11 @@ def build_corpus_run_config(
     *,
     seed: int,
     max_steps: int,
+    split: str = "train",
 ) -> dict[str, Any]:
     validate_v22_capability_config(base_config)
+    if split not in {"train", "calibration"}:
+        raise ValueError("corpus run split must be train or calibration")
     if max_steps != 64:
         raise ValueError("v22 corpus run must use 64 steps")
     asset = _mapping(route, "route_asset")
@@ -238,7 +241,7 @@ def build_corpus_run_config(
     if route.get("logical_map_sha256") != _mapping(base_config, "map").get(
         "sha256"
     ) or route_spec.get("map_path") != _mapping(base_config, "map").get("path"):
-        raise ValueError("train route logical map differs from native base config")
+        raise ValueError("corpus route logical map differs from native base config")
 
     config = deepcopy(dict(base_config))
     config["schema_version"] = "camp_dp_v22_native_corpus_run_v1"
@@ -263,8 +266,9 @@ def build_corpus_run_config(
         "sample_every_ticks": 5,
         "padding_policy": "native_zero_left_pad_to_31_v1",
         "safety_schema": "safety_cost_native_v22",
-        "route_role": "train_corpus_collection",
-        "training_authorized": True,
+        "route_role": f"{split}_corpus_collection",
+        "training_authorized": split == "train",
+        "calibration_authorized": split == "calibration",
         "holdout_access_authorized": False,
         "formal_seeds_authorized": False,
         "claim_authorized": False,
@@ -273,15 +277,18 @@ def build_corpus_run_config(
     return config
 
 
-def execute_train_manifest(
+def execute_manifest_split(
     config: Mapping[str, Any],
     manifest: Mapping[str, Any],
     base_config: Mapping[str, Any],
     *,
+    split: str,
     output_dir: Path,
     run_arm: Callable[..., Mapping[str, Any]],
 ) -> dict[str, Any]:
     preflight = validate_corpus_preflight(config, manifest)
+    if split != preflight["execution_split"]:
+        raise ValueError("requested corpus split differs from preflight")
     validate_v22_capability_config(base_config)
     output_dir = Path(output_dir)
     if output_dir.exists():
@@ -290,9 +297,11 @@ def execute_train_manifest(
 
     collection = _mapping(config, "collection")
     max_steps = int(collection["max_steps"])
-    train = _mapping(_mapping(manifest, "splits"), "train")
-    routes = sorted(train.get("routes", []), key=lambda item: item["identity_sha256"])
-    seeds = sorted(int(value) for value in train.get("seed_namespace", []))
+    selected_split = _mapping(_mapping(manifest, "splits"), split)
+    routes = sorted(
+        selected_split.get("routes", []), key=lambda item: item["identity_sha256"]
+    )
+    seeds = sorted(int(value) for value in selected_split.get("seed_namespace", []))
     complete = 0
     failed = 0
     failures = []
@@ -304,7 +313,7 @@ def execute_train_manifest(
         for seed in seeds:
             writer = CorpusSnapshotWriter(
                 output_dir=output_dir,
-                split="train",
+                split=split,
                 logical_map_sha256=str(route["logical_map_sha256"]),
                 route_identity_sha256=str(route["identity_sha256"]),
                 group_sha256=str(route["group_sha256"]),
@@ -320,7 +329,11 @@ def execute_train_manifest(
             run_started = time.perf_counter()
             try:
                 run_config = build_corpus_run_config(
-                    base_config, route, seed=seed, max_steps=max_steps
+                    base_config,
+                    route,
+                    seed=seed,
+                    max_steps=max_steps,
+                    split=split,
                 )
                 native_route = run_config["routes"][0]
                 result = run_arm(
@@ -390,10 +403,11 @@ def execute_train_manifest(
 
     planned = len(routes) * len(seeds)
     summary = {
-        "schema_version": "camp_dp_v22_native_train_corpus_summary_v1",
+        "schema_version": f"camp_dp_v22_native_{split}_corpus_summary_v1",
         "status": (
             "complete" if failed == 0 else "complete_with_retained_failures"
         ),
+        "execution_split": split,
         "planned_route_seed_runs": planned,
         "complete_route_seed_runs": complete,
         "failed_route_seed_runs": failed,
@@ -404,18 +418,41 @@ def execute_train_manifest(
             sorted(snapshot_count_by_source_stratum.items())
         ),
         "all_k_high_risk_snapshot_count": all_k_high_risk_snapshot_count,
-        "theoretical_max_train_snapshots": preflight[
-            "theoretical_max_train_snapshots"
-        ],
+        "theoretical_max_snapshots": preflight["theoretical_max_snapshots"],
         "failures": failures,
         "route_seed_timings": run_timings,
         "wall_clock_s": time.perf_counter() - execution_started,
-        "calibration_executed": False,
+        "calibration_executed": split == "calibration",
         "holdout_executed": False,
         "holdout_outcomes_read": False,
         "claim_authorized": False,
     }
     (output_dir / "corpus_summary.json").write_bytes(
+        _canonical_json_bytes(summary)
+    )
+    return summary
+
+
+def execute_train_manifest(
+    config: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    base_config: Mapping[str, Any],
+    *,
+    output_dir: Path,
+    run_arm: Callable[..., Mapping[str, Any]],
+) -> dict[str, Any]:
+    summary = execute_manifest_split(
+        config,
+        manifest,
+        base_config,
+        split="train",
+        output_dir=output_dir,
+        run_arm=run_arm,
+    )
+    summary["theoretical_max_train_snapshots"] = summary[
+        "theoretical_max_snapshots"
+    ]
+    (Path(output_dir) / "corpus_summary.json").write_bytes(
         _canonical_json_bytes(summary)
     )
     return summary
@@ -439,8 +476,14 @@ def validate_corpus_preflight(
         raise ValueError("split freeze SHA256 mismatch")
 
     collection = _mapping(config, "collection")
-    if collection.get("execution_splits") != ["train"]:
-        raise ValueError("corpus preflight is train-only")
+    execution_splits = collection.get("execution_splits")
+    if (
+        not isinstance(execution_splits, list)
+        or len(execution_splits) != 1
+        or execution_splits[0] not in {"train", "calibration"}
+    ):
+        raise ValueError("corpus preflight accepts one train or calibration split")
+    execution_split = execution_splits[0]
     if (
         collection.get("sample_every_ticks") != 5
         or float(collection.get("native_dt_s", -1.0)) != 0.1
@@ -474,13 +517,16 @@ def validate_corpus_preflight(
 
     for name in (
         "holdout_execution_authorized",
-        "calibration_execution_authorized",
         "formal_seeds_authorized",
         "full36_authorized",
         "claim_authorized",
     ):
         if config.get(name) is not False:
-            raise ValueError(f"{name} must be false in train preflight")
+            raise ValueError(f"{name} must be false in corpus preflight")
+    if config.get("calibration_execution_authorized") is not (
+        execution_split == "calibration"
+    ):
+        raise ValueError("calibration authorization differs from execution split")
 
     splits = _mapping(manifest, "splits")
     route_counts = {
@@ -503,19 +549,23 @@ def validate_corpus_preflight(
     if all_seeds.intersection(FORMAL_SEEDS):
         raise ValueError("formal seed is forbidden")
 
-    train_runs = route_counts["train"] * seed_counts["train"]
-    if train_runs != collection.get("expected_train_route_seed_runs"):
-        raise ValueError("train route-seed run count mismatch")
+    route_seed_runs = route_counts[execution_split] * seed_counts[execution_split]
+    if route_seed_runs != collection.get(
+        f"expected_{execution_split}_route_seed_runs"
+    ):
+        raise ValueError(f"{execution_split} route-seed run count mismatch")
     snapshots_per_run = (
         (int(collection["max_steps"]) - 1)
         // int(collection["sample_every_ticks"])
         + 1
     )
-    theoretical_max = train_runs * snapshots_per_run
-    if theoretical_max != collection.get("theoretical_max_train_snapshots"):
-        raise ValueError("theoretical train snapshot ceiling mismatch")
+    theoretical_max = route_seed_runs * snapshots_per_run
+    if theoretical_max != collection.get(
+        f"theoretical_max_{execution_split}_snapshots"
+    ):
+        raise ValueError(f"theoretical {execution_split} snapshot ceiling mismatch")
 
-    for route in _mapping(splits, "train").get("routes", []):
+    for route in _mapping(splits, execution_split).get("routes", []):
         asset = _mapping(route, "route_asset")
         path = Path(str(asset.get("path", "")))
         if not path.is_file() or _file_sha256(path) != asset.get("sha256"):
@@ -525,16 +575,23 @@ def validate_corpus_preflight(
     if levels != [5000, 10000, 20000, 50000]:
         raise ValueError("learning curve levels mismatch")
     reachable = [level for level in levels if level <= theoretical_max]
-    return {
+    summary = {
         "schema_version": "camp_dp_v22_native_corpus_preflight_summary_v1",
         "status": (
-            "passed" if reachable else "passed_with_sub_5k_training_ceiling"
+            "passed"
+            if reachable
+            else (
+                "passed_with_sub_5k_training_ceiling"
+                if execution_split == "train"
+                else "passed_with_sub_5k_calibration_ceiling"
+            )
         ),
         "route_counts": route_counts,
         "seed_counts": seed_counts,
-        "train_route_seed_runs": train_runs,
+        "execution_split": execution_split,
+        "route_seed_runs": route_seed_runs,
         "snapshots_per_complete_run": snapshots_per_run,
-        "theoretical_max_train_snapshots": theoretical_max,
+        "theoretical_max_snapshots": theoretical_max,
         "reachable_learning_curve_levels": reachable,
         "run_all_available_snapshots": not reachable,
         "behavior_policy": collection["behavior_policy"],
@@ -545,8 +602,12 @@ def validate_corpus_preflight(
         "holdout_executed": False,
         "holdout_outcomes_read": False,
         "claim_authorized": False,
-        "next_work_target": "v22_native_train_corpus_execution_only",
+        "next_work_target": f"v22_native_{execution_split}_corpus_execution_only",
     }
+    if execution_split == "train":
+        summary["train_route_seed_runs"] = route_seed_runs
+        summary["theoretical_max_train_snapshots"] = theoretical_max
+    return summary
 
 
 def run_static_preflight(config_path: Path) -> dict[str, Any]:
@@ -566,15 +627,19 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
     verified_assets = verify_config_assets(base_config)
 
     summary = validate_corpus_preflight(config, manifest)
-    train = _mapping(_mapping(manifest, "splits"), "train")
-    routes = sorted(train.get("routes", []), key=lambda item: item["identity_sha256"])
-    seeds = sorted(int(value) for value in train.get("seed_namespace", []))
+    execution_split = str(summary["execution_split"])
+    selected = _mapping(_mapping(manifest, "splits"), execution_split)
+    routes = sorted(
+        selected.get("routes", []), key=lambda item: item["identity_sha256"]
+    )
+    seeds = sorted(int(value) for value in selected.get("seed_namespace", []))
     run_configs = [
         build_corpus_run_config(
             base_config,
             route,
             seed=seed,
             max_steps=int(_mapping(config, "collection")["max_steps"]),
+            split=execution_split,
         )
         for route in routes
         for seed in seeds
@@ -589,16 +654,18 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
             "runner_factory": build_native_arm_runner.__name__,
             "validated_run_config_count": len(run_configs),
             "execution_arm": "camp",
-            "execute_train_mode_available": True,
+            f"execute_{execution_split}_mode_available": True,
         }
     )
     return summary
 
 
-def execute_train_corpus(
-    config_path: Path, output_dir: Path, *, device: str
+def execute_corpus(
+    config_path: Path, output_dir: Path, *, device: str, split: str
 ) -> dict[str, Any]:
-    run_static_preflight(config_path)
+    preflight = run_static_preflight(config_path)
+    if preflight["execution_split"] != split:
+        raise ValueError("requested CLI split differs from corpus config")
     config = json.loads(config_path.read_text(encoding="utf-8"))
     source = _mapping(config, "source_split")
     manifest = json.loads(
@@ -608,24 +675,51 @@ def execute_train_corpus(
     base_config = json.loads(
         Path(str(base["path"])).read_text(encoding="utf-8")
     )
-    train = _mapping(_mapping(manifest, "splits"), "train")
-    routes = sorted(train.get("routes", []), key=lambda item: item["identity_sha256"])
-    seeds = sorted(int(value) for value in train.get("seed_namespace", []))
+    selected = _mapping(_mapping(manifest, "splits"), split)
+    routes = sorted(
+        selected.get("routes", []), key=lambda item: item["identity_sha256"]
+    )
+    seeds = sorted(int(value) for value in selected.get("seed_namespace", []))
     if not routes or not seeds:
-        raise ValueError("frozen train split must contain routes and seeds")
+        raise ValueError(f"frozen {split} split must contain routes and seeds")
     first_config = build_corpus_run_config(
         base_config,
         routes[0],
         seed=seeds[0],
         max_steps=int(_mapping(config, "collection")["max_steps"]),
+        split=split,
     )
     run_arm = build_native_arm_runner(first_config, device=device)
-    return execute_train_manifest(
+    return execute_manifest_split(
         config,
         manifest,
         base_config,
+        split=split,
         output_dir=output_dir,
         run_arm=run_arm,
+    )
+
+
+def execute_train_corpus(
+    config_path: Path, output_dir: Path, *, device: str
+) -> dict[str, Any]:
+    summary = execute_corpus(
+        config_path, output_dir, device=device, split="train"
+    )
+    summary["theoretical_max_train_snapshots"] = summary[
+        "theoretical_max_snapshots"
+    ]
+    (Path(output_dir) / "corpus_summary.json").write_bytes(
+        _canonical_json_bytes(summary)
+    )
+    return summary
+
+
+def execute_calibration_corpus(
+    config_path: Path, output_dir: Path, *, device: str
+) -> dict[str, Any]:
+    return execute_corpus(
+        config_path, output_dir, device=device, split="calibration"
     )
 
 
@@ -670,19 +764,26 @@ def main() -> int:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument(
         "--mode",
-        choices=("static-preflight", "execute-train"),
+        choices=("static-preflight", "execute-train", "execute-calibration"),
         default="static-preflight",
     )
     parser.add_argument("--output", type=Path)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     args = parser.parse_args()
-    if args.mode == "execute-train":
+    if args.mode in {"execute-train", "execute-calibration"}:
         if args.output is None:
-            parser.error("--output is required for execute-train")
-        summary = execute_train_corpus(args.config, args.output, device=args.device)
+            parser.error("--output is required for corpus execution")
+        if args.mode == "execute-train":
+            summary = execute_train_corpus(
+                args.config, args.output, device=args.device
+            )
+        else:
+            summary = execute_calibration_corpus(
+                args.config, args.output, device=args.device
+            )
     else:
         if args.output is not None:
-            parser.error("--output is only valid for execute-train")
+            parser.error("--output is only valid for corpus execution")
         summary = run_static_preflight(args.config)
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0

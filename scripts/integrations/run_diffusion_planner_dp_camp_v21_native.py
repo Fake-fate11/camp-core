@@ -885,12 +885,19 @@ def validate_v22_corpus_run_config(config: Mapping[str, Any]) -> None:
         raise ValueError("critical v22 corpus SpawnConfig value mismatch")
 
     protocol = _mapping(config, "protocol")
+    route_role = protocol.get("route_role")
+    corpus_split = {
+        "train_corpus_collection": "train",
+        "calibration_corpus_collection": "calibration",
+    }.get(route_role)
     if (
         protocol.get("corpus_steps") != 64
         or protocol.get("sample_every_ticks") != 5
         or protocol.get("safety_schema") != "safety_cost_native_v22"
-        or protocol.get("route_role") != "train_corpus_collection"
-        or protocol.get("training_authorized") is not True
+        or corpus_split is None
+        or protocol.get("training_authorized") is not (corpus_split == "train")
+        or protocol.get("calibration_authorized")
+        is not (corpus_split == "calibration")
         or protocol.get("holdout_access_authorized") is not False
         or protocol.get("formal_seeds_authorized") is not False
         or protocol.get("claim_authorized") is not False
