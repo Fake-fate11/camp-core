@@ -351,6 +351,16 @@ def test_v22_decision_sink_samples_every_five_ticks_after_immutability() -> None
         assert np.asarray(snapshot["feature_payload"]["atom_matrix"]).shape == (8, 14)
         assert snapshot["feature_payload"]["source_valid_mask"] == [True] * 8
         assert len(snapshot["feature_payload"]["candidate_row_sha256"]) == 8
+        candidate0_sha = snapshot["feature_payload"]["candidate_row_sha256"][0]
+        assert snapshot["sidecar"]["default_output_sha256"] == candidate0_sha
+        assert snapshot["sidecar"]["candidate0_sha256"] == candidate0_sha
+        assert snapshot["sidecar"]["default_candidate0_identity"] == {
+            "elementwise_equal": True,
+            "max_abs_difference": 0.0,
+            "default_output_sha256": candidate0_sha,
+            "candidate0_sha256": candidate0_sha,
+            "native_ranked_k8": False,
+        }
         assert snapshot["sidecar"]["candidate_tensor_sha256_before"] == snapshot[
             "sidecar"
         ]["candidate_tensor_sha256_after"]

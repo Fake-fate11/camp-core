@@ -206,18 +206,28 @@ def test_corpus_script_has_no_parallel_native_replay_loop() -> None:
 
 
 def _snapshot() -> dict:
+    candidate_sha = [_sha(f"row:{index}") for index in range(8)]
     return {
         "schema_version": "v22_native_decision_snapshot_v1",
         "feature_payload": {
             "atom_matrix": np.ones((8, 14), dtype=np.float64).tolist(),
             "source_valid_mask": [True] * 8,
-            "candidate_row_sha256": [_sha(f"row:{index}") for index in range(8)],
+            "candidate_row_sha256": candidate_sha,
         },
         "sidecar": {
             "tick_index": 5,
             "candidate_tensor_sha256_before": _sha("tensor"),
             "candidate_tensor_sha256_after": _sha("tensor"),
             "causal_input_sha256": _sha("causal"),
+            "default_output_sha256": candidate_sha[0],
+            "candidate0_sha256": candidate_sha[0],
+            "default_candidate0_identity": {
+                "elementwise_equal": True,
+                "max_abs_difference": 0.0,
+                "default_output_sha256": candidate_sha[0],
+                "candidate0_sha256": candidate_sha[0],
+                "native_ranked_k8": False,
+            },
             "physical_feasible_mask": [False] * 8,
             "all_k_high_risk": True,
             "offline_label_provenance": (
@@ -275,6 +285,36 @@ def test_writer_rejects_holdout_or_candidate_tensor_mismatch(tmp_path: Path) -> 
     snapshot = _snapshot()
     snapshot["sidecar"]["candidate_tensor_sha256_after"] = _sha("mutated")
     with pytest.raises(ValueError, match="candidate tensor SHA256"):
+        writer(snapshot)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("default_output", "candidate0", "identity", "candidate_row0"),
+)
+def test_writer_rejects_missing_or_mismatched_default_candidate0_identity(
+    tmp_path: Path, mutation: str
+) -> None:
+    module = _module()
+    writer = module.CorpusSnapshotWriter(
+        output_dir=tmp_path,
+        split="train",
+        logical_map_sha256=_sha("map"),
+        route_identity_sha256=_sha("route"),
+        group_sha256=_sha("group"),
+        seed=22001,
+    )
+    snapshot = _snapshot()
+    if mutation == "default_output":
+        del snapshot["sidecar"]["default_output_sha256"]
+    elif mutation == "candidate0":
+        snapshot["sidecar"]["candidate0_sha256"] = _sha("drifted")
+    elif mutation == "identity":
+        snapshot["sidecar"]["default_candidate0_identity"]["elementwise_equal"] = False
+    else:
+        snapshot["feature_payload"]["candidate_row_sha256"][0] = _sha("drifted")
+
+    with pytest.raises(ValueError, match="operational default/candidate 0 identity"):
         writer(snapshot)
 
 

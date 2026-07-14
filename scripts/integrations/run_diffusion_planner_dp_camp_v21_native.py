@@ -470,6 +470,9 @@ class NativeCampPredictBatch:
                 source_valid = np.asarray(
                     receipt["source_valid_mask"], dtype=bool
                 )
+                candidate_row_sha256 = [
+                    array_sha256(candidate_tensor[index]) for index in range(8)
+                ]
                 if atom_matrix.shape != (8, 14) or not np.isfinite(atom_matrix).all():
                     raise ValueError("decision snapshot atom matrix must be finite [8,14]")
                 if source_valid.shape != (8,):
@@ -479,14 +482,18 @@ class NativeCampPredictBatch:
                     "feature_payload": {
                         "atom_matrix": atom_matrix.tolist(),
                         "source_valid_mask": source_valid.tolist(),
-                        "candidate_row_sha256": [
-                            array_sha256(candidate_tensor[index])
-                            for index in range(8)
-                        ],
+                        "candidate_row_sha256": candidate_row_sha256,
                     },
                     "sidecar": {
                         "tick_index": tick_index,
                         "route_sha256": self.route_sha256,
+                        "default_output_sha256": str(
+                            receipt["default_output_sha256"]
+                        ),
+                        "candidate0_sha256": candidate_row_sha256[0],
+                        "default_candidate0_identity": dict(
+                            _mapping(receipt, "default_candidate0_identity")
+                        ),
                         "candidate_tensor_sha256_before": before_sha,
                         "candidate_tensor_sha256_after": str(
                             receipt["candidate_tensor_sha256_after"]

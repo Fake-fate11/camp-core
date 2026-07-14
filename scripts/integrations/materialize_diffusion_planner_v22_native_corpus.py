@@ -123,6 +123,28 @@ class CorpusSnapshotWriter:
         after = sidecar.get("candidate_tensor_sha256_after")
         if not _is_sha256(before) or before != after:
             raise ValueError("candidate tensor SHA256 mismatch")
+        default_sha = sidecar.get("default_output_sha256")
+        candidate0_sha = sidecar.get("candidate0_sha256")
+        identity = sidecar.get("default_candidate0_identity")
+        max_difference = (
+            identity.get("max_abs_difference")
+            if isinstance(identity, Mapping)
+            else None
+        )
+        if (
+            not _is_sha256(default_sha)
+            or candidate0_sha != default_sha
+            or row_sha[0] != default_sha
+            or not isinstance(identity, Mapping)
+            or identity.get("elementwise_equal") is not True
+            or isinstance(max_difference, bool)
+            or not isinstance(max_difference, (int, float))
+            or float(max_difference) != 0.0
+            or identity.get("default_output_sha256") != default_sha
+            or identity.get("candidate0_sha256") != default_sha
+            or identity.get("native_ranked_k8") is not False
+        ):
+            raise ValueError("operational default/candidate 0 identity mismatch")
         if not _is_sha256(sidecar.get("causal_input_sha256")):
             raise ValueError("causal input SHA256 mismatch")
         physical = sidecar.get("physical_feasible_mask")
