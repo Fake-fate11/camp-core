@@ -279,6 +279,42 @@ def test_calibration_loader_accepts_only_sealed_causal_snapshot_contract(
     assert corpus["all_k_high_risk_snapshot_count"] == 0
 
 
+def test_calibration_loader_retains_partial_snapshots_from_failed_route_seed(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    artifact = _write_calibration_artifact(tmp_path / "artifact", _snapshot())
+    summary_path = artifact / "corpus" / "corpus_summary.json"
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    summary.update(
+        {
+            "complete_route_seed_runs": 0,
+            "failed_route_seed_runs": 1,
+            "failures": [
+                {
+                    "route_identity_sha256": _sha("route"),
+                    "seed": 22101,
+                    "failure_stage": "native_arm_execution",
+                    "failure_reason": "native safety metric source is incomplete",
+                }
+            ],
+        }
+    )
+    summary_path.write_text(
+        json.dumps(summary, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    config = _loader_config()
+    config["expected_complete_route_seed_count"] = 0
+    config["expected_hard_source_failure_count"] = 1
+
+    corpus = module.load_calibration_corpus(artifact, config=config)
+
+    assert corpus["retained_route_seed_count"] == 1
+    assert corpus["complete_route_seed_count"] == 0
+    assert corpus["hard_source_failure_count"] == 1
+
+
 @pytest.mark.parametrize(
     ("mutation", "match"),
     (

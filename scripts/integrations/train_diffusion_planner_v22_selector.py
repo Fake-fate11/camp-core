@@ -820,10 +820,11 @@ def load_calibration_corpus(
         all_k_high_risk += int(sidecar["all_k_high_risk"])
 
     complete = int(summary["complete_route_seed_runs"])
+    retained = int(summary["retained_route_seed_runs"])
     if (
         len(routes) != int(config["expected_route_count"])
         or len(seeds) != int(config["expected_seed_count"])
-        or len(route_seeds) != complete
+        or len(route_seeds) != retained
         or all_k_high_risk != int(summary["all_k_high_risk_snapshot_count"])
     ):
         raise ValueError("calibration route, seed, or stratum count mismatch")
@@ -837,7 +838,7 @@ def load_calibration_corpus(
         "route_family_group_count": len(groups),
         "seed_count": len(seeds),
         "complete_route_seed_count": complete,
-        "retained_route_seed_count": int(summary["retained_route_seed_runs"]),
+        "retained_route_seed_count": retained,
         "hard_source_failure_count": int(summary["failed_route_seed_runs"]),
         "all_k_high_risk_snapshot_count": all_k_high_risk,
         "route_coverage": float(summary["route_coverage"]),
