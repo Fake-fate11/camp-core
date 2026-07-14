@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_train_corpus_evidence_no_pass_candidate0_identity_receipt_fix_passed",
-    "current_v22_artifact_source_head=b5880e25816bfde2058746eca8b37c3d36461aa9",
-    "current_v22_prior_gate_final_synced_head=b5880e25816bfde2058746eca8b37c3d36461aa9",
+    "current_v22_status=v22_native_train_corpus_corrected_execution_and_independent_review_passed",
+    "current_v22_artifact_source_head=ac13fa415e4a59e7557504a506f6618468b7dc77",
+    "current_v22_prior_gate_final_synced_head=ac13fa415e4a59e7557504a506f6618468b7dc77",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_candidate0_identity_receipt_tdd_b5880e25_20260714T221217CST",
-    "current_v22_artifact_root_sha256=15c2444d73ef05742b88935e68d24fda946d9a40ee4974bf8417a17861996a6e",
-    "next_work_target=v22_native_train_corpus_corrected_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_train_corpus_corrected_independent_review_ac13fa41_20260714T224107CST",
+    "current_v22_artifact_root_sha256=cf3622d49f8933e16868618b9dd7eaa6736b07a3978af22a1d4463df5402ecd1",
+    "next_work_target=v22_train_only_offline_label_contract_and_tdd_only",
 )
 
 
@@ -184,5 +184,24 @@ def test_v22_records_first_corpus_as_execution_complete_but_evidence_no_pass() -
         "69 / 69",
         "corrected train-corpus rerun",
         "No calibration or holdout outcome was read",
+    ):
+        assert phrase in text
+
+
+def test_v22_records_corrected_corpus_and_full_independent_review() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "corrected train-only corpus execution",
+        "1026.6618002699688 s",
+        "32 / 32 route-seed runs",
+        "416 / 416 snapshots",
+        "a5ab6572eab37ecec6031e14a56755c71ef26b8ffd393d710ee32d40af8dfcb7",
+        "9,514 independent checks",
+        "416 / 416 DP operational default/candidate-0 identity receipts",
+        "cf3622d49f8933e16868618b9dd7eaa6736b07a3978af22a1d4463df5402ecd1",
+        "No 5k/10k/20k/50k learning-curve tier is reachable",
+        "all 416 available snapshots",
+        "No calibration or holdout route/outcome was executed or read",
+        "v22_train_only_offline_label_contract_and_tdd_only",
     ):
         assert phrase in text
