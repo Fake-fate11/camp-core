@@ -441,13 +441,69 @@ trajectory evidence, training, holdout access, formal seed, claim, promotion,
 deployment, activation, new dependency, or DP modification occurred. The next
 work is Task 3 SafetyCost Native v1 pure reducers TDD only.
 
+## Task 3: SafetyCost Native v1 Pure Reducers
+
+Status: passed.
+
+Task 2 evidence was committed, pushed, and fast-forwarded on AutoDL at
+`467004f685fe7f3da8d5fea62ad63360993ebb08`. Task 3 followed the frozen
+red/green order: the red test exposed only the missing reducer helpers. The
+minimum pure NumPy implementation and tests were added at source HEAD
+`ba527d439188617f729a3951038524108d1b2024`.
+
+The reducers now freeze:
+
+- collision at realized OBB clearance `<=1e-6 m` and noncollision near miss
+  only in `(1e-6 m, 2.0 m]`, with collision ticks excluded from the near-miss
+  numerator;
+- the explicitly named center-plus-four-corners five-point drivable proxy via
+  an injected native point-inside callback, with no polygon-union claim and no
+  Shapely dependency;
+- moving/on-road wrong-way using the same five-point coverage result, speed
+  `>0.5 m/s`, and a wrapped heading comparison;
+- inclusive 2D segment intersection for front-center red stop-line crossing,
+  requiring red state at interval start and speed `>0.5 m/s`;
+- exact on-road nearest-route-lane speed source and the strict
+  `speed > speed_limit_mps + 1e-6` threshold;
+- all raw counts, denominators, event ticks, minimum clearance, maximum speed
+  excess, the exact frozen SafetyCost formula, and fail-closed missing-source
+  or zero-denominator behavior;
+- route/comfort summaries at 0.1 s, an explicitly diagnostic constant-velocity
+  circle TTC that makes no observed-future claim, and paired CAMP-minus-DP
+  better/tie/worse plus mean/median deltas.
+
+There is no second independent `on_road` source: wrong-way and speed-limit
+denominators use the exact five-point coverage result. Local target plus
+adjacent v19 evidence tests report `49 passed`; AutoDL pure-runtime target and
+Task 1/2/v19-worker regressions report `46 passed`. `py_compile` and
+`git diff --check` passed. AutoDL CAMP and DP were tracked-clean, and no
+related run was active.
+
+Immutable Task 3 artifact:
+
+- path:
+  `/root/autodl-tmp/camp_dp_v21_native_task3_safety_reducers_ba527d43_20260714T162656CST`;
+- root SHA256:
+  `b1cf4a8c7ff6ae21805a520a29d172b60be2e73c135967353ac775cf998d9814`;
+- stdout SHA256:
+  `bfc80f91be0c90c0f2a426fe601667c39689e2fdf46b6934805f3b2ce8a1124a`;
+- `run.exit=0`, empty stderr, all nine payload hashes independently
+  reverified, directory mode 555 and every file mode 444.
+
+The artifact contains heads, exact command, stdout/stderr, source/test,
+JSON/Markdown review, SHA256SUMS, and root SHA. No Shapely, fixed model load or
+inference, native simulator run, candidate trajectory evidence, training,
+holdout access, formal seed, claim, promotion, deployment, activation, new
+dependency, or DP modification occurred. The next work is Task 4 paired runner
+and frozen smoke config TDD only.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_simulator_task2_native_hook_and_immutable_selection_passed
-current_v21_artifact_source_head=4364c149f09203f2a6558155ebb8d6cbb652628b
-current_v21_prior_gate_final_synced_head=1e2f750e38cdc957f25ab9bc1c35abd3860a0253
+current_v21_status=v21_native_simulator_task3_safetycost_native_v1_reducers_passed
+current_v21_artifact_source_head=ba527d439188617f729a3951038524108d1b2024
+current_v21_prior_gate_final_synced_head=467004f685fe7f3da8d5fea62ad63360993ebb08
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task2_replay_hook_4364c149_20260714T161856CST
-current_v21_artifact_root_sha256=d86d38433a99e13f6429c9498833b85739a4831ea8f340334f9f15be301dba41
-next_work_target=v21_native_simulator_task3_safetycost_native_v1_reducers_tdd_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_task3_safety_reducers_ba527d43_20260714T162656CST
+current_v21_artifact_root_sha256=b1cf4a8c7ff6ae21805a520a29d172b60be2e73c135967353ac775cf998d9814
+next_work_target=v21_native_simulator_task4_paired_runner_and_frozen_smoke_config_tdd_only
