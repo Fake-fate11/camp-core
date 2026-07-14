@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_calibration_provenance_remediation_tdd_passed",
-    "current_v22_artifact_source_head=810f050bded6b6e4a77008fde98887b15482e870",
-    "current_v22_prior_gate_final_synced_head=810f050bded6b6e4a77008fde98887b15482e870",
+    "current_v22_status=v22_corrected_native_calibration_corpus_execution_preflight_passed",
+    "current_v22_artifact_source_head=7d36c199496949f205b0f1f5e572297f9c54bacc",
+    "current_v22_prior_gate_final_synced_head=7d36c199496949f205b0f1f5e572297f9c54bacc",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_provenance_remediation_tdd_810f050b_20260715T010014CST",
-    "current_v22_artifact_root_sha256=9d4cb7820956bfc0ef828612a7ae6e920ec69d6617f8b1ec1c8db08bcb94219b",
-    "next_work_target=v22_corrected_native_calibration_corpus_execution_preflight_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_preflight_7d36c199_20260715T010211CST",
+    "current_v22_artifact_root_sha256=390d5627abbf8974873b1bc761739d97294f55320b9c256114a8b4a129cc7a5a",
+    "next_work_target=v22_corrected_native_calibration_corpus_execution_only",
 )
 
 

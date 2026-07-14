@@ -1260,11 +1260,43 @@ frozen 30 routes and 3 seeds. It must verify all upstream roots, exact output
 absence, process guard, 90 configs, and the provenance contract before any
 simulator starts.
 
-current_v22_status=v22_calibration_provenance_remediation_tdd_passed
-current_v22_artifact_source_head=810f050bded6b6e4a77008fde98887b15482e870
-current_v22_prior_gate_final_synced_head=810f050bded6b6e4a77008fde98887b15482e870
+Its exact target was
+`v22_corrected_native_calibration_corpus_execution_preflight_only`.
+
+## Corrected Native Calibration Corpus Execution Preflight
+
+Status: passed; exactly one corrected rerun is authorized.
+
+At CAMP HEAD `7d36c199496949f205b0f1f5e572297f9c54bacc`, the
+read-only AutoDL preflight rehashed the first execution root
+`a2304f73892b13f952850a41e300f00710b2f11b2017948776f06f80d2b338e4`,
+the corrected no-pass review root
+`f2e97e3c85886275d29c06775d0632ae9bc7efc05d0c8c2e67a5517fb9723866`,
+and remediation TDD root
+`9d4cb7820956bfc0ef828612a7ae6e920ec69d6617f8b1ec1c8db08bcb94219b`.
+All nested SHA manifests passed.
+
+Static validation again produced exactly 90 run configs from the unchanged 30
+calibration routes and 3 non-formal seeds, with a 1,170 snapshot ceiling. The
+tracked provenance is exactly
+`calibration_causal_candidate_cost_sidecar_only_not_selector_feature`.
+Pointer/corpus tests passed; no related execution process was active. Planned
+corrected output
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_7d36c199`
+was absent and `50,324,267,008` bytes were free.
+
+The immutable preflight artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_preflight_7d36c199_20260715T010211CST`
+/ `390d5627abbf8974873b1bc761739d97294f55320b9c256114a8b4a129cc7a5a`,
+with exit 0. It built no runner, loaded no model, executed no simulator, and
+read no holdout outcome. The next gate may run the same frozen 90 attempts
+exactly once and must retain any source/execution failure without replacement.
+
+current_v22_status=v22_corrected_native_calibration_corpus_execution_preflight_passed
+current_v22_artifact_source_head=7d36c199496949f205b0f1f5e572297f9c54bacc
+current_v22_prior_gate_final_synced_head=7d36c199496949f205b0f1f5e572297f9c54bacc
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_calibration_provenance_remediation_tdd_810f050b_20260715T010014CST
-current_v22_artifact_root_sha256=9d4cb7820956bfc0ef828612a7ae6e920ec69d6617f8b1ec1c8db08bcb94219b
-next_work_target=v22_corrected_native_calibration_corpus_execution_preflight_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_preflight_7d36c199_20260715T010211CST
+current_v22_artifact_root_sha256=390d5627abbf8974873b1bc761739d97294f55320b9c256114a8b4a129cc7a5a
+next_work_target=v22_corrected_native_calibration_corpus_execution_only
