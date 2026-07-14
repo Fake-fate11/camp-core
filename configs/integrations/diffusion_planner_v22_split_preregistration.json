@@ -1,0 +1,75 @@
+{
+  "schema_version": "v22_split_preregistration_v1",
+  "fixed_dp_repo": "/root/autodl-tmp/Diffusion-Planner",
+  "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+  "maps": [
+    {
+      "name": "nishishinjuku",
+      "path": "/root/autodl-tmp/camp_dp_assets/nishishinjuku_autoware_map/nishishinjuku_autoware_map/lanelet2_map_no_ros.osm",
+      "sha256": "95360eeff9945b0512788412485fbf400c249292112e9590488f0d6eb9d99736",
+      "expected_route_count": 759
+    },
+    {
+      "name": "sample_map",
+      "path": "/root/autodl-tmp/camp_dp_assets/sample-map-planning/sample-map-planning/lanelet2_map_no_ros.osm",
+      "sha256": "a81f937c00158324c83688adc5459e90478f5b3c69a51225ad7f965b80d58036",
+      "expected_route_count": 156
+    }
+  ],
+  "observed_v21_routes": [
+    {
+      "logical_map_name": "sample_map",
+      "path": "/root/autodl-tmp/camp_dp_assets/sample_map_smoke_route.pkl",
+      "sha256": "b8b5417c3269bbdbe72efe49388d32af04751b25cffcec297a04b25a50140c13"
+    },
+    {
+      "logical_map_name": "sample_map",
+      "path": "/root/autodl-tmp/camp_dp_assets/sample_map_tl_route_59_to_86.pkl",
+      "sha256": "dc9b3906bace09ee9e99062ac702df1c5b2d2f4620d0a7fa14022faa9a39e4c4"
+    }
+  ],
+  "route_enumeration": {
+    "min_route_length_m": 80.0,
+    "max_route_length_m": 120.0,
+    "max_hops": 100,
+    "tight_corridor_width_m": 3.5,
+    "short_progress_opportunity_m": 100.0
+  },
+  "leakage_thresholds": {
+    "sample_spacing_m": 1.0,
+    "overlap_distance_m": 3.0,
+    "min_overlap_samples": 20,
+    "max_heading_delta_deg": 15.0
+  },
+  "targets": {
+    "train": 500,
+    "calibration": 30,
+    "holdout": 100
+  },
+  "seed_namespaces": {
+    "train": [22001, 22002, 22003, 22004, 22005, 22006, 22007, 22008],
+    "calibration": [22101, 22102, 22103],
+    "holdout": [22201, 22202, 22203, 22204, 22205]
+  },
+  "selector_feature_fields": [
+    "jerk_early",
+    "jerk_late",
+    "jerk_full",
+    "rms_acceleration",
+    "speed_limit_margin_0_0",
+    "speed_limit_margin_0_5",
+    "speed_limit_margin_1_0",
+    "lane_deviation",
+    "clearance",
+    "progress_shortfall",
+    "planned_red_light_cost",
+    "planned_lateral_acceleration_cost",
+    "red_stopping_margin_cost",
+    "dp_prior_jerk_excess_cost"
+  ],
+  "expected_source_route_count": 915,
+  "materialize_route_assets": true,
+  "outcome_fields": [],
+  "full36_authorized": false,
+  "claim_authorized": false
+}
