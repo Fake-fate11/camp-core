@@ -6,12 +6,12 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_native_larger_paired_closed_loop_startup_reconciled",
-    "current_v22_artifact_source_head=0a9b19b4f3993460a1a28d28e25211ac7087997b",
-    "camp_github_autodl_head=0a9b19b4f3993460a1a28d28e25211ac7087997b",
+    "current_v22_status=v22_native_larger_paired_closed_loop_startup_reconciliation_passed",
+    "current_v22_artifact_source_head=cba4327989335fbcd522b7717b151fdaa2788c45",
+    "camp_github_autodl_head=cba4327989335fbcd522b7717b151fdaa2788c45",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=pending_gate_0_evidence_package",
-    "current_v22_artifact_root_sha256=pending_gate_0_evidence_package",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_startup_reconciliation_rerun_cba43279_20260714T185046CST",
+    "current_v22_artifact_root_sha256=7dfda9dbae23156f31c55a404bf162fa1c951454a8be67f1b7faf579b0b976e6",
     "next_work_target=v22_native_contract_capability_audit_only",
 )
 
