@@ -160,23 +160,34 @@ def _select(**kwargs):
     return select_camp_candidate(**kwargs)
 
 
-def _hook(module, model, *, materialize=_materialize):
+def _hook(
+    module,
+    model,
+    *,
+    materialize=_materialize,
+    selection_policy: str | None = None,
+):
     state = module.NativeHookState()
-    hook = module.NativeCampPredictBatch(
-        state=state,
-        to_model_tensors=_to_model_tensors,
-        dump_step_npz=_dump_step_npz,
-        materialize=materialize,
-        select_candidate=_select,
-        signal_mask=lambda candidates, causal_input, scene: np.ones(8, dtype=bool),
-        planned_red_cost=lambda candidates, causal_input, scene: np.zeros(
+    kwargs = {
+        "state": state,
+        "to_model_tensors": _to_model_tensors,
+        "dump_step_npz": _dump_step_npz,
+        "materialize": materialize,
+        "select_candidate": _select,
+        "signal_mask": lambda candidates, causal_input, scene: np.ones(
+            8, dtype=bool
+        ),
+        "planned_red_cost": lambda candidates, causal_input, scene: np.zeros(
             8, dtype=np.float64
         ),
-        atom_scales=np.ones(14, dtype=np.float64),
-        weights=np.eye(1, 14, dtype=np.float64).reshape(14),
-        candidate_seed_root=3418,
-        route_sha256="ab" * 32,
-    )
+        "atom_scales": np.ones(14, dtype=np.float64),
+        "weights": np.eye(1, 14, dtype=np.float64).reshape(14),
+        "candidate_seed_root": 3418,
+        "route_sha256": "ab" * 32,
+    }
+    if selection_policy is not None:
+        kwargs["selection_policy"] = selection_policy
+    hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
 
 
@@ -264,6 +275,47 @@ def test_hook_fails_closed_without_candidate0_fallback(failure: str) -> None:
     assert state.receipts[-1]["source_complete_mask"] == [True] * 8
     assert state.receipts[-1]["candidate_reasons"] == [[] for _ in range(8)]
     assert "selector_diagnostics=" in state.receipts[-1]["failure_reason"]
+
+
+def test_v22_hook_selects_all_k_high_risk_without_fallback() -> None:
+    module = _runner()
+    model = _FakeModel()
+
+    def all_k_high_risk(**kwargs):
+        result = _materialize(**kwargs)
+        result["source_valid_mask"] = np.ones(8, dtype=bool)
+        result["physical_feasible_mask"] = np.zeros(8, dtype=bool)
+        result["all_k_high_risk"] = True
+        return result
+
+    hook, state = _hook(
+        module,
+        model,
+        materialize=all_k_high_risk,
+        selection_policy="v22_source_valid",
+    )
+    predictions = hook(
+        model,
+        SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+        _Scene(),
+        ["ego"],
+        "cpu",
+    )
+
+    receipt = state.receipts[-1]
+    assert receipt["status"] == "ok"
+    assert receipt["selected_index"] == 3
+    assert receipt["selected_index"] != 0
+    assert receipt["selection_policy"] == "v22_source_valid"
+    assert receipt["all_k_high_risk"] is True
+    assert receipt["source_valid_mask"] == [True] * 8
+    assert receipt["physical_feasible_mask"] == [False] * 8
+    assert receipt["candidate_tensor_sha256_before"] == receipt[
+        "candidate_tensor_sha256_after"
+    ]
+    assert receipt["selected_trajectory_sha256"] == module.array_sha256(
+        predictions["ego"]
+    )
 
 
 def test_hook_detects_candidate_mutation() -> None:

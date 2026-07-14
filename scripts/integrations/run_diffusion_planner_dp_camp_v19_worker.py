@@ -327,6 +327,7 @@ def select_camp_candidate(
     materialized: Mapping[str, Any],
     atom_scales: np.ndarray,
     weights: np.ndarray,
+    eligibility_mask_name: str = "physical_feasible_mask",
 ) -> dict[str, object]:
     trajectories = np.asarray(candidates)
     if trajectories.shape != (8, 80, 4) or trajectories.dtype != np.float32:
@@ -349,10 +350,25 @@ def select_camp_candidate(
     ):
         raise ValueError("weights must be a nonnegative simplex [14]")
 
+    if eligibility_mask_name not in {
+        "physical_feasible_mask",
+        "source_valid_mask",
+    }:
+        raise ValueError("unknown eligibility mask")
     before = array_sha256(trajectories)
-    feasible = np.asarray(materialized["physical_feasible_mask"], dtype=bool)
-    if feasible.shape != (8,):
+    physical = np.asarray(materialized["physical_feasible_mask"], dtype=bool)
+    if physical.shape != (8,):
         raise ValueError("physical feasible mask must have shape [8]")
+    source_valid = np.asarray(
+        materialized.get("source_valid_mask", physical), dtype=bool
+    )
+    if source_valid.shape != (8,):
+        raise ValueError("source valid mask must have shape [8]")
+    eligible = (
+        physical
+        if eligibility_mask_name == "physical_feasible_mask"
+        else source_valid
+    )
     reasons = [list(value) for value in materialized["candidate_reasons"]]
     if len(reasons) != 8:
         raise ValueError("candidate reasons must contain all K records")
@@ -360,17 +376,24 @@ def select_camp_candidate(
         "candidate_sha256_before": before,
         "candidate_sha256_after": array_sha256(trajectories),
         "candidate_reasons": reasons,
-        "physical_feasible_mask": feasible.copy(),
+        "physical_feasible_mask": physical.copy(),
+        "source_valid_mask": source_valid.copy(),
+        "all_k_high_risk": bool(source_valid.all() and not physical.any()),
+        "eligibility_mask_name": eligibility_mask_name,
         "score_contract": "score_k(w)=a_k^T w",
         "native_ranked_top1": False,
     }
-    if not bool(materialized.get("canonical_eligible")) or not feasible.any():
+    if not bool(materialized.get("canonical_eligible")) or not eligible.any():
         return {
             **common,
             "status": "failed",
             "failure_reason": str(
                 materialized.get("exclusion_reason")
-                or "all_candidates_physically_infeasible"
+                or (
+                    "all_candidates_physically_infeasible"
+                    if eligibility_mask_name == "physical_feasible_mask"
+                    else "all_candidates_source_invalid"
+                )
             ),
         }
 
@@ -378,7 +401,7 @@ def select_camp_candidate(
     if atoms.shape != (8, 14) or not np.isfinite(atoms).all():
         raise ValueError("canonical atom matrix must be finite [8,14]")
     scores = (atoms / scales[None, :]) @ coefficients
-    masked_scores = np.where(feasible, scores, np.inf)
+    masked_scores = np.where(eligible, scores, np.inf)
     selected = int(np.argmin(masked_scores))
     after = array_sha256(trajectories)
     if after != before:

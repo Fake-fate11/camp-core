@@ -127,6 +127,11 @@ _ROUTE_SHA256 = {
     ),
 }
 _SHA256_HEX = frozenset("0123456789abcdef")
+V21_PHYSICAL_SELECTION = "v21_physical"
+V22_SOURCE_VALID_SELECTION = "v22_source_valid"
+_SELECTION_POLICIES = frozenset(
+    {V21_PHYSICAL_SELECTION, V22_SOURCE_VALID_SELECTION}
+)
 
 
 @dataclass
@@ -153,6 +158,7 @@ class NativeCampPredictBatch:
         candidate_seed_root: int,
         route_sha256: str,
         pre_safety: Callable[[dict[str, Any], Any], None] | None = None,
+        selection_policy: str = V21_PHYSICAL_SELECTION,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -166,6 +172,9 @@ class NativeCampPredictBatch:
         self.candidate_seed_root = candidate_seed_root
         self.route_sha256 = route_sha256
         self.pre_safety = pre_safety
+        if selection_policy not in _SELECTION_POLICIES:
+            raise ValueError("unknown selection policy")
+        self.selection_policy = selection_policy
         if self.atom_scales.shape != (14,) or self.weights.shape != (14,):
             raise ValueError("atom scales and weights must each have shape [14]")
 
@@ -188,6 +197,7 @@ class NativeCampPredictBatch:
             "tick_index": tick_index,
             "status": "running",
             "native_ranked_k8": False,
+            "selection_policy": self.selection_policy,
             "_planning_started_ns": started_ns,
             "latency_ms": {},
         }
@@ -326,6 +336,7 @@ class NativeCampPredictBatch:
                 signal_mask=signals,
                 planned_red_light_cost=red_cost,
                 dt=float(scene.dt),
+                eligibility_policy=self.selection_policy,
             )
             receipt["latency_ms"]["atom_materialization"] = _elapsed_ms(
                 atom_started
@@ -341,6 +352,11 @@ class NativeCampPredictBatch:
                 materialized=materialized,
                 atom_scales=self.atom_scales,
                 weights=self.weights,
+                eligibility_mask_name=(
+                    "source_valid_mask"
+                    if self.selection_policy == V22_SOURCE_VALID_SELECTION
+                    else "physical_feasible_mask"
+                ),
             )
             receipt["latency_ms"]["selector"] = _elapsed_ms(selector_started)
             receipt.update(
@@ -353,10 +369,22 @@ class NativeCampPredictBatch:
                 "physical_feasible_mask": np.asarray(
                     selection.get("physical_feasible_mask", []), dtype=bool
                 ).tolist(),
+                "source_valid_mask": np.asarray(
+                    selection.get(
+                        "source_valid_mask",
+                        materialized.get(
+                            "route_speed_source_eligible_mask", []
+                        ),
+                    ),
+                    dtype=bool,
+                ).tolist(),
                 "source_complete_mask": np.asarray(
                     materialized.get("route_speed_source_eligible_mask", []),
                     dtype=bool,
                 ).tolist(),
+                "all_k_high_risk": bool(
+                    selection.get("all_k_high_risk", False)
+                ),
             }
             receipt.update(selector_diagnostics)
             if selection.get("status") != "ok":
@@ -396,12 +424,24 @@ class NativeCampPredictBatch:
                     "physical_feasible_mask": np.asarray(
                         materialized.get("physical_feasible_mask", []), dtype=bool
                     ).tolist(),
+                    "source_valid_mask": np.asarray(
+                        materialized.get(
+                            "source_valid_mask",
+                            materialized.get(
+                                "route_speed_source_eligible_mask", []
+                            ),
+                        ),
+                        dtype=bool,
+                    ).tolist(),
                     "source_complete_mask": np.asarray(
                         materialized.get(
                             "route_speed_source_eligible_mask", []
                         ),
                         dtype=bool,
                     ).tolist(),
+                    "all_k_high_risk": bool(
+                        selection.get("all_k_high_risk", False)
+                    ),
                 }
             )
             if materialized.get("atom_matrix") is not None:
@@ -1798,7 +1838,9 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
                     _mapping(receipt, "default_candidate0_identity")
                 ),
                 "physical_feasible_mask": list(receipt["physical_feasible_mask"]),
+                "source_valid_mask": list(receipt["source_valid_mask"]),
                 "source_complete_mask": list(receipt["source_complete_mask"]),
+                "all_k_high_risk": bool(receipt["all_k_high_risk"]),
             }
         )
     return tick

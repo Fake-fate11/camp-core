@@ -199,6 +199,37 @@ def test_selector_rejects_non_simplex_and_all_k_fails_closed() -> None:
         )
 
 
+def test_v22_selector_scores_all_source_valid_candidates_when_all_high_risk() -> None:
+    module = _worker()
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates[:, :, 0] = np.arange(8, dtype=np.float32)[:, None]
+    atoms = np.ones((8, 14), dtype=np.float64)
+    atoms[6, 0] = 0.0
+    materialized = {
+        "canonical_eligible": True,
+        "atom_matrix": atoms,
+        "source_valid_mask": np.ones(8, dtype=bool),
+        "physical_feasible_mask": np.zeros(8, dtype=bool),
+        "all_k_high_risk": True,
+        "candidate_reasons": [("lane_corridor",)] * 8,
+    }
+
+    result = module.select_camp_candidate(
+        candidates=candidates,
+        materialized=materialized,
+        atom_scales=np.ones(14, dtype=np.float64),
+        weights=np.eye(1, 14, dtype=np.float64).reshape(14),
+        eligibility_mask_name="source_valid_mask",
+    )
+
+    assert result["status"] == "ok"
+    assert result["selected_index"] == 6
+    assert result["all_k_high_risk"] is True
+    assert result["physical_feasible_mask"].tolist() == [False] * 8
+    assert result["source_valid_mask"].tolist() == [True] * 8
+    assert result["candidate_sha256_before"] == result["candidate_sha256_after"]
+
+
 def test_process_default_provenance_writes_independent_equivalence(tmp_path) -> None:
     module = _worker()
     metadata = _request(tmp_path, arm="dp_default")
