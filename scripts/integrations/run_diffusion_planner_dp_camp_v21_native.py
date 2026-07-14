@@ -724,8 +724,56 @@ def validate_smoke_config(config: Mapping[str, Any]) -> None:
             raise ValueError(f"{name} must remain false")
 
 
-def verify_config_assets(config: Mapping[str, Any]) -> dict[str, str]:
+def _v21_compatible_capability_config(
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    normalized = json.loads(json.dumps(config))
+    if normalized.get("schema_version") != "camp_dp_v22_native_capability_v1":
+        raise ValueError("v22 capability config schema mismatch")
+    selector = _mapping(normalized, "selector")
+    if selector.get("selection_policy") != V22_SOURCE_VALID_SELECTION:
+        raise ValueError("v22 capability must use source-valid selection")
+    if selector.get("role") != "v18_ablation_capability_only":
+        raise ValueError("v22 capability selector role mismatch")
+    protocol = _mapping(normalized, "protocol")
+    if protocol.get("safety_schema") != "safety_cost_native_v22":
+        raise ValueError("v22 capability safety schema mismatch")
+    if protocol.get("tiny_steps") != 4:
+        raise ValueError("v22 tiny capability step count mismatch")
+    if protocol.get("route_role") != "diagnostic_v21_observed_not_holdout":
+        raise ValueError("v22 capability route role mismatch")
+
+    normalized["schema_version"] = "camp_dp_v21_native_smoke_v1"
+    selector.pop("selection_policy")
+    selector.pop("role")
+    protocol["safety_schema"] = "safety_cost_native_v1"
+    protocol.pop("tiny_steps")
+    protocol.pop("route_role")
+    return normalized
+
+
+def validate_v22_capability_config(config: Mapping[str, Any]) -> None:
+    validate_smoke_config(_v21_compatible_capability_config(config))
+
+
+def _validate_native_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") == "camp_dp_v22_native_capability_v1":
+        validate_v22_capability_config(config)
+        return
     validate_smoke_config(config)
+
+
+def _selection_policy(config: Mapping[str, Any]) -> str:
+    policy = _mapping(config, "selector").get(
+        "selection_policy", V21_PHYSICAL_SELECTION
+    )
+    if policy not in _SELECTION_POLICIES:
+        raise ValueError("unknown selection policy")
+    return str(policy)
+
+
+def verify_config_assets(config: Mapping[str, Any]) -> dict[str, str]:
+    _validate_native_config(config)
     fixed_dp = _mapping(config, "fixed_dp")
     dp_repo = Path(str(fixed_dp["repo"]))
     head = subprocess.run(
@@ -814,7 +862,7 @@ def execute_smoke(
     verified_assets: Mapping[str, str] | None = None,
     command: str | None = None,
 ) -> dict[str, Any]:
-    validate_smoke_config(config)
+    _validate_native_config(config)
     if mode not in {"preflight", "capability-smoke", "paired-smoke"}:
         raise ValueError("unsupported v21 native smoke mode")
     output = Path(output_dir)
@@ -1356,7 +1404,7 @@ def _elapsed_ms(started_ns: int) -> float:
 def build_native_arm_runner(
     config: Mapping[str, Any], *, device: str
 ) -> Callable[..., Mapping[str, Any]]:
-    validate_smoke_config(config)
+    _validate_native_config(config)
     if device not in {"cpu", "cuda"}:
         raise ValueError("device must be cpu or cuda")
     runtime: dict[str, Any] = {}
@@ -1475,6 +1523,7 @@ def build_native_arm_runner(
                 candidate_seed_root=int(config["seeds"]["candidate"]),
                 route_sha256=str(route["sha256"]),
                 pre_safety=pre_safety,
+                selection_policy=_selection_policy(config),
             )
         else:
             replacement = NativeDpObserveBatch(
