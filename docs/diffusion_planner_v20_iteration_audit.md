@@ -108,3 +108,31 @@ current_v20_status=v20_carla_route_corridor_map_only_contact_tolerance_census_fa
 camp_github_autodl_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 next_work_target=user_decision_required_before_any_v20_frozen_route_corridor_contract_change_or_census_retry
+
+## Fail-Closed Census Record-Only Closeout Consistency
+
+The census and result-review artifacts remain bound to execution source head
+`9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1`. The record-only closeout commit
+was then fast-forward synchronized across local, origin, GitHub, and AutoDL at
+`3260576186f4efd8d462dc0d5937f9677943b333`, with fixed DP unchanged at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4` and both tracked trees clean.
+
+The closeout validation recorded `14 passed`, did not reexecute the census or
+K=8, and is sealed at:
+
+`/root/autodl-tmp/camp_dp_v20_carla_contact_tolerance_census_closeout_validation_20260714T034536Z`
+
+Root SHA256: `4b6a6d31fe8dc03a2b69c8f0aad94387367abb43d2ea9fda28f5b23551e7d052`.
+
+The user subsequently authorized one candidate-free, read-only predecessor
+topology diagnosis. It may inspect only official XODR, the frozen deterministic
+route, and existing map helpers; it cannot run candidates, DP, outcomes,
+metrics, future labels, holdout, or a CARLA server.
+
+## Authoritative EOF Pointer
+
+current_v20_status=v20_carla_route_corridor_map_only_census_fail_closed_closeout_synced
+current_v20_artifact_source_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
+camp_github_autodl_head=3260576186f4efd8d462dc0d5937f9677943b333
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+next_work_target=v20_carla_route_corridor_predecessor_topology_diagnosis_only

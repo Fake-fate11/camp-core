@@ -15,6 +15,7 @@ POINTER_KEYS = (
 )
 V20_POINTER_KEYS = (
     "current_v20_status",
+    "current_v20_artifact_source_head",
     "camp_github_autodl_head",
     "fixed_dp_head",
     "next_work_target",

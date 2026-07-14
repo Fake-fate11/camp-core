@@ -13,22 +13,22 @@ Reader contract: this named section is the only v20 pointer source in this
 file. The EOF of `docs/diffusion_planner_v20_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-At CAMP, GitHub, and AutoDL head
-`9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1`, with fixed DP head
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the production-import preflight
-passed and the offline map-only census was invoked exactly once. It failed
-closed before tolerance freezing because the frozen deterministic route did
-not provide exactly one 5 m predecessor at its first waypoint.
+The fail-closed census and result-review artifacts were produced from CAMP
+head `9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1`. Their record-only closeout was
+then synchronized across local, origin, GitHub, and AutoDL at
+`3260576186f4efd8d462dc0d5937f9677943b333`. Fixed DP remains
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 
 The sealed execution produced no receipt and left no CARLA process or
 listener. Independent review recorded `Critical=0`, `Important=1`, and
-`Minor=0`: continuing would require changing the frozen route choice or
-predecessor/source contract. No census retry or K=8 probe is authorized.
+`Minor=0`. The user has now authorized one candidate-free, read-only
+predecessor topology diagnosis before any revised contract or census.
 
-current_v20_status=v20_carla_route_corridor_map_only_contact_tolerance_census_failed_closed_frozen_route_predecessor_contract_unsatisfied
-camp_github_autodl_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
+current_v20_status=v20_carla_route_corridor_map_only_census_fail_closed_closeout_synced
+current_v20_artifact_source_head=9b35143b0b4dd6b9f432c7a88edf22e7976eb4c1
+camp_github_autodl_head=3260576186f4efd8d462dc0d5937f9677943b333
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-next_work_target=user_decision_required_before_any_v20_frozen_route_corridor_contract_change_or_census_retry
+next_work_target=v20_carla_route_corridor_predecessor_topology_diagnosis_only
 
 ## Current V19 Status
 
