@@ -12,7 +12,7 @@ import re
 import subprocess
 import sys
 from importlib.metadata import version as distribution_version
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Mapping, Sequence
 
 from camp_core.integrations.carla_causal_adapter import (
@@ -80,6 +80,7 @@ CLIENT_MANIFEST_PATH = CLIENT_ROOT / "CLIENT_SHA256SUMS"
 CLIENT_MANIFEST_SHA256 = (
     "ba3b3d97783a16211f1ed855b0c2640e58ed97fd5258cf17ff99a00037683f3e"
 )
+CARLA_INIT_SHA256_PREFIX = "19a6125c"
 LIBCARLA_SHA256 = (
     "c99a3754561a4ac910a584cc31952a10cbc21cbe1e8b14c032c1b31d5afbb6e2"
 )
@@ -373,12 +374,50 @@ def _verified_runtime_identity() -> dict[str, Any]:
     return receipts
 
 
+def _verified_client_manifest() -> dict[str, str]:
+    entries = {}
+    for line in CLIENT_MANIFEST_PATH.read_text(encoding="utf-8").splitlines():
+        match = re.fullmatch(r"([0-9a-f]{64})  ([^\r\n]+)", line)
+        if match is None:
+            raise ValueError("malformed client manifest line")
+        sha256, relative_text = match.groups()
+        relative = PurePosixPath(relative_text)
+        if (
+            relative.is_absolute()
+            or relative.as_posix() != relative_text
+            or not relative.parts
+            or any(part in {"", ".", ".."} for part in relative.parts)
+            or "\\" in relative_text
+        ):
+            raise ValueError("client manifest path must be normalized and relative")
+        if relative_text in entries:
+            raise ValueError("duplicate client manifest path")
+        entries[relative_text] = sha256
+    if len(entries) != 16:
+        raise ValueError("client manifest must contain exactly 16 entries")
+
+    actual_files = set()
+    for path in CLIENT_ROOT.rglob("*"):
+        if path.is_symlink():
+            raise ValueError("sealed client must not contain symlinks")
+        if path.is_file() and path != CLIENT_MANIFEST_PATH:
+            actual_files.add(path.relative_to(CLIENT_ROOT).as_posix())
+    if set(entries) != actual_files:
+        raise ValueError("client manifest file set mismatch")
+    for relative_text, expected_sha256 in entries.items():
+        path = CLIENT_ROOT.joinpath(*PurePosixPath(relative_text).parts)
+        if _sha256_path(path) != expected_sha256:
+            raise ValueError(f"client file SHA256 mismatch: {relative_text}")
+    return dict(sorted(entries.items()))
+
+
 def _verified_provenance() -> dict[str, Any]:
     opendrive_xml = XODR_PATH.read_text(encoding="utf-8")
     if _sha256_bytes(opendrive_xml.encode("utf-8")) != XODR_SHA256:
         raise ValueError("official XODR SHA mismatch")
     if _sha256_path(CLIENT_MANIFEST_PATH) != CLIENT_MANIFEST_SHA256:
         raise ValueError("CARLA client manifest SHA mismatch")
+    client_manifest_entries = _verified_client_manifest()
     source_root = CARLA_SOURCE_ROOT_RECEIPT.read_text(encoding="utf-8").split()[0]
     if source_root != CARLA_SOURCE_ROOT_SHA256:
         raise ValueError("CARLA source-root receipt mismatch")
@@ -388,12 +427,25 @@ def _verified_provenance() -> dict[str, Any]:
     module_path = modules[0].resolve()
     if _sha256_path(module_path) != LIBCARLA_SHA256:
         raise ValueError("libcarla SHA mismatch")
+    module_relative = module_path.relative_to(CLIENT_ROOT.resolve()).as_posix()
+    if client_manifest_entries.get(module_relative) != LIBCARLA_SHA256:
+        raise ValueError("libcarla manifest entry mismatch")
+    init_path = (CLIENT_ROOT / "carla/__init__.py").resolve()
+    init_relative = init_path.relative_to(CLIENT_ROOT.resolve()).as_posix()
+    init_sha256 = client_manifest_entries.get(init_relative)
+    if init_sha256 is None:
+        raise ValueError("carla/__init__.py missing from client manifest")
+    if not init_sha256.startswith(CARLA_INIT_SHA256_PREFIX):
+        raise ValueError("carla/__init__.py manifest SHA prefix mismatch")
     return {
         "opendrive_xml": opendrive_xml,
         "carla_version": CARLA_VERSION,
+        "carla_init_path": str(init_path),
+        "carla_init_sha256": init_sha256,
         "carla_module_path": str(module_path),
         "carla_module_sha256": LIBCARLA_SHA256,
         "client_manifest_sha256": CLIENT_MANIFEST_SHA256,
+        "client_manifest_entries": client_manifest_entries,
         "carla_source_root_sha256": source_root,
         "xodr_sha256": XODR_SHA256,
     }
@@ -404,8 +456,22 @@ def _load_sealed_carla(provenance: Mapping[str, Any]):
     libcarla = importlib.import_module("carla.libcarla")
     if distribution_version("carla") != CARLA_VERSION:
         raise ValueError("CARLA distribution version mismatch")
-    if Path(libcarla.__file__).resolve() != Path(provenance["carla_module_path"]):
+    init_path = Path(carla.__file__).resolve()
+    sealed_init_path = Path(provenance["carla_init_path"])
+    if init_path != sealed_init_path:
+        raise ValueError("imported carla init path mismatch")
+    if _sha256_path(init_path) != provenance["carla_init_sha256"]:
+        raise ValueError("imported carla init SHA256 mismatch")
+    package_paths = [Path(path).resolve() for path in carla.__path__]
+    if package_paths != [sealed_init_path.parent]:
+        raise ValueError("imported carla package path mismatch")
+    module_path = Path(libcarla.__file__).resolve()
+    if module_path != Path(provenance["carla_module_path"]):
         raise ValueError("imported libcarla path mismatch")
+    if _sha256_path(module_path) != provenance["carla_module_sha256"]:
+        raise ValueError("imported libcarla SHA256 mismatch")
+    if carla.Map is not libcarla.Map:
+        raise ValueError("carla.Map identity mismatch")
     return carla
 
 
@@ -477,13 +543,10 @@ def _production_preflight_receipt() -> dict[str, Any]:
     provenance = _verified_provenance()
     production_import = _production_import_evidence()
     _load_sealed_carla(provenance)
-    public_provenance = {
-        key: value for key, value in provenance.items() if key != "opendrive_xml"
-    }
     return {
         "schema_version": PREFLIGHT_SCHEMA,
         "runtime": runtime,
-        "provenance": public_provenance,
+        "provenance": _public_provenance(provenance),
         "production_import": production_import,
         "no_map": True,
         "no_census": True,
@@ -491,9 +554,38 @@ def _production_preflight_receipt() -> dict[str, Any]:
     }
 
 
+def _public_provenance(provenance: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in provenance.items() if key != "opendrive_xml"}
+
+
+def _verified_preflight_receipt(path: Path) -> dict[str, Any]:
+    receipt = json.loads(path.read_text(encoding="utf-8"))
+    expected_keys = {
+        "schema_version",
+        "runtime",
+        "provenance",
+        "production_import",
+        "no_map",
+        "no_census",
+        "no_server",
+    }
+    if not isinstance(receipt, dict) or set(receipt) != expected_keys:
+        raise ValueError("preflight receipt schema mismatch")
+    if receipt["schema_version"] != PREFLIGHT_SCHEMA:
+        raise ValueError("preflight receipt schema version mismatch")
+    for key in ("runtime", "provenance", "production_import"):
+        if not isinstance(receipt[key], dict):
+            raise ValueError(f"preflight {key} must be an object")
+    for key in ("no_map", "no_census", "no_server"):
+        if receipt[key] is not True:
+            raise ValueError(f"preflight {key} must be true")
+    return receipt
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--preflight-only", action="store_true")
+    parser.add_argument("--preflight-json", type=Path)
     parser.add_argument("--camp-head")
     parser.add_argument("--output-json", required=True, type=Path)
     args = parser.parse_args(argv)
@@ -504,8 +596,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         if args.camp_head is None:
             raise ValueError("--camp-head is required for census execution")
-        _verified_runtime_identity()
+        if args.preflight_json is None:
+            raise ValueError("--preflight-json is required for census execution")
+        preflight = _verified_preflight_receipt(args.preflight_json)
+        runtime = _verified_runtime_identity()
         provenance = _verified_provenance()
+        production_import = _production_import_evidence()
+        current = {
+            "runtime": runtime,
+            "provenance": _public_provenance(provenance),
+            "production_import": production_import,
+        }
+        for key, value in current.items():
+            if preflight[key] != value:
+                raise ValueError(f"preflight {key} mismatch")
         carla = _load_sealed_carla(provenance)
         map_api = carla.Map(MAP_NAME, provenance["opendrive_xml"])
         receipt = census_route_corridor_contact_tolerance(

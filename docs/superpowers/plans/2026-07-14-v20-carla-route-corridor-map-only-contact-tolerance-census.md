@@ -58,7 +58,7 @@ RUNNER=/root/autodl-tmp/camp_core/scripts/integrations/census_diffusion_planner_
 "$TEST_PYTHON" -m py_compile "$RUNNER" camp_core/tests/test_diffusion_planner_v20_carla_route_corridor_contact_tolerance_census.py
 PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core "$CARLA_PYTHON" "$RUNNER" --preflight-only --output-json /root/autodl-tmp/v20_contact_tolerance_preflight.json
 "$TEST_PYTHON" -m json.tool /root/autodl-tmp/v20_contact_tolerance_preflight.json > /dev/null
-PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core "$CARLA_PYTHON" "$RUNNER" --camp-head "$(git rev-parse HEAD)" --output-json /root/autodl-tmp/v20_contact_tolerance_receipt.json
+PYTHONPATH=/root/autodl-tmp/camp_v19_carla_client:/root/autodl-tmp/camp_core/camp_core:/root/autodl-tmp/camp_core "$CARLA_PYTHON" "$RUNNER" --preflight-json /root/autodl-tmp/v20_contact_tolerance_preflight.json --camp-head "$(git rev-parse HEAD)" --output-json /root/autodl-tmp/v20_contact_tolerance_receipt.json
 ~~~
 
 Success requires every identity/check command to exit 0, preflight booleans

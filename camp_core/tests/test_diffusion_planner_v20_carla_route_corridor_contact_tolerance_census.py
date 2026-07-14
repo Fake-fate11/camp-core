@@ -231,24 +231,37 @@ def test_cli_preflight_and_execution_roles_are_separate(monkeypatch, tmp_path):
     calls = Counter()
     preflight_output = tmp_path / "preflight.json"
     execution_output = tmp_path / "receipt.json"
+    runtime = {"carla_python": {"path": "/sealed/python"}}
+    production_import = {"module_paths": {"runner": "/sealed/runner.py"}}
+    provenance = {
+        "opendrive_xml": XODR,
+        "carla_version": census.CARLA_VERSION,
+        "carla_module_path": "/sealed/libcarla.so",
+        "carla_module_sha256": census.LIBCARLA_SHA256,
+        "client_manifest_sha256": census.CLIENT_MANIFEST_SHA256,
+        "carla_source_root_sha256": census.CARLA_SOURCE_ROOT_SHA256,
+    }
+    public_provenance = {
+        key: value for key, value in provenance.items() if key != "opendrive_xml"
+    }
 
     def preflight_receipt():
         calls["preflight"] += 1
-        return {"schema_version": "v20_production_import_runtime_v1", "no_map": True}
+        return {
+            "schema_version": "v20_production_import_runtime_v1",
+            "runtime": runtime,
+            "provenance": public_provenance,
+            "production_import": production_import,
+            "no_map": True,
+            "no_census": True,
+            "no_server": True,
+        }
 
     monkeypatch.setattr(census, "_production_preflight_receipt", preflight_receipt)
-    monkeypatch.setattr(census, "_verified_runtime_identity", lambda: {})
+    monkeypatch.setattr(census, "_verified_runtime_identity", lambda: runtime)
+    monkeypatch.setattr(census, "_verified_provenance", lambda: provenance)
     monkeypatch.setattr(
-        census,
-        "_verified_provenance",
-        lambda: {
-            "opendrive_xml": XODR,
-            "carla_version": census.CARLA_VERSION,
-            "carla_module_path": "/sealed/libcarla.so",
-            "carla_module_sha256": census.LIBCARLA_SHA256,
-            "client_manifest_sha256": census.CLIENT_MANIFEST_SHA256,
-            "carla_source_root_sha256": census.CARLA_SOURCE_ROOT_SHA256,
-        },
+        census, "_production_import_evidence", lambda: production_import
     )
 
     def map_constructor(name, opendrive_xml):
@@ -276,13 +289,60 @@ def test_cli_preflight_and_execution_roles_are_separate(monkeypatch, tmp_path):
 
     assert (
         census.main(
-            ["--camp-head", "a" * 40, "--output-json", str(execution_output)]
+            [
+                "--preflight-json",
+                str(preflight_output),
+                "--camp-head",
+                "a" * 40,
+                "--output-json",
+                str(execution_output),
+            ]
         )
         == 0
     )
     assert json.loads(execution_output.read_text()) == {"receipt": "ok"}
     assert calls == {"preflight": 1, "map": 1, "census": 1}
     assert not execution_output.with_suffix(".json.tmp").exists()
+
+    missing_key = json.loads(preflight_output.read_text())
+    missing_key.pop("no_server")
+    invalid_preflight = tmp_path / "invalid-preflight.json"
+    invalid_preflight.write_text(json.dumps(missing_key), encoding="utf-8")
+    with pytest.raises(ValueError, match="preflight receipt schema"):
+        census._verified_preflight_receipt(invalid_preflight)
+    missing_key["no_server"] = True
+    missing_key["unexpected"] = True
+    invalid_preflight.write_text(json.dumps(missing_key), encoding="utf-8")
+    with pytest.raises(ValueError, match="preflight receipt schema"):
+        census._verified_preflight_receipt(invalid_preflight)
+
+    with pytest.raises(ValueError, match="--preflight-json"):
+        census.main(
+            [
+                "--camp-head",
+                "a" * 40,
+                "--output-json",
+                str(tmp_path / "missing-preflight-argument.json"),
+            ]
+        )
+
+    monkeypatch.setattr(
+        census,
+        "_production_import_evidence",
+        lambda: {"module_paths": {"runner": "/drifted/runner.py"}},
+    )
+    with pytest.raises(ValueError, match="preflight production_import mismatch"):
+        census.main(
+            [
+                "--preflight-json",
+                str(preflight_output),
+                "--camp-head",
+                "a" * 40,
+                "--output-json",
+                str(tmp_path / "drifted.json"),
+            ]
+        )
+    assert calls == {"preflight": 1, "map": 1, "census": 1}
 
 
 @pytest.mark.parametrize("occupied", ("output", "tmp"))
@@ -297,7 +357,7 @@ def test_existing_output_fails_before_any_input_access(monkeypatch, tmp_path, oc
         census.main(["--camp-head", "a" * 40, "--output-json", str(output)])
 
 
-def test_runtime_role_and_authoritative_plan_commands(monkeypatch):
+def test_runtime_role_and_authoritative_plan_commands(monkeypatch, tmp_path):
     census = _module()
     assert "carla" not in census.sys.modules
     import_prefix = Path(census.__file__).read_text(encoding="utf-8").split(
@@ -307,6 +367,85 @@ def test_runtime_role_and_authoritative_plan_commands(monkeypatch):
     monkeypatch.setattr(census.sys, "executable", census.TEST_PYTHON)
     with pytest.raises(ValueError, match="CARLA_PYTHON"):
         census._verified_runtime_identity()
+
+    client_root = tmp_path / "client"
+    files = {
+        "carla/__init__.py": b"from .libcarla import Map\n",
+        "carla/libcarla.cpython-312-x86_64-linux-gnu.so": b"sealed libcarla",
+        **{f"carla/payload_{index:02d}.bin": f"payload {index}".encode() for index in range(14)},
+    }
+    for relative, content in files.items():
+        path = client_root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    hashes = {
+        relative: hashlib.sha256(content).hexdigest()
+        for relative, content in files.items()
+    }
+    manifest_path = client_root / "CLIENT_SHA256SUMS"
+
+    def write_manifest(lines=None):
+        rows = lines or [
+            f"{sha256}  {relative}" for relative, sha256 in sorted(hashes.items())
+        ]
+        manifest_path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+
+    write_manifest()
+    monkeypatch.setattr(census, "CLIENT_ROOT", client_root)
+    monkeypatch.setattr(census, "CLIENT_MANIFEST_PATH", manifest_path)
+    entries = census._verified_client_manifest()
+    assert entries == dict(sorted(hashes.items()))
+
+    payload = client_root / "carla/payload_00.bin"
+    payload.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="client file SHA256 mismatch"):
+        census._verified_client_manifest()
+    payload.write_bytes(files["carla/payload_00.bin"])
+    for invalid_line in (
+        "malformed",
+        f"{'0' * 64}  /absolute",
+        f"{'0' * 64}  carla/../escape",
+    ):
+        write_manifest([invalid_line, *manifest_path.read_text().splitlines()[1:]])
+        with pytest.raises(ValueError, match="client manifest"):
+            census._verified_client_manifest()
+        write_manifest()
+    rows = manifest_path.read_text().splitlines()
+    write_manifest([rows[0], rows[0], *rows[2:]])
+    with pytest.raises(ValueError, match="duplicate client manifest"):
+        census._verified_client_manifest()
+    write_manifest()
+    extra = client_root / "carla/unlisted.bin"
+    extra.write_bytes(b"unlisted")
+    with pytest.raises(ValueError, match="client manifest file set mismatch"):
+        census._verified_client_manifest()
+    extra.unlink()
+
+    map_type = object()
+    init_path = client_root / "carla/__init__.py"
+    lib_path = client_root / "carla/libcarla.cpython-312-x86_64-linux-gnu.so"
+    carla = SimpleNamespace(
+        __file__=str(init_path), __path__=[str(init_path.parent)], Map=map_type
+    )
+    libcarla = SimpleNamespace(__file__=str(lib_path), Map=map_type)
+    monkeypatch.setattr(
+        census.importlib,
+        "import_module",
+        lambda name: {"carla": carla, "carla.libcarla": libcarla}[name],
+    )
+    monkeypatch.setattr(census, "distribution_version", lambda name: "0.9.16")
+    provenance = {
+        "carla_init_path": str(init_path.resolve()),
+        "carla_init_sha256": hashes["carla/__init__.py"],
+        "carla_module_path": str(lib_path.resolve()),
+        "carla_module_sha256": hashes[
+            "carla/libcarla.cpython-312-x86_64-linux-gnu.so"
+        ],
+    }
+    assert census._load_sealed_carla(provenance) is carla
+    carla.Map = object()
+    with pytest.raises(ValueError, match="Map identity mismatch"):
+        census._load_sealed_carla(provenance)
 
     root = Path(__file__).resolve().parents[2]
     plan = (
@@ -322,7 +461,10 @@ def test_runtime_role_and_authoritative_plan_commands(monkeypatch):
     assert '"$TEST_PYTHON" -m py_compile' in note
     assert '"$TEST_PYTHON" -m json.tool' in note
     assert '"$CARLA_PYTHON" "$RUNNER" --preflight-only' in note
-    assert '"$CARLA_PYTHON" "$RUNNER" --camp-head' in note
+    assert (
+        '"$CARLA_PYTHON" "$RUNNER" --preflight-json '
+        "/root/autodl-tmp/v20_contact_tolerance_preflight.json --camp-head"
+    ) in note
     assert '"$CARLA_PYTHON" -m pytest' not in note
     assert '"$TEST_PYTHON" "$RUNNER"' not in note
     for block in re.findall(r"~~~bash\n(.*?)\n~~~", note, re.S):
