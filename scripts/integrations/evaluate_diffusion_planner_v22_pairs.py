@@ -430,25 +430,50 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
                 raise ValueError("split route asset SHA mismatch")
 
     capability = build_pair_schedule(config, manifest, mode="capability")
+    single_tick_config = deepcopy(dict(config))
+    single_mode = dict(_mapping(_mapping(config, "modes"), "capability"))
+    single_mode["route_count"] = int(single_mode["single_tick_route_count"])
+    single_mode["max_steps"] = 1
+    single_tick_config["modes"] = dict(_mapping(config, "modes"))
+    single_tick_config["modes"]["capability"] = single_mode
+    single_tick = build_pair_schedule(
+        single_tick_config, manifest, mode="capability"
+    )
     pilot = build_pair_schedule(config, manifest, mode="pilot")
     main_config = deepcopy(dict(config))
     main_config["main_execution_authorized"] = True
     main = build_pair_schedule(main_config, manifest, mode="main")
     planned = {
+        "capability_single_tick": single_tick,
         "capability": capability,
         "pilot": pilot,
         "main": main,
     }
     run_configs = {
-        mode: [
-            build_evaluation_run_config(config, base_config, item, mode=mode)
-            for item in schedule
-        ]
-        for mode, schedule in planned.items()
+        "capability_single_tick": [
+            build_evaluation_run_config(
+                single_tick_config, base_config, item, mode="capability"
+            )
+            for item in single_tick
+        ],
+        "capability": [
+            build_evaluation_run_config(
+                config, base_config, item, mode="capability"
+            )
+            for item in capability
+        ],
+        "pilot": [
+            build_evaluation_run_config(config, base_config, item, mode="pilot")
+            for item in pilot
+        ],
+        "main": [
+            build_evaluation_run_config(config, base_config, item, mode="main")
+            for item in main
+        ],
     }
     verified_assets = {}
     seen_maps = set()
-    for mode in ("capability", "pilot", "main"):
+    for mode in ("capability_single_tick", "capability", "pilot", "main"):
         for run_config in run_configs[mode]:
             map_sha = run_config["map"]["sha256"]
             if map_sha not in seen_maps:
@@ -467,7 +492,11 @@ def run_static_preflight(config_path: Path) -> dict[str, Any]:
         "route_counts": route_counts,
         "seed_counts": seed_counts,
         "planned_pair_counts": {
-            mode: len(schedule) for mode, schedule in planned.items()
+            "capability_single_tick": len(single_tick),
+            "capability_tiny_multi_route": len(capability),
+            "capability_total": len(single_tick) + len(capability),
+            "pilot": len(pilot),
+            "main": len(main),
         },
         "validated_run_config_count": sum(
             len(values) for values in run_configs.values()
@@ -509,6 +538,28 @@ def execute_from_config(
     freeze_manifest = json.loads(
         Path(str(frozen["manifest_path"])).read_text(encoding="utf-8")
     )
+    if mode == "capability":
+        single_config = deepcopy(dict(config))
+        single_mode = dict(_mapping(_mapping(config, "modes"), "capability"))
+        single_mode["route_count"] = int(single_mode["single_tick_route_count"])
+        single_mode["max_steps"] = 1
+        single_config["modes"] = dict(_mapping(config, "modes"))
+        single_config["modes"]["capability"] = single_mode
+        schedule = build_pair_schedule(
+            single_config, manifest, mode="capability"
+        )
+        first_config = build_evaluation_run_config(
+            single_config, base_config, schedule[0], mode="capability"
+        )
+        run_arm = build_native_arm_runner(first_config, device=device)
+        return execute_capability_chain(
+            config,
+            manifest,
+            base_config,
+            freeze_manifest,
+            output_dir=output_dir,
+            run_arm=run_arm,
+        )
     schedule = build_pair_schedule(config, manifest, mode=mode)
     first_config = build_evaluation_run_config(
         config, base_config, schedule[0], mode=mode
@@ -525,13 +576,89 @@ def execute_from_config(
     )
 
 
+def execute_capability_chain(
+    config: Mapping[str, Any],
+    manifest: Mapping[str, Any],
+    base_config: Mapping[str, Any],
+    freeze_manifest: Mapping[str, Any],
+    *,
+    output_dir: Path,
+    run_arm: Callable[..., Mapping[str, Any]],
+) -> dict[str, Any]:
+    output = Path(output_dir)
+    if output.exists():
+        raise FileExistsError(output)
+    output.mkdir(parents=True)
+    single_config = deepcopy(dict(config))
+    single_mode = dict(_mapping(_mapping(config, "modes"), "capability"))
+    single_mode["route_count"] = int(single_mode["single_tick_route_count"])
+    single_mode["max_steps"] = 1
+    single_config["modes"] = dict(_mapping(config, "modes"))
+    single_config["modes"]["capability"] = single_mode
+    single = execute_paired_evaluation(
+        single_config,
+        manifest,
+        base_config,
+        freeze_manifest,
+        mode="capability",
+        output_dir=output / "single_tick",
+        run_arm=run_arm,
+    )
+    tiny = execute_paired_evaluation(
+        config,
+        manifest,
+        base_config,
+        freeze_manifest,
+        mode="capability",
+        output_dir=output / "tiny_multi_route",
+        run_arm=run_arm,
+    )
+    summary = {
+        "schema_version": "camp_dp_v22_paired_capability_chain_v1",
+        "status": (
+            "complete"
+            if single["paired_complete_count"] == single["planned_pair_count"]
+            and tiny["paired_complete_count"] == tiny["planned_pair_count"]
+            else "complete_with_retained_failures"
+        ),
+        "single_tick": single,
+        "tiny_multi_route": tiny,
+        "planned_pair_count": single["planned_pair_count"]
+        + tiny["planned_pair_count"],
+        "retained_pair_count": single["retained_pair_count"]
+        + tiny["retained_pair_count"],
+        "paired_complete_count": single["paired_complete_count"]
+        + tiny["paired_complete_count"],
+        "simulator_executed": True,
+        "pilot_executed": False,
+        "holdout_opened": False,
+        "final_claim_authorized": False,
+        "next_work_target": "v22_native_paired_pilot_execution_only",
+    }
+    _write_json(output / "summary.json", summary)
+    (output / "summary.md").write_text(
+        "# v22 native paired capability chain\n\n"
+        f"- single-tick pairs: `{single['planned_pair_count']}`\n"
+        f"- tiny multi-route pairs: `{tiny['planned_pair_count']}`\n"
+        "- pilot/holdout: not executed/opened\n"
+        "- final claim authorized: `false`\n",
+        encoding="utf-8",
+    )
+    _write_heads_and_command(output, "capability-chain")
+    (output / "run.exit").write_text("0\n", encoding="ascii")
+    _seal_output(output)
+    return summary
+
+
 def _validate_evaluation_config(config: Mapping[str, Any]) -> None:
     if config.get("schema_version") != "camp_dp_v22_native_evaluation_v1":
         raise ValueError("evaluation config schema mismatch")
     if set(_mapping(config, "modes")) != MODES:
         raise ValueError("evaluation modes must be capability/pilot/main")
+    capability = _mapping(_mapping(config, "modes"), "capability")
     if (
-        config.get("arm_order") != ["dp", "camp"]
+        capability.get("single_tick_route_count") != 1
+        or config.get("arm_order") != ["dp", "camp"]
         or config.get("candidate_k") != 8
         or config.get("selection_policy") != V22_SOURCE_VALID_SELECTION
         or config.get("score_contract") != "score_k(w)=a_k^T w"

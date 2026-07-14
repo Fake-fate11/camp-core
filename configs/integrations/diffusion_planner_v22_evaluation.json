@@ -39,7 +39,7 @@
     }
   ],
   "modes": {
-    "capability": {"split": "calibration", "route_count": 2, "seed_count": 1, "max_steps": 4},
+    "capability": {"split": "calibration", "single_tick_route_count": 1, "route_count": 2, "seed_count": 1, "max_steps": 4},
     "pilot": {"split": "calibration", "route_count": 30, "seed_count": 3, "max_steps": 64},
     "main": {"split": "holdout", "route_count": 100, "seed_count": 5, "max_steps": 64}
   },

@@ -92,7 +92,7 @@ def _config() -> dict:
         },
         "maps": [{"path": "/map.osm", "sha256": _sha("map")}],
         "modes": {
-            "capability": {"split": "calibration", "route_count": 2, "seed_count": 1, "max_steps": 4},
+            "capability": {"split": "calibration", "single_tick_route_count": 1, "route_count": 2, "seed_count": 1, "max_steps": 4},
             "pilot": {"split": "calibration", "route_count": 2, "seed_count": 2, "max_steps": 64},
             "main": {"split": "holdout", "route_count": 1, "seed_count": 1, "max_steps": 64},
         },
@@ -272,6 +272,7 @@ def test_tracked_evaluation_config_freezes_pilot_and_keeps_main_closed() -> None
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
 
     assert config["modes"]["pilot"] == {"split": "calibration", "route_count": 30, "seed_count": 3, "max_steps": 64}
+    assert config["modes"]["capability"] == {"split": "calibration", "single_tick_route_count": 1, "route_count": 2, "seed_count": 1, "max_steps": 4}
     assert config["modes"]["main"] == {"split": "holdout", "route_count": 100, "seed_count": 5, "max_steps": 64}
     assert config["frozen_selector"]["artifact_root_sha256"] == "5e8ebdff441d10f8c824ed3104eda3f4d484c2235ad85184b45223c780b41fed"
     assert config["primary_speed_tolerance_mps"] == 0.1
@@ -374,3 +375,24 @@ def test_evaluator_has_no_parallel_native_replay_loop() -> None:
 
     assert "build_native_arm_runner" in source
     assert "run_route_replay" not in source
+
+
+def test_capability_chain_runs_single_tick_then_tiny_multi_route(tmp_path: Path) -> None:
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps):
+        del output_dir
+        calls.append((route["name"], arm, max_steps))
+        return _arm(route, arm, config)
+
+    result = _module().execute_capability_chain(
+        _config(), _manifest(), _base_config(), _freeze(),
+        output_dir=tmp_path / "capability", run_arm=run_arm,
+    )
+
+    assert [steps for _route_name, _arm_name, steps in calls] == [1, 1, 4, 4, 4, 4]
+    assert result["planned_pair_count"] == 3
+    assert result["retained_pair_count"] == 3
+    assert result["paired_complete_count"] == 3
+    assert result["pilot_executed"] is False
+    assert result["holdout_opened"] is False
