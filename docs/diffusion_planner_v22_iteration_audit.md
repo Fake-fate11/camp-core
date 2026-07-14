@@ -332,3 +332,62 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_plan_static_review_30885f0f_20260714T193535CST
 current_v22_artifact_root_sha256=3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a
 next_work_target=v22_task1_source_valid_materialization_tdd_only
+
+## Task 1: Source-valid Materialization
+
+Status: passed.
+
+TDD added an opt-in `v22_source_valid` eligibility policy to the existing
+`materialize_canonical_14d` path. The default remains `v21_physical`, so v18,
+v19, and v21 callers preserve the historical all-K physical fail-closed
+behavior. Under the v22 policy, hard source validity is the conjunction of
+real signal-source availability and exact route-speed source availability;
+lane corridor and predicted OBB collision remain in the diagnostic physical
+risk mask.
+
+When all K=8 candidates are source-valid but the physical risk mask is all
+false, the materializer now emits a finite canonical 8x14 atom matrix,
+`source_valid_mask`, and `all_k_high_risk=true`. Progress shortfall is
+referenced to the source-valid candidates rather than the old physical mask.
+No selector behavior changed in this task, so v22 execution still waits for
+Task 2 before using the new mask.
+
+The first AutoDL attempt was sealed at
+`/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_1009b3da_20260714T194217CST`
+with root SHA256
+`c0df271623167428e2291a24a264460305ad36b52cdd097bb0a8cf5576ce69f3`
+and `run.exit=2`. HEAD checks and fast-forward succeeded, but pytest collection
+did not receive the repository `camp_core/` package on `PYTHONPATH`; no test
+assertion ran. Its premature positive summary fields are not pass evidence;
+the exit code, stdout, and audit attribution are authoritative. The failed
+artifact remains preserved and its manifests verify.
+
+The corrected immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST`
+with root SHA256
+`5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215`.
+It records `run.exit=0`, empty stderr, matched CAMP HEAD/origin, fixed DP HEAD,
+tracked-clean repositories, no related running job, exact command,
+stdout/stderr, summary JSON/MD, `SHA256SUMS`, and `ROOT_SHA256SUMS`. AutoDL ran
+the complete relevant v18/v19/v21 plus v22-pointer set: `66 / 66` passed.
+
+Locally, the non-torch shared suites passed `28 / 28` and materializer tests
+passed `6 / 6`. A full local v18 run is unavailable because the existing
+Anaconda runtime aborts on a standalone `import torch` with duplicate
+`libiomp5md.dll`; the unsafe duplicate-runtime workaround was not used. AutoDL
+provided the complete fixed-runtime verification instead.
+
+No model was loaded, no simulator was executed, no candidate was generated,
+no training ran, no holdout was opened, and no claim was made. Next is Task 2
+TDD: make the shared affine selector and existing native hook opt into
+`source_valid_mask`, retain both risk masks, and record all-K-high-risk without
+fallback or forced candidate 0.
+
+current_v22_status=v22_task1_source_valid_materialization_passed
+current_v22_artifact_source_head=1009b3da15ee25a8325e25169d0374e54da4bb70
+current_v22_prior_gate_final_synced_head=1009b3da15ee25a8325e25169d0374e54da4bb70
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST
+current_v22_artifact_root_sha256=5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215
+next_work_target=v22_task2_affine_source_valid_selection_and_all_k_high_risk_receipts_tdd_only

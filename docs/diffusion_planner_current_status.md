@@ -62,16 +62,28 @@ with root SHA256
 `3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a`.
 It confirms the shared materializer/selector/existing native hook path, no
 parallel runner or DP edit, and `25 / 25` local/AutoDL contract tests. Task 1
-source-valid materialization TDD is next.
+source-valid materialization TDD then passed at CAMP HEAD
+`1009b3da15ee25a8325e25169d0374e54da4bb70`.
 
-current_v22_status=v22_native_route_family_split_plan_static_review_passed
-current_v22_artifact_source_head=30885f0f1a9b02215ee7fd5c7d9998f4ee49b922
-current_v22_prior_gate_final_synced_head=30885f0f1a9b02215ee7fd5c7d9998f4ee49b922
+Task 1 keeps the v21 physical-eligibility default and adds an opt-in v22
+source-valid policy. Source-valid all-K physical-risk records now retain a
+finite 8x14 atom matrix and `all_k_high_risk=true`; no selector or simulator
+execution occurred. The corrected immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST`
+with root SHA256
+`5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215`
+and `66 / 66` relevant AutoDL tests passed. The first collection-only failure
+from missing `PYTHONPATH` remains preserved and attributed in the audit. Task
+2 affine source-valid selection and all-K-high-risk receipts are next.
+
+current_v22_status=v22_task1_source_valid_materialization_passed
+current_v22_artifact_source_head=1009b3da15ee25a8325e25169d0374e54da4bb70
+current_v22_prior_gate_final_synced_head=1009b3da15ee25a8325e25169d0374e54da4bb70
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_route_family_split_plan_static_review_30885f0f_20260714T193535CST
-current_v22_artifact_root_sha256=3ad0b18f187c46508464df2e8151001b83af7d61f59f4f4bd7e6c0c77675ea3a
-next_work_target=v22_task1_source_valid_materialization_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task1_source_valid_materialization_rerun_1009b3da_20260714T194325CST
+current_v22_artifact_root_sha256=5d4feb0d91058ed71de20378f05040399e7874af73d5ff549baabf310a899215
+next_work_target=v22_task2_affine_source_valid_selection_and_all_k_high_risk_receipts_tdd_only
 
 ## Current V21 Status
 
