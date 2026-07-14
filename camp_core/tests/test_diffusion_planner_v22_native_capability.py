@@ -60,6 +60,9 @@ def test_existing_native_runner_reads_v22_selection_policy() -> None:
 
 def _v22_camp_tick() -> dict:
     digest = "1" * 64
+    rows = [f"{index:x}" * 64 for index in range(8)]
+    rows[0] = digest
+    rows[3] = "5" * 64
     return {
         "tick_index": 0,
         "input_sha256": "2" * 64,
@@ -80,6 +83,7 @@ def _v22_camp_tick() -> dict:
         "candidate_tensor_sha256_after": "3" * 64,
         "atom_matrix_sha256": "4" * 64,
         "selected_trajectory_sha256": "5" * 64,
+        "candidate_row_sha256": rows,
         "selected_index": 3,
         "default_candidate0_identity": {
             "elementwise_equal": True,

@@ -315,6 +315,9 @@ class NativeCampPredictBatch:
             if neighbor_tensor.shape != (8, 32, 80, 4):
                 raise ValueError("candidate neighbor tensor must be [8,32,80,4]")
             before_sha = array_sha256(candidate_tensor)
+            receipt["candidate_row_sha256"] = [
+                array_sha256(candidate_tensor[index]) for index in range(8)
+            ]
             receipt["default_candidate0_identity"] = (
                 verify_default_candidate0_identity(default_ego, candidate_tensor[0])
             )
@@ -912,7 +915,95 @@ def _validate_native_config(config: Mapping[str, Any]) -> None:
     if config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
         validate_v22_corpus_run_config(config)
         return
+    if config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
+        validate_v22_evaluation_run_config(config)
+        return
     validate_smoke_config(config)
+
+
+def validate_v22_evaluation_run_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") != "camp_dp_v22_native_evaluation_run_v1":
+        raise ValueError("v22 evaluation run schema mismatch")
+    fixed_dp = _mapping(config, "fixed_dp")
+    if fixed_dp.get("head") != FIXED_DP_HEAD:
+        raise ValueError("fixed DP HEAD mismatch")
+    if fixed_dp.get("native_source_sha256") != NATIVE_SOURCE_SHA256:
+        raise ValueError("fixed DP native source hashes mismatch")
+    _asset_entry(fixed_dp, "checkpoint")
+    _asset_entry(fixed_dp, "args_json")
+    _asset_entry(config, "map")
+    selector = _mapping(config, "selector")
+    _asset_entry(selector, "atom_scales")
+    _asset_entry(selector, "weights")
+    if (
+        not _is_sha256(selector.get("root_sha256"))
+        or not _is_sha256(selector.get("model_sha256"))
+        or selector.get("score_contract") != "score_k(w)=a_k^T w"
+        or selector.get("nonnegative_simplex") is not True
+        or selector.get("candidate_k") != 8
+        or selector.get("selection_policy") != V22_SOURCE_VALID_SELECTION
+        or selector.get("role") != "v22_primary_frozen"
+    ):
+        raise ValueError("v22 evaluation selector contract mismatch")
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v22 evaluation requires exactly one route")
+    _asset_entry_value(routes[0], "route")
+    seeds = _mapping(config, "seeds")
+    seed = seeds.get("scenario")
+    if (
+        isinstance(seed, bool)
+        or not isinstance(seed, int)
+        or seed < 0
+        or seed in {11, 12, 13}
+        or seeds
+        != {
+            "scenario": seed,
+            "candidate": seed,
+            "bootstrap": seed,
+            "formal_forbidden": [11, 12, 13],
+        }
+    ):
+        raise ValueError("v22 evaluation seed schedule mismatch")
+    protocol = _mapping(config, "protocol")
+    split = protocol.get("evaluation_split")
+    mode = protocol.get("evaluation_mode")
+    steps = protocol.get("evaluation_steps")
+    if (
+        split not in {"calibration", "holdout"}
+        or mode not in {"capability", "pilot", "main"}
+        or isinstance(steps, bool)
+        or not isinstance(steps, int)
+        or steps not in {1, 4, 64}
+        or protocol.get("arm_order") != ["dp", "camp"]
+        or protocol.get("safety_schema") != "safety_cost_native_v22"
+        or protocol.get("route_retention")
+        != "all_preregistered_routes_and_failures"
+        or protocol.get("training_authorized") is not False
+        or protocol.get("formal_seeds_authorized") is not False
+        or protocol.get("claim_authorized") is not False
+        or protocol.get("holdout_access_authorized") is not (mode == "main")
+        or (mode == "main") is not (split == "holdout")
+    ):
+        raise ValueError("v22 evaluation protocol mismatch")
+    spawn = _mapping(config, "spawn_config")
+    if set(spawn) != SPAWN_CONFIG_FIELDS:
+        raise ValueError("SpawnConfig fields do not exactly match native source")
+    critical = {
+        "seed": seed,
+        "max_steps": steps,
+        "advance_mode": "mpc",
+        "mpc_horizon_steps": 20,
+        "mpc_n_knots": 5,
+        "sequential_inference": False,
+        "sg_smooth_enabled": False,
+        "dump_npz_dir": None,
+        "reward_config_path": None,
+        "enable_traffic_lights": True,
+        "map_refresh_steps": 5,
+    }
+    if any(spawn.get(name) != value for name, value in critical.items()):
+        raise ValueError("critical v22 evaluation SpawnConfig value mismatch")
 
 
 def _selection_policy(config: Mapping[str, Any]) -> str:
@@ -1402,17 +1493,23 @@ def _validate_arm_receipt(
                     else "physical_feasible_mask"
                 )
                 scores = np.asarray(tick.get("scores"), dtype=np.float64)
+                row_sha256 = tick.get("candidate_row_sha256")
                 if (
                     tick.get("score_contract") != "score_k(w)=a_k^T w"
                     or tick.get("eligibility_mask_name") != expected_mask_name
                     or scores.shape != (8,)
                     or not np.isfinite(scores).all()
+                    or not isinstance(row_sha256, list)
+                    or len(row_sha256) != 8
+                    or any(not _is_sha256(value) for value in row_sha256)
                 ):
                     raise ValueError("CAMP affine score receipt is invalid")
                 eligible = np.asarray(masks[expected_mask_name], dtype=bool)
                 expected_index = int(np.argmin(np.where(eligible, scores, np.inf)))
                 if selected_index != expected_index:
                     raise ValueError("CAMP selected index is not the affine argmin")
+                if tick["selected_trajectory_sha256"] != row_sha256[selected_index]:
+                    raise ValueError("CAMP selected trajectory is not the indexed row")
                 identity = _mapping(tick, "default_candidate0_identity")
                 default_sha = tick.get("default_output_sha256")
                 if (
@@ -1457,6 +1554,35 @@ def _validate_arm_receipt(
             raise ValueError("v22 operational speed protocol mismatch")
     _mapping(receipt, "secondary")
     _mapping(receipt, "latency")
+
+
+def validate_native_arm_receipt(
+    receipt: Mapping[str, Any],
+    arm: str,
+    *,
+    expected_ticks: int,
+    expected_selection_policy: str | None = None,
+    expected_safety_schema: str = "safety_cost_native_v22",
+) -> None:
+    _validate_arm_receipt(
+        receipt,
+        arm,
+        expected_ticks=expected_ticks,
+        expected_selection_policy=expected_selection_policy,
+        expected_safety_schema=expected_safety_schema,
+    )
+
+
+def canonical_spawn_config_sha256(
+    config: Mapping[str, Any], max_steps: int
+) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {**config["spawn_config"], "max_steps": int(max_steps)},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _padding_stratum(padded_frames: int) -> str:
@@ -1758,6 +1884,8 @@ def build_native_arm_runner(
         protocol = _mapping(config, "protocol")
         if config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
             allowed_steps = {int(protocol["corpus_steps"])}
+        elif config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
+            allowed_steps = {int(protocol["evaluation_steps"])}
         else:
             allowed_steps = {1, int(protocol["paired_steps"])}
             if "tiny_steps" in protocol:
@@ -2108,15 +2236,13 @@ def _build_native_arm_receipt(
         "status": "ok",
         "route_name": str(route["name"]),
         "route_sha256": str(route["sha256"]),
+        "logical_map_sha256": str(config["map"]["sha256"]),
+        "fixed_dp_head": str(config["fixed_dp"]["head"]),
+        "checkpoint_sha256": str(config["fixed_dp"]["checkpoint"]["sha256"]),
+        "args_sha256": str(config["fixed_dp"]["args_json"]["sha256"]),
         "arm": arm,
         "scenario_seed": int(config["seeds"]["scenario"]),
-        "spawn_config_sha256": hashlib.sha256(
-            json.dumps(
-                {**config["spawn_config"], "max_steps": max_steps},
-                sort_keys=True,
-                separators=(",", ":"),
-            ).encode("utf-8")
-        ).hexdigest(),
+        "spawn_config_sha256": canonical_spawn_config_sha256(config, max_steps),
         "initial_state_sha256": initial_state_sha,
         "initial_input_sha256": first_input,
         "ticks": ticks,
@@ -2182,6 +2308,7 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             "global_rng_sha256_after",
         ):
             tick[name] = str(receipt[name])
+        tick["candidate_row_sha256"] = list(receipt["candidate_row_sha256"])
         tick.update(
             {
                 "selection_policy": str(receipt["selection_policy"]),
