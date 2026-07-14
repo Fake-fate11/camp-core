@@ -86,16 +86,27 @@ receipts, and use no fallback or candidate-0 forcing. The immutable artifact is
 with root SHA256
 `9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e`;
 `68 / 68` relevant AutoDL tests passed. Task 3 speed protocol and retained
-failure-row TDD is next.
+failure-row TDD then passed at CAMP HEAD
+`d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd`.
 
-current_v22_status=v22_task2_source_valid_selector_receipts_passed
-current_v22_artifact_source_head=f83f76c62e6e9670396d1e822de92f3f458758f1
-current_v22_prior_gate_final_synced_head=f83f76c62e6e9670396d1e822de92f3f458758f1
+Task 3 freezes strict speed reporting, the 0.1 m/s primary operational event,
+0/0.05/0.1/0.2 sensitivity, and continuous excess severity. SafetyCost v22
+changes only the speed component. Source-invalid and execution-failed arms
+remain in retained pair rows and the denominator. The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST`
+with root SHA256
+`c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478`;
+`88 / 88` relevant AutoDL tests passed. Native single-tick and tiny multi-route
+capability preflight is next; it precedes any model load.
+
+current_v22_status=v22_task3_speed_retained_failures_passed
+current_v22_artifact_source_head=d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd
+current_v22_prior_gate_final_synced_head=d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST
-current_v22_artifact_root_sha256=9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e
-next_work_target=v22_task3_speed_protocol_and_retained_failure_rows_tdd_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST
+current_v22_artifact_root_sha256=c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478
+next_work_target=v22_native_single_tick_and_tiny_multi_route_capability_preflight_only
 
 ## Current V21 Status
 

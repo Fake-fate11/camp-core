@@ -435,3 +435,52 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task2_source_valid_selector_receipts_f83f76c6_20260714T195440CST
 current_v22_artifact_root_sha256=9eaf7ca17c5946e144c8bc59e017e971dbda37f7f9eb379663d7656b3eabc88e
 next_work_target=v22_task3_speed_protocol_and_retained_failure_rows_tdd_only
+
+## Task 3: Speed Protocol and Retained Failure Rows
+
+Status: passed.
+
+The new focused v22 native metric module preserves all v21 collision,
+near-miss, drivable-area, wrong-way, and red-light definitions. It reports raw
+strict speed events using the existing `1e-6 m/s` comparison epsilon, freezes
+the primary operational tolerance at `0.1 m/s`, reports calibration
+sensitivity at `0/0.05/0.1/0.2 m/s`, and records maximum/mean excess,
+positive-excess duration, and excess magnitude-duration.
+
+`SafetyCost Native v22` retains the v21 formula and replaces only its speed
+component with the 0.1 m/s operational event rate. The strict count/ticks and
+full sensitivity remain present and are never hidden. The existing native arm
+receipt builder now dispatches explicitly between `safety_cost_native_v1` and
+`safety_cost_native_v22`; the v21 config remains on v1.
+
+The retained-pair row helper accepts complete, source-invalid, and execution-
+failed arms. Every row sets `included_in_denominator=true`, keeps both arm
+statuses, failure stage/reason, hard-invalid/execution flags, and
+all-K-high-risk stratum. It has no deletion, replacement, redraw, or retry
+path.
+
+The immutable artifact is
+`/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST`
+with root SHA256
+`c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478`.
+It records `run.exit=0`, empty stderr, matched CAMP HEAD/origin, fixed DP HEAD,
+tracked-clean repositories, no related running job, exact command,
+stdout/stderr, summary JSON/MD, `SHA256SUMS`, and `ROOT_SHA256SUMS`. The
+complete relevant AutoDL suite passed `88 / 88`; local v22/v21 metric,
+runner, and hook tests passed `38 / 38`, with py_compile and diff checks passed.
+
+No model was loaded, no simulator was executed, no candidate was generated,
+no training ran, no holdout was opened, and no claim was made. The next gate
+is a static native capability preflight for the single-tick and tiny
+multi-route regression. It must verify exact v22 policy wiring, hashes,
+candidate immutability receipts, source-only route use, fixed seeds, and the
+absence of a related running task before model load.
+
+current_v22_status=v22_task3_speed_retained_failures_passed
+current_v22_artifact_source_head=d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd
+current_v22_prior_gate_final_synced_head=d9eab84eb301935fa99a4f7b26e3259fa4cd8ccd
+current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_task3_speed_retained_failures_d9eab84e_20260714T200250CST
+current_v22_artifact_root_sha256=c568c2b589621b4de05fb10c5b3f75daf939dcdcd3bf2081dfd948b427e57478
+next_work_target=v22_native_single_tick_and_tiny_multi_route_capability_preflight_only
