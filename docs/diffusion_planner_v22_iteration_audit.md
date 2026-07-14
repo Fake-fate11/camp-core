@@ -1292,11 +1292,68 @@ with exit 0. It built no runner, loaded no model, executed no simulator, and
 read no holdout outcome. The next gate may run the same frozen 90 attempts
 exactly once and must retain any source/execution failure without replacement.
 
-current_v22_status=v22_corrected_native_calibration_corpus_execution_preflight_passed
-current_v22_artifact_source_head=7d36c199496949f205b0f1f5e572297f9c54bacc
-current_v22_prior_gate_final_synced_head=7d36c199496949f205b0f1f5e572297f9c54bacc
+Its exact target was `v22_corrected_native_calibration_corpus_execution_only`.
+
+## Corrected Native Calibration Corpus and Independent Review
+
+Status: passed; calibration evidence is ready for selector freeze and pilot
+preflight work.
+
+One controller invocation performed the ff-only update and exited before
+artifact creation because its full CAMP SHA was guessed incorrectly. A live
+read then confirmed the actual full SHA, corrected output absence, and no
+related process. No model or simulator ran in that failed launch attempt. The
+corrected invocation started exactly one task.
+
+The corrected execution ran at CAMP HEAD
+`b8bab7a0460496d896d4efdb527281731f5aafa8` and fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Planned / retained /
+complete / failed were again `90 / 90 / 89 / 1`. Route coverage is `1.0`.
+The same route identity
+`1f621dfd5ef7d16c036520249f7521772f8377257e4ac57f63d060990221c957`
+at seed 22102 was retained with `native safety metric source is incomplete`,
+so hard-source-failure rate remains `1 / 90 = 0.011111111111111112`. It was
+not deleted, replaced, or redrawn.
+
+All `1,170 / 1,170` content-addressed snapshots were retained, and all now
+carry the frozen calibration provenance. Five are all-K-high-risk. Successful
+source-stratum counts are 1,157 branch-intersection, 1,157 tight-corridor, and
+494 traffic-light snapshots. Wall-clock was `2,854 s`. The v18 selector
+remained collection behavior only; the v22 candidate was not yet frozen as
+primary.
+
+The immutable corrected execution artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_7d36c199`
+/ `07255ae24e1038860c22227822787c63f39e21cdde7e8f91d6829a716b8a8335`,
+with `run.exit=0`.
+
+The independent reviewer rehashed the execution and remediation TDD roots,
+then repeated `24,224 independent checks` with zero failures. It verified all
+90 route-seed receipts and the exact source-only cross-product; all content
+hashes and tick coverage; feature identity denylist; finite 8 x 14 atoms;
+source-valid and physical masks; 5 all-K-high-risk receipts; source strata;
+and holdout absence. DP operational-default/candidate-0 identity and candidate
+tensor immutability passed `1,170 / 1,170`. Calibration provenance passed
+`1,170 / 1,170`.
+
+The immutable review artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST`
+/ `c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a`,
+with `run.exit=0`. The review loaded no model and ran no solver or simulator.
+No holdout outcome was read and no claim is authorized.
+
+The next target is TDD for calibration-only selector freeze and pilot
+preflight. It may use calibration snapshots to compare the already trained
+v22 candidate and v18 ablation under the frozen causal surrogate and speed
+tolerance sensitivity, but may not retrain weights, alter train-only scales,
+read holdout, or start pilot execution before the freeze artifact and static
+preflight pass.
+
+current_v22_status=v22_corrected_native_calibration_corpus_and_independent_review_passed
+current_v22_artifact_source_head=b8bab7a0460496d896d4efdb527281731f5aafa8
+current_v22_prior_gate_final_synced_head=b8bab7a0460496d896d4efdb527281731f5aafa8
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_preflight_7d36c199_20260715T010211CST
-current_v22_artifact_root_sha256=390d5627abbf8974873b1bc761739d97294f55320b9c256114a8b4a129cc7a5a
-next_work_target=v22_corrected_native_calibration_corpus_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST
+current_v22_artifact_root_sha256=c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a
+next_work_target=v22_calibration_selector_freeze_and_pilot_preflight_tdd_only

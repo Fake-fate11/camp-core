@@ -400,14 +400,31 @@ and no corrected output; and recorded `50,324,267,008` free bytes. Artifact/root
 No model/simulator/holdout ran. Exactly one corrected rerun over the unchanged
 90-attempt denominator is authorized.
 
-current_v22_status=v22_corrected_native_calibration_corpus_execution_preflight_passed
-current_v22_artifact_source_head=7d36c199496949f205b0f1f5e572297f9c54bacc
-current_v22_prior_gate_final_synced_head=7d36c199496949f205b0f1f5e572297f9c54bacc
+The corrected calibration corpus and independent review passed at CAMP HEAD
+`b8bab7a0460496d896d4efdb527281731f5aafa8`. Planned / retained /
+complete / failed were `90 / 90 / 89 / 1`; route coverage is 1.0 and the same
+deterministic hard-source failure remains `1 / 90`. All 1,170 snapshots were
+retained, including 5 all-K-high-risk snapshots. Wall-clock was 2,854 seconds.
+Execution artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_7d36c199`
+/ `07255ae24e1038860c22227822787c63f39e21cdde7e8f91d6829a716b8a8335`.
+
+Independent review passed `24,224 / 0` checks. Candidate-0 identity and tensor
+immutability passed `1,170 / 1,170`; all provenance receipts are corrected.
+Review artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST`
+/ `c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a`.
+No holdout was opened and no safety claim is authorized. Next is calibration
+selector-freeze and pilot-preflight TDD only.
+
+current_v22_status=v22_corrected_native_calibration_corpus_and_independent_review_passed
+current_v22_artifact_source_head=b8bab7a0460496d896d4efdb527281731f5aafa8
+current_v22_prior_gate_final_synced_head=b8bab7a0460496d896d4efdb527281731f5aafa8
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_preflight_7d36c199_20260715T010211CST
-current_v22_artifact_root_sha256=390d5627abbf8974873b1bc761739d97294f55320b9c256114a8b4a129cc7a5a
-next_work_target=v22_corrected_native_calibration_corpus_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_calibration_corpus_corrected_independent_review_b8bab7a0_20260715T015350CST
+current_v22_artifact_root_sha256=c73c1b35a29294a7a14d02326bedb2f213e25cd8771bcdf165d747e0677d047a
+next_work_target=v22_calibration_selector_freeze_and_pilot_preflight_tdd_only
 
 ## Current V21 Status
 
