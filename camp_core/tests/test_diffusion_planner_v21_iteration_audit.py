@@ -6,13 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v21_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v21_status=v21_native_scenario_generation_capability_provenance_audit_passed",
-    "current_v21_artifact_source_head=b419acf31eea7323232f117e8009f5eb9e19e318",
+    "current_v21_status=v21_native_simulator_paired_closed_loop_design_self_review_passed",
+    "current_v21_artifact_source_head=0937174beead161854b6e273020e53fcca589409",
+    "current_v21_prior_gate_final_synced_head=0937174beead161854b6e273020e53fcca589409",
     "current_v21_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_capability_audit_b419acf3_20260714T154035CST",
-    "current_v21_artifact_root_sha256=47016fa5e4e397eec27b705cb122cab0c7d3f23c50cf03f84b41cf175ea15ac2",
-    "next_work_target=v21_native_simulator_paired_closed_loop_design_spec_and_self_review_only",
+    "current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_design_self_review_0937174b_20260714T155319CST",
+    "current_v21_artifact_root_sha256=5fa62b35bdc1b3f65b26077d98b2d150d3e274186d36e747ddaa3159c01221d1",
+    "next_work_target=v21_native_simulator_minimal_tdd_plan_only",
 )
 
 

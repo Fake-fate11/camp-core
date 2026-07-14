@@ -40,22 +40,41 @@ independent output equality and immutable bytes first.
 
 The Gate A artifact was sealed and independently rehashed at root
 `47016fa5e4e397eec27b705cb122cab0c7d3f23c50cf03f84b41cf175ea15ac2`.
-No inference, simulation, training, holdout access, formal seed, claim,
-promotion, deployment, or activation occurred. Gate B is design/spec and
-self-review only.
+Its final synced HEAD is
+`0937174beead161854b6e273020e53fcca589409`. No inference, simulation,
+training, holdout access, formal seed, claim, promotion, deployment, or
+activation occurred.
 
-`current_v21_final_synced_head` is intentionally pending in this first v21
-docs commit. The artifact source HEAD is fixed; after this docs commit exists,
-the next v21 entry must record that exact commit as Gate A's final synced HEAD.
-The pending marker therefore cannot be interpreted as source drift.
+Gate B selected one CAMP-side thin hook around native `run_route_replay` over
+copying the native loop or modifying fixed DP. It froze the 31-frame native
+padding receipt, isolated K=8 construction, exact default/candidate-0 proof,
+immutable candidate hashes, causal 14D simplex-affine selector, paired arm
+symmetry, native MPC, SafetyCost Native v1, secondary metrics, latency, and two
+non-formal 64-tick routes. Smoke remains chain evidence only.
 
-current_v21_status=v21_native_scenario_generation_capability_provenance_audit_passed
-current_v21_artifact_source_head=b419acf31eea7323232f117e8009f5eb9e19e318
+Self-review found Shapely absent before the spec was sealed. No artifact,
+download, install, inference, or simulator run occurred in that failed
+pre-seal attempt. The design therefore uses the honest native Lanelet2
+five-point drivable-coverage proxy and does not call it full polygon coverage.
+The failed reason is preserved in the successful artifact. Route 58-to-55 was
+also rejected before outcomes because its 2.98 m start-goal geometry can
+trigger premature native goal-pass termination; route 59-to-86 is frozen.
+
+Gate B root `5fa62b35bdc1b3f65b26077d98b2d150d3e274186d36e747ddaa3159c01221d1`
+reverified. The next gate is the minimal TDD plan only.
+
+`current_v21_final_synced_head` is pending for the current Gate B docs commit.
+The exact prior Gate A final synced HEAD is separately recorded, so the pending
+marker cannot be mistaken for artifact-source or endpoint drift.
+
+current_v21_status=v21_native_simulator_paired_closed_loop_design_self_review_passed
+current_v21_artifact_source_head=0937174beead161854b6e273020e53fcca589409
+current_v21_prior_gate_final_synced_head=0937174beead161854b6e273020e53fcca589409
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_capability_audit_b419acf3_20260714T154035CST
-current_v21_artifact_root_sha256=47016fa5e4e397eec27b705cb122cab0c7d3f23c50cf03f84b41cf175ea15ac2
-next_work_target=v21_native_simulator_paired_closed_loop_design_spec_and_self_review_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_design_self_review_0937174b_20260714T155319CST
+current_v21_artifact_root_sha256=5fa62b35bdc1b3f65b26077d98b2d150d3e274186d36e747ddaa3159c01221d1
+next_work_target=v21_native_simulator_minimal_tdd_plan_only
 
 ## Current V20 Status
 

@@ -192,12 +192,109 @@ No inference, simulation, training, holdout access, claim, promotion,
 deployment, activation, DP modification, candidate generation, or metric
 comparison occurred.
 
+## Gate B: Paired Native Closed-loop Design and Self-review
+
+Status: passed after one preserved pre-seal dependency correction.
+
+Gate A was committed, pushed, and fast-forwarded on AutoDL at
+`0937174beead161854b6e273020e53fcca589409`. This is Gate A's final synced
+HEAD. Its evidence source HEAD remains `b419acf3...`; the two roles are now
+explicit.
+
+Three minimum approaches were reviewed:
+
+1. a CAMP-side signature-compatible hook around native `run_route_replay` was
+   selected;
+2. copying the native replay loop was rejected as a parallel framework;
+3. changing fixed DP was rejected as a hard boundary.
+
+The design is frozen in
+`docs/superpowers/specs/2026-07-14-v21-native-simulator-paired-closed-loop-design.md`.
+It retains native `SceneContext`, route builder, NPC manager, traffic-light
+controller, map refresh, operational non-ego policy, and MPC. Only the ego
+planning callback can select one immutable current-tick candidate; a
+pass-through wrapper measures tracker latency.
+
+The spec freezes:
+
+- native 31-frame causal input and
+  `padding_policy=native_zero_left_pad_to_31_v1`, with observed/padded counts
+  and deterministic input SHA;
+- direct operational output first, candidate 0 reusing those exact bytes, and
+  seven isolated extra fixed-DP latents;
+- an independent Gate D default/candidate-0 exact identity proof before
+  operational Top-1 naming;
+- K=8 tensor SHA before/after equality and exact selected-index bytes;
+- the existing corrected `dp_camp_v10_14d` scales/weights, nonnegative simplex,
+  and `score_k(w)=a_k^T w`;
+- two fresh native arms per pair with identical authored route, initial state,
+  native seed/policy/TL/tracker/map config, and natural causal divergence after
+  the first action;
+- explicit `sg_smooth_enabled=false`, `dump_npz_dir=null`, native MPC, and
+  `max_steps=64`, which makes the post-400-tick nudge unreachable;
+- SafetyCost Native v1 using realized collision, noncollision near miss,
+  offroad proxy, wrong-way, red stop-line crossing, and speed-limit rates;
+- paired deltas, better/tie/worse, later scene/route/seed cluster CI95, and
+  no smoke claim.
+
+The first pre-seal runtime review failed because Shapely is not installed in
+the frozen DP environment. No artifact had been created, and no download or
+install occurred. Systematic review proved native Lanelet2 provides exact
+point-in-lanelet tests but no polygon-union coverage overload. Before any
+simulator outcome, the spec was narrowed to an honestly named five-point
+drivable-coverage proxy using the ego center plus four OBB corners. It is not
+called full polygon coverage. The failure reason is preserved in the sealed
+artifact.
+
+Gate A's provisional TL route `58_to_55` was also rejected before outcomes:
+its authored start and goal are only 2.98 m apart on a looping route, which can
+interact with native goal-pass termination. Gate E instead freezes existing
+routes `sample_map_smoke_route.pkl` and `sample_map_tl_route_59_to_86.pkl`,
+non-formal seeds 3417/3418, and 64 ticks.
+
+The SafetyCost formula is frozen as:
+
+```text
+100 * collision_any
++ 10 * near_miss_noncollision_rate
++ 20 * offroad_rate
++ 20 * wrong_way_rate
++ 30 * red_light_violation_any
++ 10 * speed_limit_violation_rate
+```
+
+Missing sources or denominators fail the pair rather than becoming zero.
+Road-border clearance, constant-velocity diagnostic TTC, route progress,
+comfort, and latency remain secondary. ADE/FDE/miss are absent because authored
+route replay has no legal expert GT future.
+
+Immutable Gate B artifact:
+
+- path:
+  `/root/autodl-tmp/camp_dp_v21_native_simulator_design_self_review_0937174b_20260714T155319CST`;
+- root SHA256:
+  `5fa62b35bdc1b3f65b26077d98b2d150d3e274186d36e747ddaa3159c01221d1`;
+- stdout SHA256:
+  `586330234eea48e3bf295bf4c7855cf22e98bfd71ac6b5831ac6281eba3deb21`;
+- `run.exit=0`, empty current stderr, all eleven payload hashes reverified,
+  directory mode 555 and payload mode 444.
+
+The artifact includes the spec, contract test, pre-seal failure reason, heads,
+fixed asset/route/map hashes, route-geometry diagnosis, command, stdout,
+stderr, JSON/Markdown, SHA256SUMS, and root SHA. Local design plus pointer tests
+report `6 passed`.
+
+No model load, inference, simulator run, training, holdout access, formal seed,
+claim, promotion, deployment, activation, or DP modification occurred. No
+scientific ambiguity remains before a minimal TDD plan.
+
 ## Authoritative EOF Pointer
 
-current_v21_status=v21_native_scenario_generation_capability_provenance_audit_passed
-current_v21_artifact_source_head=b419acf31eea7323232f117e8009f5eb9e19e318
+current_v21_status=v21_native_simulator_paired_closed_loop_design_self_review_passed
+current_v21_artifact_source_head=0937174beead161854b6e273020e53fcca589409
+current_v21_prior_gate_final_synced_head=0937174beead161854b6e273020e53fcca589409
 current_v21_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_capability_audit_b419acf3_20260714T154035CST
-current_v21_artifact_root_sha256=47016fa5e4e397eec27b705cb122cab0c7d3f23c50cf03f84b41cf175ea15ac2
-next_work_target=v21_native_simulator_paired_closed_loop_design_spec_and_self_review_only
+current_v21_artifact=/root/autodl-tmp/camp_dp_v21_native_simulator_design_self_review_0937174b_20260714T155319CST
+current_v21_artifact_root_sha256=5fa62b35bdc1b3f65b26077d98b2d150d3e274186d36e747ddaa3159c01221d1
+next_work_target=v21_native_simulator_minimal_tdd_plan_only
