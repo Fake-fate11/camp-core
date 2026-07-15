@@ -1110,3 +1110,61 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_corpus_plan_tdd_artifact_layout_remediation_static_preflight_only
+
+## Gate 18: Split Seed-Namespace and Artifact-Path Remediation Preflight
+
+Status: passed. Corrected split-manifest execution is next.
+
+While adapting the reviewed split to the existing native corpus contract, the
+controller found that the first manifest reused numeric seeds `24001-24005` in
+train, calibration, and holdout. Route-seed pairs were distinct because routes
+were disjoint, but the explicit v24 contract also requires the numeric seed
+namespace itself not to cross a split. No corpus, outcome, calibration, or
+holdout execution had begun, so a source-only remediation remains legal.
+
+The sealed Gate 17 review is preserved; it is superseded only as a future
+corpus/evaluation input. The corrected namespaces are:
+
+- train: `24001-24005`;
+- calibration: `24101-24105`;
+- holdout: `24201-24205`.
+
+Every route still has exactly five primary seeds, and the first seed in each
+namespace is its split's pilot seed. Route and route-seed counts remain
+`375 / 2 / 24` and `1875 / 10 / 120`. The new plan SHA is
+`52ea1a5c498c73be64ed9a2f4ec6093574eb534f25e7dd0f82081b683a376539`.
+
+The same TDD checkpoint also fixes future atomic evidence receipts: absolute
+paths rooted under a staging `.tmp` directory are rewritten to the final
+artifact root before sealing. It changes no scientific tensor or old sealed
+artifact, and the successful single-record source probe is not rerun.
+
+All `41 / 0` remediation preflight checks passed. Remote script compilation,
+all 45 v24 tests, and diff check passed. CAMP/DP tracked state remained clean at
+`0cc08b26fa1a12ea9160f95e59bc1ae59ff52324` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable remediation preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_preflight_0cc08b26_20260715T212416CST`
+/
+`7e08bcb6a4598398eeb427bc9f3a7267572090ec448c5b3a7e66b4367c46e9a1`.
+
+The next gate may only materialize the corrected split manifest from this plan.
+It may not generate a corpus, model candidate, label, outcome, or holdout
+result.
+
+current_v24_status=v24_split_seed_namespace_remediation_preflight_passed
+current_v24_artifact_source_head=0cc08b26fa1a12ea9160f95e59bc1ae59ff52324
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_preflight_0cc08b26_20260715T212416CST
+current_v24_artifact_root_sha256=7e08bcb6a4598398eeb427bc9f3a7267572090ec448c5b3a7e66b4367c46e9a1
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=split_seed_remediation_preflight_passed_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_split_seed_namespace_remediation_execution_only
