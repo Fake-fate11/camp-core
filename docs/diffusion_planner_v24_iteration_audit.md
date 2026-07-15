@@ -1168,3 +1168,51 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_split_seed_namespace_remediation_execution_only
+
+## Gate 19: Corrected Split Seed-Namespace Execution
+
+Status: passed. Independent review of the corrected manifest is next.
+
+The execution consumed remediation plan SHA
+`52ea1a5c498c73be64ed9a2f4ec6093574eb534f25e7dd0f82081b683a376539`
+and materialized all 401 route records with 2005 route-seed assignments. Map
+family, corridor group, route identity, and split assignments are unchanged
+from the first split. Only the preregistered numeric seed namespaces differ:
+train `24001-24005`, calibration `24101-24105`, and holdout `24201-24205`.
+Their union has 15 members and every cross-split intersection is empty.
+
+The corrected manifest SHA is
+`ba814ee3da89fc6d9b3ae1ce9a9929e38bebc6349f3871f8d105f285207bf5fa`.
+Route and route-seed counts remain `375 / 2 / 24` and `1875 / 10 / 120`.
+No route was dropped, replaced, or reassigned. No corpus, simulator, model,
+candidate, label, outcome, calibration, or holdout execution occurred.
+
+All `41 / 0` execution checks passed. Remote script compilation, all 45 v24
+tests, and diff check passed. CAMP/DP tracked state remained clean at
+`6f3e923f6fe3a1ff3c15d05a0cd8bfc45cb3d337` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable corrected execution artifact/root:
+`/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_execution_6f3e923f_20260715T212602CST`
+/
+`3f51241b575c00f091d5aa283aaf78f1a10816f2a11cf4bbc50346675f79cd42`.
+
+The next gate independently rehashes and recomputes the corrected manifest,
+including numeric seed-namespace zero overlap. It may not call split execution
+or begin corpus generation.
+
+current_v24_status=v24_split_seed_namespace_remediation_execution_passed
+current_v24_artifact_source_head=6f3e923f6fe3a1ff3c15d05a0cd8bfc45cb3d337
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_execution_6f3e923f_20260715T212602CST
+current_v24_artifact_root_sha256=3f51241b575c00f091d5aa283aaf78f1a10816f2a11cf4bbc50346675f79cd42
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=split_seed_remediation_execution_passed_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_split_seed_namespace_remediation_independent_review_only
