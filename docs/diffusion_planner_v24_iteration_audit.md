@@ -501,3 +501,60 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_outcome_blind_route_census_tdd_preflight_only
+
+## Gate 8: Outcome-Blind Route-Census TDD and Preflight
+
+Status: passed. Route-census execution is next.
+
+The route contract makes one attempt per fixed-builder drivable start lanelet.
+It sorts starts, follows the smallest numeric unvisited successor, prevents a
+lanelet repeat, and keeps the first source-arc prefix reaching `>=80m`. A dead
+end, cycle, or the frozen 100-hop ceiling ends that attempt without redrawing
+it. Every qualifying and nonqualifying start remains in the denominator.
+
+Exact directed geometry identities are sampled at 1m, quantized at 1mm, and
+deduplicated only inside the adjudicated map family. All duplicate source
+records retain receipts. The existing source-only corridor thresholds are
+frozen at `3m / 20 samples / 15 degrees`; connected components remain
+indivisible for split construction instead of being counted as independent
+support. No result was used to select any threshold or route.
+
+The preflight reverified the static-census, fixed-builder, and map-family roots
+and built the full execution plan without running a worker. The plan contains
+`10 blobs / 12 paths / 4 map families`; the empty and intersection maps keep
+their earlier map-local failure receipts. Lanelet2 1.2.2, the fixed-DP builder,
+and both source-preserving adapter functions import in the isolated runtime.
+The worker call order is regulatory adapter, projection fallback, then builder.
+
+All `30 / 0` checks passed. AutoDL had `49,740,017,664` free bytes, zero active
+route-census processes, aligned clean CAMP/origin at
+`78a276f9bd7323b681cd8a440ba8d36262335292`, and clean fixed DP at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL also passed all 27 v24
+tests, four-script compilation, and diff checks.
+
+Route census execution did not start. The model, candidate generation,
+outcome, and holdout remained unopened. No source map, DP file, route asset,
+split, seed, corpus, selector, or claim changed. Immutable preflight
+artifact/root:
+`/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_preflight_78a276f9_20260715T203134CST`
+/
+`2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a`.
+
+Source B continues, and no global stop is authorized. The next gate may run
+the frozen route census once, preserving each map and start-lanelet receipt.
+
+current_v24_status=v24_outcome_blind_route_census_preflight_passed
+current_v24_artifact_source_head=78a276f9bd7323b681cd8a440ba8d36262335292
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_preflight_78a276f9_20260715T203134CST
+current_v24_artifact_root_sha256=2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=route_census_preflight_passed_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_outcome_blind_route_census_execution_only

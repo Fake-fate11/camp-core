@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_merged_map_family_census_passed",
-    "current_v24_artifact_source_head=24882c5218199e0fb9d73b513be0a5feba1f1b08",
+    "current_v24_status=v24_outcome_blind_route_census_preflight_passed",
+    "current_v24_artifact_source_head=78a276f9bd7323b681cd8a440ba8d36262335292",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_merged_map_family_census_24882c52_20260715T202223CST",
-    "current_v24_artifact_root_sha256=33626198d8945e7f102946005bfa6b9db4762d93b1146896c9ebfd99ad633717",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_preflight_78a276f9_20260715T203134CST",
+    "current_v24_artifact_root_sha256=2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=map_family_census_passed_route_census_pending",
+    "source_b_status=route_census_preflight_passed_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_outcome_blind_route_census_tdd_preflight_only",
+    "next_work_target=v24_outcome_blind_route_census_execution_only",
 )
 
 
@@ -221,5 +221,23 @@ def test_v24_map_family_census_is_outcome_blind_and_keeps_failures_local() -> No
         "Route census, candidate generation, outcomes, and holdout remained unopened",
         "`16 / 0` checks",
         "33626198d8945e7f102946005bfa6b9db4762d93b1146896c9ebfd99ad633717",
+    ):
+        assert phrase in text
+
+
+def test_v24_route_census_preflight_freezes_execution_without_starting_it() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "one attempt per fixed-builder drivable start lanelet",
+        "smallest numeric unvisited successor",
+        "first source-arc prefix reaching `>=80m`",
+        "`10 blobs / 12 paths / 4 map families`",
+        "`3m / 20 samples / 15 degrees`",
+        "`30 / 0` checks",
+        "`49,740,017,664` free bytes",
+        "zero active route-census processes",
+        "Route census execution did not start",
+        "model, candidate generation, outcome, and holdout remained unopened",
+        "2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a",
     ):
         assert phrase in text
