@@ -946,3 +946,64 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_map_family_split_plan_tdd_static_preflight_only
+
+## Gate 15: Map-Family Split Plan, TDD, and Static Preflight
+
+Status: passed. Split-manifest execution is next.
+
+The outcome-blind plan consumes only the sealed 401-route census and makes
+each map family indivisible. It enumerates all nonempty family assignments and
+minimizes absolute route-count deviation from 70/10/20; ties prefer holdout
+closest to 20%, then the larger train set, then lexicographic order. No K=8
+score, outcome, label, metric, holdout result, or prior route performance is an
+input.
+
+The source-only assignment is:
+
+- `map_family_d7f16a17d3eb`, Kashi/standard, 375 routes: train;
+- `map_family_f62e06cd1303`, simple-cross, 2 routes: calibration;
+- `map_family_828a913c2f9a`, four-track-highway, 24 routes: holdout.
+
+This yields `375 / 2 / 24` routes and `1875 / 10 / 120` route-seed records.
+Primary seeds are frozen as `24001, 24002, 24003, 24004, 24005`; seed 24001
+is the sole pilot seed. All five corridor groups, each route, and all seeds for
+that route remain within one family-level split. The skewed ratio is an honest
+consequence of whole-family isolation; no route can cross a family boundary to
+improve it.
+
+All `41 / 0` preflight checks passed. Every source-manifest file rehashed, the
+route denominator and five corridor groups were fully covered, and three
+supporting families were reproduced. Plan SHA is
+`55fc3f0aeca1daff1177d533394162b44e0684f7a9e0756d1981042baa265ff3`.
+The preflight did not materialize a formal split manifest or load a model,
+generate candidates, access outcomes, or open holdout.
+
+Remote script compilation, all 42 v24 tests, and diff check passed. Free space
+was 46.29 GiB. CAMP/DP tracked state remained clean at
+`c4287db16490f9e39fb6ce87f908c07da4156410` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v24_map_family_split_static_preflight_c4287db1_20260715T211347CST`
+/
+`3e3254858ed5daacd1d97f3967bd598e54fdf707f67c66ac3908ba7d46a7eff7`.
+
+Branch B continues. The next gate may only materialize all 401 route identities,
+their family/corridor membership, assigned split, and five frozen seeds from
+this exact plan. It may not run a simulator or access holdout outcomes.
+
+current_v24_status=v24_map_family_split_static_preflight_passed
+current_v24_artifact_source_head=c4287db16490f9e39fb6ce87f908c07da4156410
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_map_family_split_static_preflight_c4287db1_20260715T211347CST
+current_v24_artifact_root_sha256=3e3254858ed5daacd1d97f3967bd598e54fdf707f67c66ac3908ba7d46a7eff7
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=split_static_preflight_passed_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_map_family_split_execution_only
