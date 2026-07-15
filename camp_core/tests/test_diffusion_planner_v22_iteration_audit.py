@@ -6,14 +6,14 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v22_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v22_status=v22_main_reviewer_pilot_freeze_preflight_passed",
-    "current_v22_artifact_source_head=cc0ab63266772a266071c71d729c3d43cb66c616",
-    "current_v22_prior_gate_final_synced_head=452bb54ed8d40896ec12fda6c39b343b63262d67",
+    "current_v22_status=v22_native_paired_closed_loop_honest_no_claim_closeout",
+    "current_v22_artifact_source_head=e87542bd54889396266888f541c1d40a2ce9f860",
+    "current_v22_prior_gate_final_synced_head=e87542bd54889396266888f541c1d40a2ce9f860",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST",
-    "current_v22_artifact_root_sha256=4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df",
-    "next_work_target=v22_native_paired_main_execution_only",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST",
+    "current_v22_artifact_root_sha256=3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7",
+    "next_work_target=no_further_action_v22_honest_no_claim_closeout_complete",
 )
 
 
@@ -399,3 +399,29 @@ def test_v22_records_pilot_review_statistics_and_main_preflight() -> None:
         "v22_native_paired_main_execution_only",
     ):
         assert phrase in text
+
+
+def test_v22_records_main_review_evidence_package_and_honest_closeout() -> None:
+    audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    status = " ".join(STATUS.read_text(encoding="utf-8").split())
+    for phrase in (
+        "500 / 500 / 484 / 16",
+        "20,785 s",
+        "25 / 447 / 12",
+        "-0.07569608421881148 / 0.0",
+        "[-0.17734981903248587, 0.0021371939838047693]",
+        "41 all-K-high-risk pairs",
+        "26,944 / 4,032",
+        "731 all-K-high-risk ticks",
+        "ce3ce77db8b7209e60c69bf7927bc06e9fab6c0fb36a4c295f1ac286854277b9",
+        "169,234 / 0",
+        "9a8dbd5dc47991071b4aacc920acd7b2079c38135f0feb579da7d6086c2f80fb",
+        "overall_ci95_upper",
+        "offroad_mean_delta",
+        "honest_no_claim",
+        "52a0d5217bde2ec4d54d79aa9089b4c421eddd9576107d97d269151f0c268b94",
+        "3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7",
+        "no_further_action_v22_honest_no_claim_closeout_complete",
+    ):
+        assert phrase in audit
+        assert phrase in status

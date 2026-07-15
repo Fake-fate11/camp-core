@@ -555,14 +555,51 @@ kept an honest no-claim. Artifact/root:
 / `4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df`.
 The main holdout remained unopened.
 
-current_v22_status=v22_main_reviewer_pilot_freeze_preflight_passed
-current_v22_artifact_source_head=cc0ab63266772a266071c71d729c3d43cb66c616
-current_v22_prior_gate_final_synced_head=452bb54ed8d40896ec12fda6c39b343b63262d67
+The one-shot v22 main holdout and independent result review are complete. CAMP
+HEAD was `e87542bd54889396266888f541c1d40a2ce9f860`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Planned / retained / complete /
+hard-invalid were `500 / 500 / 484 / 16`, with route coverage 1.0, paired-
+complete rate 0.968, hard-invalid rate 0.032, and zero execution failures. All
+16 symmetric source-validation failures remain in the denominator.
+
+Across complete pairs, better / tie / worse were `25 / 447 / 12`; mean /
+median SafetyCost delta was `-0.07569608421881148 / 0.0`, and frozen cluster
+CI95 was `[-0.17734981903248587, 0.0021371939838047693]`. There were 41
+all-K-high-risk pairs. Candidate 0 / non-candidate 0 selections were
+`26,944 / 4,032`; 731 all-K-high-risk ticks continued through the frozen
+source-valid affine score. Main wall-clock was `20,785 s`. Execution
+artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_main_execution_e87542bd_20260715T092839CST`
+/ `ce3ce77db8b7209e60c69bf7927bc06e9fab6c0fb36a4c295f1ac286854277b9`.
+
+The independent reviewer passed `169,234 / 0` checks and recomputed all
+coverage, component, secondary, latency, speed-sensitivity, and four-level
+bootstrap results. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_main_independent_review_e87542bd_20260715T153741CST`
+/ `9a8dbd5dc47991071b4aacc920acd7b2079c38135f0feb579da7d6086c2f80fb`.
+The deterministic decision is `honest_no_claim`: `overall_ci95_upper` and
+`offroad_mean_delta` failed. No threshold, model, route, or result was changed.
+
+The first evidence-package attempt honestly failed on a historical sealed
+selector-review artifact that has summary `run_exit=0` but no standalone
+`run.exit`; it was finalized at root
+`52a0d5217bde2ec4d54d79aa9089b4c421eddd9576107d97d269151f0c268b94`.
+The corrected package records that gap explicitly and verifies 12 upstream
+roots without modifying them. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST`
+/ `3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7`.
+
+V22 is closed as an auditable `honest_no_claim`; unseen-map generalization,
+promotion, deployment, and online activation remain unauthorized.
+
+current_v22_status=v22_native_paired_closed_loop_honest_no_claim_closeout
+current_v22_artifact_source_head=e87542bd54889396266888f541c1d40a2ce9f860
+current_v22_prior_gate_final_synced_head=e87542bd54889396266888f541c1d40a2ce9f860
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST
-current_v22_artifact_root_sha256=4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df
-next_work_target=v22_native_paired_main_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST
+current_v22_artifact_root_sha256=3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7
+next_work_target=no_further_action_v22_honest_no_claim_closeout_complete
 
 ## Current V21 Status
 

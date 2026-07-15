@@ -1672,11 +1672,108 @@ chain before holdout; it is not a second pilot execution. Artifact/root:
 with `run.exit=0`. The pilot execution is locked and the main holdout remained
 unopened. Exact next target: `v22_native_paired_main_execution_only`.
 
-current_v22_status=v22_main_reviewer_pilot_freeze_preflight_passed
-current_v22_artifact_source_head=cc0ab63266772a266071c71d729c3d43cb66c616
-current_v22_prior_gate_final_synced_head=452bb54ed8d40896ec12fda6c39b343b63262d67
+## One-shot Main Holdout, Independent Review, and Honest No-claim Closeout
+
+Status: complete with an honest no-claim. No holdout rerun, model change,
+threshold change, route replacement, promotion, deployment, or online activation
+is authorized.
+
+The one authorized main evaluator ran at CAMP HEAD
+`e87542bd54889396266888f541c1d40a2ce9f860` and fixed DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. It opened the frozen holdout
+once and executed all 100 routes x 5 seeds. Planned / retained / paired-complete
+/ hard-invalid were `500 / 500 / 484 / 16`; route coverage was 1.0,
+paired-complete rate was 0.968, hard-invalid rate was 0.032, and execution-
+failure count was zero. Every preregistered row remains in the denominator.
+
+All 16 incomplete pairs are symmetric source failures at `source_validation`:
+both arms report `native safety metric source is incomplete`. They cover four
+frozen route identities and seeds 22201/22202/22203/22205. None was deleted,
+retried, replaced, redrawn, or forced to candidate 0.
+
+Across the 484 complete pairs, better / tie / worse were `25 / 447 / 12`.
+Mean / median CAMP-minus-DP SafetyCost were `-0.07569608421881148 / 0.0`;
+the frozen four-level cluster CI95 was
+`[-0.17734981903248587, 0.0021371939838047693]`. Normal / stress counts were
+5 / 479. The 41 all-K-high-risk pairs had mean 0.07240853658536585 and CI95
+[-0.0026939655172413795, 0.20359848484848486]; all continued through the same
+source-valid affine argmin.
+
+Mean component deltas and CI95 were: collision `0.0 / [0.0, 0.0]`, near miss
+`0.00016141528925619835 / [-0.00044835081205121254,
+0.0009362086776859504]`, offroad `0.00029054752066115703 /
+[-0.0008892276422764227, 0.0017957966617555803]`, red light
+`0.0 / [0.0, 0.0]`, operational 0.1 m/s speed violation
+`-0.008312118752459663 / [-0.018298683615751408,
+-0.0011846684317344492]`, and wrong-way `0.0 / [0.0, 0.0]`. Additional
+collision and red-light pairs were both zero.
+
+Raw/operational speed event-rate mean deltas at 0/0.05/0.1/0.2 m/s were
+-0.006274699101403647 / -0.007922672340285977 / -0.008312118752459663 /
+-0.005372310770038044. Continuous excess-duration and magnitude-duration
+deltas were -0.04008264462809918 s and -0.06632984079850063 m. Mean route-
+progress / completion deltas were -0.09892307128044173 m /
+-0.0005577085537569271. Mean max jerk and max lateral-acceleration deltas were
+0.8223251471068612 m/s3 and 0.01905807086139155 m/s2.
+
+Mean DP default-inference/tracker/total-planning latency was
+62.15309085863248 / 12.914000035446797 / 82.1604124390173 ms. Mean CAMP
+default/K8-candidate/atom/selector/tracker/total-planning latency was
+58.57858317074509 / 407.0925612804107 / 26.130141743317406 /
+0.11316868088197314 / 13.249791945151085 / 530.5086121015624 ms. CAMP selected
+candidate 0 / non-candidate 0 on `26,944 / 4,032` ticks; 731 all-K-high-risk
+ticks used the same score. Candidate immutability and candidate-0/default
+identity passed 30,976 / 30,976 ticks.
+
+Main wall-clock was `20,785 s`. The 68,469-file sealed execution artifact/root
+is `/root/autodl-tmp/camp_dp_v22_native_paired_main_execution_e87542bd_20260715T092839CST`
+/ `ce3ce77db8b7209e60c69bf7927bc06e9fab6c0fb36a4c295f1ac286854277b9`,
+with `run.exit=0`.
+
+The frozen independent reviewer then rehashed 68,467 source files and passed
+`169,234 / 0` checks. It matched all 500 planned keys, retained all failures,
+verified arm symmetry, split zero-overlap, feature identity denylist, candidate
+immutability, candidate-0/default identity, and recomputed every frozen
+statistic with 5,000 bootstrap resamples at seed 12,345. Its 608-second
+artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_paired_main_independent_review_e87542bd_20260715T153741CST`
+/ `9a8dbd5dc47991071b4aacc920acd7b2079c38135f0feb579da7d6086c2f80fb`,
+with `run.exit=0`.
+
+The preregistered claim decision is `honest_no_claim`. The overall mean is
+negative and better exceeds worse, but `overall_ci95_upper` failed because the
+upper bound is positive. `offroad_mean_delta` also failed because the mean is
+slightly positive. Collision, red-light, and wrong-way gates passed. The only
+allowed scope remains two fixed logical maps with unseen route-family/corridor
+and seed; unseen-map generalization is false.
+
+The first evidence-package construction is preserved as a failed artifact. It
+found that the already sealed selector-freeze corrected-review root lacks a
+standalone `run.exit`, although its sealed `summary.json` records
+`status=passed`, `run_exit=0`, and 11,756 / 0 checks. The source review was not
+modified. Failure artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_e87542bd_20260715T155144CST`
+/ `52a0d5217bde2ec4d54d79aa9089b4c421eddd9576107d97d269151f0c268b94`.
+
+The corrected evidence package verified 12 key upstream roots, records that
+single historical standalone-exit-receipt gap explicitly, and accepts its
+sealed summary receipt without inventing or rewriting a file. It carries the
+split, 416-snapshot training ceiling, CLARABEL convergence, pilot, main,
+failure accounting, all strata/components/latencies, evidence guards, and the
+deterministic no-claim decision. Corrected artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST`
+/ `3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7`,
+with `run.exit=0`.
+
+V22 is therefore closed as a complete, auditable study with no safety-
+improvement claim. The directional mean and speed improvement do not override
+the failed preregistered CI/offroad gates. V21 remains historical and unchanged.
+
+current_v22_status=v22_native_paired_closed_loop_honest_no_claim_closeout
+current_v22_artifact_source_head=e87542bd54889396266888f541c1d40a2ce9f860
+current_v22_prior_gate_final_synced_head=e87542bd54889396266888f541c1d40a2ce9f860
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_main_reviewer_pilot_freeze_preflight_cc0ab632_20260715T040727CST
-current_v22_artifact_root_sha256=4a521d72149e8539eb38eb2679ef6ad49a65a245d9829fd552390bc9c794b9df
-next_work_target=v22_native_paired_main_execution_only
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST
+current_v22_artifact_root_sha256=3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7
+next_work_target=no_further_action_v22_honest_no_claim_closeout_complete
