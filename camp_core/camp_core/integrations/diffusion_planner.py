@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import importlib
 import json
 import math
 import sys
@@ -203,6 +205,122 @@ def install_lanelet2_projection_fallback(map_path: Union[str, Path]) -> bool:
     sys.modules["autoware_lanelet2_extension_python"] = package
     sys.modules["autoware_lanelet2_extension_python.projection"] = projection
     return True
+
+
+def inspect_lanelet2_extended_regulatory_elements(
+    map_path: Union[str, Path],
+) -> dict[str, Any]:
+    """Census Autoware-only regulatory elements without changing the map."""
+    source = Path(map_path)
+    payload = source.read_bytes()
+    root = ET.fromstring(payload)
+    regulatory: dict[str, str] = {}
+    subtype_counts: dict[str, int] = {}
+    for relation in root.findall("relation"):
+        tags = {
+            tag.attrib.get("k"): tag.attrib.get("v")
+            for tag in relation.findall("tag")
+        }
+        if tags.get("type") != "regulatory_element":
+            continue
+        subtype = tags.get("subtype", "")
+        regulatory[relation.attrib["id"]] = subtype
+        subtype_counts[subtype] = subtype_counts.get(subtype, 0) + 1
+
+    extended = {
+        relation_id: subtype
+        for relation_id, subtype in regulatory.items()
+        if subtype in AUTOWARE_UNSUPPORTED_REGULATORY_SUBTYPES
+    }
+    extended_counts: dict[str, int] = {}
+    for subtype in extended.values():
+        extended_counts[subtype] = extended_counts.get(subtype, 0) + 1
+    lanelet_reference_counts: dict[str, int] = {}
+    for relation in root.findall("relation"):
+        tags = {
+            tag.attrib.get("k"): tag.attrib.get("v")
+            for tag in relation.findall("tag")
+        }
+        if tags.get("type") != "lanelet":
+            continue
+        for member in relation.findall("member"):
+            if member.attrib.get("type") != "relation":
+                continue
+            subtype = extended.get(member.attrib.get("ref", ""))
+            if subtype is not None:
+                lanelet_reference_counts[subtype] = (
+                    lanelet_reference_counts.get(subtype, 0) + 1
+                )
+
+    return {
+        "source_sha256": hashlib.sha256(payload).hexdigest(),
+        "regulatory_relation_count": len(regulatory),
+        "regulatory_subtype_counts": dict(sorted(subtype_counts.items())),
+        "extended_relation_ids": sorted(extended),
+        "extended_subtype_counts": dict(sorted(extended_counts.items())),
+        "extended_lanelet_reference_counts": dict(
+            sorted(lanelet_reference_counts.items())
+        ),
+    }
+
+
+def require_source_preserving_lanelet2_regulatory_adapter(
+    map_path: Union[str, Path],
+) -> dict[str, Any]:
+    """Require the official extension when original map semantics need it.
+
+    Python Lanelet2 exposes no regulatory-element factory hook. This gate must
+    therefore run before the no-ROS projection fallback can create a similarly
+    named process-local module. The later unmodified-map loader smoke is the
+    proof that the installed official extension actually registered its C++
+    regulatory elements.
+    """
+    source = Path(map_path)
+    census = inspect_lanelet2_extended_regulatory_elements(source)
+    required = sorted(census["extended_subtype_counts"])
+    before = census["source_sha256"]
+    if not required:
+        return {
+            "mode": "stock_lanelet2",
+            "required_extended_subtypes": [],
+            "official_module": None,
+            "source_sha256_before": before,
+            "source_sha256_after": hashlib.sha256(source.read_bytes()).hexdigest(),
+            "census": census,
+        }
+
+    try:
+        projection = importlib.import_module(
+            "autoware_lanelet2_extension_python.projection"
+        )
+    except ImportError as exc:
+        raise RuntimeError(
+            "The original map requires the official Autoware Lanelet2 "
+            f"extension for {required}; no source-preserving regulatory "
+            "adapter is installed."
+        ) from exc
+    origin = getattr(projection, "__file__", None)
+    if not origin:
+        raise RuntimeError(
+            "A process-local projection fallback cannot register the original "
+            f"map's regulatory elements {required}."
+        )
+    if not hasattr(projection, "MGRSProjector"):
+        raise RuntimeError(
+            "The installed official Autoware Lanelet2 extension has no "
+            "MGRSProjector entry point."
+        )
+    after = hashlib.sha256(source.read_bytes()).hexdigest()
+    if after != before:
+        raise RuntimeError("Lanelet2 regulatory adapter changed source map bytes.")
+    return {
+        "mode": "official_autoware_lanelet2_extension",
+        "required_extended_subtypes": required,
+        "official_module": str(origin),
+        "source_sha256_before": before,
+        "source_sha256_after": after,
+        "census": census,
+    }
 
 
 def sanitize_lanelet2_map(

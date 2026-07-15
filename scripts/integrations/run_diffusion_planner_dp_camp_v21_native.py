@@ -1832,6 +1832,7 @@ def build_native_arm_runner(
 
         from camp_core.integrations.diffusion_planner import (
             install_lanelet2_projection_fallback,
+            require_source_preserving_lanelet2_regulatory_adapter,
         )
         from camp_core.integrations.diffusion_planner_causal_atoms import (
             materialize_canonical_14d,
@@ -1862,6 +1863,9 @@ def build_native_arm_runner(
                 "LaneletSceneBuilder": LaneletSceneBuilder,
                 "Route": Route,
                 "install_projection": install_lanelet2_projection_fallback,
+                "prepare_regulatory": (
+                    require_source_preserving_lanelet2_regulatory_adapter
+                ),
                 "materialize": materialize_canonical_14d,
                 "red_cost": _fixed_dp_red_cost,
                 "signal_mask": candidate_signal_source_available_mask,
@@ -1898,6 +1902,7 @@ def build_native_arm_runner(
         replay = context["replay"]
         route_object = context["Route"].load(Path(str(route["path"])))
         map_path = Path(str(config["map"]["path"]))
+        context["prepare_regulatory"](map_path)
         context["install_projection"](map_path)
         builder = context["LaneletSceneBuilder"](str(map_path))
         spawn_config = replay.SpawnConfig(**dict(config["spawn_config"]))
