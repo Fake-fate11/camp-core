@@ -1007,3 +1007,53 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_map_family_split_execution_only
+
+## Gate 16: Map-Family Split Execution
+
+Status: passed. Independent split review is next.
+
+The execution consumed the sealed route-census root and exact preflight plan
+SHA
+`55fc3f0aeca1daff1177d533394162b44e0684f7a9e0756d1981042baa265ff3`.
+It materialized one formal manifest containing every retained route identity,
+map family, corridor group, assigned split, and the frozen five-seed namespace.
+No assignment was recomputed from outcomes and no route or seed was dropped.
+
+The manifest contains 401 route records and 2005 route-seed assignments.
+Train/calibration/holdout counts remain `375 / 2 / 24` routes and
+`1875 / 10 / 120` route-seeds. Manifest SHA is
+`c57382fe500cd80c9bf37f402a567720756bdb0b25bb56d80bcf1b5ada699b1b`.
+Plan SHA matched the static preflight exactly. The gate did not run a simulator,
+load a model, generate candidates, access outcomes, or open holdout.
+
+All `41 / 0` execution checks passed. Remote script compilation, all 43 v24
+tests, and diff check passed. Free space remained 46.29 GiB. CAMP/DP tracked
+state was clean at
+`096747e2e83af29cb4f4aa7c175e1f56793b50a6` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable execution artifact/root:
+`/root/autodl-tmp/camp_dp_v24_map_family_split_execution_096747e2_20260715T211547CST`
+/
+`b923895a594c00a01c244a2342816539baa1c8400a0aeefb49946bcac37519af`.
+
+Branch B continues. The next gate must independently rehash the execution and
+source census, recompute full route/corridor/family/seed coverage and zero
+overlap, and confirm the skewed whole-family split without rewriting the
+manifest or opening holdout.
+
+current_v24_status=v24_map_family_split_execution_passed
+current_v24_artifact_source_head=096747e2e83af29cb4f4aa7c175e1f56793b50a6
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_map_family_split_execution_096747e2_20260715T211547CST
+current_v24_artifact_root_sha256=b923895a594c00a01c244a2342816539baa1c8400a0aeefb49946bcac37519af
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=split_execution_passed_independent_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_map_family_split_independent_review_only
