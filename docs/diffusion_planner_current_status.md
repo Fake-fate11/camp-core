@@ -18,7 +18,7 @@ Autoware Universe bidirectional-traffic map and TIER IV
 honest-no-claim closeout and will not be rewritten or rerun.
 
 Startup reconciliation and license/source freeze passed and remain sealed.
-Adapter design/TDD and read-only static review then proved a real terminal
+Adapter design/TDD and read-only static review proved a real terminal
 compatibility stop at CAMP HEAD `e52da52fbea27844e2545dcac5ac504664ef10ef`.
 The original Autoware map contains nine lanelet-attached `detection_area`
 regulatory relations. AutoDL Lanelet2 has no regulatory factory hook, official
@@ -31,15 +31,16 @@ bytes remained identical at SHA256
 Deleting/retagging those relations, adding an unapproved source, or changing
 the fixed-DP contract is forbidden. Map-family/route census, split, corpus,
 training, calibration, holdout, paired evaluation, metrics/CI, and latency did
-not run. V23 is honest-no-claim; only the record-only closeout remains.
+not run. The record-only closeout passed 14/14 checks and 16 tests. V23 is
+closed honest-no-claim with no further action recommended.
 
-current_v23_status=v23_adapter_terminal_stop_honest_no_claim_pending_closeout
-current_v23_artifact_source_head=e52da52fbea27844e2545dcac5ac504664ef10ef
+current_v23_status=v23_closed_honest_no_claim_source_preserving_adapter_unavailable
+current_v23_artifact_source_head=0e1c0ac485b33e64cb6a7a15cf0039eb34b38e72
 current_v23_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_preserving_adapter_e52da52f_20260715T174325CST
-current_v23_artifact_root_sha256=28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825
-next_work_target=v23_honest_no_claim_closeout_record_only
+current_v23_artifact=/root/autodl-tmp/camp_dp_v23_honest_no_claim_closeout_retry_0e1c0ac4_20260715T174756CST
+current_v23_artifact_root_sha256=08276aec1333f26ec02e7f4a05a2c07aeea810ec4b214a37fba062bd0f138752
+next_work_target=no_further_action_v23_closed_honest_no_claim_source_preserving_adapter_unavailable
 
 ## Current V22 Status
 

@@ -6,13 +6,13 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v23_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v23_status=v23_adapter_terminal_stop_honest_no_claim_pending_closeout",
-    "current_v23_artifact_source_head=e52da52fbea27844e2545dcac5ac504664ef10ef",
+    "current_v23_status=v23_closed_honest_no_claim_source_preserving_adapter_unavailable",
+    "current_v23_artifact_source_head=0e1c0ac485b33e64cb6a7a15cf0039eb34b38e72",
     "current_v23_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_preserving_adapter_e52da52f_20260715T174325CST",
-    "current_v23_artifact_root_sha256=28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825",
-    "next_work_target=v23_honest_no_claim_closeout_record_only",
+    "current_v23_artifact=/root/autodl-tmp/camp_dp_v23_honest_no_claim_closeout_retry_0e1c0ac4_20260715T174756CST",
+    "current_v23_artifact_root_sha256=08276aec1333f26ec02e7f4a05a2c07aeea810ec4b214a37fba062bd0f138752",
+    "next_work_target=no_further_action_v23_closed_honest_no_claim_source_preserving_adapter_unavailable",
 )
 
 
@@ -72,5 +72,19 @@ def test_v23_records_source_preserving_adapter_terminal_stop() -> None:
         "stop_source_preserving_adapter_unavailable",
         "Holdout was never opened",
         "V23 makes no safety, deployment, native-ranking, or CAMP-over-DP claim",
+    ):
+        assert phrase in text
+
+
+def test_v23_records_honest_no_claim_closeout() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "5949c3d7e90054c9eb05c5d36f21bff44e4d442ef56189e0d6c9fc4560bbf89e",
+        "08276aec1333f26ec02e7f4a05a2c07aeea810ec4b214a37fba062bd0f138752",
+        "`14 / 0` checks",
+        "49,752,567,808",
+        "independent map families censused `0`",
+        "Claim decision is `honest_no_claim`",
+        "no further action recommended",
     ):
         assert phrase in text
