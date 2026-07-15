@@ -46,6 +46,13 @@ PILOT_SEED = 24001
 MINIMUM_FREE_BYTES = 10 * 1024**3
 
 
+def verified_asset_receipts_complete(receipts: Mapping[str, str]) -> bool:
+    return (
+        receipts.get("fixed_dp_head") == FIXED_DP_HEAD
+        and len(receipts) >= 11
+    )
+
+
 def _json_bytes(value: Any) -> bytes:
     return (
         json.dumps(
@@ -409,7 +416,10 @@ def _execution_preflight(
         [
             {"name": "fixed_dp_head", "passed": dp_head == FIXED_DP_HEAD},
             {"name": "fixed_dp_tracked_clean", "passed": dp_status == ""},
-            {"name": "verified_first_run_assets_11", "passed": len(verified_assets) == 11},
+            {
+                "name": "verified_first_run_assets_complete",
+                "passed": verified_asset_receipts_complete(verified_assets),
+            },
             {"name": "all_live_source_maps_unchanged", "passed": source_maps_unchanged},
             {"name": "pilot_routes_375", "passed": len(rows) == 375},
             {"name": "pilot_configs_375", "passed": validated == 375},

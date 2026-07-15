@@ -408,3 +408,15 @@ def test_pilot_executor_retains_failure_and_continues(tmp_path: Path) -> None:
     receipts = list((tmp_path / "pilot" / "receipts" / "train").rglob("*.json"))
     assert len(receipts) == 2
     assert all(json.loads(path.read_text())["retained_in_denominator"] for path in receipts)
+
+
+def test_pilot_preflight_accepts_complete_verified_asset_receipts() -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        verified_asset_receipts_complete,
+    )
+
+    complete = {f"asset-{index}": _sha(str(index)) for index in range(12)}
+    complete["fixed_dp_head"] = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+
+    assert verified_asset_receipts_complete(complete) is True
+    assert verified_asset_receipts_complete({"fixed_dp_head": complete["fixed_dp_head"]}) is False
