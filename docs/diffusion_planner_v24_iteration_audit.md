@@ -386,3 +386,57 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_branch_b_fixed_builder_smoke_review_only
+
+## Gate 6: Branch B Fixed-Builder Smoke Independent Review
+
+Status: passed. Merged map-family census and adjudication are next.
+
+The reviewer independently reconstructed all `12` blob groups and `14` path
+receipts from the static census. It rehashed every file in the execution and
+static artifacts, then rehashed every live frozen source map. The execution
+artifact root
+`26b4b58bf19559cafc3c2f0c3681cf3e52cd5f5f4873d1f5317e8cdc17587733`
+and static root
+`2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c`
+both verified exactly.
+
+Independent counts reproduce `10 / 2 / 0` loaded / failed /
+execution-invalid blobs and `12` loadable paths. All loaded layer counts are
+internally consistent, all 12 PIDs are distinct, all worker return codes are
+zero, and live source hashes still equal their frozen receipts. The exact
+empty-map projection failure and intersection-map `road_marking` failure were
+recomputed without reclassification.
+
+The review did not reexecute the builder. It did not start route census, load a
+model, generate candidates, access outcomes, or open holdout. Map-family count
+remains unset. Source B therefore has source-preserving fixed-builder support
+and decision `builder_smoke_review_passed_loadable_support`; the two excluded
+maps remain in failure accounting.
+
+All `34 / 0` checks passed. Local and AutoDL v24 py_compile, 17 focused tests,
+diff checks, CAMP/origin alignment, fixed DP cleanliness, and the 10 GiB disk
+floor passed. Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_review_5a109127_20260715T201434CST`
+/
+`6f8ee2ec104530d143c65d40f4f11007f853b43ecd3929439db5f19b4483fd08`,
+with `run.exit=0`.
+
+Source B continues; neither a source-local terminal state nor global stop is
+authorized. The next review must adjudicate map families from geography,
+geometry, topology, duplicate, and configuration evidence before route census.
+
+current_v24_status=v24_branch_b_fixed_builder_smoke_review_passed
+current_v24_artifact_source_head=5a1091273f76a9ce63b2391b6afae9f18b7d61a9
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_review_5a109127_20260715T201434CST
+current_v24_artifact_root_sha256=6f8ee2ec104530d143c65d40f4f11007f853b43ecd3929439db5f19b4483fd08
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=builder_smoke_review_passed_loadable_support
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_merged_map_family_census_tdd_review_only

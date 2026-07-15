@@ -17,33 +17,32 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through Branch B static census remain sealed. Branch A remains
+Startup through Branch B builder execution remain sealed. Branch A remains
 source-ineligible locally without stopping Branch B.
 
-Branch B isolated fixed-builder smoke passed 27/27 checks at source HEAD
-`fdde35ab667eb4c6c765cb3453cf3064a6544f4b`. Twelve unique blobs ran in 12
-separate worker processes and produced all 14 path receipts. Ten blobs loaded,
-covering 12 paths. The empty map failed projection because it has no
-georeferenced node; the intersection map failed source-preservingly because it
-requires unsupported `road_marking`. Both failures are map-local. There were
-zero execution-invalid blobs, source bytes and fixed DP were unchanged, and no
-route/model/candidate/outcome/holdout action ran. Independent review is next.
+The Branch B independent builder review passed 34/34 checks at source HEAD
+`5a1091273f76a9ce63b2391b6afae9f18b7d61a9`. It reconstructed all 12 blob
+groups and 14 path receipts, rehashed every source and artifact file, and
+confirmed 10 loaded blobs covering 12 paths, two exact map-local failures, and
+zero execution-invalid blobs. The reviewer did not rerun the builder or start
+route/model/candidate/outcome/holdout work. Source B has loadable support;
+reviewed map-family adjudication is next and family count remains unset.
 
-current_v24_status=v24_branch_b_fixed_builder_smoke_execution_passed
-current_v24_artifact_source_head=fdde35ab667eb4c6c765cb3453cf3064a6544f4b
+current_v24_status=v24_branch_b_fixed_builder_smoke_review_passed
+current_v24_artifact_source_head=5a1091273f76a9ce63b2391b6afae9f18b7d61a9
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_fdde35ab_20260715T201012CST
-current_v24_artifact_root_sha256=26b4b58bf19559cafc3c2f0c3681cf3e52cd5f5f4873d1f5317e8cdc17587733
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_review_5a109127_20260715T201434CST
+current_v24_artifact_root_sha256=6f8ee2ec104530d143c65d40f4f11007f853b43ecd3929439db5f19b4483fd08
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=builder_smoke_executed_review_pending
+source_b_status=builder_smoke_review_passed_loadable_support
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_branch_b_fixed_builder_smoke_review_only
+next_work_target=v24_merged_map_family_census_tdd_review_only
 
 ## Current V23 Status
 
