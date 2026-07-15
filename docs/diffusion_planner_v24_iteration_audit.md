@@ -810,3 +810,79 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_fixed_dp_single_record_source_probe_execution_only
+
+## Gate 13: Fixed-DP Single-Record Source-Probe Execution
+
+Status: passed. Independent evidence review is next.
+
+The controller executed the exact source-only record frozen in Gate 11: family
+`map_family_828a913c2f9a`, identity
+`1962e44a5dd0ace089aeb9011d5b70e05dfa6ae5adeec4450a6c20e3e09776b2`,
+seed `24001`, fixed `K=8`, and one tick. The route/config SHA values remained
+`63890f60cb662a78ea733576397c3b91e942f854bd5ca92007e6449dbf4f24bd`
+and
+`1e734165f7a614e93019df0a5c22b5e36722298cb50b21c5ce8fd0e4e2cf82bc`.
+No result-selected route or seed replacement occurred.
+
+One detached-controller launch was interrupted after its SSH monitor failed.
+After confirming zero related processes, zero nested evidence, and no run exit,
+the controller sealed it as execution-invalid at
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_execution_retry_ab8d9735_20260715T210212CST`
+with root
+`19cdfb2a893602d13077c9c87f0f3880c55a46ad4e25c3981122f375ae517081`.
+It is not a scientific result. The successful detached controller then ran the
+same immutable config once; no alternative route was authorized.
+
+The native runner produced one CAMP observation arm with one tracker tick. All
+eight candidate rows were source-complete, source-valid, and physically
+feasible. Candidate-tensor SHA before and after selection was identically
+`147379fe4ac82828f879c78f17ffc47b432019f1f74723a557980a776c680fb5`.
+Candidate 0 and the operational default output were elementwise identical with
+SHA
+`64b71a3496577d6b3a2dd1c4bd3d08fbb229d4ca92c9196b42b8e1a5db31e5ee`
+and zero maximum absolute difference. Native K-ranking provenance remains
+false. The affine source-valid baseline selected existing candidate index 3;
+its row/trajectory SHA is
+`318b6829b64d623d8e39fa9175e33fb37426fea8395611436fe65dd0f9761e59`.
+The candidate tensor was not generated, repaired, blended, or postprocessed by
+CAMP.
+
+The tick's atom matrix SHA is
+`79c07ef0b5d20cf7d6d1b2fad44d00743054aab0f75776511092716671804314`;
+the score contract is `score_k(w)=a_k^T w`; and the effective read-only schema
+is `dp_camp_v10_14d`. This is capability evidence only. It does not authorize
+the inherited weights, atom mask, training, outcome use, holdout opening, or a
+safety/CAMP-over-DP claim.
+
+Execution exit was zero in 7.461 seconds. Remote script compilation, all 39
+v24 tests, and diff check passed. Free space after the gate was 46.29 GiB.
+CAMP/DP tracked state stayed clean at
+`ab8d973598ae5dfa68e707caaabf9147b69cd49c` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The only stderr was the existing
+nonfatal `wandb`/`pkg_resources` deprecation warning.
+
+Immutable successful artifact/root:
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_execution_retry2_ab8d9735_20260715T210344CST`
+/
+`3b3d759620ee0fe98d7b56f4305920fac015372ddaa3ef9126416ac2cc5ace16`.
+
+Branch B has now demonstrated real source-valid K=8 support on one source-only
+route. Global stop remains unauthorized. The next gate is a read-only
+independent recomputation of the sealed receipt and SHA chain; it must not load
+the model or rerun the probe.
+
+current_v24_status=v24_fixed_dp_single_record_source_probe_execution_passed
+current_v24_artifact_source_head=ab8d973598ae5dfa68e707caaabf9147b69cd49c
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_execution_retry2_ab8d9735_20260715T210344CST
+current_v24_artifact_root_sha256=3b3d759620ee0fe98d7b56f4305920fac015372ddaa3ef9126416ac2cc5ace16
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=single_record_probe_execution_passed_independent_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_fixed_dp_single_record_source_probe_independent_review_only

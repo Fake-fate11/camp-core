@@ -17,35 +17,34 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through single-record fixed-DP source-probe runtime compatibility
-preflight remain sealed. Branch A remains source-ineligible locally without
-stopping Branch B.
+Startup through single-record fixed-DP source-probe execution remain sealed.
+Branch A remains source-ineligible locally without stopping Branch B.
 
-The first exact-config execution stopped during import before model load because
-the CAMP Python 3.9 runtime evaluated a fixed-DP Python 3.10 union annotation.
-The failure is sealed and did not open candidates, outcomes, or holdout. A
-process-local loader now postpones annotations only for source files under the
-immutable fixed-DP root and explicitly bypasses cached bytecode; it does not
-modify DP files or runtime semantics outside annotations. The retry preflight
-passed all 39 v24 tests and loaded the frozen `replay` and `tensor_converter`
-modules with all five registered native-source SHA values intact. Exact-config
-execution of the same frozen route/seed/K/tick tuple is next.
+The exact frozen four-track-highway route, seed 24001, K=8, and one-tick probe
+passed. It generated eight source-valid candidate rows; candidate-tensor SHA
+was identical before/after selection, and candidate 0 was elementwise identical
+to the operational default output. The read-only v18/v22 14D baseline selected
+existing candidate index 3. One controller transport interruption was sealed
+as execution-invalid before the successful detached controller; it created no
+nested result and did not permit a replacement route. Holdout, training,
+outcomes, and claims remain unopened. Independent receipt review is next and
+must not rerun the probe.
 
-current_v24_status=v24_fixed_dp_single_record_source_probe_runtime_compatibility_preflight_passed
-current_v24_artifact_source_head=03d1b02a047ca2c216821835a16e345c4046d749
+current_v24_status=v24_fixed_dp_single_record_source_probe_execution_passed
+current_v24_artifact_source_head=ab8d973598ae5dfa68e707caaabf9147b69cd49c
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_python39_annotation_compatibility_preflight_retry_03d1b02a_20260715T205856CST
-current_v24_artifact_root_sha256=1ab93bb525cee1481f7b9ab307fd13a431160e144b3145df3ccd01f340e936ef
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_execution_retry2_ab8d9735_20260715T210344CST
+current_v24_artifact_root_sha256=3b3d759620ee0fe98d7b56f4305920fac015372ddaa3ef9126416ac2cc5ace16
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=single_record_probe_runtime_compatibility_passed_execution_retry_pending
+source_b_status=single_record_probe_execution_passed_independent_review_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_fixed_dp_single_record_source_probe_execution_only
+next_work_target=v24_fixed_dp_single_record_source_probe_independent_review_only
 
 ## Current V23 Status
 
