@@ -7,6 +7,9 @@ from scripts.integrations.build_diffusion_planner_v24_map_family_split import (
     build_split_manifest,
     build_split_plan,
 )
+from scripts.integrations.review_diffusion_planner_v24_map_family_split import (
+    evaluate_split,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -113,3 +116,20 @@ def test_split_manifest_covers_routes_without_family_or_seed_leakage() -> None:
         assert len(record["corridor_group_sha256"]) == 64
     assert manifest["outcome_fields_consumed"] == []
     assert manifest["holdout_opened"] is False
+
+
+def test_independent_split_review_recomputes_zero_overlap() -> None:
+    census = _census()
+    manifest = build_split_manifest(census, build_split_plan(census))
+
+    review = evaluate_split(census, manifest)
+
+    assert review["status"] == "passed"
+    assert review["failed_count"] == 0
+    assert review["route_counts"] == {"train": 7, "calibration": 1, "holdout": 2}
+    assert review["route_seed_counts"] == {
+        "train": 35,
+        "calibration": 5,
+        "holdout": 10,
+    }
+    assert review["zero_overlap"] is True
