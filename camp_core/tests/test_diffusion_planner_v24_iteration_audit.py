@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_split_seed_namespace_remediation_execution_passed",
-    "current_v24_artifact_source_head=6f3e923f6fe3a1ff3c15d05a0cd8bfc45cb3d337",
+    "current_v24_status=v24_split_seed_namespace_remediation_independent_review_passed",
+    "current_v24_artifact_source_head=39227dd51131ca79f7649ddbe02bb1e5ad9c8024",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_execution_6f3e923f_20260715T212602CST",
-    "current_v24_artifact_root_sha256=3f51241b575c00f091d5aa283aaf78f1a10816f2a11cf4bbc50346675f79cd42",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_independent_review_39227dd5_20260715T212743CST",
+    "current_v24_artifact_root_sha256=2b4a1a99af7cc369853d95f9f762cf81dbb6e56dda991adec5e78fd7698f5d3c",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=split_seed_remediation_execution_passed_review_pending",
+    "source_b_status=split_seed_remediation_review_passed_corpus_plan_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_split_seed_namespace_remediation_independent_review_only",
+    "next_work_target=v24_corpus_plan_tdd_static_preflight_only",
 )
 
 

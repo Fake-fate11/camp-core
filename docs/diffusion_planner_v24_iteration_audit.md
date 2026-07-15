@@ -1216,3 +1216,53 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_split_seed_namespace_remediation_independent_review_only
+
+## Gate 20: Corrected Split Seed-Namespace Independent Review
+
+Status: passed. Corpus plan/TDD/static preflight are next.
+
+The reviewer independently rehashed the corrected execution and source census,
+recomputed canonical plan/manifest identities, and rebuilt every mapping without
+calling split execution. All `115 / 0` checks passed. Plan and manifest SHA are
+`52ea1a5c498c73be64ed9a2f4ec6093574eb534f25e7dd0f82081b683a376539`
+and
+`ba814ee3da89fc6d9b3ae1ce9a9929e38bebc6349f3871f8d105f285207bf5fa`.
+
+The reviewer reproduced 401 routes and 2005 route-seed pairs, with
+train/calibration/holdout counts `375 / 2 / 24` and `1875 / 10 / 120`.
+Families, corridors, route keys, route identities, and route-seed pairs are
+pairwise disjoint. The 15 numeric seeds are also pairwise disjoint across
+splits. Every route has exactly the five seeds assigned to its split.
+
+The review did not rewrite the manifest, run a simulator, load a model,
+generate candidates, access outcomes, or open holdout. Remote compilation, all
+45 v24 tests, and diff check passed. CAMP/DP tracked state remained clean at
+`39227dd51131ca79f7649ddbe02bb1e5ad9c8024` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable corrected review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_independent_review_39227dd5_20260715T212743CST`
+/
+`2b4a1a99af7cc369853d95f9f762cf81dbb6e56dda991adec5e78fd7698f5d3c`.
+
+The corrected manifest is now the sole v24 split input for corpus and later
+evaluation. The next gate plans and statically preflights train-only causal K=8
+snapshot generation. It may materialize source-derived route assets but may not
+run a simulator, generate a candidate, access calibration/holdout outcomes, or
+tune any atom.
+
+current_v24_status=v24_split_seed_namespace_remediation_independent_review_passed
+current_v24_artifact_source_head=39227dd51131ca79f7649ddbe02bb1e5ad9c8024
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_independent_review_39227dd5_20260715T212743CST
+current_v24_artifact_root_sha256=2b4a1a99af7cc369853d95f9f762cf81dbb6e56dda991adec5e78fd7698f5d3c
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=split_seed_remediation_review_passed_corpus_plan_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_corpus_plan_tdd_static_preflight_only
