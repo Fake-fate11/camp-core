@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import inspect
 import json
 from pathlib import Path
 
@@ -10,6 +11,11 @@ from scripts.integrations.census_diffusion_planner_v24_lanelet2_maps import (
     SCENARIO_COMMIT,
     SCENARIO_REPOSITORY,
     build_static_census,
+)
+from scripts.integrations.smoke_diffusion_planner_v24_lanelet2_builders import (
+    build_blob_execution_plan,
+    merge_path_receipts,
+    smoke_one_map,
 )
 
 
@@ -267,3 +273,97 @@ def test_branch_b_plan_preserves_denominator_and_isolates_builder_processes() ->
         ">=80m",
     ):
         assert phrase in text
+
+
+def test_builder_smoke_plan_executes_once_per_blob_and_keeps_every_path() -> None:
+    census = {
+        "maps": [
+            {
+                "relative_path": "maps/a.osm",
+                "file_sha256_receipt": "a" * 64,
+                "source_contract_valid": True,
+            },
+            {
+                "relative_path": "maps/a_copy.osm",
+                "file_sha256_receipt": "a" * 64,
+                "source_contract_valid": True,
+            },
+            {
+                "relative_path": "maps/b.osm",
+                "file_sha256_receipt": "b" * 64,
+                "source_contract_valid": True,
+            },
+        ]
+    }
+
+    plan = build_blob_execution_plan(census)
+
+    assert len(plan) == 2
+    assert plan[0] == {
+        "file_sha256": "a" * 64,
+        "representative_path": "maps/a.osm",
+        "paths": ["maps/a.osm", "maps/a_copy.osm"],
+    }
+    assert plan[1]["representative_path"] == "maps/b.osm"
+
+
+def test_builder_smoke_maps_blob_failure_to_paths_without_global_stop() -> None:
+    census = {
+        "maps": [
+            {
+                "relative_path": "maps/a.osm",
+                "file_sha256_receipt": "a" * 64,
+                "source_contract_valid": True,
+            },
+            {
+                "relative_path": "maps/a_copy.osm",
+                "file_sha256_receipt": "a" * 64,
+                "source_contract_valid": True,
+            },
+            {
+                "relative_path": "maps/b.osm",
+                "file_sha256_receipt": "b" * 64,
+                "source_contract_valid": True,
+            },
+        ]
+    }
+    results = {
+        "a" * 64: {
+            "status": "loaded",
+            "failure_category": None,
+            "source_bytes_unchanged": True,
+        },
+        "b" * 64: {
+            "status": "failed",
+            "failure_category": "unsupported_regulatory_element",
+            "source_bytes_unchanged": True,
+        },
+    }
+
+    receipts = merge_path_receipts(census, results)
+    by_path = {row["relative_path"]: row for row in receipts}
+
+    assert len(receipts) == 3
+    assert by_path["maps/a.osm"]["executed"] is True
+    assert by_path["maps/a_copy.osm"]["executed"] is False
+    assert by_path["maps/a_copy.osm"]["reused_from"] == "maps/a.osm"
+    assert by_path["maps/b.osm"]["status"] == "failed"
+    assert by_path["maps/b.osm"]["failure_category"] == (
+        "unsupported_regulatory_element"
+    )
+    assert all(row["source_bytes_unchanged"] for row in receipts)
+
+
+def test_builder_worker_prepares_regulatory_before_projection_and_load() -> None:
+    source = inspect.getsource(smoke_one_map)
+    regulatory = source.index(
+        "regulatory_receipt = require_source_preserving_lanelet2_regulatory_adapter"
+    )
+    projection = source.index(
+        "projection_fallback_installed = install_lanelet2_projection_fallback"
+    )
+    builder = source.index("builder = LaneletSceneBuilder")
+
+    assert regulatory < projection < builder
+    assert "_load_model" not in source
+    assert "Route(" not in source
