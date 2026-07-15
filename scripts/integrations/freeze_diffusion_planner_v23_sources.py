@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 import subprocess
+from time import sleep
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePosixPath
@@ -110,7 +111,17 @@ def _tree(repository: Path, commit: str) -> dict[str, str]:
 
 
 def _blob(repository: Path, commit: str, path: str) -> bytes:
-    return _git(repository, "show", f"{commit}:{path}", binary=True)
+    for attempt in range(3):
+        try:
+            return _git(repository, "show", f"{commit}:{path}", binary=True)
+        except subprocess.CalledProcessError as exc:
+            if attempt == 2:
+                detail = (exc.stderr or b"").decode("utf-8", "replace").strip()
+                raise RuntimeError(
+                    f"Git blob read failed for {path!r}: {detail}"
+                ) from exc
+            sleep(2)
+    raise AssertionError("unreachable")
 
 
 def _normalize_remote(url: str) -> str:

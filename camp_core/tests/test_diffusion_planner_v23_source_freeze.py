@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import scripts.integrations.freeze_diffusion_planner_v23_sources as source_freeze
 from scripts.integrations.freeze_diffusion_planner_v23_sources import (
     SourceSpec,
     freeze_sources,
@@ -134,3 +135,23 @@ def test_freeze_sources_rejects_non_apache_license(tmp_path: Path) -> None:
             tmp_path / "out",
             "2026-07-15T09:00:00Z",
         )
+
+
+def test_blob_read_retries_transient_lazy_fetch(monkeypatch) -> None:
+    attempts = 0
+
+    def flaky_git(*_args, **_kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise subprocess.CalledProcessError(
+                128,
+                ["git", "show"],
+                stderr=b"HTTP 503",
+            )
+        return b"source bytes"
+
+    monkeypatch.setattr(source_freeze, "_git", flaky_git)
+
+    assert source_freeze._blob(Path("/unused"), "a" * 40, "map.osm") == b"source bytes"
+    assert attempts == 2
