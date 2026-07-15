@@ -249,6 +249,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--execution-root", type=Path, required=True)
     parser.add_argument("--expected-root-sha256", required=True)
+    parser.add_argument("--camp-head", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     if args.output_dir.exists():
@@ -260,6 +261,12 @@ def main() -> int:
         f"root={args.expected_root_sha256} without model execution\n"
     )
     (args.output_dir / "COMMAND").write_text(command, encoding="utf-8")
+    (args.output_dir / "HEADS").write_text(
+        f"CAMP_HEAD={args.camp_head}\n"
+        f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
+        f"SOURCE_ARTIFACT_ROOT_SHA256={args.expected_root_sha256}\n",
+        encoding="ascii",
+    )
     _write_json(args.output_dir / "review.json", record)
     (args.output_dir / "review.md").write_text(
         "# v24 single-record source-probe independent review\n\n"
