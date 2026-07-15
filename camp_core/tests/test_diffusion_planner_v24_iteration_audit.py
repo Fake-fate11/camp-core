@@ -11,6 +11,13 @@ DESIGN = (
 )
 AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
+BRANCH_A_PLAN = (
+    ROOT
+    / "docs"
+    / "superpowers"
+    / "plans"
+    / "2026-07-15-v24-autoware-extension-isolated-build.md"
+)
 
 POINTER = (
     "current_v24_status=v24_extension_source_qualification_passed",
@@ -100,5 +107,22 @@ def test_v24_freezes_official_extension_source_before_build() -> None:
         "Binary compatibility and process-local factory registration remain unproved",
         "`17 / 0` checks",
         "Branch B remains independently pending raw map census",
+    ):
+        assert phrase in text
+
+
+def test_v24_branch_a_plan_fails_closed_before_unauthorized_build() -> None:
+    text = " ".join(BRANCH_A_PLAN.read_text(encoding="utf-8").split())
+    for phrase in (
+        "Build authorization predicate",
+        "the unmodified official CMake targets",
+        "No system package operation",
+        "No additional source checkout",
+        "Compiling only `detection_area.cpp`",
+        "must not start a compiler",
+        "Branch A becomes source-ineligible",
+        "Branch B raw census remains mandatory",
+        "original OSM is read-only",
+        "10 GiB",
     ):
         assert phrase in text
