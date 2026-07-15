@@ -4,6 +4,7 @@ from pathlib import Path
 
 from scripts.integrations.build_diffusion_planner_v24_map_family_split import (
     PRIMARY_SEEDS,
+    build_split_manifest,
     build_split_plan,
 )
 
@@ -94,3 +95,21 @@ def test_split_plan_preregisters_indivisible_and_seed_boundaries() -> None:
         "375 / 2 / 24",
     ):
         assert phrase in text
+
+
+def test_split_manifest_covers_routes_without_family_or_seed_leakage() -> None:
+    census = _census()
+    plan = build_split_plan(census)
+
+    manifest = build_split_manifest(census, plan)
+
+    assert manifest["route_count"] == 10
+    assert manifest["route_seed_count"] == 50
+    assert len(manifest["records"]) == 10
+    assert len({record["record_key"] for record in manifest["records"]}) == 10
+    for record in manifest["records"]:
+        assert record["split"] == plan["family_assignments"][record["map_family_id"]]
+        assert record["seeds"] == list(PRIMARY_SEEDS)
+        assert len(record["corridor_group_sha256"]) == 64
+    assert manifest["outcome_fields_consumed"] == []
+    assert manifest["holdout_opened"] is False
