@@ -1762,11 +1762,13 @@ def _seal_evidence(root: Path) -> str:
     )
     lines = [f"{_file_sha256(path)}  {path.relative_to(root).as_posix()}" for path in files]
     sums = root / "SHA256SUMS"
-    sums.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    with sums.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
     root_sha = _file_sha256(sums)
-    (root / "ROOT_SHA256SUMS").write_text(
-        f"{root_sha}  SHA256SUMS\n", encoding="ascii", newline="\n"
-    )
+    with (root / "ROOT_SHA256SUMS").open(
+        "w", encoding="ascii", newline="\n"
+    ) as handle:
+        handle.write(f"{root_sha}  SHA256SUMS\n")
     return root_sha
 
 

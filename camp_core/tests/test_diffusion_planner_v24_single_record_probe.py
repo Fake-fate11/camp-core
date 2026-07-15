@@ -110,6 +110,13 @@ def test_existing_native_runner_has_narrow_v24_probe_path() -> None:
     assert "max_steps=1" in execute_source
 
 
+def test_native_evidence_sealer_is_python39_compatible() -> None:
+    source = inspect.getsource(runner._seal_evidence)
+
+    assert ".write_text" not in source
+    assert source.count('newline="\\n"') == 2
+
+
 def test_single_record_probe_plan_keeps_holdout_and_execution_closed() -> None:
     text = " ".join(PLAN.read_text(encoding="utf-8").split())
     for phrase in (
