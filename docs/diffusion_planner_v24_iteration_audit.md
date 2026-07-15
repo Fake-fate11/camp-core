@@ -1611,3 +1611,61 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_remaining_train_seeds_static_preflight_independent_review_only
+
+## Gate 27: Remaining Train-Seed Static-Preflight Independent Review
+
+Status: passed. One unique remaining-seed execution is next.
+
+The reviewer is independent of the remaining executor and execution-preflight
+builder. It rehashed exact file inventories and every listed file across the
+remaining preflight, original corpus preflight, corpus review, seed-24001 pilot,
+and pilot review. It cross-bound all five roots, both source-review decisions,
+the preflight source HEAD, current CAMP HEAD, and fixed DP HEAD/tracked state.
+
+The review independently sorted the same 375 route keys, reconstructed the
+route-major/seed-minor cross product at seeds `24002-24005`, and reproduced
+`1500` valid run configs, the `96000` theoretical snapshot ceiling, and row-
+order SHA
+`eca8c8e3ed0092f4f46cd93de8dec43135455eee9b14b0c63ec9a696ee6b389b`.
+It rehashed all 375 unique route assets and six live source maps. It also read
+all 375 seed-24001 pilot receipts and independently retained the exact 153
+positive-speed-source failures in the future denominator.
+
+Independent code review first found that the new reviewer verified the sealed
+corpus-review artifact without enforcing its semantic review result. TDD added
+exact schema/status/source-root and closed-boundary checks plus an internally
+resealed holdout-drift rejection. Re-review passed with no findings.
+
+All `18729 / 0` AutoDL review checks passed. Local and AutoDL py_compile, all
+`95` v24 tests, and `git diff --check` passed. The review left `46.1226 GiB`
+free. It did not import or call the remaining executor/preflight builder, rerun
+preflight, load a model, run a simulator, generate candidates, train, consume
+outcomes, tune, calibrate, open holdout, or authorize a claim.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_independent_review_c7fcf09c_20260716T012039CST`
+/
+`c2f27a314d8cac086c7edbdda5dd37129a79e87788e880a4ecf01c2429b6686b`.
+
+The next gate may launch exactly one background remaining-seed execution over
+all 375 routes and seeds `24002-24005`. Before launch it must reconfirm all
+three tracked states, fixed DP, no related worker, the process-global lock, and
+more than 10 GiB free. While that task exists, all controllers must monitor
+only and must not start or resume another task. Every success and failure stays
+in the frozen 1500-run denominator. No global stop is authorized.
+
+current_v24_status=v24_native_corpus_remaining_train_seeds_static_preflight_independent_review_passed
+current_v24_artifact_source_head=c7fcf09ceb2b40f86db2f2885271a0bfbad6c0f0
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_independent_review_c7fcf09c_20260716T012039CST
+current_v24_artifact_root_sha256=c2f27a314d8cac086c7edbdda5dd37129a79e87788e880a4ecf01c2429b6686b
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_remaining_seed_static_preflight_review_passed_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_remaining_train_seeds_unique_execution_only

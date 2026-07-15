@@ -17,8 +17,9 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through the native-corpus remaining-seed static preflight are sealed.
-Branch A remains source-ineligible locally without stopping Branch B.
+Startup through the native-corpus remaining-seed static-preflight independent
+review are sealed. Branch A remains source-ineligible locally without stopping
+Branch B.
 
 The pilot retained all 375 routes: 212 completed, 163 failed, and 13,605 causal
 K=8 snapshots were sealed. Independent review passed 213,202 authoritative
@@ -31,23 +32,27 @@ the exact same 375 routes at seeds 24002-24005: 1500 route-seed runs and a
 including all four source seals, all 1500 configs, all 375 route assets, clean
 fixed DP, the global task lock, and the 10 GiB floor. No runner, simulator,
 candidate, outcome, training, calibration, holdout, tuning, or claim opened.
-Independent static review is required before execution.
+Independent review then passed 18729 checks with zero failures. It independently
+reconstructed all 1500 configs, 375 route assets, six source maps, exact row
+order, and all 153 retained positive-speed-source failures. It did not import
+or call the execution-preflight builder or open any execution/training/eval
+boundary. Exactly one remaining-seed execution is next.
 
-current_v24_status=v24_native_corpus_remaining_train_seeds_static_preflight_passed
-current_v24_artifact_source_head=ed1c1a1661bddb1519bbe8717be28fc408769989
+current_v24_status=v24_native_corpus_remaining_train_seeds_static_preflight_independent_review_passed
+current_v24_artifact_source_head=c7fcf09ceb2b40f86db2f2885271a0bfbad6c0f0
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_ed1c1a16_20260716T010633CST
-current_v24_artifact_root_sha256=0e1b26d48b963dea88e7d98e47f3bbfb3947ab6d6b09f0cb3c1f85e9126bcac2
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_independent_review_c7fcf09c_20260716T012039CST
+current_v24_artifact_root_sha256=c2f27a314d8cac086c7edbdda5dd37129a79e87788e880a4ecf01c2429b6686b
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_remaining_seed_static_preflight_passed_review_pending
+source_b_status=native_corpus_remaining_seed_static_preflight_review_passed_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_remaining_train_seeds_static_preflight_independent_review_only
+next_work_target=v24_native_corpus_remaining_train_seeds_unique_execution_only
 
 ## Current V23 Status
 
