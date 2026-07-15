@@ -1765,15 +1765,33 @@ deterministic no-claim decision. Corrected artifact/root:
 / `3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7`,
 with `run.exit=0`.
 
+The first closeout-verification harness is preserved as a failure. It ff-only
+updated AutoDL from `e87542bd` to the correct docs commit, then stopped before
+tests because the controller had guessed the commit's full SHA from its short
+prefix. No simulator, model, reviewer, or evidence source reran. Artifact/root:
+`/root/autodl-tmp/camp_dp_v22_native_paired_honest_no_claim_closeout_verification_f6e348df_20260715T160108CST`
+/ `cf4734e3a745926fc3aada0421037edde8d4b6f996318ab48bc79453063c34a7`,
+with `run.exit=1`.
+
+The corrected closeout verifier used live full HEAD
+`f6e348dfb97c58b692ea7866527714906e0cd682`. AutoDL CAMP/origin matched;
+fixed DP remained unchanged. All 110 v22 tests passed, py_compile and diff
+checks passed, and it revalidated the main execution, main review, failed
+evidence package, corrected evidence package, EOF pointer, and deterministic
+no-claim gates. Its 21-second artifact/root is
+`/root/autodl-tmp/camp_dp_v22_native_paired_honest_no_claim_closeout_verification_retry_f6e348df_20260715T160201CST`
+/ `d82dacf580a1d135c902a27b1cc5ade9af64604b7c7a72ce3c76b437744269ff`,
+with `run.exit=0`.
+
 V22 is therefore closed as a complete, auditable study with no safety-
 improvement claim. The directional mean and speed improvement do not override
 the failed preregistered CI/offroad gates. V21 remains historical and unchanged.
 
 current_v22_status=v22_native_paired_closed_loop_honest_no_claim_closeout
-current_v22_artifact_source_head=e87542bd54889396266888f541c1d40a2ce9f860
+current_v22_artifact_source_head=f6e348dfb97c58b692ea7866527714906e0cd682
 current_v22_prior_gate_final_synced_head=e87542bd54889396266888f541c1d40a2ce9f860
 current_v22_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST
-current_v22_artifact_root_sha256=3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7
+current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_honest_no_claim_closeout_verification_retry_f6e348df_20260715T160201CST
+current_v22_artifact_root_sha256=d82dacf580a1d135c902a27b1cc5ade9af64604b7c7a72ce3c76b437744269ff
 next_work_target=no_further_action_v22_honest_no_claim_closeout_complete

@@ -7,12 +7,12 @@ STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
     "current_v22_status=v22_native_paired_closed_loop_honest_no_claim_closeout",
-    "current_v22_artifact_source_head=e87542bd54889396266888f541c1d40a2ce9f860",
+    "current_v22_artifact_source_head=f6e348dfb97c58b692ea7866527714906e0cd682",
     "current_v22_prior_gate_final_synced_head=e87542bd54889396266888f541c1d40a2ce9f860",
     "current_v22_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_evidence_package_corrected_e87542bd_20260715T155629CST",
-    "current_v22_artifact_root_sha256=3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7",
+    "current_v22_artifact=/root/autodl-tmp/camp_dp_v22_native_paired_honest_no_claim_closeout_verification_retry_f6e348df_20260715T160201CST",
+    "current_v22_artifact_root_sha256=d82dacf580a1d135c902a27b1cc5ade9af64604b7c7a72ce3c76b437744269ff",
     "next_work_target=no_further_action_v22_honest_no_claim_closeout_complete",
 )
 
@@ -421,6 +421,8 @@ def test_v22_records_main_review_evidence_package_and_honest_closeout() -> None:
         "honest_no_claim",
         "52a0d5217bde2ec4d54d79aa9089b4c421eddd9576107d97d269151f0c268b94",
         "3d10847a742fdf0a9b7331022a6f2184b8d079914504bc0a25fef9efb8b955f7",
+        "cf4734e3a745926fc3aada0421037edde8d4b6f996318ab48bc79453063c34a7",
+        "d82dacf580a1d135c902a27b1cc5ade9af64604b7c7a72ce3c76b437744269ff",
         "no_further_action_v22_honest_no_claim_closeout_complete",
     ):
         assert phrase in audit
