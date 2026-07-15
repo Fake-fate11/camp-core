@@ -1423,3 +1423,40 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_capability_pilot_execution_only
+
+## Gate 24: Unique Native Corpus Capability Pilot Launch
+
+Status: running. Monitor only; do not duplicate.
+
+After re-reading the live EOF, confirming clean CAMP/DP tracked state, fixed DP
+HEAD, no related process, no GPU compute process, and approximately 47 GiB free,
+the controller launched exactly one background pilot. PID `41080` runs seed
+`24001` over all 375 train routes under the frozen per-tick/no-thinning corpus
+contract. The artifact path is fixed below and remains unsealed while running.
+
+The process acquired the artifact lock and wrote `STATE.json` with status
+`running`. Its only startup stderr was an upstream wandb/pkg_resources
+deprecation warning. This is not a scientific or execution failure. While PID
+41080 exists, the controller must not launch or resume another pilot. It may
+only monitor progress, the 10 GiB disk floor, process health, and tracked state.
+
+Running artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_c697137d_20260715T215120CST`
+/
+`pending_unique_long_task_running_unsealed`.
+
+current_v24_status=v24_native_corpus_capability_pilot_running
+current_v24_artifact_source_head=c697137d4769b22ca5db6a60fd570f13f949cbef
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_c697137d_20260715T215120CST
+current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_capability_pilot_running_monitor_only
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_capability_pilot_monitor_only_do_not_duplicate

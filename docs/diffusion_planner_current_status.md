@@ -20,27 +20,27 @@ inventory. A branch-local or single-map failure cannot close the other source.
 Startup through native-corpus pilot execution preflight remain sealed. Branch A
 remains source-ineligible locally without stopping Branch B.
 
-Pilot execution preflight passed 403/403 checks. It verified the two corpus
-evidence roots, all 375 seed-24001 configs, six live source maps, fixed DP and
-selector assets, clean tracked state, and the 10 GiB disk floor. The pilot
-ceiling is 24000 causal per-tick K=8 snapshots. No model, simulator, candidate,
-outcome, calibration, holdout, or training ran. Unique pilot execution is next.
+Exactly one seed-24001 pilot is running under PID 41080 over all 375 train
+routes. Its output is intentionally unsealed until completion. No controller
+may launch or resume another pilot while this process exists. The only current
+work is monitoring progress, disk floor, CAMP/DP tracked state, and process
+health; calibration, holdout, tuning, and claims remain closed.
 
-current_v24_status=v24_native_corpus_pilot_execution_preflight_passed
-current_v24_artifact_source_head=87055ecc998d87745bf0ffa288f9772c3ad872d3
+current_v24_status=v24_native_corpus_capability_pilot_running
+current_v24_artifact_source_head=c697137d4769b22ca5db6a60fd570f13f949cbef
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_pilot_execution_preflight_87055ecc_20260715T214948CST
-current_v24_artifact_root_sha256=49dfd7e0ac0d5385101452a9f9b852d79da854e8e7e20ccc1ece9803112ba866
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_c697137d_20260715T215120CST
+current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_pilot_execution_preflight_passed_execution_pending
+source_b_status=native_corpus_capability_pilot_running_monitor_only
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_capability_pilot_execution_only
+next_work_target=v24_native_corpus_capability_pilot_monitor_only_do_not_duplicate
 
 ## Current V23 Status
 
