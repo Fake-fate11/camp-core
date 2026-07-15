@@ -12,6 +12,9 @@ from scripts.integrations.census_diffusion_planner_v24_lanelet2_maps import (
     SCENARIO_REPOSITORY,
     build_static_census,
 )
+from scripts.integrations.adjudicate_diffusion_planner_v24_map_families import (
+    adjudicate_map_families,
+)
 from scripts.integrations.smoke_diffusion_planner_v24_lanelet2_builders import (
     build_blob_execution_plan,
     merge_path_receipts,
@@ -25,6 +28,13 @@ PLAN = (
     / "superpowers"
     / "plans"
     / "2026-07-15-v24-tier4-lanelet2-map-census.md"
+)
+FAMILY_PLAN = (
+    Path(__file__).resolve().parents[2]
+    / "docs"
+    / "superpowers"
+    / "plans"
+    / "2026-07-15-v24-map-family-adjudication.md"
 )
 LICENSE = b"Apache License\nVersion 2.0, January 2004\n"
 
@@ -367,3 +377,115 @@ def test_builder_worker_prepares_regulatory_before_projection_and_load() -> None
     assert regulatory < projection < builder
     assert "_load_model" not in source
     assert "Route(" not in source
+
+
+def test_map_family_adjudication_uses_geography_and_segments_not_names(
+    tmp_path: Path,
+) -> None:
+    base = _map()
+    manifest = _write_source(
+        tmp_path / "payload",
+        {
+            "maps/base.osm": base,
+            "copies/renamed.osm": base,
+            "configs/id_variant.osm": _map(id_offset=100),
+            "elsewhere/same_shape.osm": _map(shift=1.0, id_offset=200),
+            "empty/no_geometry.osm": b'<osm version="0.6"/>\n',
+        },
+    )
+    census_dir = tmp_path / "census"
+    build_static_census(
+        manifest,
+        census_dir,
+        expected_path_count=5,
+        expected_unique_blob_count=4,
+    )
+    builder = {
+        "schema": "diffusion_planner_v24_lanelet2_builder_smoke_v1",
+        "path_receipts": [
+            {
+                "relative_path": path,
+                "status": (
+                    "loaded"
+                    if path
+                    in {
+                        "maps/base.osm",
+                        "copies/renamed.osm",
+                        "configs/id_variant.osm",
+                    }
+                    else "failed"
+                ),
+                "failure_category": (
+                    None
+                    if path
+                    in {
+                        "maps/base.osm",
+                        "copies/renamed.osm",
+                        "configs/id_variant.osm",
+                    }
+                    else "builder_load_failure"
+                ),
+                "source_bytes_unchanged": True,
+            }
+            for path in (
+                "maps/base.osm",
+                "copies/renamed.osm",
+                "configs/id_variant.osm",
+                "elsewhere/same_shape.osm",
+                "empty/no_geometry.osm",
+            )
+        ],
+    }
+    builder_path = tmp_path / "builder.json"
+    builder_path.write_text(json.dumps(builder), encoding="utf-8")
+
+    result = adjudicate_map_families(
+        census_dir / "census.json",
+        builder_path,
+        tmp_path / "families",
+    )
+
+    assert result["map_family_count"] == 2
+    assert result["loadable_map_family_count"] == 1
+    assert result["unassigned_path_count"] == 1
+    assert result["split_regime"] == (
+        "corridor_group_within_family_no_unseen_map_claim"
+    )
+    base_family = next(
+        family
+        for family in result["families"]
+        if "maps/base.osm" in family["paths"]
+    )
+    assert base_family["paths"] == [
+        "configs/id_variant.osm",
+        "copies/renamed.osm",
+        "maps/base.osm",
+    ]
+    elsewhere_family = next(
+        family
+        for family in result["families"]
+        if "elsewhere/same_shape.osm" in family["paths"]
+    )
+    assert elsewhere_family["loadable"] is False
+    assert result["unassigned_paths"] == [
+        {
+            "relative_path": "empty/no_geometry.osm",
+            "reason": "no_geometry_or_bbox",
+        }
+    ]
+    assert result["route_census_started"] is False
+    assert result["outcome_accessed"] is False
+
+
+def test_map_family_plan_freezes_outcome_blind_graph_rule() -> None:
+    text = " ".join(FAMILY_PLAN.read_text(encoding="utf-8").split())
+    for phrase in (
+        "bbox containment >= 0.98",
+        "absolute segment containment >= 0.80",
+        "connected components",
+        "Builder status never creates a family edge",
+        "Exact byte duplicates remain one blob node",
+        "No geometry is an unassigned source receipt",
+        "route census remains unopened",
+    ):
+        assert phrase in text
