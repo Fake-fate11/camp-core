@@ -908,7 +908,95 @@ def validate_v22_corpus_run_config(config: Mapping[str, Any]) -> None:
         raise ValueError("v22 corpus protocol mismatch")
 
 
+def validate_v24_single_record_source_probe_config(
+    config: Mapping[str, Any],
+) -> None:
+    if config.get("schema_version") != "camp_dp_v24_single_record_source_probe_v1":
+        raise ValueError("v24 single-record source-probe schema mismatch")
+    fixed_dp = _mapping(config, "fixed_dp")
+    if fixed_dp.get("head") != FIXED_DP_HEAD:
+        raise ValueError("fixed DP HEAD mismatch")
+    if fixed_dp.get("native_source_sha256") != NATIVE_SOURCE_SHA256:
+        raise ValueError("fixed DP native source hashes mismatch")
+    _asset_entry(fixed_dp, "checkpoint")
+    _asset_entry(fixed_dp, "args_json")
+
+    selector = _mapping(config, "selector")
+    if selector.get("root_sha256") != (
+        "afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7"
+    ):
+        raise ValueError("v24 probe baseline root mismatch")
+    _asset_entry(selector, "atom_scales")
+    _asset_entry(selector, "weights")
+    if (
+        selector.get("score_contract") != "score_k(w)=a_k^T w"
+        or selector.get("nonnegative_simplex") is not True
+        or selector.get("candidate_k") != 8
+        or selector.get("selection_policy") != V22_SOURCE_VALID_SELECTION
+        or selector.get("role") != "v24_read_only_baseline_source_probe"
+    ):
+        raise ValueError("v24 probe selector contract mismatch")
+    _asset_entry(config, "map")
+
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v24 probe requires exactly one route")
+    route = _asset_entry_value(routes[0], "route")
+    if not _is_sha256(route.get("name")):
+        raise ValueError("v24 probe route name must be its identity SHA256")
+
+    seeds = _mapping(config, "seeds")
+    if seeds != {
+        "scenario": 24001,
+        "candidate": 24001,
+        "bootstrap": 24001,
+        "formal_forbidden": [11, 12, 13],
+    }:
+        raise ValueError("v24 probe seed namespace mismatch")
+
+    spawn = _mapping(config, "spawn_config")
+    if set(spawn) != SPAWN_CONFIG_FIELDS:
+        raise ValueError("SpawnConfig fields do not exactly match native source")
+    critical = {
+        "seed": 24001,
+        "max_steps": 1,
+        "advance_mode": "mpc",
+        "mpc_horizon_steps": 20,
+        "mpc_n_knots": 5,
+        "sequential_inference": False,
+        "sg_smooth_enabled": False,
+        "dump_npz_dir": None,
+        "reward_config_path": None,
+        "enable_traffic_lights": True,
+        "map_refresh_steps": 5,
+    }
+    if any(spawn.get(name) != value for name, value in critical.items()):
+        raise ValueError("critical v24 probe SpawnConfig value mismatch")
+
+    protocol = _mapping(config, "protocol")
+    expected_protocol = {
+        "arm_order": ["camp"],
+        "route_order": [route["name"]],
+        "capability_route": route["name"],
+        "capability_steps": 1,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "safety_schema": "safety_cost_native_v22",
+        "route_role": "v24_source_only_single_record_probe",
+        "route_selection_rule": "lexicographic_map_family_identity_record_key",
+        "candidate_k": 8,
+        "claim_authorized": False,
+        "training_authorized": False,
+        "holdout_access_authorized": False,
+        "formal_seeds_authorized": False,
+    }
+    if protocol != expected_protocol:
+        raise ValueError("v24 single-record source-probe protocol mismatch")
+
+
 def _validate_native_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") == "camp_dp_v24_single_record_source_probe_v1":
+        validate_v24_single_record_source_probe_config(config)
+        return
     if config.get("schema_version") == "camp_dp_v22_native_capability_v1":
         validate_v22_capability_config(config)
         return
@@ -1122,7 +1210,11 @@ def execute_smoke(
     pairs: list[dict[str, Any]] = []
     expected_selection_policy = (
         _selection_policy(config)
-        if config.get("schema_version") == "camp_dp_v22_native_capability_v1"
+        if config.get("schema_version")
+        in {
+            "camp_dp_v22_native_capability_v1",
+            "camp_dp_v24_single_record_source_probe_v1",
+        }
         else None
     )
     try:
@@ -1888,7 +1980,9 @@ def build_native_arm_runner(
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
         protocol = _mapping(config, "protocol")
-        if config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
+        if config.get("schema_version") == "camp_dp_v24_single_record_source_probe_v1":
+            allowed_steps = {1}
+        elif config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
             allowed_steps = {int(protocol["corpus_steps"])}
         elif config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
             allowed_steps = {int(protocol["evaluation_steps"])}
