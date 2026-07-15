@@ -202,7 +202,9 @@ def test_v24_corpus_plan_freezes_all_train_routes_and_five_seeds() -> None:
     assert plan["training_execution_authorized"] is False
 
 
-@pytest.mark.parametrize(("target", "match"), (("split", "opened holdout"), ("census", "outcome_accessed")))
+@pytest.mark.parametrize(
+    ("target", "match"), (("split", "opened holdout"), ("census", "outcome_accessed"))
+)
 def test_v24_corpus_plan_rejects_boundary_drift(target: str, match: str) -> None:
     from scripts.integrations.prepare_diffusion_planner_v24_native_corpus import (
         build_corpus_plan,
@@ -371,6 +373,107 @@ def test_pilot_rows_select_every_train_route_at_first_seed_only(tmp_path: Path) 
     ]
 
 
+def _remaining_review(manifest: dict) -> dict:
+    route_order = [
+        route["record_key"]
+        for route in sorted(manifest["routes"], key=lambda item: item["record_key"])
+    ]
+    return {
+        "schema": "camp_dp_v24_native_corpus_pilot_independent_review_v1",
+        "status": "passed_with_warning",
+        "failed_count": 0,
+        "review_only": True,
+        "model_loaded": False,
+        "candidate_generation_started": False,
+        "training_executed": False,
+        "tuning_executed": False,
+        "outcome_accessed": False,
+        "calibration_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+        "decision": {
+            "authorized": True,
+            "action": "execute_frozen_remaining_train_seeds",
+            "route_count": len(route_order),
+            "route_order": route_order,
+            "seeds": [24002, 24003, 24004, 24005],
+            "preserve_all_failures_and_denominator": True,
+            "route_removal_replacement_reordering_authorized": False,
+            "tuning_authorized": False,
+            "outcome_access_authorized": False,
+            "calibration_access_authorized": False,
+            "holdout_access_authorized": False,
+            "claim_authorized": False,
+        },
+    }
+
+
+def test_remaining_rows_freeze_route_major_seed_minor_denominator(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        remaining_rows,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    rows = remaining_rows(manifest, _remaining_review(manifest), expected_route_count=2)
+
+    assert [(route["identity_sha256"], seed) for route, seed in rows] == [
+        (_sha("route:0"), 24002),
+        (_sha("route:0"), 24003),
+        (_sha("route:0"), 24004),
+        (_sha("route:0"), 24005),
+        (_sha("route:1"), 24002),
+        (_sha("route:1"), 24003),
+        (_sha("route:1"), 24004),
+        (_sha("route:1"), 24005),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mutation", "match"),
+    (
+        ("authorization", "authorization"),
+        ("route_order", "route order"),
+        ("seeds", "seed"),
+        ("denominator", "denominator"),
+        ("tuning", "tuning"),
+        ("outcome", "outcome"),
+        ("holdout", "holdout"),
+        ("training", "training"),
+    ),
+)
+def test_remaining_rows_reject_review_boundary_drift(
+    tmp_path: Path, mutation: str, match: str
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        remaining_rows,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    review = _remaining_review(manifest)
+    decision = review["decision"]
+    if mutation == "authorization":
+        decision["authorized"] = False
+    elif mutation == "route_order":
+        decision["route_order"] = list(reversed(decision["route_order"]))
+    elif mutation == "seeds":
+        decision["seeds"][-1] = 24205
+    elif mutation == "denominator":
+        decision["preserve_all_failures_and_denominator"] = False
+    elif mutation == "tuning":
+        decision["tuning_authorized"] = True
+    elif mutation == "outcome":
+        decision["outcome_access_authorized"] = True
+    elif mutation == "training":
+        review["training_executed"] = True
+    else:
+        decision["holdout_access_authorized"] = True
+
+    with pytest.raises(ValueError, match=match):
+        remaining_rows(manifest, review, expected_route_count=2)
+
+
 def test_pilot_executor_retains_failure_and_continues(tmp_path: Path) -> None:
     from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
         execute_pilot_manifest,
@@ -407,7 +510,267 @@ def test_pilot_executor_retains_failure_and_continues(tmp_path: Path) -> None:
     assert summary["snapshot_count"] == 1
     receipts = list((tmp_path / "pilot" / "receipts" / "train").rglob("*.json"))
     assert len(receipts) == 2
-    assert all(json.loads(path.read_text())["retained_in_denominator"] for path in receipts)
+    assert all(
+        json.loads(path.read_text())["retained_in_denominator"] for path in receipts
+    )
+
+
+def test_remaining_executor_retains_failures_across_all_frozen_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from scripts.integrations import (
+        execute_diffusion_planner_v24_native_corpus as executor,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    template = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))
+    calls = []
+    aggregate_calls = 0
+    original_aggregate = executor._aggregate_execution
+
+    def aggregate_spy(output_dir, planned):
+        nonlocal aggregate_calls
+        aggregate_calls += 1
+        return original_aggregate(output_dir, planned)
+
+    monkeypatch.setattr(executor, "_aggregate_execution", aggregate_spy)
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        del route, arm, output_dir, max_steps
+        identity = config["routes"][0]["name"]
+        seed = config["seeds"]["scenario"]
+        calls.append((identity, seed))
+        if identity == _sha("route:0"):
+            raise RuntimeError("retained source-invalid route")
+        decision_sink(_snapshot(seed))
+        return {"status": "ok", "steps": []}
+
+    output_dir = tmp_path / "remaining"
+    summary = executor.execute_remaining_manifest(
+        manifest,
+        _remaining_review(manifest),
+        template,
+        output_dir=output_dir,
+        run_arm=run_arm,
+        expected_route_count=2,
+        free_bytes=lambda: 20 * 1024**3,
+    )
+
+    assert calls == [
+        *[(_sha("route:0"), seed) for seed in range(24002, 24006)],
+        *[(_sha("route:1"), seed) for seed in range(24002, 24006)],
+    ]
+    assert summary["status"] == "complete_with_retained_failures"
+    assert summary["phase"] == "main_completion_remaining_frozen_seeds"
+    assert summary["seeds"] == [24002, 24003, 24004, 24005]
+    assert summary["planned_route_seed_runs"] == 8
+    assert summary["complete_route_seed_runs"] == 4
+    assert summary["failed_route_seed_runs"] == 4
+    assert summary["retained_route_seed_runs"] == 8
+    assert summary["theoretical_max_snapshots"] == 512
+    receipt_paths = list((output_dir / "receipts" / "train").rglob("*.json"))
+    assert len(receipt_paths) == 8
+    for path in receipt_paths:
+        receipt = json.loads(path.read_text())
+        assert receipt["schema"] == "camp_dp_v24_native_corpus_remaining_run_receipt_v1"
+        assert receipt["phase"] == "main_completion_remaining_frozen_seeds"
+    progress = json.loads((output_dir / "progress.json").read_text())
+    assert progress["schema"] == "camp_dp_v24_native_corpus_remaining_progress_v1"
+    assert progress["status"] == summary["status"]
+    assert progress["last_completed_row"] == 8
+    assert aggregate_calls == 2
+
+
+def test_remaining_resume_accepts_only_matching_unsealed_partial_artifact(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _validate_remaining_resume,
+    )
+
+    output_dir = tmp_path / "partial"
+    output_dir.mkdir()
+    heads = "CAMP_HEAD=" + "a" * 40 + "\n"
+    (output_dir / "HEADS").write_text(heads, encoding="ascii")
+    (output_dir / "COMMAND").write_text(
+        "v24 native corpus execute-remaining\n", encoding="utf-8"
+    )
+
+    _validate_remaining_resume(output_dir, heads)
+
+    (output_dir / "run.exit").write_text("0\n", encoding="ascii")
+    with pytest.raises(ValueError, match="cannot resume"):
+        _validate_remaining_resume(output_dir, heads)
+
+
+def test_remaining_resume_rejects_source_head_drift(tmp_path: Path) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _validate_remaining_resume,
+    )
+
+    output_dir = tmp_path / "partial"
+    output_dir.mkdir()
+    (output_dir / "HEADS").write_text("CAMP_HEAD=" + "b" * 40 + "\n")
+    (output_dir / "COMMAND").write_text(
+        "v24 native corpus execute-remaining\n", encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="HEADS mismatch"):
+        _validate_remaining_resume(output_dir, "CAMP_HEAD=" + "a" * 40 + "\n")
+
+
+def test_remaining_executor_rejects_tampered_resume_receipt(tmp_path: Path) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        execute_remaining_manifest,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    template = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        del route, arm, config, output_dir, max_steps
+        decision_sink(_snapshot())
+        return {"status": "ok", "steps": []}
+
+    output_dir = tmp_path / "remaining"
+    execute_remaining_manifest(
+        manifest,
+        _remaining_review(manifest),
+        template,
+        output_dir=output_dir,
+        run_arm=run_arm,
+        expected_route_count=2,
+        free_bytes=lambda: 20 * 1024**3,
+    )
+    receipt_path = next((output_dir / "receipts" / "train").rglob("*.json"))
+    receipt = json.loads(receipt_path.read_text())
+    receipt["phase"] = "tampered"
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="receipt boundary"):
+        execute_remaining_manifest(
+            manifest,
+            _remaining_review(manifest),
+            template,
+            output_dir=output_dir,
+            run_arm=run_arm,
+            expected_route_count=2,
+            free_bytes=lambda: 20 * 1024**3,
+            resume=True,
+        )
+
+
+def test_remaining_executor_rejects_unplanned_resume_receipt(tmp_path: Path) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        execute_remaining_manifest,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    template = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))
+    output_dir = tmp_path / "remaining"
+    rogue = output_dir / "receipts" / "train" / _sha("rogue-route") / "seed_24002.json"
+    rogue.parent.mkdir(parents=True)
+    rogue.write_text("{}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unplanned files"):
+        execute_remaining_manifest(
+            manifest,
+            _remaining_review(manifest),
+            template,
+            output_dir=output_dir,
+            run_arm=lambda **kwargs: kwargs,
+            expected_route_count=2,
+            free_bytes=lambda: 20 * 1024**3,
+            resume=True,
+        )
+
+
+def test_terminal_snapshot_inventory_rejects_orphan(tmp_path: Path) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _validate_terminal_snapshot_inventory,
+    )
+
+    snapshot = tmp_path / "snapshots" / f"{_sha('orphan')}.json"
+    snapshot.parent.mkdir()
+    snapshot.write_text("{}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="differs from receipts"):
+        _validate_terminal_snapshot_inventory(tmp_path)
+
+
+def test_remaining_preflight_cli_never_builds_runner(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts.integrations import (
+        execute_diffusion_planner_v24_native_corpus as executor,
+    )
+
+    route_rows = []
+    for index in range(375):
+        route = {"record_key": f"route/{index:03d}"}
+        route_rows.extend((route, seed) for seed in range(24002, 24006))
+    review = {
+        "decision": {
+            "route_count": 375,
+            "preserve_all_failures_and_denominator": True,
+        }
+    }
+
+    def fake_preflight(**kwargs):
+        del kwargs
+        return {}, {}, [{"name": "static_only", "passed": True}], review, route_rows
+
+    def forbidden_runner(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("remaining preflight constructed the native runner")
+
+    monkeypatch.setattr(executor, "_execution_preflight", fake_preflight)
+    monkeypatch.setattr(executor, "build_native_arm_runner", forbidden_runner)
+    output_dir = tmp_path / "remaining-preflight"
+    rc = executor.main(
+        [
+            "--mode",
+            "remaining-execution-preflight",
+            "--preflight-root",
+            str(tmp_path / "source-preflight"),
+            "--expected-preflight-root-sha256",
+            _sha("source-preflight"),
+            "--review-root",
+            str(tmp_path / "source-review"),
+            "--expected-review-root-sha256",
+            _sha("source-review"),
+            "--pilot-root",
+            str(tmp_path / "pilot"),
+            "--expected-pilot-root-sha256",
+            _sha("pilot"),
+            "--pilot-review-root",
+            str(tmp_path / "pilot-review"),
+            "--expected-pilot-review-root-sha256",
+            _sha("pilot-review"),
+            "--template",
+            str(BASE_CONFIG),
+            "--dp-repo",
+            str(tmp_path / "dp"),
+            "--camp-head",
+            "a" * 40,
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    assert rc == 0
+    result = json.loads((output_dir / "preflight.json").read_text())
+    assert result["route_count"] == 375
+    assert result["seeds"] == [24002, 24003, 24004, 24005]
+    assert result["route_seed_run_count"] == 1500
+    assert result["theoretical_max_snapshots"] == 96000
+    assert result["model_loaded"] is False
+    assert result["simulator_executed"] is False
+    assert result["candidate_generation_started"] is False
+    assert result["training_executed"] is False
+    assert result["holdout_opened"] is False
+    assert result["next_work_target"].endswith("independent_review_only")
 
 
 def test_pilot_preflight_accepts_complete_verified_asset_receipts() -> None:
@@ -419,7 +782,10 @@ def test_pilot_preflight_accepts_complete_verified_asset_receipts() -> None:
     complete["fixed_dp_head"] = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 
     assert verified_asset_receipts_complete(complete) is True
-    assert verified_asset_receipts_complete({"fixed_dp_head": complete["fixed_dp_head"]}) is False
+    assert (
+        verified_asset_receipts_complete({"fixed_dp_head": complete["fixed_dp_head"]})
+        is False
+    )
 
 
 def _seal_test_artifact(root: Path) -> str:
@@ -491,9 +857,7 @@ def _reviewable_pilot(tmp_path: Path) -> tuple[Path, str, Path, str]:
             "next_work_target": "v24_native_corpus_capability_pilot_independent_review_only",
         }
     )
-    (pilot_root / "execution.json").write_text(
-        json.dumps(execution), encoding="utf-8"
-    )
+    (pilot_root / "execution.json").write_text(json.dumps(execution), encoding="utf-8")
     (pilot_root / "HEADS").write_text(
         "CAMP_HEAD=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
         f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
