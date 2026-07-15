@@ -743,3 +743,70 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_fixed_dp_single_record_source_probe_execution_only
+
+## Gate 12: Fixed-DP Python 3.9 Runtime-Compatibility Remediation Preflight
+
+Status: passed. Retry the same frozen single-record source probe next.
+
+The first exact-config execution stopped during module import with
+`TypeError: unsupported operand type(s) for |: 'type' and 'NoneType'`. The
+fixed Diffusion Planner source uses a Python 3.10 union annotation, while the
+existing complete CAMP runtime is Python 3.9.25. The failure occurred before
+checkpoint load, candidate generation, replay, outcomes, or holdout access.
+It is preserved at
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_execution_f345642c_20260715T205047CST`
+with root
+`0eb8cae8aa9611ad3cc51866313704f71c9e48c074f453a326f7851caf2de58c`.
+
+The minimal remediation is a process-local import loader that compiles only
+Python source under `/root/autodl-tmp/Diffusion-Planner` with postponed
+annotation evaluation. It modifies no fixed-DP file, config, weight,
+checkpoint, request, candidate tensor, trajectory, system package, or global
+Python installation. TDD exposed that an existing `.pyc` could bypass the
+source compiler; a second test required the loader to read the immutable source
+bytes directly. Local results are 39 v24 tests passed, script compilation
+passed, and diff check passed.
+
+The first remote compatibility preflight reproduced the cached-bytecode bypass
+without loading the model. It is sealed at
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_python39_annotation_compatibility_preflight_d3a387b9_20260715T205724CST`
+with root
+`acfff0854b551f14ff0264569ebb572dfe6929a76c39db89956c909749313938`.
+This was a normal import defect and did not authorize source or global
+closeout.
+
+After the `.pyc` bypass fix, the fresh Python 3.9 preflight imported the frozen
+`scenario_generation.replay` and `scenario_generation.tensor_converter`
+modules from the fixed-DP root. The process-local finder was installed for that
+exact root, and all five registered native-source SHA values matched. Remote
+script compilation and all 39 v24 tests passed. The only stderr was an existing
+nonfatal `wandb`/`pkg_resources` deprecation warning. CAMP and DP tracked state
+were clean at
+`03d1b02a047ca2c216821835a16e345c4046d749` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`; free space was 46.30 GiB.
+
+Immutable successful artifact/root:
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_python39_annotation_compatibility_preflight_retry_03d1b02a_20260715T205856CST`
+/
+`1ab93bb525cee1481f7b9ab307fd13a431160e144b3145df3ccd01f340e936ef`.
+
+The source-only route, identity, seed 24001, fixed K=8, and one-tick scope are
+unchanged. Branch B therefore continues. The next gate may retry only that
+same exact-config execution; it may not select a replacement route from
+results.
+
+current_v24_status=v24_fixed_dp_single_record_source_probe_runtime_compatibility_preflight_passed
+current_v24_artifact_source_head=03d1b02a047ca2c216821835a16e345c4046d749
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_python39_annotation_compatibility_preflight_retry_03d1b02a_20260715T205856CST
+current_v24_artifact_root_sha256=1ab93bb525cee1481f7b9ab307fd13a431160e144b3145df3ccd01f340e936ef
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=single_record_probe_runtime_compatibility_passed_execution_retry_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_fixed_dp_single_record_source_probe_execution_only

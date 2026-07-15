@@ -20,15 +20,15 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_fixed_dp_single_record_source_probe_preflight_passed",
-    "current_v24_artifact_source_head=a53d6ee3471c4051a18d1cbe8d408b378dd6197f",
+    "current_v24_status=v24_fixed_dp_single_record_source_probe_runtime_compatibility_preflight_passed",
+    "current_v24_artifact_source_head=03d1b02a047ca2c216821835a16e345c4046d749",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_a53d6ee3_20260715T204719CST",
-    "current_v24_artifact_root_sha256=cedcc6fe8ca00fff7bbab4eeb92faa2f4cd5d172ec8b1d9d1cb9168ead955394",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_python39_annotation_compatibility_preflight_retry_03d1b02a_20260715T205856CST",
+    "current_v24_artifact_root_sha256=1ab93bb525cee1481f7b9ab307fd13a431160e144b3145df3ccd01f340e936ef",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=single_record_probe_preflight_passed_execution_pending",
+    "source_b_status=single_record_probe_runtime_compatibility_passed_execution_retry_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
