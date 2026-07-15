@@ -558,3 +558,64 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_outcome_blind_route_census_execution_only
+
+## Gate 9: Outcome-Blind Route-Census Execution
+
+Status: passed. Independent route-census review is next.
+
+The controller executed the frozen plan once. Worker accounting is `10 / 0 /
+0` completed / failed / execution-invalid blobs. Every loaded source blob ran
+in its own process; the two byte-copy paths reused their representative blob
+receipt. Source bytes modified: `false`.
+
+The complete result is `603 / 552 / 51` start attempts / qualifying /
+below-threshold. Every start receipt remains present. The qualifying records
+produce `552 / 401 / 151 / 5` raw / exact-deduplicated / duplicate /
+corridor-group counts. Exact duplicates point to their deterministic retained
+record; corridor groups remain indivisible and are not discarded.
+
+Three independent map families retain `>=80m` route support. Deduplicated
+counts for Kashi/standard, four-track-highway, and simple-cross are respectively
+`375 / 24 / 2`. The loadable slope family has zero `>=80m` support and remains
+in map/start failure accounting; it does not stop the other families. Thus the
+later split can still operate at map-family level after review.
+
+All `20 / 0` execution checks passed. Free space was
+`49,739,603,968` before and `49,711,423,488` after, above the frozen 10 GiB
+floor. All 28 v24 tests, script compilation, and diff checks passed on AutoDL.
+The model, candidate generation, outcomes, and holdout remained unopened. No
+route asset, split, seed, corpus, selector, claim, deployment, or activation
+was created.
+
+One launch attempt used an incorrect guessed full expansion of the already
+known short source HEAD. It stopped immediately after remote fast-forward at
+the exact-HEAD assertion and did not create an execution artifact or worker.
+The controller read the live full SHA, confirmed zero processes and zero
+execution artifacts, then started the sole scientific execution above. This
+is a controller-observation correction, not a repeated route census.
+
+Immutable execution artifact/root:
+`/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_execution_88c57e55_20260715T203449CST`
+/
+`e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d`.
+
+Source B has substantial source-valid route support, so neither a source-local
+nor global stop is authorized. Independent review must rehash the artifact,
+recompute all attempt/dedup/family/corridor counts, and must not reexecute a
+route worker or open K=8.
+
+current_v24_status=v24_outcome_blind_route_census_execution_passed
+current_v24_artifact_source_head=88c57e5597ffdbcc60c26a1c6232b3796b9e9a18
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_execution_88c57e55_20260715T203449CST
+current_v24_artifact_root_sha256=e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=route_census_execution_passed_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_outcome_blind_route_census_independent_review_only

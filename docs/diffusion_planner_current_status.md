@@ -17,32 +17,34 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through route-census preflight remain sealed. Branch A remains
+Startup through route-census execution remain sealed. Branch A remains
 source-ineligible locally without stopping Branch B.
 
-The source-only route contract and AutoDL preflight passed 30/30 checks at
-source HEAD `78a276f9bd7323b681cd8a440ba8d36262335292`. The frozen execution plan has
-10 loaded blobs covering 12 paths in four map families. It makes one
-deterministic attempt per drivable start lanelet, keeps every attempt receipt,
-deduplicates exact geometry, and preserves overlapping-corridor groups for the
-later leakage-safe split. No worker ran; route/model/candidate/outcome/holdout
-work remains unopened. Route-census execution is next.
+The outcome-blind route census passed 20/20 checks at source HEAD
+`88c57e5597ffdbcc60c26a1c6232b3796b9e9a18`. All 10 eligible blobs completed.
+The 603 start-lanelet receipts contain 552 qualifying and 51 short routes;
+exact deduplication retains 401 routes with 151 duplicate receipts and five
+indivisible corridor groups. Three independent families retain route support:
+Kashi/standard 375, four-track-highway 24, and simple-cross 2. The loadable
+slope family has zero >=80m route support and remains map-local accounting.
+Model/candidate/outcome/holdout work remains unopened. Independent read-only
+review is next.
 
-current_v24_status=v24_outcome_blind_route_census_preflight_passed
-current_v24_artifact_source_head=78a276f9bd7323b681cd8a440ba8d36262335292
+current_v24_status=v24_outcome_blind_route_census_execution_passed
+current_v24_artifact_source_head=88c57e5597ffdbcc60c26a1c6232b3796b9e9a18
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_preflight_78a276f9_20260715T203134CST
-current_v24_artifact_root_sha256=2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_execution_88c57e55_20260715T203449CST
+current_v24_artifact_root_sha256=e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=route_census_preflight_passed_execution_pending
+source_b_status=route_census_execution_passed_review_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_outcome_blind_route_census_execution_only
+next_work_target=v24_outcome_blind_route_census_independent_review_only
 
 ## Current V23 Status
 

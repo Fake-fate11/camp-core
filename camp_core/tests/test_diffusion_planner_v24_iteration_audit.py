@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_outcome_blind_route_census_preflight_passed",
-    "current_v24_artifact_source_head=78a276f9bd7323b681cd8a440ba8d36262335292",
+    "current_v24_status=v24_outcome_blind_route_census_execution_passed",
+    "current_v24_artifact_source_head=88c57e5597ffdbcc60c26a1c6232b3796b9e9a18",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_preflight_78a276f9_20260715T203134CST",
-    "current_v24_artifact_root_sha256=2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_execution_88c57e55_20260715T203449CST",
+    "current_v24_artifact_root_sha256=e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=route_census_preflight_passed_execution_pending",
+    "source_b_status=route_census_execution_passed_review_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_outcome_blind_route_census_execution_only",
+    "next_work_target=v24_outcome_blind_route_census_independent_review_only",
 )
 
 
@@ -239,5 +239,22 @@ def test_v24_route_census_preflight_freezes_execution_without_starting_it() -> N
         "Route census execution did not start",
         "model, candidate generation, outcome, and holdout remained unopened",
         "2550ecef112c79be18c1ec4a11e5425db543e7f58e7a167f1c854ee84eb9475a",
+    ):
+        assert phrase in text
+
+
+def test_v24_route_census_execution_preserves_full_attempt_accounting() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`10 / 0 / 0` completed / failed / execution-invalid blobs",
+        "`603 / 552 / 51` start attempts / qualifying / below-threshold",
+        "`552 / 401 / 151 / 5` raw / exact-deduplicated / duplicate / corridor-group counts",
+        "`375 / 24 / 2`",
+        "slope family has zero `>=80m` support",
+        "All `20 / 0` execution checks passed",
+        "Source bytes modified: `false`",
+        "model, candidate generation, outcomes, and holdout remained unopened",
+        "did not create an execution artifact or worker",
+        "e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d",
     ):
         assert phrase in text
