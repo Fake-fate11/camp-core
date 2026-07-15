@@ -1373,3 +1373,53 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_capability_pilot_all_train_routes_seed_24001_only
+
+## Gate 23: Native Corpus Pilot Execution Preflight
+
+Status: passed. Unique seed-24001 pilot execution is next.
+
+The first execution-preflight attempt failed closed on a harness-only exact
+verified-asset receipt count assumption: the verifier correctly returned 13
+receipts, including fixed-DP HEAD and selector-manifest receipts, rather than
+the assumed 11. The attempt created no scientific output artifact, did not
+build the native runner, and did not load a model or simulator. TDD replaced
+the brittle exact count with a completeness predicate while preserving every
+underlying hash check.
+
+The corrected preflight rehashed the sealed corpus preflight and independent
+review, fixed-DP sources/checkpoint/config, selector manifest/scales/weights,
+all 375 seed-24001 run configs, all source-derived route assets, and six live
+source maps. It reconfirmed the `24000` theoretical pilot snapshot ceiling,
+10 GiB disk floor, clean DP tracked state, train-only boundary, per-tick/no-
+thinning rule, and no-tuning policy. All `403 / 0` checks and all `63` v24
+tests passed.
+
+CAMP/DP tracked state remained clean at
+`87055ecc998d87745bf0ffa288f9772c3ad872d3` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Model, simulator, candidate
+generation, outcomes, calibration, holdout, and training remained unopened.
+
+Immutable execution-preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_pilot_execution_preflight_87055ecc_20260715T214948CST`
+/
+`49dfd7e0ac0d5385101452a9f9b852d79da854e8e7e20ccc1ece9803112ba866`.
+
+The next gate launches one unique background pilot execution over all 375
+train routes at seed `24001`. It must retain every attempted route and failure,
+write resumable progress, and stop if free disk reaches the 10 GiB floor.
+
+current_v24_status=v24_native_corpus_pilot_execution_preflight_passed
+current_v24_artifact_source_head=87055ecc998d87745bf0ffa288f9772c3ad872d3
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_pilot_execution_preflight_87055ecc_20260715T214948CST
+current_v24_artifact_root_sha256=49dfd7e0ac0d5385101452a9f9b852d79da854e8e7e20ccc1ece9803112ba866
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_pilot_execution_preflight_passed_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_capability_pilot_execution_only

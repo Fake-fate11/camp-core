@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_native_corpus_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=8b520eb14426b796edb3812df8499d7cd97557cc",
+    "current_v24_status=v24_native_corpus_pilot_execution_preflight_passed",
+    "current_v24_artifact_source_head=87055ecc998d87745bf0ffa288f9772c3ad872d3",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_review_8b520eb1_20260715T214248CST",
-    "current_v24_artifact_root_sha256=fe69c61e9da0a11233bb6c5862e2becc8fddb4e1e8e133c60cb21e80a5efe6db",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_pilot_execution_preflight_87055ecc_20260715T214948CST",
+    "current_v24_artifact_root_sha256=49dfd7e0ac0d5385101452a9f9b852d79da854e8e7e20ccc1ece9803112ba866",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=native_corpus_static_preflight_review_passed_pilot_pending",
+    "source_b_status=native_corpus_pilot_execution_preflight_passed_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_native_corpus_capability_pilot_all_train_routes_seed_24001_only",
+    "next_work_target=v24_native_corpus_capability_pilot_execution_only",
 )
 
 
@@ -104,6 +104,22 @@ def test_v24_native_corpus_preflight_review_rebuilds_every_config() -> None:
         "`59` v24 tests",
         "fe69c61e9da0a11233bb6c5862e2becc8fddb4e1e8e133c60cb21e80a5efe6db",
         "capability pilot over all 375 train routes at seed `24001` only",
+    ):
+        assert phrase in text
+
+
+def test_v24_native_corpus_pilot_execution_preflight_is_fail_closed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`403 / 0` checks",
+        "all 375 seed-24001 run configs",
+        "six live source maps",
+        "`24000` theoretical pilot snapshot ceiling",
+        "`63` v24 tests",
+        "verified-asset receipt count assumption",
+        "created no scientific output artifact",
+        "49dfd7e0ac0d5385101452a9f9b852d79da854e8e7e20ccc1ece9803112ba866",
+        "unique background pilot execution",
     ):
         assert phrase in text
 
