@@ -17,32 +17,32 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through map-family split execution remain sealed. Branch A remains
-source-ineligible locally without stopping Branch B.
+Startup through independent map-family split review remain sealed. Branch A
+remains source-ineligible locally without stopping Branch B.
 
-The formal split manifest materialized all 401 routes and 2005 route-seed
-assignments from the exact preflight plan SHA. Entire-family assignment remains
-Kashi/standard train, simple-cross calibration, and four-track-highway holdout:
-375 / 2 / 24 routes and 1875 / 10 / 120 route-seeds. Seeds 24001-24005 remain
-attached to their route. No simulator, model, candidate, outcome, or holdout
-execution occurred. Independent split review is next and must not rewrite the
-manifest.
+The read-only reviewer passed 116/116 checks and independently reproduced full
+401-route and 2005 route-seed coverage with zero family, corridor, route,
+identity, or route-seed overlap. Train/calibration/holdout remain 375 / 2 / 24
+routes, 1875 / 10 / 120 route-seeds, one family each, and 1 / 1 / 3 corridor
+groups. It did not rewrite the manifest or run any model/simulator. Corpus
+plan/TDD/static preflight is next and must first close the registered
+staging-path receipt defect before generation.
 
-current_v24_status=v24_map_family_split_execution_passed
-current_v24_artifact_source_head=096747e2e83af29cb4f4aa7c175e1f56793b50a6
+current_v24_status=v24_map_family_split_independent_review_passed
+current_v24_artifact_source_head=90f73ab2c2c473be48eb6cc3c4bcea07747fce50
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_map_family_split_execution_096747e2_20260715T211547CST
-current_v24_artifact_root_sha256=b923895a594c00a01c244a2342816539baa1c8400a0aeefb49946bcac37519af
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_map_family_split_independent_review_90f73ab2_20260715T211904CST
+current_v24_artifact_root_sha256=637b1920421639c949814bd0448379f9677089026a90b0bc0e010661670845df
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=split_execution_passed_independent_review_pending
+source_b_status=split_review_passed_corpus_plan_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_map_family_split_independent_review_only
+next_work_target=v24_corpus_plan_tdd_artifact_layout_remediation_static_preflight_only
 
 ## Current V23 Status
 

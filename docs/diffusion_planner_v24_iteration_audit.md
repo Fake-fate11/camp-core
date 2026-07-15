@@ -1057,3 +1057,56 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_map_family_split_independent_review_only
+
+## Gate 17: Map-Family Split Independent Review
+
+Status: passed. Corpus plan/TDD/artifact-layout remediation/static preflight are
+next.
+
+The pure-stdlib reviewer independently rehashed the sealed split execution and
+route-census artifacts, recomputed the split manifest's canonical SHA, and
+rebuilt route-to-family, route-to-corridor, route-to-split, and route-to-seed
+mappings from both sources. It did not call the split builder, rewrite the
+manifest, load a model, generate candidates, access outcomes, or open holdout.
+
+All `116 / 0` checks passed. The full 401-route denominator and all 2005
+route-seed pairs are present exactly once. Train/calibration/holdout contain
+`375 / 2 / 24` routes, `1875 / 10 / 120` route-seed pairs, one map family each,
+and `1 / 1 / 3` corridor groups. Family, corridor, route key, route identity,
+and route-seed overlap are all zero. Every route retains exactly seeds
+`24001-24005`. Plan and manifest SHA values remain
+`55fc3f0aeca1daff1177d533394162b44e0684f7a9e0756d1981042baa265ff3`
+and
+`c57382fe500cd80c9bf37f402a567720756bdb0b25bb56d80bcf1b5ada699b1b`.
+
+Remote script compilation, all 44 v24 tests, and diff check passed. CAMP/DP
+tracked state remained clean at
+`90f73ab2c2c473be48eb6cc3c4bcea07747fce50` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_map_family_split_independent_review_90f73ab2_20260715T211904CST`
+/
+`637b1920421639c949814bd0448379f9677089026a90b0bc0e010661670845df`.
+
+Branch B continues. The next gate plans causal per-tick K=8 corpus generation
+using train routes only. Before generation, TDD must correct the runner's two
+staging-path receipts so future formal artifacts point at their final sealed
+location. The gate may preflight route/seed/capacity/runtime contracts but may
+not generate the corpus, access calibration/holdout outcomes, or tune atoms.
+
+current_v24_status=v24_map_family_split_independent_review_passed
+current_v24_artifact_source_head=90f73ab2c2c473be48eb6cc3c4bcea07747fce50
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_map_family_split_independent_review_90f73ab2_20260715T211904CST
+current_v24_artifact_root_sha256=637b1920421639c949814bd0448379f9677089026a90b0bc0e010661670845df
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=split_review_passed_corpus_plan_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_corpus_plan_tdd_artifact_layout_remediation_static_preflight_only
