@@ -1460,3 +1460,90 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_capability_pilot_monitor_only_do_not_duplicate
+
+## Gate 25: Native Corpus Capability Pilot Independent Review
+
+Status: passed with one non-authoritative metadata warning. Remaining-seed
+plan/TDD/static preflight is next.
+
+PID `41080` completed without controller intervention. The immutable pilot
+retains the exact `375 / 375` seed-24001 train-route denominator: `212`
+completed, `163` failed, `0` pending, and `13,605` causal per-tick K=8
+snapshots. Wall-clock was `7,573.202184305992` seconds and the pilot recorded
+`46.1798 GiB` free. Calibration, holdout, outcome fields, tuning, training,
+and claims remained closed.
+
+Failure accounting is complete and no route was removed or replaced:
+
+- `153` routes failed before snapshot capture because route slot 0 lacked a
+  positive speed limit. They are exactly the `81` private-road/walkway and
+  `72` standard-map routes. Raw XML independently confirms `0` explicit speed
+  lanelets in both source maps; four other train map blobs retain explicit
+  speed on every selected route lanelet.
+- `5` routes retained 64 snapshots each before the native safety summary found
+  a zero moving-on-road denominator.
+- `4` routes retained one snapshot each before reporting no executed tracker
+  tick; their native lifecycle ended at the initial goal-passed boundary.
+- `1` route retained two snapshots before an invalid candidate heading vector.
+
+Thus `222` routes contribute snapshots: all `212` completed routes plus ten
+retained execution-failure routes. The two zero-speed maps contribute no
+snapshots and remain explicit source-invalid receipts. This is branch/map-level
+failure accounting, not a Source B or global stop: four train map blobs still
+provide `13,605` real fixed-DP K=8 snapshots.
+
+The source pilot seal independently verified all `15,616` manifest entries and
+root
+`f8cce7a9fd2b26583241aa53ed5886dc0a87c45d8ffcff89dc01a0421fa270be`.
+The source artifact's `progress.json` retained status `running` after row 375,
+while `STATE.json`, `pilot_summary.json`, `execution.json`, `run.exit=0`, and
+the absent PID all prove terminal `complete_with_retained_failures`. TDD fixed
+the producer to rewrite terminal progress for later phases; the immutable
+pilot was not edited. A fail-closed reviewer was added and independently code
+reviewed. Initial review found exact-inventory and terminal-protocol gaps;
+follow-up TDD fixed them, and re-review passed with no findings.
+
+The AutoDL reviewer performed `213,202 / 0` authoritative checks over both
+sealed roots, every receipt and snapshot, exact semantic file inventories,
+train/seed identities, finite 8x14 atom matrices, K=8 row hashes, candidate
+tensor immutability, candidate-0/default identity, source masks, route/group
+sidecars, cadence, terminal metadata, disk, and closed-boundary flags. Its sole
+warning is `progress_terminal_status_stale_running`; this warning is emitted
+only after all authoritative checks pass. It authorizes only the frozen same
+375 routes at seeds `24002-24005`, with all failures retained and no route
+removal, replacement, or reordering.
+
+Remote py_compile, all `75` v24 tests, and `git diff --check` passed. CAMP and
+fixed DP remained tracked-clean at
+`082789db8b461f34edb761b8ff9c4d3680e2f7bf` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The first remote controller
+attempt used an incorrect guessed expansion of short HEAD `082789db`; the
+exact-HEAD assertion stopped before tests, reviewer, or artifact creation. The
+controller then used the live full SHA and ran the sole review above.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_independent_review_082789db_20260716T004146CST`
+/
+`e6794589ef5319879b84543b0d046d9814519d953effb89233f91779fb4e8101`.
+
+The next gate may only design, TDD, and statically preflight the frozen
+remaining-seed completion over all 375 routes and seeds `24002-24005`. It must
+reuse the pilot evidence, keep the 153 source-invalid routes in every seed
+denominator, preserve the 10 GiB floor, and stop before execution. No global
+stop is authorized.
+
+current_v24_status=v24_native_corpus_capability_pilot_independent_review_passed_with_warning
+current_v24_artifact_source_head=082789db8b461f34edb761b8ff9c4d3680e2f7bf
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_independent_review_082789db_20260716T004146CST
+current_v24_artifact_root_sha256=e6794589ef5319879b84543b0d046d9814519d953effb89233f91779fb4e8101
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_capability_pilot_review_passed_remaining_seed_preflight_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_remaining_train_seeds_plan_tdd_static_preflight_only

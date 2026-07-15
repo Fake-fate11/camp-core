@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-15, Asia/Shanghai.
+Last verified: 2026-07-16, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v24_iteration_audit.md`. V23 and earlier
@@ -17,30 +17,34 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through native-corpus pilot execution preflight remain sealed. Branch A
-remains source-ineligible locally without stopping Branch B.
+Startup through the native-corpus seed-24001 capability-pilot independent
+review are sealed. Branch A remains source-ineligible locally without stopping
+Branch B.
 
-Exactly one seed-24001 pilot is running under PID 41080 over all 375 train
-routes. Its output is intentionally unsealed until completion. No controller
-may launch or resume another pilot while this process exists. The only current
-work is monitoring progress, disk floor, CAMP/DP tracked state, and process
-health; calibration, holdout, tuning, and claims remain closed.
+The pilot retained all 375 routes: 212 completed, 163 failed, and 13,605 causal
+K=8 snapshots were sealed. Independent review passed 213,202 authoritative
+checks with zero failures. Its sole warning is the source artifact's stale
+non-authoritative `progress.json` status; terminal STATE, summary, execution,
+run-exit, and seals are consistent. The producer now writes terminal progress,
+without modifying the historical artifact. Frozen seeds 24002-24005 remain
+closed until their plan/TDD/static preflight gate passes. Calibration, holdout,
+tuning, outcomes, and claims remain closed.
 
-current_v24_status=v24_native_corpus_capability_pilot_running
-current_v24_artifact_source_head=c697137d4769b22ca5db6a60fd570f13f949cbef
+current_v24_status=v24_native_corpus_capability_pilot_independent_review_passed_with_warning
+current_v24_artifact_source_head=082789db8b461f34edb761b8ff9c4d3680e2f7bf
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_c697137d_20260715T215120CST
-current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_capability_pilot_independent_review_082789db_20260716T004146CST
+current_v24_artifact_root_sha256=e6794589ef5319879b84543b0d046d9814519d953effb89233f91779fb4e8101
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_capability_pilot_running_monitor_only
+source_b_status=native_corpus_capability_pilot_review_passed_remaining_seed_preflight_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_capability_pilot_monitor_only_do_not_duplicate
+next_work_target=v24_native_corpus_remaining_train_seeds_plan_tdd_static_preflight_only
 
 ## Current V23 Status
 
