@@ -296,3 +296,115 @@ def test_independent_reviewer_rejects_corpus_boundary_drift(mutation: str) -> No
 
     with pytest.raises(ValueError, match="boundary"):
         validate_corpus_boundaries(plan, manifest)
+
+
+def _snapshot(tick: int = 0) -> dict:
+    row_sha = [_sha(f"row:{tick}:{index}") for index in range(8)]
+    tensor_sha = _sha(f"tensor:{tick}")
+    causal_sha = _sha(f"causal:{tick}")
+    return {
+        "schema_version": "v22_native_decision_snapshot_v1",
+        "feature_payload": {
+            "atom_matrix": [[1.0] * 14 for _ in range(8)],
+            "source_valid_mask": [True] * 8,
+            "candidate_row_sha256": row_sha,
+        },
+        "sidecar": {
+            "tick_index": tick,
+            "candidate_tensor_sha256_before": tensor_sha,
+            "candidate_tensor_sha256_after": tensor_sha,
+            "causal_input_sha256": causal_sha,
+            "default_output_sha256": row_sha[0],
+            "candidate0_sha256": row_sha[0],
+            "default_candidate0_identity": {
+                "elementwise_equal": True,
+                "max_abs_difference": 0.0,
+                "default_output_sha256": row_sha[0],
+                "candidate0_sha256": row_sha[0],
+                "native_ranked_k8": False,
+            },
+            "physical_feasible_mask": [True] * 8,
+            "all_k_high_risk": False,
+        },
+    }
+
+
+def _pilot_manifest(tmp_path: Path) -> dict:
+    routes = []
+    for index in range(2):
+        route = _route(index, "map_family_train")
+        asset_path = tmp_path / f"route-{index}.pkl"
+        asset_path.write_text(str(index), encoding="utf-8")
+        route.update(
+            {
+                "corridor_group_sha256": _sha("corridor:train"),
+                "route_asset": {
+                    "path": str(asset_path),
+                    "sha256": hashlib.sha256(asset_path.read_bytes()).hexdigest(),
+                },
+                "seeds": [24001, 24002, 24003, 24004, 24005],
+            }
+        )
+        routes.append(route)
+    return {
+        "schema": "camp_dp_v24_native_corpus_manifest_v1",
+        "split": "train",
+        "routes": routes,
+        "route_count": 2,
+        "seeds": [24001, 24002, 24003, 24004, 24005],
+        "outcome_fields_consumed": [],
+        "calibration_accessed": False,
+        "holdout_opened": False,
+    }
+
+
+def test_pilot_rows_select_every_train_route_at_first_seed_only(tmp_path: Path) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        pilot_rows,
+    )
+
+    rows = pilot_rows(_pilot_manifest(tmp_path), expected_route_count=2)
+
+    assert [(route["identity_sha256"], seed) for route, seed in rows] == [
+        (_sha("route:0"), 24001),
+        (_sha("route:1"), 24001),
+    ]
+
+
+def test_pilot_executor_retains_failure_and_continues(tmp_path: Path) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        execute_pilot_manifest,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    template = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))
+    calls = []
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        del route, arm, output_dir, max_steps
+        identity = config["routes"][0]["name"]
+        calls.append((identity, config["seeds"]["scenario"]))
+        if identity == _sha("route:0"):
+            raise RuntimeError("objective pilot failure")
+        decision_sink(_snapshot())
+        return {"status": "ok", "steps": []}
+
+    summary = execute_pilot_manifest(
+        manifest,
+        template,
+        output_dir=tmp_path / "pilot",
+        run_arm=run_arm,
+        expected_route_count=2,
+        free_bytes=lambda: 20 * 1024**3,
+    )
+
+    assert calls == [(_sha("route:0"), 24001), (_sha("route:1"), 24001)]
+    assert summary["status"] == "complete_with_retained_failures"
+    assert summary["planned_route_seed_runs"] == 2
+    assert summary["complete_route_seed_runs"] == 1
+    assert summary["failed_route_seed_runs"] == 1
+    assert summary["retained_route_seed_runs"] == 2
+    assert summary["snapshot_count"] == 1
+    receipts = list((tmp_path / "pilot" / "receipts" / "train").rglob("*.json"))
+    assert len(receipts) == 2
+    assert all(json.loads(path.read_text())["retained_in_denominator"] for path in receipts)
