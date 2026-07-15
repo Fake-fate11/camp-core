@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_native_corpus_plan_tdd_static_preflight_passed",
-    "current_v24_artifact_source_head=8d9398d750d77075b662fa0741b69fc5e944e0cd",
+    "current_v24_status=v24_native_corpus_static_preflight_independent_review_passed",
+    "current_v24_artifact_source_head=8b520eb14426b796edb3812df8499d7cd97557cc",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_8d9398d7_20260715T213749CST",
-    "current_v24_artifact_root_sha256=17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_review_8b520eb1_20260715T214248CST",
+    "current_v24_artifact_root_sha256=fe69c61e9da0a11233bb6c5862e2becc8fddb4e1e8e133c60cb21e80a5efe6db",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=native_corpus_static_preflight_passed_review_pending",
+    "source_b_status=native_corpus_static_preflight_review_passed_pilot_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_native_corpus_static_preflight_independent_review_only",
+    "next_work_target=v24_native_corpus_capability_pilot_all_train_routes_seed_24001_only",
 )
 
 
@@ -89,6 +89,21 @@ def test_v24_native_corpus_preflight_is_train_only_and_per_tick() -> None:
         "`64 / 0` checks",
         "Model, simulator, candidate generation, outcomes, calibration, holdout, and training execution all remained unopened",
         "17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72",
+    ):
+        assert phrase in text
+
+
+def test_v24_native_corpus_preflight_review_rebuilds_every_config() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`3829 / 0` checks",
+        "independently reloaded all 375 route assets",
+        "rebuilt all 1875 run configs",
+        "six live source-map paths",
+        "did not call the preflight builder",
+        "`59` v24 tests",
+        "fe69c61e9da0a11233bb6c5862e2becc8fddb4e1e8e133c60cb21e80a5efe6db",
+        "capability pilot over all 375 train routes at seed `24001` only",
     ):
         assert phrase in text
 

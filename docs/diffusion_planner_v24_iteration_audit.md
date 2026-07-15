@@ -1323,3 +1323,53 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_static_preflight_independent_review_only
+
+## Gate 22: Native Corpus Static-Preflight Independent Review
+
+Status: passed. The frozen first-seed capability pilot is next.
+
+The reviewer verified the preflight, corrected split, and route-census evidence
+roots independently. It recomputed the corpus plan and manifest SHA values,
+confirmed exact train membership, independently reloaded all 375 route assets,
+checked six live source-map paths, and rebuilt all 1875 run configs and their
+content hashes without importing or calling the preflight builder. All
+`3829 / 0` checks passed.
+
+The review reconfirmed the `375 / 5 / 1875` train denominator, distinct train
+seed namespace `24001-24005`, per-tick/no-thinning capture, `120000` theoretical
+snapshot ceiling, route/corridor/source identities, candidate immutability
+requirements, and closed calibration/holdout/outcome boundaries. It did not
+call the preflight builder, run the simulator, load the model, generate a
+candidate, train, or access an outcome.
+
+All `59` v24 tests, remote compilation, and diff check passed. CAMP/DP tracked
+state remained clean at `8b520eb14426b796edb3812df8499d7cd97557cc` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. The review left `46.2872 GiB`
+free, above the 10 GiB floor.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_review_8b520eb1_20260715T214248CST`
+/
+`fe69c61e9da0a11233bb6c5862e2becc8fddb4e1e8e133c60cb21e80a5efe6db`.
+
+The next gate is the capability pilot over all 375 train routes at seed
+`24001` only. It may exercise fixed-DP K=8 generation and capture causal
+snapshots, but it may not tune or remove any route, seed, atom, threshold, or
+failure receipt. Before launch it must prove no duplicate pilot is active and
+retain more than 10 GiB free.
+
+current_v24_status=v24_native_corpus_static_preflight_independent_review_passed
+current_v24_artifact_source_head=8b520eb14426b796edb3812df8499d7cd97557cc
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_review_8b520eb1_20260715T214248CST
+current_v24_artifact_root_sha256=fe69c61e9da0a11233bb6c5862e2becc8fddb4e1e8e133c60cb21e80a5efe6db
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_static_preflight_review_passed_pilot_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_capability_pilot_all_train_routes_seed_24001_only
