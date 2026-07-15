@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import argparse
+import __future__
 import hashlib
 import io
+import importlib.abc
+import importlib.machinery
 import inspect
 import json
 import os
@@ -135,6 +138,80 @@ V22_SOURCE_VALID_SELECTION = "v22_source_valid"
 _SELECTION_POLICIES = frozenset(
     {V21_PHYSICAL_SELECTION, V22_SOURCE_VALID_SELECTION}
 )
+
+
+def _compile_fixed_dp_with_postponed_annotations(
+    source: bytes, path: str
+) -> Any:
+    return compile(
+        source,
+        path,
+        "exec",
+        flags=__future__.annotations.compiler_flag,
+        dont_inherit=True,
+    )
+
+
+class _FixedDpPostponedAnnotationsLoader(importlib.machinery.SourceFileLoader):
+    def source_to_code(
+        self, data: bytes, path: str, *, _optimize: int = -1
+    ) -> Any:
+        return compile(
+            data,
+            path,
+            "exec",
+            flags=__future__.annotations.compiler_flag,
+            dont_inherit=True,
+            optimize=_optimize,
+        )
+
+
+class _FixedDpPostponedAnnotationsFinder(importlib.abc.MetaPathFinder):
+    def __init__(self, dp_repo: str | Path) -> None:
+        self.dp_repo = Path(dp_repo).resolve()
+
+    def loader_for(
+        self, path: str | Path, fullname: str = "fixed_dp_compat"
+    ) -> _FixedDpPostponedAnnotationsLoader | None:
+        resolved = Path(path).resolve()
+        try:
+            resolved.relative_to(self.dp_repo)
+        except ValueError:
+            return None
+        if resolved.suffix != ".py":
+            return None
+        return _FixedDpPostponedAnnotationsLoader(fullname, str(resolved))
+
+    def find_spec(
+        self,
+        fullname: str,
+        path: Any = None,
+        target: Any = None,
+    ) -> Any:
+        spec = importlib.machinery.PathFinder.find_spec(fullname, path, target)
+        if spec is None or spec.origin is None:
+            return spec
+        loader = self.loader_for(spec.origin, fullname)
+        if loader is not None:
+            spec.loader = loader
+        return spec
+
+
+def _install_fixed_dp_annotation_compatibility(
+    dp_repo: str | Path,
+) -> _FixedDpPostponedAnnotationsFinder | None:
+    if sys.version_info >= (3, 10):
+        return None
+    resolved = Path(dp_repo).resolve()
+    for finder in sys.meta_path:
+        if (
+            isinstance(finder, _FixedDpPostponedAnnotationsFinder)
+            and finder.dp_repo == resolved
+        ):
+            return finder
+    finder = _FixedDpPostponedAnnotationsFinder(resolved)
+    sys.meta_path.insert(0, finder)
+    return finder
 
 
 @dataclass
@@ -1918,6 +1995,9 @@ def build_native_arm_runner(
             value = str(path)
             if value not in sys.path:
                 sys.path.insert(0, value)
+        annotation_compatibility = _install_fixed_dp_annotation_compatibility(
+            dp_repo
+        )
         import torch
         import scenario_generation.replay as replay
         import scenario_generation.tensor_converter as tensor_converter
@@ -1966,6 +2046,11 @@ def build_native_arm_runner(
                 "select": select_camp_candidate,
                 "model": model,
                 "model_args": model_args,
+                "annotation_compatibility": (
+                    "process_local_postponed_annotations_fixed_dp_source_only"
+                    if annotation_compatibility is not None
+                    else "not_required_python310_or_newer"
+                ),
             }
         )
         return runtime
@@ -2089,7 +2174,7 @@ def build_native_arm_runner(
             (output_dir / "native.stderr.txt").write_text(
                 stderr.getvalue(), encoding="utf-8"
             )
-        return _build_native_arm_receipt(
+        receipt = _build_native_arm_receipt(
             route=route,
             arm=arm,
             config=config,
@@ -2100,6 +2185,10 @@ def build_native_arm_runner(
             route_ids=route_ids,
             selector_scale_contract=selector_scale_contract,
         )
+        receipt["runtime_annotation_compatibility"] = context[
+            "annotation_compatibility"
+        ]
+        return receipt
 
     return run_arm
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import types
 from pathlib import Path
 
 from scripts.integrations.prepare_diffusion_planner_v24_single_record_probe import (
@@ -115,6 +116,31 @@ def test_native_evidence_sealer_is_python39_compatible() -> None:
 
     assert ".write_text" not in source
     assert source.count('newline="\\n"') == 2
+
+
+def test_fixed_dp_annotation_compatibility_compiles_without_runtime_union() -> None:
+    code = runner._compile_fixed_dp_with_postponed_annotations(
+        b"class Marker:\n    pass\nvalue: Marker | None = None\n",
+        "/fixed-dp/example.py",
+    )
+    module = types.ModuleType("fixed_dp_annotation_probe")
+
+    exec(code, module.__dict__)
+
+    assert module.__annotations__["value"] == "Marker | None"
+
+
+def test_fixed_dp_annotation_finder_is_scoped_to_frozen_repo(tmp_path: Path) -> None:
+    dp_repo = tmp_path / "Diffusion-Planner"
+    dp_repo.mkdir()
+    inside = dp_repo / "inside.py"
+    outside = tmp_path / "outside.py"
+    inside.write_text("value: int | None = None\n", encoding="utf-8")
+    outside.write_text("value: int | None = None\n", encoding="utf-8")
+    finder = runner._FixedDpPostponedAnnotationsFinder(dp_repo)
+
+    assert finder.loader_for(inside) is not None
+    assert finder.loader_for(outside) is None
 
 
 def test_single_record_probe_plan_keeps_holdout_and_execution_closed() -> None:
