@@ -167,6 +167,7 @@ def _hook(
     materialize=_materialize,
     selection_policy: str | None = None,
     decision_sink=None,
+    decision_sample_every_ticks: int = 5,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -190,6 +191,7 @@ def _hook(
         kwargs["selection_policy"] = selection_policy
     if decision_sink is not None:
         kwargs["decision_sink"] = decision_sink
+        kwargs["decision_sample_every_ticks"] = decision_sample_every_ticks
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
 
@@ -367,6 +369,43 @@ def test_v22_decision_sink_samples_every_five_ticks_after_immutability() -> None
         assert snapshot["sidecar"]["causal_input_sha256"]
         assert snapshot["sidecar"]["offline_label_provenance"] == (
             "pending_train_only_offline_supervision_sidecar"
+        )
+
+
+def test_v24_decision_sink_can_sample_every_tick_after_immutability() -> None:
+    module = _runner()
+    model = _FakeModel()
+    snapshots = []
+    hook, _ = _hook(
+        module,
+        model,
+        selection_policy="v22_source_valid",
+        decision_sink=snapshots.append,
+        decision_sample_every_ticks=1,
+    )
+
+    for _ in range(4):
+        hook(
+            model,
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            _Scene(),
+            ["ego"],
+            "cpu",
+        )
+
+    assert [item["sidecar"]["tick_index"] for item in snapshots] == [0, 1, 2, 3]
+
+
+@pytest.mark.parametrize("cadence", (0, -1, True))
+def test_decision_sink_rejects_invalid_sampling_cadence(cadence) -> None:
+    module = _runner()
+    with pytest.raises(ValueError, match="sample cadence"):
+        _hook(
+            module,
+            _FakeModel(),
+            selection_policy="v22_source_valid",
+            decision_sink=lambda _snapshot: None,
+            decision_sample_every_ticks=cadence,
         )
 
 

@@ -244,6 +244,7 @@ class NativeCampPredictBatch:
         pre_safety: Callable[[dict[str, Any], Any], None] | None = None,
         selection_policy: str = V21_PHYSICAL_SELECTION,
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
+        decision_sample_every_ticks: int = 5,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -262,7 +263,14 @@ class NativeCampPredictBatch:
         self.selection_policy = selection_policy
         if decision_sink is not None and selection_policy != V22_SOURCE_VALID_SELECTION:
             raise ValueError("decision sink requires v22 source-valid selection")
+        if (
+            isinstance(decision_sample_every_ticks, bool)
+            or not isinstance(decision_sample_every_ticks, int)
+            or decision_sample_every_ticks <= 0
+        ):
+            raise ValueError("decision sample cadence must be a positive integer")
         self.decision_sink = decision_sink
+        self.decision_sample_every_ticks = decision_sample_every_ticks
         if self.atom_scales.shape != (14,) or self.weights.shape != (14,):
             raise ValueError("atom scales and weights must each have shape [14]")
 
@@ -547,7 +555,10 @@ class NativeCampPredictBatch:
                 receipt["scores"] = np.asarray(
                     selection["scores"], dtype=np.float64
                 ).tolist()
-            if self.decision_sink is not None and tick_index % 5 == 0:
+            if (
+                self.decision_sink is not None
+                and tick_index % self.decision_sample_every_ticks == 0
+            ):
                 atom_matrix = np.asarray(
                     materialized.get("atom_matrix"), dtype=np.float64
                 )
@@ -989,6 +1000,59 @@ def validate_v22_corpus_run_config(config: Mapping[str, Any]) -> None:
         raise ValueError("v22 corpus protocol mismatch")
 
 
+def validate_v24_corpus_run_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") != "camp_dp_v24_native_corpus_run_v1":
+        raise ValueError("v24 corpus run config schema mismatch")
+
+    seeds = _mapping(config, "seeds")
+    seed = seeds.get("scenario")
+    if (
+        isinstance(seed, bool)
+        or seed not in {24001, 24002, 24003, 24004, 24005}
+        or seeds
+        != {
+            "scenario": seed,
+            "candidate": seed,
+            "bootstrap": seed,
+            "formal_forbidden": [11, 12, 13],
+        }
+    ):
+        raise ValueError("v24 corpus seed namespace mismatch")
+
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v24 corpus run requires exactly one route")
+    route = _asset_entry_value(routes[0], "route")
+    expected_protocol = {
+        "arm_order": ["camp"],
+        "route_order": [route.get("name")],
+        "corpus_steps": 64,
+        "sample_every_ticks": 1,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "safety_schema": "safety_cost_native_v22",
+        "route_role": "v24_train_corpus_collection",
+        "candidate_k": 8,
+        "claim_authorized": False,
+        "training_authorized": True,
+        "calibration_authorized": False,
+        "holdout_access_authorized": False,
+        "formal_seeds_authorized": False,
+    }
+    if _mapping(config, "protocol") != expected_protocol:
+        raise ValueError("v24 corpus protocol mismatch")
+    if _mapping(config, "selector").get("role") != (
+        "v24_train_corpus_collection_only"
+    ):
+        raise ValueError("v24 corpus selector role mismatch")
+
+    normalized = json.loads(json.dumps(config))
+    normalized["schema_version"] = "camp_dp_v22_native_corpus_run_v1"
+    normalized["selector"]["role"] = "v18_ablation_corpus_collection_only"
+    normalized["protocol"]["route_role"] = "train_corpus_collection"
+    normalized["protocol"]["sample_every_ticks"] = 5
+    validate_v22_corpus_run_config(normalized)
+
+
 def validate_v24_single_record_source_probe_config(
     config: Mapping[str, Any],
 ) -> None:
@@ -1083,6 +1147,9 @@ def _validate_native_config(config: Mapping[str, Any]) -> None:
         return
     if config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
         validate_v22_corpus_run_config(config)
+        return
+    if config.get("schema_version") == "camp_dp_v24_native_corpus_run_v1":
+        validate_v24_corpus_run_config(config)
         return
     if config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
         validate_v22_evaluation_run_config(config)
@@ -2100,7 +2167,10 @@ def build_native_arm_runner(
         protocol = _mapping(config, "protocol")
         if config.get("schema_version") == "camp_dp_v24_single_record_source_probe_v1":
             allowed_steps = {1}
-        elif config.get("schema_version") == "camp_dp_v22_native_corpus_run_v1":
+        elif config.get("schema_version") in {
+            "camp_dp_v22_native_corpus_run_v1",
+            "camp_dp_v24_native_corpus_run_v1",
+        }:
             allowed_steps = {int(protocol["corpus_steps"])}
         elif config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
             allowed_steps = {int(protocol["evaluation_steps"])}
@@ -2158,6 +2228,9 @@ def build_native_arm_runner(
                 pre_safety=pre_safety,
                 selection_policy=_selection_policy(config),
                 decision_sink=decision_sink,
+                decision_sample_every_ticks=int(
+                    protocol.get("sample_every_ticks", 5)
+                ),
             )
         else:
             replacement = NativeDpObserveBatch(
