@@ -133,3 +133,76 @@ fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_license_freeze_retry2_51c97eb2_20260715T172832CST
 current_v23_artifact_root_sha256=c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265
 next_work_target=v23_adapter_design_tdd_static_review_only
+
+## Gate 2: Source-Preserving Adapter Design, TDD, Static Review, and Smoke
+
+Status: terminal stop condition passed fail-closed. Honest-no-claim closeout
+record is the only remaining v23 work.
+
+The adapter plan is
+`docs/superpowers/plans/2026-07-15-v23-source-preserving-adapter.md`.
+TDD added a read-only regulatory-element census and a native-runner gate at
+CAMP HEAD `e52da52fbea27844e2545dcac5ac504664ef10ef`. The gate runs before the
+existing no-ROS projection fallback and fixed DP builder. It accepts stock
+Lanelet2 maps, but requires a real official Autoware extension for maps with
+Autoware-only regulatory elements. A process-local projection module cannot
+masquerade as regulatory registration. No v23 path calls
+`sanitize_lanelet2_map`, removes a relation/reference, rewrites a subtype, or
+modifies fixed DP.
+
+Local and AutoDL focused verification both passed: `15` v23 tests and `2`
+Lanelet2 integration tests (`134` deselected), plus targeted `py_compile` and
+`git diff --check`. An attempted broader local integration run reached 51
+tests before the local Anaconda Torch binary aborted during import; it was not
+counted as a pass. The equivalent adapter tests and compilation passed in the
+authoritative AutoDL DP environment.
+
+Read-only capability review found Lanelet2 `1.2.2`. The Python binding exposes
+`RegulatoryElement`, `RegulatoryElementLayer`, and generic `registerId`, but no
+regulatory factory/register hook. None of
+`autoware_lanelet2_extension_python`, its projection module,
+`lanelet2_extension_python`, or `autoware_lanelet2_extension` is installed,
+and no matching official shared library exists under the reviewed runtime
+roots.
+
+The frozen original Autoware OSM remained exactly 3,441,081 bytes with SHA256
+`cda848e3d440aaf48e532f8ab33afdff0bf8b8f1a45abd3d7724637a287ed660`.
+Static census found `15` regulatory relations: `9 detection_area`,
+`1 right_of_way`, and `5 traffic_sign`. All nine `detection_area` relations
+are referenced by lanelets. The fail-closed adapter rejected the absent
+official implementation before builder construction. One separate diagnostic
+load of the same original map through the fixed DP builder returned `1` and
+reported all nine failures as `No regulatory element found that implements
+rule detection_area`, followed by the nine corresponding missing relation
+references. Source SHA256 before and after both attempts was identical.
+
+Immutable artifact/root:
+`/root/autodl-tmp/camp_dp_v23_source_preserving_adapter_e52da52f_20260715T174325CST`
+/
+`28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825`,
+with outer `run.exit=0`, nested raw-builder return code `1`, and decision
+`stop_source_preserving_adapter_unavailable`. Fresh verification of both
+`SHA256SUMS` and `ROOT_SHA256SUMS` passed.
+
+This is an explicit user-defined real stop condition. Continuing would require
+deleting or retagging attached map semantics, treating the projection fallback
+as a registration implementation, adding an unapproved public source, or
+changing the fixed-DP scientific contract. All are forbidden.
+
+Consequently, map-family and route census, split freeze, corpus generation,
+training, calibration, holdout, paired evaluation, evidence statistics, and
+latency evaluation did not run. Counts are therefore: map paths/unique blobs
+frozen `15/13`; reviewed Autoware map `1`; independent map families `not
+censused`; routes `0`; train/calibration/holdout routes `0/0/0`; seeds `0`;
+paired support `0`; corpus records `0`. No atom mask, new v23 weights, solver
+iterations/cuts/gap, learning curve, paired metrics/CI, or latency statistics
+exist. Holdout was never opened. V18/v22 weights remained read-only. V23 makes
+no safety, deployment, native-ranking, or CAMP-over-DP claim.
+
+current_v23_status=v23_adapter_terminal_stop_honest_no_claim_pending_closeout
+current_v23_artifact_source_head=e52da52fbea27844e2545dcac5ac504664ef10ef
+current_v23_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_preserving_adapter_e52da52f_20260715T174325CST
+current_v23_artifact_root_sha256=28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825
+next_work_target=v23_honest_no_claim_closeout_record_only

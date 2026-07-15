@@ -17,30 +17,29 @@ Autoware Universe bidirectional-traffic map and TIER IV
 `scenario_simulator_v2` Lanelet2 test/sample maps. V22 remains a read-only
 honest-no-claim closeout and will not be rewritten or rerun.
 
-Startup reconciliation passed and remains sealed. License/source freeze then
-passed at CAMP HEAD `51c97eb24a2076247e892d2e4dfab82852e30914` with fixed DP unchanged. The
-exact-commit manifest contains 15 OSM paths and 13 unique files: one Autoware
-bidirectional map plus 14 scenario paths / 12 unique files. Map-family count
-is not inferred from paths or bytes.
+Startup reconciliation and license/source freeze passed and remain sealed.
+Adapter design/TDD and read-only static review then proved a real terminal
+compatibility stop at CAMP HEAD `e52da52fbea27844e2545dcac5ac504664ef10ef`.
+The original Autoware map contains nine lanelet-attached `detection_area`
+regulatory relations. AutoDL Lanelet2 has no regulatory factory hook, official
+Autoware extension Python module, or official extension shared library. The
+fail-closed adapter refused to treat the projection fallback as registration.
+One original-map fixed-builder diagnostic rejected all nine elements. Source
+bytes remained identical at SHA256
+`cda848e3d440aaf48e532f8ab33afdff0bf8b8f1a45abd3d7724637a287ed660`.
 
-Both sources are Apache-2.0. Exact LICENSE, Autoware NOTICE, scenario
-NOTICE-absent receipt, raw URLs, commits, Git blob OIDs, blob-object SHA256,
-file SHA256, retrieval time, and redistribution obligations are sealed. Source
-bytes were not modified. Two transient transport/harness failures remain
-preserved under roots `361cec4cb2dba84d0560a3476104696a8973d8b2d3331ac0410dc156c047adc4`
-and `7ad99da785c33c0d2f15448d27064737de08fa97b412e9877601ed2f137066e9`.
-The corrected artifact passed 30 tests and 18 independent file/hash checks at
-root `c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265`.
-No map loader, simulator, model, training, calibration, or holdout ran.
-Adapter design/TDD/static review is next.
+Deleting/retagging those relations, adding an unapproved source, or changing
+the fixed-DP contract is forbidden. Map-family/route census, split, corpus,
+training, calibration, holdout, paired evaluation, metrics/CI, and latency did
+not run. V23 is honest-no-claim; only the record-only closeout remains.
 
-current_v23_status=v23_license_source_freeze_passed
-current_v23_artifact_source_head=51c97eb24a2076247e892d2e4dfab82852e30914
+current_v23_status=v23_adapter_terminal_stop_honest_no_claim_pending_closeout
+current_v23_artifact_source_head=e52da52fbea27844e2545dcac5ac504664ef10ef
 current_v23_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_license_freeze_retry2_51c97eb2_20260715T172832CST
-current_v23_artifact_root_sha256=c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265
-next_work_target=v23_adapter_design_tdd_static_review_only
+current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_preserving_adapter_e52da52f_20260715T174325CST
+current_v23_artifact_root_sha256=28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825
+next_work_target=v23_honest_no_claim_closeout_record_only
 
 ## Current V22 Status
 

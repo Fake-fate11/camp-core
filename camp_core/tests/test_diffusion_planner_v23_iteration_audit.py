@@ -6,13 +6,13 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v23_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v23_status=v23_license_source_freeze_passed",
-    "current_v23_artifact_source_head=51c97eb24a2076247e892d2e4dfab82852e30914",
+    "current_v23_status=v23_adapter_terminal_stop_honest_no_claim_pending_closeout",
+    "current_v23_artifact_source_head=e52da52fbea27844e2545dcac5ac504664ef10ef",
     "current_v23_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_license_freeze_retry2_51c97eb2_20260715T172832CST",
-    "current_v23_artifact_root_sha256=c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265",
-    "next_work_target=v23_adapter_design_tdd_static_review_only",
+    "current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_preserving_adapter_e52da52f_20260715T174325CST",
+    "current_v23_artifact_root_sha256=28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825",
+    "next_work_target=v23_honest_no_claim_closeout_record_only",
 )
 
 
@@ -57,5 +57,20 @@ def test_v23_records_license_source_freeze_receipts() -> None:
         "7ad99da785c33c0d2f15448d27064737de08fa97b412e9877601ed2f137066e9",
         "source bytes modified: false",
         "No map loader, simulator, model, training, calibration, or holdout ran",
+    ):
+        assert phrase in text
+
+
+def test_v23_records_source_preserving_adapter_terminal_stop() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "e52da52fbea27844e2545dcac5ac504664ef10ef",
+        "9 detection_area",
+        "All nine `detection_area` relations are referenced by lanelets",
+        "No regulatory element found that implements rule detection_area",
+        "28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825",
+        "stop_source_preserving_adapter_unavailable",
+        "Holdout was never opened",
+        "V23 makes no safety, deployment, native-ranking, or CAMP-over-DP claim",
     ):
         assert phrase in text
