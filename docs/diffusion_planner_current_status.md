@@ -17,36 +17,34 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup reconciliation and the read-only v23 boundary review remain sealed.
-Official extension source qualification then passed 17/17 checks at source
-HEAD `78bf6eda5ec0383d0156e395a170497691ecd714`. A result-blind release rule
-selected the official Apache-2.0 `autoware_lanelet2_extension` tag `1.2.0`,
-commit `4a3420d8cc19906e7739618f8a1686400f79b4ac`, and froze its tree, files,
-license, dependency graph, compiler, and current Lanelet2 1.2.2 ABI evidence.
+Startup, the v23 boundary review, and official extension source qualification
+remain sealed. Branch A isolated-build design/TDD/static preflight then passed
+32/32 checks at source HEAD
+`4f6ec02e9c167241920545d2619170bff354a97d`.
 
-Static source review found the official DetectionArea registrar chain, but the
-current environment lacks Lanelet2 headers/CMake packages and ROS/ament/
-Autoware build dependencies. Binary compatibility, build feasibility, and
-process-local factory registration are not yet proved. No build, load, map
-mutation, DP mutation, or scientific execution occurred. Branch A proceeds to
-isolated-build design/TDD/static preflight; Branch B remains independently
-pending raw map census.
+The official extension source, registrar, Lanelet2 1.2.2 runtime library, and
+factory symbols were intact. The environment lacks Lanelet2 development
+headers/CMake packages plus ROS/ament/Autoware dependencies, while the official
+dependency file points to additional unfrozen sources. Under the frozen
+sole-new-source contract, no legal official build can start. Branch A failed
+closed before compiler/build/load and is source-ineligible. This is not a
+global stop: Branch B raw-map census remains mandatory and is next.
 
-current_v24_status=v24_extension_source_qualification_passed
-current_v24_artifact_source_head=78bf6eda5ec0383d0156e395a170497691ecd714
+current_v24_status=v24_branch_a_isolated_build_preflight_passed
+current_v24_artifact_source_head=4f6ec02e9c167241920545d2619170bff354a97d
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_extension_source_qualification_78bf6eda_20260715T193857CST
-current_v24_artifact_root_sha256=fea4418715467376102bd8127bdf366ddecbec7dd01f408657b54b84835219e3
-source_a_status=official_extension_source_qualified_build_feasibility_pending
-source_a_terminal=false
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195314CST
+current_v24_artifact_root_sha256=9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
 source_b_status=pending_raw_map_census
 source_b_terminal=false
 authorized_source_count=2
-source_terminal_count=0
+source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_branch_a_isolated_build_design_tdd_static_preflight_only
+next_work_target=v24_branch_b_raw_map_census_tdd_static_preflight_only
 
 ## Current V23 Status
 

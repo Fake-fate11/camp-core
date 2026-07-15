@@ -193,3 +193,73 @@ source_terminal_count=0
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_branch_a_isolated_build_design_tdd_static_preflight_only
+
+## Gate 3: Branch A Isolated-Build Design, TDD, Static Review, and Preflight
+
+Status: passed with Branch A fail-closed before build. Branch B raw-map census
+is next.
+
+The design and TDD contract authorize a compiler only when the clean frozen
+source can configure the unmodified official CMake targets using dependencies
+already present in the current environment or isolated prefix. System package
+operations, global Python changes, Lanelet2/ROS upgrades, additional source
+checkouts, edited upstream CMake, a hand-built registrar, and compiling only
+`detection_area.cpp` are prohibited.
+
+The preflight rehashed the qualification artifact, exact extension commit,
+tree, archive, key files, official DetectionArea registration chain, bundled
+Lanelet2 library, and factory symbols. The Lanelet2 1.2.2 runtime shared
+library and factory symbols are present, but the wheel has no development
+headers or CMake package. The official targets also lack ROS/ament/Autoware
+build dependencies. Upstream `build_depends.repos` points to additional
+unfrozen `main` sources, which are not authorized by v24's sole-new-source
+contract.
+
+The build authorization predicate is therefore false. Decision:
+`branch_a_fail_closed_before_build`. Source A becomes
+`source_ineligible_missing_authorized_build_prerequisites`. No compiler, build,
+install, extension load, map load, or scientific execution ran. No build or
+install directory was created, the official source remains clean, the original
+OSM was not opened, and fixed DP remains unchanged.
+
+Two ordinary evidence-harness failures were preserved rather than overwritten:
+
+- `/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195035CST`
+  stopped before sealing because the process filter parsed `g++` as an invalid
+  regular expression. It ran no compiler or build.
+- `/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195207CST`
+  sealed root
+  `9f5fd7a4862a02911d600ae55d2cf094e692d6947b77c3a1bed9a087af8a7688`
+  and passed `27 / 28` checks. Its sole failed check hashed the
+  `ROOT_SHA256SUMS` file instead of reading that file's authoritative first
+  field. Scientific state and the no-build decision were unaffected.
+
+The corrected receipt verified every file in the sealed source artifact,
+applied the established root convention, and rechecked live CAMP/origin/DP,
+extension cleanliness, absent build/install outputs, and the disk floor. All
+`32 / 0` checks passed with `49,742,798,848` free bytes. Immutable
+artifact/root:
+`/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195314CST`
+/
+`9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6`,
+with `run.exit=0`.
+
+This terminal state is source-local. Branch B raw-map census remains mandatory;
+the global stop remains unauthorized. Holdout is unopened and no claim is
+authorized.
+
+current_v24_status=v24_branch_a_isolated_build_preflight_passed
+current_v24_artifact_source_head=4f6ec02e9c167241920545d2619170bff354a97d
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195314CST
+current_v24_artifact_root_sha256=9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=pending_raw_map_census
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_branch_b_raw_map_census_tdd_static_preflight_only

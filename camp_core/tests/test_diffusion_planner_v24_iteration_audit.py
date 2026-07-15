@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_extension_source_qualification_passed",
-    "current_v24_artifact_source_head=78bf6eda5ec0383d0156e395a170497691ecd714",
+    "current_v24_status=v24_branch_a_isolated_build_preflight_passed",
+    "current_v24_artifact_source_head=4f6ec02e9c167241920545d2619170bff354a97d",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_extension_source_qualification_78bf6eda_20260715T193857CST",
-    "current_v24_artifact_root_sha256=fea4418715467376102bd8127bdf366ddecbec7dd01f408657b54b84835219e3",
-    "source_a_status=official_extension_source_qualified_build_feasibility_pending",
-    "source_a_terminal=false",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195314CST",
+    "current_v24_artifact_root_sha256=9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6",
+    "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
+    "source_a_terminal=true",
     "source_b_status=pending_raw_map_census",
     "source_b_terminal=false",
     "authorized_source_count=2",
-    "source_terminal_count=0",
+    "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_branch_a_isolated_build_design_tdd_static_preflight_only",
+    "next_work_target=v24_branch_b_raw_map_census_tdd_static_preflight_only",
 )
 
 
@@ -124,5 +124,23 @@ def test_v24_branch_a_plan_fails_closed_before_unauthorized_build() -> None:
         "Branch B raw census remains mandatory",
         "original OSM is read-only",
         "10 GiB",
+    ):
+        assert phrase in text
+
+
+def test_v24_branch_a_preflight_fails_source_locally_and_continues_b() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "branch_a_fail_closed_before_build",
+        "`32 / 0` checks",
+        "Lanelet2 1.2.2 runtime shared library and factory symbols",
+        "development headers or CMake package",
+        "ROS/ament/Autoware build dependencies",
+        "unfrozen `main` sources",
+        "No compiler, build, install, extension load, map load, or scientific execution ran",
+        "source_ineligible_missing_authorized_build_prerequisites",
+        "Branch B raw-map census remains mandatory",
+        "global stop remains unauthorized",
+        "9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6",
     ):
         assert phrase in text
