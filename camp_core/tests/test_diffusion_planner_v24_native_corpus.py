@@ -240,3 +240,59 @@ def test_v24_corpus_builder_produces_runner_valid_config() -> None:
     assert config["map"]["sha256"] == route["source_map_sha256"]
     assert config["seeds"]["scenario"] == 24005
     assert config["protocol"]["sample_every_ticks"] == 1
+
+
+def test_independent_reviewer_reconstructs_corpus_run_config() -> None:
+    from scripts.integrations.prepare_diffusion_planner_v24_native_corpus import (
+        build_corpus_run_config,
+    )
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus import (
+        build_expected_run_config,
+        canonical_sha256,
+    )
+
+    template = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))
+    route = _route(0, "map_family_train")
+    asset = {"path": "/tmp/route.pkl", "sha256": _sha("route-asset")}
+
+    prepared = build_corpus_run_config(template, route, asset, 24003)
+    reviewed = build_expected_run_config(template, route, asset, 24003)
+
+    assert reviewed == prepared
+    assert canonical_sha256(reviewed) == canonical_sha256(prepared)
+
+
+@pytest.mark.parametrize("mutation", ("seed", "split", "holdout"))
+def test_independent_reviewer_rejects_corpus_boundary_drift(mutation: str) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus import (
+        validate_corpus_boundaries,
+    )
+
+    plan = {
+        "execution_splits": ["train"],
+        "train_seeds": [24001, 24002, 24003, 24004, 24005],
+        "sample_every_ticks": 1,
+        "thinning_rule": "none_capture_every_available_tick",
+        "outcome_fields_consumed": [],
+        "calibration_access_authorized": False,
+        "holdout_access_authorized": False,
+        "holdout_opened": False,
+        "training_execution_authorized": False,
+        "claim_authorized": False,
+    }
+    manifest = {
+        "split": "train",
+        "seeds": [24001, 24002, 24003, 24004, 24005],
+        "outcome_fields_consumed": [],
+        "calibration_accessed": False,
+        "holdout_opened": False,
+    }
+    if mutation == "seed":
+        manifest["seeds"][-1] = 24205
+    elif mutation == "split":
+        manifest["split"] = "holdout"
+    else:
+        plan["holdout_opened"] = True
+
+    with pytest.raises(ValueError, match="boundary"):
+        validate_corpus_boundaries(plan, manifest)
