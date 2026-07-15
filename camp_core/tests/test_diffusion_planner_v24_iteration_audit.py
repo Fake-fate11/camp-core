@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_split_seed_namespace_remediation_independent_review_passed",
-    "current_v24_artifact_source_head=39227dd51131ca79f7649ddbe02bb1e5ad9c8024",
+    "current_v24_status=v24_native_corpus_plan_tdd_static_preflight_passed",
+    "current_v24_artifact_source_head=8d9398d750d77075b662fa0741b69fc5e944e0cd",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_independent_review_39227dd5_20260715T212743CST",
-    "current_v24_artifact_root_sha256=2b4a1a99af7cc369853d95f9f762cf81dbb6e56dda991adec5e78fd7698f5d3c",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_8d9398d7_20260715T213749CST",
+    "current_v24_artifact_root_sha256=17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=split_seed_remediation_review_passed_corpus_plan_pending",
+    "source_b_status=native_corpus_static_preflight_passed_review_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_corpus_plan_tdd_static_preflight_only",
+    "next_work_target=v24_native_corpus_static_preflight_independent_review_only",
 )
 
 
@@ -73,6 +73,22 @@ def test_v24_startup_records_frozen_history_and_independent_sources() -> None:
         "zero related tasks",
         "Branch A and Branch B remain independently eligible",
         "No map loader, simulator, corpus, training, calibration, holdout, or paired evaluation ran",
+    ):
+        assert phrase in text
+
+
+def test_v24_native_corpus_preflight_is_train_only_and_per_tick() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`375 / 5 / 1875` train routes / seeds / route-seed runs",
+        "`64` native ticks and `sample_every_ticks=1`",
+        "`120000` causal K=8 snapshots",
+        "no outcome-based thinning",
+        "all 375 train routes with seed `24001`",
+        "all `54` v24 tests",
+        "`64 / 0` checks",
+        "Model, simulator, candidate generation, outcomes, calibration, holdout, and training execution all remained unopened",
+        "17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72",
     ):
         assert phrase in text
 

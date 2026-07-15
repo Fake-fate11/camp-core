@@ -1266,3 +1266,60 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_corpus_plan_tdd_static_preflight_only
+
+## Gate 21: Native Corpus Plan, TDD, and Static Preflight
+
+Status: passed. Independent static review is next.
+
+The plan freezes `375 / 5 / 1875` train routes / seeds / route-seed runs.
+Every run permits at most `64` native ticks and `sample_every_ticks=1`, with no
+thinning, for a theoretical ceiling of `120000` causal K=8 snapshots. Feature
+payload remains the approved 14D atom matrix, source-valid mask, and candidate
+row hashes. Map-family, corridor, route, split, and seed identities remain
+receipt-only. Candidate immutability and candidate-0/default identity remain
+mandatory.
+
+Execution is preregistered in two phases: all 375 train routes with seed
+`24001`, then the same routes with seeds `24002-24005`. The first phase is only
+a breadth/disk/runtime pilot. It cannot tune atoms, weights, thresholds,
+routes, seeds, or failure policy. Every attempt remains in the denominator;
+there is no outcome-based thinning, redraw, or replacement.
+
+The AutoDL preflight rehashed the corrected split and route census, the fixed
+DP inputs, four selector/template assets, and every unique source map. It
+materialized 375 source-derived route assets and validated all 1875 run configs.
+All `64 / 0` checks and all `54` v24 tests passed. The evidence artifact is
+2.9 MiB and left `46.2881 GiB` free, above the 10 GiB floor. CAMP and DP tracked
+state remained clean at `8d9398d750d77075b662fa0741b69fc5e944e0cd` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Model, simulator, candidate generation, outcomes, calibration, holdout, and
+training execution all remained unopened. Plan and corpus-manifest SHA256 are
+`d1431ec7a0583d24e16b655b06264450761c770d503262658e5b63612e745e7b`
+and
+`87e65ae8347aa225282cfa05a1330d2f7b39464ecda83cae997f1a8c081895fc`.
+
+Immutable preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_8d9398d7_20260715T213749CST`
+/
+`17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72`.
+
+The next gate independently rehashes the preflight and recomputes the plan,
+manifest, route assets, config receipts, boundaries, and disk gate. It may not
+load the model, run the simulator, generate candidates, train, or open outcomes.
+
+current_v24_status=v24_native_corpus_plan_tdd_static_preflight_passed
+current_v24_artifact_source_head=8d9398d750d77075b662fa0741b69fc5e944e0cd
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_8d9398d7_20260715T213749CST
+current_v24_artifact_root_sha256=17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_static_preflight_passed_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_static_preflight_independent_review_only

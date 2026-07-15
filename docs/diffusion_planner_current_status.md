@@ -17,32 +17,31 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through independent review of the corrected split seed namespaces
-remain sealed. Branch A remains source-ineligible locally without stopping
-Branch B.
+Startup through native-corpus plan/TDD/static preflight remain sealed. Branch A
+remains source-ineligible locally without stopping Branch B.
 
-The reviewer passed 115/115 checks and independently confirmed the corrected
-plan/manifest SHA chain, full 401-route/2005-route-seed denominator, and zero
-overlap for families, corridors, routes, identities, route-seeds, and all 15
-numeric seeds. Counts remain 375 / 2 / 24 routes and 1875 / 10 / 120
-route-seeds. It ran no model or corpus. Corpus plan/TDD/static preflight is next;
-outcomes and holdout remain closed.
+The preflight passed 64/64 checks and materialized 375 source-derived train
+route assets plus receipts for all 1875 frozen train route-seed configs. The
+capture contract is 64 ticks, every tick, no thinning, for at most 120000
+causal K=8 snapshots. The pilot is all train routes at seed 24001 and cannot
+tune or remove records. It ran no model, simulator, candidate generation,
+training, calibration, outcome, or holdout. Independent static review is next.
 
-current_v24_status=v24_split_seed_namespace_remediation_independent_review_passed
-current_v24_artifact_source_head=39227dd51131ca79f7649ddbe02bb1e5ad9c8024
+current_v24_status=v24_native_corpus_plan_tdd_static_preflight_passed
+current_v24_artifact_source_head=8d9398d750d77075b662fa0741b69fc5e944e0cd
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_split_seed_namespace_remediation_independent_review_39227dd5_20260715T212743CST
-current_v24_artifact_root_sha256=2b4a1a99af7cc369853d95f9f762cf81dbb6e56dda991adec5e78fd7698f5d3c
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_static_preflight_8d9398d7_20260715T213749CST
+current_v24_artifact_root_sha256=17b5a8ca7c974997b1cd89905b50e86e95f5a032cab171e44898c48973867e72
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=split_seed_remediation_review_passed_corpus_plan_pending
+source_b_status=native_corpus_static_preflight_passed_review_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_corpus_plan_tdd_static_preflight_only
+next_work_target=v24_native_corpus_static_preflight_independent_review_only
 
 ## Current V23 Status
 
