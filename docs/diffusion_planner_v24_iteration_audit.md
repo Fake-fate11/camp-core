@@ -322,3 +322,67 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_branch_b_fixed_builder_smoke_execution_only
+
+## Gate 5: Branch B Isolated Fixed-Builder Smoke Execution
+
+Status: passed. Independent result review is next.
+
+The controller executed one isolated process per unique frozen byte blob and
+mapped each result back to every source path. Accounting is
+`14 paths / 12 unique blobs / 12 executed blobs`. Byte-identical standard-map
+and road-shoulder copies inherited their representative receipts and were not
+executed twice.
+
+Loaded / failed / execution-invalid blob counts are `10 / 2 / 0`, producing
+`12` loadable path receipts. Every loaded worker used `stock_lanelet2`,
+installed only the existing process-local no-ROS projection fallback, and
+constructed the unchanged fixed-DP `LaneletSceneBuilder`. Layer and cached
+lanelet counts are retained per worker.
+
+The two failures remain map-local:
+
+- `simulation/traffic_simulator/test/map/empty/lanelet2_map.osm` has a
+  `projection_failure` because it contains no georeferenced node. This matches
+  its frozen static `no_lanelets` receipt.
+- `simulation/traffic_simulator/test/map/intersection/lanelet2_map.osm` has an
+  `unsupported_autoware_regulatory_element` receipt. Its original map requires
+  `road_marking`; the official source-preserving extension is unavailable, so
+  the regulatory gate rejected it before projection or builder construction.
+
+No map was sanitized or rewritten. Source bytes modified: `false`. All 12
+worker return codes were zero, there were 12 distinct worker PIDs, and every
+worker stdout/stderr pair is sealed. Map incompatibility is represented inside
+a successful worker receipt rather than as controller failure.
+
+The local observation wrapper initially used a 10-second outer timeout and
+lost its SSH channel while the remote controller continued. A read-only
+follow-up found no live controller/worker, found the completed artifact with
+`run.exit=0`, and therefore did not restart it. This observation failure did
+not alter the remote artifact or scientific state.
+
+All `27 / 0` checks passed. Route, model, candidate generation, outcomes, and
+holdout remained unopened. CAMP and fixed DP were tracked-clean, and disk
+remained above the 10 GiB floor. Immutable artifact/root:
+`/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_fdde35ab_20260715T201012CST`
+/
+`26b4b58bf19559cafc3c2f0c3681cf3e52cd5f5f4873d1f5317e8cdc17587733`.
+
+Source B has substantial loadable support, so neither a source-local terminal
+state nor a global stop is authorized. Review must rehash every receipt and
+recompute accounting before map-family adjudication.
+
+current_v24_status=v24_branch_b_fixed_builder_smoke_execution_passed
+current_v24_artifact_source_head=fdde35ab667eb4c6c765cb3453cf3064a6544f4b
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_fdde35ab_20260715T201012CST
+current_v24_artifact_root_sha256=26b4b58bf19559cafc3c2f0c3681cf3e52cd5f5f4873d1f5317e8cdc17587733
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=builder_smoke_executed_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_branch_b_fixed_builder_smoke_review_only

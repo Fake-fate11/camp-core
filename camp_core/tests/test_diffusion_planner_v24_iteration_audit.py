@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_branch_b_static_map_census_passed",
-    "current_v24_artifact_source_head=88e646f46568ed46670aab36636a873399948f41",
+    "current_v24_status=v24_branch_b_fixed_builder_smoke_execution_passed",
+    "current_v24_artifact_source_head=fdde35ab667eb4c6c765cb3453cf3064a6544f4b",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_static_map_census_88e646f4_20260715T200301CST",
-    "current_v24_artifact_root_sha256=2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_fdde35ab_20260715T201012CST",
+    "current_v24_artifact_root_sha256=26b4b58bf19559cafc3c2f0c3681cf3e52cd5f5f4873d1f5317e8cdc17587733",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=static_census_passed_builder_smoke_pending",
+    "source_b_status=builder_smoke_executed_review_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_branch_b_fixed_builder_smoke_execution_only",
+    "next_work_target=v24_branch_b_fixed_builder_smoke_review_only",
 )
 
 
@@ -163,5 +163,26 @@ def test_v24_branch_b_static_census_keeps_full_denominator() -> None:
         "Builder, route census, outcomes, and holdout remained unopened",
         "`26 / 0` checks",
         "2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c",
+    ):
+        assert phrase in text
+
+
+def test_v24_branch_b_builder_smoke_keeps_failures_map_local() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`14 paths / 12 unique blobs / 12 executed blobs`",
+        "`10 / 2 / 0`",
+        "`12` loadable path receipts",
+        "`projection_failure`",
+        "simulation/traffic_simulator/test/map/empty/lanelet2_map.osm",
+        "`unsupported_autoware_regulatory_element`",
+        "simulation/traffic_simulator/test/map/intersection/lanelet2_map.osm",
+        "`road_marking`",
+        "12 distinct worker PIDs",
+        "All 12 worker return codes were zero",
+        "Source bytes modified: `false`",
+        "Route, model, candidate generation, outcomes, and holdout remained unopened",
+        "`27 / 0` checks",
+        "26b4b58bf19559cafc3c2f0c3681cf3e52cd5f5f4873d1f5317e8cdc17587733",
     ):
         assert phrase in text
