@@ -673,3 +673,73 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_fixed_dp_single_record_source_probe_tdd_static_preflight_only
+
+## Gate 11: Fixed-DP Single-Record Source-Probe TDD and Preflight
+
+Status: passed. Single-record source-probe execution is next.
+
+The source-only selector chose the lexicographically minimum
+`(map_family_id, identity_sha256, record_key)` from all 401 retained routes.
+The frozen record is family `map_family_828a913c2f9a`, identity
+`1962e44a5dd0ace089aeb9011d5b70e05dfa6ae5adeec4450a6c20e3e09776b2`,
+and record key
+`map_family_828a913c2f9a/c13a9234727186c7/3002178/1962e44a5dd0ace0`.
+It belongs to the unchanged four-track-highway source map. No metric, outcome,
+candidate, or prior probe chose this record.
+
+The preflight freezes `24001 / 8 / 1` seed / candidates / ticks. It uses the
+existing fixed-DP native runner, v22 source-valid selection policy, and the
+read-only v18/v22 14D baseline solely for call-path capability. Training,
+calibration, holdout, claims, and parameter tuning remain forbidden.
+
+All `29 / 0` preflight checks passed. The deterministic Route asset SHA is
+`63890f60cb662a78ea733576397c3b91e942f854bd5ca92007e6449dbf4f24bd`;
+probe config SHA is
+`1e734165f7a614e93019df0a5c22b5e36722298cb50b21c5ce8fd0e4e2cf82bc`;
+and the nested existing-runner preflight root is
+`58c9b506dee7ebd27095d223ce4ff52aafcdbbf8bef306b898f5d6f9f0497441`.
+Every checkpoint, args, map, route, scale, and weight SHA verified. CUDA was
+available and free space was `49,709,850,624` bytes. The native runner reported
+zero arms and zero routes executed; the checkpoint was hashed but not loaded.
+Model, candidate generation, outcomes, and holdout remained unopened.
+
+The first preflight exposed a Python 3.9 evidence-sealer compatibility defect:
+`Path.write_text(newline=...)` is unsupported. Preparation and asset checks had
+completed, but no model or replay ran. The failed attempt was preserved and
+externally sealed at
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_c96cf276_20260715T204500CST`
+/
+`b1886120e0b39d29ae9f7926ba59921851d248b9f769128eecd74459f47f3323`.
+The minimal compatibility fix uses `Path.open(..., newline="\n")`; local native
+regressions passed before push.
+
+The retry's production preflight passed once. Its first outer verification
+scope included an existing Python-3.10-only annotated test and failed during
+Python 3.9 collection. That output remains sealed; preparation/native preflight
+were not repeated. The corrected outer scope passed all `35` remote v24 tests,
+script compilation, and diff checks.
+
+Immutable successful artifact/root:
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_a53d6ee3_20260715T204719CST`
+/
+`cedcc6fe8ca00fff7bbab4eeb92faa2f4cd5d172ec8b1d9d1cb9168ead955394`.
+
+Source B continues. The next gate may execute this exact config once. Failure
+cannot authorize a result-selected replacement route; normal code defects may
+be minimally fixed and the same frozen record retried with explicit evidence.
+
+current_v24_status=v24_fixed_dp_single_record_source_probe_preflight_passed
+current_v24_artifact_source_head=a53d6ee3471c4051a18d1cbe8d408b378dd6197f
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_a53d6ee3_20260715T204719CST
+current_v24_artifact_root_sha256=cedcc6fe8ca00fff7bbab4eeb92faa2f4cd5d172ec8b1d9d1cb9168ead955394
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=single_record_probe_preflight_passed_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_fixed_dp_single_record_source_probe_execution_only

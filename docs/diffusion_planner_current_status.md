@@ -17,31 +17,32 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through independent route-census review remain sealed. Branch A remains
+Startup through single-record fixed-DP source-probe preflight remain sealed. Branch A remains
 source-ineligible locally without stopping Branch B.
 
-The independent review passed 31/31 checks at source HEAD
-`4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f`. Without rerunning a worker, it
-reproduced all attempt, exact-dedup, corridor, and three-family counts; proved
-the five groups cover every retained route once; and rehashed all 14 live
-source maps. The model/candidate/outcome/holdout boundary remains closed.
-Single-record fixed-DP source-probe design/TDD/preflight are next.
+The source-only preflight passed 29/29 checks at source HEAD
+`a53d6ee3471c4051a18d1cbe8d408b378dd6197f`. It deterministically froze the
+minimum four-track-highway route, seed 24001, K=8, and one tick; hashed all
+fixed-DP and selector assets; and proved the existing runner executes zero arms
+in preflight mode. The Python 3.9 evidence-sealer defect was minimally fixed
+and both failed/successful attempts are preserved. Model/candidate/outcome/
+holdout work remains unopened. Exact-config execution is next.
 
-current_v24_status=v24_outcome_blind_route_census_review_passed
-current_v24_artifact_source_head=4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f
+current_v24_status=v24_fixed_dp_single_record_source_probe_preflight_passed
+current_v24_artifact_source_head=a53d6ee3471c4051a18d1cbe8d408b378dd6197f
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_independent_review_4d92f6b5_20260715T203745CST
-current_v24_artifact_root_sha256=210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_a53d6ee3_20260715T204719CST
+current_v24_artifact_root_sha256=cedcc6fe8ca00fff7bbab4eeb92faa2f4cd5d172ec8b1d9d1cb9168ead955394
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=route_census_review_passed_single_record_probe_pending
+source_b_status=single_record_probe_preflight_passed_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_fixed_dp_single_record_source_probe_tdd_static_preflight_only
+next_work_target=v24_fixed_dp_single_record_source_probe_execution_only
 
 ## Current V23 Status
 

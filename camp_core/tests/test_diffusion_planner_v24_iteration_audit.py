@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_outcome_blind_route_census_review_passed",
-    "current_v24_artifact_source_head=4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f",
+    "current_v24_status=v24_fixed_dp_single_record_source_probe_preflight_passed",
+    "current_v24_artifact_source_head=a53d6ee3471c4051a18d1cbe8d408b378dd6197f",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_independent_review_4d92f6b5_20260715T203745CST",
-    "current_v24_artifact_root_sha256=210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_a53d6ee3_20260715T204719CST",
+    "current_v24_artifact_root_sha256=cedcc6fe8ca00fff7bbab4eeb92faa2f4cd5d172ec8b1d9d1cb9168ead955394",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=route_census_review_passed_single_record_probe_pending",
+    "source_b_status=single_record_probe_preflight_passed_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_fixed_dp_single_record_source_probe_tdd_static_preflight_only",
+    "next_work_target=v24_fixed_dp_single_record_source_probe_execution_only",
 )
 
 
@@ -273,5 +273,25 @@ def test_v24_route_census_review_recomputes_without_workers() -> None:
         "route_census_review_passed_three_family_source_valid_support",
         "single-record fixed-DP source probe",
         "210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f",
+    ):
+        assert phrase in text
+
+
+def test_v24_single_record_probe_preflight_freezes_one_source_record() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`map_family_828a913c2f9a`",
+        "`1962e44a5dd0ace089aeb9011d5b70e05dfa6ae5adeec4450a6c20e3e09776b2`",
+        "`24001 / 8 / 1` seed / candidates / ticks",
+        "`29 / 0` preflight checks",
+        "native runner reported zero arms and zero routes executed",
+        "checkpoint was hashed but not loaded",
+        "`63890f60cb662a78ea733576397c3b91e942f854bd5ca92007e6449dbf4f24bd`",
+        "`1e734165f7a614e93019df0a5c22b5e36722298cb50b21c5ce8fd0e4e2cf82bc`",
+        "`58c9b506dee7ebd27095d223ce4ff52aafcdbbf8bef306b898f5d6f9f0497441`",
+        "Python 3.9 evidence-sealer compatibility defect",
+        "`b1886120e0b39d29ae9f7926ba59921851d248b9f769128eecd74459f47f3323`",
+        "`35` remote v24 tests",
+        "cedcc6fe8ca00fff7bbab4eeb92faa2f4cd5d172ec8b1d9d1cb9168ead955394",
     ):
         assert phrase in text
