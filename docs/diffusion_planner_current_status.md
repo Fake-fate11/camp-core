@@ -17,34 +17,31 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through route-census execution remain sealed. Branch A remains
+Startup through independent route-census review remain sealed. Branch A remains
 source-ineligible locally without stopping Branch B.
 
-The outcome-blind route census passed 20/20 checks at source HEAD
-`88c57e5597ffdbcc60c26a1c6232b3796b9e9a18`. All 10 eligible blobs completed.
-The 603 start-lanelet receipts contain 552 qualifying and 51 short routes;
-exact deduplication retains 401 routes with 151 duplicate receipts and five
-indivisible corridor groups. Three independent families retain route support:
-Kashi/standard 375, four-track-highway 24, and simple-cross 2. The loadable
-slope family has zero >=80m route support and remains map-local accounting.
-Model/candidate/outcome/holdout work remains unopened. Independent read-only
-review is next.
+The independent review passed 31/31 checks at source HEAD
+`4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f`. Without rerunning a worker, it
+reproduced all attempt, exact-dedup, corridor, and three-family counts; proved
+the five groups cover every retained route once; and rehashed all 14 live
+source maps. The model/candidate/outcome/holdout boundary remains closed.
+Single-record fixed-DP source-probe design/TDD/preflight are next.
 
-current_v24_status=v24_outcome_blind_route_census_execution_passed
-current_v24_artifact_source_head=88c57e5597ffdbcc60c26a1c6232b3796b9e9a18
+current_v24_status=v24_outcome_blind_route_census_review_passed
+current_v24_artifact_source_head=4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_execution_88c57e55_20260715T203449CST
-current_v24_artifact_root_sha256=e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_independent_review_4d92f6b5_20260715T203745CST
+current_v24_artifact_root_sha256=210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=route_census_execution_passed_review_pending
+source_b_status=route_census_review_passed_single_record_probe_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_outcome_blind_route_census_independent_review_only
+next_work_target=v24_fixed_dp_single_record_source_probe_tdd_static_preflight_only
 
 ## Current V23 Status
 

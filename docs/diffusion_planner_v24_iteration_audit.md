@@ -619,3 +619,57 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_outcome_blind_route_census_independent_review_only
+
+## Gate 10: Outcome-Blind Route-Census Independent Review
+
+Status: passed. Single-record fixed-DP source-probe design/TDD/preflight are
+next.
+
+The reviewer rehashed the sealed execution and static-census roots, then
+recomputed the route census directly from the stored JSON and live frozen map
+bytes. It reproduced 10 completed workers with 10 distinct worker PIDs and all
+return codes zero; 603 attempts; 552 qualifying and 51 nonqualifying routes;
+552 raw records; 401 retained identities; 151 exact duplicate receipts; and
+five corridor groups. The 51 nonqualifying attempts are exactly
+`dead_end_before_80m`.
+
+Every raw record key is unique. Retained `(map_family_id, identity_sha256)`
+pairs are unique. The 552 deduplication receipts cover every raw record, and
+the five corridor groups cover all 401 retained records exactly once. The
+review independently reproduced family support `375 / 24 / 2` for
+Kashi/standard, four-track-highway, and simple-cross, with zero slope routes.
+It also confirmed all 14 live source SHA values still equal the frozen
+receipts.
+
+All `31 / 0` independent checks passed. The review did not execute a route
+worker and did not call the route-census controller. The model, candidates,
+outcomes, holdout, split, seeds, corpus, and claims remained unopened. Its
+decision is
+`route_census_review_passed_three_family_source_valid_support`.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_independent_review_4d92f6b5_20260715T203745CST`
+/
+`210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f`.
+
+Three independent source-valid route families remain, so the global stop is
+unauthorized. The next gate freezes a single-record fixed-DP source probe and
+its candidate-tensor receipt contract before any K=8 execution. It may not
+select a favorable route from results; route choice must be source-only and
+deterministic from the sealed census.
+
+current_v24_status=v24_outcome_blind_route_census_review_passed
+current_v24_artifact_source_head=4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_independent_review_4d92f6b5_20260715T203745CST
+current_v24_artifact_root_sha256=210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=route_census_review_passed_single_record_probe_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_fixed_dp_single_record_source_probe_tdd_static_preflight_only

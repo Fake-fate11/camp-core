@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_outcome_blind_route_census_execution_passed",
-    "current_v24_artifact_source_head=88c57e5597ffdbcc60c26a1c6232b3796b9e9a18",
+    "current_v24_status=v24_outcome_blind_route_census_review_passed",
+    "current_v24_artifact_source_head=4d92f6b5ffe9351a374c8c3bf4e9092f5225cc9f",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_execution_88c57e55_20260715T203449CST",
-    "current_v24_artifact_root_sha256=e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_outcome_blind_route_census_independent_review_4d92f6b5_20260715T203745CST",
+    "current_v24_artifact_root_sha256=210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=route_census_execution_passed_review_pending",
+    "source_b_status=route_census_review_passed_single_record_probe_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_outcome_blind_route_census_independent_review_only",
+    "next_work_target=v24_fixed_dp_single_record_source_probe_tdd_static_preflight_only",
 )
 
 
@@ -256,5 +256,22 @@ def test_v24_route_census_execution_preserves_full_attempt_accounting() -> None:
         "model, candidate generation, outcomes, and holdout remained unopened",
         "did not create an execution artifact or worker",
         "e933cc37f8635867d3f34c4efeb3a54858a0f1c20c0db387dc73df20dd81bf5d",
+    ):
+        assert phrase in text
+
+
+def test_v24_route_census_review_recomputes_without_workers() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`31 / 0` independent checks",
+        "10 distinct worker PIDs",
+        "all return codes zero",
+        "51 nonqualifying attempts are exactly `dead_end_before_80m`",
+        "five corridor groups cover all 401 retained records exactly once",
+        "all 14 live source SHA values",
+        "review did not execute a route worker",
+        "route_census_review_passed_three_family_source_valid_support",
+        "single-record fixed-DP source probe",
+        "210cec6201e098169b2c606e265c6e95efc40f6593489d41802ddd1b1010795f",
     ):
         assert phrase in text
