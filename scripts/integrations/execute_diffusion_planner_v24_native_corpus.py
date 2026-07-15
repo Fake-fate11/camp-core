@@ -338,6 +338,16 @@ def execute_pilot_manifest(
         }
     )
     _write_json_atomic(output_dir / "pilot_summary.json", aggregate)
+    terminal_progress = dict(aggregate)
+    terminal_progress.update(
+        {
+            "schema": "camp_dp_v24_native_corpus_pilot_progress_v1",
+            "status": status,
+            "last_completed_row": aggregate["retained_route_seed_runs"],
+            "free_disk_gib": aggregate["free_disk_gib"],
+        }
+    )
+    _write_json_atomic(output_dir / "progress.json", terminal_progress)
     return aggregate
 
 
