@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_branch_b_fixed_builder_smoke_review_passed",
-    "current_v24_artifact_source_head=5a1091273f76a9ce63b2391b6afae9f18b7d61a9",
+    "current_v24_status=v24_merged_map_family_census_passed",
+    "current_v24_artifact_source_head=24882c5218199e0fb9d73b513be0a5feba1f1b08",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_fixed_builder_smoke_review_5a109127_20260715T201434CST",
-    "current_v24_artifact_root_sha256=6f8ee2ec104530d143c65d40f4f11007f853b43ecd3929439db5f19b4483fd08",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_merged_map_family_census_24882c52_20260715T202223CST",
+    "current_v24_artifact_root_sha256=33626198d8945e7f102946005bfa6b9db4762d93b1146896c9ebfd99ad633717",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=builder_smoke_review_passed_loadable_support",
+    "source_b_status=map_family_census_passed_route_census_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_merged_map_family_census_tdd_review_only",
+    "next_work_target=v24_outcome_blind_route_census_tdd_preflight_only",
 )
 
 
@@ -201,5 +201,25 @@ def test_v24_builder_review_recomputes_support_without_reexecution() -> None:
         "Map-family count remains unset",
         "`34 / 0` checks",
         "6f8ee2ec104530d143c65d40f4f11007f853b43ecd3929439db5f19b4483fd08",
+    ):
+        assert phrase in text
+
+
+def test_v24_map_family_census_is_outcome_blind_and_keeps_failures_local() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`14 paths / 12 unique blobs`",
+        "`5` map families",
+        "`4` loadable families",
+        "bbox containment `>=0.98`",
+        "absolute segment containment `>=0.80`",
+        "connected components",
+        "map_family_d7f16a17d3eb",
+        "intersection family remains nonloadable",
+        "empty map remains an unassigned source receipt",
+        "map-family-level train/calibration/holdout split regime",
+        "Route census, candidate generation, outcomes, and holdout remained unopened",
+        "`16 / 0` checks",
+        "33626198d8945e7f102946005bfa6b9db4762d93b1146896c9ebfd99ad633717",
     ):
         assert phrase in text

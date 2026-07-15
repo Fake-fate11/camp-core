@@ -440,3 +440,64 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_merged_map_family_census_tdd_review_only
+
+## Gate 7: Outcome-Blind Merged Map-Family Census
+
+Status: passed. Outcome-blind route-census TDD and preflight are next.
+
+The adjudicator retained all `14 paths / 12 unique blobs`. Exact byte copies
+remain one graph node while every source path keeps its own denominator
+receipt. A graph edge requires both bbox containment `>=0.98` and absolute
+segment containment `>=0.80` at the frozen 1e-8 degree coordinate grid. The
+`connected components` are the map families. Filenames and builder outcomes
+cannot create or tune an edge; builder status only labels family loadability.
+
+This produced `5` map families, of which `4` loadable families cover 12 paths:
+
+- `map_family_d7f16a17d3eb` contains the nine Kashi/standard-map path receipts
+  across seven distinct byte blobs. Its configuration and ROS/no-ROS copies
+  are one geography, not nine independent maps.
+- The simple-cross, four-track-highway, and slope maps are three separate
+  loadable singleton families.
+- The intersection family remains nonloadable because its unchanged official
+  `road_marking` semantics failed the fixed builder.
+- The empty map remains an unassigned source receipt with
+  `no_geometry_or_bbox`; it is neither dropped nor promoted into a family.
+
+Because four independent loadable families remain, the frozen split regime is
+the map-family-level train/calibration/holdout split regime. Exact allocation
+waits for the outcome-blind `>=80m` route census and route/corridor grouping.
+Route census, candidate generation, outcomes, and holdout remained unopened.
+Source A remains terminal only locally; Source B continues, so the global stop
+remains unauthorized.
+
+All `16 / 0` adjudication checks passed. AutoDL also passed Python compilation,
+all nine focused map-census tests, and `git diff --check`; CAMP/origin were
+aligned and tracked-clean at
+`24882c5218199e0fb9d73b513be0a5feba1f1b08`, and fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The first sealing command ran the adjudicator and verification successfully,
+then resolved its relative SHA paths from the repo directory and exited 123.
+The controller did not rerun adjudication. It entered the same artifact root,
+confirmed `run.exit=0` and zero failed checks, rebuilt the SHA lists there, and
+sealed immutable artifact/root:
+`/root/autodl-tmp/camp_dp_v24_merged_map_family_census_24882c52_20260715T202223CST`
+/
+`33626198d8945e7f102946005bfa6b9db4762d93b1146896c9ebfd99ad633717`.
+
+current_v24_status=v24_merged_map_family_census_passed
+current_v24_artifact_source_head=24882c5218199e0fb9d73b513be0a5feba1f1b08
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_merged_map_family_census_24882c52_20260715T202223CST
+current_v24_artifact_root_sha256=33626198d8945e7f102946005bfa6b9db4762d93b1146896c9ebfd99ad633717
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=map_family_census_passed_route_census_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_outcome_blind_route_census_tdd_preflight_only
