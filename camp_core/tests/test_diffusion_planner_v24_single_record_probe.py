@@ -12,6 +12,9 @@ from scripts.integrations.prepare_diffusion_planner_v24_single_record_probe impo
     select_probe_route,
 )
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as runner
+from scripts.integrations import (
+    review_diffusion_planner_v24_single_record_probe as reviewer,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -160,6 +163,70 @@ def test_fixed_dp_annotation_loader_ignores_cached_bytecode(tmp_path: Path) -> N
     exec(code, module.__dict__)
 
     assert module.__annotations__["value"] == "int | None"
+
+
+def test_single_record_reviewer_recomputes_k8_contract(tmp_path: Path) -> None:
+    rows = [f"{index:064x}" for index in range(8)]
+    config = {
+        "schema_version": "camp_dp_v24_single_record_source_probe_v1",
+        "fixed_dp": {"head": runner.FIXED_DP_HEAD},
+        "seeds": {"scenario": PROBE_SEED, "candidate": PROBE_SEED},
+        "selector": {"candidate_k": 8},
+        "protocol": {
+            "holdout_access_authorized": False,
+            "claim_authorized": False,
+        },
+    }
+    tick = {
+        "candidate_row_sha256": rows,
+        "candidate_tensor_sha256_before": "a" * 64,
+        "candidate_tensor_sha256_after": "a" * 64,
+        "global_rng_sha256_before": "b" * 64,
+        "global_rng_sha256_after": "b" * 64,
+        "default_candidate0_identity": {
+            "candidate0_sha256": rows[0],
+            "default_output_sha256": rows[0],
+            "elementwise_equal": True,
+            "max_abs_difference": 0.0,
+            "native_ranked_k8": False,
+        },
+        "selected_index": 3,
+        "selected_trajectory_sha256": rows[3],
+        "source_complete_mask": [True] * 8,
+        "source_valid_mask": [True] * 8,
+        "physical_feasible_mask": [True] * 8,
+        "scores": [float(index) for index in range(8)],
+        "score_contract": "score_k(w)=a_k^T w",
+        "atom_matrix_sha256": "c" * 64,
+    }
+    summary = {
+        "status": "passed",
+        "route_count": 1,
+        "arm_count": 1,
+        "claim_authorized": False,
+        "capability_arm": {
+            "status": "ok",
+            "fixed_dp_head": runner.FIXED_DP_HEAD,
+            "scenario_seed": PROBE_SEED,
+            "route_sha256": reviewer.EXPECTED_ROUTE_SHA256,
+            "runtime_annotation_compatibility": reviewer.EXPECTED_COMPATIBILITY,
+            "ticks": [tick],
+        },
+    }
+    execution = {
+        "status": "passed",
+        "execution_exit": 0,
+        "config_sha256": reviewer.EXPECTED_CONFIG_SHA256,
+        "outcome_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+        "verification": [{"exit": 0}],
+    }
+
+    checks = reviewer.evaluate_contract(config, summary, execution)
+
+    assert checks
+    assert not [check for check in checks if not check["passed"]]
 
 
 def test_single_record_probe_plan_keeps_holdout_and_execution_closed() -> None:
