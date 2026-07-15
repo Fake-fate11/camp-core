@@ -886,3 +886,63 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_fixed_dp_single_record_source_probe_independent_review_only
+
+## Gate 14: Fixed-DP Single-Record Source-Probe Independent Review
+
+Status: passed. Map-family split plan/TDD/static preflight are next.
+
+The pure-stdlib reviewer read only the sealed Gate 13 artifact. It did not
+import fixed-DP or CAMP model modules, load the checkpoint, generate a
+candidate, rerun the probe, access outcomes, or open holdout. It independently
+rehashed every outer and nested manifest entry, then recomputed the frozen
+config, route, seed, K, candidate, mask, affine-score, and claim boundaries.
+
+All `127 / 0` checks passed. The reviewer reproduced eight distinct candidate
+row SHA values, candidate-tensor SHA
+`147379fe4ac82828f879c78f17ffc47b432019f1f74723a557980a776c680fb5`
+before and after selection, candidate-0/default SHA
+`64b71a3496577d6b3a2dd1c4bd3d08fbb229d4ca92c9196b42b8e1a5db31e5ee`,
+selected index 3, and selected row SHA
+`318b6829b64d623d8e39fa9175e33fb37426fea8395611436fe65dd0f9761e59`.
+All eight source-complete, source-valid, and physical-feasibility flags were
+true. Global RNG and candidate tensor receipts were unchanged.
+
+The review also found two native-result path strings that retain the runner's
+staging `native_execution.tmp` prefix after atomic directory rename. Replacing
+only that prefix with the sealed `native_execution` directory resolves both
+files, and their bytes are already covered by the outer SHA manifest. Thus this
+is an artifact-layout defect, not missing K=8 evidence. It must be corrected
+before formal corpus generation; the successful source probe will not be
+rerun.
+
+Remote script compilation, all 40 v24 tests, and diff check passed. CAMP/DP
+tracked state remained clean at
+`3a70498f6a9722742525598d69cf77a8a2c8bc6c` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_independent_review_3a70498f_20260715T210836CST`
+/
+`a232b1bf0ac8da388fcd081404f9a0f3c4810dab2047e58afda89ed124d4912a`.
+
+Branch B therefore has independently reviewed source-valid K=8 support and
+continues. With three independent route-supporting map families, the frozen
+split regime is map-family-level train/calibration/holdout. The next gate may
+plan and statically preflight that split from the sealed 401-route census. It
+must remain outcome-blind and may not open holdout records.
+
+current_v24_status=v24_fixed_dp_single_record_source_probe_independent_review_passed
+current_v24_artifact_source_head=3a70498f6a9722742525598d69cf77a8a2c8bc6c
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_independent_review_3a70498f_20260715T210836CST
+current_v24_artifact_root_sha256=a232b1bf0ac8da388fcd081404f9a0f3c4810dab2047e58afda89ed124d4912a
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=single_record_probe_review_passed_split_plan_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_map_family_split_plan_tdd_static_preflight_only
