@@ -17,26 +17,30 @@ Autoware Universe bidirectional-traffic map and TIER IV
 `scenario_simulator_v2` Lanelet2 test/sample maps. V22 remains a read-only
 honest-no-claim closeout and will not be rewritten or rerun.
 
-Startup reconciliation passed. Local `main`, local `origin/main`, live GitHub
-`main`, AutoDL CAMP HEAD, and AutoDL `origin/main` match at
-`f895b71f65c5971412a8d0be0c3ce492b25bbbe0`; AutoDL DP is tracked-clean at
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Related tasks were zero and
-free space was `49,761,910,784` bytes. No simulator, model, training,
-calibration, or holdout execution occurred.
+Startup reconciliation passed and remains sealed. License/source freeze then
+passed at CAMP HEAD `51c97eb24a2076247e892d2e4dfab82852e30914` with fixed DP unchanged. The
+exact-commit manifest contains 15 OSM paths and 13 unique files: one Autoware
+bidirectional map plus 14 scenario paths / 12 unique files. Map-family count
+is not inferred from paths or bytes.
 
-The first artifact preserved a transient GitHub HTTP 503 with root
-`436afe23998b18b578b06bf901f9b0b45f6119612342a230d9777a5e72da786d`.
-The bounded retry passed with immutable root
-`637eb928b5210bfc8096c4a6b533d5600dc795c76407e1105dd3829fd80f2cc9`.
-License/source freeze is next.
+Both sources are Apache-2.0. Exact LICENSE, Autoware NOTICE, scenario
+NOTICE-absent receipt, raw URLs, commits, Git blob OIDs, blob-object SHA256,
+file SHA256, retrieval time, and redistribution obligations are sealed. Source
+bytes were not modified. Two transient transport/harness failures remain
+preserved under roots `361cec4cb2dba84d0560a3476104696a8973d8b2d3331ac0410dc156c047adc4`
+and `7ad99da785c33c0d2f15448d27064737de08fa97b412e9877601ed2f137066e9`.
+The corrected artifact passed 30 tests and 18 independent file/hash checks at
+root `c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265`.
+No map loader, simulator, model, training, calibration, or holdout ran.
+Adapter design/TDD/static review is next.
 
-current_v23_status=v23_startup_reconciliation_passed
-current_v23_artifact_source_head=f895b71f65c5971412a8d0be0c3ce492b25bbbe0
+current_v23_status=v23_license_source_freeze_passed
+current_v23_artifact_source_head=51c97eb24a2076247e892d2e4dfab82852e30914
 current_v23_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v23_artifact=/root/autodl-tmp/camp_dp_v23_startup_reconciliation_retry_f895b71f_20260715T170517CST
-current_v23_artifact_root_sha256=637eb928b5210bfc8096c4a6b533d5600dc795c76407e1105dd3829fd80f2cc9
-next_work_target=v23_license_source_freeze_only
+current_v23_artifact=/root/autodl-tmp/camp_dp_v23_source_license_freeze_retry2_51c97eb2_20260715T172832CST
+current_v23_artifact_root_sha256=c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265
+next_work_target=v23_adapter_design_tdd_static_review_only
 
 ## Current V22 Status
 
