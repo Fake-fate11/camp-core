@@ -17,29 +17,33 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup reconciliation passed at source HEAD
-`245ce029b91f73e6a7fca7c4ecf6a40679770ad7`. Local, GitHub, and AutoDL CAMP
-were aligned and tracked-clean; DP remained tracked-clean at the fixed commit.
-No related task was running, free space was `49,752,203,264` bytes, and the
-sealed v23 and v22 closeout roots rehashed successfully. No scientific
-execution ran. V23 remains a dependency-capability diagnosis, not a CAMP/DP
-performance failure. Both v24 sources remain independently eligible.
+Startup reconciliation passed and remains sealed. The subsequent read-only v23
+boundary review proved that v23 froze the TIER IV source at 14 paths / 12
+unique blobs but promoted the single Autoware adapter failure to a global stop
+before any TIER IV map-family, route, or K=8 support census. That was a
+source-scope control error, not a CAMP/DP performance result.
 
-current_v24_status=v24_startup_reconciliation_passed
-current_v24_artifact_source_head=245ce029b91f73e6a7fca7c4ecf6a40679770ad7
+The boundary review passed 16/16 checks at source HEAD
+`aad8b1a588e9569a28674a67df5456aa21d7de4d`, rehashed the v23 source, adapter,
+and closeout roots plus the v24 startup root, and ran no scientific execution.
+Branch A proceeds to official extension source qualification. Branch B remains
+independently pending raw map census.
+
+current_v24_status=v24_v23_boundary_review_passed
+current_v24_artifact_source_head=aad8b1a588e9569a28674a67df5456aa21d7de4d
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_startup_reconciliation_245ce029_20260715T190348CST
-current_v24_artifact_root_sha256=a0c1edac5ae664cb5c4940d41b95569e8e05f102199eb87d47a0e01a4ceb3c67
-source_a_status=pending_v23_boundary_review
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_v23_boundary_review_aad8b1a5_20260715T191632CST
+current_v24_artifact_root_sha256=3f127806be14984c7ca08b595bb8947565fa12f74c6a922e0b9fedd9d646c64d
+source_a_status=pending_extension_source_qualification
 source_a_terminal=false
-source_b_status=pending_v23_boundary_review
+source_b_status=pending_raw_map_census
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=0
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_v23_boundary_review_only
+next_work_target=v24_extension_source_qualification_only
 
 ## Current V23 Status
 

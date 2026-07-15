@@ -66,3 +66,60 @@ source_terminal_count=0
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_v23_boundary_review_only
+
+## Gate 1: V23 Boundary Review
+
+Status: passed. Official extension source qualification is next.
+
+The read-only boundary review ran at CAMP HEAD
+`aad8b1a588e9569a28674a67df5456aa21d7de4d` with fixed DP unchanged. It
+rehashes and reads existing v23 source-freeze, adapter, and closeout evidence;
+it does not reopen or rerun v23.
+
+V23 froze the TIER IV source at `14 paths / 12 unique blobs`. Its own design
+required later map-family, route, and split work, but also listed
+`reviewed source-preserving adapter impossibility` as a global stop. After the
+single Autoware map failed its source-preserving adapter smoke, the v23 audit
+promoted that Branch A result to a study-wide terminal stop. There was no TIER
+IV map-family, route, or K=8 support census, yet v23 closed with map families
+uncensused, routes `0`, paired support `0`, and holdout unopened.
+
+The review decision is
+`v23_global_stop_was_source_scope_control_error`. This corrects control scope;
+it does not alter the valid v23 conclusion that the reviewed Autoware map could
+not load source-preservingly in that environment, and it does not create a
+performance result or claim.
+
+All `16 / 0` checks passed. The review rehashed v23 source-freeze root
+`c49f129f092497f6eb30cf887cf3bfbf36fc924244055ada0d0ff221d5ab3265`,
+adapter root
+`28374ed051e18099448875bb94560cdff0bab6be0082edb660bb6f5f6f994825`,
+closeout root
+`08276aec1333f26ec02e7f4a05a2c07aeea810ec4b214a37fba062bd0f138752`,
+and v24 startup root
+`a0c1edac5ae664cb5c4940d41b95569e8e05f102199eb87d47a0e01a4ceb3c67`.
+Focused AutoDL py_compile, 4 v24 tests, and diff checks passed.
+
+Immutable artifact/root:
+`/root/autodl-tmp/camp_dp_v24_v23_boundary_review_aad8b1a5_20260715T191632CST`
+/
+`3f127806be14984c7ca08b595bb8947565fa12f74c6a922e0b9fedd9d646c64d`,
+with `run.exit=0`. Branch A now proceeds to official extension source
+qualification. Branch B remains independently pending raw map census.
+No map loader, simulator, corpus, training, calibration, holdout, or paired evaluation ran.
+
+current_v24_status=v24_v23_boundary_review_passed
+current_v24_artifact_source_head=aad8b1a588e9569a28674a67df5456aa21d7de4d
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_v23_boundary_review_aad8b1a5_20260715T191632CST
+current_v24_artifact_root_sha256=3f127806be14984c7ca08b595bb8947565fa12f74c6a922e0b9fedd9d646c64d
+source_a_status=pending_extension_source_qualification
+source_a_terminal=false
+source_b_status=pending_raw_map_census
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=0
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_extension_source_qualification_only
