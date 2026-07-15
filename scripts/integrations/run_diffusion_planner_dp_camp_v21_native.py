@@ -1412,6 +1412,9 @@ def execute_smoke(
         else:
             result["preflight"] = {"config_valid": True, "asset_checks": "external"}
 
+        arms = _rewrite_evidence_root_paths(arms, staging, output)
+        pairs = _rewrite_evidence_root_paths(pairs, staging, output)
+        result = _rewrite_evidence_root_paths(result, staging, output)
         _write_evidence_payloads(
             staging,
             config,
@@ -1477,6 +1480,30 @@ def execute_smoke(
         _seal_evidence(staging)
         staging.replace(output)
         raise
+
+
+def _rewrite_evidence_root_paths(value: Any, source: Path, target: Path) -> Any:
+    source_text = str(source.resolve())
+    target_text = str(target.resolve())
+    if isinstance(value, str):
+        if value == source_text:
+            return target_text
+        prefix = source_text + os.sep
+        if value.startswith(prefix):
+            return target_text + value[len(source_text) :]
+        return value
+    if isinstance(value, Mapping):
+        return {
+            key: _rewrite_evidence_root_paths(item, source, target)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_rewrite_evidence_root_paths(item, source, target) for item in value]
+    if isinstance(value, tuple):
+        return tuple(
+            _rewrite_evidence_root_paths(item, source, target) for item in value
+        )
+    return value
 
 
 def verify_evidence_hashes(root: str | Path) -> dict[str, Any]:

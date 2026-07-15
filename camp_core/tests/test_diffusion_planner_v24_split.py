@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from scripts.integrations.build_diffusion_planner_v24_map_family_split import (
-    PRIMARY_SEEDS,
+    SEED_NAMESPACES,
     build_split_manifest,
     build_split_plan,
 )
@@ -81,8 +81,15 @@ def test_split_plan_assigns_whole_families_outcome_blind() -> None:
         "calibration": 5,
         "holdout": 10,
     }
-    assert plan["primary_seeds"] == list(PRIMARY_SEEDS)
-    assert plan["pilot_seed"] == PRIMARY_SEEDS[0]
+    assert plan["seed_namespaces"] == {
+        split: list(seeds) for split, seeds in SEED_NAMESPACES.items()
+    }
+    assert plan["pilot_seeds"] == {
+        split: seeds[0] for split, seeds in SEED_NAMESPACES.items()
+    }
+    assert len(
+        set().union(*(set(seeds) for seeds in plan["seed_namespaces"].values()))
+    ) == 15
     assert plan["holdout_opened"] is False
     assert plan["outcome_fields_consumed"] == []
 
@@ -112,7 +119,7 @@ def test_split_manifest_covers_routes_without_family_or_seed_leakage() -> None:
     assert len({record["record_key"] for record in manifest["records"]}) == 10
     for record in manifest["records"]:
         assert record["split"] == plan["family_assignments"][record["map_family_id"]]
-        assert record["seeds"] == list(PRIMARY_SEEDS)
+        assert record["seeds"] == list(SEED_NAMESPACES[record["split"]])
         assert len(record["corridor_group_sha256"]) == 64
     assert manifest["outcome_fields_consumed"] == []
     assert manifest["holdout_opened"] is False
@@ -133,3 +140,4 @@ def test_independent_split_review_recomputes_zero_overlap() -> None:
         "holdout": 10,
     }
     assert review["zero_overlap"] is True
+    assert review["seed_namespace_zero_overlap"] is True

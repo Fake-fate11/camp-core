@@ -229,6 +229,25 @@ def test_single_record_reviewer_recomputes_k8_contract(tmp_path: Path) -> None:
     assert not [check for check in checks if not check["passed"]]
 
 
+def test_native_evidence_paths_are_rewritten_from_staging_to_final(tmp_path: Path) -> None:
+    staging = tmp_path / "artifact.tmp"
+    final = tmp_path / "artifact"
+    payload = {
+        "native_result": {
+            "trajectory_log_path": str(staging / "native_runs" / "trajectory.json")
+        },
+        "unrelated": "/outside/value",
+    }
+
+    rewritten = runner._rewrite_evidence_root_paths(payload, staging, final)
+
+    assert rewritten["native_result"]["trajectory_log_path"] == str(
+        final / "native_runs" / "trajectory.json"
+    )
+    assert rewritten["unrelated"] == "/outside/value"
+    assert payload["native_result"]["trajectory_log_path"].startswith(str(staging))
+
+
 def test_single_record_probe_plan_keeps_holdout_and_execution_closed() -> None:
     text = " ".join(PLAN.read_text(encoding="utf-8").split())
     for phrase in (

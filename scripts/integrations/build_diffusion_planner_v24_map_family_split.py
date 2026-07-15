@@ -9,8 +9,12 @@ from pathlib import Path
 from typing import Any, Mapping
 
 
-PRIMARY_SEEDS = (24001, 24002, 24003, 24004, 24005)
 SPLITS = ("train", "calibration", "holdout")
+SEED_NAMESPACES = {
+    "train": (24001, 24002, 24003, 24004, 24005),
+    "calibration": (24101, 24102, 24103, 24104, 24105),
+    "holdout": (24201, 24202, 24203, 24204, 24205),
+}
 TARGET_RATIOS = {"train": 0.70, "calibration": 0.10, "holdout": 0.20}
 EXPECTED_FAMILY_COUNTS = {
     "map_family_d7f16a17d3eb": 375,
@@ -156,14 +160,19 @@ def build_split_plan(census: Mapping[str, Any]) -> dict[str, Any]:
         },
         "route_counts": route_counts,
         "route_seed_counts": {
-            split: count * len(PRIMARY_SEEDS) for split, count in route_counts.items()
+            split: count * len(SEED_NAMESPACES[split])
+            for split, count in route_counts.items()
         },
         "route_count": len(routes),
         "corridor_group_count": len(corridor["groups"]),
         "supporting_family_count": len(family_counts),
-        "primary_seeds": list(PRIMARY_SEEDS),
-        "pilot_seed": PRIMARY_SEEDS[0],
-        "seed_count": len(PRIMARY_SEEDS),
+        "seed_namespaces": {
+            split: list(SEED_NAMESPACES[split]) for split in SPLITS
+        },
+        "pilot_seeds": {
+            split: SEED_NAMESPACES[split][0] for split in SPLITS
+        },
+        "seed_count_per_route": len(SEED_NAMESPACES["train"]),
         "corridor_membership_count": len(membership),
         "outcome_fields_consumed": [],
         "model_loaded": False,
@@ -189,7 +198,7 @@ def build_split_manifest(
             "map_family_id": str(route["map_family_id"]),
             "corridor_group_sha256": membership[str(route["record_key"])],
             "split": str(assignments[str(route["map_family_id"])]),
-            "seeds": list(PRIMARY_SEEDS),
+            "seeds": list(SEED_NAMESPACES[str(assignments[str(route["map_family_id"])])]),
         }
         for route in routes
     ]
@@ -198,11 +207,15 @@ def build_split_manifest(
         "schema": "camp_dp_v24_map_family_split_manifest_v1",
         "plan_sha256": str(plan["plan_sha256"]),
         "family_assignments": dict(plan["family_assignments"]),
-        "primary_seeds": list(PRIMARY_SEEDS),
-        "pilot_seed": PRIMARY_SEEDS[0],
+        "seed_namespaces": {
+            split: list(SEED_NAMESPACES[split]) for split in SPLITS
+        },
+        "pilot_seeds": {
+            split: SEED_NAMESPACES[split][0] for split in SPLITS
+        },
         "records": records,
         "route_count": len(records),
-        "route_seed_count": len(records) * len(PRIMARY_SEEDS),
+        "route_seed_count": len(records) * len(SEED_NAMESPACES["train"]),
         "outcome_fields_consumed": [],
         "holdout_opened": False,
         "claim_authorized": False,

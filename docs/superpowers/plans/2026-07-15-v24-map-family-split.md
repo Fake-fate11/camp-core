@@ -27,8 +27,10 @@ moved across a family boundary to improve the ratio.
 
 ## Seeds
 
-Freeze primary seeds 24001, 24002, 24003, 24004, 24005. Seed 24001 is the sole
-pilot seed. The same route and all of its seeds remain in one split. This gives
+Freeze disjoint primary seed namespaces: train uses 24001, 24002, 24003, 24004,
+24005; calibration uses 24101-24105; holdout uses 24201-24205. The first seed
+in each split is that split's sole pilot seed. The same route and all of its
+seeds remain in one split, and no numeric seed appears in two splits. This gives
 1875 / 10 / 120 train/calibration/holdout route-seed records. No favorable seed
 replacement or post-outcome seed expansion is allowed.
 

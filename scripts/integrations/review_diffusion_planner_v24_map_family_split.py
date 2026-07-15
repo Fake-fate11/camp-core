@@ -9,8 +9,12 @@ from typing import Any, Mapping
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
-PRIMARY_SEEDS = (24001, 24002, 24003, 24004, 24005)
 SPLITS = ("train", "calibration", "holdout")
+SEED_NAMESPACES = {
+    "train": (24001, 24002, 24003, 24004, 24005),
+    "calibration": (24101, 24102, 24103, 24104, 24105),
+    "holdout": (24201, 24202, 24203, 24204, 24205),
+}
 EXPECTED_PLAN_SHA256 = (
     "55fc3f0aeca1daff1177d533394162b44e0684f7a9e0756d1981042baa265ff3"
 )
@@ -97,6 +101,16 @@ def evaluate_split(
 
     route_counts = {name: len(split_keys[name]) for name in SPLITS}
     route_seed_counts = {name: len(split_route_seeds[name]) for name in SPLITS}
+    observed_seed_namespaces = {
+        split: {
+            int(seed)
+            for record in records
+            if record.get("split") == split
+            for seed in record.get("seeds", [])
+        }
+        for split in SPLITS
+    }
+    seed_namespace_zero_overlap = pairwise_disjoint(observed_seed_namespaces)
     checks = [
         _check(
             "source_schema",
@@ -133,14 +147,19 @@ def evaluate_split(
         _check("families_zero_overlap", pairwise_disjoint(split_families)),
         _check("corridors_zero_overlap", pairwise_disjoint(split_corridors)),
         _check("route_seed_zero_overlap", pairwise_disjoint(split_route_seeds)),
+        _check("seed_namespace_zero_overlap", seed_namespace_zero_overlap),
         _check(
             "every_route_has_five_frozen_seeds",
-            all(record.get("seeds") == list(PRIMARY_SEEDS) for record in records),
+            all(
+                record.get("seeds") == list(SEED_NAMESPACES.get(record.get("split"), ()))
+                for record in records
+            ),
         ),
         _check("route_count_field", manifest.get("route_count") == len(records)),
         _check(
             "route_seed_count_field",
-            manifest.get("route_seed_count") == len(records) * len(PRIMARY_SEEDS),
+            manifest.get("route_seed_count")
+            == len(records) * len(SEED_NAMESPACES["train"]),
         ),
         _check("manifest_outcomes_closed", manifest.get("outcome_fields_consumed") == []),
         _check("manifest_holdout_closed", manifest.get("holdout_opened") is False),
@@ -171,6 +190,7 @@ def evaluate_split(
                 split_route_seeds,
             )
         ),
+        "seed_namespace_zero_overlap": seed_namespace_zero_overlap,
         "manifest_sha256": manifest.get("manifest_sha256"),
         "plan_sha256": manifest.get("plan_sha256"),
         "model_loaded": False,
