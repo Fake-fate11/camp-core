@@ -773,6 +773,346 @@ def test_remaining_preflight_cli_never_builds_runner(
     assert result["next_work_target"].endswith("independent_review_only")
 
 
+def _remaining_authorization_artifacts(
+    tmp_path: Path,
+) -> tuple[Path, str, Path, str, list]:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _row_order_sha256,
+        remaining_rows,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    rows = remaining_rows(manifest, _remaining_review(manifest), expected_route_count=2)
+    source_roots = {
+        "corpus": _sha("corpus"),
+        "corpus_review": _sha("corpus-review"),
+        "pilot": _sha("pilot"),
+        "pilot_review": _sha("pilot-review"),
+    }
+    preflight_root = tmp_path / "remaining-preflight-source"
+    preflight_root.mkdir()
+    (preflight_root / "preflight.json").write_text(
+        json.dumps(
+            {
+                "schema": "camp_dp_v24_native_corpus_remaining_execution_preflight_v1",
+                "status": "passed",
+                "check_count": 1,
+                "failed_count": 0,
+                "checks": [{"name": "frozen_preflight", "passed": True}],
+                "route_count": 2,
+                "seeds": [24002, 24003, 24004, 24005],
+                "route_seed_run_count": 8,
+                "row_order_sha256": _row_order_sha256(rows),
+                "theoretical_max_snapshots": 512,
+                "pilot_route_denominator_retained": 2,
+                "pilot_failures_retained": True,
+                "model_loaded": False,
+                "simulator_executed": False,
+                "candidate_generation_started": False,
+                "outcome_fields_consumed": [],
+                "training_executed": False,
+                "tuning_executed": False,
+                "calibration_accessed": False,
+                "holdout_opened": False,
+                "claim_authorized": False,
+            }
+        )
+    )
+    preflight_sha = _seal_test_artifact(preflight_root)
+    review_root = tmp_path / "remaining-preflight-review-source"
+    review_root.mkdir()
+    (review_root / "review.json").write_text(
+        json.dumps(
+            {
+                "schema": "camp_dp_v24_native_corpus_remaining_preflight_independent_review_v1",
+                "status": "passed",
+                "check_count": 1,
+                "failed_count": 0,
+                "failed_checks": [],
+                "checks": [{"name": "independent_review", "passed": True}],
+                "source_preflight_root_sha256": preflight_sha,
+                "source_corpus_root_sha256": source_roots["corpus"],
+                "source_corpus_review_root_sha256": source_roots["corpus_review"],
+                "source_pilot_root_sha256": source_roots["pilot"],
+                "source_pilot_review_root_sha256": source_roots["pilot_review"],
+                "route_count": 2,
+                "seeds": [24002, 24003, 24004, 24005],
+                "route_seed_run_count": 8,
+                "row_order_sha256": _row_order_sha256(rows),
+                "source_invalid_route_count": 1,
+                "validated_run_config_count": 8,
+                "preflight_reexecuted": False,
+                "execution_preflight_builder_imported_or_called": False,
+                "model_loaded": False,
+                "simulator_executed": False,
+                "candidate_generation_started": False,
+                "outcome_fields_consumed": [],
+                "training_executed": False,
+                "tuning_executed": False,
+                "calibration_accessed": False,
+                "holdout_opened": False,
+                "claim_authorized": False,
+                "decision": {
+                    "remaining_execution_authorized": True,
+                    "action": "launch_one_unique_remaining_train_seed_execution",
+                    "route_count": 2,
+                    "seeds": [24002, 24003, 24004, 24005],
+                    "preserve_all_failures_and_denominator": True,
+                    "route_removal_replacement_reordering_authorized": False,
+                    "tuning_authorized": False,
+                    "outcome_access_authorized": False,
+                    "calibration_access_authorized": False,
+                    "holdout_access_authorized": False,
+                    "claim_authorized": False,
+                },
+                "next_work_target": (
+                    "v24_native_corpus_remaining_train_seeds_unique_execution_only"
+                ),
+            }
+        )
+    )
+    review_sha = _seal_test_artifact(review_root)
+    return preflight_root, preflight_sha, review_root, review_sha, [rows, source_roots]
+
+
+def test_remaining_execution_requires_sealed_review_authorization(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _remaining_execution_authorization_checks,
+    )
+
+    preflight_root, preflight_sha, review_root, review_sha, context = (
+        _remaining_authorization_artifacts(tmp_path)
+    )
+    rows, source_roots = context
+    checks = _remaining_execution_authorization_checks(
+        remaining_preflight_root=preflight_root,
+        expected_remaining_preflight_root_sha256=preflight_sha,
+        remaining_review_root=review_root,
+        expected_remaining_review_root_sha256=review_sha,
+        rows=rows,
+        expected_corpus_preflight_root_sha256=source_roots["corpus"],
+        expected_corpus_review_root_sha256=source_roots["corpus_review"],
+        expected_pilot_root_sha256=source_roots["pilot"],
+        expected_pilot_review_root_sha256=source_roots["pilot_review"],
+        expected_route_count=2,
+        expected_source_invalid_count=1,
+    )
+
+    assert checks
+    assert all(check["passed"] for check in checks)
+
+
+def test_remaining_execution_rejects_resealed_unauthorized_review(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _remaining_execution_authorization_checks,
+    )
+
+    preflight_root, preflight_sha, review_root, _review_sha, context = (
+        _remaining_authorization_artifacts(tmp_path)
+    )
+    rows, source_roots = context
+    path = review_root / "review.json"
+    review = json.loads(path.read_text())
+    review["decision"]["remaining_execution_authorized"] = False
+    path.write_text(json.dumps(review))
+    review_sha = _seal_test_artifact(review_root)
+
+    checks = _remaining_execution_authorization_checks(
+        remaining_preflight_root=preflight_root,
+        expected_remaining_preflight_root_sha256=preflight_sha,
+        remaining_review_root=review_root,
+        expected_remaining_review_root_sha256=review_sha,
+        rows=rows,
+        expected_corpus_preflight_root_sha256=source_roots["corpus"],
+        expected_corpus_review_root_sha256=source_roots["corpus_review"],
+        expected_pilot_root_sha256=source_roots["pilot"],
+        expected_pilot_review_root_sha256=source_roots["pilot_review"],
+        expected_route_count=2,
+        expected_source_invalid_count=1,
+    )
+
+    assert any(
+        check["name"] == "remaining_review_authorized" and not check["passed"]
+        for check in checks
+    )
+
+
+def test_remaining_execution_rejects_unlisted_authorization_json(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _remaining_execution_authorization_checks,
+    )
+
+    preflight_root, _preflight_sha, review_root, review_sha, context = (
+        _remaining_authorization_artifacts(tmp_path)
+    )
+    manifest = preflight_root / "SHA256SUMS"
+    manifest.write_text(
+        "".join(
+            line + "\n"
+            for line in manifest.read_text(encoding="utf-8").splitlines()
+            if not line.endswith("  preflight.json")
+        ),
+        encoding="utf-8",
+    )
+    preflight_sha = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    (preflight_root / "ROOT_SHA256SUMS").write_text(
+        f"{preflight_sha}  SHA256SUMS\n", encoding="ascii"
+    )
+    rows, source_roots = context
+
+    checks = _remaining_execution_authorization_checks(
+        remaining_preflight_root=preflight_root,
+        expected_remaining_preflight_root_sha256=preflight_sha,
+        remaining_review_root=review_root,
+        expected_remaining_review_root_sha256=review_sha,
+        rows=rows,
+        expected_corpus_preflight_root_sha256=source_roots["corpus"],
+        expected_corpus_review_root_sha256=source_roots["corpus_review"],
+        expected_pilot_root_sha256=source_roots["pilot"],
+        expected_pilot_review_root_sha256=source_roots["pilot_review"],
+        expected_route_count=2,
+        expected_source_invalid_count=1,
+    )
+
+    assert any(
+        check["name"] == "remaining_preflight_exact_inventory" and not check["passed"]
+        for check in checks
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "field"),
+    (("preflight", "outcome_fields_consumed"), ("review", "outcome_fields_consumed")),
+)
+def test_remaining_execution_rejects_missing_closed_boundary(
+    tmp_path: Path,
+    source: str,
+    field: str,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _remaining_execution_authorization_checks,
+    )
+
+    preflight_root, preflight_sha, review_root, review_sha, context = (
+        _remaining_authorization_artifacts(tmp_path)
+    )
+    root = preflight_root if source == "preflight" else review_root
+    filename = "preflight.json" if source == "preflight" else "review.json"
+    path = root / filename
+    payload = json.loads(path.read_text())
+    del payload[field]
+    path.write_text(json.dumps(payload))
+    resealed_sha = _seal_test_artifact(root)
+    if source == "preflight":
+        preflight_sha = resealed_sha
+    else:
+        review_sha = resealed_sha
+    rows, source_roots = context
+
+    checks = _remaining_execution_authorization_checks(
+        remaining_preflight_root=preflight_root,
+        expected_remaining_preflight_root_sha256=preflight_sha,
+        remaining_review_root=review_root,
+        expected_remaining_review_root_sha256=review_sha,
+        rows=rows,
+        expected_corpus_preflight_root_sha256=source_roots["corpus"],
+        expected_corpus_review_root_sha256=source_roots["corpus_review"],
+        expected_pilot_root_sha256=source_roots["pilot"],
+        expected_pilot_review_root_sha256=source_roots["pilot_review"],
+        expected_route_count=2,
+        expected_source_invalid_count=1,
+    )
+
+    assert any(
+        check["name"] == f"remaining_{source}_outcomes_closed" and not check["passed"]
+        for check in checks
+    )
+
+
+def test_remaining_execution_rejects_inconsistent_review_checks(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        _remaining_execution_authorization_checks,
+    )
+
+    preflight_root, preflight_sha, review_root, _review_sha, context = (
+        _remaining_authorization_artifacts(tmp_path)
+    )
+    path = review_root / "review.json"
+    review = json.loads(path.read_text())
+    review["checks"][0]["passed"] = False
+    path.write_text(json.dumps(review))
+    review_sha = _seal_test_artifact(review_root)
+    rows, source_roots = context
+
+    checks = _remaining_execution_authorization_checks(
+        remaining_preflight_root=preflight_root,
+        expected_remaining_preflight_root_sha256=preflight_sha,
+        remaining_review_root=review_root,
+        expected_remaining_review_root_sha256=review_sha,
+        rows=rows,
+        expected_corpus_preflight_root_sha256=source_roots["corpus"],
+        expected_corpus_review_root_sha256=source_roots["corpus_review"],
+        expected_pilot_root_sha256=source_roots["pilot"],
+        expected_pilot_review_root_sha256=source_roots["pilot_review"],
+        expected_route_count=2,
+        expected_source_invalid_count=1,
+    )
+
+    assert any(
+        check["name"] == "remaining_review_checks_integrity" and not check["passed"]
+        for check in checks
+    )
+
+
+def test_execute_remaining_requires_preflight_review_source_chain(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import main
+
+    with pytest.raises(
+        ValueError,
+        match="requires remaining preflight and review roots",
+    ):
+        main(
+            [
+                "--mode",
+                "execute-remaining",
+                "--preflight-root",
+                str(tmp_path / "source-preflight"),
+                "--expected-preflight-root-sha256",
+                _sha("source-preflight"),
+                "--review-root",
+                str(tmp_path / "source-review"),
+                "--expected-review-root-sha256",
+                _sha("source-review"),
+                "--pilot-root",
+                str(tmp_path / "pilot"),
+                "--expected-pilot-root-sha256",
+                _sha("pilot"),
+                "--pilot-review-root",
+                str(tmp_path / "pilot-review"),
+                "--expected-pilot-review-root-sha256",
+                _sha("pilot-review"),
+                "--template",
+                str(BASE_CONFIG),
+                "--dp-repo",
+                str(tmp_path / "dp"),
+                "--camp-head",
+                "a" * 40,
+                "--output-dir",
+                str(tmp_path / "output"),
+            ]
+        )
+
+
 def test_pilot_preflight_accepts_complete_verified_asset_receipts() -> None:
     from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
         verified_asset_receipts_complete,

@@ -646,6 +646,235 @@ def _row_order_sha256(rows: Sequence[tuple[Mapping[str, Any], int]]) -> str:
     return hashlib.sha256(_json_bytes(payload)).hexdigest()
 
 
+def _exact_source_root_checks(
+    root: Path, expected_root_sha256: str, prefix: str
+) -> list[dict[str, Any]]:
+    root = Path(root).resolve()
+    manifest = root / "SHA256SUMS"
+    root_receipt = root / "ROOT_SHA256SUMS"
+    checks = [
+        {"name": f"{prefix}_manifest_exists", "passed": manifest.is_file()},
+        {
+            "name": f"{prefix}_root_sha256",
+            "passed": manifest.is_file()
+            and file_sha256(manifest) == expected_root_sha256,
+        },
+        {
+            "name": f"{prefix}_root_receipt",
+            "passed": root_receipt.is_file()
+            and root_receipt.read_text(encoding="ascii")
+            == f"{expected_root_sha256}  SHA256SUMS\n",
+        },
+    ]
+    listed: dict[str, str] = {}
+    manifest_valid = manifest.is_file()
+    if manifest_valid:
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            parts = line.split("  ", 1)
+            if len(parts) != 2:
+                manifest_valid = False
+                continue
+            digest, relative = parts
+            path = (root / relative).resolve()
+            valid_entry = (
+                len(digest) == 64
+                and all(character in "0123456789abcdef" for character in digest)
+                and relative not in listed
+                and relative not in {"SHA256SUMS", "ROOT_SHA256SUMS"}
+                and root in path.parents
+            )
+            if not valid_entry:
+                manifest_valid = False
+                continue
+            listed[relative] = digest
+            checks.append(
+                {
+                    "name": f"{prefix}_sha:{relative}",
+                    "passed": path.is_file() and file_sha256(path) == digest,
+                }
+            )
+    actual = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path not in {manifest, root_receipt}
+    }
+    checks.extend(
+        [
+            {"name": f"{prefix}_manifest_valid", "passed": manifest_valid},
+            {
+                "name": f"{prefix}_exact_inventory",
+                "passed": manifest_valid and set(listed) == actual,
+            },
+        ]
+    )
+    return checks
+
+
+def _artifact_checks_integrity(
+    payload: Mapping[str, Any], *, require_failed_checks: bool
+) -> bool:
+    checks = payload.get("checks")
+    if not isinstance(checks, list):
+        return False
+    names = [check.get("name") for check in checks if isinstance(check, Mapping)]
+    return (
+        len(names) == len(checks)
+        and all(isinstance(name, str) and name for name in names)
+        and len(set(names)) == len(names)
+        and all(check.get("passed") is True for check in checks)
+        and payload.get("check_count") == len(checks)
+        and payload.get("failed_count") == 0
+        and (not require_failed_checks or payload.get("failed_checks") == [])
+    )
+
+
+def _remaining_execution_authorization_checks(
+    *,
+    remaining_preflight_root: Path,
+    expected_remaining_preflight_root_sha256: str,
+    remaining_review_root: Path,
+    expected_remaining_review_root_sha256: str,
+    rows: Sequence[tuple[Mapping[str, Any], int]],
+    expected_corpus_preflight_root_sha256: str,
+    expected_corpus_review_root_sha256: str,
+    expected_pilot_root_sha256: str,
+    expected_pilot_review_root_sha256: str,
+    expected_route_count: int = 375,
+    expected_source_invalid_count: int = 153,
+) -> list[dict[str, Any]]:
+    checks = _exact_source_root_checks(
+        remaining_preflight_root,
+        expected_remaining_preflight_root_sha256,
+        "remaining_preflight",
+    )
+    checks.extend(
+        _exact_source_root_checks(
+            remaining_review_root,
+            expected_remaining_review_root_sha256,
+            "remaining_preflight_review",
+        )
+    )
+    preflight = json.loads(
+        (remaining_preflight_root / "preflight.json").read_text(encoding="utf-8")
+    )
+    review = json.loads(
+        (remaining_review_root / "review.json").read_text(encoding="utf-8")
+    )
+    expected_run_count = expected_route_count * len(REMAINING_SEEDS)
+    row_order_sha256 = _row_order_sha256(rows)
+
+    expected_preflight = {
+        "schema": "camp_dp_v24_native_corpus_remaining_execution_preflight_v1",
+        "status": "passed",
+        "failed_count": 0,
+        "route_count": expected_route_count,
+        "seeds": list(REMAINING_SEEDS),
+        "route_seed_run_count": expected_run_count,
+        "row_order_sha256": row_order_sha256,
+        "theoretical_max_snapshots": expected_run_count * 64,
+        "pilot_route_denominator_retained": expected_route_count,
+        "pilot_failures_retained": True,
+        "model_loaded": False,
+        "simulator_executed": False,
+        "candidate_generation_started": False,
+        "training_executed": False,
+        "tuning_executed": False,
+        "calibration_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+    }
+    for name, expected in expected_preflight.items():
+        checks.append(
+            {
+                "name": f"remaining_preflight_{name}",
+                "passed": preflight.get(name) == expected,
+            }
+        )
+    checks.append(
+        {
+            "name": "remaining_preflight_outcomes_closed",
+            "passed": preflight.get("outcome_fields_consumed") == [],
+        }
+    )
+    checks.append(
+        {
+            "name": "remaining_preflight_checks_integrity",
+            "passed": _artifact_checks_integrity(
+                preflight, require_failed_checks=False
+            ),
+        }
+    )
+
+    expected_review = {
+        "schema": "camp_dp_v24_native_corpus_remaining_preflight_independent_review_v1",
+        "status": "passed",
+        "failed_count": 0,
+        "source_preflight_root_sha256": expected_remaining_preflight_root_sha256,
+        "source_corpus_root_sha256": expected_corpus_preflight_root_sha256,
+        "source_corpus_review_root_sha256": expected_corpus_review_root_sha256,
+        "source_pilot_root_sha256": expected_pilot_root_sha256,
+        "source_pilot_review_root_sha256": expected_pilot_review_root_sha256,
+        "route_count": expected_route_count,
+        "seeds": list(REMAINING_SEEDS),
+        "route_seed_run_count": expected_run_count,
+        "row_order_sha256": row_order_sha256,
+        "source_invalid_route_count": expected_source_invalid_count,
+        "validated_run_config_count": expected_run_count,
+        "preflight_reexecuted": False,
+        "execution_preflight_builder_imported_or_called": False,
+        "model_loaded": False,
+        "simulator_executed": False,
+        "candidate_generation_started": False,
+        "training_executed": False,
+        "tuning_executed": False,
+        "calibration_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+        "next_work_target": (
+            "v24_native_corpus_remaining_train_seeds_unique_execution_only"
+        ),
+    }
+    for name, expected in expected_review.items():
+        checks.append(
+            {
+                "name": f"remaining_review_{name}",
+                "passed": review.get(name) == expected,
+            }
+        )
+    checks.append(
+        {
+            "name": "remaining_review_outcomes_closed",
+            "passed": review.get("outcome_fields_consumed") == [],
+        }
+    )
+    checks.append(
+        {
+            "name": "remaining_review_checks_integrity",
+            "passed": _artifact_checks_integrity(review, require_failed_checks=True),
+        }
+    )
+    decision = review.get("decision")
+    checks.append(
+        {
+            "name": "remaining_review_authorized",
+            "passed": isinstance(decision, Mapping)
+            and decision.get("remaining_execution_authorized") is True
+            and decision.get("action")
+            == "launch_one_unique_remaining_train_seed_execution"
+            and decision.get("route_count") == expected_route_count
+            and decision.get("seeds") == list(REMAINING_SEEDS)
+            and decision.get("preserve_all_failures_and_denominator") is True
+            and decision.get("route_removal_replacement_reordering_authorized") is False
+            and decision.get("tuning_authorized") is False
+            and decision.get("outcome_access_authorized") is False
+            and decision.get("calibration_access_authorized") is False
+            and decision.get("holdout_access_authorized") is False
+            and decision.get("claim_authorized") is False,
+        }
+    )
+    return checks
+
+
 def _remaining_task_lock_available() -> bool:
     import fcntl
 
@@ -846,6 +1075,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--expected-pilot-root-sha256")
     parser.add_argument("--pilot-review-root", type=Path)
     parser.add_argument("--expected-pilot-review-root-sha256")
+    parser.add_argument("--remaining-preflight-root", type=Path)
+    parser.add_argument("--expected-remaining-preflight-root-sha256")
+    parser.add_argument("--remaining-preflight-review-root", type=Path)
+    parser.add_argument("--expected-remaining-preflight-review-root-sha256")
     parser.add_argument("--template", type=Path, required=True)
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--camp-head", required=True)
@@ -871,6 +1104,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     ):
         raise ValueError("remaining modes require pilot and pilot-review roots")
+    if args.mode == "execute-remaining" and any(
+        value is None
+        for value in (
+            args.remaining_preflight_root,
+            args.expected_remaining_preflight_root_sha256,
+            args.remaining_preflight_review_root,
+            args.expected_remaining_preflight_review_root_sha256,
+        )
+    ):
+        raise ValueError(
+            "execute-remaining requires remaining preflight and review roots"
+        )
     if args.output_dir.exists() and not args.resume:
         raise FileExistsError(args.output_dir)
     if preflight_mode and args.resume:
@@ -893,6 +1138,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.expected_pilot_review_root_sha256 if remaining_mode else None
         ),
     )
+    if args.mode == "execute-remaining":
+        checks.extend(
+            _remaining_execution_authorization_checks(
+                remaining_preflight_root=args.remaining_preflight_root,
+                expected_remaining_preflight_root_sha256=(
+                    args.expected_remaining_preflight_root_sha256
+                ),
+                remaining_review_root=args.remaining_preflight_review_root,
+                expected_remaining_review_root_sha256=(
+                    args.expected_remaining_preflight_review_root_sha256
+                ),
+                rows=rows,
+                expected_corpus_preflight_root_sha256=(
+                    args.expected_preflight_root_sha256
+                ),
+                expected_corpus_review_root_sha256=args.expected_review_root_sha256,
+                expected_pilot_root_sha256=args.expected_pilot_root_sha256,
+                expected_pilot_review_root_sha256=(
+                    args.expected_pilot_review_root_sha256
+                ),
+            )
+        )
     failed = [check["name"] for check in checks if not check["passed"]]
     if failed:
         raise ValueError(f"v24 corpus execution preflight failed: {failed}")
@@ -906,6 +1173,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"SOURCE_PILOT_ROOT_SHA256={args.expected_pilot_root_sha256}\n"
             "SOURCE_PILOT_INDEPENDENT_REVIEW_ROOT_SHA256="
             f"{args.expected_pilot_review_root_sha256}\n"
+        )
+    if args.mode == "execute-remaining":
+        heads += (
+            "SOURCE_REMAINING_PREFLIGHT_ROOT_SHA256="
+            f"{args.expected_remaining_preflight_root_sha256}\n"
+            "SOURCE_REMAINING_PREFLIGHT_INDEPENDENT_REVIEW_ROOT_SHA256="
+            f"{args.expected_remaining_preflight_review_root_sha256}\n"
         )
 
     task_lock_handle = None
@@ -1064,6 +1338,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             result["source_pilot_root_sha256"] = args.expected_pilot_root_sha256
             result["source_pilot_review_root_sha256"] = (
                 args.expected_pilot_review_root_sha256
+            )
+            result["source_remaining_preflight_root_sha256"] = (
+                args.expected_remaining_preflight_root_sha256
+            )
+            result["source_remaining_preflight_review_root_sha256"] = (
+                args.expected_remaining_preflight_review_root_sha256
             )
         result["fixed_dp_head"] = FIXED_DP_HEAD
         result["next_work_target"] = (
