@@ -153,6 +153,10 @@ def _compile_fixed_dp_with_postponed_annotations(
 
 
 class _FixedDpPostponedAnnotationsLoader(importlib.machinery.SourceFileLoader):
+    def get_code(self, fullname: str) -> Any:
+        path = self.get_filename(fullname)
+        return self.source_to_code(self.get_data(path), path)
+
     def source_to_code(
         self, data: bytes, path: str, *, _optimize: int = -1
     ) -> Any:

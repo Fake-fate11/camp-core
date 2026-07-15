@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import importlib.machinery
 import json
 import types
 from pathlib import Path
@@ -141,6 +142,24 @@ def test_fixed_dp_annotation_finder_is_scoped_to_frozen_repo(tmp_path: Path) -> 
 
     assert finder.loader_for(inside) is not None
     assert finder.loader_for(outside) is None
+
+
+def test_fixed_dp_annotation_loader_ignores_cached_bytecode(tmp_path: Path) -> None:
+    dp_repo = tmp_path / "Diffusion-Planner"
+    dp_repo.mkdir()
+    module_path = dp_repo / "cached.py"
+    module_path.write_text("value: int | None = None\n", encoding="utf-8")
+    standard = importlib.machinery.SourceFileLoader("cached", str(module_path))
+    standard.get_code("cached")
+    finder = runner._FixedDpPostponedAnnotationsFinder(dp_repo)
+    loader = finder.loader_for(module_path, "cached")
+    assert loader is not None
+
+    code = loader.get_code("cached")
+    module = types.ModuleType("cached")
+    exec(code, module.__dict__)
+
+    assert module.__annotations__["value"] == "int | None"
 
 
 def test_single_record_probe_plan_keeps_holdout_and_execution_closed() -> None:
