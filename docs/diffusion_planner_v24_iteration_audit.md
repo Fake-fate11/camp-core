@@ -1669,3 +1669,52 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_remaining_train_seeds_unique_execution_only
+
+## Gate 28: Unique Remaining-Seed Native Corpus Execution Launch
+
+Status: running. Monitor only; do not duplicate.
+
+Before launch, the controller found that `execute-remaining` consumed the
+original corpus/pilot roots but did not directly bind the sealed remaining-seed
+preflight and its independent review. This was a normal harness-contract defect,
+not a global stop. TDD added direct Gate 26/27 inputs, exact manifest/root-receipt
+and inventory checks, internal check integrity, source-chain/denominator/closed-
+boundary validation, authorization validation, and HEADS/resume/result binding.
+Attack tests cover unlisted authorization JSON, resealed denial, missing closed
+fields, and inconsistent internal review checks.
+
+Independent code review initially found the exact-inventory, missing-field, and
+internal-check fail-open paths. After fixes, re-review passed with no findings.
+Local and AutoDL py_compile, all `102` v24 tests, and `git diff --check` passed at
+CAMP HEAD `c96510b84f89862c1203d57664081d46f020e929`. A live read-only execution
+authorization reconstruction over the immutable artifacts passed `16104 / 0`
+checks for the exact 1500 frozen rows.
+
+The controller then reconfirmed aligned local/origin/GitHub/AutoDL CAMP state,
+fixed and clean DP, no existing remaining executor, the available process-global
+lock, and `49,518,133,248` free bytes. It launched exactly one background worker,
+PID `50377`, over all 375 routes and seeds `24002-24005`. `STATE.json` reports
+`running`, and the worker holds the global lock. The artifact remains unsealed.
+While PID 50377 exists, every controller must monitor only and must not launch or
+resume any other task.
+
+Running artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_c96510b8_20260716T013715CST`
+/
+`pending_unique_long_task_running_unsealed`.
+
+current_v24_status=v24_native_corpus_remaining_train_seeds_execution_running
+current_v24_artifact_source_head=c96510b84f89862c1203d57664081d46f020e929
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_c96510b8_20260716T013715CST
+current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_remaining_train_seeds_execution_running_monitor_only
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_remaining_train_seeds_execution_monitor_only_do_not_duplicate

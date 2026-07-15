@@ -36,23 +36,28 @@ Independent review then passed 18729 checks with zero failures. It independently
 reconstructed all 1500 configs, 375 route assets, six source maps, exact row
 order, and all 153 retained positive-speed-source failures. It did not import
 or call the execution-preflight builder or open any execution/training/eval
-boundary. Exactly one remaining-seed execution is next.
+boundary. Before launch, TDD closed a harness-chain defect so execution now
+requires exact Gate 26/27 seals, source chains, internal check integrity, closed
+boundaries, and the positive independent-review decision. Independent code
+review passed and all 102 v24 tests passed locally and on AutoDL. Exactly one
+remaining-seed execution is now running as PID 50377 under the global task lock.
+All controllers are monitor-only until it terminates.
 
-current_v24_status=v24_native_corpus_remaining_train_seeds_static_preflight_independent_review_passed
-current_v24_artifact_source_head=c7fcf09ceb2b40f86db2f2885271a0bfbad6c0f0
+current_v24_status=v24_native_corpus_remaining_train_seeds_execution_running
+current_v24_artifact_source_head=c96510b84f89862c1203d57664081d46f020e929
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_independent_review_c7fcf09c_20260716T012039CST
-current_v24_artifact_root_sha256=c2f27a314d8cac086c7edbdda5dd37129a79e87788e880a4ecf01c2429b6686b
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_c96510b8_20260716T013715CST
+current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_remaining_seed_static_preflight_review_passed_execution_pending
+source_b_status=native_corpus_remaining_train_seeds_execution_running_monitor_only
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_remaining_train_seeds_unique_execution_only
+next_work_target=v24_native_corpus_remaining_train_seeds_execution_monitor_only_do_not_duplicate
 
 ## Current V23 Status
 
