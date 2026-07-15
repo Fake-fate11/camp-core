@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_branch_a_isolated_build_preflight_passed",
-    "current_v24_artifact_source_head=4f6ec02e9c167241920545d2619170bff354a97d",
+    "current_v24_status=v24_branch_b_static_map_census_passed",
+    "current_v24_artifact_source_head=88e646f46568ed46670aab36636a873399948f41",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_a_isolated_build_preflight_4f6ec02e_20260715T195314CST",
-    "current_v24_artifact_root_sha256=9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_static_map_census_88e646f4_20260715T200301CST",
+    "current_v24_artifact_root_sha256=2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=pending_raw_map_census",
+    "source_b_status=static_census_passed_builder_smoke_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_branch_b_raw_map_census_tdd_static_preflight_only",
+    "next_work_target=v24_branch_b_fixed_builder_smoke_execution_only",
 )
 
 
@@ -142,5 +142,26 @@ def test_v24_branch_a_preflight_fails_source_locally_and_continues_b() -> None:
         "Branch B raw-map census remains mandatory",
         "global stop remains unauthorized",
         "9df3f1958408a68841ff1dd074dd7d36774af182b43b8e51ee1f7415a7a4b2b6",
+    ):
+        assert phrase in text
+
+
+def test_v24_branch_b_static_census_keeps_full_denominator() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`14 paths / 12 unique blobs`",
+        "`14 / 14 / 13`",
+        "`11 / 11`",
+        "Map-family count remains unset",
+        "`crosswalk: 4`",
+        "`right_of_way: 10`",
+        "`road_marking: 2`",
+        "`traffic_light: 24`",
+        "`traffic_sign: 10`",
+        "one `no_lanelets` receipt",
+        "Source bytes modified: `false`",
+        "Builder, route census, outcomes, and holdout remained unopened",
+        "`26 / 0` checks",
+        "2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c",
     ):
         assert phrase in text

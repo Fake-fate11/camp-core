@@ -263,3 +263,62 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_branch_b_raw_map_census_tdd_static_preflight_only
+
+## Gate 4: Branch B Raw Static Map Census, TDD, and Preflight
+
+Status: passed. Fixed-builder smoke is next.
+
+The outcome-blind standard-library census ran against the unchanged v23 source
+payload at TIER IV `scenario_simulator_v2` commit
+`e22f01093fa6516c0552549ada302270329c59a4`. It reverified the sealed source
+root, Apache-2.0 receipt, absent root NOTICE, per-path URL/Git/SHA/byte receipts,
+and exact `14 paths / 12 unique blobs`. Source bytes modified: `false`.
+
+For every path, the report records XML validity, regulatory subtypes, bbox,
+translation/ID-normalized geometry, ID-independent lanelet topology, explicit
+speed sources, traffic-control sources, missing references, and pending builder
+and route status. All 14 paths remain in the denominator, including duplicate
+byte blobs and failures. The route threshold is frozen outcome-blind at
+`>=80m` before any route or simulator result.
+
+Source-valid / XML-valid / static-eligible path counts are `14 / 14 / 13`.
+The sole static exclusion is
+`simulation/traffic_simulator/test/map/empty/lanelet2_map.osm`, preserved with
+one `no_lanelets` receipt. It is not replaced. Regulatory subtype totals are
+`crosswalk: 4`, `right_of_way: 10`, `road_marking: 2`, `traffic_light: 24`,
+and `traffic_sign: 10`. Static census does not pre-exclude the maps containing
+`road_marking`; their stock-builder result remains pending per-map evidence.
+
+Geometry and geometry-plus-topology cluster candidate counts are `11 / 11`.
+Map-family count remains unset: byte duplicates, filenames, and static
+fingerprints are inputs to the later reviewed family adjudication, not an
+automatic independent-map claim.
+
+All `26 / 0` checks passed. Local and AutoDL py_compile, 12 focused v24 tests,
+and diff checks passed. Builder, route census, outcomes, and holdout remained
+unopened; no DP code/configuration/weights/checkpoint/request changed.
+Immutable artifact/root:
+`/root/autodl-tmp/camp_dp_v24_branch_b_static_map_census_88e646f4_20260715T200301CST`
+/
+`2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c`,
+with `run.exit=0`.
+
+Source A remains terminal only locally. Source B proceeds to one isolated
+stock fixed-builder smoke per unique blob, with all 14 path receipts retained.
+The global stop remains unauthorized.
+
+current_v24_status=v24_branch_b_static_map_census_passed
+current_v24_artifact_source_head=88e646f46568ed46670aab36636a873399948f41
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_branch_b_static_map_census_88e646f4_20260715T200301CST
+current_v24_artifact_root_sha256=2dbe704a7f244b7ac09648de006a67cdc03fa283079ff2a3bb213c894635fb8c
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=static_census_passed_builder_smoke_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_branch_b_fixed_builder_smoke_execution_only
