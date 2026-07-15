@@ -13,13 +13,13 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 
 POINTER = (
-    "current_v24_status=v24_v23_boundary_review_passed",
-    "current_v24_artifact_source_head=aad8b1a588e9569a28674a67df5456aa21d7de4d",
+    "current_v24_status=v24_extension_source_qualification_passed",
+    "current_v24_artifact_source_head=78bf6eda5ec0383d0156e395a170497691ecd714",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_v23_boundary_review_aad8b1a5_20260715T191632CST",
-    "current_v24_artifact_root_sha256=3f127806be14984c7ca08b595bb8947565fa12f74c6a922e0b9fedd9d646c64d",
-    "source_a_status=pending_extension_source_qualification",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_extension_source_qualification_78bf6eda_20260715T193857CST",
+    "current_v24_artifact_root_sha256=fea4418715467376102bd8127bdf366ddecbec7dd01f408657b54b84835219e3",
+    "source_a_status=official_extension_source_qualified_build_feasibility_pending",
     "source_a_terminal=false",
     "source_b_status=pending_raw_map_census",
     "source_b_terminal=false",
@@ -27,7 +27,7 @@ POINTER = (
     "source_terminal_count=0",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_extension_source_qualification_only",
+    "next_work_target=v24_branch_a_isolated_build_design_tdd_static_preflight_only",
 )
 
 
@@ -78,6 +78,27 @@ def test_v24_records_v23_source_scope_control_error() -> None:
         "no TIER IV map-family, route, or K=8 support census",
         "v23_global_stop_was_source_scope_control_error",
         "`16 / 0` checks",
+        "Branch B remains independently pending raw map census",
+    ):
+        assert phrase in text
+
+
+def test_v24_freezes_official_extension_source_before_build() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "highest official semantic-version tag",
+        "dated no later than the frozen Universe commit",
+        "autowarefoundation/autoware_lanelet2_extension",
+        "`1.2.0`",
+        "`4a3420d8cc19906e7739618f8a1686400f79b4ac`",
+        "`76ba5b7b3b74bc5539b6ea55dcfb205538ad5362`",
+        "Apache-2.0",
+        "NOTICE is absent",
+        "RegisterRegulatoryElement<DetectionArea>",
+        "Lanelet2 Python package is `1.2.2`",
+        "Lanelet2 headers, Lanelet2 CMake package files, ROS, ament, and Autoware build dependencies are absent",
+        "Binary compatibility and process-local factory registration remain unproved",
+        "`17 / 0` checks",
         "Branch B remains independently pending raw map census",
     ):
         assert phrase in text
