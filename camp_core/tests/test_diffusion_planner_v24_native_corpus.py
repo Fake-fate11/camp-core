@@ -533,6 +533,8 @@ def test_pilot_independent_review_accepts_stale_progress_as_warning(
     assert review["decision"]["authorized"] is True
     assert review["decision"]["seeds"] == [24002, 24003, 24004, 24005]
     assert review["decision"]["route_count"] == 2
+    assert review["decision"]["tuning_authorized"] is False
+    assert review["decision"]["outcome_access_authorized"] is False
 
 
 def test_pilot_independent_review_fails_closed_on_tampered_snapshot(
@@ -558,8 +560,82 @@ def test_pilot_independent_review_fails_closed_on_tampered_snapshot(
 
     assert review["status"] == "failed"
     assert review["failed_count"] > 0
+    assert review["warnings"] == []
     assert review["decision"]["authorized"] is False
     assert any("snapshot" in name for name in review["failed_checks"])
+
+
+@pytest.mark.parametrize(
+    "relative",
+    (
+        "receipts/train/unexpected.txt",
+        "snapshots/unexpected.txt",
+        f"snapshots/nested/{_sha('nested-snapshot')}.json",
+    ),
+)
+def test_pilot_independent_review_rejects_extra_semantic_files(
+    tmp_path: Path, relative: str
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_pilot import (
+        review_pilot,
+    )
+
+    pilot_root, _pilot_sha, preflight_root, preflight_sha = _reviewable_pilot(tmp_path)
+    extra = pilot_root / relative
+    extra.parent.mkdir(parents=True, exist_ok=True)
+    extra.write_text("unexpected", encoding="utf-8")
+    pilot_sha = _seal_test_artifact(pilot_root)
+
+    review = review_pilot(
+        pilot_root,
+        pilot_sha,
+        preflight_root,
+        preflight_sha,
+        expected_route_count=2,
+    )
+
+    assert review["status"] == "failed"
+    assert review["warnings"] == []
+    assert review["decision"]["authorized"] is False
+    assert any("inventory" in name for name in review["failed_checks"])
+
+
+@pytest.mark.parametrize(
+    ("field", "drifted"),
+    (
+        ("phase", "wrong_phase"),
+        ("corpus_steps", 63),
+        ("sample_every_ticks", 2),
+        ("theoretical_max_snapshots", 127),
+    ),
+)
+def test_pilot_independent_review_rejects_protocol_drift(
+    tmp_path: Path, field: str, drifted: object
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_pilot import (
+        review_pilot,
+    )
+
+    pilot_root, _pilot_sha, preflight_root, preflight_sha = _reviewable_pilot(tmp_path)
+    for name in ("pilot_summary.json", "execution.json"):
+        path = pilot_root / name
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload[field] = drifted
+        path.write_text(json.dumps(payload), encoding="utf-8")
+    pilot_sha = _seal_test_artifact(pilot_root)
+
+    review = review_pilot(
+        pilot_root,
+        pilot_sha,
+        preflight_root,
+        preflight_sha,
+        expected_route_count=2,
+    )
+
+    assert review["status"] == "failed"
+    assert review["warnings"] == []
+    assert review["decision"]["authorized"] is False
+    assert any("protocol" in name for name in review["failed_checks"])
 
 
 def test_pilot_executor_rewrites_progress_with_terminal_aggregate(

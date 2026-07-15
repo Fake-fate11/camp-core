@@ -182,6 +182,7 @@ def review_pilot(
         )
     )
     warnings: list[str] = []
+    stale_progress = False
     recomputed: dict[str, Any] = {
         "failure_reason_counts": {},
         "receipt_count_by_source_map_sha256": {},
@@ -226,7 +227,21 @@ def review_pilot(
             all(route.get("seeds") == TRAIN_SEEDS for route in routes),
         )
 
-        receipt_paths = sorted((pilot_root / "receipts" / "train").rglob("seed_*.json"))
+        expected_receipt_paths = {
+            f"receipts/train/{identity}/seed_{PILOT_SEED}.json"
+            for identity in route_by_identity
+        }
+        actual_receipt_paths = {
+            path.relative_to(pilot_root).as_posix()
+            for path in (pilot_root / "receipts").rglob("*")
+            if path.is_file()
+        }
+        _check(
+            checks,
+            "receipt_semantic_inventory_exact",
+            actual_receipt_paths == expected_receipt_paths,
+        )
+        receipt_paths = sorted(pilot_root / relative for relative in expected_receipt_paths)
         receipts = [_read_json(path) for path in receipt_paths]
         receipt_by_identity = {
             str(receipt.get("route_identity_sha256")): receipt for receipt in receipts
@@ -287,7 +302,27 @@ def review_pilot(
             if status == "failed":
                 failure_reasons[str(receipt.get("failure_reason"))] += 1
 
-        snapshot_paths = sorted((pilot_root / "snapshots").glob("*.json"))
+        snapshot_root = pilot_root / "snapshots"
+        snapshot_tree_files = sorted(
+            path for path in snapshot_root.rglob("*") if path.is_file()
+        )
+        _check(
+            checks,
+            "snapshot_semantic_inventory_exact",
+            all(
+                path.parent == snapshot_root
+                and path.suffix == ".json"
+                and _is_sha256(path.stem)
+                for path in snapshot_tree_files
+            ),
+        )
+        snapshot_paths = [
+            path
+            for path in snapshot_tree_files
+            if path.parent == snapshot_root
+            and path.suffix == ".json"
+            and _is_sha256(path.stem)
+        ]
         snapshot_by_digest = {path.stem: path for path in snapshot_paths}
         _check(checks, "snapshot_filenames_unique", len(snapshot_by_digest) == len(snapshot_paths))
         _check(checks, "snapshot_reference_membership_exact", set(snapshot_references) == set(snapshot_by_digest))
@@ -375,6 +410,12 @@ def review_pilot(
             "all_k_high_risk_snapshot_count": all_k_high_risk,
         }
         terminal_status = "complete_with_retained_failures" if failed else "complete"
+        expected_protocol = {
+            "phase": "capability_pilot_all_train_routes_first_seed",
+            "corpus_steps": 64,
+            "sample_every_ticks": 1,
+            "theoretical_max_snapshots": expected_route_count * 64,
+        }
         for prefix, payload in (("summary", summary), ("execution", execution)):
             _check(
                 checks,
@@ -384,6 +425,11 @@ def review_pilot(
             _check(checks, f"{prefix}_status", payload.get("status") == terminal_status)
             _check(checks, f"{prefix}_schema", payload.get("schema") == "camp_dp_v24_native_corpus_pilot_summary_v1")
             _check(checks, f"{prefix}_seed", payload.get("seed") == PILOT_SEED)
+            _check(
+                checks,
+                f"{prefix}_protocol",
+                all(payload.get(name) == value for name, value in expected_protocol.items()),
+            )
             _check(checks, f"{prefix}_denominator_retained", payload.get("all_routes_retained_in_denominator") is True)
             _check(checks, f"{prefix}_disk_recorded", float(payload.get("free_disk_gib", 0.0)) > 10.0)
             _authoritative_boundary_checks(checks, payload, prefix)
@@ -399,7 +445,7 @@ def review_pilot(
         _check(checks, "progress_completed_rows", progress.get("last_completed_row") == expected_route_count)
         _check(checks, "progress_disk_recorded", float(progress.get("free_disk_gib", 0.0)) > 10.0)
         if progress.get("status") == "running" and terminal_status.startswith("complete"):
-            warnings.append("progress_terminal_status_stale_running")
+            stale_progress = True
         else:
             _check(checks, "progress_terminal_status", progress.get("status") == terminal_status)
         free_bytes = shutil.disk_usage(pilot_root).free
@@ -418,6 +464,8 @@ def review_pilot(
 
     failed_checks = [check["name"] for check in checks if not check["passed"]]
     authoritative_passed = not failed_checks
+    if authoritative_passed and stale_progress:
+        warnings.append("progress_terminal_status_stale_running")
     decision = {
         "authorized": authoritative_passed,
         "action": "execute_frozen_remaining_train_seeds" if authoritative_passed else "stop_failed_review",
@@ -426,6 +474,8 @@ def review_pilot(
         "route_order": route_order if authoritative_passed else [],
         "preserve_all_failures_and_denominator": authoritative_passed,
         "route_removal_replacement_reordering_authorized": False,
+        "tuning_authorized": False,
+        "outcome_access_authorized": False,
         "calibration_access_authorized": False,
         "holdout_access_authorized": False,
         "claim_authorized": False,
