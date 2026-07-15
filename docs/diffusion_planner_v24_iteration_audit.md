@@ -1547,3 +1547,67 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_remaining_train_seeds_plan_tdd_static_preflight_only
+
+## Gate 26: Remaining Train-Seed Plan, TDD, and Static Preflight
+
+Status: passed. Independent static-preflight review is next.
+
+The frozen second corpus phase remains exactly the same 375 train routes crossed
+with seeds `24002-24005`: `1500` route-seed runs in route-major, seed-minor
+order, at most 64 ticks each, `sample_every_ticks=1`, and no thinning. Its
+theoretical ceiling is `96000` causal fixed-DP K=8 snapshots. The row-order
+SHA256 is
+`eca8c8e3ed0092f4f46cd93de8dec43135455eee9b14b0c63ec9a696ee6b389b`.
+All 153 pilot source-invalid routes remain in every seed denominator; no pilot
+result removed, replaced, or reordered a route.
+
+TDD parameterized only the existing native-corpus executor. Pilot entry points,
+schemas, and behavior remain compatible. The remaining phase has separate
+schemas, progress, summary, artifact, and a process-global task lock. Resume is
+limited to a matching unsealed partial artifact; exact receipt and terminal
+snapshot inventories reject extra or drifted evidence. Progress aggregation is
+incremental with one final full recomputation, avoiding a 1500-run quadratic
+snapshot rescan.
+
+Independent code review found three fail-closed gaps: unplanned resume receipts
+could enter aggregation, the pilot-review source chain was not cross-bound, and
+only the first route asset had a live SHA verification. TDD fixed all three.
+Re-review passed with no findings. Local and AutoDL py_compile, all `91` v24
+tests, and `git diff --check` passed.
+
+The AutoDL static preflight rehashed the corpus preflight, corpus review,
+seed-24001 pilot, and pilot independent-review roots. It cross-bound the review
+to the same pilot and corpus roots, validated all `1500` run configs and all
+`375` unique route assets, rehashed every live source map, reconfirmed clean
+fixed DP, found no remaining executor holding the global lock, and retained the
+10 GiB floor. All `16032 / 0` checks passed with approximately 47 GiB free.
+
+Model loading, runner construction, simulator execution, candidate generation,
+outcomes, tuning, training, calibration, holdout, and claims all remained
+closed. The gate did not invoke `execute-remaining`.
+
+Immutable preflight artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_ed1c1a16_20260716T010633CST`
+/
+`0e1b26d48b963dea88e7d98e47f3bbfb3947ab6d6b09f0cb3c1f85e9126bcac2`.
+
+The next gate independently rehashes the four source roots and this preflight,
+recomputes the exact route/seed row order and all closed-boundary receipts, and
+must not import or call the execution-preflight builder. No execution is
+authorized until that review passes. No global stop is authorized.
+
+current_v24_status=v24_native_corpus_remaining_train_seeds_static_preflight_passed
+current_v24_artifact_source_head=ed1c1a1661bddb1519bbe8717be28fc408769989
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_static_preflight_ed1c1a16_20260716T010633CST
+current_v24_artifact_root_sha256=0e1b26d48b963dea88e7d98e47f3bbfb3947ab6d6b09f0cb3c1f85e9126bcac2
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_remaining_seed_static_preflight_passed_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_remaining_train_seeds_static_preflight_independent_review_only
