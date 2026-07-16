@@ -69,11 +69,11 @@ PREFLIGHT_SCHEMA = (
 )
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
-    "independent_review_5f3dbfc7_20260716T223324CST"
+    "camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_"
+    "static_preflight_independent_review_db238bd7_20260716T224452CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418"
+    "f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357"
 )
 REQUIRED_TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v24_training_executor.py",
@@ -135,7 +135,8 @@ def _authorization_from_live_eof(repo: Path) -> dict[str, str]:
     parsed = dict(line.split("=", 1) for line in lines[-15:] if "=" in line)
     expected = {
         "current_v24_status": (
-            "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+            "v24_convex_training_cut_relative_gap_authorization_contract_"
+            "repair_static_preflight_"
             "independent_review_passed"
         ),
         "current_v24_artifact": str(REPAIR_REVIEW_ARTIFACT),
@@ -151,7 +152,8 @@ def _authorization_from_live_eof(repo: Path) -> dict[str, str]:
     if (
         review.get("status") != "passed"
         or review.get("schema")
-        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+        != "camp_dp_v24_training_cut_relative_gap_authorization_contract_"
+        "repair_static_preflight_"
         "independent_review_v1"
         or review.get("decision", {}).get("training_execution_authorized")
         is not True

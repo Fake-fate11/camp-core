@@ -76,11 +76,11 @@ RETRY_FAILURE_REVIEW_RELATIVE = (
 )
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
-    "independent_review_5f3dbfc7_20260716T223324CST"
+    "camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_"
+    "static_preflight_independent_review_db238bd7_20260716T224452CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418"
+    "f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357"
 )
 EXPECTED_PROVENANCE = {
     EXECUTOR_RELATIVE,
@@ -245,12 +245,14 @@ def _static_executor_review(source: str) -> list[str]:
         or "for sequence, level in enumerate(inputs[\"levels\"], start=1)" not in curve
         or 'list(models) != ["25", "50", "75", "100"]' not in curve
         or "progress_callback" not in curve
-        or "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+        or "v24_convex_training_cut_relative_gap_authorization_contract_"
         not in authorize
         or "v24_convex_selector_training_cut_relative_gap_retry_execution_only"
         not in authorize
-        or "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+        or "camp_dp_v24_training_cut_relative_gap_authorization_contract_"
         not in authorize
+        or "current_v24_artifact_source_head" not in authorize
+        or "executor_source_sha256" not in authorize
     ):
         raise ValueError("v24 training executor static contract review failed")
     return [
@@ -367,7 +369,8 @@ def review_preflight(
     )
     if (
         eof.get("current_v24_status")
-        != "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+        != "v24_convex_training_cut_relative_gap_authorization_contract_"
+        "repair_static_preflight_"
         "independent_review_passed"
         or eof.get("current_v24_artifact") != str(REPAIR_REVIEW_ARTIFACT)
         or eof.get("current_v24_artifact_root_sha256") != REPAIR_REVIEW_ROOT_SHA256
@@ -396,7 +399,8 @@ def review_preflight(
     if (
         repair_review.get("status") != "passed"
         or repair_review.get("schema")
-        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+        != "camp_dp_v24_training_cut_relative_gap_authorization_contract_"
+        "repair_static_preflight_"
         "independent_review_v1"
         or repair_review.get("decision", {}).get("training_execution_authorized")
         is not True

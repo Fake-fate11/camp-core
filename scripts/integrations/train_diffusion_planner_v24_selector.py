@@ -1323,15 +1323,17 @@ def train_learning_curve(
 
 
 def _authorization_from_eof(
-    *, repo: Path, artifact: Path, expected_root: str
+    *, repo: Path, artifact: Path, expected_root: str, expected_camp_head: str
 ) -> dict[str, Any]:
     text = (Path(repo) / AUDIT_RELATIVE).read_text(encoding="utf-8")
     lines = text.rstrip().splitlines()[-15:]
     expected = {
         "current_v24_status": (
-            "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+            "v24_convex_training_cut_relative_gap_authorization_contract_"
+            "repair_static_preflight_"
             "independent_review_passed"
         ),
+        "current_v24_artifact_source_head": expected_camp_head,
         "current_v24_artifact": str(artifact),
         "current_v24_artifact_root_sha256": expected_root,
         "next_work_target": (
@@ -1345,9 +1347,15 @@ def _authorization_from_eof(
     review = _read_json(Path(artifact) / "review.json")
     if (
         review.get("schema")
-        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+        != "camp_dp_v24_training_cut_relative_gap_authorization_contract_"
+        "repair_static_preflight_"
         "independent_review_v1"
         or review.get("status") != "passed"
+        or review.get("camp_head") != expected_camp_head
+        or review.get("executor_source_sha256")
+        != hashlib.sha256(
+            (Path(repo) / EXECUTOR_PROVENANCE_FILES[0]).read_bytes()
+        ).hexdigest()
         or review.get("decision", {}).get("training_execution_authorized") is not True
         or review.get("decision", {}).get("training_retry_authorized") is not True
         or review.get("outcome_accessed") is not False
@@ -1474,6 +1482,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         repo=args.repo,
         artifact=args.authorization_root,
         expected_root=args.authorization_root_sha256,
+        expected_camp_head=args.camp_head,
     )
     import fcntl
 

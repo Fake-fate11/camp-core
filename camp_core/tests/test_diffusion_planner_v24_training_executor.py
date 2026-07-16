@@ -647,19 +647,27 @@ def test_training_execution_authorization_binds_cut_relative_review(
     audit.parent.mkdir()
     artifact = Path("/root/autodl-tmp/cut-relative-review")
     root = "a" * 64
+    camp_head = "b" * 40
+    executor_path = tmp_path / module.EXECUTOR_PROVENANCE_FILES[0]
+    executor_path.parent.mkdir(parents=True)
+    executor_path.write_bytes(b"current executor")
     pointer = [
-        "current_v24_status=v24_convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed",
+        "current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed",
+        f"current_v24_artifact_source_head={camp_head}",
         f"current_v24_artifact={artifact}",
         f"current_v24_artifact_root_sha256={root}",
         "next_work_target=v24_convex_selector_training_cut_relative_gap_retry_execution_only",
     ]
-    audit.write_text("\n".join(["header"] * 11 + pointer) + "\n", encoding="utf-8")
+    audit.write_text("\n".join(["header"] * 10 + pointer) + "\n", encoding="utf-8")
     review = {
         "schema": (
-            "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+            "camp_dp_v24_training_cut_relative_gap_authorization_contract_"
+            "repair_static_preflight_"
             "independent_review_v1"
         ),
         "status": "passed",
+        "camp_head": camp_head,
+        "executor_source_sha256": hashlib.sha256(b"current executor").hexdigest(),
         "decision": {
             "training_execution_authorized": True,
             "training_retry_authorized": True,
@@ -673,11 +681,24 @@ def test_training_execution_authorization_binds_cut_relative_review(
     monkeypatch.setattr(module, "_read_json", lambda _path: review)
 
     assert module._authorization_from_eof(
-        repo=tmp_path, artifact=artifact, expected_root=root
+        repo=tmp_path,
+        artifact=artifact,
+        expected_root=root,
+        expected_camp_head=camp_head,
     ) == review
+    review["executor_source_sha256"] = "c" * 64
+    with pytest.raises(ValueError, match="does not authorize"):
+        module._authorization_from_eof(
+            repo=tmp_path,
+            artifact=artifact,
+            expected_root=root,
+            expected_camp_head=camp_head,
+        )
+    review["executor_source_sha256"] = hashlib.sha256(b"current executor").hexdigest()
     audit.write_text(
         audit.read_text(encoding="utf-8").replace(
-            "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+            "v24_convex_training_cut_relative_gap_authorization_contract_"
+            "repair_static_preflight_"
             "independent_review_passed",
             "v24_convex_training_projection_boundary_repair_static_preflight_"
             "independent_review_passed",
@@ -686,7 +707,10 @@ def test_training_execution_authorization_binds_cut_relative_review(
     )
     with pytest.raises(ValueError, match="does not authorize"):
         module._authorization_from_eof(
-            repo=tmp_path, artifact=artifact, expected_root=root
+            repo=tmp_path,
+            artifact=artifact,
+            expected_root=root,
+            expected_camp_head=camp_head,
         )
 
 
