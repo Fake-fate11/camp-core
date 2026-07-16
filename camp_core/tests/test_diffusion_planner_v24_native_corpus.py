@@ -1381,3 +1381,587 @@ def test_pilot_executor_rewrites_progress_with_terminal_aggregate(
         "snapshot_count",
     ):
         assert progress[name] == summary[name]
+
+
+def _reviewable_remaining(tmp_path: Path) -> dict:
+    from scripts.integrations.execute_diffusion_planner_v24_native_corpus import (
+        FIXED_DP_HEAD,
+        _row_order_sha256,
+        execute_remaining_manifest,
+        remaining_rows,
+    )
+
+    manifest = _pilot_manifest(tmp_path)
+    template = json.loads(BASE_CONFIG.read_text(encoding="utf-8"))
+
+    def run_arm(*, route, arm, config, output_dir, max_steps, decision_sink):
+        del route, arm, output_dir, max_steps
+        if config["routes"][0]["name"] == _sha("route:0"):
+            raise RuntimeError("retained source-invalid route")
+        decision_sink(_snapshot(config["seeds"]["scenario"]))
+        return {"status": "ok", "steps": []}
+
+    source_head = "a" * 40
+    reviewer_head = "b" * 40
+    roots = {}
+    corpus_root = tmp_path / "review-corpus"
+    corpus_root.mkdir()
+    (corpus_root / "corpus_manifest.json").write_text(json.dumps(manifest))
+    roots["corpus_preflight"] = (corpus_root, _seal_test_artifact(corpus_root))
+
+    def passed_checks(name: str) -> dict:
+        return {
+            "check_count": 1,
+            "failed_count": 0,
+            "failed_checks": [],
+            "checks": [{"name": name, "passed": True}],
+        }
+
+    corpus_review_root = tmp_path / "review-corpus_review"
+    corpus_review_root.mkdir()
+    (corpus_review_root / "review.json").write_text(
+        json.dumps(
+            {
+                "schema": "camp_dp_v24_native_corpus_static_preflight_review_v1",
+                "status": "passed",
+                **passed_checks("corpus_review"),
+                "source_preflight_root_sha256": roots["corpus_preflight"][1],
+                "route_count": 2,
+                "route_seed_run_count": 10,
+                "fixed_dp_head": FIXED_DP_HEAD,
+                "preflight_reexecuted": False,
+                "model_loaded": False,
+                "simulator_executed": False,
+                "candidate_generation_started": False,
+                "outcome_fields_consumed": [],
+                "calibration_accessed": False,
+                "holdout_opened": False,
+                "training_executed": False,
+                "claim_authorized": False,
+                "next_work_target": (
+                    "v24_native_corpus_capability_pilot_all_train_routes_"
+                    "seed_24001_only"
+                ),
+            }
+        )
+    )
+    (corpus_review_root / "HEADS").write_text(
+        f"CAMP_HEAD={reviewer_head}\n"
+        f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
+        f"SOURCE_PREFLIGHT_ROOT_SHA256={roots['corpus_preflight'][1]}\n",
+        encoding="ascii",
+    )
+    roots["corpus_review"] = (
+        corpus_review_root,
+        _seal_test_artifact(corpus_review_root),
+    )
+
+    pilot_root = tmp_path / "review-pilot"
+    pilot_root.mkdir()
+    (pilot_root / "execution.json").write_text(
+        json.dumps(
+            {
+                "schema": "camp_dp_v24_native_corpus_pilot_summary_v1",
+                "status": "complete_with_retained_failures",
+                "seed": 24001,
+                "planned_route_seed_runs": 2,
+                "retained_route_seed_runs": 2,
+                "complete_route_seed_runs": 1,
+                "failed_route_seed_runs": 1,
+                "pending_route_seed_runs": 0,
+                "route_coverage": 1.0,
+                "all_routes_retained_in_denominator": True,
+                "source_preflight_root_sha256": roots["corpus_preflight"][1],
+                "source_review_root_sha256": roots["corpus_review"][1],
+                "fixed_dp_head": FIXED_DP_HEAD,
+                "tuning_executed": False,
+                "calibration_accessed": False,
+                "holdout_opened": False,
+                "outcome_fields_consumed": [],
+                "claim_authorized": False,
+                "next_work_target": (
+                    "v24_native_corpus_capability_pilot_independent_review_only"
+                ),
+            }
+        )
+    )
+    (pilot_root / "HEADS").write_text(
+        f"CAMP_HEAD={source_head}\n"
+        f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
+        "SOURCE_CORPUS_PREFLIGHT_ROOT_SHA256="
+        f"{roots['corpus_preflight'][1]}\n"
+        "SOURCE_CORPUS_REVIEW_ROOT_SHA256="
+        f"{roots['corpus_review'][1]}\n",
+        encoding="ascii",
+    )
+    roots["pilot"] = (pilot_root, _seal_test_artifact(pilot_root))
+
+    pilot_review_root = tmp_path / "review-pilot_review"
+    pilot_review_root.mkdir()
+    pilot_review = {
+        **_remaining_review(manifest),
+        **passed_checks("pilot_review"),
+        "status": "passed",
+        "source_pilot_root_sha256": roots["pilot"][1],
+        "source_corpus_preflight_root_sha256": roots["corpus_preflight"][1],
+        "warning_count": 0,
+        "warnings": [],
+        "recomputed": {
+            "planned_route_seed_runs": 2,
+            "retained_route_seed_runs": 2,
+            "complete_route_seed_runs": 1,
+            "failed_route_seed_runs": 1,
+            "pending_route_seed_runs": 0,
+            "route_coverage": 1.0,
+            "failure_reason_counts": {
+                "ValueError: route slot 0 requires a positive speed limit": 1
+            },
+        },
+    }
+    (pilot_review_root / "review.json").write_text(json.dumps(pilot_review))
+    (pilot_review_root / "HEADS").write_text(
+        f"CAMP_HEAD={reviewer_head}\n"
+        f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
+        f"SOURCE_PILOT_ROOT_SHA256={roots['pilot'][1]}\n"
+        "SOURCE_CORPUS_PREFLIGHT_ROOT_SHA256="
+        f"{roots['corpus_preflight'][1]}\n",
+        encoding="ascii",
+    )
+    roots["pilot_review"] = (
+        pilot_review_root,
+        _seal_test_artifact(pilot_review_root),
+    )
+
+    rows = remaining_rows(manifest, pilot_review, expected_route_count=2)
+    row_order_sha256 = _row_order_sha256(rows)
+    remaining_preflight_root = tmp_path / "review-remaining_preflight"
+    remaining_preflight_root.mkdir()
+    (remaining_preflight_root / "preflight.json").write_text(
+        json.dumps(
+            {
+                "schema": (
+                    "camp_dp_v24_native_corpus_remaining_execution_preflight_v1"
+                ),
+                "status": "passed",
+                "check_count": 5,
+                "failed_count": 0,
+                "checks": [
+                    {"name": "remaining_task_lock_available", "passed": True},
+                    {"name": "remaining_route_seed_runs_8", "passed": True},
+                    {"name": "remaining_configs_8", "passed": True},
+                    {
+                        "name": "all_unique_route_assets_2_unchanged",
+                        "passed": True,
+                    },
+                    {"name": "disk_floor", "passed": True},
+                ],
+                "route_count": 2,
+                "seeds": [24002, 24003, 24004, 24005],
+                "route_seed_run_count": 8,
+                "row_order_sha256": row_order_sha256,
+                "theoretical_max_snapshots": 512,
+                "pilot_route_denominator_retained": 2,
+                "pilot_failures_retained": True,
+                "model_loaded": False,
+                "simulator_executed": False,
+                "candidate_generation_started": False,
+                "outcome_fields_consumed": [],
+                "training_executed": False,
+                "tuning_executed": False,
+                "calibration_accessed": False,
+                "holdout_opened": False,
+                "claim_authorized": False,
+                "next_work_target": (
+                    "v24_native_corpus_remaining_train_seeds_static_preflight_"
+                    "independent_review_only"
+                ),
+            }
+        )
+    )
+    (remaining_preflight_root / "HEADS").write_text(
+        f"CAMP_HEAD={source_head}\n"
+        f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
+        "SOURCE_CORPUS_PREFLIGHT_ROOT_SHA256="
+        f"{roots['corpus_preflight'][1]}\n"
+        "SOURCE_CORPUS_REVIEW_ROOT_SHA256="
+        f"{roots['corpus_review'][1]}\n"
+        f"SOURCE_PILOT_ROOT_SHA256={roots['pilot'][1]}\n"
+        "SOURCE_PILOT_INDEPENDENT_REVIEW_ROOT_SHA256="
+        f"{roots['pilot_review'][1]}\n",
+        encoding="ascii",
+    )
+    roots["remaining_preflight"] = (
+        remaining_preflight_root,
+        _seal_test_artifact(remaining_preflight_root),
+    )
+
+    remaining_review_root = tmp_path / "review-remaining_preflight_review"
+    remaining_review_root.mkdir()
+    remaining_review = {
+        "schema": (
+            "camp_dp_v24_native_corpus_remaining_preflight_independent_review_v1"
+        ),
+        "status": "passed",
+        **passed_checks("remaining_preflight_review"),
+        "source_preflight_root_sha256": roots["remaining_preflight"][1],
+        "source_corpus_root_sha256": roots["corpus_preflight"][1],
+        "source_corpus_review_root_sha256": roots["corpus_review"][1],
+        "source_pilot_root_sha256": roots["pilot"][1],
+        "source_pilot_review_root_sha256": roots["pilot_review"][1],
+        "source_camp_head": source_head,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "route_count": 2,
+        "seeds": [24002, 24003, 24004, 24005],
+        "route_seed_run_count": 8,
+        "row_order_sha256": row_order_sha256,
+        "source_invalid_route_count": 1,
+        "validated_run_config_count": 8,
+        "preflight_reexecuted": False,
+        "execution_preflight_builder_imported_or_called": False,
+        "model_loaded": False,
+        "simulator_executed": False,
+        "candidate_generation_started": False,
+        "outcome_fields_consumed": [],
+        "training_executed": False,
+        "tuning_executed": False,
+        "calibration_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+        "decision": {
+            "remaining_execution_authorized": True,
+            "action": "launch_one_unique_remaining_train_seed_execution",
+            "route_count": 2,
+            "seeds": [24002, 24003, 24004, 24005],
+            "preserve_all_failures_and_denominator": True,
+            "route_removal_replacement_reordering_authorized": False,
+            "tuning_authorized": False,
+            "outcome_access_authorized": False,
+            "calibration_access_authorized": False,
+            "holdout_access_authorized": False,
+            "claim_authorized": False,
+        },
+        "next_work_target": (
+            "v24_native_corpus_remaining_train_seeds_unique_execution_only"
+        ),
+    }
+    (remaining_review_root / "review.json").write_text(json.dumps(remaining_review))
+    (remaining_review_root / "HEADS").write_text(
+        f"CAMP_HEAD={reviewer_head}\n"
+        f"FIXED_DP_HEAD={FIXED_DP_HEAD}\n"
+        f"SOURCE_CAMP_HEAD={source_head}\n"
+        "SOURCE_PREFLIGHT_ROOT_SHA256="
+        f"{roots['remaining_preflight'][1]}\n"
+        f"SOURCE_CORPUS_ROOT_SHA256={roots['corpus_preflight'][1]}\n"
+        "SOURCE_CORPUS_REVIEW_ROOT_SHA256="
+        f"{roots['corpus_review'][1]}\n"
+        f"SOURCE_PILOT_ROOT_SHA256={roots['pilot'][1]}\n"
+        f"SOURCE_PILOT_REVIEW_ROOT_SHA256={roots['pilot_review'][1]}\n",
+        encoding="ascii",
+    )
+    roots["remaining_preflight_review"] = (
+        remaining_review_root,
+        _seal_test_artifact(remaining_review_root),
+    )
+
+    remaining_root = tmp_path / "review-remaining"
+    summary = execute_remaining_manifest(
+        manifest,
+        _remaining_review(manifest),
+        template,
+        output_dir=remaining_root,
+        run_arm=run_arm,
+        expected_route_count=2,
+        free_bytes=lambda: 20 * 1024**3,
+    )
+    heads = {
+        "CAMP_HEAD": source_head,
+        "FIXED_DP_HEAD": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "SOURCE_CORPUS_PREFLIGHT_ROOT_SHA256": roots["corpus_preflight"][1],
+        "SOURCE_CORPUS_REVIEW_ROOT_SHA256": roots["corpus_review"][1],
+        "SOURCE_PILOT_ROOT_SHA256": roots["pilot"][1],
+        "SOURCE_PILOT_INDEPENDENT_REVIEW_ROOT_SHA256": roots["pilot_review"][1],
+        "SOURCE_REMAINING_PREFLIGHT_ROOT_SHA256": roots["remaining_preflight"][1],
+        "SOURCE_REMAINING_PREFLIGHT_INDEPENDENT_REVIEW_ROOT_SHA256": roots[
+            "remaining_preflight_review"
+        ][1],
+    }
+    (remaining_root / "HEADS").write_text(
+        "".join(f"{name}={value}\n" for name, value in heads.items()),
+        encoding="ascii",
+    )
+    (remaining_root / "COMMAND").write_text(
+        "v24 native corpus execute-remaining\n", encoding="utf-8"
+    )
+    (remaining_root / "STATE.json").write_text(
+        json.dumps(
+            {
+                "status": summary["status"],
+                "pid": 1,
+                "seeds": [24002, 24003, 24004, 24005],
+            }
+        )
+    )
+    execution = {
+        **summary,
+        "source_preflight_root_sha256": roots["corpus_preflight"][1],
+        "source_review_root_sha256": roots["corpus_review"][1],
+        "source_pilot_root_sha256": roots["pilot"][1],
+        "source_pilot_review_root_sha256": roots["pilot_review"][1],
+        "source_remaining_preflight_root_sha256": roots["remaining_preflight"][1],
+        "source_remaining_preflight_review_root_sha256": roots[
+            "remaining_preflight_review"
+        ][1],
+        "fixed_dp_head": heads["FIXED_DP_HEAD"],
+        "next_work_target": "v24_native_corpus_remaining_train_seeds_independent_review_only",
+    }
+    (remaining_root / "execution.json").write_text(json.dumps(execution))
+    (remaining_root / "run.exit").write_text("0\n", encoding="ascii")
+    remaining_sha = _seal_test_artifact(remaining_root)
+    return {
+        "remaining_root": remaining_root,
+        "expected_root_sha256": remaining_sha,
+        **{f"{name}_root": root for name, (root, _digest) in roots.items()},
+        **{
+            f"expected_{name}_root_sha256": digest
+            for name, (_root, digest) in roots.items()
+        },
+        "expected_source_camp_head": source_head,
+        "expected_route_count": 2,
+    }
+
+
+def test_remaining_independent_review_recomputes_full_denominator(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    review = review_remaining(**_reviewable_remaining(tmp_path))
+
+    assert review["status"] == "passed"
+    assert review["failed_count"] == 0
+    assert review["recomputed"]["retained_route_seed_runs"] == 8
+    assert review["recomputed"]["complete_route_seed_runs"] == 4
+    assert review["recomputed"]["failed_route_seed_runs"] == 4
+    assert review["decision"]["merged_train_corpus_assembly_authorized"] is True
+
+
+def test_remaining_independent_review_rejects_resealed_snapshot_drift(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    kwargs = _reviewable_remaining(tmp_path)
+    remaining_root = kwargs["remaining_root"]
+    snapshot = next((remaining_root / "snapshots").glob("*.json"))
+    payload = json.loads(snapshot.read_text())
+    payload["sidecar"]["candidate_tensor_sha256_after"] = _sha("drift")
+    snapshot.write_text(json.dumps(payload))
+    kwargs["expected_root_sha256"] = _seal_test_artifact(remaining_root)
+
+    review = review_remaining(**kwargs)
+
+    assert review["status"] == "failed"
+    assert any("candidate_tensor_identity" in name for name in review["failed_checks"])
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("candidate0_sha256", _sha("nested-candidate0-drift")),
+        ("default_output_sha256", _sha("nested-default-drift")),
+        ("max_abs_difference", False),
+    ),
+)
+def test_remaining_independent_review_rejects_resealed_nested_candidate0_drift(
+    tmp_path: Path, field: str, value: object
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    kwargs = _reviewable_remaining(tmp_path)
+    remaining_root = kwargs["remaining_root"]
+    snapshot = next((remaining_root / "snapshots").glob("*.json"))
+    old_digest = snapshot.stem
+    payload = json.loads(snapshot.read_text())
+    payload["sidecar"]["default_candidate0_identity"][field] = value
+    encoded = json.dumps(payload).encode()
+    new_digest = hashlib.sha256(encoded).hexdigest()
+    snapshot.write_bytes(encoded)
+    snapshot = snapshot.rename(snapshot.with_name(f"{new_digest}.json"))
+    receipt = next((remaining_root / "receipts").rglob("seed_*.json"))
+    receipt_payload = json.loads(receipt.read_text())
+    if old_digest not in receipt_payload["snapshot_sha256"]:
+        receipt = next(
+            path
+            for path in (remaining_root / "receipts").rglob("seed_*.json")
+            if old_digest in json.loads(path.read_text())["snapshot_sha256"]
+        )
+        receipt_payload = json.loads(receipt.read_text())
+    receipt_payload["snapshot_sha256"] = [
+        new_digest if digest == old_digest else digest
+        for digest in receipt_payload["snapshot_sha256"]
+    ]
+    receipt.write_text(json.dumps(receipt_payload))
+    kwargs["expected_root_sha256"] = _seal_test_artifact(remaining_root)
+
+    review = review_remaining(**kwargs)
+
+    assert review["status"] == "failed"
+    assert any(
+        "candidate0_default_identity" in name for name in review["failed_checks"]
+    )
+
+
+def test_remaining_independent_review_rejects_resealed_duplicate_heads(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    kwargs = _reviewable_remaining(tmp_path)
+    remaining_root = kwargs["remaining_root"]
+    heads = remaining_root / "HEADS"
+    heads.write_text(
+        heads.read_text(encoding="ascii")
+        + f"CAMP_HEAD={kwargs['expected_source_camp_head']}\n",
+        encoding="ascii",
+    )
+    kwargs["expected_root_sha256"] = _seal_test_artifact(remaining_root)
+
+    review = review_remaining(**kwargs)
+
+    assert review["status"] == "failed"
+    assert any("review_input_valid" in name for name in review["failed_checks"])
+
+
+def test_remaining_independent_review_rejects_empty_sealed_upstream(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    kwargs = _reviewable_remaining(tmp_path)
+    empty_review_root = tmp_path / "empty-corpus-review"
+    empty_review_root.mkdir()
+    empty_review_sha256 = _seal_test_artifact(empty_review_root)
+    kwargs["corpus_review_root"] = empty_review_root
+    kwargs["expected_corpus_review_root_sha256"] = empty_review_sha256
+
+    remaining_root = kwargs["remaining_root"]
+    execution = json.loads((remaining_root / "execution.json").read_text())
+    execution["source_review_root_sha256"] = empty_review_sha256
+    (remaining_root / "execution.json").write_text(json.dumps(execution))
+    heads = remaining_root / "HEADS"
+    heads.write_text(
+        heads.read_text(encoding="ascii").replace(
+            next(
+                line
+                for line in heads.read_text(encoding="ascii").splitlines()
+                if line.startswith("SOURCE_CORPUS_REVIEW_ROOT_SHA256=")
+            ),
+            f"SOURCE_CORPUS_REVIEW_ROOT_SHA256={empty_review_sha256}",
+        ),
+        encoding="ascii",
+    )
+    kwargs["expected_root_sha256"] = _seal_test_artifact(remaining_root)
+
+    review = review_remaining(**kwargs)
+
+    assert review["status"] == "failed"
+    assert any("review_input_valid" in name for name in review["failed_checks"])
+
+
+def test_remaining_independent_review_rejects_duplicate_upstream_heads(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    kwargs = _reviewable_remaining(tmp_path)
+    corpus_review_root = kwargs["corpus_review_root"]
+    heads = corpus_review_root / "HEADS"
+    heads.write_text(
+        heads.read_text(encoding="ascii")
+        + "SOURCE_PREFLIGHT_ROOT_SHA256="
+        + f"{kwargs['expected_corpus_preflight_root_sha256']}\n",
+        encoding="ascii",
+    )
+    corpus_review_sha256 = _seal_test_artifact(corpus_review_root)
+    kwargs["expected_corpus_review_root_sha256"] = corpus_review_sha256
+
+    remaining_root = kwargs["remaining_root"]
+    execution = json.loads((remaining_root / "execution.json").read_text())
+    execution["source_review_root_sha256"] = corpus_review_sha256
+    (remaining_root / "execution.json").write_text(json.dumps(execution))
+    remaining_heads = remaining_root / "HEADS"
+    remaining_heads.write_text(
+        remaining_heads.read_text(encoding="ascii").replace(
+            next(
+                line
+                for line in remaining_heads.read_text(encoding="ascii").splitlines()
+                if line.startswith("SOURCE_CORPUS_REVIEW_ROOT_SHA256=")
+            ),
+            f"SOURCE_CORPUS_REVIEW_ROOT_SHA256={corpus_review_sha256}",
+        ),
+        encoding="ascii",
+    )
+    kwargs["expected_root_sha256"] = _seal_test_artifact(remaining_root)
+
+    review = review_remaining(**kwargs)
+
+    assert review["status"] == "failed"
+    assert any(
+        "corpus_review_heads_source_chain" in name for name in review["failed_checks"]
+    )
+
+
+def test_remaining_independent_review_rejects_empty_review_checks(
+    tmp_path: Path,
+) -> None:
+    from scripts.integrations.review_diffusion_planner_v24_native_corpus_remaining import (
+        review_remaining,
+    )
+
+    kwargs = _reviewable_remaining(tmp_path)
+    review_root = kwargs["remaining_preflight_review_root"]
+    review_path = review_root / "review.json"
+    review_payload = json.loads(review_path.read_text())
+    review_payload["checks"] = []
+    review_payload["check_count"] = 0
+    review_path.write_text(json.dumps(review_payload))
+    review_sha256 = _seal_test_artifact(review_root)
+    kwargs["expected_remaining_preflight_review_root_sha256"] = review_sha256
+
+    remaining_root = kwargs["remaining_root"]
+    execution = json.loads((remaining_root / "execution.json").read_text())
+    execution["source_remaining_preflight_review_root_sha256"] = review_sha256
+    (remaining_root / "execution.json").write_text(json.dumps(execution))
+    heads = remaining_root / "HEADS"
+    heads.write_text(
+        heads.read_text(encoding="ascii").replace(
+            next(
+                line
+                for line in heads.read_text(encoding="ascii").splitlines()
+                if line.startswith(
+                    "SOURCE_REMAINING_PREFLIGHT_INDEPENDENT_REVIEW_ROOT_SHA256="
+                )
+            ),
+            "SOURCE_REMAINING_PREFLIGHT_INDEPENDENT_REVIEW_ROOT_SHA256="
+            f"{review_sha256}",
+        ),
+        encoding="ascii",
+    )
+    kwargs["expected_root_sha256"] = _seal_test_artifact(remaining_root)
+
+    review = review_remaining(**kwargs)
+
+    assert review["status"] == "failed"
+    assert "remaining_preflight_review_checks_integrity" in review["failed_checks"]

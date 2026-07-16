@@ -100,7 +100,7 @@ def _verify_seal(
     actual = {
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
-        if path.is_file() and path.name not in {"SHA256SUMS", "ROOT_SHA256SUMS"}
+        if path.is_file() and path not in {manifest, root_receipt}
     }
     _check(checks, f"{prefix}_manifest_file_set_exact", set(listed) == actual)
     return checks
