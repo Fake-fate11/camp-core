@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import os
 import shutil
 import sys
 import time
@@ -40,6 +41,48 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # n
 
 
 MODES = frozenset({"capability", "pilot", "main"})
+HOLDOUT_STATE_SCHEMA = "camp_dp_v24_holdout_once_state_v1"
+
+
+def claim_holdout_once_state(
+    config: Mapping[str, Any],
+    *,
+    camp_head: str,
+    authorization_root_sha256: str,
+    preflight_root_sha256: str,
+    output_dir: Path,
+) -> dict[str, Any]:
+    contract = config.get("holdout_once_contract")
+    if not isinstance(contract, Mapping) or (
+        contract.get("schema") != HOLDOUT_STATE_SCHEMA
+        or contract.get("exclusive_create_before_runner_build") is not True
+        or contract.get("sealed_static_authorization_required") is not True
+        or contract.get("rerun_authorized") is not False
+    ):
+        raise ValueError("v24 holdout-once contract mismatch")
+    state_path = Path(str(contract.get("state_path")))
+    if output_dir.exists():
+        raise FileExistsError(output_dir)
+    payload = {
+        "schema": HOLDOUT_STATE_SCHEMA,
+        "holdout_opened": True,
+        "holdout_open_count": 1,
+        "rerun_authorized": False,
+        "camp_head": camp_head,
+        "authorization_root_sha256": authorization_root_sha256,
+        "preflight_root_sha256": preflight_root_sha256,
+        "output_dir": str(output_dir.resolve()),
+    }
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with state_path.open("x", encoding="utf-8") as handle:
+            json.dump(payload, handle, sort_keys=True, separators=(",", ":"))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+    except FileExistsError as exc:
+        raise ValueError("v24 holdout has already been opened") from exc
+    return payload
 
 
 def load_mode_from_preflight(
@@ -391,6 +434,8 @@ def execute_from_preflight(
     camp_head: str,
     execution_authorized: bool,
     holdout_once_authorized: bool,
+    holdout_authorization_root: Path | None = None,
+    expected_holdout_authorization_root_sha256: str | None = None,
 ) -> dict[str, Any]:
     config = json.loads(Path(config_path).read_text(encoding="utf-8"))
     run_configs = load_mode_from_preflight(
@@ -401,6 +446,42 @@ def execute_from_preflight(
         execution_authorized=execution_authorized,
         holdout_once_authorized=holdout_once_authorized,
     )
+    if mode == "main":
+        if (
+            holdout_authorization_root is None
+            or expected_holdout_authorization_root_sha256 is None
+        ):
+            raise ValueError("v24 main requires sealed static authorization")
+        _verify_artifact_root(
+            holdout_authorization_root,
+            expected_holdout_authorization_root_sha256,
+            "holdout_main_once_authorization",
+        )
+        authorization = json.loads(
+            (holdout_authorization_root / "authorization_result.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        if (
+            authorization.get("status") != "passed"
+            or authorization.get("main_pair_count") != 120
+            or authorization.get("holdout_opened") is not False
+            or authorization.get("holdout_open_count") != 0
+            or authorization.get("main_execution_authorized") is not False
+        ):
+            raise ValueError("v24 holdout authorization receipt mismatch")
+        claim_holdout_once_state(
+            config,
+            camp_head=camp_head,
+            authorization_root_sha256=expected_holdout_authorization_root_sha256,
+            preflight_root_sha256=expected_preflight_root_sha256,
+            output_dir=output_dir,
+        )
+    elif (
+        holdout_authorization_root is not None
+        or expected_holdout_authorization_root_sha256 is not None
+    ):
+        raise ValueError("holdout authorization is invalid outside main")
     runner = build_native_arm_runner(run_configs[0], device=device)
     return execute_mode(
         config,
@@ -435,6 +516,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--camp-head", required=True)
     parser.add_argument("--execute-authorized", action="store_true")
     parser.add_argument("--holdout-once-authorized", action="store_true")
+    parser.add_argument("--holdout-authorization-root", type=Path)
+    parser.add_argument("--expected-holdout-authorization-root-sha256")
     return parser.parse_args(argv)
 
 
@@ -450,6 +533,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         camp_head=args.camp_head,
         execution_authorized=args.execute_authorized,
         holdout_once_authorized=args.holdout_once_authorized,
+        holdout_authorization_root=args.holdout_authorization_root,
+        expected_holdout_authorization_root_sha256=args.expected_holdout_authorization_root_sha256,
     )
     print(json.dumps(summary, sort_keys=True))
     return 0

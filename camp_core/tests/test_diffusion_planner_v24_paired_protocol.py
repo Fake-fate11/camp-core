@@ -54,6 +54,12 @@ def _pilot_reviewer():
     return review_diffusion_planner_v24_calibration_pilot
 
 
+def _holdout_authorizer():
+    from scripts.integrations import prepare_diffusion_planner_v24_holdout_main_once
+
+    return prepare_diffusion_planner_v24_holdout_main_once
+
+
 def _sha(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -151,6 +157,13 @@ def test_v24_config_and_design_freeze_correct_policy_pairing_contract() -> None:
     _module().validate_evaluation_config(config, require_all_execution_closed=False)
     assert config["pilot_execution_authorized"] is True
     assert config["main_execution_authorized"] is False
+    assert config["holdout_once_contract"] == {
+        "schema": "camp_dp_v24_holdout_once_state_v1",
+        "state_path": "/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json",
+        "exclusive_create_before_runner_build": True,
+        "sealed_static_authorization_required": True,
+        "rerun_authorized": False,
+    }
     candidate = config["candidate_contract"]
     assert candidate["per_arm_candidate_tensor_immutability_required_every_tick"]
     assert candidate["per_arm_candidate0_default_byte_identity_required_every_tick"]
@@ -246,6 +259,42 @@ def test_disabled_v24_run_configs_validate_but_cannot_authorize_holdout() -> Non
         _runner().validate_v24_evaluation_run_config(enabled)
     enabled["protocol"]["holdout_access_authorized"] = True
     _runner().validate_v24_evaluation_run_config(enabled)
+
+
+def test_holdout_main_once_authorizer_freezes_120_balanced_pairs() -> None:
+    split, census = _sources()
+    plan = _module().build_evaluation_plan(_config(), split, census)
+    template = json.loads(
+        (ROOT / "configs" / "diffusion_planner_v22_native_capability.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    runtime = {
+        "runtime_weights_path": "/runtime/weights.npy",
+        "runtime_weights_sha256": _sha("runtime-weights"),
+        "runtime_scales_path": "/runtime/scales.json",
+        "runtime_scales_sha256": _sha("runtime-scales"),
+        "root_sha256": _sha("runtime-root"),
+        "source_model_sha256": _sha("model"),
+    }
+    run_configs = [
+        _module().build_evaluation_run_config(
+            template,
+            runtime,
+            planned,
+            {"path": "/runtime/route.pkl", "sha256": _sha(planned["pair_key"])},
+        )
+        for planned in plan["schedules"]["main"]
+    ]
+    receipt = _holdout_authorizer()._schedule_receipt(run_configs)
+    assert receipt["pair_count"] == 120
+    assert receipt["unique_pair_count"] == 120
+    assert receipt["route_count"] == 24
+    assert receipt["route_seed_sets_exact"]
+    assert receipt["arm_order_counts"] == {"dp_camp": 60, "camp_dp": 60}
+    assert receipt["map_family_count"] == 1
+    assert receipt["corridor_group_count"] == 3
+    assert receipt["violations"] == []
 
 
 def _candidate_tick(arm: str, tick_index: int, suffix: str) -> dict:
@@ -353,6 +402,32 @@ def test_pilot_reviewer_checks_each_arm_without_post_divergence_comparison() -> 
     assert "camp.tick_0.candidate_immutability" in reviewer._tick_violations(
         camp, "camp", 0
     )
+
+
+def test_holdout_once_state_is_exclusive_and_precedes_runtime(tmp_path) -> None:
+    evaluator = _evaluator()
+    config = _config()
+    config["holdout_once_contract"]["state_path"] = str(tmp_path / "opened.json")
+    output = tmp_path / "main-output"
+    receipt = evaluator.claim_holdout_once_state(
+        config,
+        camp_head=_sha("camp-head"),
+        authorization_root_sha256=_sha("authorization"),
+        preflight_root_sha256=_sha("preflight"),
+        output_dir=output,
+    )
+    assert receipt["holdout_opened"] is True
+    assert receipt["holdout_open_count"] == 1
+    assert receipt["rerun_authorized"] is False
+    assert not output.exists()
+    with pytest.raises(ValueError, match="already been opened"):
+        evaluator.claim_holdout_once_state(
+            config,
+            camp_head=_sha("camp-head"),
+            authorization_root_sha256=_sha("authorization"),
+            preflight_root_sha256=_sha("preflight"),
+            output_dir=output,
+        )
 
 
 def _speed_protocol() -> dict:
@@ -508,9 +583,27 @@ def test_static_preflight_and_reviewer_cannot_execute_runtime() -> None:
         / "integrations"
         / "review_diffusion_planner_v24_calibration_pilot.py"
     ).read_text(encoding="utf-8")
+    holdout_authorizer = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "prepare_diffusion_planner_v24_holdout_main_once.py"
+    ).read_text(encoding="utf-8")
+    holdout_authorization_reviewer = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "review_diffusion_planner_v24_holdout_main_once.py"
+    ).read_text(encoding="utf-8")
     assert "expected_execution_source_head" in pilot_reviewer
     assert 'violations.append("summary.camp_head")' in pilot_reviewer
-    for source in (producer, reviewer, pilot_reviewer):
+    for source in (
+        producer,
+        reviewer,
+        pilot_reviewer,
+        holdout_authorizer,
+        holdout_authorization_reviewer,
+    ):
         calls = {
             node.func.id
             for node in ast.walk(ast.parse(source))

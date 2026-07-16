@@ -164,6 +164,7 @@ def validate_evaluation_config(
     coverage = _mapping(config, "coverage_execution_contract")
     arm_order = _mapping(config, "arm_order_policy")
     stability = _mapping(config, "learning_curve_stability")
+    holdout_once = _mapping(config, "holdout_once_contract")
     if (
         arm_order.get("schema") != "camp_dp_v24_hash_rank_balanced_ab_ba_v1"
         or arm_order.get("domain_separator") != "camp-v24-paired-arm-order-v1"
@@ -229,6 +230,12 @@ def validate_evaluation_config(
         or stability.get("full_effective_support_indices") != [7, 8, 13]
         or stability.get("risk_disclosure_required") is not True
         or stability.get("calibration_or_holdout_repair_authorized") is not False
+        or holdout_once.get("schema") != "camp_dp_v24_holdout_once_state_v1"
+        or holdout_once.get("state_path")
+        != "/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json"
+        or holdout_once.get("exclusive_create_before_runner_build") is not True
+        or holdout_once.get("sealed_static_authorization_required") is not True
+        or holdout_once.get("rerun_authorized") is not False
         or not isinstance(config.get("pilot_execution_authorized"), bool)
         or not isinstance(config.get("main_execution_authorized"), bool)
         or (

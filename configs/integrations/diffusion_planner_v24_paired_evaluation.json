@@ -172,6 +172,13 @@
     "risk_disclosure_required": true,
     "calibration_or_holdout_repair_authorized": false
   },
+  "holdout_once_contract": {
+    "schema": "camp_dp_v24_holdout_once_state_v1",
+    "state_path": "/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json",
+    "exclusive_create_before_runner_build": true,
+    "sealed_static_authorization_required": true,
+    "rerun_authorized": false
+  },
   "pilot_execution_authorized": true,
   "main_execution_authorized": false,
   "holdout_opened": false,
