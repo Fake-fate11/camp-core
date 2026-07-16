@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-16, Asia/Shanghai.
+Last verified: 2026-07-17, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v24_iteration_audit.md`. V23 and earlier
@@ -264,22 +264,34 @@ verified. Training read no outcomes and opened no calibration, holdout, paired
 evaluation, tuning, or claim boundary. Only independent result review is now
 authorized; it must recompute the sealed four-level results without invoking a
 solver or training entry point.
+The independent result review then passed `25 / 0` checks at CAMP HEAD
+`084a71c8de56e9d2cdaac4faa5bc392db250d648`. It complete-sealed the 20-file
+training artifact and every upstream source root, reloaded all train inputs,
+and independently recomputed the four learning-curve models, weight/cut-mask
+bytes and hashes, simplex projection, full-K/cut losses, CVaR, convergence,
+and train metrics. It did not rerun training, call a solver, generate
+candidates, or read outcomes. The largest independent 100% gap is
+`1.1185675338754031e-07`, still below `1e-6`. Its immutable root is
+`0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c`.
+All locks are free, no executor process exists, and `48,773,963,776` bytes were
+free. The full-train model is frozen; only paired-evaluation plan TDD/static
+preflight is authorized next. Calibration execution and holdout remain closed.
 
-current_v24_status=v24_convex_selector_training_execution_complete_sealed_independent_review_pending
-current_v24_artifact_source_head=9e9457d540a0af3398c8b17b37ab9032049c5b5b
+current_v24_status=v24_convex_selector_training_execution_independent_review_passed
+current_v24_artifact_source_head=084a71c8de56e9d2cdaac4faa5bc392db250d648
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_cut_relative_gap_retry_execution_9e9457d5_20260716T230203CST
-current_v24_artifact_root_sha256=91ddd978d383d66488215e2fc8135dee37f4e3d40efb7f801389b40d6fb2c175
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST
+current_v24_artifact_root_sha256=0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_execution_complete_sealed_independent_review_pending
+source_b_status=convex_training_execution_independent_review_passed_paired_evaluation_plan_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_execution_independent_review_only
+next_work_target=v24_paired_evaluation_plan_tdd_static_preflight_only
 
 ## Current V23 Status
 

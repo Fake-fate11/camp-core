@@ -2773,18 +2773,79 @@ It may only load the already sealed train inputs. The focused local suite
 passes all `36` tests. The independent AutoDL execution has not yet run and is
 the sole next gate.
 
-current_v24_status=v24_convex_selector_training_execution_complete_sealed_independent_review_pending
-current_v24_artifact_source_head=9e9457d540a0af3398c8b17b37ab9032049c5b5b
+## Gate 47: Convex Selector Training Independent Result Review
+
+Status: passed and independently complete-sealed. The frozen full-train model
+is accepted for later calibration; calibration execution and holdout remain
+closed.
+
+The local clean HEAD gate compiled the reviewer, passed pyflakes, ran all five
+required suites (`137 passed`), and passed diff checks. AutoDL first used the
+Python 3.9 module form of pyflakes, which is unavailable there; it stopped
+before pytest and sealed the honest zero-test failure at:
+
+`/root/autodl-tmp/camp_dp_v24_training_execution_result_review_static_tests_084a71c8_20260717T003525CST`
+/
+`a6d2dda502e9fffd631d865c84d27ce8117aa7245c3fd0f5b7c7c576808e3b9f`.
+
+The corrected AutoDL wrapper preserved local pyflakes as the static lint
+authority and ran Python 3.9 compilation, the same five suites (`137 passed`),
+and diff checks with empty stderr. It called no reviewer, solver, or training
+entry point. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_execution_result_review_static_tests_retry_084a71c8_20260717T003602CST`
+/
+`e9ba9db86f1c63e12112467d65364af2bc74623e87dfa1b5bb4aae871e40911f`.
+
+The one authorized AutoDL independent review then passed `25 / 0` independent
+checks at CAMP HEAD `084a71c8de56e9d2cdaac4faa5bc392db250d648` and fixed
+clean DP HEAD `7a1d33da277a1992ec474b5383a0c963c72e04e4`. It verified all `20`
+execution files plus the full source-authorization, plan, labels, merged,
+atom-freeze, pilot, remaining, and independent-review root closure. It loaded
+the sealed causal train inputs but training was not reexecuted and no solver
+was called.
+
+For each `25 / 50 / 75 / 100%` level, it independently reconstructed the
+outcome-blind route membership, normalization, oracle margins, weights bytes,
+simplex projection, final cut-mask bytes, full-K and retained-cut losses, four
+gap diagnostics, CVaR, iterations/cuts, and every reported train metric. The
+four levels retained `16,979 / 35,022 / 50,752 / 67,796` snapshots and used
+`24,986 / 53,145 / 76,407 / 101,391` final cuts. Each converged in four
+iterations with zero final new cuts. Their largest independent gaps are
+`8.881784197001252e-16 / 1.1185675308222898e-07 /
+1.1185675308222898e-07 / 1.1185675338754031e-07`, all below `1e-6`.
+The overall maximum is `1.1185675338754031e-07`.
+
+The 100% primary model independently matches the frozen weights, `18,320 /
+49,476` candidate-0 / non-0 selections, `19,835` oracle agreements, mean/max
+ranking violation `0.23664265844239168 / 5.477850504644522`, and selected-minus-
+candidate-0 surrogate-cost mean `-3.392507317700441`. These remain train-only
+surrogate diagnostics and are not closed-loop safety outcomes.
+
+The result-review artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST`
+/
+`0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c`.
+
+Its independent seal contains seven files. No executor process exists, all
+three locks are free, and `48,773,963,776` bytes remained available. Candidate
+generation, simulator execution, outcomes, calibration, holdout, tuning, and
+claims remained closed. Only paired-evaluation plan TDD/static preflight is
+authorized next; main paired execution is not yet authorized.
+
+current_v24_status=v24_convex_selector_training_execution_independent_review_passed
+current_v24_artifact_source_head=084a71c8de56e9d2cdaac4faa5bc392db250d648
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_cut_relative_gap_retry_execution_9e9457d5_20260716T230203CST
-current_v24_artifact_root_sha256=91ddd978d383d66488215e2fc8135dee37f4e3d40efb7f801389b40d6fb2c175
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST
+current_v24_artifact_root_sha256=0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_execution_complete_sealed_independent_review_pending
+source_b_status=convex_training_execution_independent_review_passed_paired_evaluation_plan_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_execution_independent_review_only
+next_work_target=v24_paired_evaluation_plan_tdd_static_preflight_only

@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_convex_selector_training_execution_complete_sealed_independent_review_pending",
-    "current_v24_artifact_source_head=9e9457d540a0af3398c8b17b37ab9032049c5b5b",
+    "current_v24_status=v24_convex_selector_training_execution_independent_review_passed",
+    "current_v24_artifact_source_head=084a71c8de56e9d2cdaac4faa5bc392db250d648",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_cut_relative_gap_retry_execution_9e9457d5_20260716T230203CST",
-    "current_v24_artifact_root_sha256=91ddd978d383d66488215e2fc8135dee37f4e3d40efb7f801389b40d6fb2c175",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST",
+    "current_v24_artifact_root_sha256=0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_execution_complete_sealed_independent_review_pending",
+    "source_b_status=convex_training_execution_independent_review_passed_paired_evaluation_plan_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_convex_selector_training_execution_independent_review_only",
+    "next_work_target=v24_paired_evaluation_plan_tdd_static_preflight_only",
 )
 
 
@@ -76,6 +76,21 @@ def test_v24_convex_training_execution_is_sealed_before_result_review() -> None:
         "`91ddd978d383d66488215e2fc8135dee37f4e3d40efb7f801389b40d6fb2c175`",
         "does not call CLARABEL, CVXPY, a solver, or a training entry point",
         "Calibration, holdout, outcomes, paired evaluation, tuning, and claims remain closed",
+    ):
+        assert phrase in text
+
+
+def test_v24_convex_training_result_review_is_independently_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 47: Convex Selector Training Independent Result Review",
+        "passed `25 / 0` independent checks",
+        "verified all `20` execution files",
+        "`0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c`",
+        "`e9ba9db86f1c63e12112467d65364af2bc74623e87dfa1b5bb4aae871e40911f`",
+        "`1.1185675338754031e-07`",
+        "training was not reexecuted and no solver was called",
+        "Only paired-evaluation plan TDD/static preflight is authorized next",
     ):
         assert phrase in text
 
