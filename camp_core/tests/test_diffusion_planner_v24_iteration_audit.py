@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_native_corpus_remaining_train_seeds_execution_running",
-    "current_v24_artifact_source_head=c96510b84f89862c1203d57664081d46f020e929",
+    "current_v24_status=v24_native_corpus_remaining_train_seeds_independent_review_passed",
+    "current_v24_artifact_source_head=4773ad84407aa85f71191359586cd4ab2d104ef0",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_c96510b8_20260716T013715CST",
-    "current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_independent_review_4773ad84_20260716T144225CST",
+    "current_v24_artifact_root_sha256=c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=native_corpus_remaining_train_seeds_execution_running_monitor_only",
+    "source_b_status=native_corpus_remaining_seed_independent_review_passed_merged_assembly_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_native_corpus_remaining_train_seeds_execution_monitor_only_do_not_duplicate",
+    "next_work_target=v24_native_corpus_merged_train_corpus_assembly_review_only",
 )
 
 
@@ -62,6 +62,36 @@ def test_current_status_v24_pointer_matches_audit() -> None:
     )[0]
     for line in POINTER:
         assert section.count(line) == 1
+
+
+def test_v24_remaining_execution_and_independent_review_are_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`1500 / 1500` route-seed runs are retained",
+        "`842` complete, `658` failed, `0` pending",
+        "`54,191` causal per-tick K=8 snapshots",
+        "`6,182` all-K-high-risk snapshots",
+        "`29,678.080113993958` seconds",
+        "Candidate-tensor before/after hashes",
+        "6b0d2fd186457ccc94028e9606f7680dd871539a44ff62babd42f15734d381c7",
+        "`892,535 / 0` checks",
+        "all `112` v24 tests",
+        "c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501",
+        "authorizes only deterministic assembly",
+    ):
+        assert phrase in text
+
+
+def test_current_status_distinguishes_execution_from_review_boundaries() -> None:
+    section = " ".join(
+        STATUS.read_text(encoding="utf-8")
+        .split("## Current V24 Status", 1)[1]
+        .split("## Current V23 Status", 1)[0]
+        .split()
+    )
+    assert "fixed K=8 candidate generation necessarily ran" in section
+    assert "the independent review did not rerun them" in section
+    assert "Candidate modification, training, outcomes" in section
 
 
 def test_v24_startup_records_frozen_history_and_independent_sources() -> None:

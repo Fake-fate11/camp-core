@@ -1718,3 +1718,96 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_remaining_train_seeds_execution_monitor_only_do_not_duplicate
+
+## Gate 29: Unique Remaining-Seed Native Corpus Execution Completion
+
+Status: complete and sealed with all failures retained.
+
+PID `50377` exited normally, `run.exit` is `0`, the process-global task lock is
+released, and no related worker remains. The terminal STATE, progress, summary,
+and execution records all report `complete_with_retained_failures`. The frozen
+denominator is complete: `1500 / 1500` route-seed runs are retained, with `842`
+complete, `658` failed, `0` pending, and coverage `1.0`. No route or seed was
+removed, replaced, or redrawn.
+
+The retained failure accounting is `612` positive-speed-source failures, `22`
+zero moving-onroad denominators, `16` native replays with no executed tracker
+tick, and `8` invalid candidate heading cos/sin vectors. The execution sealed
+`54,191` causal per-tick K=8 snapshots, including `6,182` all-K-high-risk
+snapshots. Source-stratum snapshot counts are `49,402` branch intersection,
+`35,857` short-progress opportunity, `54,191` tight corridor, and `5,124`
+traffic light; strata overlap by preregistered construction.
+
+Wall clock was `29,678.080113993958` seconds. The execution artifact recorded
+`45.6921 GiB` free after completion, above the 10 GiB floor. Candidate-tensor
+before/after hashes, candidate-row hashes, source-valid masks, atom matrices,
+causal-input hashes, and candidate-0/default receipts remain preserved for
+independent review. The
+fixed DP code/config/weights/checkpoint/request and original source maps were
+not modified. Training, tuning, outcomes, calibration, holdout, and claims
+remained closed.
+
+Immutable execution artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_c96510b8_20260716T013715CST`
+/
+`6b0d2fd186457ccc94028e9606f7680dd871539a44ff62babd42f15734d381c7`.
+
+## Gate 30: Remaining-Seed Native Corpus Execution Independent Review
+
+Status: passed. Merged frozen train-corpus assembly is next; training is not
+yet authorized.
+
+The independent reviewer rehashed exact inventories for the execution and all
+six frozen upstream roots. It independently parsed all 1500 receipts and all
+54,191 content-addressed snapshots, recomputed the route/seed denominator,
+failure accounting, source-map and source-stratum counts, K=8/14D finite
+features, one-receipt snapshot ownership, candidate tensor immutability, and
+candidate-0/default byte-hash identity. It also cross-checked every upstream
+schema, passed status, nonempty internal check inventory, closed boundary,
+authorization decision, source SHA link, strict HEADS inventory, fixed DP HEAD,
+and route-major/seed-minor row order.
+
+Independent code review found and TDD closed fail-open paths for semantically
+unchecked sealed upstream roots, nested candidate-0 identity fields, boolean
+zero coercion, duplicate HEADS keys, unchecked corpus-review HEADS, and empty
+check lists. Re-review passed with no findings. The first live CLI invocation
+then exposed a repo-root import-path defect before any artifact was read or
+created. A subprocess regression test reproduced it with `PYTHONPATH` removed;
+the shared CLI now bootstraps the repo root. Final re-review again passed with
+no findings.
+
+The live AutoDL review passed `892,535 / 0` checks. Independent seal verification
+confirmed every listed file, `run.exit=0`, empty stderr, JSON/stdout identity,
+and the ROOT receipt. The recomputed totals are `1500 / 842 / 658 / 0` retained
+/ complete / failed / pending and `54,191` snapshots, exactly matching the
+producer. Current disk is `45.479 GiB`. Local and AutoDL py_compile, all `112`
+v24 tests, and `git diff --check` passed. Local, origin/GitHub, and AutoDL CAMP
+are aligned at `4773ad84407aa85f71191359586cd4ab2d104ef0`; DP remains clean and
+fixed at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The review did not load a model, run the simulator, generate or modify
+candidates, train, tune, consume outcomes, calibrate, open holdout, or authorize
+a claim. It authorizes only deterministic assembly of the frozen seed-24001
+pilot plus seeds 24002-24005 into one train corpus while preserving every
+failure and the complete denominator.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_independent_review_4773ad84_20260716T144225CST`
+/
+`c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501`.
+
+current_v24_status=v24_native_corpus_remaining_train_seeds_independent_review_passed
+current_v24_artifact_source_head=4773ad84407aa85f71191359586cd4ab2d104ef0
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_independent_review_4773ad84_20260716T144225CST
+current_v24_artifact_root_sha256=c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_remaining_seed_independent_review_passed_merged_assembly_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_merged_train_corpus_assembly_review_only

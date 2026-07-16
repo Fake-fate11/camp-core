@@ -17,9 +17,9 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through the native-corpus remaining-seed static-preflight independent
-review are sealed. Branch A remains source-ineligible locally without stopping
-Branch B.
+Startup through the native-corpus remaining-seed execution independent review
+are sealed. Branch A remains source-ineligible locally without stopping Branch
+B.
 
 The pilot retained all 375 routes: 212 completed, 163 failed, and 13,605 causal
 K=8 snapshots were sealed. Independent review passed 213,202 authoritative
@@ -39,25 +39,38 @@ or call the execution-preflight builder or open any execution/training/eval
 boundary. Before launch, TDD closed a harness-chain defect so execution now
 requires exact Gate 26/27 seals, source chains, internal check integrity, closed
 boundaries, and the positive independent-review decision. Independent code
-review passed and all 102 v24 tests passed locally and on AutoDL. Exactly one
-remaining-seed execution is now running as PID 50377 under the global task lock.
-All controllers are monitor-only until it terminates.
+review passed and all 102 v24 tests passed locally and on AutoDL.
 
-current_v24_status=v24_native_corpus_remaining_train_seeds_execution_running
-current_v24_artifact_source_head=c96510b84f89862c1203d57664081d46f020e929
+The remaining execution then completed and sealed all 1500 frozen route-seed
+runs: 842 complete, 658 retained failures, zero pending, 54,191 causal K=8
+snapshots, and 6,182 all-K-high-risk snapshots. PID 50377 is absent and the
+global lock is released. Its immutable root is
+`6b0d2fd186457ccc94028e9606f7680dd871539a44ff62babd42f15734d381c7`.
+The independent review rehashed the execution and all six upstream roots,
+recomputed all receipts/snapshots and source chains, and passed 892,535 checks
+with zero failures. Local and AutoDL pycompile, all 112 v24 tests, and diff
+checks passed at aligned CAMP HEAD
+`4773ad84407aa85f71191359586cd4ab2d104ef0`; fixed DP remains clean. Model,
+simulator, and fixed K=8 candidate generation necessarily ran during corpus
+execution; the independent review did not rerun them. Candidate modification,
+training, outcomes, calibration, holdout, tuning, and claims remained closed.
+Only deterministic merged frozen train-corpus assembly is now authorized.
+
+current_v24_status=v24_native_corpus_remaining_train_seeds_independent_review_passed
+current_v24_artifact_source_head=4773ad84407aa85f71191359586cd4ab2d104ef0
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_c96510b8_20260716T013715CST
-current_v24_artifact_root_sha256=pending_unique_long_task_running_unsealed
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_independent_review_4773ad84_20260716T144225CST
+current_v24_artifact_root_sha256=c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_remaining_train_seeds_execution_running_monitor_only
+source_b_status=native_corpus_remaining_seed_independent_review_passed_merged_assembly_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_remaining_train_seeds_execution_monitor_only_do_not_duplicate
+next_work_target=v24_native_corpus_merged_train_corpus_assembly_review_only
 
 ## Current V23 Status
 
