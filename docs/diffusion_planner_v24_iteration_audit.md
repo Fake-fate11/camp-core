@@ -2382,18 +2382,76 @@ Training retry remains unauthorized until the projection-aware repair passes
 new TDD, static preflight, and independent review. Calibration, holdout,
 outcomes, tuning, and claims remain closed.
 
-current_v24_status=v24_convex_training_execution_failure_independent_review_passed
-current_v24_artifact_source_head=4df3cee192a25ec440a9dc3bcf6cde4d57e54e1b
+## Gate 40: Projection-Boundary Repair Static Preflight and Review
+
+Status: passed and independently sealed. Only the exact train-only retry is
+authorized next; calibration, holdout, outcomes, tuning, and claims remain
+closed.
+
+The repair was implemented at CAMP source HEAD
+`a325b687c53ea8cc4fd033679de19dba56081a64`. It is limited to the failure
+review's frozen numerical contract. After each exact optimal CLARABEL solve, the
+executor now computes both raw and strict-simplex-projected weights. Separation
+examines both raw and projected worst candidates, adds either omitted cut whose
+corresponding gap exceeds the unchanged acceptance limit `1e-6`, records both
+gap/violation series, and converges only when their maximum is at most `1e-6`
+with zero new cuts. Acceptance independently recomputes both full-K loss vectors
+and serialized saved weights. The CLARABEL-only registry, no fallback, exact
+`optimal`, 20-iteration cap, no post-cap final resolve, CVaR alpha `0.9`, L2
+`1e-4`, margins, 14D simplex, labels, routes, seeds, and all input roots are
+unchanged.
+
+An adversarial unit fixture constructs weights for which raw separation passes
+while projection exposes a new `>1e-6` violation. It proves the projected cut is
+added before convergence and both final gaps close. The source test also keeps
+the earlier SolverError one-attempt contract, full-K recomputation, four fresh
+learning-curve solves, and failure sealing. Local Python 3.12 compilation, the
+five related suites, and diff checks passed `122` tests. AutoDL Python 3.9
+repeated the same `122` tests with empty stderr. The test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_tests_a325b687_20260716T220006CST`
+/
+`f9fd55bb00759ed0fa2c42fc609b47bf7d5769f4100fe45b1b225ee3d4ec0155`.
+
+The repair preflight binds the Gate 39 failure review plus the full prior
+training-input authority. It complete-sealed all upstream roots, revalidated
+the same `375 / 1,875 / 67,796 / 542,368` route, route-seed, snapshot, and
+candidate counts, rechecked CLARABEL and all process/lock/disk gates, and called
+no synthetic or corpus solver. No model was written. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_a325b687_20260716T220028CST`
+/
+`dd37d8992af680bd034e1bd9d38cfef41cc693bec25141abed1f2d24e040e77b`.
+
+The independent reviewer binds the repair/failure-review source in addition to
+all prior execution-critical blobs. It independently rehashed every source and
+artifact, inspected the new raw/projected separation and diagnostics, repeated
+all upstream complete-seal/count checks, and resampled processes, all three
+locks, CLARABEL, fixed DP, and disk. It passed `24 / 0` checks with no executor
+process, all locks free, and `48,779,976,704` bytes free. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_independent_review_a325b687_20260716T220107CST`
+/
+`6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13`.
+
+No corpus row, label, candidate tensor, trajectory, DP code/config/weight/
+checkpoint/request, or original map changed. No model, training retry,
+calibration, holdout, outcome, tuning, or claim boundary opened. Only the exact
+train-only retry is authorized next, and it still requires independent result
+review before calibration planning.
+
+current_v24_status=v24_convex_training_projection_boundary_repair_static_preflight_independent_review_passed
+current_v24_artifact_source_head=a325b687c53ea8cc4fd033679de19dba56081a64
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_20260716T215042CST
-current_v24_artifact_root_sha256=1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_independent_review_a325b687_20260716T220107CST
+current_v24_artifact_root_sha256=6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_execution_failed_projection_boundary_independent_review_passed_repair_static_preflight_pending
+source_b_status=convex_training_projection_boundary_repair_static_preflight_independent_review_passed_retry_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_training_projection_boundary_repair_tdd_static_preflight_only
+next_work_target=v24_convex_selector_training_retry_execution_only

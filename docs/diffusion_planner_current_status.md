@@ -197,21 +197,32 @@ the review root is
 Only projection-aware repair TDD/static preflight is authorized next; a training
 retry remains unauthorized.
 
-current_v24_status=v24_convex_training_execution_failure_independent_review_passed
-current_v24_artifact_source_head=4df3cee192a25ec440a9dc3bcf6cde4d57e54e1b
+The projection-boundary repair is now independently sealed at source HEAD
+`a325b687c53ea8cc4fd033679de19dba56081a64`. It adds both raw and projected
+worst candidates during cut separation, records both gaps, and requires both to
+pass the unchanged `1e-6` limit. All other master/data contracts are unchanged.
+AutoDL passed `122` tests; repair preflight called no solver, and independent
+review passed `24 / 0` checks with all locks free and no executor process. The
+positive review root is
+`6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13`.
+Only an exact train-only retry is now authorized; calibration, holdout,
+outcomes, tuning, and claims remain closed.
+
+current_v24_status=v24_convex_training_projection_boundary_repair_static_preflight_independent_review_passed
+current_v24_artifact_source_head=a325b687c53ea8cc4fd033679de19dba56081a64
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_20260716T215042CST
-current_v24_artifact_root_sha256=1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_independent_review_a325b687_20260716T220107CST
+current_v24_artifact_root_sha256=6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_execution_failed_projection_boundary_independent_review_passed_repair_static_preflight_pending
+source_b_status=convex_training_projection_boundary_repair_static_preflight_independent_review_passed_retry_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_training_projection_boundary_repair_tdd_static_preflight_only
+next_work_target=v24_convex_selector_training_retry_execution_only
 
 ## Current V23 Status
 
