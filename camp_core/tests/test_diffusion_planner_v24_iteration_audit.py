@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_calibration_capability_pilot_execution_passed",
-    "current_v24_artifact_source_head=3ac4b0096c0ed25181c5f90dcc3957e852fd13fb",
+    "current_v24_status=v24_paired_calibration_capability_pilot_independent_review_passed",
+    "current_v24_artifact_source_head=e7d78689eb853a3d3a97651a689683294d2396a0",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST",
-    "current_v24_artifact_root_sha256=dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_independent_review_e7d78689_20260717T014137CST",
+    "current_v24_artifact_root_sha256=ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_calibration_capability_pilot_execution_passed_independent_review_pending",
+    "source_b_status=paired_calibration_capability_pilot_independent_review_passed_holdout_main_once_static_authorization_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_calibration_capability_pilot_independent_review_only",
+    "next_work_target=v24_paired_holdout_main_once_static_authorization_only",
 )
 
 
@@ -132,6 +132,24 @@ def test_v24_paired_calibration_pilot_is_complete_but_noninferential() -> None:
         "`dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d`",
         "Holdout remained unopened at count zero",
         "Only independent result review is authorized next",
+    ):
+        assert phrase in text
+
+
+def test_v24_paired_calibration_pilot_review_is_independent() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 50: Paired Calibration Capability/Pilot Independent Review",
+        "passed `24 / 0` checks",
+        "`41 / 21 / 34` files",
+        "`257` ticks per arm",
+        "`[-0.3125, 0.3125]`",
+        "`61 / 67` candidate-0 / non-0",
+        "execution source HEAD `3ac4b0096c0ed25181c5f90dcc3957e852fd13fb`",
+        "did not build a runner, load a model, or execute a simulator",
+        "`ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5`",
+        "Holdout remains unopened",
+        "only holdout-main-once static authorization is next",
     ):
         assert phrase in text
 

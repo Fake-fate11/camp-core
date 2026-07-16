@@ -321,21 +321,35 @@ and `dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d`.
 Only independent read-only pilot review is authorized next. Main execution and
 holdout remain closed.
 
-current_v24_status=v24_paired_calibration_capability_pilot_execution_passed
-current_v24_artifact_source_head=3ac4b0096c0ed25181c5f90dcc3957e852fd13fb
+The independent calibration reviewer then passed `24 / 0` checks at CAMP HEAD
+`e7d78689eb853a3d3a97651a689683294d2396a0`, explicitly binding both
+executions to source HEAD `3ac4b0096c0ed25181c5f90dcc3957e852fd13fb`.
+It rehashed the preflight/capability/pilot roots, independently reconstructed
+the exact schedules and AB/BA order, reviewed all `257` ticks per arm, and
+recomputed the pilot SafetyCost deltas `[-0.3125, 0.3125]`, mean/median,
+better/tie/worse, and `61 / 67` candidate-0/non-0 counts. It did not build a
+runner, load a model, run the simulator, compare post-divergence tensors, or
+open holdout. Its immutable root is
+`ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5`.
+Only a fail-closed static authorization for the already frozen 120-pair
+holdout-main-once schedule is next. Main execution remains disabled until that
+gate passes; holdout open count is still zero.
+
+current_v24_status=v24_paired_calibration_capability_pilot_independent_review_passed
+current_v24_artifact_source_head=e7d78689eb853a3d3a97651a689683294d2396a0
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST
-current_v24_artifact_root_sha256=dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_independent_review_e7d78689_20260717T014137CST
+current_v24_artifact_root_sha256=ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_calibration_capability_pilot_execution_passed_independent_review_pending
+source_b_status=paired_calibration_capability_pilot_independent_review_passed_holdout_main_once_static_authorization_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_calibration_capability_pilot_independent_review_only
+next_work_target=v24_paired_holdout_main_once_static_authorization_only
 
 ## Current V23 Status
 

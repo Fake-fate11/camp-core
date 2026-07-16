@@ -3054,3 +3054,71 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_paired_calibration_capability_pilot_independent_review_only
+
+## Gate 50: Paired Calibration Capability/Pilot Independent Review
+
+Status: passed and independently complete-sealed. Holdout remains unopened;
+only holdout-main-once static authorization is next.
+
+The reviewer source first passed local pycompile, pyflakes, focused tests, and
+the full clean-HEAD suite (`298 passed`). AutoDL at source HEAD
+`e2d5c486dbe24cd06c3cec828b32c7cd6304600b` compiled the reviewer and
+passed the same `298` tests with empty pytest stderr. Its static-test artifact
+root is `673507c886f4432c12eca86a72ddfdc49b6e6c25e2e27cf14cc3ccb73b328834`.
+
+Static review then required an explicit execution-source HEAD binding rather
+than relying only on the two execution seals. The corrected reviewer at CAMP
+HEAD `e7d78689eb853a3d3a97651a689683294d2396a0` fail-closes unless both
+summaries name execution source HEAD `3ac4b0096c0ed25181c5f90dcc3957e852fd13fb`.
+Local clean-HEAD `298` tests and AutoDL focused `48` tests passed. The binding
+test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_review_head_binding_static_tests_e7d78689_20260717T014136CST`
+/
+`b982eec6e4e1ac659853c77ba7caa3f876fd0f12f8f03feb33ac313f5399e996`.
+
+The one independent review passed `24 / 0` checks. It complete-seal verified
+the preflight / capability / pilot sources containing `41 / 21 / 34` files,
+then reconstructed the exact source schedule and pair keys. It independently
+reviewed one capability tick and `128` pilot ticks per arm, totaling `257`
+ticks per arm across the three calibration pairs. Every arm preserved candidate
+tensor and global-RNG hashes, default/candidate-0 identity, exact selected-row
+identity, fixed DP request/checkpoint/args, and independent-reset initial-state
+equality. It required cross-arm input/K=8 equality at `t=0` and intentionally
+did not compare post-divergence state-conditioned tensors.
+
+The reviewer recomputed pilot SafetyCost deltas `[-0.3125, 0.3125]`, mean and
+median zero, and one better / zero ties / one worse. It also recomputed all
+`128` CAMP selections as `61 / 67` candidate-0 / non-0. These remain
+calibration plumbing diagnostics only: the reviewer enforced honest-no-claim
+and descriptive-only latency. No frozen model input, atom, scale, weight,
+threshold, SafetyCost definition, route, seed, or protocol changed.
+
+The independent review artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_independent_review_e7d78689_20260717T014137CST`
+/
+`ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5`.
+
+The review did not build a runner, load a model, or execute a simulator; source
+execution reexecuted is false. Its seal was independently verified. Fixed DP
+remains clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; holdout open
+count remains zero; main authorization remains false; about
+`48,767,520,768` bytes remained free. Only the static holdout-main-once
+authorization gate may proceed.
+
+current_v24_status=v24_paired_calibration_capability_pilot_independent_review_passed
+current_v24_artifact_source_head=e7d78689eb853a3d3a97651a689683294d2396a0
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_independent_review_e7d78689_20260717T014137CST
+current_v24_artifact_root_sha256=ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_calibration_capability_pilot_independent_review_passed_holdout_main_once_static_authorization_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_paired_holdout_main_once_static_authorization_only
