@@ -1995,10 +1995,9 @@ def _verify_split_and_training(config: Mapping[str, Any]) -> dict[str, Any]:
     }
     for name, expected_source_root in review_bindings.items():
         review = _load_review_receipt(Path(roots[name]["root"]))
-        if review.get("status") != "passed" or review.get("failed_count") != 0:
-            raise ValueError(f"{name} did not pass")
-        if expected_source_root not in _declared_root_sha256_values(review):
-            raise ValueError(f"{name} is not bound to its config-pinned source root")
+        _verify_upstream_review_passed(
+            Path(roots[name]["root"]), name, review, expected_source_root
+        )
 
     split_path = _artifact_declared_path(Path(roots["split"]["root"]), split["manifest_path"], "split manifest")
     if _sha256_file(split_path) != split.get("file_sha256"):
@@ -2090,6 +2089,71 @@ def _declared_root_sha256_values(value: Any) -> set[str]:
         for item in value:
             result.update(_declared_root_sha256_values(item))
     return result
+
+
+def _legacy_route_census_source_root(root: Path) -> str:
+    candidates = [
+        root / name for name in ("HEADS", "HEADS.txt") if (root / name).is_file()
+    ]
+    if len(candidates) != 1:
+        raise ValueError("legacy route-census review has no unique HEADS receipt")
+    values: list[str] = []
+    for line in candidates[0].read_text(encoding="utf-8").splitlines():
+        key, separator, value = line.partition("=")
+        if separator and key == "ROUTE_CENSUS_EXECUTION_ROOT_SHA256":
+            values.append(value)
+    if len(values) != 1 or not _is_sha256(values[0]):
+        raise ValueError("legacy route-census review source root binding is invalid")
+    return values[0]
+
+
+def _verify_upstream_review_passed(
+    root: Path,
+    name: str,
+    review: Mapping[str, Any],
+    expected_source_root: str,
+) -> None:
+    if name == "route_census_review":
+        checks = review.get("checks")
+        route_flags = {
+            "source_execution_reviewed": True,
+            "candidate_generation_started": False,
+            "outcome_accessed": False,
+            "model_loaded": False,
+            "route_workers_executed_by_review": False,
+            "holdout_opened": False,
+        }
+        if (
+            review.get("schema")
+            != "diffusion_planner_v24_outcome_blind_route_census_independent_review_v1"
+            or review.get("decision")
+            != "route_census_review_passed_three_family_source_valid_support"
+            or type(review.get("check_pass_count")) is not int
+            or review.get("check_pass_count") != 31
+            or type(review.get("check_fail_count")) is not int
+            or review.get("check_fail_count") != 0
+            or not isinstance(checks, Mapping)
+            or len(checks) != 31
+            or any(value is not True for value in checks.values())
+            or ("failed_checks" in review and review.get("failed_checks") != [])
+            or any(review.get(field) is not value for field, value in route_flags.items())
+        ):
+            raise ValueError(f"{name} did not pass")
+        if _legacy_route_census_source_root(Path(root)) != expected_source_root:
+            raise ValueError(f"{name} is not bound to its config-pinned source root")
+        return
+    if (
+        review.get("status") != "passed"
+        or type(review.get("failed_count")) is not int
+        or review.get("failed_count") != 0
+    ):
+        raise ValueError(f"{name} did not pass")
+    if "failed_checks" in review and review.get("failed_checks") != []:
+        raise ValueError(f"{name} has nonempty failed checks")
+
+    declared_roots = _declared_root_sha256_values(review)
+    if expected_source_root not in declared_roots:
+        raise ValueError(f"{name} is not bound to its config-pinned source root")
 
 
 def _verify_runtime_selector(preflight_root: Path, schedule: Mapping[str, Any], training: Mapping[str, Any]) -> dict[str, Any]:

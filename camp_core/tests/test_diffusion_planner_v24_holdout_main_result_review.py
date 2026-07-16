@@ -971,6 +971,227 @@ def test_preflight_and_gate50_pilot_review_are_strictly_cross_bound(
     write_receipts()
 
 
+def test_legacy_route_census_review_requires_exact_pass_and_head_binding(
+    tmp_path: Path,
+) -> None:
+    source_root = _sha("route-census-source")
+    review_root = tmp_path / "route-review"
+    review_root.mkdir()
+    receipt = {
+        "schema": "diffusion_planner_v24_outcome_blind_route_census_independent_review_v1",
+        "decision": "route_census_review_passed_three_family_source_valid_support",
+        "check_pass_count": 31,
+        "check_fail_count": 0,
+        "checks": {f"check_{index}": True for index in range(31)},
+        "source_execution_reviewed": True,
+        "candidate_generation_started": False,
+        "outcome_accessed": False,
+        "model_loaded": False,
+        "route_workers_executed_by_review": False,
+        "holdout_opened": False,
+    }
+    (review_root / "HEADS").write_text(
+        f"ROUTE_CENSUS_EXECUTION_ROOT_SHA256={source_root}\n", encoding="ascii"
+    )
+    review._verify_upstream_review_passed(
+        review_root, "route_census_review", receipt, source_root
+    )
+
+    mutations = (
+        ("decision", "route_census_review_failed"),
+        ("check_pass_count", False),
+        ("check_fail_count", 1),
+        ("source_execution_reviewed", False),
+        ("outcome_accessed", True),
+    )
+    for field, value in mutations:
+        changed = copy.deepcopy(receipt)
+        changed[field] = value
+        with pytest.raises(ValueError, match="did not pass"):
+            review._verify_upstream_review_passed(
+                review_root, "route_census_review", changed, source_root
+            )
+    changed = copy.deepcopy(receipt)
+    changed["checks"]["check_0"] = False
+    with pytest.raises(ValueError, match="did not pass"):
+        review._verify_upstream_review_passed(
+            review_root, "route_census_review", changed, source_root
+        )
+    changed = copy.deepcopy(receipt)
+    changed["failed_checks"] = ["failure"]
+    with pytest.raises(ValueError, match="did not pass"):
+        review._verify_upstream_review_passed(
+            review_root, "route_census_review", changed, source_root
+        )
+    changed = copy.deepcopy(receipt)
+    changed["checks"].pop("check_0")
+    with pytest.raises(ValueError, match="did not pass"):
+        review._verify_upstream_review_passed(
+            review_root, "route_census_review", changed, source_root
+        )
+    changed = copy.deepcopy(receipt)
+    changed["check_fail_count"] = False
+    with pytest.raises(ValueError, match="did not pass"):
+        review._verify_upstream_review_passed(
+            review_root, "route_census_review", changed, source_root
+        )
+    (review_root / "HEADS").write_text(
+        f"FAKE_ROOT_SHA256={source_root}\n",
+        encoding="ascii",
+    )
+    with pytest.raises(ValueError, match="source root binding is invalid"):
+        review._verify_upstream_review_passed(
+            review_root, "route_census_review", receipt, source_root
+        )
+    (review_root / "HEADS").write_text(
+        f"ROUTE_CENSUS_EXECUTION_ROOT_SHA256={source_root}\n"
+        f"ROUTE_CENSUS_EXECUTION_ROOT_SHA256={source_root}\n",
+        encoding="ascii",
+    )
+    with pytest.raises(ValueError, match="source root binding is invalid"):
+        review._verify_upstream_review_passed(
+            review_root, "route_census_review", receipt, source_root
+        )
+
+
+def test_modern_upstream_review_still_requires_pass_and_source_binding(
+    tmp_path: Path,
+) -> None:
+    source_root = _sha("source")
+    receipt = {
+        "status": "passed",
+        "failed_count": 0,
+        "failed_checks": [],
+        "source_execution_root_sha256": source_root,
+    }
+    review._verify_upstream_review_passed(
+        tmp_path, "split_review", receipt, source_root
+    )
+    for field, value in (("status", "failed"), ("failed_count", 1)):
+        changed = dict(receipt)
+        changed[field] = value
+        with pytest.raises(ValueError, match="did not pass"):
+            review._verify_upstream_review_passed(
+                tmp_path, "split_review", changed, source_root
+            )
+    changed = dict(receipt)
+    changed["failed_checks"] = ["failure"]
+    with pytest.raises(ValueError, match="nonempty failed checks"):
+        review._verify_upstream_review_passed(
+            tmp_path, "split_review", changed, source_root
+        )
+    changed = dict(receipt)
+    changed["failed_count"] = False
+    with pytest.raises(ValueError, match="did not pass"):
+        review._verify_upstream_review_passed(
+            tmp_path, "split_review", changed, source_root
+        )
+    changed = dict(receipt)
+    changed.pop("source_execution_root_sha256")
+    (tmp_path / "HEADS").write_text(
+        f"SOURCE_EXECUTION_ROOT_SHA256={source_root}\n", encoding="ascii"
+    )
+    with pytest.raises(ValueError, match="config-pinned source root"):
+        review._verify_upstream_review_passed(
+            tmp_path, "split_review", changed, source_root
+        )
+
+
+def test_split_training_entry_dispatches_legacy_route_review_strictly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    roots = {
+        name: tmp_path / name
+        for name in (
+            "split",
+            "split-review",
+            "route",
+            "route-review",
+            "training",
+            "training-review",
+        )
+    }
+    for root in roots.values():
+        root.mkdir()
+    source_roots = {
+        "split": _sha("split-source"),
+        "route": _sha("route-source"),
+        "training": _sha("training-source"),
+    }
+    modern_reviews = {
+        "split-review": {
+            "status": "passed",
+            "failed_count": 0,
+            "failed_checks": [],
+            "source_execution_root_sha256": source_roots["split"],
+        },
+        "training-review": {
+            "status": "passed",
+            "failed_count": 0,
+            "source_training_root_sha256": source_roots["training"],
+        },
+    }
+    for name, receipt in modern_reviews.items():
+        _write_json(roots[name] / "review.json", receipt)
+    route_review = {
+        "schema": "diffusion_planner_v24_outcome_blind_route_census_independent_review_v1",
+        "decision": "route_census_review_passed_three_family_source_valid_support",
+        "check_pass_count": 31,
+        "check_fail_count": 0,
+        "checks": {f"check_{index}": True for index in range(31)},
+        "source_execution_reviewed": True,
+        "candidate_generation_started": False,
+        "outcome_accessed": False,
+        "model_loaded": False,
+        "route_workers_executed_by_review": False,
+        "holdout_opened": False,
+    }
+    _write_json(roots["route-review"] / "review.json", route_review)
+    (roots["route-review"] / "HEADS").write_text(
+        f"ROUTE_CENSUS_EXECUTION_ROOT_SHA256={source_roots['route']}\n",
+        encoding="ascii",
+    )
+    config = {
+        "source_split": {
+            "artifact": str(roots["split"]),
+            "artifact_root_sha256": source_roots["split"],
+            "independent_review_artifact": str(roots["split-review"]),
+            "independent_review_root_sha256": _sha("split-review"),
+            "manifest_path": "unused-split-manifest.json",
+        },
+        "source_route_census": {
+            "artifact": str(roots["route"]),
+            "artifact_root_sha256": source_roots["route"],
+            "independent_review_artifact": str(roots["route-review"]),
+            "independent_review_root_sha256": _sha("route-review"),
+        },
+        "frozen_selector": {
+            "training_artifact": str(roots["training"]),
+            "training_artifact_root_sha256": source_roots["training"],
+            "independent_review_artifact": str(roots["training-review"]),
+            "independent_review_root_sha256": _sha("training-review"),
+        },
+    }
+
+    def fake_seal(root: Path, expected: str, _label: str) -> dict[str, object]:
+        return {"root": str(root), "root_sha256": expected}
+
+    monkeypatch.setattr(review, "verify_complete_seal", fake_seal)
+    monkeypatch.setattr(review, "_require_clean_completion", lambda *_args: None)
+
+    def post_review_sentinel(*_args: object, **_kwargs: object) -> Path:
+        raise RuntimeError("post-review-sentinel")
+
+    monkeypatch.setattr(review, "_artifact_declared_path", post_review_sentinel)
+    with pytest.raises(RuntimeError, match="post-review-sentinel"):
+        review._verify_split_and_training(config)
+
+    route_review["failed_checks"] = ["failure"]
+    _write_json(roots["route-review"] / "review.json", route_review)
+    with pytest.raises(ValueError, match="route_census_review did not pass"):
+        review._verify_split_and_training(config)
+
+
 def test_config_and_evaluator_blob_pins_reject_wrong_sha_or_live_bytes() -> None:
     config_blob = b'{"schema":"frozen"}\n'
     evaluator_blob = b"def evaluate():\n    return None\n"
