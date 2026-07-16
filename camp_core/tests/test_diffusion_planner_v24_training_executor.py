@@ -5,6 +5,7 @@ from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 from types import SimpleNamespace
 
@@ -554,3 +555,27 @@ def test_static_test_artifact_receipt_binds_files_count_and_closed_boundaries(
         preflight.verify_static_test_artifact(
             root=tmp_path, expected_root_sha256="b" * 64, camp_head="a" * 40
         )
+
+
+def test_first_training_failure_has_independent_projection_boundary_diagnosis() -> None:
+    from scripts.integrations import (
+        review_diffusion_planner_v24_training_execution_failure as reviewer,
+    )
+
+    source = subprocess.run(
+        [
+            "git",
+            "show",
+            f"{reviewer.FAILURE_CAMP_HEAD}:{reviewer.EXECUTOR_RELATIVE}",
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    diagnosis = reviewer.diagnose_projection_boundary(source)
+
+    assert diagnosis["cut_generation_uses_raw_weights"] is True
+    assert diagnosis["cut_generation_projects_weights"] is False
+    assert diagnosis["acceptance_projects_weights"] is True
+    assert diagnosis["acceptance_rejects_projected_gap"] is True
