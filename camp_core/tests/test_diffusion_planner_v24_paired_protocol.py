@@ -48,6 +48,12 @@ def _evaluator():
     return evaluate_diffusion_planner_v24_pairs
 
 
+def _pilot_reviewer():
+    from scripts.integrations import review_diffusion_planner_v24_calibration_pilot
+
+    return review_diffusion_planner_v24_calibration_pilot
+
+
 def _sha(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
@@ -332,6 +338,23 @@ def test_pair_validator_requires_t0_identity_but_not_post_divergence(monkeypatch
         evaluator.validate_successful_pair(dp, camp, run_config)
 
 
+def test_pilot_reviewer_checks_each_arm_without_post_divergence_comparison() -> None:
+    reviewer = _pilot_reviewer()
+    dp = _candidate_tick("dp", 0, "review")
+    camp = _candidate_tick("camp", 0, "review")
+    for tick in (dp, camp):
+        tick["npc_operational_outputs_unchanged"] = True
+        tick["default_candidate0_identity"]["native_ranked_k8"] = False
+    camp["scores"] = [float(index) for index in range(8)]
+    camp["source_valid_mask"] = [True] * 8
+    assert reviewer._tick_violations(dp, "dp", 0) == []
+    assert reviewer._tick_violations(camp, "camp", 0) == []
+    camp["candidate_tensor_sha256_after"] = _sha("mutated")
+    assert "camp.tick_0.candidate_immutability" in reviewer._tick_violations(
+        camp, "camp", 0
+    )
+
+
 def _speed_protocol() -> dict:
     return {
         "sensitivity": {
@@ -479,7 +502,13 @@ def test_static_preflight_and_reviewer_cannot_execute_runtime() -> None:
         / "integrations"
         / "review_diffusion_planner_v24_paired_preflight.py"
     ).read_text(encoding="utf-8")
-    for source in (producer, reviewer):
+    pilot_reviewer = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "review_diffusion_planner_v24_calibration_pilot.py"
+    ).read_text(encoding="utf-8")
+    for source in (producer, reviewer, pilot_reviewer):
         calls = {
             node.func.id
             for node in ast.walk(ast.parse(source))

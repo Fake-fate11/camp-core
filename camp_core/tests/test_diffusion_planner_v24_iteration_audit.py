@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_evaluation_plan_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=ca54fa2c921440a7ae44961ee410bdab67d5fe19",
+    "current_v24_status=v24_paired_calibration_capability_pilot_execution_passed",
+    "current_v24_artifact_source_head=3ac4b0096c0ed25181c5f90dcc3957e852fd13fb",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_independent_review_ca54fa2c_20260717T012352CST",
-    "current_v24_artifact_root_sha256=8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST",
+    "current_v24_artifact_root_sha256=dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_evaluation_plan_static_preflight_review_passed_calibration_capability_pilot_pending",
+    "source_b_status=paired_calibration_capability_pilot_execution_passed_independent_review_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_calibration_capability_pilot_execution_only",
+    "next_work_target=v24_paired_calibration_capability_pilot_independent_review_only",
 )
 
 
@@ -113,6 +113,25 @@ def test_v24_paired_plan_freezes_order_and_keeps_holdout_closed() -> None:
         "`06bd51a06814a11ae395edfecfc3febddc1ba646dfcd391e33962e15fe46a56c`",
         "`8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88`",
         "Calibration capability/pilot is the only authorized next execution",
+    ):
+        assert phrase in text
+
+
+def test_v24_paired_calibration_pilot_is_complete_but_noninferential() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 49: Paired Calibration Capability and Pilot Execution",
+        "`1 / 1 / 1` planned / retained / complete",
+        "`2 / 2 / 2`",
+        "pilot AB/BA order is exactly `1/1`",
+        "`128` ticks per arm",
+        "`61 / 67` candidate-0 / non-0 selections",
+        "one better and one worse pair with mean delta zero",
+        "No effect or safety conclusion is permitted",
+        "`0bc821da6976a6e320d2d0dc8975e7e2b46f33ea21a3295e9223bb90a2a94930`",
+        "`dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d`",
+        "Holdout remained unopened at count zero",
+        "Only independent result review is authorized next",
     ):
         assert phrase in text
 

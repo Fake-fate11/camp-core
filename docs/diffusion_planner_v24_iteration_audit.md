@@ -2962,3 +2962,95 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_paired_calibration_capability_pilot_execution_only
+
+## Gate 49: Paired Calibration Capability and Pilot Execution
+
+Status: execution passed and complete-sealed. Only independent result review is
+authorized next. Holdout-main, tuning, comparative latency conclusions, and
+all effect/safety claims remain closed.
+
+Local and AutoDL authorization tests passed all `296` required tests at CAMP
+HEAD `3ac4b0096c0ed25181c5f90dcc3957e852fd13fb`; the AutoDL authorization
+static-test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_authorization_static_tests_3ac4b009_20260717T012851CST`
+/
+`c7f2e17635b588566160dd1a4a9c770f1fecc0b93608b5df11ed179e4f58b2e4`.
+
+The first launch precheck intentionally stopped before creating any execution
+artifact because its process grep matched the wrapper shell text. A strict
+anchored Python-command check then proved there was no evaluator, no held
+paired-evaluation lock, and no capability artifact. The corrected launch ran
+exactly once under
+`/root/autodl-tmp/camp_dp_v24_paired_evaluation.global.lock`.
+
+Capability completed `1 / 1 / 1` planned / retained / complete pair with one
+tick per arm, zero source-invalid pairs, zero execution failures, and holdout
+open count zero. Both arms started from independent resets with identical
+initial state, input, spawn config, route seed, fixed-DP request, checkpoint,
+and arguments. Per-arm candidate tensor and global RNG before/after hashes,
+candidate-0/default identity, exact selected-row identity, and `t=0` cross-arm
+input/K=8 identity all passed. Its execution artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_capability_execution_3ac4b009_20260717T013039CST`
+/
+`0bc821da6976a6e320d2d0dc8975e7e2b46f33ea21a3295e9223bb90a2a94930`.
+
+Its wrapper launch artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_capability_execution_3ac4b009_20260717T013039CST_launch`
+/
+`e1b7f62719d723471c742b37a2d006530314af44c2118baabf94934ebae29ba5`.
+
+Pilot then completed `2 / 2 / 2` planned / retained / complete pairs with zero
+source-invalid pairs and zero execution failures. The pilot AB/BA order is
+exactly `1/1`; each route uses only preregistered calibration seed `24101` and
+has `64` ticks, totaling `128` ticks per arm. Every per-arm tick preserved the
+K=8 tensor and global RNG bytes, candidate 0 remained byte-identical to the DP
+operational default, and CAMP returned the exact indexed candidate selected by
+the frozen 14D affine/simplex selector. The two arms match at `t=0`; after
+policy divergence, their state-conditioned K=8 tensors were not compared or
+forced equal.
+
+Pilot CAMP recorded `61 / 67` candidate-0 / non-0 selections and observed zero
+all-K-high-risk pairs. The calibration-only descriptive SafetyCost plumbing
+has one better and one worse pair with mean delta zero. Offroad-rate direction
+also splits one better and one worse. No effect or safety conclusion is
+permitted; no weights, atoms, scales, thresholds, routes, seeds, formulas, or
+claim gates changed. Latency is stored as descriptive instrumented output only
+and cannot support a comparative conclusion.
+
+The pilot ran in `121.94896764075384` seconds. Its execution artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST`
+/
+`dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d`.
+
+Its wrapper launch artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST_launch`
+/
+`87d4aa6693f86060c6ad16edbe6d06be6908e03089749edad2d48c72d7a63cad`.
+
+Both execution seals were independently checked with `sha256sum -c`; no
+evaluator remains and the global lock is released. The only stderr content was
+a nonfatal timm import deprecation warning. Holdout remained unopened at count
+zero, main authorization remained false, and `48,767,987,712` bytes remained
+free. The new independent reviewer is TDD-constrained not to build a runner,
+load a model, call the simulator, or reexecute either source artifact.
+
+current_v24_status=v24_paired_calibration_capability_pilot_execution_passed
+current_v24_artifact_source_head=3ac4b0096c0ed25181c5f90dcc3957e852fd13fb
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST
+current_v24_artifact_root_sha256=dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_calibration_capability_pilot_execution_passed_independent_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_paired_calibration_capability_pilot_independent_review_only

@@ -303,21 +303,39 @@ execution; it is plumbing-only and cannot tune weights, atoms, scales,
 thresholds, routes, seeds, or SafetyCost. Main execution, holdout access,
 comparative latency conclusions, and claims remain closed.
 
-current_v24_status=v24_paired_evaluation_plan_static_preflight_independent_review_passed
-current_v24_artifact_source_head=ca54fa2c921440a7ae44961ee410bdab67d5fe19
+The authorized calibration capability/pilot then completed at source HEAD
+`3ac4b0096c0ed25181c5f90dcc3957e852fd13fb`. Capability retained and
+completed `1 / 1` pair for one tick per arm. Pilot retained and completed
+`2 / 2` pairs for `128` ticks per arm with exact AB/BA `1/1`. There were zero
+source-invalid or execution-failure pairs. Per-arm candidate immutability,
+candidate-0/default identity, independent reset, same initial state/seed, and
+`t=0` cross-arm identity all passed; post-divergence tensors were not compared.
+Holdout remained unopened at count zero.
+
+The pilot selected candidate 0 / non-0 `61 / 67` times. Its calibration-only
+SafetyCost plumbing produced one better and one worse pair with mean delta
+zero; this cannot tune any frozen input or support an effect/safety conclusion.
+Latency remains descriptive only. Capability/pilot roots are
+`0bc821da6976a6e320d2d0dc8975e7e2b46f33ea21a3295e9223bb90a2a94930`
+and `dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d`.
+Only independent read-only pilot review is authorized next. Main execution and
+holdout remain closed.
+
+current_v24_status=v24_paired_calibration_capability_pilot_execution_passed
+current_v24_artifact_source_head=3ac4b0096c0ed25181c5f90dcc3957e852fd13fb
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_independent_review_ca54fa2c_20260717T012352CST
-current_v24_artifact_root_sha256=8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_execution_3ac4b009_20260717T013123CST
+current_v24_artifact_root_sha256=dad15b52154ab3b10d1a407e7aeae61626dc3f8deddac98a2c17b55ac2a0e73d
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_evaluation_plan_static_preflight_review_passed_calibration_capability_pilot_pending
+source_b_status=paired_calibration_capability_pilot_execution_passed_independent_review_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_calibration_capability_pilot_execution_only
+next_work_target=v24_paired_calibration_capability_pilot_independent_review_only
 
 ## Current V23 Status
 
