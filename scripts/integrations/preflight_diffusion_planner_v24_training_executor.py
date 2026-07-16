@@ -69,11 +69,11 @@ PREFLIGHT_SCHEMA = (
 )
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_"
-    "static_preflight_independent_review_db238bd7_20260716T224452CST"
+    "camp_dp_v24_training_stable_authorization_static_preflight_"
+    "independent_review_a5188538_20260716T225055CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357"
+    "a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e"
 )
 REQUIRED_TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v24_training_executor.py",

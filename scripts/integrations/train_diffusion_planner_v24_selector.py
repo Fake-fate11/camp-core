@@ -1323,7 +1323,7 @@ def train_learning_curve(
 
 
 def _authorization_from_eof(
-    *, repo: Path, artifact: Path, expected_root: str, expected_camp_head: str
+    *, repo: Path, artifact: Path, expected_root: str
 ) -> dict[str, Any]:
     text = (Path(repo) / AUDIT_RELATIVE).read_text(encoding="utf-8")
     lines = text.rstrip().splitlines()[-15:]
@@ -1333,7 +1333,6 @@ def _authorization_from_eof(
             "repair_static_preflight_"
             "independent_review_passed"
         ),
-        "current_v24_artifact_source_head": expected_camp_head,
         "current_v24_artifact": str(artifact),
         "current_v24_artifact_root_sha256": expected_root,
         "next_work_target": (
@@ -1341,7 +1340,13 @@ def _authorization_from_eof(
         ),
     }
     parsed = dict(line.split("=", 1) for line in lines if "=" in line)
-    if any(parsed.get(key) != value for key, value in expected.items()):
+    source_head = parsed.get("current_v24_artifact_source_head")
+    if (
+        any(parsed.get(key) != value for key, value in expected.items())
+        or not isinstance(source_head, str)
+        or len(source_head) != 40
+        or bool(set(source_head) - set("0123456789abcdef"))
+    ):
         raise ValueError("live v24 EOF does not authorize training execution")
     verify_complete_seal(artifact, expected_root)
     review = _read_json(Path(artifact) / "review.json")
@@ -1351,11 +1356,13 @@ def _authorization_from_eof(
         "repair_static_preflight_"
         "independent_review_v1"
         or review.get("status") != "passed"
-        or review.get("camp_head") != expected_camp_head
+        or review.get("camp_head") != source_head
         or review.get("executor_source_sha256")
         != hashlib.sha256(
             (Path(repo) / EXECUTOR_PROVENANCE_FILES[0]).read_bytes()
         ).hexdigest()
+        or _git_blob_bytes(Path(repo), source_head, EXECUTOR_PROVENANCE_FILES[0])
+        != (Path(repo) / EXECUTOR_PROVENANCE_FILES[0]).read_bytes()
         or review.get("decision", {}).get("training_execution_authorized") is not True
         or review.get("decision", {}).get("training_retry_authorized") is not True
         or review.get("outcome_accessed") is not False
@@ -1482,7 +1489,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         repo=args.repo,
         artifact=args.authorization_root,
         expected_root=args.authorization_root_sha256,
-        expected_camp_head=args.camp_head,
     )
     import fcntl
 

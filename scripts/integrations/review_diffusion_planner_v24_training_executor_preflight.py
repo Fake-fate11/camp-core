@@ -76,11 +76,11 @@ RETRY_FAILURE_REVIEW_RELATIVE = (
 )
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_"
-    "static_preflight_independent_review_db238bd7_20260716T224452CST"
+    "camp_dp_v24_training_stable_authorization_static_preflight_"
+    "independent_review_a5188538_20260716T225055CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357"
+    "a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e"
 )
 EXPECTED_PROVENANCE = {
     EXECUTOR_RELATIVE,
@@ -253,6 +253,7 @@ def _static_executor_review(source: str) -> list[str]:
         not in authorize
         or "current_v24_artifact_source_head" not in authorize
         or "executor_source_sha256" not in authorize
+        or "_git_blob_bytes" not in authorize
     ):
         raise ValueError("v24 training executor static contract review failed")
     return [

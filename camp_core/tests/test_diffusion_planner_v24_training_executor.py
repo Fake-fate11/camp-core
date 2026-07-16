@@ -679,12 +679,20 @@ def test_training_execution_authorization_binds_cut_relative_review(
     }
     monkeypatch.setattr(module, "verify_complete_seal", lambda *_args: [])
     monkeypatch.setattr(module, "_read_json", lambda _path: review)
+    monkeypatch.setattr(
+        module,
+        "_git_blob_bytes",
+        lambda _repo, head, relative: (
+            b"current executor"
+            if head == camp_head and relative == module.EXECUTOR_PROVENANCE_FILES[0]
+            else b"drift"
+        ),
+    )
 
     assert module._authorization_from_eof(
         repo=tmp_path,
         artifact=artifact,
         expected_root=root,
-        expected_camp_head=camp_head,
     ) == review
     review["executor_source_sha256"] = "c" * 64
     with pytest.raises(ValueError, match="does not authorize"):
@@ -692,7 +700,6 @@ def test_training_execution_authorization_binds_cut_relative_review(
             repo=tmp_path,
             artifact=artifact,
             expected_root=root,
-            expected_camp_head=camp_head,
         )
     review["executor_source_sha256"] = hashlib.sha256(b"current executor").hexdigest()
     audit.write_text(
@@ -710,7 +717,6 @@ def test_training_execution_authorization_binds_cut_relative_review(
             repo=tmp_path,
             artifact=artifact,
             expected_root=root,
-            expected_camp_head=camp_head,
         )
 
 
