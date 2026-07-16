@@ -180,7 +180,7 @@
     "rerun_authorized": false
   },
   "pilot_execution_authorized": true,
-  "main_execution_authorized": false,
+  "main_execution_authorized": true,
   "holdout_opened": false,
   "holdout_open_count": 0,
   "outcome_fields_consumed": [],

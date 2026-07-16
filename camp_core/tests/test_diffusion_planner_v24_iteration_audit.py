@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_calibration_capability_pilot_independent_review_passed",
-    "current_v24_artifact_source_head=e7d78689eb853a3d3a97651a689683294d2396a0",
+    "current_v24_status=v24_paired_holdout_main_once_static_authorization_independent_review_passed",
+    "current_v24_artifact_source_head=d8e70ceacabf37d4182e63030d4e8032926c3ab6",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_calibration_pilot_independent_review_e7d78689_20260717T014137CST",
-    "current_v24_artifact_root_sha256=ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_independent_review_d8e70cea_20260717T015048CST",
+    "current_v24_artifact_root_sha256=b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_calibration_capability_pilot_independent_review_passed_holdout_main_once_static_authorization_pending",
+    "source_b_status=paired_holdout_main_once_static_authorization_review_passed_main_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_holdout_main_once_static_authorization_only",
+    "next_work_target=v24_paired_holdout_main_once_execution_only",
 )
 
 
@@ -150,6 +150,24 @@ def test_v24_paired_calibration_pilot_review_is_independent() -> None:
         "`ab33beef3207e3bedaf875f23d41dc0a277849affbd4e2f4ee1ef34aa7dfece5`",
         "Holdout remains unopened",
         "only holdout-main-once static authorization is next",
+    ):
+        assert phrase in text
+
+
+def test_v24_holdout_main_once_authorization_is_sealed_before_open() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 51: Holdout Main-Once Static Authorization and Independent Review",
+        "`35 / 0` checks",
+        "`25 / 0` checks",
+        "`24 / 5 / 120` routes / seeds per route / pairs",
+        "AB/BA `60/60`",
+        "authorization seal verification, exclusive marker creation, then runner build",
+        "marker does not exist",
+        "`32aea48eef1084291ffdd139f43c8d138fe91bbb84aec97f86cf593f1982d54c`",
+        "`b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4`",
+        "No model, runner, simulator, candidate, or outcome was opened",
+        "Only the exact 120-pair holdout-main-once execution is next",
     ):
         assert phrase in text
 

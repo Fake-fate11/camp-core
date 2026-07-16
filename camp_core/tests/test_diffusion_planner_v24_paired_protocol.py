@@ -156,7 +156,7 @@ def test_v24_config_and_design_freeze_correct_policy_pairing_contract() -> None:
     config = _config()
     _module().validate_evaluation_config(config, require_all_execution_closed=False)
     assert config["pilot_execution_authorized"] is True
-    assert config["main_execution_authorized"] is False
+    assert config["main_execution_authorized"] is True
     assert config["holdout_once_contract"] == {
         "schema": "camp_dp_v24_holdout_once_state_v1",
         "state_path": "/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json",

@@ -3122,3 +3122,79 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_paired_holdout_main_once_static_authorization_only
+
+## Gate 51: Holdout Main-Once Static Authorization and Independent Review
+
+Status: passed and independently complete-sealed before first holdout access.
+Only the exact 120-pair holdout-main-once execution is next. Claims remain
+closed.
+
+The holdout-once protocol was hardened because the prior CLI flag alone did not
+persist cross-process opened state. The new contract writes
+`/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json` with exclusive
+create semantics. Execution order is frozen as authorization seal verification,
+exclusive marker creation, then runner build. If any failure occurs after the
+marker is created, rerun remains unauthorized. This change affects only the
+holdout controller boundary; it does not alter DP, maps, candidate tensors,
+trajectories, atoms, weights, SafetyCost, statistics, or outcomes.
+
+Local clean-HEAD tests passed `301` cases. AutoDL synchronized to CAMP HEAD
+`d8e70ceacabf37d4182e63030d4e8032926c3ab6`, kept fixed DP clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, compiled the producer,
+reviewer, and evaluator, and passed the same `301` tests. The static-test
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_tests_d8e70cea_20260717T015020CST`
+/
+`22e5702868a9fa66486a50f06c825d86c59d5e1f23b95624357fcf6437c6c48b`.
+
+The static producer passed `35 / 0` checks. It complete-seal verified the paired
+preflight and pilot-review roots and reconstructed `24 / 5 / 120` routes /
+seeds per route / pairs with unique keys, AB/BA `60/60`, one map family, and
+three indivisible corridor groups. Every run config remained disabled, used
+64 steps, preserved independent reset and same initial/exogenous seed, required
+per-arm immutability/candidate-0 identity and `t=0` cross-arm identity, forbade
+post-divergence tensor comparison, replacement, comparative latency, and
+claims. It verified coverage gates `1.0 / 1.0 / 0.0 / 0.0`, corridor->route->
+seed CI, fixed DP, no process, free global lock, absent marker, and the 10 GiB
+floor. No model, runner, simulator, candidate, or outcome was opened. Its
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_d8e70cea_20260717T015031CST`
+/
+`32aea48eef1084291ffdd139f43c8d138fe91bbb84aec97f86cf593f1982d54c`.
+
+The independent reviewer then passed `25 / 0` checks without rerunning the
+producer. It rehashed all three source roots, independently reconstructed the
+same 120 pair keys, 24 route seed sets, AB/BA balance, family/corridor counts,
+protocol flags, and marker-before-runtime source order. It confirmed the marker
+does not exist, holdout open count is zero, main execution was still disabled
+inside the source authorization receipt, and all runtime/outcome fields remain
+closed. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_independent_review_d8e70cea_20260717T015048CST`
+/
+`b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4`.
+
+Both source and review seals were independently checked with `sha256sum -c`.
+No evaluator or held paired lock exists, the marker remains absent, and about
+`48,766,824,448` bytes remain free. The config now authorizes main execution,
+but holdout is not opened until the exclusive marker is actually created under
+the one long-running locked executor. The exact invocation must supply both
+the sealed authorization root and `--holdout-once-authorized`.
+
+current_v24_status=v24_paired_holdout_main_once_static_authorization_independent_review_passed
+current_v24_artifact_source_head=d8e70ceacabf37d4182e63030d4e8032926c3ab6
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_independent_review_d8e70cea_20260717T015048CST
+current_v24_artifact_root_sha256=b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_static_authorization_review_passed_main_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_paired_holdout_main_once_execution_only
