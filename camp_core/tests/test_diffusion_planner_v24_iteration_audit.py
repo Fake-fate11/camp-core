@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_holdout_main_once_independent_result_review_tdd_static_preflight_passed",
-    "current_v24_artifact_source_head=0ef3278a7c405c2b1bc33a942c4c03c97107d8cd",
+    "current_v24_status=v24_paired_holdout_main_once_independent_result_review_passed_honest_no_claim_pending_final_rehash",
+    "current_v24_artifact_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_result_reviewer_static_preflight_0ef3278a_20260717T045929CST",
-    "current_v24_artifact_root_sha256=9227bc173320090927e45a24a0728797a3b154ae58c2a801d3ea7be867e89efd",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST",
+    "current_v24_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_static_preflight_passed",
+    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_honest_no_claim_pending_final_evidence_claim_decision",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_holdout_main_once_independent_result_review_execution_only",
+    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_only",
 )
 
 
@@ -222,6 +222,35 @@ def test_v24_holdout_result_reviewer_static_gate_is_sealed_and_outcome_closed() 
         "cannot claim an independent raw-byte candidate rehash or `A @ w` recomputation",
         "`source_execution_artifact_opened=false`",
         "No holdout result value was read or recorded here",
+    ):
+        assert phrase in text
+
+
+def test_v24_holdout_independent_result_review_is_sealed_and_honest_no_claim() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 55: Holdout Main-Once Independent Result Review Execution",
+        "`0f9a83aa4ffb6f37f9662184e5041b4810ea7cc97662a2c1c938e4b804f35902`",
+        "`ee98ff5b52df94eaf2ae1fbffe0676aef15b627275eac5f36bf23a8dfb39c082`",
+        "`169fa5ee55e30f4d0d1938e33dc293950f5cdea10c8df2194af498dc5f963bd2`",
+        "`d8fc40610f55ce5cba90eeeb4fe66658ce1bad39d42d539e99d95d5ee14e56f3`",
+        "had not entered `inspect_execution`, consumed pair or outcome fields",
+        "passed `27 / 0` checks",
+        "`43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf`",
+        "`970a9176deca7a9e42c4c054e1d4c360da667a97cade3ee6b86fa42172696123`",
+        "`120 / 120 / 120` planned / retained / paired-complete",
+        "AB/BA is exactly `60/60`",
+        "`7,680 / 7,680` DP/CAMP ticks",
+        "`[-0.06380208333333333, 0.01953125]`",
+        "better/tie/worse `4 / 113 / 3`",
+        "zero additional collision/offroad/red-light/wrong-way pairs",
+        "candidate 0 / non-0 on `1,401 / 6,279` ticks",
+        "`8` pairs and `36` ticks",
+        "Latency remains arm-only descriptive",
+        "The frozen claim evaluator returns `honest_no_claim`",
+        "clustered CI95 upper bound is positive",
+        "`independent_review_passed=false`",
+        "not raw-byte tensor rehash or independent `A @ w` recomputation",
     ):
         assert phrase in text
 

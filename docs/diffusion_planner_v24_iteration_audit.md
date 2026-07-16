@@ -3378,18 +3378,112 @@ must first rehash the completed reviewer artifact. This static gate recorded
 `runner_built=false`, `model_loaded=false`, `simulator_executed=false`, and
 `claim_authorized=false`. No holdout result value was read or recorded here.
 
-current_v24_status=v24_paired_holdout_main_once_independent_result_review_tdd_static_preflight_passed
-current_v24_artifact_source_head=0ef3278a7c405c2b1bc33a942c4c03c97107d8cd
+## Gate 55: Holdout Main-Once Independent Result Review Execution
+
+Status: passed and complete-sealed. The reviewer did not rerun either arm,
+reopen holdout, build a runner, load a model, or execute the simulator. The
+pre-registered result is honest no-claim; a separate evidence/claim gate must
+rehash this sealed reviewer root before it may mark independent review passed.
+
+The first two read-only launches exposed ordinary reviewer-contract defects and
+failed closed without creating a review output directory. The first launch
+rejected 40-character Git OIDs with a SHA256 validator before opening any
+source artifact. Its sealed launch root is
+`0f9a83aa4ffb6f37f9662184e5041b4810ea7cc97662a2c1c938e4b804f35902`.
+The 40-character lowercase Git-OID fix and entry-level regression tests passed
+`73` local/AutoDL tests at CAMP HEAD
+`9351a067b262e1dfc6694119513c1e1663a95777`; its static root is
+`ee98ff5b52df94eaf2ae1fbffe0676aef15b627275eac5f36bf23a8dfb39c082`.
+
+The second launch then rejected the frozen legacy route-census review receipt
+because that historical schema records exact `31 / 0` checks and a decision,
+not modern `status/failed_count` fields. It had verified seals and upstream
+protocol receipts but had not entered `inspect_execution`, consumed pair or
+outcome fields, started metrics/bootstrap, or created its output directory.
+Its sealed launch root is
+`169fa5ee55e30f4d0d1938e33dc293950f5cdea10c8df2194af498dc5f963bd2`.
+The exact-schema fix accepts only the frozen decision, exactly 31 true checks,
+strict integer `31 / 0`, boundary flags, and one exact
+`ROUTE_CENSUS_EXECUTION_ROOT_SHA256` line; modern split/training reviews still
+require JSON source-root bindings. Local/AutoDL suites passed `76` tests at
+CAMP HEAD `aff69dfcae3d3dcde79b9c46912493767f9208f2`. The sealed remediation
+root is `d8fc40610f55ce5cba90eeeb4fe66658ce1bad39d42d539e99d95d5ee14e56f3`.
+Across both failures, the once-marker SHA remained
+`f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633`,
+with open count one and rerun false. No evaluator/reviewer process or lock was
+left behind, and the disk floor remained satisfied.
+
+The fresh reviewer launch at CAMP HEAD
+`aff69dfcae3d3dcde79b9c46912493767f9208f2` then exited `0` with empty
+stderr. Its complete-sealed output and launch artifacts are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST`
+/
+`43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf`,
+
+and the sibling `_launch` root
+`970a9176deca7a9e42c4c054e1d4c360da667a97cade3ee6b86fa42172696123`.
+All ten manifest-listed files in each artifact independently rehashed. The
+reviewer passed `27 / 0` checks, retained and completed `120 / 120 / 120`
+planned / retained / paired-complete route-seed pairs, recorded zero
+source-invalid or execution-invalid pairs, and independently reviewed
+`7,680 / 7,680` DP/CAMP ticks. AB/BA is exactly `60/60`; there are 24 routes,
+five frozen seeds per route, one map family, and three corridor clusters.
+
+Independent SafetyCost delta is mean `-0.014322916666666666`, median `0`,
+with corridor-to-route-to-seed CI95
+`[-0.06380208333333333, 0.01953125]` and better/tie/worse `4 / 113 / 3`.
+Only near-miss noncollision rate is nonzero: mean
+`-0.0014322916666666666`, CI95
+`[-0.006380208333333333, 0.001953125]`, and the same `4 / 113 / 3` counts.
+Collision, offroad, red-light, wrong-way, and speed-violation deltas are all
+zero, with zero additional collision/offroad/red-light/wrong-way pairs. Speed
+tolerances `0 / 0.05 / 0.1 / 0.2` and continuous speed-excess sensitivities
+are all zero.
+
+CAMP selected candidate 0 / non-0 on `1,401 / 6,279` ticks. The all-K-high-risk
+stratum contains `8` pairs and `36` ticks, with mean SafetyCost delta
+`-0.078125`, CI95 `[-0.34375, 0.10416666666666667]`, and better/tie/worse
+`2 / 4 / 2`. Route-progress delta is mean `0.364734965469757` m and route
+completion-rate delta is mean `0.003145734239238509`, but comfort is mixed:
+mean absolute jerk delta is `1.6769951260259433` m/s3 and mean absolute lateral
+acceleration delta is `0.016587421040750772` m/s2. These are secondary
+descriptive results, not claim substitutes.
+
+Latency remains arm-only descriptive because it cannot support a comparative
+conclusion. DP total mean/median/p95/p99/max are
+`457.4357747832031 / 462.5174525 / 477.0015715 / 485.63159656 /
+595.693139` ms. CAMP total values are
+`483.4904904895833 / 489.5165385 / 505.53022885 / 518.79447055 /
+937.932746` ms. Every latency stage has `7,680` samples; no AB/BA ordering or
+warm-state inference is made from these figures.
+
+The frozen claim evaluator returns `honest_no_claim`. Retention, execution,
+negative mean, better>worse, candidate identity, zero overlap, holdout-once,
+and no-major-event-regression gates pass, but the clustered CI95 upper bound is
+positive. The reviewer also deliberately leaves
+`independent_review_passed=false` because it cannot self-authorize its own
+unsealed root. The separate claim-decision gate must rehash root
+`43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf`
+and may then close that evidence guard; the positive CI upper bound still
+requires honest no-claim. Map-family CI, broad unseen-map generalization,
+native-ranked-Top-1, comparative latency, real-world safety, deployment, and
+promotion claims remain forbidden. Raw candidate/atom bytes are absent, so
+only complete-sealed receipt consistency and reported-score legal argmin are
+supported, not raw-byte tensor rehash or independent `A @ w` recomputation.
+
+current_v24_status=v24_paired_holdout_main_once_independent_result_review_passed_honest_no_claim_pending_final_rehash
+current_v24_artifact_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_result_reviewer_static_preflight_0ef3278a_20260717T045929CST
-current_v24_artifact_root_sha256=9227bc173320090927e45a24a0728797a3b154ae58c2a801d3ea7be867e89efd
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_static_preflight_passed
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_honest_no_claim_pending_final_evidence_claim_decision
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_holdout_main_once_independent_result_review_execution_only
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_only

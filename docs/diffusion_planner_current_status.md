@@ -391,21 +391,54 @@ latency, failure retention, and the raw candidate/atom byte evidence limitation.
 Only the exact independent read-only result review may run next; neither arm may
 be rerun and the reviewer cannot self-authorize a claim.
 
-current_v24_status=v24_paired_holdout_main_once_independent_result_review_tdd_static_preflight_passed
-current_v24_artifact_source_head=0ef3278a7c405c2b1bc33a942c4c03c97107d8cd
+The independent result review then passed `27 / 0` checks at CAMP HEAD
+`aff69dfcae3d3dcde79b9c46912493767f9208f2` without rerunning either arm.
+Two earlier read-only reviewer launches failed closed before metrics: one
+separated 40-character Git OIDs from SHA256 pins, and one strictly adapted the
+frozen legacy route-review schema. Their failure/remediation roots are
+`0f9a83aa4ffb6f37f9662184e5041b4810ea7cc97662a2c1c938e4b804f35902` /
+`ee98ff5b52df94eaf2ae1fbffe0676aef15b627275eac5f36bf23a8dfb39c082`
+and
+`169fa5ee55e30f4d0d1938e33dc293950f5cdea10c8df2194af498dc5f963bd2` /
+`d8fc40610f55ce5cba90eeeb4fe66658ce1bad39d42d539e99d95d5ee14e56f3`.
+Neither created a result output; the once marker remained byte-identical at
+open count one with rerun false.
+
+The successful review retained/completed all `120 / 120 / 120` pairs with
+zero source/execution failures, AB/BA `60/60`, and `7,680` ticks per arm.
+SafetyCost delta is mean `-0.014322916666666666`, median zero, clustered CI95
+`[-0.06380208333333333, 0.01953125]`, and better/tie/worse `4 / 113 / 3`.
+Only near-miss rate is nonzero; collision, offroad, red-light, wrong-way, and
+all speed-tolerance deltas are zero. CAMP selected candidate 0/non-0
+`1,401 / 6,279` times; the all-K-high-risk stratum covers `8` pairs and `36`
+ticks. Coverage is 100% with no replacement or dropped pair.
+
+The immutable reviewer/launch roots are
+`43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf`
+and `970a9176deca7a9e42c4c054e1d4c360da667a97cade3ee6b86fa42172696123`.
+Latency remains arm-only descriptive. The frozen decision is honest no-claim:
+the mean and better>worse gates pass, but the clustered CI upper bound is
+positive. The reviewer self-guard remains false until a separate gate rehashes
+its sealed root; closing that guard cannot repair the failed CI gate. Only the
+evidence-package and preregistered claim-decision static gate is next. Broad
+unseen-map, native-ranked-Top-1, comparative latency, real-world safety,
+deployment, and promotion claims remain forbidden.
+
+current_v24_status=v24_paired_holdout_main_once_independent_result_review_passed_honest_no_claim_pending_final_rehash
+current_v24_artifact_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_result_reviewer_static_preflight_0ef3278a_20260717T045929CST
-current_v24_artifact_root_sha256=9227bc173320090927e45a24a0728797a3b154ae58c2a801d3ea7be867e89efd
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_static_preflight_passed
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_honest_no_claim_pending_final_evidence_claim_decision
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_holdout_main_once_independent_result_review_execution_only
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_only
 
 ## Current V23 Status
 
