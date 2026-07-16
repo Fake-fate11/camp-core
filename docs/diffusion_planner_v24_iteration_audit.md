@@ -2440,18 +2440,83 @@ calibration, holdout, outcome, tuning, or claim boundary opened. Only the exact
 train-only retry is authorized next, and it still requires independent result
 review before calibration planning.
 
-current_v24_status=v24_convex_training_projection_boundary_repair_static_preflight_independent_review_passed
-current_v24_artifact_source_head=a325b687c53ea8cc4fd033679de19dba56081a64
+## Gate 41: Convex Training Retry Failure Independent Review
+
+Status: the exact train-only retry failed closed and is independently reviewed
+and sealed. Only cut-relative-gap repair TDD/static preflight is authorized
+next; a third training execution remains unauthorized.
+
+After the Gate 40 authorization was recorded, local/origin/GitHub/AutoDL CAMP
+were aligned and tracked clean at
+`e00b66047a735604db8daaa719f44f7d5e8921cc`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL repeated the five related
+suites at `123 passed` with empty stderr. The post-doc test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_projection_repair_post_docs_tests_e00b6604_20260716T220744CST`
+/
+`295edf664fedb7cb95077b5b2a105e63828f695320d2e4fd9b3ccab58d615284`.
+
+The controller reread the Gate 40 EOF, found no target process, all three locks
+free, clean aligned CAMP/DP, and more than the 10 GiB floor, then launched the
+authorized retry exactly once as PID `91691`. It again stopped inside the 25%
+level with the exact failure
+`projected saved-weight full-K gap exceeds tolerance`. No learning-curve level
+completed, no model or training manifest was produced, PID `91691` is absent,
+all locks are free, and calibration, holdout, actual outcomes, tuning, and
+claims remain closed. The eight-file retry artifact was complete-sealed at:
+
+`/root/autodl-tmp/camp_dp_v24_convex_selector_training_retry_execution_e00b6604_20260716T220822CST`
+/
+`4f7b28cfbb24c49dd9682d899acf32dd87016d6050e6acab059703d236d3c1c3`.
+
+An independent retry-failure reviewer was committed at CAMP HEAD
+`174f48ecf986db0431365bdd2f0347b518b8c8f1`. It binds the exact retry source,
+Gate 40 authorization, failure seal, zero-output boundary, clean fixed DP,
+processes, locks, and disk. The diagnosis further narrows the numerical defect:
+the repaired separator measures projected `full-K minus master_losses`, while
+acceptance measures projected `full-K minus the serialized cut set`. These are
+not the same quantity. The retry source never computes the latter cut-relative
+gap during separation, so a master-relative projected gap can pass while the
+independent saved-weight cut-relative check correctly fails.
+
+The newly frozen repair contract is limited to separating on both raw and
+projected `full-K minus cut-set` gaps, retaining the raw/projected
+master-relative diagnostics, requiring all four gaps at most `1e-6`, and
+retaining exact CLARABEL `optimal` only, no fallback, and the 20-iteration cap.
+No protocol, data, tolerance, candidate, trajectory, DP, map, calibration, or
+holdout change is authorized.
+
+Local Python 3.12 compilation, pyflakes, diff checks, and the two focused suites
+passed `57` tests. AutoDL repeated those `57` tests with empty stderr. Its test
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_retry_failure_review_tests_174f48ec_20260716T221541CST`
+/
+`02f94b4c1095d4723f7713b6381ef2b7c197599f6b0b69cb35f0aac0d95e3b37`.
+
+The independent reviewer passed `14 / 0` checks, found zero executor processes,
+all locks free, and the disk floor satisfied. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_20260716T221541CST`
+/
+`4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b`.
+
+No model or usable training result exists. Only the bounded cut-relative-gap
+repair TDD/static-preflight gate is authorized next; training, calibration,
+holdout, outcomes, paired evaluation, tuning, and claims remain unauthorized.
+
+current_v24_status=v24_convex_training_retry_failure_independent_review_passed
+current_v24_artifact_source_head=174f48ecf986db0431365bdd2f0347b518b8c8f1
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_independent_review_a325b687_20260716T220107CST
-current_v24_artifact_root_sha256=6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_20260716T221541CST
+current_v24_artifact_root_sha256=4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_projection_boundary_repair_static_preflight_independent_review_passed_retry_execution_pending
+source_b_status=convex_training_retry_failed_cut_relative_gap_mismatch_independent_review_passed_repair_static_preflight_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_retry_execution_only
+next_work_target=v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only

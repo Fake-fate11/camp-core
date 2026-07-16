@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_convex_training_projection_boundary_repair_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=a325b687c53ea8cc4fd033679de19dba56081a64",
+    "current_v24_status=v24_convex_training_retry_failure_independent_review_passed",
+    "current_v24_artifact_source_head=174f48ecf986db0431365bdd2f0347b518b8c8f1",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_independent_review_a325b687_20260716T220107CST",
-    "current_v24_artifact_root_sha256=6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_20260716T221541CST",
+    "current_v24_artifact_root_sha256=4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_projection_boundary_repair_static_preflight_independent_review_passed_retry_execution_pending",
+    "source_b_status=convex_training_retry_failed_cut_relative_gap_mismatch_independent_review_passed_repair_static_preflight_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_convex_selector_training_retry_execution_only",
+    "next_work_target=v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only",
 )
 
 
@@ -202,6 +202,24 @@ def test_v24_projection_boundary_repair_is_reviewed_before_retry() -> None:
         "passed `24 / 0` checks",
         "6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13",
         "Only the exact train-only retry is authorized next",
+    ):
+        assert phrase in text
+
+
+def test_v24_training_retry_failure_is_reviewed_before_cut_relative_repair() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "PID `91691`",
+        "No learning-curve level completed",
+        "4f7b28cfbb24c49dd9682d899acf32dd87016d6050e6acab059703d236d3c1c3",
+        "full-K minus master_losses",
+        "full-K minus the serialized cut set",
+        "requiring all four gaps at most `1e-6`",
+        "passed `57` tests",
+        "02f94b4c1095d4723f7713b6381ef2b7c197599f6b0b69cb35f0aac0d95e3b37",
+        "passed `14 / 0` checks",
+        "4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b",
+        "a third training execution remains unauthorized",
     ):
         assert phrase in text
 

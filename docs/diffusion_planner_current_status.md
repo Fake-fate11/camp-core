@@ -208,21 +208,30 @@ positive review root is
 Only an exact train-only retry is now authorized; calibration, holdout,
 outcomes, tuning, and claims remain closed.
 
-current_v24_status=v24_convex_training_projection_boundary_repair_static_preflight_independent_review_passed
-current_v24_artifact_source_head=a325b687c53ea8cc4fd033679de19dba56081a64
+That retry then failed closed inside the 25% level with the same projected
+saved-weight full-K gap error. PID `91691` is absent, all locks are free, and
+zero levels, models, or manifests were produced. Independent review passed
+`14 / 0` checks and distinguishes the repaired master-relative projected gap
+from the cut-relative gap that acceptance checks. Its root is
+`4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b`.
+Only bounded cut-relative-gap repair TDD/static preflight is authorized next;
+a third training execution and all later boundaries remain closed.
+
+current_v24_status=v24_convex_training_retry_failure_independent_review_passed
+current_v24_artifact_source_head=174f48ecf986db0431365bdd2f0347b518b8c8f1
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_projection_repair_static_preflight_independent_review_a325b687_20260716T220107CST
-current_v24_artifact_root_sha256=6cd16510b7cf2c82277d086271a56ebc36a803a5db2ce1a2289e86616bbe2e13
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_20260716T221541CST
+current_v24_artifact_root_sha256=4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_projection_boundary_repair_static_preflight_independent_review_passed_retry_execution_pending
+source_b_status=convex_training_retry_failed_cut_relative_gap_mismatch_independent_review_passed_repair_static_preflight_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_retry_execution_only
+next_work_target=v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only
 
 ## Current V23 Status
 
