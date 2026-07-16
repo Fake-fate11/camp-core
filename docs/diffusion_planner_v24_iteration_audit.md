@@ -3256,3 +3256,53 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_paired_holdout_main_once_execution_monitor_only_do_not_duplicate
+
+## Gate 53: Holdout Main-Once Execution Completion
+
+Status: passed and complete-sealed. The holdout was opened exactly once and
+cannot be rerun. Claims remain closed; only independent read-only result review
+is authorized next.
+
+The unique evaluator exited `0` after `7,275.658662086818` seconds. It produced
+`120 / 120 / 120` planned / retained / complete pairs with zero source-invalid,
+execution-failure, or hard-invalid pairs. Both arms reported `120` successful
+receipts, every pair remained in the denominator, and no replacement or
+resampling occurred. AB/BA remained exactly `60/60`. The persistent marker
+still records `holdout_open_count=1` and `rerun_authorized=false`.
+
+The completed source artifact is:
+
+`/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST`.
+
+All `1,568` source files and the root receipt passed `sha256sum -c`. Its root
+is `bdced339f0a97381dca918441e61d11830f63880d2a4421da05bfe4ae6649dc3`.
+The eight-file launch receipt at the sibling `_launch` directory was separately
+sealed and verified at root
+`a300ae01fe9f46df1f236236d00e4d87790631df37105e8fb11bd37d65f96b46`.
+No evaluator or held global lock remains, stderr contains only the known `timm`
+deprecation warning, and more than `48.68` GB remains free.
+
+The producer wrote descriptive statistics with final claims disabled. No
+producer statistic is accepted as an independent result, and no effect,
+safety, comparative-latency, unseen-map, native-ranked-Top-1, deployment, or
+promotion conclusion is permitted before independent recomputation. Holdout
+remains opened exactly once and cannot be rerun. Only independent read-only
+result review is authorized next; it must verify all SHA, pair, tick, metric,
+cluster-CI, failure-accounting, identity, split, and claim gates without
+building a runner or executing either arm.
+
+current_v24_status=v24_paired_holdout_main_once_execution_complete_independent_review_pending
+current_v24_artifact_source_head=8caa2699b3657154f464e14c2f274190d3036c4a
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST
+current_v24_artifact_root_sha256=bdced339f0a97381dca918441e61d11830f63880d2a4421da05bfe4ae6649dc3
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_paired_holdout_main_once_independent_result_review_only

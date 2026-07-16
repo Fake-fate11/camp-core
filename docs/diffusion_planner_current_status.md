@@ -362,21 +362,37 @@ launch. The task covers the frozen 120 pairs only. No second evaluator may be
 launched. Until it exits, the only authorized action is monitor-only inspection
 of PID, progress, stderr, lock, marker, artifact state, and disk floor.
 
-current_v24_status=v24_paired_holdout_main_once_execution_running
+The main-once execution subsequently exited `0` after
+`7,275.658662086818` seconds. It retained and completed all
+`120 / 120 / 120` planned / retained / complete pairs with zero source-invalid,
+execution-failure, or hard-invalid pairs; AB/BA remained exactly `60/60`.
+The persistent marker still records holdout open count `1` and rerun forbidden.
+No evaluator or held global lock remains, and more than `48.68` GB is free.
+
+All `1,568` source artifact files and the source root receipt independently
+passed `sha256sum -c`. The immutable source root is
+`bdced339f0a97381dca918441e61d11830f63880d2a4421da05bfe4ae6649dc3`.
+The eight-file launch receipt was separately sealed and verified at root
+`a300ae01fe9f46df1f236236d00e4d87790631df37105e8fb11bd37d65f96b46`.
+Producer descriptive statistics remain unreviewed: no effect, safety,
+comparative-latency, or policy claim is authorized. Only independent read-only
+result review may proceed; it cannot rerun either arm or reopen holdout.
+
+current_v24_status=v24_paired_holdout_main_once_execution_complete_independent_review_pending
 current_v24_artifact_source_head=8caa2699b3657154f464e14c2f274190d3036c4a
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST
-current_v24_artifact_root_sha256=pending_running_unsealed
+current_v24_artifact_root_sha256=bdced339f0a97381dca918441e61d11830f63880d2a4421da05bfe4ae6649dc3
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_holdout_main_once_execution_running_open_count_1_rerun_forbidden
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_review_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_holdout_main_once_execution_monitor_only_do_not_duplicate
+next_work_target=v24_paired_holdout_main_once_independent_result_review_only
 
 ## Current V23 Status
 
