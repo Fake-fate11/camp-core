@@ -3591,3 +3591,85 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_evidence_package_and_preregistered_claim_decision_execution_only
+
+## Gate 57: Evidence/Claim First Launch Failure Attribution and Process-Scan Remediation
+
+Status: the first evidence/claim launch failed closed, its launch receipt was
+complete-sealed, and the minimal process-scan remediation static preflight
+passed. No evidence-package output directory was created. Only one exact retry
+of the evidence/claim gate is authorized next.
+
+The first launch ran at docs/package HEAD
+`9ade6bf55000ec0a9856d69b887f45899bf73cb3`. It passed live repository,
+authority, Gate 56 static artifact, sealed reviewer, metrics, and holdout-marker
+validation, then rejected its own parent Bash/SSH wrapper because that ancestor
+command line contained `build_diffusion_planner_v24_evidence_claim.py`. The
+reported error was `a v24 evaluator/reviewer process is still active`. The
+builder exited `1` after `1.7156877517700195` seconds with no stdout, no output
+artifact, and no partial `.tmp` directory. The complete-sealed seven-file launch
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_9ade6bf55000ec0a9856d69b887f45899bf73cb3_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf_launch`
+/
+`0c80d8f18b43432d5e665aca8b34d315491e54e1f340276abd9cbcf20a62690f`.
+
+This failed attempt did rehash and parse the already sealed reviewer and its
+paired metrics before reaching the process check. It did not rerun the reviewer,
+either evaluation arm, the runner, model, or simulator; it did not reopen
+holdout, change the marker, materialize a package/claim decision, or authorize a
+claim. The launch independently records output absent, global lock free,
+related-process count zero after exit, marker unchanged, and more than 10 GiB
+free. Re-reading the same immutable reviewer after a process-harness correction
+does not rerun holdout or either policy arm.
+
+The root cause was a scanner contract bug: it excluded only its current PID,
+not its ancestor chain. The minimal source fix at CAMP HEAD
+`ca30eb470943b0128c4ab79122cfae3a9988bfc0` walks `PPid` through the complete
+`/proc` ancestor chain and excludes those wrapper PIDs. It still scans every
+non-ancestor PID for builder, evaluator, and reviewer tokens, so unrelated
+builder/evaluator/reviewer processes remain detectable and fail closed. A
+synthetic process-tree regression and a real AutoDL wrapper-path probe both
+passed. Final read-only adversarial review found no P1/P2.
+
+Local and AutoDL Python compile, evidence/reviewer/paired-protocol/v24-audit
+suites, and `git diff --check` passed. The remediation source passed `54`
+focused tests and `133` joint tests. It also freezes the new live authority
+status/source-B/next-target tuple for the retry. The complete-sealed 16-file
+remediation static artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_ca30eb47_20260717T063226CST_process_scan_remediation`
+/
+`6955d6bb52817a1e5d3eda0bc3d54aaa9a0754f059baca597cb01381fac6f481`.
+
+The failed launch root and absent output were independently reverified before
+this static artifact was sealed. The marker remained byte-identical at
+`f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633`,
+with `holdout_open_count=1` and `holdout_rerun_authorized=false`; the global
+lock was free, the real wrapper scan returned zero related PIDs, fixed DP stayed
+clean, and `48,679,104,512` bytes remained free. Static receipts record
+`evidence_retry_executed=false`, `source_execution_reexecuted=false`,
+`reviewer_reexecuted=false`, `runner_built=false`, `model_loaded=false`,
+`simulator_executed=false`, and `holdout_reopened=false`.
+
+current_v24_status=v24_evidence_package_and_preregistered_claim_decision_process_scan_remediation_static_preflight_passed
+current_v24_artifact_source_head=ca30eb470943b0128c4ab79122cfae3a9988bfc0
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_ca30eb47_20260717T063226CST_process_scan_remediation
+current_v24_artifact_root_sha256=6955d6bb52817a1e5d3eda0bc3d54aaa9a0754f059baca597cb01381fac6f481
+current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
+current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
+current_v24_holdout_open_count=1
+current_v24_holdout_rerun_authorized=false
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_process_scan_remediation_static_preflight_passed_honest_no_claim_retry_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_retry_execution_only

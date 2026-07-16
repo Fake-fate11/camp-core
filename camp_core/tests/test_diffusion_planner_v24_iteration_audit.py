@@ -20,12 +20,12 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_passed",
-    "current_v24_artifact_source_head=743af40d631d7b80c39c5593c3beb773a96b251e",
+    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_process_scan_remediation_static_preflight_passed",
+    "current_v24_artifact_source_head=ca30eb470943b0128c4ab79122cfae3a9988bfc0",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_743af40d_20260717T061743CST",
-    "current_v24_artifact_root_sha256=f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_ca30eb47_20260717T063226CST_process_scan_remediation",
+    "current_v24_artifact_root_sha256=6955d6bb52817a1e5d3eda0bc3d54aaa9a0754f059baca597cb01381fac6f481",
     "current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST",
     "current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
     "current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2",
@@ -35,13 +35,13 @@ POINTER = (
     "current_v24_holdout_rerun_authorized=false",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_static_preflight_passed_honest_no_claim_execution_pending",
+    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_process_scan_remediation_static_preflight_passed_honest_no_claim_retry_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_execution_only",
+    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_retry_execution_only",
 )
 
 
@@ -301,6 +301,27 @@ def test_v24_gate56_pointer_keeps_reviewer_and_holdout_authority_distinct() -> N
     assert "current_v24_holdout_open_count=1" in text
     assert "current_v24_holdout_rerun_authorized=false" in text
     assert "current_v24_reviewer_artifact_source_head=" not in text
+
+
+def test_v24_evidence_claim_process_scan_failure_and_remediation_are_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 57: Evidence/Claim First Launch Failure Attribution and Process-Scan Remediation",
+        "`0c80d8f18b43432d5e665aca8b34d315491e54e1f340276abd9cbcf20a62690f`",
+        "`a v24 evaluator/reviewer process is still active`",
+        "No evidence-package output directory was created",
+        "parent Bash/SSH wrapper",
+        "complete `/proc` ancestor chain",
+        "unrelated builder/evaluator/reviewer processes remain detectable",
+        "passed `54` focused tests and `133` joint tests",
+        "`ca30eb470943b0128c4ab79122cfae3a9988bfc0`",
+        "`6955d6bb52817a1e5d3eda0bc3d54aaa9a0754f059baca597cb01381fac6f481`",
+        "`evidence_retry_executed=false`",
+        "`holdout_open_count=1`",
+        "`holdout_rerun_authorized=false`",
+        "v24_evidence_package_and_preregistered_claim_decision_retry_execution_only",
+    ):
+        assert phrase in text
 
 
 def test_v24_remaining_execution_and_independent_review_are_sealed() -> None:
