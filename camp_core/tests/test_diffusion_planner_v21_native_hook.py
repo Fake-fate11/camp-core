@@ -196,6 +196,47 @@ def _hook(
     return hook, state
 
 
+def test_v24_dp_candidate0_mode_generates_immutable_k8_and_returns_default() -> None:
+    module = _runner()
+    scene = _Scene()
+    args = SimpleNamespace(predicted_neighbor_num=320, future_len=80)
+    agent_ids = ["npc", "ego"]
+    native_model = _FakeModel()
+    native_predictions = _native_predict_batch(
+        native_model, args, scene, agent_ids, "cpu"
+    )
+    state = module.NativeHookState()
+    model = _FakeModel()
+    hook = module.NativeCampPredictBatch(
+        state=state,
+        to_model_tensors=_to_model_tensors,
+        dump_step_npz=_dump_step_npz,
+        materialize=None,
+        select_candidate=None,
+        signal_mask=None,
+        planned_red_cost=None,
+        atom_scales=None,
+        weights=None,
+        candidate_seed_root=3418,
+        route_sha256="ab" * 32,
+        operational_mode="dp_candidate0",
+    )
+    predictions = hook(model, args, scene, agent_ids, "cpu")
+    receipt = state.receipts[-1]
+    np.testing.assert_array_equal(predictions["ego"], native_predictions["ego"])
+    np.testing.assert_array_equal(predictions["npc"], native_predictions["npc"])
+    assert len(model.calls) == 8
+    assert receipt["selected_index"] == 0
+    assert receipt["candidate0_operational_default"] is True
+    assert receipt["candidate_tensor_sha256_before"] == receipt[
+        "candidate_tensor_sha256_after"
+    ]
+    assert receipt["default_candidate0_identity"]["elementwise_equal"] is True
+    assert receipt["selected_trajectory_sha256"] == receipt["default_output_sha256"]
+    assert receipt["selection_policy"] == "candidate0_operational_default"
+    assert "atom_matrix_sha256" not in receipt
+
+
 def test_hook_matches_native_default_and_changes_only_selected_ego() -> None:
     module = _runner()
     scene = _Scene()

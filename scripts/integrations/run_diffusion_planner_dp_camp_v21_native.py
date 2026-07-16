@@ -231,18 +231,19 @@ class NativeCampPredictBatch:
         state: NativeHookState,
         to_model_tensors: Callable[..., Mapping[str, Any]],
         dump_step_npz: Callable[..., Mapping[str, Any]],
-        materialize: Callable[..., Mapping[str, Any]],
-        select_candidate: Callable[..., Mapping[str, Any]],
-        signal_mask: Callable[[np.ndarray, Mapping[str, Any], Any], np.ndarray],
+        materialize: Callable[..., Mapping[str, Any]] | None,
+        select_candidate: Callable[..., Mapping[str, Any]] | None,
+        signal_mask: Callable[[np.ndarray, Mapping[str, Any], Any], np.ndarray] | None,
         planned_red_cost: Callable[
             [np.ndarray, Mapping[str, Any], Any], np.ndarray
-        ],
-        atom_scales: np.ndarray,
-        weights: np.ndarray,
+        ] | None,
+        atom_scales: np.ndarray | None,
+        weights: np.ndarray | None,
         candidate_seed_root: int,
         route_sha256: str,
         pre_safety: Callable[[dict[str, Any], Any], None] | None = None,
         selection_policy: str = V21_PHYSICAL_SELECTION,
+        operational_mode: str = "camp_selector",
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
         decision_sample_every_ticks: int = 5,
     ) -> None:
@@ -253,16 +254,31 @@ class NativeCampPredictBatch:
         self.select_candidate = select_candidate
         self.signal_mask = signal_mask
         self.planned_red_cost = planned_red_cost
-        self.atom_scales = np.asarray(atom_scales, dtype=np.float64)
-        self.weights = np.asarray(weights, dtype=np.float64)
+        if operational_mode not in {"camp_selector", "dp_candidate0"}:
+            raise ValueError("unknown native K8 operational mode")
+        self.operational_mode = operational_mode
+        self.atom_scales = (
+            None
+            if atom_scales is None
+            else np.asarray(atom_scales, dtype=np.float64)
+        )
+        self.weights = (
+            None if weights is None else np.asarray(weights, dtype=np.float64)
+        )
         self.candidate_seed_root = candidate_seed_root
         self.route_sha256 = route_sha256
         self.pre_safety = pre_safety
-        if selection_policy not in _SELECTION_POLICIES:
+        if operational_mode == "camp_selector" and selection_policy not in _SELECTION_POLICIES:
             raise ValueError("unknown selection policy")
-        self.selection_policy = selection_policy
+        self.selection_policy = (
+            selection_policy
+            if operational_mode == "camp_selector"
+            else "candidate0_operational_default"
+        )
         if decision_sink is not None and selection_policy != V22_SOURCE_VALID_SELECTION:
             raise ValueError("decision sink requires v22 source-valid selection")
+        if decision_sink is not None and operational_mode != "camp_selector":
+            raise ValueError("DP candidate-0 mode cannot emit CAMP decision snapshots")
         if (
             isinstance(decision_sample_every_ticks, bool)
             or not isinstance(decision_sample_every_ticks, int)
@@ -271,7 +287,16 @@ class NativeCampPredictBatch:
             raise ValueError("decision sample cadence must be a positive integer")
         self.decision_sink = decision_sink
         self.decision_sample_every_ticks = decision_sample_every_ticks
-        if self.atom_scales.shape != (14,) or self.weights.shape != (14,):
+        if operational_mode == "camp_selector" and (
+            self.atom_scales is None
+            or self.weights is None
+            or self.atom_scales.shape != (14,)
+            or self.weights.shape != (14,)
+            or self.materialize is None
+            or self.select_candidate is None
+            or self.signal_mask is None
+            or self.planned_red_cost is None
+        ):
             raise ValueError("atom scales and weights must each have shape [14]")
 
     def __call__(
@@ -413,6 +438,44 @@ class NativeCampPredictBatch:
             receipt["candidate_tensor_sha256_before"] = before_sha
             receipt["candidate_neighbor_sha256"] = array_sha256(neighbor_tensor)
             receipt["candidate_neighbor_shape"] = list(neighbor_tensor.shape)
+
+            if self.operational_mode == "dp_candidate0":
+                receipt.update(
+                    verify_candidate_tensor_immutable(candidate_tensor, before_sha)
+                )
+                selected = candidate_tensor[0].copy()
+                if (
+                    not np.array_equal(selected, default_ego)
+                    or array_sha256(selected) != receipt["default_output_sha256"]
+                ):
+                    raise ValueError("DP candidate 0 differs from operational default")
+                direct_predictions[ego_id] = selected
+                npc_after_sha = {
+                    agent_id: array_sha256(value)
+                    for agent_id, value in direct_predictions.items()
+                    if agent_id != ego_id
+                }
+                if npc_after_sha != direct_npc_sha:
+                    raise ValueError("native NPC operational outputs changed")
+                receipt.update(
+                    {
+                        "status": "ok",
+                        "selected_index": 0,
+                        "selected_trajectory_sha256": array_sha256(selected),
+                        "score_contract": "candidate0_operational_default",
+                        "eligibility_mask_name": "candidate0_operational_default",
+                        "candidate0_operational_default": True,
+                        "npc_operational_outputs_unchanged": True,
+                        "default_turn_indicators_retained": True,
+                        "post_divergence_cross_arm_tensor_identity_required": False,
+                    }
+                )
+                receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
+                return (
+                    (direct_predictions, turns)
+                    if return_turn_indicators
+                    else direct_predictions
+                )
 
             causal_input = boundary.causal_input
             neighbor_valid = np.any(
@@ -1154,6 +1217,9 @@ def _validate_native_config(config: Mapping[str, Any]) -> None:
     if config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
         validate_v22_evaluation_run_config(config)
         return
+    if config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
+        validate_v24_evaluation_run_config(config)
+        return
     validate_smoke_config(config)
 
 
@@ -1240,6 +1306,136 @@ def validate_v22_evaluation_run_config(config: Mapping[str, Any]) -> None:
     }
     if any(spawn.get(name) != value for name, value in critical.items()):
         raise ValueError("critical v22 evaluation SpawnConfig value mismatch")
+
+
+def validate_v24_evaluation_run_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") != "camp_dp_v24_native_evaluation_run_v1":
+        raise ValueError("v24 evaluation run schema mismatch")
+    fixed_dp = _mapping(config, "fixed_dp")
+    if fixed_dp.get("head") != FIXED_DP_HEAD:
+        raise ValueError("fixed DP HEAD mismatch")
+    if fixed_dp.get("native_source_sha256") != NATIVE_SOURCE_SHA256:
+        raise ValueError("fixed DP native source hashes mismatch")
+    _asset_entry(fixed_dp, "checkpoint")
+    _asset_entry(fixed_dp, "args_json")
+    map_asset = _asset_entry(config, "map")
+    if (
+        not isinstance(map_asset.get("map_family_id"), str)
+        or not map_asset.get("map_family_id")
+        or not _is_sha256(map_asset.get("logical_map_sha256"))
+        or not _is_sha256(map_asset.get("corridor_group_sha256"))
+    ):
+        raise ValueError("v24 evaluation map-family/corridor metadata mismatch")
+    selector = _mapping(config, "selector")
+    _asset_entry(selector, "atom_scales")
+    _asset_entry(selector, "weights")
+    if (
+        not _is_sha256(selector.get("root_sha256"))
+        or not _is_sha256(selector.get("model_sha256"))
+        or selector.get("score_contract") != "score_k(w)=a_k^T w"
+        or selector.get("nonnegative_simplex") is not True
+        or selector.get("candidate_k") != 8
+        or selector.get("selection_policy") != V22_SOURCE_VALID_SELECTION
+        or selector.get("role") != "v24_primary_frozen_train_only"
+    ):
+        raise ValueError("v24 evaluation selector contract mismatch")
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v24 evaluation requires exactly one route")
+    route = _asset_entry_value(routes[0], "route")
+    if not _is_sha256(route.get("name")):
+        raise ValueError("v24 evaluation route name must be its identity SHA256")
+    seeds = _mapping(config, "seeds")
+    seed = seeds.get("scenario")
+    if (
+        isinstance(seed, bool)
+        or not isinstance(seed, int)
+        or seed < 0
+        or seed in {11, 12, 13}
+        or seeds
+        != {
+            "scenario": seed,
+            "candidate": seed,
+            "bootstrap": seed,
+            "formal_forbidden": [11, 12, 13],
+        }
+    ):
+        raise ValueError("v24 evaluation seed schedule mismatch")
+    protocol = _mapping(config, "protocol")
+    mode = protocol.get("evaluation_mode")
+    split = protocol.get("evaluation_split")
+    steps = protocol.get("evaluation_steps")
+    allowed_seeds = {
+        "capability": {24101},
+        "pilot": {24101},
+        "main": {24201, 24202, 24203, 24204, 24205},
+    }
+    expected_split = {
+        "capability": "calibration",
+        "pilot": "calibration",
+        "main": "holdout",
+    }
+    expected_steps = {"capability": 1, "pilot": 64, "main": 64}
+    arm_order = protocol.get("arm_order")
+    execution_authorized = protocol.get("execution_authorized")
+    holdout_authorized = protocol.get("holdout_access_authorized")
+    if (
+        mode not in allowed_seeds
+        or split != expected_split.get(mode)
+        or seed not in allowed_seeds.get(mode, set())
+        or steps != expected_steps.get(mode)
+        or arm_order not in (["dp", "camp"], ["camp", "dp"])
+        or not _is_sha256(protocol.get("arm_order_rank_sha256"))
+        or protocol.get("independent_reset_per_arm") is not True
+        or protocol.get("same_initial_state_and_exogenous_seed_per_pair")
+        is not True
+        or protocol.get("safety_schema") != "safety_cost_native_v22"
+        or protocol.get("route_retention")
+        != "all_preregistered_routes_and_failures_no_replacement"
+        or protocol.get("training_authorized") is not False
+        or protocol.get("calibration_tuning_authorized") is not False
+        or not isinstance(execution_authorized, bool)
+        or not isinstance(holdout_authorized, bool)
+        or protocol.get("formal_seeds_authorized") is not False
+        or protocol.get("candidate_tensor_modification_authorized") is not False
+        or protocol.get("trajectory_postprocess_authorized") is not False
+        or protocol.get("per_arm_candidate_tensor_immutability_required")
+        is not True
+        or protocol.get("per_arm_candidate0_default_identity_required")
+        is not True
+        or protocol.get("t0_cross_arm_input_and_candidate_hash_identity_required")
+        is not True
+        or protocol.get("post_divergence_cross_arm_tensor_identity_required")
+        is not False
+        or protocol.get("native_ranked_k8_provenance_claim_authorized")
+        is not False
+        or protocol.get("latency_comparison_authorized") is not False
+        or protocol.get("latency_reporting_role")
+        != "descriptive_instrumented_only"
+        or protocol.get("claim_authorized") is not False
+        or (not execution_authorized and holdout_authorized)
+        or (execution_authorized and mode == "main") is not holdout_authorized
+        or (mode != "main" and holdout_authorized)
+    ):
+        raise ValueError("v24 evaluation protocol mismatch")
+    spawn = _mapping(config, "spawn_config")
+    if set(spawn) != SPAWN_CONFIG_FIELDS:
+        raise ValueError("SpawnConfig fields do not exactly match native source")
+    critical = {
+        "seed": seed,
+        "max_steps": steps,
+        "advance_mode": "mpc",
+        "mpc_horizon_steps": 20,
+        "mpc_n_knots": 5,
+        "sequential_inference": False,
+        "sg_smooth_enabled": False,
+        "dump_npz_dir": None,
+        "reward_config_path": None,
+        "enable_traffic_lights": True,
+        "map_refresh_steps": 5,
+    }
+    if any(spawn.get(name) != value for name, value in critical.items()):
+        raise ValueError("critical v24 evaluation SpawnConfig value mismatch")
 
 
 def _selection_policy(config: Mapping[str, Any]) -> str:
@@ -2172,7 +2368,10 @@ def build_native_arm_runner(
             "camp_dp_v24_native_corpus_run_v1",
         }:
             allowed_steps = {int(protocol["corpus_steps"])}
-        elif config.get("schema_version") == "camp_dp_v22_native_evaluation_run_v1":
+        elif config.get("schema_version") in {
+            "camp_dp_v22_native_evaluation_run_v1",
+            "camp_dp_v24_native_evaluation_run_v1",
+        }:
             allowed_steps = {int(protocol["evaluation_steps"])}
         else:
             allowed_steps = {1, int(protocol["paired_steps"])}
@@ -2180,6 +2379,11 @@ def build_native_arm_runner(
                 allowed_steps.add(int(protocol["tiny_steps"]))
         if max_steps not in allowed_steps:
             raise ValueError("native smoke step count is not frozen")
+        if (
+            config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1"
+            and protocol.get("execution_authorized") is not True
+        ):
+            raise ValueError("v24 evaluation run config is static-preflight disabled")
         context = ensure_runtime()
         replay = context["replay"]
         route_object = context["Route"].load(Path(str(route["path"])))
@@ -2231,6 +2435,22 @@ def build_native_arm_runner(
                 decision_sample_every_ticks=int(
                     protocol.get("sample_every_ticks", 5)
                 ),
+            )
+        elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
+            replacement = NativeCampPredictBatch(
+                state=state,
+                to_model_tensors=context["tensor_converter"].to_model_tensors,
+                dump_step_npz=context["tensor_converter"].dump_step_npz,
+                materialize=None,
+                select_candidate=None,
+                signal_mask=None,
+                planned_red_cost=None,
+                atom_scales=None,
+                weights=None,
+                candidate_seed_root=int(config["seeds"]["candidate"]),
+                route_sha256=str(route["sha256"]),
+                pre_safety=pre_safety,
+                operational_mode="dp_candidate0",
             )
         else:
             replacement = NativeDpObserveBatch(
@@ -2593,12 +2813,11 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
         },
         "default_output_sha256": str(receipt["default_output_sha256"]),
     }
-    if arm == "camp":
+    if "candidate_tensor_sha256_before" in receipt:
         for name in (
             "candidate_tensor_sha256_before",
             "candidate_tensor_sha256_after",
             "candidate_neighbor_sha256",
-            "atom_matrix_sha256",
             "selected_trajectory_sha256",
             "global_rng_sha256_before",
             "global_rng_sha256_after",
@@ -2610,17 +2829,30 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
                 "selection_policy": str(receipt["selection_policy"]),
                 "score_contract": str(receipt["score_contract"]),
                 "eligibility_mask_name": str(receipt["eligibility_mask_name"]),
-                "scores": [float(value) for value in receipt["scores"]],
                 "selected_index": int(receipt["selected_index"]),
                 "default_candidate0_identity": dict(
                     _mapping(receipt, "default_candidate0_identity")
                 ),
-                "physical_feasible_mask": list(receipt["physical_feasible_mask"]),
-                "source_valid_mask": list(receipt["source_valid_mask"]),
-                "source_complete_mask": list(receipt["source_complete_mask"]),
-                "all_k_high_risk": bool(receipt["all_k_high_risk"]),
             }
         )
+        for name in (
+            "atom_matrix_sha256",
+            "candidate0_operational_default",
+            "post_divergence_cross_arm_tensor_identity_required",
+            "npc_operational_outputs_unchanged",
+        ):
+            if name in receipt:
+                tick[name] = receipt[name]
+        for name in (
+            "scores",
+            "physical_feasible_mask",
+            "source_valid_mask",
+            "source_complete_mask",
+        ):
+            if name in receipt:
+                tick[name] = list(receipt[name])
+        if "all_k_high_risk" in receipt:
+            tick["all_k_high_risk"] = bool(receipt["all_k_high_risk"])
     return tick
 
 
@@ -2636,6 +2868,8 @@ def _summarize_latency(ticks: list[Mapping[str, Any]]) -> dict[str, Any]:
             "count": int(values.size),
             "mean": float(values.mean()),
             "median": float(np.median(values)),
+            "p95": float(np.percentile(values, 95.0)),
+            "p99": float(np.percentile(values, 99.0)),
             "max": float(values.max()),
         }
     return result
