@@ -93,24 +93,50 @@ and provenance and passed `21 / 0`; its root is
 `a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8`.
 Fixed DP remains clean at
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`, with about 45.46 GiB free.
-Training, tuning, outcomes, calibration, holdout, and claims remain closed.
-Only convex training plan/TDD/static preflight is now authorized.
+The convex training plan/TDD/static preflight is now sealed at CAMP HEAD
+`bfc0a52307bf7d9184a5f4596b951058c02ba67c`. It freezes the existing
+train-only causal soft-risk policy before labels: finite physical-risk penalty
+`100`, normalized atom clip `10`, the pre-existing 14D severity vector, and
+exact Gate 34 scales/mask without recomputation. The learning curve is an
+outcome-blind hash order over whole routes, retaining all five seeds, complete
+and failed receipts, and every available snapshot together. Its nested levels
+are `94 / 188 / 281 / 375` routes with `16,979 / 35,022 / 50,752 / 67,796`
+snapshots; only full 100% is the preregistered primary model. This is a
+single-corridor train-support diagnostic, not unseen-map/corridor evidence.
 
-current_v24_status=v24_train_atom_availability_freeze_independent_review_passed
-current_v24_artifact_source_head=dc6f37150166eaf996ac8e2a25fdeb3bac90ca8c
+Independent source review first found and closed coordinated-root resealing,
+incomplete nested-file seals, implicit mask coercion, non-integer seed, and
+old-weight lower-bound fail-open paths. AutoDL Python 3.9 then passed the
+focused suite (`51 passed`), all v24 tests (`183 passed`), and diff checks.
+The successful test root is
+`7c06d462e6b0d8ab4745712ec6ad708e69a0cfb2be5e135c108a00138105e7ca`;
+the static plan root is
+`43f26263ff24cad5966cb3a740af6d3307490ab1bd3e07d03284589bee0d28f5`.
+One earlier wrapper self-match stopped before artifact creation. A second
+wrapper found the noninteractive shell lacked a `python` alias; no tests ran,
+and its honest failure root is
+`6ce9717d62913ce106ad5e4c2305ce46c6716c0fd18cbdaf4fbdfa910617e23e`.
+The successful retry used the fixed Python 3.9 path. CVXPY 1.6.7 reports
+CLARABEL available, but no synthetic or corpus solve, label materialization, model,
+training, tuning, outcome, calibration, holdout, or claim boundary opened.
+Only train-only causal label materialization TDD/execution and independent
+review are now authorized; training execution remains unauthorized.
+
+current_v24_status=v24_convex_training_static_preflight_passed
+current_v24_artifact_source_head=bfc0a52307bf7d9184a5f4596b951058c02ba67c
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_independent_review_dc6f3715_20260716T190514CST
-current_v24_artifact_root_sha256=a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_static_preflight_bfc0a523_20260716T195856CST
+current_v24_artifact_root_sha256=43f26263ff24cad5966cb3a740af6d3307490ab1bd3e07d03284589bee0d28f5
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=train_atom_availability_freeze_independent_review_passed_training_plan_pending
+source_b_status=convex_training_static_preflight_passed_label_materialization_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_plan_tdd_static_preflight_only
+next_work_target=v24_train_only_causal_label_materialization_tdd_execution_review_only
 
 ## Current V23 Status
 

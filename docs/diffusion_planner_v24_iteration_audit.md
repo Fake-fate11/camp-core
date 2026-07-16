@@ -1997,3 +1997,119 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_convex_selector_training_plan_tdd_static_preflight_only
+
+## Gate 36: Convex Training Plan/TDD/Static Preflight
+
+Status: passed and sealed. Training execution remains unauthorized. Only the
+train-only causal label materialization TDD/execution and its independent
+review are next.
+
+The tracked config freezes the four exact Gate 31/32/34/35 artifact paths and
+roots, the `375` train routes, seeds `24001..24005`, all `1,875` retained
+route-seed receipts, `67,796` causal snapshots, K=8, and the full active
+`dp_camp_v10_14d` schema. The label policy is fixed before materialization as:
+
+`cost_ik = 100 * not_physical_feasible_ik + sum_r(q_r *
+clip(raw_atom_ikr / frozen_v24_scale_r, 0, 10))`.
+
+Here `q` is the pre-existing v22 causal soft-risk severity policy, not a v18
+or v22 learned selector weight. Gate 34 scales and the all-true active mask
+must be consumed byte-for-value without recomputation or reselection. Only
+`source_valid_mask` controls oracle eligibility; physical risk remains a
+finite additive cost, all-K-high-risk snapshots stay in the denominator, and
+exact ties choose the lowest candidate index. No outcome, future field,
+identity, rank, selected index, map, route, split, seed, or holdout value may
+enter the label or selector features.
+
+The learning-curve order is
+`sha256("camp-v24-learning-curve-route-order-v1\n" + route SHA + "\n")`.
+Whole routes are indivisible: all five seeds, successful and retained-failure
+receipts, and all available causal snapshots enter or leave together. The
+nearest-whole-route levels are:
+
+- 25%: `94` routes / `470` route-seeds / `262` complete / `208` failed /
+  `16,979` snapshots; membership SHA
+  `2fef87ebb522202ef59a55bcda7f82e89b620d8a6d5f5ed717b5c42aecbd54c9`.
+- 50%: `188` / `940` / `550` / `390` / `35,022`; membership SHA
+  `8f8d37197ba00246b252e264915c588bc3340bf2a5fed13f70da8184d47bfc45`.
+- 75%: `281` / `1,405` / `789` / `616` / `50,752`; membership SHA
+  `293ef5e8106bc03eff63cd255b7fe160e8c94764acce243699aafd7a59784b72`.
+- 100%: `375` / `1,875` / `1,054` / `821` / `67,796`; membership SHA
+  `faa6bb4e627550e2cc0270bb2ff48986880fb6b94b02f624f70fdb3cf3872e23`.
+
+The complete route-plan SHA is
+`f738a1a1d3ba72f0cec16f8b0c8621174a57e60213d989cc4cd934ab22faec49`.
+Only the 100% level is the preregistered primary; 25/50/75 are descriptive
+train-support diagnostics and cannot select weights, hyperparameters, or a
+model. The train set contains one map family/logical map/corridor group, so
+the curve cannot support an unseen-map or unseen-corridor claim.
+
+The convex master is fixed as affine score `score_k(w)=a_k^T w`, 14 exact-zero
+lower bounds, nonnegative simplex, clipped cost margins at scale `0.1` and cap
+`2`, empirical CVaR alpha `0.9`, L2 `1e-4` about the active-uniform center,
+and exact CLARABEL only. Acceptance will require status exactly `optimal`, no
+fallback, convergence within 20 cutting-plane iterations, final zero new
+cuts, and independently recomputed/projected full-K gap at most `1e-6`.
+Epochs are not applicable. V18/v22 learned weights are forbidden as an
+initializer, lower bound, constraint, or model-selection input and may appear
+only in later read-only offline ablation.
+
+Independent source review initially returned No-Go and demonstrated five
+fail-open families: coordinated source/review resealing, nested reserved files
+outside the seal inventory, implicit numeric/string-to-bool mask coercion,
+float/non-builtin integer seeds, and unspecified old learned-weight bounds.
+Exact authority constants, a complete-tree symlink/reserved-name rejecting
+seal, strict schemas/types, zero lower bounds, and adversarial tests closed all
+findings. Final review returned Go with no remaining P1/P2.
+
+AutoDL at source HEAD `bfc0a52307bf7d9184a5f4596b951058c02ba67c`
+used `/root/miniconda3/envs/camp/bin/python3.9`. Python compilation, the
+focused preflight/audit suite (`51 passed`), all v24 tests (`183 passed`), and
+`git diff --check` passed with empty stderr. CLARABEL is present in CVXPY
+`1.6.7`; the static gate did not call even a synthetic solve. The test artifact
+and root are:
+
+`/root/autodl-tmp/camp_dp_v24_convex_training_static_preflight_tests_bfc0a523_20260716T195856CST`
+/
+`7c06d462e6b0d8ab4745712ec6ad708e69a0cfb2be5e135c108a00138105e7ca`.
+
+The plan artifact independently verified all four upstream complete seals,
+the tracked config/blob and convex-master blob, exact receipts, the 10 GiB
+floor, fixed clean DP, and closed boundaries. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_convex_training_static_preflight_bfc0a523_20260716T195856CST`
+/
+`43f26263ff24cad5966cb3a740af6d3307490ab1bd3e07d03284589bee0d28f5`.
+
+Two wrapper defects were handled without broadening protocol. The first
+process check matched its own shell command and stopped before artifact
+creation. The second used an absent noninteractive `python` alias; none of its
+tests ran, and its final git command also exposed a fail-open exit-aggregation
+bug. That directory was honestly completed and sealed as failure evidence:
+
+`/root/autodl-tmp/camp_dp_v24_convex_training_static_preflight_tests_bfc0a523_20260716T195637CST`
+/
+`6ce9717d62913ce106ad5e4c2305ce46c6716c0fd18cbdaf4fbdfa910617e23e`.
+
+The successful retry used an exact Python 3.9 path and fail-fast command chain.
+No label was materialized; no snapshot/candidate/trajectory/DP source/config/
+weight/checkpoint/request was changed. No model, simulator, training, tuning,
+outcome, calibration, holdout, or claim boundary opened. CAMP local/origin/
+GitHub/AutoDL are aligned at the source commit, fixed DP is clean, and free
+space remains about 45.46 GiB.
+
+current_v24_status=v24_convex_training_static_preflight_passed
+current_v24_artifact_source_head=bfc0a52307bf7d9184a5f4596b951058c02ba67c
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_static_preflight_bfc0a523_20260716T195856CST
+current_v24_artifact_root_sha256=43f26263ff24cad5966cb3a740af6d3307490ab1bd3e07d03284589bee0d28f5
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=convex_training_static_preflight_passed_label_materialization_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_train_only_causal_label_materialization_tdd_execution_review_only
