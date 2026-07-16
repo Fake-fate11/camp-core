@@ -76,11 +76,11 @@ RETRY_FAILURE_REVIEW_RELATIVE = (
 )
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_"
-    "20260716T221541CST"
+    "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+    "independent_review_5f3dbfc7_20260716T223324CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b"
+    "1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418"
 )
 EXPECTED_PROVENANCE = {
     EXECUTOR_RELATIVE,
@@ -114,7 +114,8 @@ LOCKS = (
     Path("/root/autodl-tmp/.camp_dp_v24_training_label_materialization.lock"),
 )
 REVIEW_SCHEMA = (
-    "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+    "camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_"
+    "static_preflight_"
     "independent_review_v1"
 )
 
@@ -216,6 +217,7 @@ def _static_executor_review(source: str) -> list[str]:
     accept = _function_source(tree, "accepted_weights_and_gap", source)
     load = _function_source(tree, "load_training_inputs", source)
     curve = _function_source(tree, "train_learning_curve", source)
+    authorize = _function_source(tree, "_authorization_from_eof", source)
     if (
         "_solve_master" not in imported
         or "solve_robust_margin_cutting_plane" in imported
@@ -243,6 +245,12 @@ def _static_executor_review(source: str) -> list[str]:
         or "for sequence, level in enumerate(inputs[\"levels\"], start=1)" not in curve
         or 'list(models) != ["25", "50", "75", "100"]' not in curve
         or "progress_callback" not in curve
+        or "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+        not in authorize
+        or "v24_convex_selector_training_cut_relative_gap_retry_execution_only"
+        not in authorize
+        or "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+        not in authorize
     ):
         raise ValueError("v24 training executor static contract review failed")
     return [
@@ -260,6 +268,7 @@ def _static_executor_review(source: str) -> list[str]:
         "no_outcome_or_holdout_loader",
         "identity_not_feature",
         "sealed_input_closure",
+        "current_cut_relative_training_authorization_bound",
     ]
 
 
@@ -332,7 +341,8 @@ def review_preflight(
     report = _read_json(artifact / "preflight.json")
     if (
         report.get("schema")
-        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_v1"
+        != "camp_dp_v24_training_cut_relative_gap_authorization_contract_"
+        "repair_static_preflight_v1"
         or report.get("status") != "passed"
         or report.get("camp_head") != camp_head
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
@@ -357,11 +367,12 @@ def review_preflight(
     )
     if (
         eof.get("current_v24_status")
-        != "v24_convex_training_retry_failure_independent_review_passed"
+        != "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+        "independent_review_passed"
         or eof.get("current_v24_artifact") != str(REPAIR_REVIEW_ARTIFACT)
         or eof.get("current_v24_artifact_root_sha256") != REPAIR_REVIEW_ROOT_SHA256
         or eof.get("next_work_target")
-        != "v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only"
+        != "v24_convex_selector_training_cut_relative_gap_retry_execution_only"
     ):
         raise ValueError("live v24 EOF drifted before independent static review")
 
@@ -377,21 +388,26 @@ def review_preflight(
         "path": str(REPAIR_REVIEW_ARTIFACT),
         "root_sha256": REPAIR_REVIEW_ROOT_SHA256,
     }:
-        raise ValueError("v24 cut-relative-gap repair authority drift")
+        raise ValueError("v24 repaired training authorization authority drift")
     repair_verified = _verify_clean_seal(
         REPAIR_REVIEW_ARTIFACT, REPAIR_REVIEW_ROOT_SHA256
     )
     repair_review = _read_json(REPAIR_REVIEW_ARTIFACT / "review.json")
     if (
         repair_review.get("status") != "passed"
-        or repair_review.get("decision", {}).get(
-            "cut_relative_gap_repair_tdd_static_preflight_authorized"
-        )
+        or repair_review.get("schema")
+        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+        "independent_review_v1"
+        or repair_review.get("decision", {}).get("training_execution_authorized")
         is not True
         or repair_review.get("decision", {}).get("training_retry_authorized")
-        is not False
+        is not True
+        or repair_review.get("outcome_accessed") is not False
+        or repair_review.get("calibration_accessed") is not False
+        or repair_review.get("holdout_opened") is not False
+        or repair_review.get("claim_authorized") is not False
     ):
-        raise ValueError("v24 cut-relative-gap failure review decision drift")
+        raise ValueError("v24 repaired training authorization decision drift")
     static_checks = _static_executor_review((repo / EXECUTOR_RELATIVE).read_text(encoding="utf-8"))
 
     expected_authority = {

@@ -1329,12 +1329,14 @@ def _authorization_from_eof(
     lines = text.rstrip().splitlines()[-15:]
     expected = {
         "current_v24_status": (
-            "v24_convex_training_projection_boundary_repair_static_preflight_"
+            "v24_convex_training_cut_relative_gap_repair_static_preflight_"
             "independent_review_passed"
         ),
         "current_v24_artifact": str(artifact),
         "current_v24_artifact_root_sha256": expected_root,
-        "next_work_target": "v24_convex_selector_training_retry_execution_only",
+        "next_work_target": (
+            "v24_convex_selector_training_cut_relative_gap_retry_execution_only"
+        ),
     }
     parsed = dict(line.split("=", 1) for line in lines if "=" in line)
     if any(parsed.get(key) != value for key, value in expected.items()):
@@ -1343,7 +1345,7 @@ def _authorization_from_eof(
     review = _read_json(Path(artifact) / "review.json")
     if (
         review.get("schema")
-        != "camp_dp_v24_training_projection_boundary_repair_static_preflight_"
+        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
         "independent_review_v1"
         or review.get("status") != "passed"
         or review.get("decision", {}).get("training_execution_authorized") is not True

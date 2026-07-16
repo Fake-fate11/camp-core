@@ -629,6 +629,65 @@ def test_independent_static_reviewer_accepts_executor_and_rejects_contract_drift
         reviewer._static_executor_review(
             source.replace('"final_resolve": False', '"final_resolve": True', 1)
         )
+    with pytest.raises(ValueError, match="static contract"):
+        reviewer._static_executor_review(
+            source.replace(
+                "v24_convex_selector_training_cut_relative_gap_retry_execution_only",
+                "v24_convex_selector_training_retry_execution_only",
+                1,
+            )
+        )
+
+
+def test_training_execution_authorization_binds_cut_relative_review(
+    tmp_path: Path, monkeypatch
+) -> None:
+    module = _module()
+    audit = tmp_path / "docs" / "diffusion_planner_v24_iteration_audit.md"
+    audit.parent.mkdir()
+    artifact = Path("/root/autodl-tmp/cut-relative-review")
+    root = "a" * 64
+    pointer = [
+        "current_v24_status=v24_convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed",
+        f"current_v24_artifact={artifact}",
+        f"current_v24_artifact_root_sha256={root}",
+        "next_work_target=v24_convex_selector_training_cut_relative_gap_retry_execution_only",
+    ]
+    audit.write_text("\n".join(["header"] * 11 + pointer) + "\n", encoding="utf-8")
+    review = {
+        "schema": (
+            "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
+            "independent_review_v1"
+        ),
+        "status": "passed",
+        "decision": {
+            "training_execution_authorized": True,
+            "training_retry_authorized": True,
+        },
+        "outcome_accessed": False,
+        "calibration_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+    }
+    monkeypatch.setattr(module, "verify_complete_seal", lambda *_args: [])
+    monkeypatch.setattr(module, "_read_json", lambda _path: review)
+
+    assert module._authorization_from_eof(
+        repo=tmp_path, artifact=artifact, expected_root=root
+    ) == review
+    audit.write_text(
+        audit.read_text(encoding="utf-8").replace(
+            "v24_convex_training_cut_relative_gap_repair_static_preflight_"
+            "independent_review_passed",
+            "v24_convex_training_projection_boundary_repair_static_preflight_"
+            "independent_review_passed",
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="does not authorize"):
+        module._authorization_from_eof(
+            repo=tmp_path, artifact=artifact, expected_root=root
+        )
 
 
 def test_execution_provenance_binds_executor_preflight_reviewer_and_frozen_core() -> None:
