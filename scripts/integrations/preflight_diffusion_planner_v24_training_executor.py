@@ -64,15 +64,15 @@ from scripts.integrations.train_diffusion_planner_v24_selector import (  # noqa:
 
 TEST_SCHEMA = "camp_dp_v24_training_executor_static_tests_v1"
 PREFLIGHT_SCHEMA = (
-    "camp_dp_v24_training_projection_boundary_repair_static_preflight_v1"
+    "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_v1"
 )
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_"
-    "20260716T215042CST"
+    "camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_"
+    "20260716T221541CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d"
+    "4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b"
 )
 REQUIRED_TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v24_training_executor.py",
@@ -134,12 +134,12 @@ def _authorization_from_live_eof(repo: Path) -> dict[str, str]:
     parsed = dict(line.split("=", 1) for line in lines[-15:] if "=" in line)
     expected = {
         "current_v24_status": (
-            "v24_convex_training_execution_failure_independent_review_passed"
+            "v24_convex_training_retry_failure_independent_review_passed"
         ),
         "current_v24_artifact": str(REPAIR_REVIEW_ARTIFACT),
         "current_v24_artifact_root_sha256": REPAIR_REVIEW_ROOT_SHA256,
         "next_work_target": (
-            "v24_convex_training_projection_boundary_repair_tdd_static_preflight_only"
+            "v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only"
         ),
     }
     if any(parsed.get(key) != value for key, value in expected.items()):
@@ -150,20 +150,21 @@ def _authorization_from_live_eof(repo: Path) -> dict[str, str]:
     if (
         review.get("status") != "passed"
         or review.get("decision", {}).get(
-            "projection_boundary_repair_tdd_static_preflight_authorized"
+            "cut_relative_gap_repair_tdd_static_preflight_authorized"
         )
         is not True
         or review.get("decision", {}).get("training_retry_authorized") is not False
         or not isinstance(repair, dict)
-        or repair.get("project_weights_before_cut_separation") is not True
-        or repair.get("require_raw_and_projected_full_k_gap_at_most_1e-6")
+        or repair.get("separate_on_raw_and_projected_full_minus_cut_gap")
         is not True
+        or repair.get("retain_raw_and_projected_master_gap_diagnostics")
+        is not True
+        or repair.get("require_all_four_gaps_at_most_1e-6") is not True
         or repair.get("retain_exact_20_iteration_cap") is not True
         or repair.get("retain_clarabel_optimal_only_no_fallback") is not True
-        or repair.get("record_raw_and_projected_gap_diagnostics") is not True
         or repair.get("protocol_or_data_change_authorized") is not False
     ):
-        raise ValueError("v24 projection-boundary repair authority drift")
+        raise ValueError("v24 cut-relative-gap repair authority drift")
     return expected
 
 
@@ -289,6 +290,8 @@ def run_static_preflight(
             "full_k_saved_weight_recomputation_required": True,
             "project_weights_before_cut_separation": True,
             "raw_and_projected_gap_required": True,
+            "raw_and_projected_cut_relative_gap_required": True,
+            "all_four_gap_acceptance_required": True,
         },
         "solver_environment": {
             "cvxpy_version": cp.__version__,
@@ -319,7 +322,7 @@ def run_static_preflight(
             "training_execution_authorized": False,
         },
         "next_work_target": (
-            "v24_convex_training_projection_boundary_repair_static_preflight_"
+            "v24_convex_training_cut_relative_gap_repair_static_preflight_"
             "independent_review_only"
         ),
     }

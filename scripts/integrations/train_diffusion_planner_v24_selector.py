@@ -121,6 +121,7 @@ EXECUTOR_PROVENANCE_FILES = (
     "scripts/integrations/preflight_diffusion_planner_v24_training_executor.py",
     "scripts/integrations/review_diffusion_planner_v24_training_executor_preflight.py",
     "scripts/integrations/review_diffusion_planner_v24_training_execution_failure.py",
+    "scripts/integrations/review_diffusion_planner_v24_training_retry_failure.py",
     "configs/integrations/diffusion_planner_v24_convex_training_plan.json",
     "camp_core/camp_core/outer_master/robust_margin_master.py",
     "scripts/integrations/preflight_diffusion_planner_v24_convex_training.py",
@@ -141,6 +142,8 @@ class V24CuttingPlaneResult:
     final_master_gap: float
     projected_train_violations: np.ndarray
     final_projected_master_gap: float
+    final_raw_cut_gap: float
+    final_projected_cut_gap: float
     history: list[dict[str, Any]]
     converged: bool
     final_cut_mask: np.ndarray
@@ -259,14 +262,14 @@ def _cut_mask(cuts: Sequence[set[int]], candidate_count: int) -> np.ndarray:
     return mask
 
 
-def cut_and_full_losses(
+def cut_and_full_loss_details(
     normalized_atoms: np.ndarray,
     weights: np.ndarray,
     oracle_indices: np.ndarray,
     margins: np.ndarray,
     feasible_mask: np.ndarray,
     final_cut_mask: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, float, int]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     atoms = np.asarray(normalized_atoms, dtype=np.float64)
     feasible = np.asarray(feasible_mask)
     cuts = np.asarray(final_cut_mask)
@@ -286,6 +289,25 @@ def cut_and_full_losses(
         raise ValueError("every snapshot must retain at least one feasible final cut")
     cut_losses = np.maximum(np.max(cut_values, axis=1), 0.0)
     gaps = np.maximum(full_losses - cut_losses, 0.0)
+    return full_losses, cut_losses, gaps
+
+
+def cut_and_full_losses(
+    normalized_atoms: np.ndarray,
+    weights: np.ndarray,
+    oracle_indices: np.ndarray,
+    margins: np.ndarray,
+    feasible_mask: np.ndarray,
+    final_cut_mask: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, float, int]:
+    full_losses, cut_losses, gaps = cut_and_full_loss_details(
+        normalized_atoms,
+        weights,
+        oracle_indices,
+        margins,
+        feasible_mask,
+        final_cut_mask,
+    )
     omitted = int(np.sum(gaps > ACCEPTANCE_GAP))
     return full_losses, cut_losses, float(np.max(gaps)), omitted
 
@@ -370,18 +392,56 @@ def solve_v24_cutting_plane(
             _, projected_true_losses, projected_worst = candidate_ranking_violations(
                 atoms, projected_weights, oracle, margin_values, feasible
             )
-            raw_gap = np.maximum(raw_true_losses - master_losses, 0.0)
-            projected_gap = np.maximum(projected_true_losses - master_losses, 0.0)
-            raw_max_gap = float(np.max(raw_gap))
-            projected_max_gap = float(np.max(projected_gap))
-            max_gap = max(raw_max_gap, projected_max_gap)
+            current_cut_mask = _cut_mask(cuts, atoms.shape[1])
+            raw_full_losses, _, raw_cut_gap = cut_and_full_loss_details(
+                atoms,
+                raw_weights,
+                oracle,
+                margin_values,
+                feasible,
+                current_cut_mask,
+            )
+            projected_full_losses, _, projected_cut_gap = cut_and_full_loss_details(
+                atoms,
+                projected_weights,
+                oracle,
+                margin_values,
+                feasible,
+                current_cut_mask,
+            )
+            if not np.allclose(
+                raw_true_losses, raw_full_losses, rtol=0.0, atol=1e-12
+            ) or not np.allclose(
+                projected_true_losses,
+                projected_full_losses,
+                rtol=0.0,
+                atol=1e-12,
+            ):
+                raise RuntimeError("cut separation full-K recomputation drift")
+            raw_master_gap = np.maximum(raw_true_losses - master_losses, 0.0)
+            projected_master_gap = np.maximum(
+                projected_true_losses - master_losses, 0.0
+            )
+            raw_max_master_gap = float(np.max(raw_master_gap))
+            projected_max_master_gap = float(np.max(projected_master_gap))
+            raw_max_cut_gap = float(np.max(raw_cut_gap))
+            projected_max_cut_gap = float(np.max(projected_cut_gap))
+            max_master_gap = max(raw_max_master_gap, projected_max_master_gap)
+            max_cut_gap = max(raw_max_cut_gap, projected_max_cut_gap)
+            max_gap = max(max_master_gap, max_cut_gap)
             new_cuts = 0
             for row, (raw_candidate, projected_candidate) in enumerate(
                 zip(raw_worst, projected_worst)
             ):
                 for candidate, row_gap in (
-                    (int(raw_candidate), raw_gap[row]),
-                    (int(projected_candidate), projected_gap[row]),
+                    (
+                        int(raw_candidate),
+                        max(raw_master_gap[row], raw_cut_gap[row]),
+                    ),
+                    (
+                        int(projected_candidate),
+                        max(projected_master_gap[row], projected_cut_gap[row]),
+                    ),
                 ):
                     if candidate not in cuts[row] and row_gap > ACCEPTANCE_GAP:
                         cuts[row].add(candidate)
@@ -399,9 +459,13 @@ def solve_v24_cutting_plane(
                         np.mean(projected_true_losses)
                     ),
                     "projected_max_violation": float(np.max(projected_true_losses)),
-                    "raw_max_master_gap": raw_max_gap,
-                    "projected_max_master_gap": projected_max_gap,
-                    "max_master_gap": max_gap,
+                    "raw_max_master_gap": raw_max_master_gap,
+                    "projected_max_master_gap": projected_max_master_gap,
+                    "max_master_gap": max_master_gap,
+                    "raw_max_cut_gap": raw_max_cut_gap,
+                    "projected_max_cut_gap": projected_max_cut_gap,
+                    "max_cut_gap": max_cut_gap,
+                    "max_separation_gap": max_gap,
                     "new_cuts": new_cuts,
                     "total_cuts": int(sum(len(row) for row in cuts)),
                     "final_resolve": False,
@@ -425,15 +489,34 @@ def solve_v24_cutting_plane(
     final_projected_gap = float(
         np.max(np.maximum(projected_true_losses - master_losses, 0.0))
     )
+    final_cut_mask = _cut_mask(cuts, atoms.shape[1])
+    _, _, raw_cut_gap = cut_and_full_loss_details(
+        atoms,
+        raw_weights,
+        oracle,
+        margin_values,
+        feasible,
+        final_cut_mask,
+    )
+    _, _, projected_cut_gap = cut_and_full_loss_details(
+        atoms,
+        projected_weights,
+        oracle,
+        margin_values,
+        feasible,
+        final_cut_mask,
+    )
     return V24CuttingPlaneResult(
         raw_static_weights=np.asarray(raw_weights, dtype=np.float64),
         train_violations=true_losses,
         final_master_gap=final_gap,
         projected_train_violations=projected_true_losses,
         final_projected_master_gap=final_projected_gap,
+        final_raw_cut_gap=float(np.max(raw_cut_gap)),
+        final_projected_cut_gap=float(np.max(projected_cut_gap)),
         history=history,
         converged=True,
-        final_cut_mask=_cut_mask(cuts, atoms.shape[1]),
+        final_cut_mask=final_cut_mask,
         final_master_losses=np.asarray(master_losses, dtype=np.float64),
         solver_status=solver_status,
         solver_name=solver_name,
@@ -518,6 +601,12 @@ def accepted_weights_and_gap(
         type(row.get("new_cuts")) is not int
         or row["new_cuts"] < 0
         or not np.isfinite(row.get("max_master_gap", np.nan))
+        or not np.isfinite(row.get("raw_max_cut_gap", np.nan))
+        or not np.isfinite(row.get("projected_max_cut_gap", np.nan))
+        or not np.isfinite(row.get("max_separation_gap", np.nan))
+        or row["raw_max_cut_gap"] < 0.0
+        or row["projected_max_cut_gap"] < 0.0
+        or row["max_separation_gap"] < 0.0
         for row in history
     ):
         raise RuntimeError("cutting-plane history receipt is invalid")
@@ -527,13 +616,30 @@ def accepted_weights_and_gap(
         "fallback_solvers_exposed"
     ) != []:
         raise RuntimeError("CLARABEL-only solver registry receipt is invalid")
-    if not np.isfinite(result.final_master_gap) or result.final_master_gap > ACCEPTANCE_GAP:
+    if (
+        not np.isfinite(result.final_master_gap)
+        or result.final_master_gap < 0.0
+        or result.final_master_gap > ACCEPTANCE_GAP
+    ):
         raise RuntimeError("raw full-K master gap exceeds the frozen tolerance")
     if (
         not np.isfinite(result.final_projected_master_gap)
+        or result.final_projected_master_gap < 0.0
         or result.final_projected_master_gap > ACCEPTANCE_GAP
     ):
         raise RuntimeError("projected full-K master gap exceeds the frozen tolerance")
+    if (
+        not np.isfinite(result.final_raw_cut_gap)
+        or result.final_raw_cut_gap < 0.0
+        or result.final_raw_cut_gap > ACCEPTANCE_GAP
+    ):
+        raise RuntimeError("raw full-K cut gap exceeds the frozen tolerance")
+    if (
+        not np.isfinite(result.final_projected_cut_gap)
+        or result.final_projected_cut_gap < 0.0
+        or result.final_projected_cut_gap > ACCEPTANCE_GAP
+    ):
+        raise RuntimeError("projected full-K cut gap exceeds the frozen tolerance")
     raw = np.asarray(result.raw_static_weights, dtype=np.float64).reshape(-1)
     if raw.shape != (14,) or not np.isfinite(raw).all():
         raise RuntimeError("static v24 weights have invalid shape or values")
@@ -550,13 +656,15 @@ def accepted_weights_and_gap(
     )
     if omitted != 0 or not np.isfinite(projected_gap) or projected_gap > ACCEPTANCE_GAP:
         raise RuntimeError("projected saved-weight full-K gap exceeds tolerance")
+    if projected_gap != result.final_projected_cut_gap:
+        raise RuntimeError("projected cut-gap receipt differs from full-K recomputation")
     if not np.array_equal(
         np.asarray(result.projected_train_violations, dtype=np.float64), full_losses
     ):
         raise RuntimeError(
             "projected CLARABEL weights fail independent full-K recomputation"
         )
-    raw_full_losses, _, raw_projected_gap, raw_omitted = cut_and_full_losses(
+    raw_full_losses, _, raw_cut_gap, raw_omitted = cut_and_full_losses(
         normalized_atoms,
         raw,
         oracle,
@@ -566,7 +674,8 @@ def accepted_weights_and_gap(
     )
     if (
         raw_omitted != 0
-        or raw_projected_gap > ACCEPTANCE_GAP
+        or raw_cut_gap > ACCEPTANCE_GAP
+        or raw_cut_gap != result.final_raw_cut_gap
         or not np.array_equal(
             np.asarray(result.train_violations, dtype=np.float64), raw_full_losses
         )
@@ -583,6 +692,9 @@ def accepted_weights_and_gap(
         "full_k_loss_maximum": float(np.max(full_losses)),
         "final_cut_loss_mean": float(np.mean(cut_losses)),
         "projected_saved_weight_full_k_gap": projected_gap,
+        "raw_saved_weight_full_k_gap": raw_cut_gap,
+        "raw_final_master_gap": result.final_master_gap,
+        "projected_final_master_gap": result.final_projected_master_gap,
         "omitted_violating_snapshot_count": omitted,
         "cut_count_histogram": np.bincount(cuts, minlength=9).astype(int).tolist(),
         "total_cuts": int(cuts.sum()),
@@ -720,6 +832,10 @@ def train_level(
             "total_cuts": cut_receipt["total_cuts"],
             "raw_full_k_gap": float(result.final_master_gap),
             "projected_full_k_gap": float(result.final_projected_master_gap),
+            "raw_master_gap": float(result.final_master_gap),
+            "projected_master_gap": float(result.final_projected_master_gap),
+            "raw_cut_relative_gap": float(result.final_raw_cut_gap),
+            "projected_cut_relative_gap": float(result.final_projected_cut_gap),
             "projected_saved_weight_full_k_gap": projected_gap,
             "final_new_cuts": int(result.history[-1]["new_cuts"]),
             "converged": bool(result.converged),

@@ -62,6 +62,8 @@ def _result(module, rows: int = 3):
         final_master_gap=0.0,
         projected_train_violations=np.zeros(rows, dtype=np.float64),
         final_projected_master_gap=0.0,
+        final_raw_cut_gap=0.0,
+        final_projected_cut_gap=0.0,
         history=[
             {
                 "iteration": 1,
@@ -70,6 +72,9 @@ def _result(module, rows: int = 3):
                 "mean_violation": 0.0,
                 "max_violation": 0.0,
                 "max_master_gap": 0.0,
+                "raw_max_cut_gap": 0.0,
+                "projected_max_cut_gap": 0.0,
+                "max_separation_gap": 0.0,
                 "new_cuts": 0,
                 "total_cuts": rows,
                 "final_resolve": False,
@@ -262,6 +267,56 @@ def test_cutting_plane_adds_projected_weight_violation_before_convergence() -> N
     assert result.final_projected_master_gap <= module.ACCEPTANCE_GAP
 
 
+def test_cutting_plane_adds_cut_relative_violation_when_master_gap_passes() -> None:
+    module = _module()
+    atoms = np.zeros((1, 8, 14), dtype=np.float64)
+    atoms[0, 0, 1:] = 10.0
+    atoms[0, 1, 1:] = 9.0
+    atoms[0, 2, 0] = 10.0
+    valid = np.ones((1, 8), dtype=bool)
+    oracle = np.asarray([0], dtype=np.int64)
+    margins = np.zeros((1, 8), dtype=np.float64)
+    margins[0, 1] = 1.1e-6
+    raw = np.asarray([1.0 + 13e-8] + [-1e-8] * 13, dtype=np.float64)
+    projected = np.asarray([1.0] + [0.0] * 13, dtype=np.float64)
+    calls = []
+
+    @contextmanager
+    def scope():
+        yield {
+            "installed_solvers_before_scope": ["CLARABEL"],
+            "solvers_exposed_to_master": ["CLARABEL"],
+            "fallback_solvers_exposed": [],
+        }
+
+    def master(atoms_arg, oracle_arg, margins_arg, cuts, config, features):
+        calls.append([set(row) for row in cuts])
+        weights = raw if len(calls) == 1 else projected
+        projected_losses = module.candidate_ranking_violations(
+            atoms_arg, projected, oracle_arg, margins_arg, valid
+        )[1]
+        return weights, None, projected_losses, "optimal", "CLARABEL", 0.0
+
+    result = module.solve_v24_cutting_plane(
+        atoms,
+        oracle,
+        margins,
+        valid,
+        config=_config(module),
+        master_solver=master,
+        solver_scope=scope,
+    )
+
+    assert len(calls) == 2
+    assert 1 not in calls[0][0]
+    assert 1 in calls[1][0]
+    assert result.history[0]["projected_max_master_gap"] <= module.ACCEPTANCE_GAP
+    assert result.history[0]["projected_max_cut_gap"] > module.ACCEPTANCE_GAP
+    assert result.history[-1]["new_cuts"] == 0
+    assert result.final_raw_cut_gap <= module.ACCEPTANCE_GAP
+    assert result.final_projected_cut_gap <= module.ACCEPTANCE_GAP
+
+
 def test_saved_weight_acceptance_recomputes_full_k_and_rejects_final_resolve() -> None:
     module = _module()
     rows = 3
@@ -295,6 +350,28 @@ def test_saved_weight_acceptance_rejects_omitted_full_k_violation() -> None:
     feasible = np.ones((1, 8), dtype=bool)
 
     with pytest.raises(RuntimeError, match="full-K"):
+        module.accepted_weights_and_gap(result, atoms, oracle, margins, feasible)
+
+
+@pytest.mark.parametrize(
+    ("field", "message"),
+    [
+        ("final_raw_cut_gap", "raw full-K cut gap"),
+        ("final_projected_cut_gap", "projected full-K cut gap"),
+    ],
+)
+def test_saved_weight_acceptance_requires_both_reported_cut_gaps(
+    field: str, message: str
+) -> None:
+    module = _module()
+    result = _result(module, 1)
+    setattr(result, field, 2.0 * module.ACCEPTANCE_GAP)
+    atoms = np.zeros((1, 8, 14), dtype=np.float64)
+    oracle = np.zeros(1, dtype=np.int64)
+    margins = np.zeros((1, 8), dtype=np.float64)
+    feasible = np.ones((1, 8), dtype=bool)
+
+    with pytest.raises(RuntimeError, match=message):
         module.accepted_weights_and_gap(result, atoms, oracle, margins, feasible)
 
 
@@ -546,6 +623,8 @@ def test_independent_static_reviewer_accepts_executor_and_rejects_contract_drift
     assert "clarabel_only_registry" in checks
     assert "no_post_cap_final_resolve" in checks
     assert "saved_weights_recomputed_full_k" in checks
+    assert "raw_and_projected_cut_relative_separation" in checks
+    assert "all_four_gap_acceptance" in checks
     with pytest.raises(ValueError, match="static contract"):
         reviewer._static_executor_review(
             source.replace('"final_resolve": False', '"final_resolve": True', 1)
@@ -554,11 +633,16 @@ def test_independent_static_reviewer_accepts_executor_and_rejects_contract_drift
 
 def test_execution_provenance_binds_executor_preflight_reviewer_and_frozen_core() -> None:
     module = _module()
+    from scripts.integrations import (
+        review_diffusion_planner_v24_training_executor_preflight as reviewer,
+    )
+
     assert set(module.EXECUTOR_PROVENANCE_FILES) == {
         "scripts/integrations/train_diffusion_planner_v24_selector.py",
         "scripts/integrations/preflight_diffusion_planner_v24_training_executor.py",
         "scripts/integrations/review_diffusion_planner_v24_training_executor_preflight.py",
         "scripts/integrations/review_diffusion_planner_v24_training_execution_failure.py",
+        "scripts/integrations/review_diffusion_planner_v24_training_retry_failure.py",
         "configs/integrations/diffusion_planner_v24_convex_training_plan.json",
         "camp_core/camp_core/outer_master/robust_margin_master.py",
         "scripts/integrations/preflight_diffusion_planner_v24_convex_training.py",
@@ -570,6 +654,8 @@ def test_execution_provenance_binds_executor_preflight_reviewer_and_frozen_core(
         "scripts/integrations/preflight_diffusion_planner_v24_convex_training.py",
         "scripts/integrations/review_diffusion_planner_v24_atom_availability.py",
     }
+    assert set(reviewer.EXPECTED_PROVENANCE) == set(module.EXECUTOR_PROVENANCE_FILES)
+    assert set(reviewer.PLAN_STABLE) == set(module.PLAN_STABLE_PROVENANCE_FILES)
 
 
 def test_static_test_artifact_receipt_binds_files_count_and_closed_boundaries(

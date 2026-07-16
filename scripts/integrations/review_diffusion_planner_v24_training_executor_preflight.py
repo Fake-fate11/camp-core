@@ -71,19 +71,23 @@ REVIEWER_RELATIVE = (
 FAILURE_REVIEW_RELATIVE = (
     "scripts/integrations/review_diffusion_planner_v24_training_execution_failure.py"
 )
+RETRY_FAILURE_REVIEW_RELATIVE = (
+    "scripts/integrations/review_diffusion_planner_v24_training_retry_failure.py"
+)
 REPAIR_REVIEW_ARTIFACT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_"
-    "20260716T215042CST"
+    "camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_"
+    "20260716T221541CST"
 )
 REPAIR_REVIEW_ROOT_SHA256 = (
-    "1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d"
+    "4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b"
 )
 EXPECTED_PROVENANCE = {
     EXECUTOR_RELATIVE,
     PREFLIGHT_RELATIVE,
     REVIEWER_RELATIVE,
     FAILURE_REVIEW_RELATIVE,
+    RETRY_FAILURE_REVIEW_RELATIVE,
     "configs/integrations/diffusion_planner_v24_convex_training_plan.json",
     "camp_core/camp_core/outer_master/robust_margin_master.py",
     "scripts/integrations/preflight_diffusion_planner_v24_convex_training.py",
@@ -94,6 +98,7 @@ PLAN_STABLE = EXPECTED_PROVENANCE - {
     PREFLIGHT_RELATIVE,
     REVIEWER_RELATIVE,
     FAILURE_REVIEW_RELATIVE,
+    RETRY_FAILURE_REVIEW_RELATIVE,
 }
 EXPECTED_TEST_FILES = [
     "camp_core/tests/test_diffusion_planner_v24_training_executor.py",
@@ -109,7 +114,7 @@ LOCKS = (
     Path("/root/autodl-tmp/.camp_dp_v24_training_label_materialization.lock"),
 )
 REVIEW_SCHEMA = (
-    "camp_dp_v24_training_projection_boundary_repair_static_preflight_"
+    "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_"
     "independent_review_v1"
 )
 
@@ -224,6 +229,12 @@ def _static_executor_review(source: str) -> list[str]:
         or "projected_weights = project_simplex_rows(raw_weights)[0]" not in solve
         or "projected_max_master_gap" not in solve
         or "raw_max_master_gap" not in solve
+        or "cut_and_full_loss_details" not in solve
+        or "projected_max_cut_gap" not in solve
+        or "raw_max_cut_gap" not in solve
+        or "max_separation_gap" not in solve
+        or "final_projected_cut_gap" not in accept
+        or "final_raw_cut_gap" not in accept
         or "post-cap final-resolve is forbidden" not in accept
         or "cut_and_full_losses" not in accept
         or "omitted_violating_snapshot_count" not in accept
@@ -242,6 +253,8 @@ def _static_executor_review(source: str) -> list[str]:
         "saved_weights_recomputed_full_k",
         "projected_weight_cut_separation",
         "raw_and_projected_gap_diagnostics",
+        "raw_and_projected_cut_relative_separation",
+        "all_four_gap_acceptance",
         "all_four_levels_fresh_and_required",
         "no_historical_weight_load",
         "no_outcome_or_holdout_loader",
@@ -319,7 +332,7 @@ def review_preflight(
     report = _read_json(artifact / "preflight.json")
     if (
         report.get("schema")
-        != "camp_dp_v24_training_projection_boundary_repair_static_preflight_v1"
+        != "camp_dp_v24_training_cut_relative_gap_repair_static_preflight_v1"
         or report.get("status") != "passed"
         or report.get("camp_head") != camp_head
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
@@ -344,11 +357,11 @@ def review_preflight(
     )
     if (
         eof.get("current_v24_status")
-        != "v24_convex_training_execution_failure_independent_review_passed"
+        != "v24_convex_training_retry_failure_independent_review_passed"
         or eof.get("current_v24_artifact") != str(REPAIR_REVIEW_ARTIFACT)
         or eof.get("current_v24_artifact_root_sha256") != REPAIR_REVIEW_ROOT_SHA256
         or eof.get("next_work_target")
-        != "v24_convex_training_projection_boundary_repair_tdd_static_preflight_only"
+        != "v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only"
     ):
         raise ValueError("live v24 EOF drifted before independent static review")
 
@@ -364,7 +377,7 @@ def review_preflight(
         "path": str(REPAIR_REVIEW_ARTIFACT),
         "root_sha256": REPAIR_REVIEW_ROOT_SHA256,
     }:
-        raise ValueError("v24 projection-boundary repair authority drift")
+        raise ValueError("v24 cut-relative-gap repair authority drift")
     repair_verified = _verify_clean_seal(
         REPAIR_REVIEW_ARTIFACT, REPAIR_REVIEW_ROOT_SHA256
     )
@@ -372,13 +385,13 @@ def review_preflight(
     if (
         repair_review.get("status") != "passed"
         or repair_review.get("decision", {}).get(
-            "projection_boundary_repair_tdd_static_preflight_authorized"
+            "cut_relative_gap_repair_tdd_static_preflight_authorized"
         )
         is not True
         or repair_review.get("decision", {}).get("training_retry_authorized")
         is not False
     ):
-        raise ValueError("v24 projection-boundary failure review decision drift")
+        raise ValueError("v24 cut-relative-gap failure review decision drift")
     static_checks = _static_executor_review((repo / EXECUTOR_RELATIVE).read_text(encoding="utf-8"))
 
     expected_authority = {
@@ -454,6 +467,8 @@ def review_preflight(
         or master.get("full_k_saved_weight_recomputation_required") is not True
         or master.get("project_weights_before_cut_separation") is not True
         or master.get("raw_and_projected_gap_required") is not True
+        or master.get("raw_and_projected_cut_relative_gap_required") is not True
+        or master.get("all_four_gap_acceptance_required") is not True
     ):
         raise ValueError("v24 executor master contract drift")
 
@@ -547,7 +562,9 @@ def review_preflight(
             "holdout_authorized": False,
             "claim_authorized": False,
         },
-        "next_work_target": "v24_convex_selector_training_retry_execution_only",
+        "next_work_target": (
+            "v24_convex_selector_training_cut_relative_gap_retry_execution_only"
+        ),
     }
 
 
