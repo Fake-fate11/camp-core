@@ -426,21 +426,50 @@ evidence-package and preregistered claim-decision static gate is next. Broad
 unseen-map, native-ranked-Top-1, comparative latency, real-world safety,
 deployment, and promotion claims remain forbidden.
 
-current_v24_status=v24_paired_holdout_main_once_independent_result_review_passed_honest_no_claim_pending_final_rehash
-current_v24_artifact_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+The evidence-package and preregistered claim-decision TDD/static preflight then
+passed at source HEAD `743af40d631d7b80c39c5593c3beb773a96b251e`. Local and AutoDL compile plus
+the evidence/reviewer/protocol/audit suites passed `130` tests, and final
+adversarial review found no P1/P2. The complete-sealed `16`-file static
+artifact/root are
+`/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_743af40d_20260717T061743CST`
+and `f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5`.
+Only synthetic reviewer fixtures were used; the real reviewer, source
+execution, pairs, outcomes, runner, model, and simulator remained unopened.
+
+The builder now binds the full live Gate56 authority, accepts the required
+implementation/static source HEAD A -> docs/package HEAD B ancestry, and
+rehashes the Gate56 static artifact, reviewer artifact, and holdout marker
+before, after, and after publication. It freezes exact 27 reviewer checks,
+complete paired metrics, verified-byte snapshots, the AB/BA `60/60` order,
+independent resets, descriptive-only latency, canonical repository provenance,
+the global lock/process/disk guards, deterministic no-replace publication, and
+final-path sealing. The marker remains open count one with rerun false. The
+separate execution may close only the reviewer self-guard; the positive
+clustered CI95 upper bound still requires `honest_no_claim`. Only that exact
+evidence/claim execution is authorized next.
+
+current_v24_status=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_passed
+current_v24_artifact_source_head=743af40d631d7b80c39c5593c3beb773a96b251e
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
-current_v24_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_743af40d_20260717T061743CST
+current_v24_artifact_root_sha256=f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5
+current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
+current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
+current_v24_holdout_open_count=1
+current_v24_holdout_rerun_authorized=false
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_honest_no_claim_pending_final_evidence_claim_decision
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_static_preflight_passed_honest_no_claim_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_only
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_execution_only
 
 ## Current V23 Status
 

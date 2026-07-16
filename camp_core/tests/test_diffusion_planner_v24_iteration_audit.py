@@ -20,21 +20,28 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_holdout_main_once_independent_result_review_passed_honest_no_claim_pending_final_rehash",
-    "current_v24_artifact_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2",
+    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_passed",
+    "current_v24_artifact_source_head=743af40d631d7b80c39c5593c3beb773a96b251e",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST",
-    "current_v24_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_743af40d_20260717T061743CST",
+    "current_v24_artifact_root_sha256=f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5",
+    "current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST",
+    "current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
+    "current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2",
+    "current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json",
+    "current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633",
+    "current_v24_holdout_open_count=1",
+    "current_v24_holdout_rerun_authorized=false",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_honest_no_claim_pending_final_evidence_claim_decision",
+    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_static_preflight_passed_honest_no_claim_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_only",
+    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_execution_only",
 )
 
 
@@ -262,6 +269,38 @@ def test_v24_holdout_independent_result_review_is_sealed_and_honest_no_claim() -
         "not raw-byte tensor rehash or independent `A @ w` recomputation",
     ):
         assert phrase in text
+
+
+def test_v24_evidence_claim_static_preflight_is_sealed_and_outcome_closed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 56: Evidence Package and Preregistered Claim-Decision TDD and Static Preflight",
+        "`743af40d631d7b80c39c5593c3beb773a96b251e`",
+        "`130` tests",
+        "no remaining P1/P2 finding",
+        "`f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5`",
+        "synthetic reviewer fixtures only",
+        "exact `27` reviewer check-name set",
+        "live audit EOF and Current V24 authority receipts",
+        "implementation/static source HEAD A must differ from and be an ancestor of docs/package HEAD B",
+        "verified-byte snapshots close the seal-to-JSON TOCTOU",
+        "`holdout_open_count=1`",
+        "`holdout_rerun_authorized=false`",
+        "`source_pair_or_outcome_fields_consumed=[]`",
+        "`evidence_claim_executed=false`",
+        "`clustered_ci95_upper_below_zero`",
+        "descriptive-only latency",
+        "v24_evidence_package_and_preregistered_claim_decision_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v24_gate56_pointer_keeps_reviewer_and_holdout_authority_distinct() -> None:
+    text = AUDIT.read_text(encoding="utf-8")
+    assert "current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2" in text
+    assert "current_v24_holdout_open_count=1" in text
+    assert "current_v24_holdout_rerun_authorized=false" in text
+    assert "current_v24_reviewer_artifact_source_head=" not in text
 
 
 def test_v24_remaining_execution_and_independent_review_are_sealed() -> None:

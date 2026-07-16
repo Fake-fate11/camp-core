@@ -3504,3 +3504,90 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_only
+
+## Gate 56: Evidence Package and Preregistered Claim-Decision TDD and Static Preflight
+
+Status: passed and complete-sealed. This gate used synthetic reviewer fixtures
+only and did not open the real independent reviewer, source execution, pair, or
+outcome payload. Only the exact evidence-package and preregistered
+claim-decision execution is authorized next.
+
+The evidence/claim builder and its adversarial tests were committed at CAMP
+source HEAD `743af40d631d7b80c39c5593c3beb773a96b251e`. Local Python compile and the
+evidence / reviewer / paired-protocol / v24-audit suites passed `130` tests. A
+final read-only adversarial review reported no remaining P1/P2 finding and
+confirmed that the builder has no evaluator, runner, model, or simulator
+import or call. Its subprocess use is limited to read-only Git provenance.
+
+The static contract binds the complete live audit EOF and Current V24 authority
+receipts, including the immutable reviewer artifact/root/source HEAD and the
+holdout marker path/SHA/open-count/rerun tuple. The implementation/static source
+HEAD A must differ from and be an ancestor of docs/package HEAD B; the pending
+docs commit is not treated as source drift. The Gate 56 static artifact,
+reviewer artifact, and holdout marker must all pass complete-seal or byte
+rehashing before, after, and after publication. The exact `27` reviewer
+check-name set, complete paired metrics, AB/BA `60/60`, independent resets,
+descriptive-only latency, train coverage `1,875 / 1,054 / 821`, and learning-
+curve support `[7, 8, 13]` are fixed inputs. Manifest and payload verified-byte
+snapshots close the seal-to-JSON TOCTOU.
+
+The builder also requires canonical CAMP/DP roots, main/local/origin/live-remote
+identity, Git ancestry, clean tracked state, the fixed DP HEAD, a free global
+lock, no related evaluator/reviewer process, and the 10 GiB floor. Its output
+path is deterministically fixed by package HEAD plus reviewer root; publication
+uses no-replace rename, fsync, final-path seal verification, and final
+post-publication source/authority/marker/repository/process/disk checks. It may
+only derive `independent_review_passed=true` after rehashing the sealed reviewer;
+the source reviewer remains unchanged. The preregistered result must remain
+`honest_no_claim`, with `clustered_ci95_upper_below_zero` as the sole remaining
+failed gate. Comparative latency, broad unseen-map, native-ranked-Top-1,
+real-world safety, promotion, deployment, and online activation remain
+forbidden.
+
+AutoDL fast-forwarded to the same clean source HEAD and retained fixed DP clean
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`. An initial static-wrapper attempt
+failed before sealing because Python 3.9 does not accept `newline` in
+`Path.write_text`; its partial directory was removed and no reviewer/outcome was
+opened. The writer-only compatibility correction then passed the same `130`
+tests, `git diff --check`, marker/process/lock checks, and final independent
+rehash. The complete-sealed `16`-file static artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_743af40d_20260717T061743CST`
+/
+`f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5`.
+
+The persistent marker remained byte-identical at
+`f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633`,
+with `holdout_open_count=1` and `holdout_rerun_authorized=false`. The global
+lock was free, no related process existed, and `48,679,739,392` bytes remained
+free after sealing. Static receipts record
+`real_reviewer_artifact_opened=false`,
+`source_execution_artifact_opened=false`,
+`source_pair_or_outcome_fields_consumed=[]`,
+`evidence_claim_executed=false`, `runner_built=false`, `model_loaded=false`,
+`simulator_executed=false`, `holdout_reopened=false`, and
+`claim_authorized=false`. No real evidence package or claim decision was
+materialized at this gate.
+
+current_v24_status=v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_passed
+current_v24_artifact_source_head=743af40d631d7b80c39c5593c3beb773a96b251e
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_743af40d_20260717T061743CST
+current_v24_artifact_root_sha256=f307ec91a81d8b293033dcb0af2b01cfe5851d23649a6afd0b157a84fac919c5
+current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
+current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
+current_v24_holdout_open_count=1
+current_v24_holdout_rerun_authorized=false
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_static_preflight_passed_honest_no_claim_execution_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_execution_only
