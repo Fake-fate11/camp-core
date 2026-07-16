@@ -633,3 +633,27 @@ def test_first_training_failure_has_independent_projection_boundary_diagnosis() 
     assert diagnosis["cut_generation_projects_weights"] is False
     assert diagnosis["acceptance_projects_weights"] is True
     assert diagnosis["acceptance_rejects_projected_gap"] is True
+
+
+def test_training_retry_failure_distinguishes_master_and_cut_relative_gap() -> None:
+    from scripts.integrations import (
+        review_diffusion_planner_v24_training_retry_failure as reviewer,
+    )
+
+    source = subprocess.run(
+        [
+            "git",
+            "show",
+            f"{reviewer.RETRY_CAMP_HEAD}:{reviewer.EXECUTOR_RELATIVE}",
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
+    diagnosis = reviewer.diagnose_master_vs_cut_gap(source)
+
+    assert diagnosis["projected_cut_separation_present"] is True
+    assert diagnosis["projected_gap_is_relative_to_master_losses"] is True
+    assert diagnosis["cut_relative_gap_computed_during_separation"] is False
+    assert diagnosis["cut_relative_gap_required_during_acceptance"] is True
