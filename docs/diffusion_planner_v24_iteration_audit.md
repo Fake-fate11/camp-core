@@ -2632,15 +2632,64 @@ No model, training execution, calibration, holdout, actual outcome, paired
 evaluation, tuning, or claim boundary opened. Only the exact repaired
 train-only retry and its mandatory independent result review remain authorized.
 
+## Gate 44: Stable Source-Bound Training Authorization Review
+
+Status: passed and independently sealed. The stable authorization contract no
+longer depends on advancing gate names: execution requires the live EOF source
+HEAD, the review's CAMP HEAD, and the current executor SHA to agree exactly.
+
+At CAMP source HEAD `a51885382c9b6b41bd564ef8a55a997be7e11451`, the executor
+authorization check now binds `current_v24_artifact_source_head` to the caller's
+clean expected HEAD and independently hashes the live executor against the
+authorization review's `executor_source_sha256`. It retains the exact live
+artifact/root, stable authorization-review schema/status, positive execution
+decision, closed outcome/calibration/holdout/claim receipts, and exact next
+target. Tests prove both an historical status and a mismatched executor SHA
+fail closed. The preflight and independent reviewer were advanced to the Gate
+43 authorization artifact without changing their output schema/status, so a
+successful re-review can update only the source/artifact tuple without another
+authorization-code rewrite.
+
+Local Python 3.12 compilation, pyflakes, diff checks, and the five required
+suites passed `131` tests on a clean HEAD. AutoDL Python 3.9 repeated all `131`
+with empty stderr. Its test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_tests_a5188538_20260716T225055CST`
+/
+`e4381c57dcfd646b80926c557b53a12799852c02bc28f80cbdd9e6f5f0600187`.
+
+The source-bound static preflight complete-sealed Gate 43 and every unchanged
+training-input root, revalidated counts, the four-gap master, fixed DP,
+CLARABEL, processes, locks, and disk, and called no solver or training entry
+point. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_preflight_a5188538_20260716T225055CST`
+/
+`ee28903152c0fc15dc90a523bfcbc79de15a39e703e45722f16d2b21c0d80e5f`.
+
+The independent reviewer recomputed the current executor SHA as
+`f268c0a6bfde7907c059ec6efdcbabd5e5b9bc2e7043fa7bd6a4841201b7fe74`,
+rehashed the full source/artifact chain, and passed `27 / 0` checks. It found no
+executor process, all locks free, fixed DP clean, and `48,776,925,184` bytes
+free. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_preflight_independent_review_a5188538_20260716T225055CST`
+/
+`a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e`.
+
+No model, training, calibration, holdout, actual outcome, paired evaluation,
+tuning, or claim boundary opened. Only one exact repaired train-only retry and
+its mandatory independent result review are authorized next.
+
 current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed
-current_v24_artifact_source_head=db238bd7dadcb169b67fa3cd410fac87ba7064ab
+current_v24_artifact_source_head=a51885382c9b6b41bd564ef8a55a997be7e11451
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_db238bd7_20260716T224452CST
-current_v24_artifact_root_sha256=f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_preflight_independent_review_a5188538_20260716T225055CST
+current_v24_artifact_root_sha256=a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed_retry_execution_pending
+source_b_status=convex_training_stable_source_bound_authorization_static_preflight_independent_review_passed_retry_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1

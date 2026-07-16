@@ -21,14 +21,14 @@ BRANCH_A_PLAN = (
 
 POINTER = (
     "current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=db238bd7dadcb169b67fa3cd410fac87ba7064ab",
+    "current_v24_artifact_source_head=a51885382c9b6b41bd564ef8a55a997be7e11451",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_db238bd7_20260716T224452CST",
-    "current_v24_artifact_root_sha256=f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_preflight_independent_review_a5188538_20260716T225055CST",
+    "current_v24_artifact_root_sha256=a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed_retry_execution_pending",
+    "source_b_status=convex_training_stable_source_bound_authorization_static_preflight_independent_review_passed_retry_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
@@ -254,6 +254,23 @@ def test_v24_repaired_training_authorization_contract_is_reviewed() -> None:
         "passed `27 / 0` checks",
         "f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357",
         "Only the exact repaired train-only retry",
+    ):
+        assert phrase in text
+
+
+def test_v24_stable_training_authorization_is_source_bound() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "no longer depends on advancing gate names",
+        "current_v24_artifact_source_head",
+        "authorization review's `executor_source_sha256`",
+        "mismatched executor SHA fail closed",
+        "passed `131` tests",
+        "e4381c57dcfd646b80926c557b53a12799852c02bc28f80cbdd9e6f5f0600187",
+        "ee28903152c0fc15dc90a523bfcbc79de15a39e703e45722f16d2b21c0d80e5f",
+        "passed `27 / 0` checks",
+        "a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e",
+        "Only one exact repaired train-only retry",
     ):
         assert phrase in text
 
