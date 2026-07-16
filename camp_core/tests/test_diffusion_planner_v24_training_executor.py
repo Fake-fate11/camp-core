@@ -280,6 +280,25 @@ def test_route_rows_freeze_all_seeds_failures_and_nested_membership() -> None:
         module._validate_route_rows(routes)
 
 
+@pytest.mark.parametrize(
+    ("phase", "seed", "expected"),
+    [
+        ("pilot", 24001, True),
+        ("remaining", 24002, True),
+        ("remaining", 24005, True),
+        ("remaining", 24001, False),
+        ("pilot", 24002, False),
+        ("train", 24001, False),
+        ("pilot", np.int64(24001), False),
+    ],
+)
+def test_provenance_phase_is_exactly_bound_to_pilot_and_remaining_seed_namespaces(
+    phase: str, seed: object, expected: bool
+) -> None:
+    module = _module()
+    assert module._valid_provenance_phase_seed(phase, seed) is expected
+
+
 def test_label_payload_receipts_are_byte_and_schema_bound(
     tmp_path: Path, monkeypatch
 ) -> None:

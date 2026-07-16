@@ -786,6 +786,17 @@ def _validate_route_rows(
     return route_ids, route_by_id
 
 
+def _valid_provenance_phase_seed(phase: Any, seed: Any) -> bool:
+    return bool(
+        type(seed) is int
+        and seed in EXPECTED_SEEDS
+        and (
+            (seed == EXPECTED_SEEDS[0] and phase == "pilot")
+            or (seed != EXPECTED_SEEDS[0] and phase == "remaining")
+        )
+    )
+
+
 def load_training_inputs() -> dict[str, Any]:
     verify_complete_seal(PLAN_ARTIFACT, PLAN_ROOT_SHA256)
     verify_complete_seal(LABEL_ARTIFACT, LABEL_ROOT_SHA256)
@@ -978,9 +989,7 @@ def load_training_inputs() -> dict[str, Any]:
             raise ValueError("label provenance schema or sequence mismatch")
         if (
             row.get("route_identity_sha256") not in route_ids
-            or type(row.get("seed")) is not int
-            or row.get("seed") not in EXPECTED_SEEDS
-            or row.get("phase") != "train"
+            or not _valid_provenance_phase_seed(row.get("phase"), row.get("seed"))
             or pure is None
             or pure.is_absolute()
             or ".." in pure.parts
