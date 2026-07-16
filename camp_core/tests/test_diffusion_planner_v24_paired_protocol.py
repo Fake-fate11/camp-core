@@ -508,6 +508,8 @@ def test_static_preflight_and_reviewer_cannot_execute_runtime() -> None:
         / "integrations"
         / "review_diffusion_planner_v24_calibration_pilot.py"
     ).read_text(encoding="utf-8")
+    assert "expected_execution_source_head" in pilot_reviewer
+    assert 'violations.append("summary.camp_head")' in pilot_reviewer
     for source in (producer, reviewer, pilot_reviewer):
         calls = {
             node.func.id

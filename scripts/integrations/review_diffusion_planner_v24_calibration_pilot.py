@@ -113,6 +113,7 @@ def _inspect_mode(
     execution_root: Path,
     mode: str,
     expected_configs: Sequence[Mapping[str, Any]],
+    expected_execution_source_head: str,
 ) -> dict[str, Any]:
     summary = _load_json(execution_root / "summary.json")
     rows = _load_json(execution_root / "pair_rows.json")
@@ -234,6 +235,8 @@ def _inspect_mode(
 
     if summary.get("mode") != mode:
         violations.append("summary.mode")
+    if summary.get("camp_head") != expected_execution_source_head:
+        violations.append("summary.camp_head")
     expected_count = EXPECTED_COUNTS[mode]
     for name, value in {
         "planned_pair_count": expected_count,
@@ -311,6 +314,7 @@ def review_calibration_pilot(
     expected_capability_root_sha256: str,
     pilot_root: Path,
     expected_pilot_root_sha256: str,
+    expected_execution_source_head: str,
     camp_head: str,
     output_dir: Path,
 ) -> dict[str, Any]:
@@ -341,8 +345,18 @@ def review_calibration_pilot(
         ]
         for mode in EXPECTED_COUNTS
     }
-    capability = _inspect_mode(capability_root, "capability", by_mode["capability"])
-    pilot = _inspect_mode(pilot_root, "pilot", by_mode["pilot"])
+    capability = _inspect_mode(
+        capability_root,
+        "capability",
+        by_mode["capability"],
+        expected_execution_source_head,
+    )
+    pilot = _inspect_mode(
+        pilot_root,
+        "pilot",
+        by_mode["pilot"],
+        expected_execution_source_head,
+    )
     live_head = _git_value(ROOT, "rev-parse", "HEAD")
     live_status = _git_value(ROOT, "status", "--porcelain", "--untracked-files=no")
     dp_repo = Path(str(by_mode["pilot"][0]["fixed_dp"]["repo"]))
@@ -402,6 +416,7 @@ def review_calibration_pilot(
         "capability": capability,
         "pilot": pilot,
         "camp_head": camp_head,
+        "execution_source_head": expected_execution_source_head,
         "fixed_dp_head": dp_head,
         "free_bytes_after_review": free_bytes,
         "source_execution_reexecuted": False,
@@ -452,6 +467,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-capability-root-sha256", required=True)
     parser.add_argument("--pilot-root", type=Path, required=True)
     parser.add_argument("--expected-pilot-root-sha256", required=True)
+    parser.add_argument("--expected-execution-source-head", required=True)
     parser.add_argument("--camp-head", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser.parse_args(argv)
@@ -467,6 +483,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         expected_capability_root_sha256=args.expected_capability_root_sha256,
         pilot_root=args.pilot_root,
         expected_pilot_root_sha256=args.expected_pilot_root_sha256,
+        expected_execution_source_head=args.expected_execution_source_head,
         camp_head=args.camp_head,
         output_dir=args.output_dir,
     )
