@@ -178,6 +178,12 @@ def _require_sha256(value: Any, name: str) -> str:
     return str(value)
 
 
+def _require_git_oid(value: Any, name: str) -> str:
+    if not isinstance(value, str) or len(value) != 40 or not set(value) <= HEX:
+        raise ValueError(f"{name} must be a lowercase 40-character Git OID")
+    return value
+
+
 def _reject_json_constant(value: str) -> None:
     raise ValueError(f"non-finite JSON constant is forbidden: {value}")
 
@@ -2501,7 +2507,7 @@ def review_holdout_main_result(
         ("execution source head", expected_execution_source_head),
         ("CAMP head", camp_head),
     ):
-        _require_sha256(value, name)
+        _require_git_oid(value, name)
     expected_config_sha256 = _require_sha256(
         expected_config_sha256, "expected config SHA256"
     )

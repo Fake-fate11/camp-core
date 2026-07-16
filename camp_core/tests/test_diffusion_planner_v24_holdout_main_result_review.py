@@ -29,6 +29,10 @@ def _sha(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def _git_oid(value: str) -> str:
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()
+
+
 def _write_json(path: Path, value: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
@@ -843,9 +847,9 @@ def test_preflight_and_gate50_pilot_review_are_strictly_cross_bound(
     pilot_review_sha = _sha("pilot-review-root")
     authorization_sha = _sha("authorization-root")
     config_sha = _sha("config")
-    preflight_head = _sha("preflight-head")
-    pilot_review_head = _sha("pilot-review-head")
-    pilot_execution_head = _sha("pilot-execution-head")
+    preflight_head = _git_oid("preflight-head")
+    pilot_review_head = _git_oid("pilot-review-head")
+    pilot_execution_head = _git_oid("pilot-execution-head")
     roots = {
         name: tmp_path / name
         for name in (
@@ -954,7 +958,7 @@ def test_preflight_and_gate50_pilot_review_are_strictly_cross_bound(
     mutations = (
         (preflight, "config_sha256", _sha("wrong-config")),
         (pilot_review["source_roots"]["preflight"], "root_sha256", _sha("wrong-preflight")),
-        (pilot_review, "execution_source_head", _sha("wrong-source")),
+        (pilot_review, "execution_source_head", _git_oid("wrong-source")),
         (pilot_review["checks"], "all_pilot_checks", False),
     )
     for target, field, wrong in mutations:
@@ -1289,15 +1293,92 @@ def test_cli_requires_explicit_independent_review_switch() -> None:
         "--expected-authorization-root-sha256", _sha("authorization"),
         "--authorization-review-root", "authorization-review",
         "--expected-authorization-review-root-sha256", _sha("authorization-review"),
-        "--expected-preflight-camp-head", _sha("preflight-head"),
-        "--expected-pilot-review-camp-head", _sha("pilot-review-head"),
-        "--expected-pilot-execution-source-head", _sha("pilot-execution-head"),
-        "--expected-execution-source-head", _sha("source-head"),
-        "--camp-head", _sha("camp-head"),
+        "--expected-preflight-camp-head", _git_oid("preflight-head"),
+        "--expected-pilot-review-camp-head", _git_oid("pilot-review-head"),
+        "--expected-pilot-execution-source-head", _git_oid("pilot-execution-head"),
+        "--expected-execution-source-head", _git_oid("source-head"),
+        "--camp-head", _git_oid("camp-head"),
         "--output-dir", "review",
     ]
     assert review.parse_args(required).enable_independent_review is False
     assert review.parse_args(required + ["--enable-independent-review"]).enable_independent_review is True
+
+
+def test_git_head_pins_require_lowercase_40_character_oids() -> None:
+    oid = _git_oid("camp-head")
+    assert review._require_git_oid(oid, "CAMP head") == oid
+    for invalid in (
+        _sha("camp-head"),
+        oid.upper(),
+        oid[:-1],
+        oid + "0",
+        "g" * 40,
+        None,
+    ):
+        with pytest.raises(ValueError, match="40-character Git OID"):
+            review._require_git_oid(invalid, "CAMP head")
+    assert review._require_sha256(_sha("config"), "config") == _sha("config")
+    with pytest.raises(ValueError, match="lowercase SHA256"):
+        review._require_sha256(oid, "config")
+
+
+def test_review_entry_accepts_git_oids_before_opening_artifacts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}\n", encoding="utf-8")
+    config_sha = hashlib.sha256(config_path.read_bytes()).hexdigest()
+    seal_calls = 0
+
+    def stop_at_first_seal(*_args: object, **_kwargs: object) -> object:
+        nonlocal seal_calls
+        seal_calls += 1
+        raise RuntimeError("first-seal-sentinel")
+
+    monkeypatch.setattr(review, "verify_complete_seal", stop_at_first_seal)
+    kwargs = {
+        "config_path": config_path,
+        "expected_config_sha256": config_sha,
+        "expected_preflight_config_sha256": _sha("preflight-config"),
+        "expected_evaluator_sha256": _sha("evaluator"),
+        "execution_root": tmp_path / "execution",
+        "expected_execution_root_sha256": _sha("execution"),
+        "launch_root": tmp_path / "launch",
+        "expected_launch_root_sha256": _sha("launch"),
+        "preflight_root": tmp_path / "preflight",
+        "expected_preflight_root_sha256": _sha("preflight"),
+        "preflight_review_root": tmp_path / "preflight-review",
+        "expected_preflight_review_root_sha256": _sha("preflight-review"),
+        "pilot_review_root": tmp_path / "pilot-review",
+        "expected_pilot_review_root_sha256": _sha("pilot-review"),
+        "authorization_root": tmp_path / "authorization",
+        "expected_authorization_root_sha256": _sha("authorization"),
+        "authorization_review_root": tmp_path / "authorization-review",
+        "expected_authorization_review_root_sha256": _sha("authorization-review"),
+        "expected_preflight_camp_head": _git_oid("preflight-head"),
+        "expected_pilot_review_camp_head": _git_oid("pilot-review-head"),
+        "expected_pilot_execution_source_head": _git_oid("pilot-source-head"),
+        "expected_execution_source_head": _git_oid("execution-source-head"),
+        "camp_head": _git_oid("camp-head"),
+        "output_dir": tmp_path / "output",
+        "enable_independent_review": True,
+    }
+    with pytest.raises(RuntimeError, match="first-seal-sentinel"):
+        review.review_holdout_main_result(**kwargs)
+    assert seal_calls == 1
+
+    invalid = dict(kwargs)
+    invalid["camp_head"] = _sha("camp-head")
+    seal_calls = 0
+    with pytest.raises(ValueError, match="40-character Git OID"):
+        review.review_holdout_main_result(**invalid)
+    assert seal_calls == 0
+
+    invalid = dict(kwargs)
+    invalid["expected_config_sha256"] = _git_oid("config")
+    with pytest.raises(ValueError, match="lowercase SHA256"):
+        review.review_holdout_main_result(**invalid)
+    assert seal_calls == 0
 
 
 def test_evidence_limitations_and_descriptive_latency_are_explicit_in_source() -> None:
