@@ -1,7 +1,10 @@
 import copy
 import hashlib
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -1745,6 +1748,31 @@ def test_remaining_independent_review_recomputes_full_denominator(
     assert review["recomputed"]["complete_route_seed_runs"] == 4
     assert review["recomputed"]["failed_route_seed_runs"] == 4
     assert review["decision"]["merged_train_corpus_assembly_authorized"] is True
+
+
+def test_remaining_independent_reviewer_cli_bootstraps_repo_root() -> None:
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(
+                ROOT
+                / "scripts"
+                / "integrations"
+                / "review_diffusion_planner_v24_native_corpus_remaining.py"
+            ),
+            "--help",
+        ],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
 
 
 def test_remaining_independent_review_rejects_resealed_snapshot_drift(

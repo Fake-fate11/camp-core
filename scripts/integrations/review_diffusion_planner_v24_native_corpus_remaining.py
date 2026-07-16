@@ -8,7 +8,12 @@ import json
 import math
 import shutil
 from pathlib import Path
+import sys
 from typing import Any, Mapping, Sequence
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from scripts.integrations.review_diffusion_planner_v24_native_corpus_pilot import (
     FEATURE_FIELDS,
