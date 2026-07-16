@@ -352,21 +352,31 @@ model, runner, simulator, candidate, or outcome was opened. Only the exact
 the sealed authorization root, and the explicit holdout-once flag. A failure
 after marker creation cannot be rerun. Claims remain closed.
 
-current_v24_status=v24_paired_holdout_main_once_static_authorization_independent_review_passed
-current_v24_artifact_source_head=d8e70ceacabf37d4182e63030d4e8032926c3ab6
+The exact main-once execution then launched at source HEAD
+`8caa2699b3657154f464e14c2f274190d3036c4a`. The persistent marker was
+exclusively created before runner construction and records holdout open count
+`1`, rerun forbidden, the preflight/authorization roots, and the exact output
+directory. Wrapper/evaluator/lock-holder PIDs are `109856 / 109859 / 109858`;
+the global lock is held and about `48.77` GB remained free immediately after
+launch. The task covers the frozen 120 pairs only. No second evaluator may be
+launched. Until it exits, the only authorized action is monitor-only inspection
+of PID, progress, stderr, lock, marker, artifact state, and disk floor.
+
+current_v24_status=v24_paired_holdout_main_once_execution_running
+current_v24_artifact_source_head=8caa2699b3657154f464e14c2f274190d3036c4a
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_independent_review_d8e70cea_20260717T015048CST
-current_v24_artifact_root_sha256=b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST
+current_v24_artifact_root_sha256=pending_running_unsealed
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_holdout_main_once_static_authorization_review_passed_main_execution_pending
+source_b_status=paired_holdout_main_once_execution_running_open_count_1_rerun_forbidden
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_holdout_main_once_execution_only
+next_work_target=v24_paired_holdout_main_once_execution_monitor_only_do_not_duplicate
 
 ## Current V23 Status
 

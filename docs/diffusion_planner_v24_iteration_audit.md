@@ -3198,3 +3198,61 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_paired_holdout_main_once_execution_only
+
+## Gate 52: Holdout Main-Once Execution Launch
+
+Status: running under the unique global lock. Holdout has been opened exactly
+once; rerun is forbidden. Only monitor-only inspection is authorized while PID
+`109859` exists.
+
+Local and AutoDL clean-HEAD authorization checks passed all `302` tests at CAMP
+HEAD `8caa2699b3657154f464e14c2f274190d3036c4a`. The AutoDL launch-test
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_holdout_main_once_execution_authorization_tests_8caa2699_20260717T015339CST`
+/
+`7cfb1ab65775c2daf2ba8a2d6ec52f7141dc96d7e358f917fa3b06f1775b27a5`.
+
+The launcher reverified clean CAMP/DP source, fixed DP HEAD, absent marker, no
+evaluator, free global lock, and more than the 10 GiB floor. It then started
+exactly one locked evaluator for the `120` frozen pairs using both explicit
+`--execute-authorized` and `--holdout-once-authorized`, the sealed preflight
+root, and authorization root
+`32aea48eef1084291ffdd139f43c8d138fe91bbb84aec97f86cf593f1982d54c`.
+The wrapper / evaluator / lock-holder PIDs are `109856 / 109859 / 109858`.
+
+Before runner construction, the evaluator exclusively created
+`/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json`. Its immutable
+opening contract records `holdout_open_count=1`, `rerun_authorized=false`,
+source HEAD `8caa2699b3657154f464e14c2f274190d3036c4a`, the exact preflight and
+authorization roots, and output directory:
+
+`/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST`.
+
+The launch wrapper directory is:
+
+`/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST_launch`.
+
+The global lock is held by PID `109858`; evaluator PID `109859` is active;
+`48,766,308,352` bytes remained free after launch. No second evaluator may be
+launched, and no failure after this point may be retried. While it runs, only
+PID/process health, completed-pair growth, stderr tail, marker/lock state,
+artifact seal state, and the 10 GiB disk floor may be inspected. Calibration,
+training, protocol, routes, seeds, weights, atoms, SafetyCost, and holdout
+schedule cannot change.
+
+current_v24_status=v24_paired_holdout_main_once_execution_running
+current_v24_artifact_source_head=8caa2699b3657154f464e14c2f274190d3036c4a
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST
+current_v24_artifact_root_sha256=pending_running_unsealed
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_execution_running_open_count_1_rerun_forbidden
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_paired_holdout_main_once_execution_monitor_only_do_not_duplicate

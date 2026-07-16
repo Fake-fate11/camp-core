@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_holdout_main_once_static_authorization_independent_review_passed",
-    "current_v24_artifact_source_head=d8e70ceacabf37d4182e63030d4e8032926c3ab6",
+    "current_v24_status=v24_paired_holdout_main_once_execution_running",
+    "current_v24_artifact_source_head=8caa2699b3657154f464e14c2f274190d3036c4a",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_holdout_main_once_static_authorization_independent_review_d8e70cea_20260717T015048CST",
-    "current_v24_artifact_root_sha256=b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST",
+    "current_v24_artifact_root_sha256=pending_running_unsealed",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_static_authorization_review_passed_main_execution_pending",
+    "source_b_status=paired_holdout_main_once_execution_running_open_count_1_rerun_forbidden",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_holdout_main_once_execution_only",
+    "next_work_target=v24_paired_holdout_main_once_execution_monitor_only_do_not_duplicate",
 )
 
 
@@ -168,6 +168,20 @@ def test_v24_holdout_main_once_authorization_is_sealed_before_open() -> None:
         "`b47a3c6682911e424412223f1d664320643ced158ef87f9ec9720872d65d8eb4`",
         "No model, runner, simulator, candidate, or outcome was opened",
         "Only the exact 120-pair holdout-main-once execution is next",
+    ):
+        assert phrase in text
+
+
+def test_v24_holdout_main_once_running_has_durable_open_marker() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 52: Holdout Main-Once Execution Launch",
+        "wrapper / evaluator / lock-holder PIDs are `109856 / 109859 / 109858`",
+        "`holdout_open_count=1`",
+        "`rerun_authorized=false`",
+        "`120` frozen pairs",
+        "No second evaluator may be launched",
+        "Only monitor-only inspection is authorized while PID `109859` exists",
     ):
         assert phrase in text
 
