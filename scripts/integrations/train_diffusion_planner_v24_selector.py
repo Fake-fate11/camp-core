@@ -120,6 +120,7 @@ EXECUTOR_PROVENANCE_FILES = (
     "scripts/integrations/train_diffusion_planner_v24_selector.py",
     "scripts/integrations/preflight_diffusion_planner_v24_training_executor.py",
     "scripts/integrations/review_diffusion_planner_v24_training_executor_preflight.py",
+    "scripts/integrations/review_diffusion_planner_v24_training_execution_failure.py",
     "configs/integrations/diffusion_planner_v24_convex_training_plan.json",
     "camp_core/camp_core/outer_master/robust_margin_master.py",
     "scripts/integrations/preflight_diffusion_planner_v24_convex_training.py",
@@ -138,6 +139,8 @@ class V24CuttingPlaneResult:
     raw_static_weights: np.ndarray
     train_violations: np.ndarray
     final_master_gap: float
+    projected_train_violations: np.ndarray
+    final_projected_master_gap: float
     history: list[dict[str, Any]]
     converged: bool
     final_cut_mask: np.ndarray
@@ -360,24 +363,44 @@ def solve_v24_cutting_plane(
                 raise RuntimeError("v24 CLARABEL returned invalid static weights")
             if theta is not None or solver_name != SOLVER or solver_status != "optimal":
                 raise RuntimeError("v24 requires exact optimal static CLARABEL")
-            _, true_losses, worst = candidate_ranking_violations(
+            _, raw_true_losses, raw_worst = candidate_ranking_violations(
                 atoms, raw_weights, oracle, margin_values, feasible
             )
-            gap = np.maximum(true_losses - master_losses, 0.0)
-            max_gap = float(np.max(gap))
+            projected_weights = project_simplex_rows(raw_weights)[0]
+            _, projected_true_losses, projected_worst = candidate_ranking_violations(
+                atoms, projected_weights, oracle, margin_values, feasible
+            )
+            raw_gap = np.maximum(raw_true_losses - master_losses, 0.0)
+            projected_gap = np.maximum(projected_true_losses - master_losses, 0.0)
+            raw_max_gap = float(np.max(raw_gap))
+            projected_max_gap = float(np.max(projected_gap))
+            max_gap = max(raw_max_gap, projected_max_gap)
             new_cuts = 0
-            for row, candidate in enumerate(worst):
-                index = int(candidate)
-                if index not in cuts[row] and gap[row] > ACCEPTANCE_GAP:
-                    cuts[row].add(index)
-                    new_cuts += 1
+            for row, (raw_candidate, projected_candidate) in enumerate(
+                zip(raw_worst, projected_worst)
+            ):
+                for candidate, row_gap in (
+                    (int(raw_candidate), raw_gap[row]),
+                    (int(projected_candidate), projected_gap[row]),
+                ):
+                    if candidate not in cuts[row] and row_gap > ACCEPTANCE_GAP:
+                        cuts[row].add(candidate)
+                        new_cuts += 1
             history.append(
                 {
                     "iteration": iteration,
                     "master_objective": float(master_objective),
-                    "exact_cvar": empirical_cvar_fast(true_losses, CVAR_ALPHA)[0],
-                    "mean_violation": float(np.mean(true_losses)),
-                    "max_violation": float(np.max(true_losses)),
+                    "exact_cvar": empirical_cvar_fast(
+                        projected_true_losses, CVAR_ALPHA
+                    )[0],
+                    "raw_mean_violation": float(np.mean(raw_true_losses)),
+                    "raw_max_violation": float(np.max(raw_true_losses)),
+                    "projected_mean_violation": float(
+                        np.mean(projected_true_losses)
+                    ),
+                    "projected_max_violation": float(np.max(projected_true_losses)),
+                    "raw_max_master_gap": raw_max_gap,
+                    "projected_max_master_gap": projected_max_gap,
                     "max_master_gap": max_gap,
                     "new_cuts": new_cuts,
                     "total_cuts": int(sum(len(row) for row in cuts)),
@@ -394,11 +417,20 @@ def solve_v24_cutting_plane(
     _, true_losses, _ = candidate_ranking_violations(
         atoms, raw_weights, oracle, margin_values, feasible
     )
+    projected_weights = project_simplex_rows(raw_weights)[0]
+    _, projected_true_losses, _ = candidate_ranking_violations(
+        atoms, projected_weights, oracle, margin_values, feasible
+    )
     final_gap = float(np.max(np.maximum(true_losses - master_losses, 0.0)))
+    final_projected_gap = float(
+        np.max(np.maximum(projected_true_losses - master_losses, 0.0))
+    )
     return V24CuttingPlaneResult(
         raw_static_weights=np.asarray(raw_weights, dtype=np.float64),
         train_violations=true_losses,
         final_master_gap=final_gap,
+        projected_train_violations=projected_true_losses,
+        final_projected_master_gap=final_projected_gap,
         history=history,
         converged=True,
         final_cut_mask=_cut_mask(cuts, atoms.shape[1]),
@@ -497,6 +529,11 @@ def accepted_weights_and_gap(
         raise RuntimeError("CLARABEL-only solver registry receipt is invalid")
     if not np.isfinite(result.final_master_gap) or result.final_master_gap > ACCEPTANCE_GAP:
         raise RuntimeError("raw full-K master gap exceeds the frozen tolerance")
+    if (
+        not np.isfinite(result.final_projected_master_gap)
+        or result.final_projected_master_gap > ACCEPTANCE_GAP
+    ):
+        raise RuntimeError("projected full-K master gap exceeds the frozen tolerance")
     raw = np.asarray(result.raw_static_weights, dtype=np.float64).reshape(-1)
     if raw.shape != (14,) or not np.isfinite(raw).all():
         raise RuntimeError("static v24 weights have invalid shape or values")
@@ -513,6 +550,12 @@ def accepted_weights_and_gap(
     )
     if omitted != 0 or not np.isfinite(projected_gap) or projected_gap > ACCEPTANCE_GAP:
         raise RuntimeError("projected saved-weight full-K gap exceeds tolerance")
+    if not np.array_equal(
+        np.asarray(result.projected_train_violations, dtype=np.float64), full_losses
+    ):
+        raise RuntimeError(
+            "projected CLARABEL weights fail independent full-K recomputation"
+        )
     raw_full_losses, _, raw_projected_gap, raw_omitted = cut_and_full_losses(
         normalized_atoms,
         raw,
@@ -676,6 +719,7 @@ def train_level(
             "cut_count_histogram": cut_receipt["cut_count_histogram"],
             "total_cuts": cut_receipt["total_cuts"],
             "raw_full_k_gap": float(result.final_master_gap),
+            "projected_full_k_gap": float(result.final_projected_master_gap),
             "projected_saved_weight_full_k_gap": projected_gap,
             "final_new_cuts": int(result.history[-1]["new_cuts"]),
             "converged": bool(result.converged),
@@ -1169,11 +1213,12 @@ def _authorization_from_eof(
     lines = text.rstrip().splitlines()[-15:]
     expected = {
         "current_v24_status": (
-            "v24_convex_training_executor_static_preflight_independent_review_passed"
+            "v24_convex_training_projection_boundary_repair_static_preflight_"
+            "independent_review_passed"
         ),
         "current_v24_artifact": str(artifact),
         "current_v24_artifact_root_sha256": expected_root,
-        "next_work_target": "v24_convex_selector_training_execution_only",
+        "next_work_target": "v24_convex_selector_training_retry_execution_only",
     }
     parsed = dict(line.split("=", 1) for line in lines if "=" in line)
     if any(parsed.get(key) != value for key, value in expected.items()):
@@ -1182,9 +1227,11 @@ def _authorization_from_eof(
     review = _read_json(Path(artifact) / "review.json")
     if (
         review.get("schema")
-        != "camp_dp_v24_training_executor_static_preflight_independent_review_v1"
+        != "camp_dp_v24_training_projection_boundary_repair_static_preflight_"
+        "independent_review_v1"
         or review.get("status") != "passed"
         or review.get("decision", {}).get("training_execution_authorized") is not True
+        or review.get("decision", {}).get("training_retry_authorized") is not True
         or review.get("outcome_accessed") is not False
         or review.get("calibration_accessed") is not False
         or review.get("holdout_opened") is not False

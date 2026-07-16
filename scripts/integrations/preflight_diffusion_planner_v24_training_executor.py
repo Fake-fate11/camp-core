@@ -63,7 +63,17 @@ from scripts.integrations.train_diffusion_planner_v24_selector import (  # noqa:
 
 
 TEST_SCHEMA = "camp_dp_v24_training_executor_static_tests_v1"
-PREFLIGHT_SCHEMA = "camp_dp_v24_training_executor_static_preflight_v1"
+PREFLIGHT_SCHEMA = (
+    "camp_dp_v24_training_projection_boundary_repair_static_preflight_v1"
+)
+REPAIR_REVIEW_ARTIFACT = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_"
+    "20260716T215042CST"
+)
+REPAIR_REVIEW_ROOT_SHA256 = (
+    "1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d"
+)
 REQUIRED_TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v24_training_executor.py",
     "camp_core/tests/test_diffusion_planner_v24_convex_training_preflight.py",
@@ -124,15 +134,36 @@ def _authorization_from_live_eof(repo: Path) -> dict[str, str]:
     parsed = dict(line.split("=", 1) for line in lines[-15:] if "=" in line)
     expected = {
         "current_v24_status": (
-            "v24_train_only_causal_label_materialization_independent_review_passed"
+            "v24_convex_training_execution_failure_independent_review_passed"
         ),
-        "current_v24_artifact": str(LABEL_REVIEW_ARTIFACT),
-        "current_v24_artifact_root_sha256": LABEL_REVIEW_ROOT_SHA256,
-        "next_work_target": "v24_convex_selector_training_executor_tdd_static_preflight_only",
+        "current_v24_artifact": str(REPAIR_REVIEW_ARTIFACT),
+        "current_v24_artifact_root_sha256": REPAIR_REVIEW_ROOT_SHA256,
+        "next_work_target": (
+            "v24_convex_training_projection_boundary_repair_tdd_static_preflight_only"
+        ),
     }
     if any(parsed.get(key) != value for key, value in expected.items()):
         raise ValueError("live v24 EOF does not authorize executor static preflight")
-    verify_complete_seal(LABEL_REVIEW_ARTIFACT, LABEL_REVIEW_ROOT_SHA256)
+    verify_complete_seal(REPAIR_REVIEW_ARTIFACT, REPAIR_REVIEW_ROOT_SHA256)
+    review = _read_json(REPAIR_REVIEW_ARTIFACT / "review.json")
+    repair = review.get("repair_contract")
+    if (
+        review.get("status") != "passed"
+        or review.get("decision", {}).get(
+            "projection_boundary_repair_tdd_static_preflight_authorized"
+        )
+        is not True
+        or review.get("decision", {}).get("training_retry_authorized") is not False
+        or not isinstance(repair, dict)
+        or repair.get("project_weights_before_cut_separation") is not True
+        or repair.get("require_raw_and_projected_full_k_gap_at_most_1e-6")
+        is not True
+        or repair.get("retain_exact_20_iteration_cap") is not True
+        or repair.get("retain_clarabel_optimal_only_no_fallback") is not True
+        or repair.get("record_raw_and_projected_gap_diagnostics") is not True
+        or repair.get("protocol_or_data_change_authorized") is not False
+    ):
+        raise ValueError("v24 projection-boundary repair authority drift")
     return expected
 
 
@@ -226,6 +257,10 @@ def run_static_preflight(
                 "root_sha256": LABEL_REVIEW_ROOT_SHA256,
             },
         },
+        "repair_authority": {
+            "path": str(REPAIR_REVIEW_ARTIFACT),
+            "root_sha256": REPAIR_REVIEW_ROOT_SHA256,
+        },
         "input_counts": {
             "routes": EXPECTED_ROUTES,
             "retained_route_seeds": EXPECTED_ROUTE_SEEDS,
@@ -252,6 +287,8 @@ def run_static_preflight(
             "post_cap_final_resolve_allowed": False,
             "acceptance_gap": ACCEPTANCE_GAP,
             "full_k_saved_weight_recomputation_required": True,
+            "project_weights_before_cut_separation": True,
+            "raw_and_projected_gap_required": True,
         },
         "solver_environment": {
             "cvxpy_version": cp.__version__,
@@ -282,7 +319,8 @@ def run_static_preflight(
             "training_execution_authorized": False,
         },
         "next_work_target": (
-            "v24_convex_training_executor_static_preflight_independent_review_only"
+            "v24_convex_training_projection_boundary_repair_static_preflight_"
+            "independent_review_only"
         ),
     }
 

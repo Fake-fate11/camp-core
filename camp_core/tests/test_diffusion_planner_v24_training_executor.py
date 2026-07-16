@@ -60,6 +60,8 @@ def _result(module, rows: int = 3):
         raw_static_weights=weights,
         train_violations=np.zeros(rows, dtype=np.float64),
         final_master_gap=0.0,
+        projected_train_violations=np.zeros(rows, dtype=np.float64),
+        final_projected_master_gap=0.0,
         history=[
             {
                 "iteration": 1,
@@ -207,6 +209,57 @@ def test_cutting_plane_has_one_clarabel_call_and_no_fallback_retry() -> None:
             solver_scope=scope,
         )
     assert len(calls) == 1
+
+
+def test_cutting_plane_adds_projected_weight_violation_before_convergence() -> None:
+    module = _module()
+    atoms = np.zeros((1, 8, 14), dtype=np.float64)
+    atoms[0, 0, 1:] = 10.0
+    atoms[0, 1, 1:] = 9.0
+    atoms[0, 2, 0] = 10.0
+    valid = np.ones((1, 8), dtype=bool)
+    oracle = np.asarray([0], dtype=np.int64)
+    margins = np.zeros((1, 8), dtype=np.float64)
+    margins[0, 1] = 1.1e-6
+    raw = np.asarray([1.0 + 13e-8] + [-1e-8] * 13, dtype=np.float64)
+    projected = np.asarray([1.0] + [0.0] * 13, dtype=np.float64)
+    calls = []
+
+    @contextmanager
+    def scope():
+        yield {
+            "installed_solvers_before_scope": ["CLARABEL"],
+            "solvers_exposed_to_master": ["CLARABEL"],
+            "fallback_solvers_exposed": [],
+        }
+
+    def master(atoms_arg, oracle_arg, margins_arg, cuts, config, features):
+        calls.append([set(row) for row in cuts])
+        weights = raw if len(calls) == 1 else projected
+        _, losses, _ = module.candidate_ranking_violations(
+            atoms_arg, weights, oracle_arg, margins_arg, valid
+        )
+        master_losses = np.zeros(1) if len(calls) == 1 else losses
+        return weights, None, master_losses, "optimal", "CLARABEL", 0.0
+
+    result = module.solve_v24_cutting_plane(
+        atoms,
+        oracle,
+        margins,
+        valid,
+        config=_config(module),
+        master_solver=master,
+        solver_scope=scope,
+    )
+
+    assert len(calls) == 2
+    assert 1 not in calls[0][0]
+    assert 1 in calls[1][0]
+    assert result.history[0]["raw_max_master_gap"] <= module.ACCEPTANCE_GAP
+    assert result.history[0]["projected_max_master_gap"] > module.ACCEPTANCE_GAP
+    assert result.history[-1]["new_cuts"] == 0
+    assert result.final_master_gap <= module.ACCEPTANCE_GAP
+    assert result.final_projected_master_gap <= module.ACCEPTANCE_GAP
 
 
 def test_saved_weight_acceptance_recomputes_full_k_and_rejects_final_resolve() -> None:
@@ -505,6 +558,7 @@ def test_execution_provenance_binds_executor_preflight_reviewer_and_frozen_core(
         "scripts/integrations/train_diffusion_planner_v24_selector.py",
         "scripts/integrations/preflight_diffusion_planner_v24_training_executor.py",
         "scripts/integrations/review_diffusion_planner_v24_training_executor_preflight.py",
+        "scripts/integrations/review_diffusion_planner_v24_training_execution_failure.py",
         "configs/integrations/diffusion_planner_v24_convex_training_plan.json",
         "camp_core/camp_core/outer_master/robust_margin_master.py",
         "scripts/integrations/preflight_diffusion_planner_v24_convex_training.py",
