@@ -30,7 +30,7 @@ CANONICAL_HOLDOUT_STATE_PATH = Path(
 AUDIT_RELATIVE_PATH = Path("docs/diffusion_planner_v24_iteration_audit.md")
 CURRENT_STATUS_RELATIVE_PATH = Path("docs/diffusion_planner_current_status.md")
 AUTHORIZED_NEXT_WORK_TARGET = (
-    "v24_evidence_package_and_preregistered_claim_decision_execution_only"
+    "v24_evidence_package_and_preregistered_claim_decision_retry_execution_only"
 )
 OUTPUT_NAME_PREFIX = "camp_dp_v24_evidence_package_and_claim_decision_"
 REVIEW_NAME_PREFIX = (
@@ -38,6 +38,7 @@ REVIEW_NAME_PREFIX = (
 )
 STATIC_PREFLIGHT_NAME_PREFIX = "camp_dp_v24_evidence_claim_static_preflight_"
 FORBIDDEN_LIVE_PROCESS_TOKENS = (
+    "build_diffusion_planner_v24_evidence_claim.py",
     "evaluate_diffusion_planner_v24_pairs.py",
     "review_diffusion_planner_v24_holdout_main_result.py",
 )
@@ -68,12 +69,13 @@ AUTHORITY_CONTROL_FIELDS = (
     "global_stop_reason",
 )
 AUTHORIZED_CURRENT_STATUS = (
-    "v24_evidence_package_and_preregistered_claim_decision_tdd_static_preflight_passed"
+    "v24_evidence_package_and_preregistered_claim_decision_process_scan_"
+    "remediation_static_preflight_passed"
 )
 AUTHORIZED_SOURCE_B_STATUS = (
     "paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_"
-    "independent_result_review_passed_evidence_claim_static_preflight_passed_"
-    "honest_no_claim_execution_pending"
+    "independent_result_review_passed_evidence_claim_process_scan_remediation_"
+    "static_preflight_passed_honest_no_claim_retry_pending"
 )
 REVIEW_SCHEMA = (
     "camp_dp_v24_paired_holdout_main_once_execution_independent_review_v1"
@@ -823,14 +825,45 @@ def _verify_live_holdout_state(
     }
 
 
-def _active_v24_processes() -> list[int]:
-    proc = Path("/proc")
+def _proc_ancestor_pids(proc: Path, current: int) -> set[int]:
+    proc = Path(proc)
+    if type(current) is not int or current <= 0:
+        raise ValueError("current PID must be a positive integer")
+    ancestors: set[int] = set()
+    pid = current
+    while pid > 0:
+        if pid in ancestors:
+            raise RuntimeError("/proc parent chain contains a cycle")
+        ancestors.add(pid)
+        try:
+            status = (proc / str(pid) / "status").read_text(
+                encoding="utf-8", errors="strict"
+            )
+        except (FileNotFoundError, PermissionError, ProcessLookupError) as exc:
+            raise RuntimeError("cannot read the complete /proc ancestor chain") from exc
+        parent_lines = [
+            line for line in status.splitlines() if line.startswith("PPid:")
+        ]
+        if len(parent_lines) != 1:
+            raise RuntimeError("/proc status has no unique PPid")
+        raw_parent = parent_lines[0].split(":", 1)[1].strip()
+        if not raw_parent.isdigit():
+            raise RuntimeError("/proc status PPid is malformed")
+        pid = int(raw_parent)
+    return ancestors
+
+
+def _active_v24_processes(
+    *, proc_root: Path = Path("/proc"), current_pid: int | None = None
+) -> list[int]:
+    proc = Path(proc_root)
     if not proc.is_dir():
         raise RuntimeError("/proc is required for fail-closed process inspection")
-    current = os.getpid()
+    current = os.getpid() if current_pid is None else current_pid
+    excluded = _proc_ancestor_pids(proc, current)
     active: list[int] = []
     for entry in proc.iterdir():
-        if not entry.name.isdigit() or int(entry.name) == current:
+        if not entry.name.isdigit() or int(entry.name) in excluded:
             continue
         try:
             command = (entry / "cmdline").read_bytes().replace(b"\0", b" ").decode(

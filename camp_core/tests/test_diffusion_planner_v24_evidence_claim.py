@@ -25,6 +25,7 @@ SPEC = importlib.util.spec_from_file_location("v24_evidence_claim", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
+ACTIVE_V24_PROCESS_SCANNER = module._active_v24_processes
 
 
 REVIEW_HEAD = "aff69dfcae3d3dcde79b9c46912493767f9208f2"
@@ -813,6 +814,54 @@ def test_live_marker_and_process_are_reverified_before_publication(
     with pytest.raises(ValueError, match="process started"):
         module.build_evidence_claim(**kwargs)
     assert not Path(kwargs["output_dir"]).exists()
+
+
+def test_process_scan_excludes_full_ancestor_chain_but_detects_unrelated(
+    tmp_path: Path,
+) -> None:
+    proc = tmp_path / "proc"
+    proc.mkdir()
+
+    def write_process(pid: int, parent: int, command: str) -> None:
+        root = proc / str(pid)
+        root.mkdir()
+        (root / "status").write_text(
+            f"Name:\ttest\nPPid:\t{parent}\n",
+            encoding="utf-8",
+        )
+        (root / "cmdline").write_bytes(command.replace(" ", "\0").encode())
+
+    write_process(1, 0, "init")
+    write_process(
+        200,
+        1,
+        "python review_diffusion_planner_v24_holdout_main_result.py",
+    )
+    write_process(
+        300,
+        200,
+        "bash -lc python build_diffusion_planner_v24_evidence_claim.py",
+    )
+    write_process(
+        400,
+        300,
+        "python build_diffusion_planner_v24_evidence_claim.py",
+    )
+    write_process(
+        900,
+        1,
+        "python evaluate_diffusion_planner_v24_pairs.py --mode main",
+    )
+    write_process(
+        901,
+        1,
+        "python review_diffusion_planner_v24_holdout_main_result.py",
+    )
+    write_process(902, 1, "python unrelated.py")
+
+    active = ACTIVE_V24_PROCESS_SCANNER(proc_root=proc, current_pid=400)
+
+    assert active == [900, 901]
 
 
 @pytest.mark.parametrize(
