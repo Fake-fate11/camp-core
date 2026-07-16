@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_train_only_causal_label_materialization_independent_review_passed",
-    "current_v24_artifact_source_head=5659677944269f758cb775fe69c297489df360ad",
+    "current_v24_status=v24_convex_training_executor_static_preflight_independent_review_passed",
+    "current_v24_artifact_source_head=80e971d5671738b5e8da65c7cd1c909b27de4c69",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST",
-    "current_v24_artifact_root_sha256=d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_independent_review_80e971d5_20260716T213922CST",
+    "current_v24_artifact_root_sha256=ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=train_only_causal_labels_independent_review_passed_training_executor_static_preflight_pending",
+    "source_b_status=convex_training_executor_static_preflight_independent_review_passed_training_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_convex_selector_training_executor_tdd_static_preflight_only",
+    "next_work_target=v24_convex_selector_training_execution_only",
 )
 
 
@@ -152,6 +152,24 @@ def test_v24_train_only_labels_and_independent_review_are_sealed() -> None:
         "All `17 / 0` checks passed",
         "d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468",
         "does not authorize a corpus solve",
+    ):
+        assert phrase in text
+
+
+def test_v24_training_executor_static_preflight_and_review_are_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "exact CLARABEL `optimal` only",
+        "post-cap final resolve is forbidden",
+        "full-K saved-weight gap at most `1e-6`",
+        "`pilot` exactly to seed `24001`",
+        "`remaining` exactly to seeds `24002` through `24005`",
+        "`118` tests",
+        "5a08c0d9bab995b1c8ce8d21c91dfcec76116289919b4decedf3eaa81e7459df",
+        "fe265ed7be9beaf1ad9faba91316ccf7f944b1cb213ff6cf266651b27ba9af80",
+        "passed `22 / 0` checks",
+        "ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7",
+        "Only train-only convex execution is authorized next",
     ):
         assert phrase in text
 

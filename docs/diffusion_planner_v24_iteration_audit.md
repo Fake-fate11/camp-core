@@ -2208,18 +2208,123 @@ aligned and tracked clean at the source HEAD, fixed DP remained clean, and free
 space remained about 45.43 GiB. The positive review authorizes only training-
 executor TDD/static preflight; it does not authorize a corpus solve.
 
-current_v24_status=v24_train_only_causal_label_materialization_independent_review_passed
-current_v24_artifact_source_head=5659677944269f758cb775fe69c297489df360ad
+## Gate 38: Convex Selector Training Executor TDD and Static Preflight Review
+
+Status: passed and independently sealed. Only frozen train-only convex training
+execution is authorized next. Calibration, holdout, outcomes, tuning, and claims
+remain closed.
+
+The execution-critical implementation was added at CAMP HEAD
+`aea92b67b1077c1a8aca8556ff5576888ae02dc2`, then the provenance-phase fix was
+committed at final source HEAD `80e971d5671738b5e8da65c7cd1c909b27de4c69`.
+The loader and executor bind their own source, preflight, independent reviewer,
+tracked config, frozen convex master, Gate 36 validator, and Gate 34 snapshot
+helper to current-HEAD Git blobs and live bytes. The four pre-existing sources
+must also byte-match Gate 36 HEAD
+`bfc0a52307bf7d9184a5f4596b951058c02ba67c`.
+
+Training semantics remain the frozen Gate 36 contract. Candidate costs use only
+causal train-only labels; source validity is the only eligibility mask and
+physical feasibility remains a finite label cost. Score remains exactly affine,
+`score_k(w)=a_k^T w`, over the frozen active 14D nonnegative simplex. The master
+uses exact CLARABEL `optimal` only. A process-local registry exposes no fallback
+solver to the reused frozen master, and a CLARABEL error is attempted only once.
+The v24 outer loop performs at most 20 solves; post-cap final resolve is
+forbidden, the final iteration must add zero cuts, and independently projected
+saved weights must have zero omitted violating snapshots and full-K saved-weight
+gap at most `1e-6`. A final cut-membership mask is serialized for independent
+recomputation. V18/v22 weights are not read or used as initialization, bounds,
+constraints, or model selection.
+
+The `25 / 50 / 75 / 100%` curve uses exact nested whole-route prefixes of
+`94 / 188 / 281 / 375` routes and
+`16,979 / 35,022 / 50,752 / 67,796` snapshots. All four levels are fresh solves;
+failure at any level fails the curve, lower levels are diagnostic only, and the
+full 100% model alone is primary. The executor emits an atomic per-level
+`progress.json` so an active long task can be monitored without relaunch. A
+solver failure is sealed as a terminal failure artifact while calibration,
+holdout, and outcome fields stay closed. No epoch semantics are claimed.
+
+TDD covers strict masks/oracles/scales, exact fast empirical CVaR equivalence,
+process-local solver hiding, one-attempt SolverError behavior, no final resolve,
+full-K omitted-violation rejection, route/seed/failure membership, byte-bound
+label receipts, binary cut/weight receipts, four fresh levels, atomic progress,
+source provenance, and the independent static reviewer. The first combined
+local run while two tracked fix files were intentionally modified returned
+`117 passed / 1 failed` only because an older live-clean-state test correctly
+rejected the dirty worktree. After the fix commit, the same five related suites
+passed all `118` tests with compilation and `git diff --check` clean.
+
+Two fail-closed execution-path findings were retained rather than rewritten:
+
+- The first AutoDL test controller chose `/root/miniconda3/bin/python`, which
+  has no pytest. No test or scientific code ran. Its immutable failure root is
+  `8f1250b2b5f10dfa221bd15e95698a0bee628e5414ca5bcdf3f998f183e2c051`.
+- The first positive-source preflight closed all seals and then stopped before
+  any solver because the loader incorrectly required provenance phase `train`.
+  The sealed corpus actually binds `pilot` exactly to seed `24001` and
+  `remaining` exactly to seeds `24002` through `24005`. The diagnosis/failure
+  artifact/root are:
+
+  `/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_provenance_phase_failure_aea92b67_20260716T213315CST`
+  /
+  `77c2ba4c33b510e0d5fb0b5a3a053a4d1dd2529afa5abc3736e5b020c86ab636`.
+
+The minimal fix froze that true source-preserving phase/seed namespace and
+added adversarial tests; it did not rewrite a label, corpus row, route, snapshot,
+candidate, or map. At final source HEAD, AutoDL Python 3.9 passed the same `118`
+tests with empty stderr. The positive test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_executor_static_tests_80e971d5_20260716T213822CST`
+/
+`5a08c0d9bab995b1c8ce8d21c91dfcec76116289919b4decedf3eaa81e7459df`.
+
+The static preflight complete-sealed the tests, Gate 36 plan, labels, label
+review, merged corpus, merged review, atom freeze/review, and all four direct
+pilot/remaining execution/review roots. It read and structurally closed all
+`375` routes, five seeds, `1,875` route-seed receipts, `67,796` snapshots,
+`542,368` source-valid candidates, `470,138` physically feasible candidates,
+and `7,783` all-K-high-risk rows. All three locks were free, no target executor
+process existed, CLARABEL was present, and the 10 GiB floor passed. It did not
+call a synthetic or corpus solver, execute training, or write a model. Its
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_80e971d5_20260716T213843CST`
+/
+`fe265ed7be9beaf1ad9faba91316ccf7f944b1cb213ff6cf266651b27ba9af80`.
+
+The independent reviewer does not import the executor or preflight producer.
+It independently rehashed current and frozen Git blobs, repeated complete-seal
+and clean-exit checks over all upstream trees, rechecked exact input counts and
+master semantics, inspected the executor AST, revalidated the static-test
+receipt, and resampled processes, locks, CLARABEL, and disk. It passed `22 / 0`
+checks; all three artifacts were independently rehashed file-by-file after
+creation. The review artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_independent_review_80e971d5_20260716T213922CST`
+/
+`ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7`.
+
+At review, CAMP local/origin/GitHub/AutoDL were aligned and tracked clean at
+the source HEAD, fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, all locks were free, no training
+process was running, and `48,781,205,504` bytes remained free. No model, training,
+calibration, holdout, outcome, tuning, or claim boundary opened. Only train-only
+convex execution is authorized next; its positive independent review remains
+mandatory before any calibration planning.
+
+current_v24_status=v24_convex_training_executor_static_preflight_independent_review_passed
+current_v24_artifact_source_head=80e971d5671738b5e8da65c7cd1c909b27de4c69
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST
-current_v24_artifact_root_sha256=d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_independent_review_80e971d5_20260716T213922CST
+current_v24_artifact_root_sha256=ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=train_only_causal_labels_independent_review_passed_training_executor_static_preflight_pending
+source_b_status=convex_training_executor_static_preflight_independent_review_passed_training_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_executor_tdd_static_preflight_only
+next_work_target=v24_convex_selector_training_execution_only

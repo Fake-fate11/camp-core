@@ -155,27 +155,49 @@ snapshot, and matched costs byte-for-byte plus oracle/masks/all-K exactly. All
 `17 / 0` checks passed in about `23.21` seconds. Its immutable root is
 `d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468`.
 No snapshot/candidate/trajectory/DP/map bytes changed; no model, training,
-tuning, outcome, calibration, holdout, or claim boundary opened. Only convex
-training-executor TDD/static preflight is now authorized; training execution
-remains unauthorized. CAMP local/origin/GitHub/AutoDL are aligned and tracked
-clean at the source HEAD, fixed DP remains clean, and free space is about
-45.43 GiB.
+tuning, outcome, calibration, holdout, or claim boundary opened. At Gate 37,
+only convex training-executor TDD/static preflight was authorized. CAMP local/
+origin/GitHub/AutoDL were aligned and tracked clean at the source HEAD, fixed DP
+remained clean, and free space was about 45.43 GiB.
 
-current_v24_status=v24_train_only_causal_label_materialization_independent_review_passed
-current_v24_artifact_source_head=5659677944269f758cb775fe69c297489df360ad
+The convex selector executor TDD/static-preflight gate is now independently
+sealed at CAMP source HEAD `80e971d5671738b5e8da65c7cd1c909b27de4c69`.
+The executor freezes exact CLARABEL `optimal` only, exposes no fallback solver,
+rejects post-cap final resolve, caps cutting-plane work at 20 iterations, and
+requires zero final new cuts plus independently recomputed full-K saved-weight
+gap `<=1e-6`. Each `25/50/75/100%` whole-route prefix is solved fresh; only
+100% is primary. Long execution writes atomic per-level progress, and failure
+is sealed without opening calibration, holdout, or outcomes.
+
+One test controller first used a base Python without pytest and sealed an honest
+no-test failure. A first preflight then failed before any solver because the
+loader incorrectly treated the sealed `pilot/remaining` execution phase as a
+split name. TDD now requires `pilot` exactly for seed 24001 and `remaining`
+exactly for seeds 24002-24005. The positive AutoDL test artifact passed all
+`118` related tests with empty stderr; static preflight closed all `375` routes,
+`1,875` route-seeds, `67,796` snapshots, and `542,368` source-valid candidates
+without calling a solver or writing a model. Independent review passed `22 / 0`
+checks, rehashed source and upstream seals, and reconfirmed all locks free,
+CLARABEL available, fixed DP clean, and `48,781,205,504` bytes free. Its root is
+`ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7`.
+Only the frozen train-only execution is now authorized; calibration, holdout,
+outcomes, tuning, and claims remain closed.
+
+current_v24_status=v24_convex_training_executor_static_preflight_independent_review_passed
+current_v24_artifact_source_head=80e971d5671738b5e8da65c7cd1c909b27de4c69
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST
-current_v24_artifact_root_sha256=d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_independent_review_80e971d5_20260716T213922CST
+current_v24_artifact_root_sha256=ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=train_only_causal_labels_independent_review_passed_training_executor_static_preflight_pending
+source_b_status=convex_training_executor_static_preflight_independent_review_passed_training_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_executor_tdd_static_preflight_only
+next_work_target=v24_convex_selector_training_execution_only
 
 ## Current V23 Status
 
