@@ -162,6 +162,17 @@ def _counter_sum(*values: Mapping[str, Any]) -> dict[str, int]:
     return dict(sorted(total.items()))
 
 
+def _source_map_count_valid(value: Any, expected_total: int) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and all(
+            _is_hex(name, 64) and type(count) is int and count > 0
+            for name, count in value.items()
+        )
+        and sum(value.values()) == expected_total
+    )
+
+
 def _collect_phase(
     root: Path,
     files: Mapping[str, str],
@@ -193,8 +204,6 @@ def _collect_phase(
     record_key_by_route: dict[str, str] = {}
     metadata_by_route: dict[str, tuple[str, str, str, str]] = {}
     failures: Counter[str] = Counter()
-    receipt_by_map: Counter[str] = Counter()
-    snapshot_by_map: Counter[str] = Counter()
     complete = failed = 0
 
     for relative in receipt_paths:
@@ -256,9 +265,6 @@ def _collect_phase(
         record_key_by_route[route] = record_key
         metadata_by_route[route] = metadata
         referenced_snapshots.extend(snapshots)
-        receipt_by_map[logical_map] += 1
-        if snapshots:
-            snapshot_by_map[logical_map] += len(snapshots)
         receipt_rows.append(
             {
                 "phase": "pilot" if seed == PILOT_SEED else "remaining",
@@ -314,8 +320,6 @@ def _collect_phase(
         "pending": expected_route_count * len(seeds) - len(receipt_rows),
         "snapshot_count": len(snapshot_files),
         "failure_reason_counts": dict(sorted(failures.items())),
-        "receipt_count_by_source_map_sha256": dict(sorted(receipt_by_map.items())),
-        "snapshot_count_by_source_map_sha256": dict(sorted(snapshot_by_map.items())),
     }
 
 
@@ -430,12 +434,6 @@ def _validate_phase_authority(
         "route_coverage": 1.0,
         "snapshot_count": collected["snapshot_count"],
         "failure_reason_counts": collected["failure_reason_counts"],
-        "receipt_count_by_source_map_sha256": collected[
-            "receipt_count_by_source_map_sha256"
-        ],
-        "snapshot_count_by_source_map_sha256": collected[
-            "snapshot_count_by_source_map_sha256"
-        ],
     }
     if any(
         summary.get(name) != value
@@ -443,13 +441,22 @@ def _validate_phase_authority(
         if name
         not in {
             "failure_reason_counts",
-            "receipt_count_by_source_map_sha256",
-            "snapshot_count_by_source_map_sha256",
         }
     ):
         raise ValueError("source summary aggregate mismatch")
     if any(recomputed.get(name) != value for name, value in aggregate.items()):
         raise ValueError("source review recomputation mismatch")
+    if not (
+        _source_map_count_valid(
+            recomputed.get("receipt_count_by_source_map_sha256"),
+            collected["retained"],
+        )
+        and _source_map_count_valid(
+            recomputed.get("snapshot_count_by_source_map_sha256"),
+            collected["snapshot_count"],
+        )
+    ):
+        raise ValueError("source review map census mismatch")
     if summary.get("snapshot_count_by_source_stratum") != recomputed.get(
         "snapshot_count_by_source_stratum"
     ) or summary.get("all_k_high_risk_snapshot_count") != recomputed.get(
@@ -590,12 +597,12 @@ def assemble_merged_corpus(
             pilot["failure_reason_counts"], remaining["failure_reason_counts"]
         ),
         "receipt_count_by_source_map_sha256": _counter_sum(
-            pilot["receipt_count_by_source_map_sha256"],
-            remaining["receipt_count_by_source_map_sha256"],
+            pilot_recomputed["receipt_count_by_source_map_sha256"],
+            remaining_recomputed["receipt_count_by_source_map_sha256"],
         ),
         "snapshot_count_by_source_map_sha256": _counter_sum(
-            pilot["snapshot_count_by_source_map_sha256"],
-            remaining["snapshot_count_by_source_map_sha256"],
+            pilot_recomputed["snapshot_count_by_source_map_sha256"],
+            remaining_recomputed["snapshot_count_by_source_map_sha256"],
         ),
         "corpus_steps": 64,
         "sample_every_ticks": 1,

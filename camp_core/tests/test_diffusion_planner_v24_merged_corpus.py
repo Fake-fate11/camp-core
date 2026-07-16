@@ -207,10 +207,10 @@ def _review_artifact(
             "all_k_high_risk_snapshot_count": 0,
             "failure_reason_counts": {recomputed["failure_reason"]: 1},
             "receipt_count_by_source_map_sha256": {
-                _sha("logical-map"): len(recomputed["routes"]) * (1 if pilot else 4)
+                _sha("source-map"): len(recomputed["routes"]) * (1 if pilot else 4)
             },
             "snapshot_count_by_source_map_sha256": {
-                _sha("logical-map"): recomputed["snapshots"]
+                _sha("source-map"): recomputed["snapshots"]
             },
         },
         "decision": (
@@ -362,6 +362,9 @@ def test_merged_assembly_preserves_denominator_without_copying_snapshots(
     assert summary["failed_route_seed_runs"] == 2
     assert summary["snapshot_count"] == 8
     assert summary["snapshot_overlap_count"] == 0
+    assert summary["receipt_count_by_source_map_sha256"] == {_sha("source-map"): 10}
+    assert summary["snapshot_count_by_source_map_sha256"] == {_sha("source-map"): 8}
+    assert _sha("logical-map") not in summary["receipt_count_by_source_map_sha256"]
     assert summary["snapshot_payloads_copied"] is False
     assert not (output / "snapshots").exists()
     assert len((output / "snapshot_index.jsonl").read_text().splitlines()) == 8
@@ -424,6 +427,34 @@ def test_merged_assembly_rejects_resealed_route_metadata_drift(
     )
 
     with pytest.raises(ValueError, match="route metadata changed"):
+        assemble_merged_corpus(output_dir=tmp_path / "merged", **kwargs)
+
+
+@pytest.mark.parametrize(
+    "drifted",
+    [
+        {"not-a-sha": 2},
+        {_sha("source-map"): True, _sha("other-map"): 1},
+        {_sha("source-map"): 0, _sha("other-map"): 2},
+        {_sha("source-map"): 1},
+    ],
+)
+def test_merged_assembly_rejects_resealed_source_map_census_drift(
+    tmp_path: Path, drifted: dict[str, object]
+) -> None:
+    from scripts.integrations.assemble_diffusion_planner_v24_native_corpus import (
+        assemble_merged_corpus,
+    )
+
+    kwargs = _sources(tmp_path)
+    review_root = kwargs["pilot_review_root"]
+    review_path = review_root / "review.json"
+    review = json.loads(review_path.read_text())
+    review["recomputed"]["receipt_count_by_source_map_sha256"] = drifted
+    _write_json(review_path, review)
+    kwargs["expected_pilot_review_root_sha256"] = _seal(review_root)
+
+    with pytest.raises(ValueError, match="map census mismatch"):
         assemble_merged_corpus(output_dir=tmp_path / "merged", **kwargs)
 
 

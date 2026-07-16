@@ -217,8 +217,6 @@ def _phase_rows(
     referenced: list[str] = []
     complete = failed = 0
     failures: Counter[str] = Counter()
-    receipt_by_map: Counter[str] = Counter()
-    snapshot_by_map: Counter[str] = Counter()
     for relative in sorted(
         name
         for name in files
@@ -277,9 +275,6 @@ def _phase_rows(
         record_key_by_route[route] = record_key
         metadata_by_route[route] = metadata
         referenced.extend(snapshots)
-        receipt_by_map[logical_map] += 1
-        if snapshots:
-            snapshot_by_map[logical_map] += len(snapshots)
         receipt_rows.append(
             {
                 "phase": "pilot" if pilot else "remaining",
@@ -331,8 +326,6 @@ def _phase_rows(
         "pending": expected_route_count * len(seeds) - len(receipt_rows),
         "snapshot_count": len(snapshot_files),
         "failure_reason_counts": dict(sorted(failures.items())),
-        "receipt_count_by_source_map_sha256": dict(sorted(receipt_by_map.items())),
-        "snapshot_count_by_source_map_sha256": dict(sorted(snapshot_by_map.items())),
     }
 
 
@@ -341,6 +334,17 @@ def _counter_sum(*values: Mapping[str, Any]) -> dict[str, int]:
     for value in values:
         result.update({str(name): int(count) for name, count in value.items()})
     return dict(sorted(result.items()))
+
+
+def _source_map_count_valid(value: Any, expected_total: int) -> bool:
+    return (
+        isinstance(value, Mapping)
+        and sum(value.values()) == expected_total
+        and all(
+            _is_hex(name, 64) and type(count) is int and count > 0
+            for name, count in value.items()
+        )
+    )
 
 
 def _source_aggregate_valid(
@@ -360,12 +364,6 @@ def _source_aggregate_valid(
         "route_coverage": 1.0,
         "snapshot_count": phase["snapshot_count"],
         "failure_reason_counts": phase["failure_reason_counts"],
-        "receipt_count_by_source_map_sha256": phase[
-            "receipt_count_by_source_map_sha256"
-        ],
-        "snapshot_count_by_source_map_sha256": phase[
-            "snapshot_count_by_source_map_sha256"
-        ],
     }
     summary_keys = {
         name: value
@@ -373,8 +371,6 @@ def _source_aggregate_valid(
         if name
         not in {
             "failure_reason_counts",
-            "receipt_count_by_source_map_sha256",
-            "snapshot_count_by_source_map_sha256",
         }
     }
     return (
@@ -399,6 +395,13 @@ def _source_aggregate_valid(
         and summary.get("claim_authorized") is False
         and all(summary.get(name) == value for name, value in summary_keys.items())
         and all(recomputed.get(name) == value for name, value in exact.items())
+        and _source_map_count_valid(
+            recomputed.get("receipt_count_by_source_map_sha256"), phase["retained"]
+        )
+        and _source_map_count_valid(
+            recomputed.get("snapshot_count_by_source_map_sha256"),
+            phase["snapshot_count"],
+        )
         and summary.get("snapshot_count_by_source_stratum")
         == recomputed.get("snapshot_count_by_source_stratum")
         and summary.get("all_k_high_risk_snapshot_count")
@@ -637,12 +640,12 @@ def review_merged_corpus(
                 pilot["failure_reason_counts"], remaining["failure_reason_counts"]
             ),
             "receipt_count_by_source_map_sha256": _counter_sum(
-                pilot["receipt_count_by_source_map_sha256"],
-                remaining["receipt_count_by_source_map_sha256"],
+                pilot_recomputed["receipt_count_by_source_map_sha256"],
+                remaining_recomputed["receipt_count_by_source_map_sha256"],
             ),
             "snapshot_count_by_source_map_sha256": _counter_sum(
-                pilot["snapshot_count_by_source_map_sha256"],
-                remaining["snapshot_count_by_source_map_sha256"],
+                pilot_recomputed["snapshot_count_by_source_map_sha256"],
+                remaining_recomputed["snapshot_count_by_source_map_sha256"],
             ),
             "receipt_index_row_count": len(receipt_rows),
             "receipt_index_sha256": hashlib.sha256(expected_receipt_bytes).hexdigest(),
