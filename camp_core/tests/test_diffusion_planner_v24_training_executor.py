@@ -786,6 +786,228 @@ def test_static_test_artifact_receipt_binds_files_count_and_closed_boundaries(
         )
 
 
+def _synthetic_training_review_level(tmp_path: Path, rows: int = 3):
+    from camp_core.integrations.diffusion_planner import DP_CAMP_ATOM_NAMES_V10
+    from scripts.integrations import (
+        review_diffusion_planner_v24_training_execution as reviewer,
+    )
+
+    artifact = tmp_path / "training"
+    models = artifact / "models"
+    models.mkdir(parents=True)
+    weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
+    weights_path = models / "level_25_weights.f64le"
+    weights.astype("<f8", copy=False).tofile(weights_path)
+    cut_mask = np.zeros((rows, 8), dtype=np.uint8)
+    cut_mask[:, 0] = 1
+    cut_path = models / "level_25_final_cut_mask.u8"
+    cut_mask.tofile(cut_path)
+    cut_receipt = {
+        "path": "models/level_25_final_cut_mask.u8",
+        "sha256": hashlib.sha256(cut_path.read_bytes()).hexdigest(),
+        "dtype": "u1_bool",
+        "shape": [rows, 8],
+    }
+    metrics = {
+        "oracle_agreement_count": rows,
+        "oracle_agreement_rate": 1.0,
+        "selection_histogram": [rows, 0, 0, 0, 0, 0, 0, 0],
+        "candidate0_selection_count": rows,
+        "non_candidate0_selection_count": 0,
+        "selected_surrogate_cost_mean": 0.0,
+        "candidate0_surrogate_cost_mean": 0.0,
+        "selected_minus_candidate0_surrogate_cost_mean": 0.0,
+        "mean_ranking_violation": 0.0,
+        "maximum_ranking_violation": 0.0,
+    }
+    history = [{
+        "iteration": 1,
+        "master_objective": 0.0,
+        "exact_cvar": 0.0,
+        "raw_mean_violation": 0.0,
+        "raw_max_violation": 0.0,
+        "projected_mean_violation": 0.0,
+        "projected_max_violation": 0.0,
+        "raw_max_master_gap": 0.0,
+        "projected_max_master_gap": 0.0,
+        "max_master_gap": 0.0,
+        "raw_max_cut_gap": 0.0,
+        "projected_max_cut_gap": 0.0,
+        "max_cut_gap": 0.0,
+        "max_separation_gap": 0.0,
+        "new_cuts": 0,
+        "total_cuts": rows,
+        "final_resolve": False,
+    }]
+    snapshot_sha = [_sha(f"review:{index}") for index in range(rows)]
+    sequence_sha = hashlib.sha256(
+        ("\n".join(snapshot_sha) + "\n").encode("ascii")
+    ).hexdigest()
+    model = {
+        "schema": "camp_dp_v24_static_affine_selector_model_v1",
+        "level_percent": 25,
+        "diagnostic_only": True,
+        "primary_model": False,
+        "snapshot_count": rows,
+        "snapshot_sequence_sha256": sequence_sha,
+        "route_membership_sha256": _sha("membership"),
+        "route_count": 94,
+        "retained_route_seed_count": 470,
+        "complete_route_seed_count": 262,
+        "failed_route_seed_count": 208,
+        "atom_schema_version": "dp_camp_v10_14d",
+        "atom_names": list(DP_CAMP_ATOM_NAMES_V10),
+        "atom_scales": [1.0] * 14,
+        "active_atom_mask": [True] * 14,
+        "raw_weights": weights.tolist(),
+        "weights": weights.tolist(),
+        "simplex_sum": float(weights.sum()),
+        "minimum_weight": float(weights.min()),
+        "score_contract": "score_k(w)=a_k^T w",
+        "atom_transform": "clip(raw_atom/frozen_v24_scale,0,10)",
+        "oracle_eligibility": "source_valid_mask_only",
+        "train_metrics": metrics,
+        "solver": {
+            "name": "CLARABEL",
+            "status": "optimal",
+            "converged": True,
+            "fallback_allowed": False,
+            "epoch_semantics": False,
+            "v18_v22_weights_loaded": False,
+            "solver_default_initialization": True,
+            "final_new_cuts": 0,
+            "iterations": 1,
+            "history": history,
+            "registry_receipt": {
+                "installed_solvers_before_scope": ["CLARABEL"],
+                "solvers_exposed_to_master": ["CLARABEL"],
+                "fallback_solvers_exposed": [],
+            },
+            "raw_master_gap": 0.0,
+            "projected_master_gap": 0.0,
+            "raw_cut_relative_gap": 0.0,
+            "projected_cut_relative_gap": 0.0,
+            "offline_wall_clock_s": 1.0,
+        },
+        "final_cut_mask": cut_receipt,
+        "final_cut_receipt": {
+            "raw_weights": weights.tolist(),
+            "projected_weights": weights.tolist(),
+            "simplex_projection_linf": 0.0,
+            "full_k_loss_mean": 0.0,
+            "full_k_loss_maximum": 0.0,
+            "final_cut_loss_mean": 0.0,
+            "projected_saved_weight_full_k_gap": 0.0,
+            "raw_saved_weight_full_k_gap": 0.0,
+            "raw_final_master_gap": 0.0,
+            "projected_final_master_gap": 0.0,
+            "omitted_violating_snapshot_count": 0,
+            "cut_count_histogram": [0, rows, 0, 0, 0, 0, 0, 0, 0],
+            "total_cuts": rows,
+        },
+        "actual_closed_loop_outcomes_read": False,
+        "identity_fields_used_as_feature": False,
+        "calibration_accessed": False,
+        "holdout_opened": False,
+        "claim_authorized": False,
+    }
+    model_path = models / "level_25.json"
+    model_path.write_text(json.dumps(model, sort_keys=True), encoding="utf-8")
+    receipt = {
+        "model": {
+            "path": "models/level_25.json",
+            "sha256": hashlib.sha256(model_path.read_bytes()).hexdigest(),
+        },
+        "weights": {
+            "path": "models/level_25_weights.f64le",
+            "sha256": hashlib.sha256(weights_path.read_bytes()).hexdigest(),
+        },
+        "final_cut_mask": cut_receipt,
+    }
+    inputs = {
+        "level_indices": {25: np.arange(rows, dtype=np.int64)},
+        "atoms": np.zeros((rows, 8, 14), dtype=np.float64),
+        "candidate_cost": np.zeros((rows, 8), dtype=np.float64),
+        "source_valid_mask": np.ones((rows, 8), dtype=bool),
+        "oracle_index": np.zeros(rows, dtype=np.uint8),
+        "atom_scales": np.ones(14, dtype=np.float64),
+        "snapshot_sha256": snapshot_sha,
+    }
+    level = {
+        "percent": 25,
+        "route_membership_sha256": _sha("membership"),
+    }
+    return reviewer, artifact, receipt, model, inputs, level
+
+
+def test_training_result_reviewer_independently_recomputes_full_k_level(
+    tmp_path: Path, monkeypatch
+) -> None:
+    reviewer, artifact, receipt, model, inputs, level = _synthetic_training_review_level(
+        tmp_path
+    )
+    monkeypatch.setattr(reviewer, "EXPECTED_LEVEL_SNAPSHOTS", (3, 35022, 50752, 67796))
+
+    reviewed = reviewer._review_level(
+        artifact=artifact,
+        manifest_receipt=receipt,
+        model=model,
+        inputs=inputs,
+        level=level,
+    )
+
+    assert reviewed["level_percent"] == 25
+    assert reviewed["independent_four_gaps"] == {
+        "raw_master_envelope_gap": 0.0,
+        "projected_master_envelope_gap": 0.0,
+        "raw_cut_relative_gap": 0.0,
+        "projected_cut_relative_gap": 0.0,
+    }
+    assert reviewed["train_metrics"]["candidate0_selection_count"] == 3
+    assert reviewed["solver"]["iterations"] == 1
+
+
+def test_training_result_reviewer_rejects_gap_and_weight_drift(
+    tmp_path: Path, monkeypatch
+) -> None:
+    reviewer, artifact, receipt, model, inputs, level = _synthetic_training_review_level(
+        tmp_path
+    )
+    monkeypatch.setattr(reviewer, "EXPECTED_LEVEL_SNAPSHOTS", (3, 35022, 50752, 67796))
+    model["solver"]["raw_master_gap"] = 2e-6
+    model_path = artifact / "models" / "level_25.json"
+    model_path.write_text(json.dumps(model, sort_keys=True), encoding="utf-8")
+    receipt["model"]["sha256"] = hashlib.sha256(model_path.read_bytes()).hexdigest()
+    with pytest.raises(ValueError, match="four-gap"):
+        reviewer._review_level(
+            artifact=artifact,
+            manifest_receipt=receipt,
+            model=model,
+            inputs=inputs,
+            level=level,
+        )
+
+
+def test_training_result_reviewer_static_path_forbids_solver_and_training_calls() -> None:
+    from scripts.integrations import (
+        review_diffusion_planner_v24_training_execution as reviewer,
+    )
+
+    source = (ROOT / reviewer.REVIEWER_RELATIVE).read_text(encoding="utf-8")
+    checks = reviewer._static_reviewer_review(source)
+
+    assert "reviewer_no_solver_call" in checks
+    assert "independent_full_k_loss_recomputation" in checks
+    with pytest.raises(ValueError, match="no-solver"):
+        reviewer._static_reviewer_review(
+            source.replace(
+                "inputs = training_source.load_training_inputs()",
+                "inputs = training_source.train_learning_curve({})",
+                1,
+            )
+        )
+
+
 def test_first_training_failure_has_independent_projection_boundary_diagnosis() -> None:
     from scripts.integrations import (
         review_diffusion_planner_v24_training_execution_failure as reviewer,
