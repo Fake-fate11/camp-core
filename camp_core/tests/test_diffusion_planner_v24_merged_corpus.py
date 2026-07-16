@@ -501,7 +501,9 @@ def test_merged_independent_review_rejects_resealed_index_drift(
     _complete_assembly_evidence(output, sources)
     index = output / "snapshot_index.jsonl"
     rows = index.read_text().splitlines()
-    rows[0] = rows[0].replace('"phase":"pilot"', '"phase":"remaining"')
+    row = json.loads(rows[0])
+    row["phase"] = "remaining" if row["phase"] == "pilot" else "pilot"
+    rows[0] = json.dumps(row, sort_keys=True, separators=(",", ":"))
     index.write_text("\n".join(rows) + "\n", encoding="utf-8")
     assembly_sha = seal_artifact(output)
 
