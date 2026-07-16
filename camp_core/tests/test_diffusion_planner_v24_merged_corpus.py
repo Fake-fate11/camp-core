@@ -17,6 +17,21 @@ REMAINING_HEAD = "b" * 40
 ASSEMBLY_HEAD = "c" * 40
 PILOT_SEED = 24001
 REMAINING_SEEDS = [24002, 24003, 24004, 24005]
+TEST_FREE_BYTES = 20 * 1024**3
+
+
+@pytest.fixture(autouse=True)
+def _stable_test_disk_floor(monkeypatch: pytest.MonkeyPatch) -> None:
+    from scripts.integrations import (
+        assemble_diffusion_planner_v24_native_corpus as assembly,
+    )
+
+    usage = assembly.shutil.disk_usage(ROOT)
+    stable_usage = usage._replace(
+        used=usage.total - TEST_FREE_BYTES,
+        free=TEST_FREE_BYTES,
+    )
+    monkeypatch.setattr(assembly.shutil, "disk_usage", lambda _path: stable_usage)
 
 
 def _sha(value: str) -> str:
@@ -371,6 +386,27 @@ def test_merged_assembly_preserves_denominator_without_copying_snapshots(
     assert len((output / "receipt_index.jsonl").read_text().splitlines()) == 10
     assert summary["training_executed"] is False
     assert summary["holdout_opened"] is False
+
+
+def test_merged_assembly_rejects_unavailable_disk_floor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from scripts.integrations import (
+        assemble_diffusion_planner_v24_native_corpus as assembly,
+    )
+
+    usage = assembly.shutil.disk_usage(tmp_path)
+    low_usage = usage._replace(
+        used=usage.total - assembly.MINIMUM_FREE_BYTES,
+        free=assembly.MINIMUM_FREE_BYTES,
+    )
+    monkeypatch.setattr(assembly.shutil, "disk_usage", lambda _path: low_usage)
+
+    with pytest.raises(RuntimeError, match="10 GiB disk floor"):
+        assembly.assemble_merged_corpus(
+            output_dir=tmp_path / "merged",
+            **_sources(tmp_path),
+        )
 
 
 def test_merged_assembly_rejects_resealed_snapshot_filename_drift(

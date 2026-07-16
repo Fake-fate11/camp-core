@@ -1811,3 +1811,96 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_native_corpus_merged_train_corpus_assembly_review_only
+
+## Gate 31: Deterministic Merged Native Train-Corpus Assembly
+
+Status: passed and sealed. No snapshot payload was copied.
+
+The seed-24001 pilot and frozen seeds 24002-24005 were assembled into a single
+train-only content-addressed index. The frozen denominator is unchanged:
+`375 / 5 / 1875` routes / seeds / retained route-seed rows, with `1054`
+complete, `821` retained failures, `0` pending, and coverage `1.0`. The merged
+index contains `67,796` unique causal per-tick K=8 snapshots and exact
+pilot/remaining snapshot overlap is `0`.
+
+Failure accounting remains `765` positive-speed-source failures, `27` zero
+moving-onroad denominators, `20` native replays with no executed tracker tick,
+and `9` invalid candidate heading cos/sin vectors. The merged corpus contains
+`7,783` all-K-high-risk snapshots. Overlapping source-stratum counts are
+`61,791` branch intersection, `44,884` short-progress opportunity, `67,796`
+tight corridor, and `6,405` traffic light. The six-map receipt denominator is
+`320 / 360 / 315 / 405 / 70 / 405`; four maps contribute snapshots with counts
+`20,480 / 20,160 / 22,676 / 4,480`. Offline pilot plus remaining generation
+wall clock is `37,251.28229829995` seconds.
+
+The assembly stores only `1,875` receipt-index rows and `67,796` snapshot-index
+rows. Their SHA256 values are
+`4b7709008c7d6458925737204a49a3cf6ba402131b1a121d877aae8744a66b61`
+and
+`6831b0426ec22217bf3b8b05d04de2961a624cd73009dce222828bf891ae67ae`.
+It creates no `snapshots/` directory, does not copy or modify a candidate tensor
+or snapshot, preserves the frozen route order and full route metadata tuple,
+and keeps model/simulator/candidate generation/training/tuning/outcomes/
+calibration/holdout/claim boundaries closed.
+
+The first live invocation at source HEAD `ff655b7d` failed closed before any
+artifact was created. Receipts expose the common logical-map SHA, while the
+source-map census is an independently reviewed route-manifest field. TDD now
+keeps the identities distinct and admits source-map counts only from the exact
+sealed authorized pilot and remaining reviews. Re-sealed invalid SHA, boolean,
+zero, and sum-mismatch census receipts fail closed. An AutoDL-only Python
+ordering assumption in one adversarial test was also made deterministic before
+the successful gate. Independent code review found and closed full-route-
+metadata and source/review `run.exit` fail-open paths, then found no remaining
+issue.
+
+Immutable assembly artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_5b725629_20260716T154602CST`
+/
+`d8278d030cabd71af88f60d13c410a37c515f22e0ea4c606a592abecc598bdcc`.
+
+## Gate 32: Merged Native Train-Corpus Independent Review
+
+Status: passed. Atom availability and train-only active-mask freeze review is
+next; training remains unauthorized.
+
+The independent reviewer rehashed the assembly plus all four frozen
+execution/review roots, verified `77,822` files, independently rebuilt exact
+receipt and snapshot indexes, and recomputed the full route/seed denominator,
+failures, source-map census, source-stratum counts, all-K-high-risk count,
+protocol, and source chains. It passed `27 / 0` checks. Independent seal
+verification then confirmed exact file inventories, ROOT receipts,
+`run.exit=0`, empty stderr, and JSON/stdout identity for both the assembly and
+review artifacts.
+
+Current free disk is `45.465 GiB`, above the 10 GiB floor. Local and AutoDL
+pycompile, all `129` v24 tests, and `git diff --check` passed. Local,
+origin/GitHub, and AutoDL CAMP source are aligned at
+`5b72562979724cae54a60f5034ff88f93d4e1c94`; DP remains tracked-clean and fixed
+at `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The review did not load a model, run the simulator, generate or modify
+candidates, train, tune, consume outcomes, calibrate, open holdout, or authorize
+a claim. It authorizes only causal atom-availability review and freezing a
+train-only active atom mask before any optimization.
+
+Immutable review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST`
+/
+`925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490`.
+
+current_v24_status=v24_native_corpus_merged_train_corpus_independent_review_passed
+current_v24_artifact_source_head=5b72562979724cae54a60f5034ff88f93d4e1c94
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST
+current_v24_artifact_root_sha256=925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=native_corpus_merged_train_corpus_independent_review_passed_atom_freeze_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_native_corpus_atom_availability_and_freeze_review_only

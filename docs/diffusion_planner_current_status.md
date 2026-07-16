@@ -17,9 +17,8 @@ the frozen Autoware map through only the official source-preserving extension;
 Branch B independently advances the frozen TIER IV `scenario_simulator_v2`
 inventory. A branch-local or single-map failure cannot close the other source.
 
-Startup through the native-corpus remaining-seed execution independent review
-are sealed. Branch A remains source-ineligible locally without stopping Branch
-B.
+Startup through merged native train-corpus assembly independent review are
+sealed. Branch A remains source-ineligible locally without stopping Branch B.
 
 The pilot retained all 375 routes: 212 completed, 163 failed, and 13,605 causal
 K=8 snapshots were sealed. Independent review passed 213,202 authoritative
@@ -54,23 +53,47 @@ checks passed at aligned CAMP HEAD
 simulator, and fixed K=8 candidate generation necessarily ran during corpus
 execution; the independent review did not rerun them. Candidate modification,
 training, outcomes, calibration, holdout, tuning, and claims remained closed.
-Only deterministic merged frozen train-corpus assembly is now authorized.
+The frozen seed-24001 pilot and seeds 24002-24005 are now assembled as a
+zero-copy train-only index. All 375 routes and five seeds remain in one frozen
+denominator: 1,875 retained route-seed rows, 1,054 complete, 821 retained
+failures, zero pending, and 67,796 unique causal K=8 snapshots with zero
+pilot/remaining overlap. The four retained failure counts are 765 missing
+positive speed sources, 27 zero moving-onroad denominators, 20 native replays
+without an executed tracker tick, and 9 invalid candidate heading vectors.
+There are 7,783 all-K-high-risk snapshots. No snapshot payload was copied or
+modified.
 
-current_v24_status=v24_native_corpus_remaining_train_seeds_independent_review_passed
-current_v24_artifact_source_head=4773ad84407aa85f71191359586cd4ab2d104ef0
+The first live assembly invocation failed closed before artifact creation
+because receipts expose a shared `logical_map_sha256`, while source-map census
+belongs to the independently reviewed route manifest. TDD now keeps those
+identities distinct and merges only the exact sealed review recomputations;
+invalid SHA, boolean, zero, and sum-mismatch census receipts fail closed. The
+successful assembly root is
+`d8278d030cabd71af88f60d13c410a37c515f22e0ea4c606a592abecc598bdcc`.
+Independent review rehashed all five roots, rebuilt both indexes and every
+aggregate, verified 77,822 files, and passed 27 checks with zero failures. Its
+root is `925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490`.
+Local and AutoDL pycompile, all 129 v24 tests, and diff checks passed at aligned
+CAMP source HEAD `5b72562979724cae54a60f5034ff88f93d4e1c94`; fixed DP remains clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Training, tuning, outcomes,
+calibration, holdout, and claims remain closed. Only atom availability and
+train-only active-mask freeze review is now authorized.
+
+current_v24_status=v24_native_corpus_merged_train_corpus_independent_review_passed
+current_v24_artifact_source_head=5b72562979724cae54a60f5034ff88f93d4e1c94
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_independent_review_4773ad84_20260716T144225CST
-current_v24_artifact_root_sha256=c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST
+current_v24_artifact_root_sha256=925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_remaining_seed_independent_review_passed_merged_assembly_pending
+source_b_status=native_corpus_merged_train_corpus_independent_review_passed_atom_freeze_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_merged_train_corpus_assembly_review_only
+next_work_target=v24_native_corpus_atom_availability_and_freeze_review_only
 
 ## Current V23 Status
 

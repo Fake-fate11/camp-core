@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_native_corpus_remaining_train_seeds_independent_review_passed",
-    "current_v24_artifact_source_head=4773ad84407aa85f71191359586cd4ab2d104ef0",
+    "current_v24_status=v24_native_corpus_merged_train_corpus_independent_review_passed",
+    "current_v24_artifact_source_head=5b72562979724cae54a60f5034ff88f93d4e1c94",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_remaining_seeds_execution_independent_review_4773ad84_20260716T144225CST",
-    "current_v24_artifact_root_sha256=c0ccbce09d6ff0f9c9bdf085773ca6962d91e5019a044b0e0cc2c894b3779501",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST",
+    "current_v24_artifact_root_sha256=925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=native_corpus_remaining_seed_independent_review_passed_merged_assembly_pending",
+    "source_b_status=native_corpus_merged_train_corpus_independent_review_passed_atom_freeze_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_native_corpus_merged_train_corpus_assembly_review_only",
+    "next_work_target=v24_native_corpus_atom_availability_and_freeze_review_only",
 )
 
 
@@ -92,6 +92,26 @@ def test_current_status_distinguishes_execution_from_review_boundaries() -> None
     assert "fixed K=8 candidate generation necessarily ran" in section
     assert "the independent review did not rerun them" in section
     assert "Candidate modification, training, outcomes" in section
+
+
+def test_v24_merged_corpus_assembly_and_review_are_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "`375 / 5 / 1875` routes / seeds / retained route-seed rows",
+        "`1054` complete, `821` retained failures, `0` pending",
+        "`67,796` unique causal per-tick K=8 snapshots",
+        "exact pilot/remaining snapshot overlap is `0`",
+        "`7,783` all-K-high-risk snapshots",
+        "`37,251.28229829995` seconds",
+        "creates no `snapshots/` directory",
+        "d8278d030cabd71af88f60d13c410a37c515f22e0ea4c606a592abecc598bdcc",
+        "verified `77,822` files",
+        "passed `27 / 0` checks",
+        "all `129` v24 tests",
+        "925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490",
+        "train-only active atom mask",
+    ):
+        assert phrase in text
 
 
 def test_v24_startup_records_frozen_history_and_independent_sources() -> None:
