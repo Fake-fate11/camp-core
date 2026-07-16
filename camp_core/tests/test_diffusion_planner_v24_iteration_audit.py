@@ -21,14 +21,14 @@ BRANCH_A_PLAN = (
 
 POINTER = (
     "current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=a51885382c9b6b41bd564ef8a55a997be7e11451",
+    "current_v24_artifact_source_head=b6f9870f7b695cb7472b9a773f2e5aa25780c061",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_preflight_independent_review_a5188538_20260716T225055CST",
-    "current_v24_artifact_root_sha256=a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_source_blob_authorization_static_preflight_independent_review_b6f9870f_20260716T225652CST",
+    "current_v24_artifact_root_sha256=25bc6fe4c6e5a8512b524d62402f8de1fcc65db018337ce6d09cc202f27c86d7",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_stable_source_bound_authorization_static_preflight_independent_review_passed_retry_execution_pending",
+    "source_b_status=convex_training_source_blob_authorization_static_preflight_independent_review_passed_retry_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
@@ -271,6 +271,22 @@ def test_v24_stable_training_authorization_is_source_bound() -> None:
         "passed `27 / 0` checks",
         "a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e",
         "Only one exact repaired train-only retry",
+    ):
+        assert phrase in text
+
+
+def test_v24_source_blob_authorization_final_review_is_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "docs-only HEAD distinction is now closed",
+        "review CAMP HEAD must equal the live artifact source HEAD",
+        "executor Git blob must equal the current live executor bytes",
+        "passed `132` tests",
+        "7a1bf1fa184f57451fd0454c820a6f0c87132e44070dfe63bd1a39fa94915f12",
+        "74df36f9825c66aa6130a724add4a2134387dbce5c116605a498306c108f112a",
+        "passed `27 / 0` checks",
+        "25bc6fe4c6e5a8512b524d62402f8de1fcc65db018337ce6d09cc202f27c86d7",
+        "The one exact repaired train-only retry",
     ):
         assert phrase in text
 

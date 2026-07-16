@@ -2681,15 +2681,55 @@ No model, training, calibration, holdout, actual outcome, paired evaluation,
 tuning, or claim boundary opened. Only one exact repaired train-only retry and
 its mandatory independent result review are authorized next.
 
+## Gate 45: Source-Blob Authorization Final Static Review
+
+Status: passed and independently sealed. The docs-only HEAD distinction is now
+closed without weakening source authority: the review CAMP HEAD must equal the
+live artifact source HEAD, its executor Git blob must equal the current live
+executor bytes, and the recorded executor SHA must match both.
+
+The final source is CAMP HEAD
+`b6f9870f7b695cb7472b9a773f2e5aa25780c061`. Tests cover the positive docs-only
+HEAD path plus historical-status, artifact-source, source-blob, and SHA drift
+fail-closed cases. Local and AutoDL compilation, pyflakes, diff checks, and the
+five required suites passed `132` tests. The AutoDL test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_source_blob_authorization_static_tests_b6f9870f_20260716T225652CST`
+/
+`7a1bf1fa184f57451fd0454c820a6f0c87132e44070dfe63bd1a39fa94915f12`.
+
+The static preflight again complete-sealed the prior authorization review and
+the unchanged full training-input chain, checked all counts, four-gap master,
+fixed DP, CLARABEL, processes, locks, and disk, and executed no solver or
+training. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_source_blob_authorization_static_preflight_b6f9870f_20260716T225652CST`
+/
+`74df36f9825c66aa6130a724add4a2134387dbce5c116605a498306c108f112a`.
+
+The independent reviewer recomputed executor SHA
+`ca6a4ce2833ac58d450af79d9944c8af7be675455b10a2ee184af1a18f0b9863`,
+rehashed the full source/artifact chain, and passed `27 / 0` checks. It found no
+executor process, all locks free, fixed DP clean, and `48,776,740,864` bytes
+free. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_source_blob_authorization_static_preflight_independent_review_b6f9870f_20260716T225652CST`
+/
+`25bc6fe4c6e5a8512b524d62402f8de1fcc65db018337ce6d09cc202f27c86d7`.
+
+No model, training, calibration, holdout, actual outcome, paired evaluation,
+tuning, or claim boundary opened. The one exact repaired train-only retry and
+its mandatory independent result review are authorized next.
+
 current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed
-current_v24_artifact_source_head=a51885382c9b6b41bd564ef8a55a997be7e11451
+current_v24_artifact_source_head=b6f9870f7b695cb7472b9a773f2e5aa25780c061
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_stable_authorization_static_preflight_independent_review_a5188538_20260716T225055CST
-current_v24_artifact_root_sha256=a68ade86682ab98cf554d4175d0123902fef43a6c31e6535187a4bdcd6ecc90e
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_source_blob_authorization_static_preflight_independent_review_b6f9870f_20260716T225652CST
+current_v24_artifact_root_sha256=25bc6fe4c6e5a8512b524d62402f8de1fcc65db018337ce6d09cc202f27c86d7
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_stable_source_bound_authorization_static_preflight_independent_review_passed_retry_execution_pending
+source_b_status=convex_training_source_blob_authorization_static_preflight_independent_review_passed_retry_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
