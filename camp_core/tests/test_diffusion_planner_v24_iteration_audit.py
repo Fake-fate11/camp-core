@@ -20,12 +20,15 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_process_scan_remediation_static_preflight_passed",
-    "current_v24_artifact_source_head=ca30eb470943b0128c4ab79122cfae3a9988bfc0",
+    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_execution_complete_launch_wrapper_false_negative_independent_review_pending",
+    "current_v24_artifact_source_head=f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_static_preflight_ca30eb47_20260717T063226CST_process_scan_remediation",
-    "current_v24_artifact_root_sha256=6955d6bb52817a1e5d3eda0bc3d54aaa9a0754f059baca597cb01381fac6f481",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
+    "current_v24_artifact_root_sha256=044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808",
+    "current_v24_launch_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf_launch",
+    "current_v24_launch_artifact_root_sha256=8a7ee77bea252de0ac84a6531408a8f82b071ba144eee42c924531042e90c3af",
+    "current_v24_launch_status=sealed_wrapper_validation_false_negative_builder_exit_0",
     "current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST",
     "current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
     "current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2",
@@ -35,13 +38,13 @@ POINTER = (
     "current_v24_holdout_rerun_authorized=false",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_process_scan_remediation_static_preflight_passed_honest_no_claim_retry_pending",
+    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_independent_review_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_retry_execution_only",
+    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight",
 )
 
 
@@ -320,6 +323,28 @@ def test_v24_evidence_claim_process_scan_failure_and_remediation_are_sealed() ->
         "`holdout_open_count=1`",
         "`holdout_rerun_authorized=false`",
         "v24_evidence_package_and_preregistered_claim_decision_retry_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v24_evidence_claim_execution_is_sealed_and_wrapper_false_negative_is_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 58: Evidence Package and Preregistered Claim-Decision Execution",
+        "`f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a`",
+        "builder then exited `0` after `3.44047498` seconds",
+        "`044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808`",
+        "`honest_no_claim`",
+        "`clustered_ci95_upper_below_zero`",
+        "`derived_evidence_guards.independent_review_passed=true`",
+        "`gates.evidence_guards=true`",
+        "`8a7ee77bea252de0ac84a6531408a8f82b071ba144eee42c924531042e90c3af`",
+        "`gates.independent_review_passed`",
+        "sealed launch receipt is immutable and remains `failed_closed`",
+        "must not be rerun",
+        "`holdout_open_count=1`",
+        "`holdout_rerun_authorized=false`",
+        "v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight",
     ):
         assert phrase in text
 

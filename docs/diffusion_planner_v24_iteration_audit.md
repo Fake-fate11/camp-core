@@ -3673,3 +3673,89 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_evidence_package_and_preregistered_claim_decision_retry_execution_only
+
+## Gate 58: Evidence Package and Preregistered Claim-Decision Execution
+
+Status: the one authorized evidence/claim retry completed successfully and its
+output is complete-sealed. The evidence builder and output must not be rerun.
+A separate launch-wrapper validation false-negative is preserved immutably and
+is bounded below; only independent package-review TDD/static preflight is next.
+
+At the fully synchronized package/docs HEAD
+`f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a`, AutoDL reverified `134` tests,
+the canonical CAMP local/origin/live-remote tuple, fixed clean DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the byte-identical holdout marker,
+zero related processes, an exclusively acquirable global lock, absent
+deterministic retry paths, and `48,678,211,584` free bytes. The evidence builder
+then exited `0` after `3.44047498` seconds and atomically published this
+complete-sealed eight-payload-file artifact/root:
+
+`/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf`
+/
+`044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808`.
+
+The builder rehashed the sealed independent reviewer root
+`43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf`,
+preserved its source self-guard as false, and closed only the externally derived
+guard. The claim decision is `honest_no_claim`, final claim authorization is
+false, and its sole failed gate is `clustered_ci95_upper_below_zero`. The
+directional SafetyCost mean remains `-0.014322916666666666`, clustered CI95
+remains `[-0.06380208333333333, 0.01953125]`, and better/tie/worse remains
+`4 / 113 / 3`. The allowed text is limited to the frozen held-out single map
+family and three corridor groups; broad unseen-map, native-ranked-DP, real-world
+safety, latency-comparison, promotion, deployment, and online-activation claims
+remain forbidden.
+
+The output records `derived_evidence_guards.independent_review_passed=true`,
+`gates.evidence_guards=true`, source reviewer bytes unchanged, marker bytes
+unchanged, `reviewer_or_execution_rerun=false`, `runner_built=false`,
+`model_loaded=false`, `simulator_executed=false`, and
+`holdout_reopened=false`. Candidate tensors, arms, simulator states, outcomes,
+training, and reviewer outputs were not regenerated.
+
+After builder success, the outer launch checker queried the nonexistent
+`gates.independent_review_passed` instead of the correct derived guard path.
+It therefore sealed this seven-payload-file launch artifact/root with builder
+exit `0`, empty builder stderr, the correct output path/root and decision, but
+wrapper status `failed_closed` and validation error
+`ValueError: external reviewer self-guard not closed`:
+
+`/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf_launch`
+/
+`8a7ee77bea252de0ac84a6531408a8f82b071ba144eee42c924531042e90c3af`.
+
+This sealed launch receipt is immutable and remains `failed_closed`; it does
+not override the builder's exit `0` or the independently verifiable package
+seal. A subsequent read-only inspection verified the correct guard path and
+both artifact roots, acquired and released the global lock, found zero related
+processes, reverified marker SHA
+`f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633`
+with `holdout_open_count=1` and `holdout_rerun_authorized=false`, confirmed clean
+CAMP/DP heads, and observed `48,677,928,960` free bytes. This is a launch-wrapper
+receipt bug only; the evidence builder/output succeeded and must not be rerun.
+
+current_v24_status=v24_evidence_package_and_preregistered_claim_decision_execution_complete_launch_wrapper_false_negative_independent_review_pending
+current_v24_artifact_source_head=f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_artifact_root_sha256=044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808
+current_v24_launch_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf_launch
+current_v24_launch_artifact_root_sha256=8a7ee77bea252de0ac84a6531408a8f82b071ba144eee42c924531042e90c3af
+current_v24_launch_status=sealed_wrapper_validation_false_negative_builder_exit_0
+current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
+current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
+current_v24_holdout_open_count=1
+current_v24_holdout_rerun_authorized=false
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_independent_review_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight
