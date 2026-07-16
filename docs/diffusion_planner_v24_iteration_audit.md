@@ -2572,15 +2572,75 @@ evaluation, tuning, or claim boundary opened. Only the exact repaired
 train-only retry and its mandatory independent result review are authorized
 next.
 
-current_v24_status=v24_convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed
-current_v24_artifact_source_head=5f3dbfc70db6ea760f6f48c8d9731f560eb7d161
+## Gate 43: Repaired-Training Authorization Contract Static Review
+
+Status: passed and independently sealed. Training still has not started; the
+next gate remains the one exact repaired train-only retry after final live-EOF
+reconciliation.
+
+The Gate 42 post-doc local and AutoDL five-suite runs passed `129` tests with
+empty stderr. The AutoDL post-doc test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_cut_relative_repair_post_docs_tests_8ad69097_20260716T224037CST`
+/
+`72d27906e2e695472f1e335ff71668e5d87bba8ee3b793e1c5a44fc81fbe351d`.
+
+Before launch, static inspection found that the executor's own authorization
+reader still named the Gate 40 projection-boundary status, schema, and next
+target. Passing the Gate 42 artifact would therefore have failed before input
+loading or training. No training process or artifact was started. This is a
+prelaunch harness-contract defect, not another numerical, data, DP, model, or
+holdout failure.
+
+At CAMP source HEAD `db238bd7dadcb169b67fa3cd410fac87ba7064ab`, the executor
+authorization reader was bound to the cut-relative review contract and a unit
+test now accepts the exact current tuple while rejecting the historical Gate 40
+tuple. The static reviewer also inspects those authorization strings. The
+preflight/reviewer source now uses the Gate 42 independent review as its sole
+authorization authority and keeps training disabled. One wrapper used an
+incorrect full HEAD constant and stopped at its strict HEAD assertion before
+artifact creation; no tests, preflight, or training ran in that attempt.
+
+Local Python 3.12 compilation, pyflakes, diff checks, and the five required
+suites passed `130` tests on a clean HEAD. AutoDL Python 3.9 repeated all `130`
+with empty stderr. Its test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_authorization_contract_repair_static_tests_db238bd7_20260716T224452CST`
+/
+`de34373318a0c4f93ecd34eabd233ec326d04757e19cfe8280ec1846445ec3bd`.
+
+The new static preflight complete-sealed Gate 42 and the full unchanged input
+chain, revalidated the same counts, four-gap master contract, tracked source,
+CLARABEL, fixed DP, processes, locks, and disk, and called no solver or training
+entry point. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_static_preflight_db238bd7_20260716T224452CST`
+/
+`95721dd54fd9947aad4c19f3bd8366e939ad1c8817ff531dded1cde1b13e0952`.
+
+The independent reviewer rehashed the current source and all upstream seals,
+verified the repaired authorization binding plus the four-gap numerical
+contract, and repeated the process/lock/solver/disk closure. It passed `27 / 0`
+checks with no executor process, all locks free, fixed DP clean, and
+`48,777,994,240` bytes free. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_db238bd7_20260716T224452CST`
+/
+`f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357`.
+
+No model, training execution, calibration, holdout, actual outcome, paired
+evaluation, tuning, or claim boundary opened. Only the exact repaired
+train-only retry and its mandatory independent result review remain authorized.
+
+current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed
+current_v24_artifact_source_head=db238bd7dadcb169b67fa3cd410fac87ba7064ab
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_repair_static_preflight_independent_review_5f3dbfc7_20260716T223324CST
-current_v24_artifact_root_sha256=1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_db238bd7_20260716T224452CST
+current_v24_artifact_root_sha256=f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed_retry_execution_pending
+source_b_status=convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed_retry_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1

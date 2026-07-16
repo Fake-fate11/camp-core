@@ -20,15 +20,15 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=5f3dbfc70db6ea760f6f48c8d9731f560eb7d161",
+    "current_v24_status=v24_convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed",
+    "current_v24_artifact_source_head=db238bd7dadcb169b67fa3cd410fac87ba7064ab",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_repair_static_preflight_independent_review_5f3dbfc7_20260716T223324CST",
-    "current_v24_artifact_root_sha256=1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_db238bd7_20260716T224452CST",
+    "current_v24_artifact_root_sha256=f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed_retry_execution_pending",
+    "source_b_status=convex_training_cut_relative_gap_authorization_contract_repair_static_preflight_independent_review_passed_retry_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
@@ -236,6 +236,23 @@ def test_v24_cut_relative_gap_repair_is_reviewed_before_training_retry() -> None
         "60018ce01740096f157755757d0508def9f887f2f24691c167de8b2fe6741862",
         "passed `26 / 0` checks",
         "1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418",
+        "Only the exact repaired train-only retry",
+    ):
+        assert phrase in text
+
+
+def test_v24_repaired_training_authorization_contract_is_reviewed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "executor's own authorization reader still named the Gate 40",
+        "No training process or artifact was started",
+        "rejecting the historical Gate 40 tuple",
+        "incorrect full HEAD constant",
+        "passed `130` tests",
+        "de34373318a0c4f93ecd34eabd233ec326d04757e19cfe8280ec1846445ec3bd",
+        "95721dd54fd9947aad4c19f3bd8366e939ad1c8817ff531dded1cde1b13e0952",
+        "passed `27 / 0` checks",
+        "f5b23d9d8c4a1c4e51f7028678408a6a9a199d2d066088242709ff86497dd357",
         "Only the exact repaired train-only retry",
     ):
         assert phrase in text
