@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_paired_holdout_main_once_execution_complete_independent_review_pending",
-    "current_v24_artifact_source_head=8caa2699b3657154f464e14c2f274190d3036c4a",
+    "current_v24_status=v24_paired_holdout_main_once_independent_result_review_tdd_static_preflight_passed",
+    "current_v24_artifact_source_head=0ef3278a7c405c2b1bc33a942c4c03c97107d8cd",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_8caa2699_20260717T015444CST",
-    "current_v24_artifact_root_sha256=bdced339f0a97381dca918441e61d11830f63880d2a4421da05bfe4ae6649dc3",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_result_reviewer_static_preflight_0ef3278a_20260717T045929CST",
+    "current_v24_artifact_root_sha256=9227bc173320090927e45a24a0728797a3b154ae58c2a801d3ea7be867e89efd",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_review_pending",
+    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_static_preflight_passed",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_holdout_main_once_independent_result_review_only",
+    "next_work_target=v24_paired_holdout_main_once_independent_result_review_execution_only",
 )
 
 
@@ -199,6 +199,29 @@ def test_v24_holdout_main_once_execution_is_complete_sealed_and_unclaimed() -> N
         "Holdout remains opened exactly once and cannot be rerun",
         "No producer statistic is accepted as an independent result",
         "Only independent read-only result review is authorized next",
+    ):
+        assert phrase in text
+
+
+def test_v24_holdout_result_reviewer_static_gate_is_sealed_and_outcome_closed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 54: Holdout Main-Once Independent Result-Reviewer TDD and Static Preflight",
+        "without opening the holdout execution artifact",
+        "passed `70` tests",
+        "passed `16` focused tests",
+        "`9227bc173320090927e45a24a0728797a3b154ae58c2a801d3ea7be867e89efd`",
+        "`120 / 2 / 64 / 15,360` pairs / arms / ticks",
+        "Outcome-blind route+seed hash ranking must reconstruct AB/BA `60/60`",
+        "source-census `source_arc_length_m`",
+        "post-divergence state-conditioned K=8 tensors are intentionally not compared",
+        "Latency remains arm-only descriptive output",
+        "`corridor -> route -> seed` with `5,000 / 24,047` resamples / seed",
+        "`1,875 / 1,054 / 821` train retained / complete / failed",
+        "full support indices `[7, 8, 13]`",
+        "cannot claim an independent raw-byte candidate rehash or `A @ w` recomputation",
+        "`source_execution_artifact_opened=false`",
+        "No holdout result value was read or recorded here",
     ):
         assert phrase in text
 
