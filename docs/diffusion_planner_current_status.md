@@ -117,26 +117,65 @@ wrapper found the noninteractive shell lacked a `python` alias; no tests ran,
 and its honest failure root is
 `6ce9717d62913ce106ad5e4c2305ce46c6716c0fd18cbdaf4fbdfa910617e23e`.
 The successful retry used the fixed Python 3.9 path. CVXPY 1.6.7 reports
-CLARABEL available, but no synthetic or corpus solve, label materialization, model,
-training, tuning, outcome, calibration, holdout, or claim boundary opened.
-Only train-only causal label materialization TDD/execution and independent
-review are now authorized; training execution remains unauthorized.
+CLARABEL available, but no synthetic or corpus solve, model, training, tuning,
+outcome, calibration, holdout, or claim boundary opened.
 
-current_v24_status=v24_convex_training_static_preflight_passed
-current_v24_artifact_source_head=bfc0a52307bf7d9184a5f4596b951058c02ba67c
+The train-only causal label materialization and independent review are now
+sealed at CAMP HEAD `5659677944269f758cb775fe69c297489df360ad`. TDD binds the
+producer, reviewer, and every critical imported validator to exact tracked Git
+blobs and live bytes; the two preflight-stable producer validators must also
+match the frozen Gate 36 source HEAD. This closes the prior possibility that an
+untracked runner could claim current-HEAD authority. Local review returned Go
+with no P1/P2, and local Python 3.12 compilation plus the combined label/atom/
+merged/training-preflight/audit suite passed `107` tests. AutoDL Python 3.9
+repeated the same `107` tests with empty stderr; its test root is
+`f78ce33ea7c38b8ef44d4e11fd4c0ace3d0bec928ab83d03b2f719596ebc416f`.
+
+One prelaunch wrapper reused the old shell-command process grep and matched
+itself. It failed before the producer was invoked; the target artifact remained
+absent, both locks were free, and a `/proc` argv scan proved zero target Python
+processes. The honest failure root is
+`2ac7714cff733e36c2cec4f5d6caf1e70eb9396129faf556f2837c376d9d418b`.
+The corrected wrapper used actual Python argv and launched exactly once.
+
+The producer consumed all `67,796` snapshots / `542,368` fixed K=8 candidates,
+all `375` routes and `1,875` frozen route-seed receipts, including `1,054`
+complete and `821` retained failures. It used the frozen scales, mask, severity,
+penalty, clip, exact left-to-right float64 accumulation, and lowest-index tie
+rule without fitting or outcome access. The oracle histogram is
+`[4067, 9062, 9010, 9159, 9135, 9028, 9251, 9084]`; candidate 0 / non-0 counts
+are `4,067 / 63,729`, and all `7,783` all-K-high-risk snapshots remain in the
+denominator. Materialization took about `17.82` seconds. Its immutable root is
+`9a14fb003fe9145e62b24c20fcecc013baedd72e312add82a8c6a6e6dcde966c`.
+
+The independent reviewer directly complete-sealed the label, Gate 36, merged,
+merged-review, atom-freeze, atom-review, pilot, pilot-review, remaining, and
+remaining-review trees. It verified `155,678` sealed-file receipts, reread every
+snapshot, and matched costs byte-for-byte plus oracle/masks/all-K exactly. All
+`17 / 0` checks passed in about `23.21` seconds. Its immutable root is
+`d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468`.
+No snapshot/candidate/trajectory/DP/map bytes changed; no model, training,
+tuning, outcome, calibration, holdout, or claim boundary opened. Only convex
+training-executor TDD/static preflight is now authorized; training execution
+remains unauthorized. CAMP local/origin/GitHub/AutoDL are aligned and tracked
+clean at the source HEAD, fixed DP remains clean, and free space is about
+45.43 GiB.
+
+current_v24_status=v24_train_only_causal_label_materialization_independent_review_passed
+current_v24_artifact_source_head=5659677944269f758cb775fe69c297489df360ad
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_static_preflight_bfc0a523_20260716T195856CST
-current_v24_artifact_root_sha256=43f26263ff24cad5966cb3a740af6d3307490ab1bd3e07d03284589bee0d28f5
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST
+current_v24_artifact_root_sha256=d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_static_preflight_passed_label_materialization_pending
+source_b_status=train_only_causal_labels_independent_review_passed_training_executor_static_preflight_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_train_only_causal_label_materialization_tdd_execution_review_only
+next_work_target=v24_convex_selector_training_executor_tdd_static_preflight_only
 
 ## Current V23 Status
 

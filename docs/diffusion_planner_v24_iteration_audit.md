@@ -2113,3 +2113,113 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_train_only_causal_label_materialization_tdd_execution_review_only
+
+## Gate 37: Train-Only Causal Label Materialization and Independent Review
+
+Status: passed and sealed. Only convex training-executor TDD/static preflight
+is next; training execution remains unauthorized.
+
+The producer, reviewer, and target tests were added at CAMP HEAD
+`5659677944269f758cb775fe69c297489df360ad`. Before commit, independent source
+review found one P1: the existing tracked-state guard ignored untracked files,
+so an untracked runner could have claimed the current HEAD. The final design
+binds every execution-critical source to `git ls-files`, the exact current-HEAD
+Git blob, and live bytes. The producer records its own runner plus the Gate 36
+preflight and Gate 34 freeze validators; those two validators must additionally
+match the frozen Gate 36 source HEAD. The reviewer independently recomputes that
+three-file receipt and binds its own runner plus the atom-review snapshot helper.
+The label manifest and review artifact retain these exact blob/SHA receipts.
+Final independent code review returned Go with no remaining P1/P2.
+
+The label formula is the already frozen Gate 36 contract. Cost accumulation is
+exact float64: physical penalty first, then atoms 0 through 13 left-to-right,
+without fused multiply-add. Source-validity alone controls oracle eligibility;
+physical risk remains a finite cost, exact ties use the lowest candidate index,
+and all-K-high-risk rows remain in the denominator. Identity fields are stored
+only in a separate provenance column and never enter cost/features. The
+producer has no scale-fit or percentile path and cannot read an outcome field.
+
+Local Python 3.12 compilation and the combined label, atom-freeze, merged,
+training-preflight, and v24 audit suite passed `107` tests; `git diff --check`
+passed. AutoDL was fast-forwarded to the same tracked-clean source HEAD while
+fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. AutoDL Python 3.9 repeated the
+same `107` tests in `3.36` seconds with empty stderr. The immutable static-test
+artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_train_causal_labels_static_tests_56596779_20260716T203959CST`
+/
+`f78ce33ea7c38b8ef44d4e11fd4c0ace3d0bec928ab83d03b2f719596ebc416f`.
+
+The first execution wrapper used a shell command-line grep for process names
+and matched its own shell plus grep. It failed closed before producer invocation:
+the intended label artifact did not exist, both corpus and label locks were
+free, and an actual `/proc` Python-argv scan found zero target processes. That
+attempt did not read a snapshot or create scientific output. Its honest sealed
+failure artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_train_causal_labels_prelaunch_self_match_failure_56596779_20260716T204104CST`
+/
+`2ac7714cff733e36c2cec4f5d6caf1e70eb9396129faf556f2837c376d9d418b`.
+
+The corrected wrapper used the actual Python argv scan, rechecked both locks,
+the 10 GiB floor, aligned CAMP, and clean fixed DP, then launched the producer
+exactly once. The producer complete-sealed every frozen authority root and all
+four pilot/pilot-review/remaining/remaining-review roots before consuming the
+merged zero-copy index. It retained the full outcome-blind denominator:
+
+- routes / frozen seeds / retained route-seeds: `375 / 5 / 1,875`;
+- complete / retained failures: `1,054 / 821`;
+- causal snapshots / fixed candidates: `67,796 / 542,368`;
+- source-valid / source-invalid candidates: `542,368 / 0`;
+- physically feasible candidates: `470,138`;
+- all-K-high-risk snapshots: `7,783`.
+
+The oracle histogram for candidates 0 through 7 is
+`[4067, 9062, 9010, 9159, 9135, 9028, 9251, 9084]`. Candidate 0 / non-0 oracle
+counts are `4,067 / 63,729`; these are offline causal labels, not native ranking
+provenance and not closed-loop outcomes. Materialization took
+`17.8227368327789` seconds. The seven compact label columns remain separate
+from identity provenance; no snapshot payload or candidate tensor was copied
+or modified. The artifact contains 14 sealed files with empty stderr and root:
+
+`/root/autodl-tmp/camp_dp_v24_train_causal_labels_56596779_20260716T204104CST`
+/
+`9a14fb003fe9145e62b24c20fcecc013baedd72e312add82a8c6a6e6dcde966c`.
+
+The independent reviewer does not import the label producer. It directly
+complete-sealed the label, Gate 36 preflight, merged corpus, merged review,
+atom freeze, atom review, pilot, pilot review, remaining, and remaining review.
+It verified `155,678` sealed-file receipts, independently reread all `67,796`
+snapshots, recomputed exact float64 costs and serialized bytes, and matched the
+oracle, both masks, all-K flags, snapshot order, provenance, file receipts,
+failure denominator, and learning-curve levels. All `17 / 0` checks passed in
+`23.206293215975165` seconds with empty stderr and no failure receipt. Its
+immutable artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST`
+/
+`d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468`.
+
+No snapshot, candidate, trajectory, DP source/config/weight/checkpoint/request,
+or original map changed. No model, training, tuning, outcome, calibration,
+holdout, or claim boundary opened. CAMP local/origin/GitHub/AutoDL remained
+aligned and tracked clean at the source HEAD, fixed DP remained clean, and free
+space remained about 45.43 GiB. The positive review authorizes only training-
+executor TDD/static preflight; it does not authorize a corpus solve.
+
+current_v24_status=v24_train_only_causal_label_materialization_independent_review_passed
+current_v24_artifact_source_head=5659677944269f758cb775fe69c297489df360ad
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST
+current_v24_artifact_root_sha256=d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=train_only_causal_labels_independent_review_passed_training_executor_static_preflight_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_convex_selector_training_executor_tdd_static_preflight_only
