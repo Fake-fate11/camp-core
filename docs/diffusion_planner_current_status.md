@@ -385,7 +385,8 @@ with no P1/P2. Its static artifact is complete-sealed at root
 `9227bc173320090927e45a24a0728797a3b154ae58c2a801d3ea7be867e89efd`.
 The gate opened no execution artifact and consumed no outcome. It freezes the
 exact route+seed hash-ranked AB/BA `60/60` order, independent arm resets,
-source-census route-length denominators, 15,360 per-arm tick checks, independent
+source-census route-length denominators, 15,360 total arm-tick checks (7,680
+per arm), independent
 raw metric reconstruction, corridor-to-route-to-seed bootstrap, descriptive-only
 latency, failure retention, and the raw candidate/atom byte evidence limitation.
 Only the exact independent read-only result review may run next; neither arm may
@@ -408,8 +409,9 @@ The successful review retained/completed all `120 / 120 / 120` pairs with
 zero source/execution failures, AB/BA `60/60`, and `7,680` ticks per arm.
 SafetyCost delta is mean `-0.014322916666666666`, median zero, clustered CI95
 `[-0.06380208333333333, 0.01953125]`, and better/tie/worse `4 / 113 / 3`.
-Only near-miss rate is nonzero; collision, offroad, red-light, wrong-way, and
-all speed-tolerance deltas are zero. CAMP selected candidate 0/non-0
+Only near-miss noncollision rate among SafetyCost components is nonzero;
+collision, offroad, red-light, wrong-way, and all speed-tolerance deltas are
+zero. CAMP selected candidate 0/non-0
 `1,401 / 6,279` times; the all-K-high-risk stratum covers `8` pairs and `36`
 ticks. Coverage is 100% with no replacement or dropped pair.
 

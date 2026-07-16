@@ -3424,11 +3424,28 @@ stderr. Its complete-sealed output and launch artifacts are:
 and the sibling `_launch` root
 `970a9176deca7a9e42c4c054e1d4c360da667a97cade3ee6b86fa42172696123`.
 All ten manifest-listed files in each artifact independently rehashed. The
+review also rehashed Gate 53 source execution root
+`bdced339f0a97381dca918441e61d11830f63880d2a4421da05bfe4ae6649dc3`
+and source launch root
+`a300ae01fe9f46df1f236236d00e4d87790631df37105e8fb11bd37d65f96b46`.
+These are distinct from the reviewer output and launch roots above. The
 reviewer passed `27 / 0` checks, retained and completed `120 / 120 / 120`
 planned / retained / paired-complete route-seed pairs, recorded zero
 source-invalid or execution-invalid pairs, and independently reviewed
-`7,680 / 7,680` DP/CAMP ticks. AB/BA is exactly `60/60`; there are 24 routes,
-five frozen seeds per route, one map family, and three corridor clusters.
+`15,360` total arm-ticks (`7,680 / 7,680` DP/CAMP). Per-arm, per-tick candidate
+immutability and candidate-0 operational-default identity passed, as did CAMP
+selected-row identity and the legal reported-score argmin. Cross-arm input and
+candidate identity passed at `t=0`; post-divergence state-conditioned tensors
+were not compared. Both arms used independent resets with the same initial
+state and external seed. AB/BA is exactly `60/60`; there are 24 routes, five
+frozen seeds per route, one map family, and three corridor clusters. The frozen
+bootstrap is `corridor -> route -> seed`, with `5,000` resamples and seed
+`24,047`.
+
+Failure accounting is exact: planned/retained/complete are `120 / 120 / 120`,
+source-invalid/execution-invalid are `0 / 0`, retention and completion are
+`1.0 / 1.0`, `failed_pairs_dropped=false`, and
+`replacement_or_resampling_used=false`.
 
 Independent SafetyCost delta is mean `-0.014322916666666666`, median `0`,
 with corridor-to-route-to-seed CI95
