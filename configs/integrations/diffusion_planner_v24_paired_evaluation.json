@@ -25,7 +25,7 @@
   "frozen_selector": {
     "training_artifact": "/root/autodl-tmp/camp_dp_v24_convex_selector_training_cut_relative_gap_retry_execution_9e9457d5_20260716T230203CST",
     "training_artifact_root_sha256": "91ddd978d383d66488215e2fc8135dee37f4e3d40efb7f801389b40d6fb2c175",
-    "independent_review_artifact": "/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8de56e9d2cdaac4faa5bc392db250d648_20260717T003628CST",
+    "independent_review_artifact": "/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST",
     "independent_review_root_sha256": "0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c",
     "model_path": "/root/autodl-tmp/camp_dp_v24_convex_selector_training_cut_relative_gap_retry_execution_9e9457d5_20260716T230203CST/models/level_100.json",
     "model_sha256": "da7ff892fb786a47412f6d3e7c4ecb85ce87e2afc108a6682c741d3e8c13f2c4",
