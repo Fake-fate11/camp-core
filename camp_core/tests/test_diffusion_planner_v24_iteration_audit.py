@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_convex_selector_training_execution_independent_review_passed",
-    "current_v24_artifact_source_head=084a71c8de56e9d2cdaac4faa5bc392db250d648",
+    "current_v24_status=v24_paired_evaluation_plan_static_preflight_independent_review_passed",
+    "current_v24_artifact_source_head=ca54fa2c921440a7ae44961ee410bdab67d5fe19",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST",
-    "current_v24_artifact_root_sha256=0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_independent_review_ca54fa2c_20260717T012352CST",
+    "current_v24_artifact_root_sha256=8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_execution_independent_review_passed_paired_evaluation_plan_pending",
+    "source_b_status=paired_evaluation_plan_static_preflight_review_passed_calibration_capability_pilot_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_paired_evaluation_plan_tdd_static_preflight_only",
+    "next_work_target=v24_paired_calibration_capability_pilot_execution_only",
 )
 
 
@@ -91,6 +91,28 @@ def test_v24_convex_training_result_review_is_independently_sealed() -> None:
         "`1.1185675338754031e-07`",
         "training was not reexecuted and no solver was called",
         "Only paired-evaluation plan TDD/static preflight is authorized next",
+    ):
+        assert phrase in text
+
+
+def test_v24_paired_plan_freezes_order_and_keeps_holdout_closed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 48: Paired Evaluation Plan TDD, Static Preflight, and Independent Review",
+        "`31 / 0` static checks",
+        "`23 / 0` independent checks",
+        "`1 / 2 / 120` capability / pilot / main pairs",
+        "`1/1` and `60/60`",
+        "camp-v24-paired-arm-order-v1",
+        "independent simulator reset",
+        "latency remains descriptive instrumented output only",
+        "post-divergence cross-arm K=8 tensors are expected to be non-comparable",
+        "`1,875 / 1,054 / 821` retained / complete / failed",
+        "`[7, 8, 13]`",
+        "one map family and three indivisible corridor groups",
+        "`06bd51a06814a11ae395edfecfc3febddc1ba646dfcd391e33962e15fe46a56c`",
+        "`8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88`",
+        "Calibration capability/pilot is the only authorized next execution",
     ):
         assert phrase in text
 

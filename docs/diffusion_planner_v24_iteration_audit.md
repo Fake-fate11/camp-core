@@ -2849,3 +2849,116 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_paired_evaluation_plan_tdd_static_preflight_only
+
+## Gate 48: Paired Evaluation Plan TDD, Static Preflight, and Independent Review
+
+Status: passed and independently complete-sealed. Calibration capability/pilot
+is the only authorized next execution. Holdout-main, tuning, comparative
+latency conclusions, and claims remain closed.
+
+The source implementation at `55cb032fb2869e51292ff41eb3b3e8fafede1ad6`
+adds the v24 paired protocol, evaluator, statistics, static-preflight producer,
+independent reviewer, and DP candidate-0 operational mode. A first AutoDL
+preflight invocation failed closed before creating an artifact: the config used
+the training-review source HEAD as the directory suffix, while the already
+sealed directory used short SHA `084a71c8`. No model, runner, simulator,
+candidate, outcome, calibration, or holdout was opened. The one-line path fix
+at `ca54fa2c921440a7ae44961ee410bdab67d5fe19` was checked against the actual
+seven-file artifact and its immutable root
+`0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c`.
+Local and AutoDL each passed all `295` required tests; local pyflakes,
+py_compile, and diff checks passed, and AutoDL remained tracked-clean at the
+same HEAD. The current AutoDL static-test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_tests_ca54fa2c_20260717T012310CST`
+/
+`bdf828e3eed90a68b0c321341ae9a1093f5232f6161ce574d46ed3faf2aec247`.
+
+The corrected static preflight passed `31 / 0` static checks. It joined all
+`401` frozen routes, materialized `26` unique route assets, and emitted `123`
+disabled run configs for exactly `1 / 2 / 120` capability / pilot / main
+pairs. It verified all six upstream roots, the exact 14D weights/scales, the
+fixed clean DP HEAD, and more than the 10 GiB disk floor. It loaded no model,
+built no runner, ran no simulator, generated no candidate, consumed no outcome,
+and did not open holdout. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_ca54fa2c_20260717T012331CST`
+/
+`06bd51a06814a11ae395edfecfc3febddc1ba646dfcd391e33962e15fe46a56c`.
+
+The outcome-blind order domain is `camp-v24-paired-arm-order-v1`. Within each
+frozen mode schedule, route+seed pair keys are SHA-ranked and split evenly:
+pilot/main AB/BA counts are exactly `1/1` and `60/60`. Each arm begins from an
+independent simulator reset with the same pair initial state and exogenous seed.
+The DP arm selects exact candidate 0 from its own-state fixed-DP K=8 tensor;
+the CAMP arm applies only the frozen 14D affine/nonnegative-simplex selector to
+its own-state unmodified fixed-DP K=8 tensor. Candidate immutability and
+candidate-0/default byte identity are required per arm and per tick. Identical
+`t=0` inputs require cross-arm input/candidate hashes to match. Once policies
+diverge, post-divergence cross-arm K=8 tensors are expected to be non-comparable
+because they are correctly conditioned on different arm states. They are not
+replayed or forced equal. The allowed policy comparison is CAMP selector versus
+DP operational candidate-0 default, never a native-ranked Top-1 claim.
+
+Order balancing removes deterministic cold-cache assignment, but latency
+remains descriptive instrumented output only and is not authorized for a
+comparative conclusion. SafetyCost arms still start from independent resets,
+the same initial state, and the same exogenous route/seed schedule.
+
+Calibration has two routes and five registered seeds, but the capability/pilot
+gate uses only the preregistered first seed: one single-tick pair and two
+64-step pairs. It can validate execution, metrics, identity, receipt, and
+failure plumbing only. It cannot tune the frozen model, weights, atoms, scales,
+thresholds, SafetyCost, routes, or seeds and cannot support an effect claim.
+
+Holdout remains `24 x 5 = 120` pairs in one map family and three indivisible
+corridor groups. The primary CI hierarchy is corridor group, route, then seed;
+map-family-level CI and broad unseen-map generalization are forbidden. Claim
+coverage gates are frozen numerically at retention `1.0`, paired-complete
+`1.0`, source-invalid `0.0`, and execution-invalid `0.0`. Every failed arm and
+pair stays in accounting with no replacement or resampling. The train-source
+risk disclosure remains `1,875 / 1,054 / 821` retained / complete / failed,
+failure rate `0.4378666666666667`.
+
+The frozen 25/50/75/100% weight L1 distances to full are
+`[0.3998769535788546, 0.18971764213000833, 0.20611942009995507, 0.0]`;
+effective support is `[3, 3, 3, 3]`; selected-index histogram L1 distances are
+`[0.13606298050062507, 0.019765760782601463, 0.023184460472880697, 0.0]`;
+candidate-0 selection rates are
+`[0.20219094175157548, 0.2786534178516361, 0.25863020176544765, 0.270222432001888]`.
+All selected-index modes are zero. Full support `[7, 8, 13]` is
+lane_deviation / clearance / dp_prior_jerk_excess_cost at
+`[0.4178605234516141, 0.5784894895043772, 0.0036499870440052018]`.
+This concentration is a frozen distribution-risk disclosure, not an automatic
+failure, and calibration/holdout cannot repair it.
+
+The independent reviewer rehashed the complete preflight seal and passed
+`23 / 0` independent checks without rerunning the producer. It recomputed the
+plan, route assets, run-config counts, AB/BA balance, exact weights/scales,
+learning-curve stability, and train failure disclosure. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_independent_review_ca54fa2c_20260717T012352CST`
+/
+`8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88`.
+
+Both seals were independently checked with `sha256sum -c`. DP remains fixed
+and clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no paired executor
+process or relevant held lock exists; `48,770,371,584` bytes remained free.
+Only calibration capability/pilot is now config-authorized. Main execution,
+holdout access/open count, tuning, latency comparison, and claims remain false.
+
+current_v24_status=v24_paired_evaluation_plan_static_preflight_independent_review_passed
+current_v24_artifact_source_head=ca54fa2c921440a7ae44961ee410bdab67d5fe19
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_independent_review_ca54fa2c_20260717T012352CST
+current_v24_artifact_root_sha256=8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_evaluation_plan_static_preflight_review_passed_calibration_capability_pilot_pending
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_paired_calibration_capability_pilot_execution_only

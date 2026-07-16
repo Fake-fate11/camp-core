@@ -142,7 +142,9 @@ def _config() -> dict:
 
 def test_v24_config_and_design_freeze_correct_policy_pairing_contract() -> None:
     config = _config()
-    _module().validate_evaluation_config(config)
+    _module().validate_evaluation_config(config, require_all_execution_closed=False)
+    assert config["pilot_execution_authorized"] is True
+    assert config["main_execution_authorized"] is False
     candidate = config["candidate_contract"]
     assert candidate["per_arm_candidate_tensor_immutability_required_every_tick"]
     assert candidate["per_arm_candidate0_default_byte_identity_required_every_tick"]

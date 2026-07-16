@@ -172,7 +172,7 @@
     "risk_disclosure_required": true,
     "calibration_or_holdout_repair_authorized": false
   },
-  "pilot_execution_authorized": false,
+  "pilot_execution_authorized": true,
   "main_execution_authorized": false,
   "holdout_opened": false,
   "holdout_open_count": 0,

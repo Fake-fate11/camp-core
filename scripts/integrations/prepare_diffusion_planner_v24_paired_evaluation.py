@@ -278,7 +278,7 @@ def build_evaluation_plan(
     split_manifest: Mapping[str, Any],
     route_census: Mapping[str, Any],
 ) -> dict[str, Any]:
-    validate_evaluation_config(config)
+    validate_evaluation_config(config, require_all_execution_closed=False)
     if (
         split_manifest.get("schema")
         != "camp_dp_v24_map_family_split_manifest_v1"

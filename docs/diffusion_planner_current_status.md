@@ -277,21 +277,47 @@ All locks are free, no executor process exists, and `48,773,963,776` bytes were
 free. The full-train model is frozen; only paired-evaluation plan TDD/static
 preflight is authorized next. Calibration execution and holdout remain closed.
 
-current_v24_status=v24_convex_selector_training_execution_independent_review_passed
-current_v24_artifact_source_head=084a71c8de56e9d2cdaac4faa5bc392db250d648
+Paired-evaluation plan TDD/static preflight then passed at CAMP HEAD
+`ca54fa2c921440a7ae44961ee410bdab67d5fe19`. The first preflight invocation
+failed before creating an artifact because the config named the sealed training
+review directory with a full SHA instead of its actual short-SHA directory.
+The one-line source-path repair was independently checked against root
+`0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c`;
+local and AutoDL each passed `295` tests.
+
+The corrected static preflight passed `31 / 0` checks and sealed `401` joined
+routes, `26` unique route assets, and `123` disabled run configs for exactly
+`1 / 2 / 120` capability / calibration-pilot / holdout-main pairs. Outcome-
+blind SHA-rank assignment freezes pilot/main AB/BA order at `1/1` and `60/60`.
+Both arms use independent resets with the same pair initial state and exogenous
+seed. Candidate immutability and candidate-0/default identity are checked per
+arm and per tick; cross-arm equality is required at `t=0`, while later tensors
+are state-conditioned and intentionally non-comparable. Latency is descriptive
+only. The independent reviewer passed `23 / 0` checks. Preflight/review roots
+are `06bd51a06814a11ae395edfecfc3febddc1ba646dfcd391e33962e15fe46a56c`
+and `8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88`.
+
+No model, runner, simulator, candidate, outcome, calibration, or holdout was
+opened by this gate. Calibration capability/pilot is now the only authorized
+execution; it is plumbing-only and cannot tune weights, atoms, scales,
+thresholds, routes, seeds, or SafetyCost. Main execution, holdout access,
+comparative latency conclusions, and claims remain closed.
+
+current_v24_status=v24_paired_evaluation_plan_static_preflight_independent_review_passed
+current_v24_artifact_source_head=ca54fa2c921440a7ae44961ee410bdab67d5fe19
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST
-current_v24_artifact_root_sha256=0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_paired_evaluation_plan_static_preflight_independent_review_ca54fa2c_20260717T012352CST
+current_v24_artifact_root_sha256=8ce3a270f367c3b8ac590e1469002982a8cf34e9b70ea9cfc448a3eb3637ce88
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_execution_independent_review_passed_paired_evaluation_plan_pending
+source_b_status=paired_evaluation_plan_static_preflight_review_passed_calibration_capability_pilot_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_paired_evaluation_plan_tdd_static_preflight_only
+next_work_target=v24_paired_calibration_capability_pilot_execution_only
 
 ## Current V23 Status
 
