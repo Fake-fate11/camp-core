@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_convex_training_retry_failure_independent_review_passed",
-    "current_v24_artifact_source_head=174f48ecf986db0431365bdd2f0347b518b8c8f1",
+    "current_v24_status=v24_convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed",
+    "current_v24_artifact_source_head=5f3dbfc70db6ea760f6f48c8d9731f560eb7d161",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_20260716T221541CST",
-    "current_v24_artifact_root_sha256=4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_repair_static_preflight_independent_review_5f3dbfc7_20260716T223324CST",
+    "current_v24_artifact_root_sha256=1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_retry_failed_cut_relative_gap_mismatch_independent_review_passed_repair_static_preflight_pending",
+    "source_b_status=convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed_retry_execution_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only",
+    "next_work_target=v24_convex_selector_training_cut_relative_gap_retry_execution_only",
 )
 
 
@@ -220,6 +220,23 @@ def test_v24_training_retry_failure_is_reviewed_before_cut_relative_repair() -> 
         "passed `14 / 0` checks",
         "4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b",
         "a third training execution remains unauthorized",
+    ):
+        assert phrase in text
+
+
+def test_v24_cut_relative_gap_repair_is_reviewed_before_training_retry() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "per-snapshot full-K and current-cut-set losses",
+        "all four maximum gaps at most `1e-6`",
+        "old source converged after one mocked master call",
+        "repaired source requires a second call",
+        "passed `128` tests",
+        "a5cd24e2b37c41c53b44d074d6d86691fb7f26de42e739c7cbb3d39f0afed65a",
+        "60018ce01740096f157755757d0508def9f887f2f24691c167de8b2fe6741862",
+        "passed `26 / 0` checks",
+        "1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418",
+        "Only the exact repaired train-only retry",
     ):
         assert phrase in text
 

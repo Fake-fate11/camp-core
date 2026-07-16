@@ -2505,18 +2505,85 @@ No model or usable training result exists. Only the bounded cut-relative-gap
 repair TDD/static-preflight gate is authorized next; training, calibration,
 holdout, outcomes, paired evaluation, tuning, and claims remain unauthorized.
 
-current_v24_status=v24_convex_training_retry_failure_independent_review_passed
-current_v24_artifact_source_head=174f48ecf986db0431365bdd2f0347b518b8c8f1
+## Gate 42: Cut-Relative-Gap Repair Static Preflight and Review
+
+Status: passed and independently sealed. Only one exact train-only retry using
+the repaired source is authorized next; calibration, holdout, outcomes, paired
+evaluation, tuning, and claims remain closed.
+
+The bounded repair was implemented at CAMP source HEAD
+`5f3dbfc70db6ea760f6f48c8d9731f560eb7d161`. It retains the existing raw and
+strict-simplex-projected master-relative gaps, and now also recomputes the
+per-snapshot full-K and current-cut-set losses for both weight vectors inside
+every separation iteration. Each raw/projected worst candidate is added when
+either its master-relative or cut-relative row gap exceeds the unchanged
+`1e-6` limit. Convergence requires all four maximum gaps at most `1e-6` and
+zero new cuts. Final acceptance independently recomputes and matches both
+raw/projected cut-relative receipts in addition to the two master-relative
+receipts.
+
+The adversarial TDD fixture freezes the retry defect directly: its projected
+master-relative gap is already within tolerance while its omitted projected
+full-K-minus-cut-set gap is `>1e-6`. The old source converged after one mocked
+master call without adding that candidate; the repaired source requires a
+second call and proves the candidate is present before convergence. Separate
+acceptance tests reject either reported raw or projected cut-relative gap above
+the limit. The retry-failure reviewer is now part of the exact tracked executor
+provenance inventory.
+
+The score, 14D nonnegative simplex, CVaR alpha `0.9`, L2 `1e-4`, CLARABEL
+`optimal` only/no fallback, exact 20-iteration cap, no post-cap resolve,
+candidate tensors, causal labels, source masks, learning-curve levels, routes,
+seeds, DP/map/request/checkpoint bytes, and tolerance are unchanged. The unit
+fixture uses a mocked master only; the static preflight calls no synthetic or
+corpus solver and writes no model.
+
+Local Python 3.12 compilation, pyflakes, diff checks, and the five required
+suites passed `128` tests on the clean source HEAD. AutoDL Python 3.9 repeated
+the same `128` tests with empty stderr. Its test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_cut_relative_repair_static_tests_5f3dbfc7_20260716T223324CST`
+/
+`a5cd24e2b37c41c53b44d074d6d86691fb7f26de42e739c7cbb3d39f0afed65a`.
+
+The static preflight binds the exact Gate 41 retry-failure review and the full
+prior training-input authority. It complete-sealed every root, revalidated the
+same `375 / 1,875 / 67,796 / 542,368` route, route-seed, snapshot, and candidate
+counts, verified the four-gap master contract, CLARABEL, fixed DP, processes,
+all locks, and the 10 GiB floor, and did not execute training or write a model.
+Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_repair_static_preflight_5f3dbfc7_20260716T223324CST`
+/
+`60018ce01740096f157755757d0508def9f887f2f24691c167de8b2fe6741862`.
+
+The independent reviewer rehashed all changed source and upstream artifacts,
+independently inspected raw/projected cut-relative separation and all-four-gap
+acceptance, repeated the input/count/process/lock/solver/disk closure, and
+passed `26 / 0` checks. It found no executor process, all locks free, fixed DP
+clean, and `48,778,637,312` bytes free. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_repair_static_preflight_independent_review_5f3dbfc7_20260716T223324CST`
+/
+`1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418`.
+
+No model, training execution, calibration, holdout, actual outcome, paired
+evaluation, tuning, or claim boundary opened. Only the exact repaired
+train-only retry and its mandatory independent result review are authorized
+next.
+
+current_v24_status=v24_convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed
+current_v24_artifact_source_head=5f3dbfc70db6ea760f6f48c8d9731f560eb7d161
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_retry_failure_independent_review_174f48ec_20260716T221541CST
-current_v24_artifact_root_sha256=4cd55a260ceff5e06c337d53329c8b07219f685797f092c6555a8979b4a4b61b
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_cut_relative_gap_repair_static_preflight_independent_review_5f3dbfc7_20260716T223324CST
+current_v24_artifact_root_sha256=1a863b7b9710f53d6374c4b203223611e131aaca0d57d39e629bf95588723418
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_retry_failed_cut_relative_gap_mismatch_independent_review_passed_repair_static_preflight_pending
+source_b_status=convex_training_cut_relative_gap_repair_static_preflight_independent_review_passed_retry_execution_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_training_cut_relative_gap_repair_tdd_static_preflight_only
+next_work_target=v24_convex_selector_training_cut_relative_gap_retry_execution_only
