@@ -73,27 +73,44 @@ successful assembly root is
 Independent review rehashed all five roots, rebuilt both indexes and every
 aggregate, verified 77,822 files, and passed 27 checks with zero failures. Its
 root is `925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490`.
-Local and AutoDL pycompile, all 129 v24 tests, and diff checks passed at aligned
-CAMP source HEAD `5b72562979724cae54a60f5034ff88f93d4e1c94`; fixed DP remains clean at
-`7a1d33da277a1992ec474b5383a0c963c72e04e4`. Training, tuning, outcomes,
-calibration, holdout, and claims remain closed. Only atom availability and
-train-only active-mask freeze review is now authorized.
+The train-only atom gate is now independently sealed. Source review first
+closed all authority, fixed-DP, causal/holdout, provenance, executor-semantic,
+schema, and nested-label fail-open paths. At CAMP HEAD
+`dc6f37150166eaf996ac8e2a25fdeb3bac90ca8c`, AutoDL Python 3.9 compile, the
+target suite (`24 passed`), all v24 tests (`155 passed`), and diff checks passed.
+The first test artifact had a JSON layout defect after the successful tests; it
+was left immutable, the tests were not repeated, and a second sealed artifact
+verified its root and supplied the missing layout.
 
-current_v24_status=v24_native_corpus_merged_train_corpus_independent_review_passed
-current_v24_artifact_source_head=5b72562979724cae54a60f5034ff88f93d4e1c94
+The freeze then read all `67,796` snapshots / `542,368` candidates. Candidate
+immutability and candidate-0 operational-default identity passed for every
+snapshot; source-invalid candidates and outcome fields are both zero. All 14
+approved `dp_camp_v10_14d` atoms are train-nonconstant and active; none is
+silently zeroed or excluded. The freeze root is
+`ced620a4a5852e9e4196a2d272ef9b0ac1963512ecd62c2bf3612a3ed252438b`.
+Independent review recomputed the full corpus, atom statistics/scales/mask,
+and provenance and passed `21 / 0`; its root is
+`a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8`.
+Fixed DP remains clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, with about 45.46 GiB free.
+Training, tuning, outcomes, calibration, holdout, and claims remain closed.
+Only convex training plan/TDD/static preflight is now authorized.
+
+current_v24_status=v24_train_atom_availability_freeze_independent_review_passed
+current_v24_artifact_source_head=dc6f37150166eaf996ac8e2a25fdeb3bac90ca8c
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST
-current_v24_artifact_root_sha256=925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_independent_review_dc6f3715_20260716T190514CST
+current_v24_artifact_root_sha256=a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_merged_train_corpus_independent_review_passed_atom_freeze_pending
+source_b_status=train_atom_availability_freeze_independent_review_passed_training_plan_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_atom_availability_and_freeze_review_only
+next_work_target=v24_convex_selector_training_plan_tdd_static_preflight_only
 
 ## Current V23 Status
 

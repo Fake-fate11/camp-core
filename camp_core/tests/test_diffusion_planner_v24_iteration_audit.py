@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_native_corpus_merged_train_corpus_independent_review_passed",
-    "current_v24_artifact_source_head=5b72562979724cae54a60f5034ff88f93d4e1c94",
+    "current_v24_status=v24_train_atom_availability_freeze_independent_review_passed",
+    "current_v24_artifact_source_head=dc6f37150166eaf996ac8e2a25fdeb3bac90ca8c",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST",
-    "current_v24_artifact_root_sha256=925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_independent_review_dc6f3715_20260716T190514CST",
+    "current_v24_artifact_root_sha256=a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=native_corpus_merged_train_corpus_independent_review_passed_atom_freeze_pending",
+    "source_b_status=train_atom_availability_freeze_independent_review_passed_training_plan_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_native_corpus_atom_availability_and_freeze_review_only",
+    "next_work_target=v24_convex_selector_training_plan_tdd_static_preflight_only",
 )
 
 
@@ -110,6 +110,25 @@ def test_v24_merged_corpus_assembly_and_review_are_sealed() -> None:
         "all `129` v24 tests",
         "925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490",
         "train-only active atom mask",
+    ):
+        assert phrase in text
+
+
+def test_v24_atom_availability_freeze_and_review_are_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "target suite (`24 passed`)",
+        "all v24 tests (`155 passed`)",
+        "tests were not repeated",
+        "dc959a09e554311ca57362e8431f6345bbdb31ac141c0150fd2afe3d95e70d33",
+        "all `67,796` causal snapshots and `542,368` K=8 candidate rows",
+        "All 14 approved atoms are source-available and train-nonconstant",
+        "the excluded set is empty",
+        "b82b3ffe2579c567ab4460a78d630a9191bd18bea7874e9d85e32d1219bc50de",
+        "ced620a4a5852e9e4196a2d272ef9b0ac1963512ecd62c2bf3612a3ed252438b",
+        "passed `21 / 0` checks",
+        "a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8",
+        "training execution remains unauthorized",
     ):
         assert phrase in text
 

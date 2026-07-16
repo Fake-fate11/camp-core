@@ -1889,18 +1889,111 @@ Immutable review artifact/root:
 /
 `925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490`.
 
-current_v24_status=v24_native_corpus_merged_train_corpus_independent_review_passed
-current_v24_artifact_source_head=5b72562979724cae54a60f5034ff88f93d4e1c94
+## Gate 33: Train-Only Atom Availability Static Preflight
+
+Status: passed after evidence-layout remediation. Freeze execution was not
+started during this gate.
+
+The committed producer, independent reviewer, and adversarial tests freeze the
+existing `dp_camp_v10_14d` contract before reading train statistics. The fixed
+rules are source-valid train candidates only, p95 scale with a `1e-6` floor,
+and an active atom only when at least one train snapshot has source-valid
+cross-candidate range strictly above `1e-12`. The producer and reviewer reject
+future/holdout/weight/rank/selected-index dependencies, exact-schema drift,
+nested outcome/future fields, coordinated resealing of upstream authority,
+fixed-DP drift, dirty tracked state, candidate/default drift, and critical
+executor-call drift. Thirteen causal/runtime source files are identical across
+the pilot, remaining, and freeze heads; the executor's snapshot writer plus
+config builder, validator, `arm=camp`, `max_steps=64`, and decision-sink call
+projection are independently frozen.
+
+Independent source review found and closed all P1/P2 findings before commit.
+AutoDL then passed Python 3.9 compile, the target suite (`24 passed`), all v24
+tests (`155 passed`), and `git diff --check` at CAMP HEAD
+`dc6f37150166eaf996ac8e2a25fdeb3bac90ca8c`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the corpus lock was not held,
+and free disk remained about 46 GiB.
+
+The first static-preflight wrapper sealed the successful test output but failed
+to create its JSON receipt because of a shell/Python newline-escaping defect.
+It was not modified and the tests were not repeated. A second artifact
+independently rehashed that immutable root, verified `run.exit=0`, empty source
+stderr, and both test counts, then supplied the missing evidence layout.
+
+Immutable source-test artifact/root:
+`/root/autodl-tmp/camp_dp_v24_atom_availability_static_preflight_dc6f3715_20260716T185507CST`
+/
+`2ea050c79e742984e512a92fb86daf8ed66e9376854ee66bbcf0fc8f8d51aa92`.
+
+Immutable layout-remediation artifact/root:
+`/root/autodl-tmp/camp_dp_v24_atom_availability_static_preflight_layout_remediation_dc6f3715_20260716T185612CST`
+/
+`dc959a09e554311ca57362e8431f6345bbdb31ac141c0150fd2afe3d95e70d33`.
+
+## Gate 34: Train-Only Atom Availability and Active-Mask Freeze
+
+Status: passed. Training remained unauthorized.
+
+The producer rehashed the merged corpus and review plus all four execution/
+review roots, read all `67,796` causal snapshots and `542,368` K=8 candidate
+rows, and consumed zero outcome fields. All candidate tensors and candidate-0
+operational-default identities passed. Every candidate is source-valid;
+`470,138` are physically feasible and `7,783` snapshots are in the
+all-K-high-risk stratum.
+
+All 14 approved atoms are source-available and train-nonconstant, so the frozen
+active mask is all true and the excluded set is empty. In schema order, the
+p95/floor scales are:
+`[2481.7550516727697, 12392.161075623555, 14971.368820214635,
+2.6449764764205814, 112.10250469410671, 143.20765397475728,
+178.29595558846955, 226.1003046244964, 4.4473526890636705,
+5.273085428042301, 1e-06, 1.4948622881714675, 1e-06,
+1.804866652285605]`. The corresponding variable-snapshot counts are
+`[67796, 67796, 67796, 67796, 63696, 66923, 67632, 11502, 7192,
+64432, 376, 67796, 382, 67488]`.
+
+The frozen contract SHA256 is
+`b82b3ffe2579c567ab4460a78d630a9191bd18bea7874e9d85e32d1219bc50de`;
+the Python-3.9 critical executor projection SHA256 is
+`a6bf3b0fdacd4b9539058e268d114e6bcc53bb2a32cba33ca4a908b0cf317fbd`.
+No snapshot, candidate, trajectory, DP source/config/weight/checkpoint/request,
+or original map was modified. No model/simulator/training/tuning/outcome/
+calibration/holdout/claim boundary opened.
+
+Immutable freeze artifact/root:
+`/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_dc6f3715_20260716T190035CST`
+/
+`ced620a4a5852e9e4196a2d272ef9b0ac1963512ecd62c2bf3612a3ed252438b`.
+
+## Gate 35: Atom Freeze Independent Review
+
+Status: passed. Only convex training plan/TDD/static preflight is next;
+training execution remains unauthorized.
+
+The independent implementation rehashed all authority roots and files,
+recomputed every atom statistic, scale, active-mask decision, provenance
+receipt, candidate identity, and closed boundary, and matched the producer
+exactly. It passed `21 / 0` checks. It did not load a model, run a simulator,
+generate or alter candidates, train, tune, consume outcomes, calibrate, open
+holdout, or authorize a claim.
+
+Immutable independent-review artifact/root:
+`/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_independent_review_dc6f3715_20260716T190514CST`
+/
+`a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8`.
+
+current_v24_status=v24_train_atom_availability_freeze_independent_review_passed
+current_v24_artifact_source_head=dc6f37150166eaf996ac8e2a25fdeb3bac90ca8c
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST
-current_v24_artifact_root_sha256=925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_independent_review_dc6f3715_20260716T190514CST
+current_v24_artifact_root_sha256=a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=native_corpus_merged_train_corpus_independent_review_passed_atom_freeze_pending
+source_b_status=train_atom_availability_freeze_independent_review_passed_training_plan_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_native_corpus_atom_availability_and_freeze_review_only
+next_work_target=v24_convex_selector_training_plan_tdd_static_preflight_only
