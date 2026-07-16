@@ -20,21 +20,21 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_convex_training_executor_static_preflight_independent_review_passed",
-    "current_v24_artifact_source_head=80e971d5671738b5e8da65c7cd1c909b27de4c69",
+    "current_v24_status=v24_convex_training_execution_failure_independent_review_passed",
+    "current_v24_artifact_source_head=4df3cee192a25ec440a9dc3bcf6cde4d57e54e1b",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_independent_review_80e971d5_20260716T213922CST",
-    "current_v24_artifact_root_sha256=ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_20260716T215042CST",
+    "current_v24_artifact_root_sha256=1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=convex_training_executor_static_preflight_independent_review_passed_training_execution_pending",
+    "source_b_status=convex_training_execution_failed_projection_boundary_independent_review_passed_repair_static_preflight_pending",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_convex_selector_training_execution_only",
+    "next_work_target=v24_convex_training_projection_boundary_repair_tdd_static_preflight_only",
 )
 
 
@@ -170,6 +170,23 @@ def test_v24_training_executor_static_preflight_and_review_are_sealed() -> None:
         "passed `22 / 0` checks",
         "ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7",
         "Only train-only convex execution is authorized next",
+    ):
+        assert phrase in text
+
+
+def test_v24_first_training_failure_is_independently_reviewed_before_repair() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "PID `89986`",
+        "projected saved-weight full-K gap exceeds tolerance",
+        "zero completed learning-curve levels",
+        "275f5a652173f95e6ee3ef34b4b7954703799e5e4c5d8c575648aa6e9227d866",
+        "raw CLARABEL weights",
+        "projected strict-simplex weights",
+        "passed `14 / 0` checks",
+        "deb19426cb8bbe508f08068c2f95bc861fbb3f513a8a5338462a3a8accedd538",
+        "1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d",
+        "Training retry remains unauthorized",
     ):
         assert phrase in text
 

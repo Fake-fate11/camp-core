@@ -2313,18 +2313,87 @@ calibration, holdout, outcome, tuning, or claim boundary opened. Only train-only
 convex execution is authorized next; its positive independent review remains
 mandatory before any calibration planning.
 
-current_v24_status=v24_convex_training_executor_static_preflight_independent_review_passed
-current_v24_artifact_source_head=80e971d5671738b5e8da65c7cd1c909b27de4c69
+## Gate 39: First Convex Training Execution Failure Review
+
+Status: failure independently reviewed and sealed. Projection-boundary repair
+TDD/static preflight is authorized next; training retry remains unauthorized.
+
+After the Gate 38 docs commit, local Python 3.12 passed the five related suites
+at `119 passed`; AutoDL fast-forwarded to aligned tracked-clean CAMP HEAD
+`c61fc9c62866fdb335b2490d19443c7126a70120`, fixed DP remained clean, and the
+post-doc AutoDL run also passed `119` tests with empty stderr. Its artifact/root
+are:
+
+`/root/autodl-tmp/camp_dp_v24_training_executor_post_docs_tests_c61fc9c6_20260716T214333CST`
+/
+`0cdd0feffe5922f2450cb2585df4d56cb4e8b4a140342109344a28b961fbd5bd`.
+
+The controller re-read the live Gate 38 EOF, found zero target processes, all
+three locks free, clean aligned CAMP/DP, and more than the 10 GiB floor. It then
+launched the exact training command once as PID `89986`. The process acquired
+the training lock, complete-validated inputs, wrote terminally monitorable
+progress, and entered only the 25% learning-curve level. It exited fail-closed
+before any level completed or any model/weight/cut file or training manifest was
+written. The exact failure is
+`projected saved-weight full-K gap exceeds tolerance`. `progress.json` is
+terminal `training_failed`, `completed_levels` is empty, PID `89986` is absent,
+the lock is released, launcher stderr is empty, and calibration, holdout,
+outcomes, tuning, and claims remained closed. The eight-file failure artifact
+was independently rehashed file-by-file; its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_c61fc9c6_20260716T214429CST`
+/
+`275f5a652173f95e6ee3ef34b4b7954703799e5e4c5d8c575648aa6e9227d866`.
+
+An independent failure reviewer was added at CAMP HEAD
+`4df3cee192a25ec440a9dc3bcf6cde4d57e54e1b`. It does not import the executor.
+It binds the exact failure-HEAD executor blob and authorization root, complete-
+seals the failure, verifies the nonzero exit and exact stderr, proves zero
+completed learning-curve levels and absence of model/manifest outputs, inspects
+the failure-source AST, and resamples processes, locks, disk, and fixed DP.
+
+The diagnosis is a narrow numerical acceptance-boundary mismatch. The failure
+source generated cuts and declared convergence using raw CLARABEL weights. Only
+afterward, acceptance projected them to strict nonnegative-simplex weights and
+recomputed all K=8 losses. The latter projected strict-simplex weights crossed
+the frozen `1e-6` gap bound, so the executor correctly rejected them. This is
+not a data, route, candidate, label, map, DP, convexity, or holdout failure, and
+no model result exists to select around. The authorized repair is limited to
+projecting weights before cut separation, requiring both raw and projected
+full-K gaps at most `1e-6`, retaining the exact CLARABEL/no-fallback/20-iteration
+contracts, and recording both diagnostics. Protocol/data changes remain
+unauthorized.
+
+Local failure-review/audit tests passed `53`; AutoDL repeated the same `53`
+tests with empty stderr. Its test artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_training_failure_review_tests_4df3cee1_20260716T215026CST`
+/
+`deb19426cb8bbe508f08068c2f95bc861fbb3f513a8a5338462a3a8accedd538`.
+
+The independent reviewer passed `14 / 0` checks, found no executor process,
+all three locks free, and `48,780,587,008` bytes free. Its artifact/root are:
+
+`/root/autodl-tmp/camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_20260716T215042CST`
+/
+`1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d`.
+
+Training retry remains unauthorized until the projection-aware repair passes
+new TDD, static preflight, and independent review. Calibration, holdout,
+outcomes, tuning, and claims remain closed.
+
+current_v24_status=v24_convex_training_execution_failure_independent_review_passed
+current_v24_artifact_source_head=4df3cee192a25ec440a9dc3bcf6cde4d57e54e1b
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v24_artifact=/root/autodl-tmp/camp_dp_v24_training_executor_static_preflight_independent_review_80e971d5_20260716T213922CST
-current_v24_artifact_root_sha256=ee73c6611fbf369e09f29f2fc9d852815ba15bb8e2077299aef524667de3cce7
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_convex_training_execution_failure_independent_review_4df3cee1_20260716T215042CST
+current_v24_artifact_root_sha256=1838014fbfb4b40a92449df32c360ed1922a00c44f54650b407fec5d36da340d
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=convex_training_executor_static_preflight_independent_review_passed_training_execution_pending
+source_b_status=convex_training_execution_failed_projection_boundary_independent_review_passed_repair_static_preflight_pending
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_convex_selector_training_execution_only
+next_work_target=v24_convex_training_projection_boundary_repair_tdd_static_preflight_only
