@@ -393,7 +393,7 @@ def strict_json_equal(actual: Any, expected: Any) -> bool:
     if isinstance(expected, list):
         return len(actual) == len(expected) and all(
             strict_json_equal(left, right)
-            for left, right in zip(actual, expected, strict=True)
+            for left, right in zip(actual, expected)
         )
     if isinstance(expected, float):
         return expected == actual and actual not in (float("inf"), float("-inf"))
