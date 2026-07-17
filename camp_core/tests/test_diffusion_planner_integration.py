@@ -2883,6 +2883,122 @@ def test_dedicated_fallback_model_is_used_only_for_all_infeasible_branch() -> No
     )
 
 
+def test_dedicated_fallback_model_14d_uses_canonical_clip() -> None:
+    context = DriverAtomContext(dt=0.1, lane_centerline=None, speed_limit=50.0)
+    x = np.linspace(0.0, 7.0, 8)
+    candidates = np.stack(
+        [np.column_stack([x, np.full_like(x, index)]) for index in range(8)]
+    )
+    fallback_scales = np.ones(14, dtype=np.float64)
+    selector = CAMPSelector(
+        atom_scales=np.ones(14),
+        static_weights=np.full(14, 1.0 / 14.0),
+        mode="static",
+        fallback_mode="learned",
+        fallback_atom_scales=fallback_scales,
+        fallback_static_weights=np.eye(14)[13],
+    )
+    dp_prior = np.array([100.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0])
+
+    result = selector.select(
+        candidates,
+        context,
+        candidate_progress=np.full(8, 7.0),
+        candidate_planned_red_light_cost=np.zeros(8),
+        candidate_red_stopping_margin_cost=np.zeros(8),
+        candidate_dp_prior_jerk_excess_cost=dp_prior,
+        external_feasible_mask=np.zeros(8, dtype=bool),
+        apply_context_feasibility=False,
+    )
+
+    from camp_core.integrations.diffusion_planner_causal_atoms import (
+        canonical_normalize_atoms,
+    )
+
+    assert result.used_fallback
+    np.testing.assert_array_equal(
+        result.selection_normalized_atoms,
+        canonical_normalize_atoms(result.atoms, fallback_scales),
+    )
+    assert result.selection_normalized_atoms[0, 13] == 10.0
+    assert result.selected_index == 1
+
+
+@pytest.mark.parametrize(
+    "bad_scale",
+    [0.0, -1.0, np.nan, np.inf, -np.inf],
+)
+def test_dedicated_fallback_scales_fail_closed(bad_scale: float) -> None:
+    scales = np.ones(14, dtype=np.float64)
+    scales[3] = bad_scale
+    with pytest.raises(ValueError, match="fallback_atom_scales.*finite.*positive"):
+        CAMPSelector(
+            atom_scales=np.ones(14),
+            static_weights=np.full(14, 1.0 / 14.0),
+            mode="static",
+            fallback_mode="learned",
+            fallback_atom_scales=scales,
+            fallback_static_weights=np.full(14, 1.0 / 14.0),
+        )
+
+
+@pytest.mark.parametrize("bad_weight", [np.nan, np.inf, -np.inf])
+def test_dedicated_fallback_weights_fail_closed(bad_weight: float) -> None:
+    weights = np.full(14, 1.0 / 14.0)
+    weights[3] = bad_weight
+    with pytest.raises(ValueError, match="fallback_static_weights.*finite"):
+        CAMPSelector(
+            atom_scales=np.ones(14),
+            static_weights=np.full(14, 1.0 / 14.0),
+            mode="static",
+            fallback_mode="learned",
+            fallback_atom_scales=np.ones(14),
+            fallback_static_weights=weights,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    [
+        ("progress", np.nan),
+        ("progress", np.inf),
+        ("red_light", np.nan),
+        ("red_light", np.inf),
+    ],
+)
+def test_dedicated_fallback_14d_atom_inputs_fail_closed(
+    field: str, bad_value: float
+) -> None:
+    context = DriverAtomContext(dt=0.1, lane_centerline=None, speed_limit=50.0)
+    x = np.linspace(0.0, 7.0, 8)
+    candidates = np.stack(
+        [np.column_stack([x, np.full_like(x, index)]) for index in range(8)]
+    )
+    selector = CAMPSelector(
+        atom_scales=np.ones(14),
+        static_weights=np.full(14, 1.0 / 14.0),
+        mode="static",
+        fallback_mode="learned",
+        fallback_atom_scales=np.ones(14),
+        fallback_static_weights=np.full(14, 1.0 / 14.0),
+    )
+    progress = np.full(8, 7.0)
+    red_light = np.zeros(8)
+    (progress if field == "progress" else red_light)[0] = bad_value
+
+    with pytest.raises(ValueError, match="finite nonnegative"):
+        selector.select(
+            candidates,
+            context,
+            candidate_progress=progress,
+            candidate_planned_red_light_cost=red_light,
+            candidate_red_stopping_margin_cost=np.zeros(8),
+            candidate_dp_prior_jerk_excess_cost=np.zeros(8),
+            external_feasible_mask=np.zeros(8, dtype=bool),
+            apply_context_feasibility=False,
+        )
+
+
 def test_selector_accepts_external_feasibility_without_context_lane_gate() -> None:
     x = np.linspace(0.5, 4.0, 8)
     candidates = np.stack(

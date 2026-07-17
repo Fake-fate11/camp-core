@@ -30,7 +30,9 @@ from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
     RAW_FEATURE_NAMES,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
+    RetainedScenarioCapabilityFailure,
     SCENARIO_FAMILIES,
+    ScenarioCapabilityReason,
     V25ControlledSceneAdapter,
 )
 from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # noqa: E402
@@ -79,6 +81,12 @@ CORRECTED_GENERATION_SCALES = (
     / "integrations"
     / "diffusion_planner_v25_atom_scales_correction_v2.json"
 )
+PREREGISTERED_CAPABILITY_FAILURE_LIMITS = {
+    (
+        "red_light_phase_timing",
+        ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value,
+    ): 32,
+}
 
 
 class ArtifactContractViolation(RuntimeError):
@@ -93,6 +101,8 @@ def validate_identity_terminal(
     context_count: int,
     failure_type: str | None,
     failure_reason: str | None,
+    capability_failure: Mapping[str, Any] | None = None,
+    capability_allowlist: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> str:
     counts = (receipt_tick_count, snapshot_count, context_count)
     if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in counts):
@@ -103,7 +113,11 @@ def validate_identity_terminal(
                 "a complete identity must contain exactly 64 receipt, snapshot, "
                 "and context ticks"
             )
-        if failure_type is not None or failure_reason is not None:
+        if (
+            failure_type is not None
+            or failure_reason is not None
+            or capability_failure is not None
+        ):
             raise ArtifactContractViolation("complete identity carries failure metadata")
         return "complete"
     if status != "failed":
@@ -112,11 +126,11 @@ def validate_identity_terminal(
         raise ArtifactContractViolation(
             "partial snapshots are forbidden and make the artifact ineligible"
         )
-    if (
-        failure_type == "RetainedScenarioCapabilityFailure"
-        and isinstance(failure_reason, str)
-        and failure_reason.startswith("preregistered_scenario_capability:")
-    ):
+    if failure_type == RetainedScenarioCapabilityFailure.__name__:
+        _validate_capability_failure_receipt(
+            capability_failure,
+            capability_allowlist=capability_allowlist,
+        )
         return "retained_capability_failure"
     raise ArtifactContractViolation(
         "only an explicit preregistered scenario-capability failure may be retained"
@@ -128,6 +142,8 @@ def validate_terminal_acceptance(
     *,
     snapshot_index_count: int,
     expected_identity_count: int = EXPECTED_EXECUTABLE_IDENTITIES,
+    capability_allowlist: Mapping[str, Mapping[str, Any]] | None = None,
+    expected_identity_families: Mapping[str, str] | None = None,
 ) -> dict[str, int]:
     if len(results) != expected_identity_count:
         raise ArtifactContractViolation(
@@ -135,6 +151,21 @@ def validate_terminal_acceptance(
         )
     complete = 0
     retained_capability = 0
+    retained_by_contract: collections.Counter[tuple[str, str]] = collections.Counter()
+    scenario_ids = [row.get("scenario_id") for row in results]
+    if (
+        any(not isinstance(value, str) or not value for value in scenario_ids)
+        or len(set(scenario_ids)) != len(scenario_ids)
+    ):
+        raise ArtifactContractViolation(
+            "terminal results require unique formal scenario identities"
+        )
+    if expected_identity_families is not None and {
+        str(row["scenario_id"]): str(row.get("family")) for row in results
+    } != dict(expected_identity_families):
+        raise ArtifactContractViolation(
+            "terminal scenario identity/family denominator drifted"
+        )
     for row in results:
         status = str(row.get("status"))
         snapshot_count = row.get("snapshot_count")
@@ -147,18 +178,36 @@ def validate_terminal_acceptance(
         elif (
             status == "failed"
             and snapshot_count == 0
-            and row.get("failure_type") == "RetainedScenarioCapabilityFailure"
-            and isinstance(row.get("failure_reason"), str)
-            and str(row["failure_reason"]).startswith(
-                "preregistered_scenario_capability:"
-            )
+            and row.get("failure_type") == RetainedScenarioCapabilityFailure.__name__
         ):
+            receipt = _validate_capability_failure_receipt(
+                row.get("capability_failure"),
+                capability_allowlist=capability_allowlist,
+            )
+            if (
+                receipt["scenario_id"] != row["scenario_id"]
+                or receipt["family"] != row.get("family")
+            ):
+                raise ArtifactContractViolation(
+                    "capability failure receipt does not bind the result identity"
+                )
             retained_capability += 1
+            retained_by_contract[(receipt["family"], receipt["reason"])] += 1
         else:
             raise ArtifactContractViolation(
                 "terminal results contain an illegal failure or partial identity"
             )
     expected_snapshots = complete * CORPUS_STEPS
+    if complete == 0:
+        raise ArtifactContractViolation(
+            "a corpus with no complete identities cannot pass terminal acceptance"
+        )
+    for contract, count in retained_by_contract.items():
+        limit = PREREGISTERED_CAPABILITY_FAILURE_LIMITS.get(contract)
+        if limit is None or count > limit:
+            raise ArtifactContractViolation(
+                "retained scenario-capability failures exceed the preregistered limit"
+            )
     if snapshot_index_count != expected_snapshots:
         raise ArtifactContractViolation(
             "terminal snapshot index does not match complete identities"
@@ -168,6 +217,58 @@ def validate_terminal_acceptance(
         "retained_capability_failure_count": retained_capability,
         "training_snapshot_count": expected_snapshots,
     }
+
+
+def build_capability_failure_allowlist(
+    cases: list[Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Bind retainable capability failures to formal identities and families."""
+    allowed_reason = (
+        ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value
+    )
+    return {
+        str(case["scenario_id"]): {
+            "family": "red_light_phase_timing",
+            "reasons": [allowed_reason],
+        }
+        for case in cases
+        if case.get("family") == "red_light_phase_timing"
+        and case.get("runner_eligible") is True
+    }
+
+
+def _validate_capability_failure_receipt(
+    receipt: Mapping[str, Any] | None,
+    *,
+    capability_allowlist: Mapping[str, Mapping[str, Any]] | None,
+) -> dict[str, str]:
+    if not isinstance(receipt, Mapping) or set(receipt) != {
+        "scenario_id",
+        "family",
+        "reason",
+    }:
+        raise ArtifactContractViolation(
+            "retained capability failure requires an exact structured receipt"
+        )
+    if not isinstance(capability_allowlist, Mapping):
+        raise ArtifactContractViolation("capability failure allowlist is unavailable")
+    normalized = {name: str(receipt[name]) for name in receipt}
+    authority = capability_allowlist.get(normalized["scenario_id"])
+    if (
+        not isinstance(authority, Mapping)
+        or authority.get("family") != normalized["family"]
+        or normalized["reason"] not in authority.get("reasons", [])
+    ):
+        raise ArtifactContractViolation(
+            "capability failure is not in the formal identity/family/reason allowlist"
+        )
+    try:
+        ScenarioCapabilityReason(normalized["reason"])
+    except ValueError as exc:
+        raise ArtifactContractViolation(
+            "capability failure reason is not a registered enum value"
+        ) from exc
+    return normalized
 
 
 def parse_args() -> argparse.Namespace:
@@ -250,11 +351,21 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     common = {
         "schema_version": SCHEMA_VERSION,
         "camp_head": camp_head,
+        "released_camp_source_head": camp_head,
+        "current_repo_head_at_run": camp_head,
         "fixed_dp_head": FIXED_DP_HEAD,
         "formal_artifact": str(FORMAL_ARTIFACT),
         "formal_root_sha256": formal_receipt,
         "probe_template": str(args.probe_template),
         "probe_template_sha256": EXPECTED_TEMPLATE_SHA256,
+        "generation_scales": {
+            "path": str(CORRECTED_GENERATION_SCALES),
+            "sha256": _file_sha256(CORRECTED_GENERATION_SCALES),
+        },
+        "static_weights": dict(template["selector"]["weights"]),
+        "seed": EXPECTED_SEED,
+        "corpus_steps": CORPUS_STEPS,
+        "snapshot_capacity": len(cases) * CORPUS_STEPS,
         "train_lock": str(TRAIN_LOCK),
         "minimum_free_bytes": MINIMUM_FREE_BYTES,
         "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
@@ -263,7 +374,6 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "fresh_b_opened": False,
         "outcome_fields_consumed": [],
     }
-    _write_json(args.output_dir / "source_receipt.json", common)
     (args.output_dir / "HEADS").write_text(
         f"camp_source_head={camp_head}\nfixed_dp_head={FIXED_DP_HEAD}\n",
         encoding="ascii",
@@ -275,10 +385,26 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     if args.preflight:
         if args.preflight_artifact is not None:
             raise ValueError("preflight must not consume a prior preflight artifact")
-        return _preflight(cases, template, route_assets, common)
+        report = _preflight(cases, template, route_assets, common)
+        _write_json(args.output_dir / "source_receipt.json", report)
+        return report
     if args.preflight_artifact is None:
         raise ValueError("execution requires --preflight-artifact")
-    preflight = _verify_preflight(args.preflight_artifact, camp_head)
+    expected_config_receipts = _config_authority_receipts(
+        cases, template, route_assets
+    )
+    preflight = _verify_preflight(
+        args.preflight_artifact,
+        camp_head,
+        expected_config_root_sha256=_canonical_sha256(expected_config_receipts),
+    )
+    common = {
+        **common,
+        "config_receipts_root_sha256": _canonical_sha256(
+            expected_config_receipts
+        ),
+    }
+    _write_json(args.output_dir / "source_receipt.json", common)
     return _execute(
         cases=cases,
         template=template,
@@ -425,18 +551,18 @@ def _preflight(
         elif _shared_assets(config) != shared:
             raise ValueError("fixed DP or behavior-policy assets changed")
         _verify_case_assets_cached(config, seen_routes=seen_routes, seen_maps=seen_maps)
+        authority = _config_authority_receipt(config)
         receipts.append(
             {
-                "scenario_id": case["scenario_id"],
-                "family": case["family"],
-                "tier": case["tier"],
-                "route_identity_sha256": identity,
-                "seed": EXPECTED_SEED,
-                "config_sha256": _canonical_sha256(config),
+                **authority,
+                "config_authority_sha256": _canonical_sha256(authority),
             }
         )
+    config_root = _canonical_sha256(receipts)
     return {
         **dict(common),
+        "static_weights": dict(shared["selector"]["weights"]),
+        "config_receipts_root_sha256": config_root,
         "mode": "preflight",
         "status": "passed",
         "validated_identity_count": len(receipts),
@@ -461,17 +587,173 @@ def _preflight(
     }
 
 
-def _verify_preflight(path: Path, camp_head: str) -> dict[str, Any]:
+def _config_authority_receipts(
+    cases: list[Mapping[str, Any]],
+    template: Mapping[str, Any],
+    route_assets: Mapping[str, Mapping[str, str]],
+) -> list[dict[str, Any]]:
+    receipts = []
+    for case in cases:
+        identity = str(case["route_identity_sha256"])
+        authority = _config_authority_receipt(
+            build_controlled_train_config(
+                template,
+                case,
+                route_assets[identity],
+            )
+        )
+        receipts.append(
+            {
+                **authority,
+                "config_authority_sha256": _canonical_sha256(authority),
+            }
+        )
+    return receipts
+
+
+def _config_authority_receipt(config: Mapping[str, Any]) -> dict[str, Any]:
+    controlled = config["controlled_scenario"]
+    protocol = config["protocol"]
+    selector = config["selector"]
+    fixed_dp = config["fixed_dp"]
+    route = config["routes"][0]
+    return {
+        "schema_version": str(config["schema_version"]),
+        "scenario_id": str(controlled["scenario_id"]),
+        "family": str(controlled["family"]),
+        "tier": str(controlled["tier"]),
+        "route_identity_sha256": str(controlled["route_identity_sha256"]),
+        "map_sha256": str(config["map"]["sha256"]),
+        "route_sha256": str(route["sha256"]),
+        "fixed_dp_head": str(fixed_dp["head"]),
+        "fixed_dp_checkpoint_sha256": str(fixed_dp["checkpoint"]["sha256"]),
+        "fixed_dp_args_sha256": str(fixed_dp["args_json"]["sha256"]),
+        "generation_scales_sha256": str(selector["atom_scales"]["sha256"]),
+        "static_weights_sha256": str(selector["weights"]["sha256"]),
+        "selector_role": str(selector["role"]),
+        "seed": int(config["seeds"]["scenario"]),
+        "corpus_steps": int(protocol["corpus_steps"]),
+        "context_schema_version": str(protocol["context_schema_version"]),
+        "context_mode": str(protocol["context_mode"]),
+        "selector_training_execution_authorized": bool(
+            protocol["selector_training_execution_authorized"]
+        ),
+        "calibration_authorized": bool(protocol["calibration_authorized"]),
+        "holdout_access_authorized": bool(
+            protocol["holdout_access_authorized"]
+        ),
+        "fresh_b_opened": bool(protocol["fresh_b_opened"]),
+        "outcome_fields_consumed": list(
+            controlled["outcome_fields_consumed"]
+        ),
+    }
+
+
+def _asset_receipt_matches(payload: Any) -> bool:
+    if not isinstance(payload, Mapping) or set(payload) != {"path", "sha256"}:
+        return False
+    path = Path(str(payload["path"]))
+    return path.is_file() and _file_sha256(path) == payload["sha256"]
+
+
+def _verify_preflight(
+    path: Path,
+    camp_head: str,
+    *,
+    expected_config_root_sha256: str,
+) -> dict[str, Any]:
     root = _verify_seal(path)
     report = _load_json(path / "report.json")
+    source_receipt = _load_json(path / "source_receipt.json")
+    run_exit = (path / "run.exit").read_text(encoding="ascii")
+    heads = (path / "HEADS").read_text(encoding="ascii").splitlines()
+    command = (path / "COMMAND").read_text(encoding="utf-8").strip()
+    receipts = report.get("config_receipts")
+    required_keys = {
+        "schema_version",
+        "status",
+        "mode",
+        "camp_head",
+        "released_camp_source_head",
+        "current_repo_head_at_run",
+        "fixed_dp_head",
+        "formal_artifact",
+        "formal_root_sha256",
+        "probe_template",
+        "probe_template_sha256",
+        "generation_scales",
+        "static_weights",
+        "config_receipts_root_sha256",
+        "seed",
+        "corpus_steps",
+        "snapshot_capacity",
+        "validated_identity_count",
+        "training_executed",
+        "calibration_executed",
+        "fresh_b_opened",
+        "outcome_fields_consumed",
+        "config_receipts",
+        "rejected_roots",
+    }
     if (
-        report.get("status") != "passed"
+        not required_keys.issubset(report)
+        or report.get("status") != "passed"
         or report.get("mode") != "preflight"
+        or report.get("schema_version") != SCHEMA_VERSION
         or report.get("camp_head") != camp_head
+        or report.get("released_camp_source_head") != camp_head
+        or report.get("current_repo_head_at_run") != camp_head
+        or report.get("fixed_dp_head") != FIXED_DP_HEAD
+        or report.get("formal_artifact") != str(FORMAL_ARTIFACT)
         or report.get("formal_root_sha256") != FORMAL_ROOT_SHA256
+        or report.get("probe_template_sha256") != EXPECTED_TEMPLATE_SHA256
+        or report.get("generation_scales")
+        != {
+            "path": str(CORRECTED_GENERATION_SCALES),
+            "sha256": _file_sha256(CORRECTED_GENERATION_SCALES),
+        }
+        or not _asset_receipt_matches(report.get("static_weights"))
+        or not isinstance(receipts, list)
+        or len(receipts) != EXPECTED_EXECUTABLE_IDENTITIES
+        or len(
+            {
+                receipt.get("scenario_id")
+                for receipt in receipts
+                if isinstance(receipt, Mapping)
+            }
+        )
+        != EXPECTED_EXECUTABLE_IDENTITIES
+        or report.get("config_receipts_root_sha256")
+        != _canonical_sha256(receipts)
+        or report.get("config_receipts_root_sha256")
+        != expected_config_root_sha256
+        or any(
+            not isinstance(receipt, Mapping)
+            or receipt.get("config_authority_sha256")
+            != _canonical_sha256(
+                {
+                    key: value
+                    for key, value in receipt.items()
+                    if key != "config_authority_sha256"
+                }
+            )
+            for receipt in (receipts if isinstance(receipts, list) else [])
+        )
+        or report.get("seed") != EXPECTED_SEED
+        or report.get("corpus_steps") != CORPUS_STEPS
+        or report.get("snapshot_capacity")
+        != EXPECTED_EXECUTABLE_IDENTITIES * CORPUS_STEPS
         or report.get("validated_identity_count") != EXPECTED_EXECUTABLE_IDENTITIES
+        or report.get("training_executed") is not False
+        or report.get("calibration_executed") is not False
         or report.get("fresh_b_opened") is not False
         or report.get("outcome_fields_consumed") != []
+        or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or source_receipt != report
+        or run_exit != "0\n"
+        or not command
+        or heads
+        != [f"camp_source_head={camp_head}", f"fixed_dp_head={FIXED_DP_HEAD}"]
     ):
         raise ValueError("controlled train preflight authority is invalid")
     return {"path": str(path), "root_sha256": root}
@@ -488,6 +770,7 @@ def _execute(
     device: str,
     output_dir: Path,
 ) -> dict[str, Any]:
+    capability_allowlist = build_capability_failure_allowlist(cases)
     first = cases[0]
     first_config = build_controlled_train_config(
         template, first, route_assets[str(first["route_identity_sha256"])]
@@ -520,6 +803,7 @@ def _execute(
                     status = "complete"
                     failure_type = None
                     failure_reason = None
+                    capability_failure = None
                     receipt_tick_count = 0
                     try:
                         receipt = runner(
@@ -543,10 +827,11 @@ def _execute(
                             expected_selection_policy="v22_source_valid",
                             expected_safety_schema="safety_cost_native_v22",
                         )
-                    except Exception as exc:
+                    except RetainedScenarioCapabilityFailure as exc:
                         status = "failed"
                         failure_type = type(exc).__name__
                         failure_reason = str(exc)
+                        capability_failure = exc.as_receipt()
                     disposition = validate_identity_terminal(
                         status=status,
                         receipt_tick_count=receipt_tick_count,
@@ -554,6 +839,8 @@ def _execute(
                         context_count=len(contexts),
                         failure_type=failure_type,
                         failure_reason=failure_reason,
+                        capability_failure=capability_failure,
+                        capability_allowlist=capability_allowlist,
                     )
                     payloads = []
                     if disposition == "complete":
@@ -599,6 +886,7 @@ def _execute(
                         "snapshot_count": paired_count,
                         "failure_type": failure_type,
                         "failure_reason": failure_reason,
+                        "capability_failure": capability_failure,
                         "wall_seconds": time.perf_counter() - case_started,
                         "retained": True,
                         "outcome_fields_consumed": [],
@@ -626,6 +914,10 @@ def _execute(
     terminal = validate_terminal_acceptance(
         results,
         snapshot_index_count=snapshot_count,
+        capability_allowlist=capability_allowlist,
+        expected_identity_families={
+            str(case["scenario_id"]): str(case["family"]) for case in cases
+        },
     )
     family_counts = collections.Counter(row["family"] for row in results)
     family_snapshots = collections.Counter()
@@ -739,6 +1031,9 @@ def combine_snapshot_context(
         raise ValueError("controlled no-V2I context exposed future signal timing")
     physical = sidecar.get("physical_feasible_mask")
     sidecar_source_valid = sidecar.get("source_valid_mask")
+    default_output_sha256 = sidecar.get("default_output_sha256")
+    candidate0_sha256 = sidecar.get("candidate0_sha256")
+    default_candidate0_identity = sidecar.get("default_candidate0_identity")
     selected_index = sidecar.get("selected_index")
     scores = np.asarray(sidecar.get("scores"), dtype=np.float64)
     if (
@@ -766,6 +1061,13 @@ def combine_snapshot_context(
             )
         )
         or not _is_sha256(sidecar.get("normalized_atom_matrix_sha256"))
+        or not isinstance(default_candidate0_identity, Mapping)
+        or default_output_sha256 != rows[0]
+        or candidate0_sha256 != rows[0]
+        or default_candidate0_identity.get("elementwise_equal") is not True
+        or default_candidate0_identity.get("default_output_sha256") != rows[0]
+        or default_candidate0_identity.get("candidate0_sha256") != rows[0]
+        or default_candidate0_identity.get("native_ranked_k8") is not False
     ):
         raise ValueError("controlled selector score/mask invariant failed")
     if (
@@ -804,6 +1106,13 @@ def combine_snapshot_context(
             "candidate_tensor_sha256_after": str(
                 sidecar["candidate_tensor_sha256_after"]
             ),
+            "default_output_sha256": str(default_output_sha256),
+            "candidate0_sha256": str(candidate0_sha256),
+            "default_candidate0_identity": dict(default_candidate0_identity),
+            "candidate0_semantics": (
+                "operational_default_alias_from_same_forward"
+            ),
+            "candidate0_independent_second_forward": False,
             "causal_input_sha256": str(sidecar["causal_input_sha256"]),
             "physical_feasible_mask": list(physical),
             "source_valid_mask": list(sidecar_source_valid),
@@ -849,13 +1158,13 @@ def _verify_case_assets_cached(
         seen_routes.add(route_key)
 
 
-def _canonical_json_bytes(payload: Mapping[str, Any]) -> bytes:
+def _canonical_json_bytes(payload: Any) -> bytes:
     return json.dumps(
         payload, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode("utf-8")
 
 
-def _canonical_sha256(payload: Mapping[str, Any]) -> str:
+def _canonical_sha256(payload: Any) -> str:
     return hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
 
 

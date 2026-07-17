@@ -31,6 +31,9 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E40
     canonical_score_atoms,
     validate_fixed_k8_candidate_tensor,
 )
+from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
+    CONTEXT_SCHEMA_VERSION,
+)
 from scripts.integrations.run_diffusion_planner_dp_camp_v19_worker import (  # noqa: E402
     array_sha256,
     select_camp_candidate,
@@ -51,9 +54,11 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
     _write_json,
 )
 from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus import (  # noqa: E402
+    CORRECTED_GENERATION_SCALES,
     CORPUS_STEPS,
     EXPECTED_SEED,
     EXPECTED_TEMPLATE_SHA256,
+    FORMAL_ARTIFACT,
     MINIMUM_FREE_BYTES,
     SUPERSEDED_PARTIAL_CORPUS_ROOT,
     TRAIN_LOCK,
@@ -69,7 +74,56 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_ultra_correction_preflight_v1"
+SCHEMA_VERSION = "camp_dp_v25_ultra_correction_preflight_v2"
+REQUIRED_REPORT_CHECKS = frozenset(
+    {
+        "shared_clip_counterexample_passed",
+        "invalid_heading_fails_closed",
+        "nonfinite_atom_fails_closed",
+        "three_probes_complete_64_ticks",
+        "identity0_repeat_is_deterministic",
+        "all_candidate_tensors_immutable",
+        "all_candidate0_default_identity",
+        "all_native_canonical_scores_and_indices_equal",
+        "all_context_v2_no_v2i",
+        "all_speed_sources_complete",
+        "red_light_easy_family_covered",
+        "fresh_remained_unopened",
+    }
+)
+REQUIRED_PROBE_CHECKS = frozenset(
+    {
+        "candidate_tensor_immutable",
+        "candidate0_default_identity",
+        "native_canonical_equal",
+        "context_v2_no_v2i",
+        "speed_source_complete",
+        "heading_unit_vector_validated_before_selection",
+        "failure_class",
+    }
+)
+FINGERPRINT_PAYLOAD_KEYS = frozenset(
+    {
+        "tick_index",
+        "input_sha256",
+        "candidate_tensor_sha256",
+        "candidate_row_sha256",
+        "default_output_sha256",
+        "candidate0_sha256",
+        "default_candidate0_identity",
+        "candidate0_semantics",
+        "candidate0_independent_second_forward",
+        "atom_matrix_sha256",
+        "normalized_atom_matrix_sha256",
+        "selected_index",
+        "selected_trajectory_sha256",
+        "context_sha256",
+        "tracker_sha256",
+        "source_valid_mask",
+        "physical_feasible_mask",
+        "failure_class",
+    }
+)
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Bounded S0 V25 sequential-K8 correction preflight."
@@ -148,14 +202,19 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         unique_cases, args.output_dir / "routes", args.dp_repo
     )
 
-    common = {
+    common: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "camp_head": camp_head,
+        "released_camp_source_head": camp_head,
+        "current_repo_head_at_run": camp_head,
         "fixed_dp_head": FIXED_DP_HEAD,
+        "formal_artifact": str(FORMAL_ARTIFACT),
         "formal_root_sha256": formal_root,
+        "probe_template": str(args.probe_template),
         "probe_template_sha256": EXPECTED_TEMPLATE_SHA256,
         "seed": EXPECTED_SEED,
         "corpus_steps_per_probe": CORPUS_STEPS,
+        "context_schema_version": CONTEXT_SCHEMA_VERSION,
         "sequential_k8": True,
         "micro_batch_used": False,
         "cache_optimization_used": False,
@@ -163,15 +222,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
         "fresh_b_opened": False,
         "outcome_fields_consumed": [],
+        "selector_runtime_mode": "Static14D",
+        "scene14d_runtime_connected": False,
     }
-    _write_json(args.output_dir / "source_receipt.json", common)
-    (args.output_dir / "HEADS").write_text(
-        f"camp_source_head={camp_head}\nfixed_dp_head={FIXED_DP_HEAD}\n",
-        encoding="ascii",
-    )
-    (args.output_dir / "COMMAND").write_text(
-        " ".join(sys.argv) + "\n", encoding="utf-8"
-    )
 
     configs: dict[str, Mapping[str, Any]] = {}
     shared = None
@@ -188,6 +241,41 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         configs[str(case["scenario_id"])] = config
 
     first_config = configs[str(identity0["scenario_id"])]
+    if Path(str(first_config["selector"]["atom_scales"]["path"])) != (
+        CORRECTED_GENERATION_SCALES
+    ):
+        raise ValueError("preflight generation-scale path drifted")
+    config_receipts = [
+        {
+            "scenario_id": str(case["scenario_id"]),
+            "family": str(case["family"]),
+            "route_identity_sha256": str(case["route_identity_sha256"]),
+            "seed": EXPECTED_SEED,
+            "config": configs[str(case["scenario_id"])],
+            "config_sha256": _canonical_sha256(
+                configs[str(case["scenario_id"])]
+            ),
+        }
+        for case in unique_cases
+    ]
+    common.update(
+        {
+            "generation_scales": dict(first_config["selector"]["atom_scales"]),
+            "static_weights": dict(first_config["selector"]["weights"]),
+            "config_receipts_root_sha256": _canonical_sha256(config_receipts),
+        }
+    )
+    _write_json(
+        args.output_dir / "source_receipt.json",
+        {**common, "config_receipts": config_receipts},
+    )
+    (args.output_dir / "HEADS").write_text(
+        f"camp_source_head={camp_head}\nfixed_dp_head={FIXED_DP_HEAD}\n",
+        encoding="ascii",
+    )
+    (args.output_dir / "COMMAND").write_text(
+        " ".join(sys.argv) + "\n", encoding="utf-8"
+    )
     scales, _ = _load_frozen_selector_scales(
         Path(str(first_config["selector"]["atom_scales"]["path"]))
     )
@@ -207,6 +295,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                 run_label=run_label,
                 scales=scales,
                 weights=weights,
+                config_sha256=_canonical_sha256(
+                    configs[str(case["scenario_id"])]
+                ),
                 output_dir=args.output_dir,
             )
         )
@@ -250,6 +341,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         == "red_light_phase_timing",
         "fresh_remained_unopened": True,
     }
+    if set(checks) != REQUIRED_REPORT_CHECKS:
+        raise RuntimeError("bounded preflight report-check schema drifted")
     _write_json(
         args.output_dir / "probe_results.json",
         {
@@ -322,6 +415,7 @@ def _run_probe(
     run_label: str,
     scales: np.ndarray,
     weights: np.ndarray,
+    config_sha256: str,
     output_dir: Path,
 ) -> dict[str, Any]:
     snapshots: list[Mapping[str, Any]] = []
@@ -382,9 +476,15 @@ def _run_probe(
             == tick["candidate_tensor_sha256_after"]
         )
         identity_receipt = tick["default_candidate0_identity"]
+        default_output_sha256 = str(tick["default_output_sha256"])
+        candidate0_sha256 = str(tick["candidate_row_sha256"][0])
         default_identity &= (
             identity_receipt.get("elementwise_equal") is True
-            and tick["candidate_row_sha256"][0] == tick["default_output_sha256"]
+            and identity_receipt.get("native_ranked_k8") is False
+            and identity_receipt.get("default_output_sha256")
+            == default_output_sha256
+            and identity_receipt.get("candidate0_sha256") == candidate0_sha256
+            and candidate0_sha256 == default_output_sha256
         )
         canonical_equal &= (
             tick["selected_index"] == canonical_index
@@ -418,6 +518,13 @@ def _run_probe(
                 "candidate_tensor_sha256_before"
             ],
             "candidate_row_sha256": tick["candidate_row_sha256"],
+            "default_output_sha256": default_output_sha256,
+            "candidate0_sha256": candidate0_sha256,
+            "default_candidate0_identity": dict(identity_receipt),
+            "candidate0_semantics": (
+                "operational_default_alias_from_same_forward"
+            ),
+            "candidate0_independent_second_forward": False,
             "atom_matrix_sha256": tick["atom_matrix_sha256"],
             "normalized_atom_matrix_sha256": tick[
                 "normalized_atom_matrix_sha256"
@@ -432,6 +539,8 @@ def _run_probe(
             "physical_feasible_mask": tick["physical_feasible_mask"],
             "failure_class": None,
         }
+        if set(fingerprint_payload) != FINGERPRINT_PAYLOAD_KEYS:
+            raise ValueError("bounded preflight fingerprint schema drifted")
         fingerprints.append(
             {
                 **fingerprint_payload,
@@ -439,6 +548,17 @@ def _run_probe(
             }
         )
 
+    probe_checks = {
+        "candidate_tensor_immutable": bool(immutable),
+        "candidate0_default_identity": bool(default_identity),
+        "native_canonical_equal": bool(canonical_equal),
+        "context_v2_no_v2i": bool(no_v2i),
+        "speed_source_complete": bool(speed_complete),
+        "heading_unit_vector_validated_before_selection": True,
+        "failure_class": None,
+    }
+    if set(probe_checks) != REQUIRED_PROBE_CHECKS:
+        raise ValueError("bounded preflight probe-check schema drifted")
     return {
         "run_label": run_label,
         "scenario_id": case["scenario_id"],
@@ -446,21 +566,14 @@ def _run_probe(
         "tier": case["tier"],
         "route_identity_sha256": case["route_identity_sha256"],
         "seed": EXPECTED_SEED,
+        "config_sha256": config_sha256,
         "tick_count": len(fingerprints),
         "tick_fingerprints": fingerprints,
         "tick_fingerprint_root_sha256": _canonical_sha256(fingerprints),
         "selected_sequence": selected_sequence,
         "selected_sequence_sha256": _canonical_sha256(selected_sequence),
         "raw_values_above_clip_count": raw_above_clip_count,
-        "checks": {
-            "candidate_tensor_immutable": bool(immutable),
-            "candidate0_default_identity": bool(default_identity),
-            "native_canonical_equal": bool(canonical_equal),
-            "context_v2_no_v2i": bool(no_v2i),
-            "speed_source_complete": bool(speed_complete),
-            "heading_unit_vector_validated_before_selection": True,
-            "failure_class": None,
-        },
+        "checks": probe_checks,
         "latency": receipt["latency"],
         "fresh_b_opened": False,
         "outcome_fields_consumed": [],

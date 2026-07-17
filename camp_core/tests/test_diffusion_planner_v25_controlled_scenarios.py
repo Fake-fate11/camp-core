@@ -5,11 +5,14 @@ from enum import Enum
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     FRESH_B_SEEDS,
     PILOT_CASES_PER_FAMILY,
     SCENARIO_FAMILIES,
+    RetainedScenarioCapabilityFailure,
+    ScenarioCapabilityReason,
     V25ControlledSceneAdapter,
     build_controlled_scenario_case,
     build_controlled_scenario_plan,
@@ -255,3 +258,25 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
     assert np.all(scene.ego_agent.route_lanes[0, :, 10] == 1.0)
     assert np.all(scene.map_data.lanes[0, :, 10] == 1.0)
     assert np.all(scene.map_data.lanes[1:, :, 12] == 1.0)
+
+
+def test_scene_adapter_raises_typed_capability_failure_for_missing_signal_source():
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family="red_light_phase_timing",
+        tier="high_risk",
+        variant=0,
+        seeds=[25001],
+    )
+
+    with pytest.raises(RetainedScenarioCapabilityFailure) as captured:
+        V25ControlledSceneAdapter(case)(_scene(signal=False), 0)
+
+    assert captured.value.as_receipt() == {
+        "scenario_id": case["scenario_id"],
+        "family": "red_light_phase_timing",
+        "reason": ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value,
+    }

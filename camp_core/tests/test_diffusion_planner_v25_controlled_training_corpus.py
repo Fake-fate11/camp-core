@@ -124,6 +124,14 @@ def _snapshot() -> dict:
             "candidate_tensor_sha256_before": "a" * 64,
             "candidate_tensor_sha256_after": "a" * 64,
             "candidate0_sha256": rows[0],
+            "default_output_sha256": rows[0],
+            "default_candidate0_identity": {
+                "elementwise_equal": True,
+                "max_abs_difference": 0.0,
+                "default_output_sha256": rows[0],
+                "candidate0_sha256": rows[0],
+                "native_ranked_k8": False,
+            },
             "normalized_atom_matrix_sha256": "d" * 64,
             "selected_index": 0,
             "score_contract": "score_k=clip(a_k/s,0,10)^T w",
@@ -163,6 +171,13 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
     assert tuple(payload["feature_payload"]["raw_context"]) == RAW_FEATURE_NAMES
     assert payload["sidecar"]["outcome_fields_consumed"] == []
     assert payload["sidecar"]["fresh_b_opened"] is False
+    assert payload["sidecar"]["default_output_sha256"] == payload["sidecar"][
+        "candidate0_sha256"
+    ]
+    assert payload["sidecar"]["candidate0_semantics"] == (
+        "operational_default_alias_from_same_forward"
+    )
+    assert payload["sidecar"]["candidate0_independent_second_forward"] is False
     assert "collision" not in json.dumps(payload, sort_keys=True).lower()
 
 
@@ -171,6 +186,16 @@ def test_combined_snapshot_rejects_candidate_mutation() -> None:
     snapshot["sidecar"]["candidate_tensor_sha256_after"] = "c" * 64
 
     with pytest.raises(ValueError, match="immutability"):
+        combine_snapshot_context(
+            snapshot=snapshot, context=_context(), case=_case(), tick_index=0
+        )
+
+
+def test_combined_snapshot_rejects_default_candidate0_identity_drift() -> None:
+    snapshot = _snapshot()
+    snapshot["sidecar"]["default_output_sha256"] = "e" * 64
+
+    with pytest.raises(ValueError, match="score/mask invariant"):
         combine_snapshot_context(
             snapshot=snapshot, context=_context(), case=_case(), tick_index=0
         )

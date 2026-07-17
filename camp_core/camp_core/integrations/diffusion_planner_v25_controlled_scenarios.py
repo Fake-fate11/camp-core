@@ -4,6 +4,7 @@ import hashlib
 import json
 import math
 from dataclasses import dataclass
+from enum import Enum
 from typing import Any, Mapping, Sequence
 
 import numpy as np
@@ -27,6 +28,39 @@ TRAIN_SEEDS = (25001,)
 CALIBRATION_SEEDS = (25101,)
 FRESH_B_SEEDS = (25201, 25202, 25203, 25204, 25205)
 PILOT_SEEDS = (25991,)
+
+
+class ScenarioCapabilityReason(str, Enum):
+    """Pre-registered runtime capability failures that may be retained."""
+
+    MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE = (
+        "mapped_current_signal_source_unavailable"
+    )
+
+
+class RetainedScenarioCapabilityFailure(RuntimeError):
+    """A typed, outcome-blind scenario capability failure."""
+
+    def __init__(
+        self,
+        *,
+        scenario_id: str,
+        family: str,
+        reason: ScenarioCapabilityReason,
+    ) -> None:
+        self.scenario_id = str(scenario_id)
+        self.family = str(family)
+        self.reason = reason
+        super().__init__(
+            f"scenario capability unavailable: {self.family}/{self.reason.value}"
+        )
+
+    def as_receipt(self) -> dict[str, str]:
+        return {
+            "scenario_id": self.scenario_id,
+            "family": self.family,
+            "reason": self.reason.value,
+        }
 
 
 _TIER_PARAMETERS = {
@@ -578,7 +612,13 @@ class V25ControlledSceneAdapter:
                 values[row_mask, :, 8:13] = 0.0
                 values[row_mask, :, 8 + channel] = 1.0
         if source_rows == 0:
-            raise ValueError("controlled signal scenario lacks a mapped causal source")
+            raise RetainedScenarioCapabilityFailure(
+                scenario_id=str(self.case["scenario_id"]),
+                family=str(self.case["family"]),
+                reason=(
+                    ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE
+                ),
+            )
         return {"phase": phase, "source_row_count": source_rows, "applied": True}
 
 

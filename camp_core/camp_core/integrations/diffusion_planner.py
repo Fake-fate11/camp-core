@@ -2813,13 +2813,29 @@ class CAMPSelector:
                 raise ValueError(
                     "fallback_atom_scales must match the primary atom dimension."
                 )
-            if not np.all(np.isfinite(fallback_scales)):
+            if (
+                not np.all(np.isfinite(fallback_scales))
+                or np.any(fallback_scales <= 0.0)
+            ):
                 raise ValueError(
-                    "fallback_atom_scales must contain only finite values."
+                    "fallback_atom_scales must contain only finite positive values."
                 )
-            self.fallback_atom_scales = np.maximum(fallback_scales, 1e-6)
+            self.fallback_atom_scales = fallback_scales
+            fallback_weights = np.asarray(
+                fallback_static_weights, dtype=np.float64
+            ).reshape(-1)
+            if (
+                fallback_weights.shape != (self.num_atoms,)
+                or not np.all(np.isfinite(fallback_weights))
+                or np.any(fallback_weights < 0.0)
+                or float(np.sum(fallback_weights)) <= 0.0
+            ):
+                raise ValueError(
+                    "fallback_static_weights must be finite nonnegative values "
+                    "with positive total mass."
+                )
             self.fallback_static_weights = _normalized_weights(
-                fallback_static_weights,
+                fallback_weights,
                 self.num_atoms,
             )
 
@@ -3214,7 +3230,10 @@ class CAMPSelector:
                     np.diff(candidates[:, :, :2], axis=1),
                     axis=-1,
                 ).sum(axis=1)
-            progress = np.nan_to_num(progress, nan=0.0, posinf=0.0, neginf=0.0)
+            if not np.all(np.isfinite(progress)) or np.any(progress < 0.0):
+                raise ValueError(
+                    "candidate_progress must contain finite nonnegative values."
+                )
             reference_progress = float(
                 np.max(progress[feasible_mask])
                 if feasible_mask.any()
@@ -3243,10 +3262,14 @@ class CAMPSelector:
                         f"got {red_light_cost.shape}, expected "
                         f"({candidates.shape[0]},)."
                     )
-                red_light_cost = np.nan_to_num(
-                    red_light_cost, nan=0.0, posinf=0.0, neginf=0.0
-                )
-                red_light_cost = np.maximum(red_light_cost, 0.0)
+                if (
+                    not np.all(np.isfinite(red_light_cost))
+                    or np.any(red_light_cost < 0.0)
+                ):
+                    raise ValueError(
+                        "candidate_planned_red_light_cost must contain finite "
+                        "nonnegative values."
+                    )
                 phase_start = time.perf_counter()
                 lateral_acceleration_cost = np.asarray(
                     [
@@ -3256,12 +3279,14 @@ class CAMPSelector:
                     dtype=np.float64,
                 )
                 atom_computation_seconds += time.perf_counter() - phase_start
-                lateral_acceleration_cost = np.nan_to_num(
-                    lateral_acceleration_cost, nan=0.0, posinf=0.0, neginf=0.0
-                )
-                lateral_acceleration_cost = np.maximum(
-                    lateral_acceleration_cost, 0.0
-                )
+                if (
+                    not np.all(np.isfinite(lateral_acceleration_cost))
+                    or np.any(lateral_acceleration_cost < 0.0)
+                ):
+                    raise ValueError(
+                        "candidate lateral-acceleration cost must contain finite "
+                        "nonnegative values."
+                    )
                 extra_atoms.extend(
                     [
                         red_light_cost.reshape(-1, 1),
@@ -3374,22 +3399,28 @@ class CAMPSelector:
                     selection_scores = scores.copy()
                 else:
                     selection_weights = self.fallback_static_weights
-                    selection_normalized = atoms_arr / (
-                        self.fallback_atom_scales.reshape(1, -1)
-                    )
-                    selection_normalized = np.nan_to_num(
-                        selection_normalized,
-                        nan=0.0,
-                        posinf=positive_inf,
-                        neginf=0.0,
-                    )
-                    selection_normalized = np.maximum(selection_normalized, 0.0)
-                    if self.atom_clip > 0:
-                        selection_normalized = np.clip(
-                            selection_normalized,
-                            0.0,
-                            self.atom_clip,
+                    if self.num_atoms == 14:
+                        selection_normalized = canonical_normalize_atoms(
+                            atoms_arr,
+                            self.fallback_atom_scales,
                         )
+                    else:
+                        selection_normalized = atoms_arr / (
+                            self.fallback_atom_scales.reshape(1, -1)
+                        )
+                        if not np.all(np.isfinite(selection_normalized)):
+                            raise ValueError(
+                                "fallback normalized CAMP atoms must be finite."
+                            )
+                        selection_normalized = np.maximum(
+                            selection_normalized, 0.0
+                        )
+                        if self.atom_clip > 0:
+                            selection_normalized = np.clip(
+                                selection_normalized,
+                                0.0,
+                                self.atom_clip,
+                            )
                     selection_scores = selection_normalized @ selection_weights
             else:
                 selection_weights = np.full(
