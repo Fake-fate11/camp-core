@@ -525,7 +525,7 @@ def _expected_dag_contract() -> dict[str, str]:
     return {
         "S0_to_A": "Ultra S0.1 PASS plus A0 strict-inventory supplement PASS",
         "A_exit": "14 rows complete; independent semantics/numeric validation PASS; source-valid progress reference frozen",
-        "R0_1_entry": "A1.1 PASS plus sealed Ultra A1.1/R0.1 decision; full R remains closed",
+        "R0_2_entry": "A1.2 PASS plus sealed Ultra A1.2/R0.2 decision; full R remains closed",
         "R_entry": "Ultra first releases only a sealed 1500-config preflight; independent review and a distinct Ultra execute release are then mandatory",
         "R_exit": "1500x64 sequential corpus sealed and independently reviewed; red scientific coverage passes; then stop",
         "B_entry": "R sealed+reviewed and Ultra-released; train-only empirical audit only",
@@ -536,7 +536,7 @@ def _expected_dag_contract() -> dict[str, str]:
         "E1_entry": "C and D combined review PASS plus Ultra release",
         "training_calibration_fresh": "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated",
         "outcome_red_10m_heuristic_gate": "must be replaced or independently certified before calibration or Fresh B2 pre-open",
-        "current_authority": "A1.1/R0.1 bounded only; full R/B/C/D/E/T/Q/F remain closed",
+        "current_authority": "A1.2/R0.2 bounded only; full R/B/C/D/E/T/Q/F remain closed",
     }
 
 
@@ -593,7 +593,7 @@ def validate_ledger(
     )
     decision = _load_json(decision_artifact / "decision.json")
     if (
-        decision.get("status") != "A1_1_R0_1_only_released"
+        decision.get("status") != "A1_2_R0_2_only_released"
         or decision.get("progress_reference")
         != "source_valid_candidate_set_reference"
         or decision.get("full_r_authorized") is not False

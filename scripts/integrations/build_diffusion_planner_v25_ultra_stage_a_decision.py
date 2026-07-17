@@ -34,7 +34,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_ultra_stage_a11_r01_decision_v2"
+SCHEMA_VERSION = "camp_dp_v25_ultra_stage_a12_r02_decision_v3"
 A0_ROOT = "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
 SUPERSEDED_LEDGER_ROOT = (
     "05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2"
@@ -59,6 +59,16 @@ SUPERSEDED_A1_R0_ROOTS = [
     "e28c5851d15a0d313afe2f577c13ed9207686fa0a724d1738514675aae0fbb1e",
     "a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c",
     "81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b",
+    # Ultra semantic-v3 review kept these roots immutable but blocked them from
+    # release-chain use because canonical bytes/self-lock/reviewer independence
+    # still required the bounded A1.2/R0.2 correction.
+    "010f644cc106cb63b479845fa67b59985575df14d9583d7f9164816ac885e73c",
+    "9a7d0b663b5946eb4180f707198e3372d9f20a85dd6eea70ba035ce276a362e5",
+    "85cd4513721e5c8546934aedb34a39fcdb4c99a1318cd2c1fa1fc722acb893bc",
+    "ae728cd3781fce5f01afae0bd3411d051e2b657e52b7044de10f3d5b4a8d5b8a",
+    "485e00fcf063f745d415c34e1d762cac62deca84abf027cfa48d8e830cb6ec52",
+    "b7dc7fe00d21af71caba172eac9edf5500fb967e7379b712024600c62b9e5458",
+    "6eee9f157d1668ad37120b3a9542f1e5b5661f9077b0fb15cdb5e4a4b43f35d2",
 ]
 
 
@@ -84,8 +94,8 @@ def main() -> None:
         raise ValueError("CAMP tracked worktree is dirty")
     decision = {
         "schema_version": SCHEMA_VERSION,
-        "status": "A1_1_R0_1_only_released",
-        "decision_date": "2026-07-17",
+        "status": "A1_2_R0_2_only_released",
+        "decision_date": "2026-07-18",
         "source_thread_id": "019f6eee-8fc2-75f3-843c-75562f610b13",
         "corrected_source_head": head,
         "fixed_dp_head": FIXED_DP_HEAD,
@@ -104,8 +114,8 @@ def main() -> None:
         "selection_eligibility": "source_valid",
         "empty_source_valid": "fail_closed",
         "candidate0_or_all_k_fallback_allowed": False,
-        "a1_1_authorized": True,
-        "r0_1_source_authority_preflight_authorized": True,
+        "a1_2_authorized": True,
+        "r0_2_source_authority_preflight_authorized": True,
         "bounded_21red_1nosignal_x64_authorized_after_source_pass": True,
         "full_r_authorized": False,
         "monitor_authorized": False,

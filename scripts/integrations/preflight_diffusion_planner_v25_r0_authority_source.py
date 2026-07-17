@@ -315,8 +315,8 @@ def _verify_input_artifacts(
     if (
         bindings["a0_root_sha256"] != A0_ROOT
         or decision.get("schema_version")
-        != "camp_dp_v25_ultra_stage_a11_r01_decision_v2"
-        or decision.get("status") != "A1_1_R0_1_only_released"
+        != "camp_dp_v25_ultra_stage_a12_r02_decision_v3"
+        or decision.get("status") != "A1_2_R0_2_only_released"
         or decision.get("corrected_source_head") != current_head
         or decision.get("fixed_dp_head") != FIXED_DP_HEAD
         or decision.get("a0_root_sha256") != bindings["a0_root_sha256"]
@@ -501,7 +501,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "physical_signatures": 9,
         "stop_line_geometry_shas": 5,
     }:
-        raise ValueError(f"R0.1 physical authority census drifted: {observed_counts}")
+        raise ValueError(f"R0.2 physical authority census drifted: {observed_counts}")
     report = {
         "schema_version": SCHEMA_VERSION,
         "status": "passed_source_only_full_r_closed",

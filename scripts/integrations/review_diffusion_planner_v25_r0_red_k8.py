@@ -24,7 +24,6 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     verify_complete_seal,
 )
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
-    compute_authorized_red_stopping_margin_costs,
     validate_fixed_k8_candidate_tensor,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
@@ -75,13 +74,91 @@ def _strict_json_bool_array(
     return np.asarray(flatten(value, 0), dtype=np.bool_).reshape(shape)
 
 
+def _strict_json_numeric_array(
+    value: Any,
+    shape: tuple[int, ...],
+    *,
+    label: str,
+    dtype: np.dtype[Any] = np.dtype(np.float64),
+) -> np.ndarray:
+    """Parse a finite numeric JSON tensor without bool/string/ragged coercion."""
+    if not isinstance(value, list):
+        raise ValueError(f"{label} must be a JSON list")
+
+    def flatten(node: Any, depth: int) -> list[float]:
+        if depth == len(shape):
+            if type(node) not in (int, float) or not np.isfinite(float(node)):
+                raise ValueError(f"{label} elements must be finite native numbers")
+            return [float(node)]
+        if not isinstance(node, list) or len(node) != shape[depth]:
+            raise ValueError(f"{label} shape drifted")
+        result: list[float] = []
+        for child in node:
+            result.extend(flatten(child, depth + 1))
+        return result
+
+    return np.asarray(flatten(value, 0), dtype=dtype).reshape(shape)
+
+
+def _independent_red_stopping_oracle(
+    candidates: np.ndarray,
+    causal_signal_atom_input: Mapping[str, Any],
+    dt_s: float,
+) -> np.ndarray:
+    """Local scalar oracle for the frozen red stopping-envelope formula."""
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
+        raise ValueError("red stopping oracle requires finite [8,80,4]")
+    if not causal_signal_atom_input["applicable"]:
+        return np.zeros(8, dtype=np.float64)
+    stop = _strict_json_numeric_array(
+        causal_signal_atom_input.get("stop_line_geometry_ego_m"),
+        (2, 2),
+        label="stop_line_geometry_ego_m",
+    )
+    tangent = _strict_json_numeric_array(
+        causal_signal_atom_input.get("route_tangent_ego"),
+        (2,),
+        label="route_tangent_ego",
+    )
+    tangent = tangent / np.linalg.norm(tangent)
+    red_xy = stop.mean(axis=0)[None, :]
+    red_direction = tangent[None, :]
+    costs = np.zeros(8, dtype=np.float64)
+    for candidate_index, trajectory in enumerate(trajectories):
+        xy = trajectory[:, :2]
+        speeds = np.linalg.norm(np.diff(xy, axis=0), axis=1) / float(dt_s)
+        headings = np.arctan2(trajectory[:, 3], trajectory[:, 2])[1:]
+        heading_vectors = np.column_stack((np.cos(headings), np.sin(headings)))
+        relative = red_xy[None, :, :] - xy[1:, None, :]
+        distances = np.linalg.norm(relative, axis=2)
+        aligned = heading_vectors @ red_direction.T > 0.5
+        ahead = np.einsum("trd,td->tr", relative, heading_vectors) > 0.0
+        eligible = aligned & ahead & (distances <= 40.0)
+        nearest = np.min(np.where(eligible, distances, np.inf), axis=1)
+        active = np.isfinite(nearest)
+        if not active.any():
+            continue
+        safe_speed = np.sqrt(4.0 * np.maximum(nearest[active] - 3.0, 0.0))
+        excess = np.maximum(speeds[active] - safe_speed, 0.0)
+        proximity = np.maximum(1.0 - nearest[active] / 40.0, 0.0)
+        costs[candidate_index] = float(dt_s) * float(
+            np.sum(proximity * excess**2)
+        )
+    if not np.isfinite(costs).all() or np.any(costs < 0.0):
+        raise ValueError("red stopping oracle violated finite/nonnegative contract")
+    return costs
+
+
 def _independently_validate_tick_atoms(
     row: Mapping[str, Any],
     *,
     chain: Mapping[str, Any],
     signal_receipt: Mapping[str, Any],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    raw = np.asarray(row.get("raw_atom_matrix"), dtype=np.float64)
+    raw = _strict_json_numeric_array(
+        row.get("raw_atom_matrix"), (8, 14), label="raw_atom_matrix"
+    )
     source_valid = _strict_json_bool_array(
         row.get("source_valid_mask"), (8,), label="source_valid_mask"
     )
@@ -101,7 +178,12 @@ def _independently_validate_tick_atoms(
         label="atom_applicable_mask",
     )
     candidates = validate_fixed_k8_candidate_tensor(
-        np.asarray(row.get("candidate_tensor"), dtype=np.float32)
+        _strict_json_numeric_array(
+            row.get("candidate_tensor"),
+            (8, 80, 4),
+            label="candidate_tensor",
+            dtype=np.dtype(np.float32),
+        )
     )
     if (
         raw.shape != (8, 14)
@@ -129,13 +211,16 @@ def _independently_validate_tick_atoms(
             not signal_applicable
             and not np.array_equal(raw[:, signal_columns], np.zeros((8, 2)))
         )
-        or row.get("all_k_high_risk") is not bool(not physical.any())
+        or type(row.get("all_k_high_risk")) is not bool
+        or row.get("all_k_high_risk") is not bool(
+            source_valid.all() and not physical.any()
+        )
     ):
         raise ValueError("R0 signal applicability or all-K evidence drifted")
     dt_s = row.get("dt_s")
     if isinstance(dt_s, bool) or not isinstance(dt_s, (int, float)) or float(dt_s) != 0.1:
         raise ValueError("R0 atom timestep drifted")
-    expected_red_stopping = compute_authorized_red_stopping_margin_costs(
+    expected_red_stopping = _independent_red_stopping_oracle(
         candidates, validated_signal, float(dt_s)
     )
     if not np.allclose(
@@ -223,8 +308,12 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or len(no_signal_chains) != 1
     ):
         raise ValueError("R0 red K8 preflight authority drifted")
-    scales = np.asarray(selector.get("scales"), dtype=np.float64)
-    weights = np.asarray(selector.get("weights"), dtype=np.float64)
+    scales = _strict_json_numeric_array(
+        selector.get("scales"), (14,), label="selector scales"
+    )
+    weights = _strict_json_numeric_array(
+        selector.get("weights"), (14,), label="selector weights"
+    )
     if (
         scales.shape != (14,)
         or weights.shape != (14,)
@@ -279,7 +368,12 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             ) = _independently_validate_tick_atoms(
                 row, chain=chain, signal_receipt=signal_receipt
             )
-            default = np.asarray(row.get("default_output"), dtype=np.float32)
+            default = _strict_json_numeric_array(
+                row.get("default_output"),
+                (80, 4),
+                label="default_output",
+                dtype=np.dtype(np.float32),
+            )
             if (
                 row.get("tick_index") != tick_index
                 or row.get("fingerprint_sha256") != canonical_json_sha256(payload)
@@ -304,7 +398,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             if (
                 row.get("selected_index") != expected
                 or not np.array_equal(
-                    np.asarray(row.get("production_scores"), dtype=np.float64),
+                    _strict_json_numeric_array(
+                        row.get("production_scores"),
+                        (8,),
+                        label="production_scores",
+                    ),
                     scores,
                 )
                 or row.get("candidate0_sha256") != row.get("default_output_sha256")

@@ -54,6 +54,24 @@ _ACTOR_FIELDS = frozenset(
         "wheelbase_m",
     }
 )
+_SEMANTIC_ACTOR_FIELDS = frozenset(
+    {
+        "agent_type",
+        "initial_xy_local_m",
+        "initial_heading_local_unit",
+        "route_tangent_local",
+        "route_normal_local",
+        "trigger_time_s",
+        "longitudinal_speed_mps",
+        "lateral_offset_m",
+        "lateral_speed_mps",
+        "lateral_target_m",
+        "longitudinal_acceleration_mps2",
+        "length_m",
+        "width_m",
+        "wheelbase_m",
+    }
+)
 _FORBIDDEN_SEMANTIC_TOKENS = (
     "outcome",
     "fresh",
@@ -247,7 +265,23 @@ def build_semantic_clone_payload(
         actors.append(item)
     actors.sort(key=canonical_json_sha256)
     signal = case.get("signal")
-    if not isinstance(signal, Mapping) or signal.get("phase") not in _SCENARIO_PHASES:
+    if (
+        not isinstance(signal, Mapping)
+        or set(signal) not in (
+            {"phase", "mapped_source_required"},
+            {"phase", "phase_remaining_s", "mapped_source_required"},
+        )
+        or signal.get("phase") not in _SCENARIO_PHASES
+        or type(signal.get("mapped_source_required")) is not bool
+        or (
+            "phase_remaining_s" in signal
+            and (
+                type(signal["phase_remaining_s"]) not in (int, float)
+                or not math.isfinite(float(signal["phase_remaining_s"]))
+                or float(signal["phase_remaining_s"]) < 0.0
+            )
+        )
+    ):
         raise ValueError("semantic red-signal phase is invalid")
     payload: dict[str, Any] = {
         "schema_version": SEMANTIC_PAYLOAD_SCHEMA_VERSION,
@@ -295,6 +329,129 @@ def build_semantic_clone_payload(
             if any(token in lowered for token in _FORBIDDEN_SEMANTIC_TOKENS):
                 raise ValueError("semantic input contains a forbidden outcome/future/ID proxy")
     return payload
+
+
+def _strict_json_vector(value: Any, *, label: str, unit: bool = False) -> np.ndarray:
+    if (
+        not isinstance(value, list)
+        or len(value) != 2
+        or any(type(item) not in (int, float) for item in value)
+    ):
+        raise ValueError(f"{label} must be a native numeric length-two JSON list")
+    result = np.asarray(value, dtype=np.float64)
+    if not np.isfinite(result).all():
+        raise ValueError(f"{label} must be finite")
+    if unit and not np.isclose(np.linalg.norm(result), 1.0, rtol=0.0, atol=2e-6):
+        raise ValueError(f"{label} must be a unit vector")
+    return result
+
+
+def _strict_json_polyline(value: Any, *, label: str, exact_count: int | None) -> np.ndarray:
+    if not isinstance(value, list) or (exact_count is not None and len(value) != exact_count):
+        raise ValueError(f"{label} row count drifted")
+    rows = [_strict_json_vector(row, label=label) for row in value]
+    if len(rows) < 2:
+        raise ValueError(f"{label} requires at least two points")
+    result = np.stack(rows)
+    if float(np.linalg.norm(np.diff(result, axis=0), axis=1).sum()) <= 1e-9:
+        raise ValueError(f"{label} has no positive arc length")
+    return result
+
+
+def validate_semantic_clone_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate the exact frozen v3 source/ID/outcome-independent payload."""
+    if not isinstance(payload, Mapping):
+        raise ValueError("semantic clone payload must be an object")
+    required = {
+        "schema_version",
+        "family",
+        "tier",
+        "semantic_variant",
+        "parameters",
+        "actors",
+        "signal",
+        "route_polyline_local_m",
+    }
+    allowed = required | {"stop_line_local_m"}
+    if set(payload) not in (required, allowed):
+        raise ValueError("semantic clone payload field set drifted")
+    if payload.get("schema_version") != SEMANTIC_PAYLOAD_SCHEMA_VERSION:
+        raise ValueError("semantic clone payload schema drifted")
+    for key in ("family", "tier", "semantic_variant"):
+        if not isinstance(payload.get(key), str) or not payload[key] or payload[key] == "None":
+            raise ValueError(f"semantic clone {key} is invalid")
+
+    parameters = payload.get("parameters")
+    if not isinstance(parameters, Mapping) or set(parameters) - (_PARAMETER_FIELDS - {"variant"}):
+        raise ValueError("semantic clone parameter field set drifted")
+    for key, value in parameters.items():
+        if type(value) not in (int, float) or not math.isfinite(float(value)):
+            raise ValueError(f"semantic clone parameter {key} is not finite native numeric")
+
+    actors = payload.get("actors")
+    if not isinstance(actors, list):
+        raise ValueError("semantic clone actors must be a list")
+    normalized_actors: list[dict[str, Any]] = []
+    for actor in actors:
+        if not isinstance(actor, Mapping) or set(actor) != _SEMANTIC_ACTOR_FIELDS:
+            raise ValueError("semantic clone actor field set drifted")
+        if not isinstance(actor.get("agent_type"), str) or not actor["agent_type"]:
+            raise ValueError("semantic clone actor type is invalid")
+        _strict_json_vector(actor.get("initial_xy_local_m"), label="actor position")
+        heading = _strict_json_vector(
+            actor.get("initial_heading_local_unit"), label="actor heading", unit=True
+        )
+        tangent = _strict_json_vector(
+            actor.get("route_tangent_local"), label="actor route tangent", unit=True
+        )
+        normal = _strict_json_vector(
+            actor.get("route_normal_local"), label="actor route normal", unit=True
+        )
+        if not np.isclose(float(tangent @ normal), 0.0, rtol=0.0, atol=2e-6):
+            raise ValueError("semantic clone actor route frame is not orthogonal")
+        if not np.isfinite(heading).all():  # explicit readability of the S1 contract
+            raise ValueError("semantic clone actor heading is invalid")
+        for key in _SEMANTIC_ACTOR_FIELDS - {
+            "agent_type",
+            "initial_xy_local_m",
+            "initial_heading_local_unit",
+            "route_tangent_local",
+            "route_normal_local",
+        }:
+            value = actor[key]
+            if key == "lateral_target_m" and value is None:
+                continue
+            if type(value) not in (int, float) or not math.isfinite(float(value)):
+                raise ValueError(f"semantic clone actor {key} is not finite native numeric")
+        normalized_actors.append(dict(actor))
+    if normalized_actors != sorted(normalized_actors, key=canonical_json_sha256):
+        raise ValueError("semantic clone actors are not in canonical order")
+
+    signal = payload.get("signal")
+    if not isinstance(signal, Mapping) or set(signal) != {
+        "current_phase",
+        "mapped_source_required",
+        "source_mode",
+    }:
+        raise ValueError("semantic clone signal field set drifted")
+    if (
+        signal.get("current_phase") not in _SCENARIO_PHASES
+        or type(signal.get("mapped_source_required")) is not bool
+        or signal.get("source_mode") != "no_v2i"
+    ):
+        raise ValueError("semantic clone signal contract drifted")
+    route = _strict_json_polyline(
+        payload.get("route_polyline_local_m"),
+        label="semantic route polyline",
+        exact_count=64,
+    )
+    if not np.allclose(route[0], np.zeros(2), rtol=0.0, atol=1e-9):
+        raise ValueError("semantic route local origin drifted")
+    if "stop_line_local_m" in payload:
+        _strict_json_polyline(
+            payload["stop_line_local_m"], label="semantic stop line", exact_count=None
+        )
+    return dict(payload)
 
 
 def validate_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
@@ -388,8 +545,22 @@ def validate_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
         or not np.isclose(np.linalg.norm(tangent), 1.0, atol=1e-6)
     ):
         raise ValueError("red signal route tangent is invalid")
-    if chain.get("semantic_clone_sha256") != canonical_json_sha256(
-        chain.get("semantic_clone_payload")
+    semantic = validate_semantic_clone_payload(chain.get("semantic_clone_payload"))
+    if (
+        "stop_line_local_m" not in semantic
+        or semantic["signal"] != {
+            "current_phase": chain.get("expected_current_phase"),
+            "mapped_source_required": True,
+            "source_mode": "no_v2i",
+        }
+        or chain.get("route_geometry_sha256")
+        != canonical_json_sha256(
+            {
+                "route_polyline_local_m": semantic["route_polyline_local_m"],
+                "stop_line_local_m": semantic["stop_line_local_m"],
+            }
+        )
+        or chain.get("semantic_clone_sha256") != canonical_json_sha256(semantic)
     ):
         raise ValueError("semantic clone payload/hash mismatch")
     without_hash = {key: value for key, value in chain.items() if key != "source_chain_sha256"}
@@ -433,8 +604,19 @@ def validate_no_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
         or chain.get("traffic_light_regulatory_element_ids") != []
     ):
         raise ValueError("no-signal route authority is invalid")
-    if chain.get("semantic_clone_sha256") != canonical_json_sha256(
-        chain.get("semantic_clone_payload")
+    semantic = validate_semantic_clone_payload(chain.get("semantic_clone_payload"))
+    if (
+        "stop_line_local_m" in semantic
+        or semantic["signal"] != {
+            "current_phase": "none",
+            "mapped_source_required": False,
+            "source_mode": "no_v2i",
+        }
+        or chain.get("route_geometry_sha256")
+        != canonical_json_sha256(
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+        )
+        or chain.get("semantic_clone_sha256") != canonical_json_sha256(semantic)
     ):
         raise ValueError("no-signal semantic clone payload/hash mismatch")
     without_hash = {

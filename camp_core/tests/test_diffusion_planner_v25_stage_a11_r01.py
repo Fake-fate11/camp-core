@@ -16,6 +16,7 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
     compute_authorized_red_stopping_margin_costs,
     lane_boundary_deviation_costs,
 )
+from camp_core.integrations import diffusion_planner_causal_atoms as causal_atoms_module
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     NO_SIGNAL_CHAIN_SCHEMA_VERSION,
     SEMANTIC_PAYLOAD_SCHEMA_VERSION,
@@ -28,6 +29,7 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     canonical_json_sha256,
     validate_causal_signal_atom_input,
     validate_no_signal_chain,
+    validate_semantic_clone_payload,
     validate_signal_chain,
 )
 from scripts.integrations.run_diffusion_planner_dp_camp_v19_worker import (
@@ -220,6 +222,44 @@ def _receipt(chain: dict) -> dict:
     )
 
 
+def _resign_chain(chain: dict) -> dict:
+    updated = copy.deepcopy(chain)
+    semantic = updated["semantic_clone_payload"]
+    updated["semantic_clone_sha256"] = canonical_json_sha256(semantic)
+    updated["route_geometry_sha256"] = canonical_json_sha256(
+        {
+            "route_polyline_local_m": semantic["route_polyline_local_m"],
+            "stop_line_local_m": semantic["stop_line_local_m"],
+        }
+    )
+    updated["source_chain_sha256"] = canonical_json_sha256(
+        {key: value for key, value in updated.items() if key != "source_chain_sha256"}
+    )
+    return updated
+
+
+def test_semantic_v3_validator_rejects_resigned_v2_and_nonunit_or_extra_fields() -> None:
+    chain = _chain()
+    validate_semantic_clone_payload(chain["semantic_clone_payload"])
+
+    v2 = copy.deepcopy(chain)
+    v2["semantic_clone_payload"]["schema_version"] = "camp_dp_v25_semantic_clone_payload_v2"
+    with pytest.raises(ValueError, match="schema"):
+        validate_signal_chain(_resign_chain(v2))
+
+    nonunit = copy.deepcopy(chain)
+    nonunit["semantic_clone_payload"]["actors"][0][
+        "initial_heading_local_unit"
+    ] = [2.0, 0.0]
+    with pytest.raises(ValueError, match="unit vector"):
+        validate_signal_chain(_resign_chain(nonunit))
+
+    forbidden = copy.deepcopy(chain)
+    forbidden["semantic_clone_payload"]["future_outcome"] = 1.0
+    with pytest.raises(ValueError, match="field set"):
+        validate_signal_chain(_resign_chain(forbidden))
+
+
 def _candidates() -> np.ndarray:
     trajectories = np.zeros((8, 80, 4), dtype=np.float32)
     for index in range(8):
@@ -270,7 +310,9 @@ def test_red_stopping_cost_uses_only_authorized_stop_line_geometry() -> None:
         compute_authorized_red_stopping_margin_costs(candidates, substituted, 0.1)
 
 
-def test_r0_reviewer_strictly_recomputes_red_atom_masks_and_k8() -> None:
+def test_r0_reviewer_strictly_recomputes_red_atom_masks_and_k8(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     chain = _chain(20.0)
     receipt = _receipt(chain)
     causal = build_causal_signal_atom_input(
@@ -314,6 +356,12 @@ def test_r0_reviewer_strictly_recomputes_red_atom_masks_and_k8() -> None:
     invalid_heading = copy.deepcopy(row)
     invalid_heading["candidate_tensor"][0][0][2:4] = [0.0, 0.0]
     mutations.append(invalid_heading)
+    numeric_string = copy.deepcopy(row)
+    numeric_string["raw_atom_matrix"][0][0] = "0.0"
+    mutations.append(numeric_string)
+    bool_numeric = copy.deepcopy(row)
+    bool_numeric["candidate_tensor"][0][0][0] = True
+    mutations.append(bool_numeric)
     for mutated in mutations:
         with pytest.raises(ValueError):
             r0_reviewer._independently_validate_tick_atoms(
@@ -338,14 +386,77 @@ def test_r0_reviewer_strictly_recomputes_red_atom_masks_and_k8() -> None:
                 changed, chain=chain, signal_receipt=receipt
             )
 
+    # The reviewer owns a local scalar oracle.  Corrupting the production
+    # helper and storing its bogus output therefore cannot make review pass.
+    monkeypatch.setattr(
+        causal_atoms_module,
+        "compute_authorized_red_stopping_margin_costs",
+        lambda *_args, **_kwargs: np.zeros(8),
+    )
+    helper_corrupted = copy.deepcopy(row)
+    helper_corrupted["raw_atom_matrix"] = np.zeros((8, 14)).tolist()
+    with pytest.raises(ValueError, match="red-stopping atom"):
+        r0_reviewer._independently_validate_tick_atoms(
+            helper_corrupted, chain=chain, signal_receipt=receipt
+        )
+
+
+def test_r0_all_k_high_risk_uses_all_source_valid_and_no_physical() -> None:
+    chain = _chain(20.0)
+    receipt = _receipt(chain)
+    causal = build_causal_signal_atom_input(
+        chain,
+        receipt,
+        ego_position_world_m=[0.0, 0.0],
+        ego_heading_rad=0.0,
+    )
+    candidates = _candidates()
+    raw = np.zeros((8, 14), dtype=np.float64)
+    raw[:, 12] = compute_authorized_red_stopping_margin_costs(candidates, causal, 0.1)
+    base = {
+        "raw_atom_matrix": raw.tolist(),
+        "source_valid_mask": [True] * 8,
+        "physical_feasible_mask": [False] * 8,
+        "atom_source_valid_mask": [[True] * 14 for _ in range(8)],
+        "atom_applicable_mask": [[True] * 14 for _ in range(8)],
+        "candidate_tensor": candidates.tolist(),
+        "causal_signal_atom_input": causal,
+        "current_phase": "red",
+        "dt_s": 0.1,
+        "all_k_high_risk": True,
+    }
+    r0_reviewer._independently_validate_tick_atoms(
+        base, chain=chain, signal_receipt=receipt
+    )
+
+    partial = copy.deepcopy(base)
+    partial["source_valid_mask"][0] = False
+    partial["atom_source_valid_mask"][0][0] = False
+    partial["atom_applicable_mask"][0][0] = False
+    partial["all_k_high_risk"] = False
+    r0_reviewer._independently_validate_tick_atoms(
+        partial, chain=chain, signal_receipt=receipt
+    )
+    partial["all_k_high_risk"] = True
+    with pytest.raises(ValueError, match="all-K"):
+        r0_reviewer._independently_validate_tick_atoms(
+            partial, chain=chain, signal_receipt=receipt
+        )
+
+    physical = copy.deepcopy(base)
+    physical["physical_feasible_mask"][3] = True
+    physical["all_k_high_risk"] = False
+    r0_reviewer._independently_validate_tick_atoms(
+        physical, chain=chain, signal_receipt=receipt
+    )
+
 
 @pytest.mark.parametrize("phase", ["green", "yellow"])
 def test_r0_reviewer_requires_zero_nonapplicable_signal_atoms(phase: str) -> None:
-    chain = dict(_chain())
+    chain = copy.deepcopy(_chain())
     chain["expected_current_phase"] = phase
-    chain["source_chain_sha256"] = canonical_json_sha256(
-        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
-    )
+    chain["semantic_clone_payload"]["signal"]["current_phase"] = phase
+    chain = _resign_chain(chain)
     receipt = build_runtime_signal_receipt(
         chain,
         scenario_id=chain["scenario_id"],
@@ -399,7 +510,7 @@ def test_r0_reviewer_accepts_certified_no_signal_and_rejects_missing_source() ->
         "source_map_sha256": case["source_map_sha256"],
         "route_lanelet_ids": [20, 21],
         "route_geometry_sha256": canonical_json_sha256(
-            semantic["route_polyline_local_m"]
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
         ),
         "traffic_light_regulatory_element_ids": [],
         "semantic_clone_payload": semantic,
@@ -442,6 +553,7 @@ def test_r0_reviewer_accepts_certified_no_signal_and_rejects_missing_source() ->
 
 def test_full_config_reviewer_independently_rebuilds_exact_receipt(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     preflight = tmp_path / "preflight"
     routes = preflight / "routes"
@@ -462,6 +574,21 @@ def test_full_config_reviewer_independently_rebuilds_exact_receipt(
     chain["source_map_sha256"] = map_sha
     chain["source_chain_sha256"] = canonical_json_sha256(
         {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    monkeypatch.setattr(
+        full_config_reviewer,
+        "_independent_validate_route_pickle",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        full_config_reviewer,
+        "_load_independent_map_builder",
+        lambda *_args, **_kwargs: object(),
+    )
+    monkeypatch.setattr(
+        full_config_reviewer,
+        "_independent_reconstruct_chain",
+        lambda *_args, **_kwargs: chain,
     )
     checkpoint = tmp_path / "checkpoint.pth"
     args_json = tmp_path / "args.json"
@@ -487,6 +614,7 @@ def test_full_config_reviewer_independently_rebuilds_exact_receipt(
         template=template,
         generation_scales_sha256="a" * 64,
         static_weights_sha256="b" * 64,
+        dp_repo=tmp_path,
     )
     assert len(receipts) == 1
     assert set(receipts[0]) == full_config_reviewer.CONFIG_RECEIPT_FIELDS
@@ -515,7 +643,39 @@ def test_full_config_reviewer_independently_rebuilds_exact_receipt(
                 template=template,
                 generation_scales_sha256="a" * 64,
                 static_weights_sha256="b" * 64,
+                dp_repo=tmp_path,
             )
+
+
+def test_full_config_reviewer_local_semantic_oracle_rejects_formal_and_geometry_mutations() -> None:
+    case = _case()
+    route = np.column_stack((np.linspace(0.0, 100.0, 101), np.zeros(101)))
+    stop = np.asarray([[20.0, -2.0], [20.0, 2.0]])
+    production = build_semantic_clone_payload(
+        case, route_polyline_world=route, stop_line_world=stop
+    )
+    independent = full_config_reviewer._independent_semantic_payload(case, route, stop)
+    assert independent == production
+
+    mutations = []
+    ego_speed = copy.deepcopy(case)
+    ego_speed["parameters"]["ego_speed_mps"] = 131.0
+    mutations.append((ego_speed, route, stop))
+    actor = copy.deepcopy(case)
+    actor["actors"][0]["longitudinal_speed_mps"] += 0.25
+    mutations.append((actor, route, stop))
+    route_mutated = route.copy()
+    route_mutated[:, 1] = np.linspace(0.0, 1.0, len(route_mutated))
+    mutations.append((case, route_mutated, stop))
+    stop_mutated = stop + np.asarray([1.0, 0.0])
+    mutations.append((case, route, stop_mutated))
+    for changed_case, changed_route, changed_stop in mutations:
+        changed = full_config_reviewer._independent_semantic_payload(
+            changed_case, changed_route, changed_stop
+        )
+        assert full_config_reviewer._oracle_sha256(changed) != (
+            full_config_reviewer._oracle_sha256(independent)
+        )
 
 
 def test_lane_and_clearance_formulas_use_asymmetric_boundary_and_obb_surface() -> None:

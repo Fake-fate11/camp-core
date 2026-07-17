@@ -5,6 +5,7 @@ import copy
 from contextlib import contextmanager
 import json
 from pathlib import Path
+import shutil
 from types import SimpleNamespace
 
 import numpy as np
@@ -32,6 +33,7 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
 )
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (
     EXPECTED_ROOT_STATUSES,
+    ROOT_CONTRACTS,
     build_critical_implementation_manifest,
     consume_one_shot_nonce,
     verify_dual_head_contract,
@@ -635,6 +637,7 @@ def test_minimal_self_signed_1500_preflight_is_rejected_as_incomplete(
             critical_implementation_manifest=build_critical_implementation_manifest(
                 Path(__file__).resolve().parents[2]
             ),
+            expected_dp_repo=tmp_path,
         )
     with pytest.raises(ValueError, match="report contract drifted"):
         full_config_reviewer.review(artifact, corpus._verify_seal(artifact))
@@ -798,12 +801,42 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
     head = "e" * 40
     fixed = corpus.FIXED_DP_HEAD
 
-    def make(role: str, report: dict[str, object], report_file: str = "report.json"):
+    def make(role: str, report: dict[str, object], report_file: str | None = None):
+        contract = ROOT_CONTRACTS[role]
+        report_file = report_file or str(contract["report_file"])
         artifact = tmp_path / role
         artifact.mkdir()
-        report.update(status=EXPECTED_ROOT_STATUSES[role], camp_head=head)
+        payload = {field: None for field in contract["fields"]}
+        payload.update(report)
+        payload["schema_version"] = contract["schema_version"]
+        payload["status"] = EXPECTED_ROOT_STATUSES[role]
+        for key in (
+            "fresh_b2_opened", "full_r_authorized", "full_r_started",
+            "training_authorized", "training_executed", "calibration_authorized",
+            "calibration_executed", "r_authorized", "monitor_authorized",
+            "monitor_started", "scene_runtime_authorized", "scene_runtime_connected",
+            "v2i_authorized", "v2i_enabled",
+        ):
+            if key in payload:
+                payload[key] = False
+        if "outcome_fields_consumed" in payload:
+            payload["outcome_fields_consumed"] = []
+        if "fixed_dp_head" in payload:
+            payload["fixed_dp_head"] = fixed
+        if role == "a11_ledger":
+            payload["authority"] = {
+                **dict(payload.get("authority") or {}),
+                "stage_a_producer_head": head,
+                "fixed_dp_head": fixed,
+            }
+        elif role == "a11_decision":
+            payload["corrected_source_head"] = head
+        elif role in {"a11_validation", "r01_source_review", "r01_bounded_review"}:
+            payload["review_head"] = head
+        else:
+            payload["camp_head"] = head
         (artifact / report_file).write_text(
-            json.dumps(report, sort_keys=True) + "\n", encoding="utf-8"
+            json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8"
         )
         (artifact / "HEADS").write_text(
             f"camp_head={head}\nfixed_dp_head={fixed}\n", encoding="ascii"
@@ -822,27 +855,42 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
     )
     ledger = make(
         "a11_ledger",
-        {"authority": {"ultra_decision_root_sha256": decision[1]}},
+        {"authority": {
+            "ultra_decision_root_sha256": decision[1],
+            "ultra_decision_artifact": str(decision[0]),
+        }},
     )
     validation = make(
-        "a11_validation", {"reviewed_root_sha256": ledger[1]}
+        "a11_validation", {
+            "reviewed_root_sha256": ledger[1],
+            "reviewed_artifact": str(ledger[0]),
+        }
     )
     source = make(
         "r01_source",
         {
             "ultra_decision_root_sha256": decision[1],
             "a1_ledger_root_sha256": ledger[1],
-            "a1_validation_root_sha256": validation[1],
+                "a1_validation_root_sha256": validation[1],
+                "ultra_decision_artifact": str(decision[0]),
+                "a1_ledger_artifact": str(ledger[0]),
+                "a1_validation_artifact": str(validation[0]),
+                "rejected_roots": [corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT],
         },
     )
     source_review = make(
-        "r01_source_review", {"reviewed_root_sha256": source[1]}
+        "r01_source_review", {
+            "reviewed_root_sha256": source[1],
+            "reviewed_artifact": str(source[0]),
+        }
     )
     bounded = make(
         "r01_bounded",
         {
             "r0_source_root_sha256": source[1],
-            "r0_review_root_sha256": source_review[1],
+                "r0_review_root_sha256": source_review[1],
+                "r0_source_artifact": str(source[0]),
+                "r0_review_artifact": str(source_review[0]),
         },
     )
     bounded_review = make(
@@ -850,7 +898,8 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
         {
             "reviewed_root_sha256": bounded[1],
             "r0_source_root_sha256": source[1],
-            "r0_source_review_root_sha256": source_review[1],
+                "r0_source_review_root_sha256": source_review[1],
+                "reviewed_artifact": str(bounded[0]),
         },
     )
     rows = {
@@ -887,6 +936,79 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
     with pytest.raises(ValueError):
         verify_seven_root_chain(
             bindings=substituted,
+            implementation_source_head=head,
+            fixed_dp_head=fixed,
+            rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+        )
+
+    def mutated_role(
+        role: str,
+        name: str,
+        mutate_report=None,
+        mutate_heads=None,
+    ) -> dict[str, dict[str, str]]:
+        target = tmp_path / f"mutation_{name}_{role}"
+        shutil.copytree(Path(rows[role]["path"]), target)
+        (target / "SHA256SUMS").unlink()
+        (target / "ROOT_SHA256SUMS").unlink()
+        report_path = target / rows[role]["report_file"]
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        if mutate_report is not None:
+            mutate_report(payload)
+            report_path.write_text(
+                json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        if mutate_heads is not None:
+            heads_path = target / "HEADS"
+            heads_path.write_text(
+                mutate_heads(heads_path.read_text(encoding="ascii")),
+                encoding="ascii",
+            )
+        changed = copy.deepcopy(rows)
+        changed[role]["path"] = str(target)
+        changed[role]["root_sha256"] = seal_artifact(target, label=name)
+        return changed
+
+    mutations = [
+        mutated_role(
+            "a11_decision", "extra_field", lambda value: value.__setitem__("extra", 1)
+        ),
+        mutated_role(
+            "a11_decision", "schema", lambda value: value.__setitem__("schema_version", "bad")
+        ),
+        mutated_role(
+            "a11_decision", "status", lambda value: value.__setitem__("status", "bad")
+        ),
+        mutated_role(
+            "a11_decision", "rejected", lambda value: value.__setitem__("rejected_roots", [])
+        ),
+        mutated_role(
+            "a11_decision", "fresh", lambda value: value.__setitem__("fresh_b2_opened", True)
+        ),
+        mutated_role(
+            "a11_decision", "full_r", lambda value: value.__setitem__("full_r_authorized", True)
+        ),
+        mutated_role(
+            "r01_source", "crosslink", lambda value: value.__setitem__("a1_ledger_root_sha256", "0" * 64)
+        ),
+        mutated_role(
+            "r01_source", "head_conflict", mutate_heads=lambda value: value.replace(head, "f" * 40)
+        ),
+    ]
+    for mutation in mutations:
+        with pytest.raises(ValueError):
+            verify_seven_root_chain(
+                bindings=mutation,
+                implementation_source_head=head,
+                fixed_dp_head=fixed,
+                rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+            )
+
+    bad_report_file = copy.deepcopy(rows)
+    bad_report_file["a11_decision"]["report_file"] = "report.json"
+    with pytest.raises(ValueError):
+        verify_seven_root_chain(
+            bindings=bad_report_file,
             implementation_source_head=head,
             fixed_dp_head=fixed,
             rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,

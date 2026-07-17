@@ -274,7 +274,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("s01_review_root_sha256") != PASSED_REVIEW_ROOT
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or input_roots.get("a0") != A0_ROOT
-        or decision.get("status") != "A1_1_R0_1_only_released"
+        or decision.get("status") != "A1_2_R0_2_only_released"
         or decision.get("full_r_authorized") is not False
         or a0_report.get("status") != "passed"
         or ledger.get("status")

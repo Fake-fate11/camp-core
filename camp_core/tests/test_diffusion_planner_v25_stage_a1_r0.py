@@ -260,6 +260,8 @@ def test_full_r_executor_cannot_self_authorize_without_ultra_chain() -> None:
             camp_head="a" * 40,
             mode="preflight",
             output_dir=Path("/sealed/not-created"),
+            probe_template=Path("/sealed/probe-template.json"),
+            dp_repo=Path("/sealed/fixed-dp"),
         )
 
 
@@ -310,9 +312,9 @@ def _write_stage_a_inputs(tmp_path: Path) -> tuple[Path, str, Path, str]:
     decision = tmp_path / "decision"
     decision.mkdir()
     decision_payload = {
-        "schema_version": "camp_dp_v25_ultra_stage_a11_r01_decision_v2",
-        "status": "A1_1_R0_1_only_released",
-        "decision_date": "2026-07-17",
+        "schema_version": "camp_dp_v25_ultra_stage_a12_r02_decision_v3",
+        "status": "A1_2_R0_2_only_released",
+        "decision_date": "2026-07-18",
         "source_thread_id": "test",
         "corrected_source_head": "a" * 40,
         "fixed_dp_head": builder.FIXED_DP_HEAD,
@@ -327,8 +329,8 @@ def _write_stage_a_inputs(tmp_path: Path) -> tuple[Path, str, Path, str]:
         "selection_eligibility": "source_valid",
         "empty_source_valid": "fail_closed",
         "candidate0_or_all_k_fallback_allowed": False,
-        "a1_1_authorized": True,
-        "r0_1_source_authority_preflight_authorized": True,
+        "a1_2_authorized": True,
+        "r0_2_source_authority_preflight_authorized": True,
         "bounded_21red_1nosignal_x64_authorized_after_source_pass": True,
         "full_r_authorized": False,
         "monitor_authorized": False,

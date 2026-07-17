@@ -19,6 +19,7 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     NO_SIGNAL_CHAIN_SCHEMA_VERSION,
     build_no_signal_causal_atom_input,
     build_runtime_no_signal_receipt,
+    build_semantic_clone_payload,
     canonical_json_sha256,
 )
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as runner
@@ -171,14 +172,19 @@ def _snapshot() -> dict:
 
 
 def _no_signal_authority(case: dict) -> tuple[dict, dict]:
-    semantic = {"schema_version": "test_semantic_v1", "physical": "route"}
+    route = np.column_stack((np.linspace(0.0, 100.0, 101), np.zeros(101)))
+    semantic = build_semantic_clone_payload(
+        case, route_polyline_world=route, stop_line_world=None
+    )
     chain = {
         "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
         "scenario_id": case["scenario_id"],
         "route_identity_sha256": case["route_identity_sha256"],
         "source_map_sha256": case["source_map_sha256"],
         "route_lanelet_ids": list(case["route_spec"]["lanelet_ids"]),
-        "route_geometry_sha256": "e" * 64,
+        "route_geometry_sha256": canonical_json_sha256(
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+        ),
         "traffic_light_regulatory_element_ids": [],
         "semantic_clone_payload": semantic,
         "semantic_clone_sha256": canonical_json_sha256(semantic),
@@ -268,6 +274,81 @@ def test_combined_snapshot_rejects_default_candidate0_identity_drift() -> None:
     snapshot = _snapshot()
     snapshot["sidecar"]["default_output_sha256"] = "e" * 64
 
+    with pytest.raises(ValueError, match="score/mask invariant"):
+        combine_snapshot_context(
+            snapshot=snapshot, context=_context(), case=_case(), tick_index=0
+        )
+
+
+@pytest.mark.parametrize(
+    "field,mutate",
+    [
+        ("atom", lambda snapshot: snapshot["feature_payload"]["atom_matrix"][0].__setitem__(0, "0.0")),
+        ("candidate", lambda snapshot: snapshot["feature_payload"]["candidate_tensor"][0][0].__setitem__(0, True)),
+        ("default", lambda snapshot: snapshot["feature_payload"]["default_output"][0].__setitem__(0, "0")),
+        ("score", lambda snapshot: snapshot["sidecar"]["scores"].__setitem__(0, "0.0")),
+    ],
+)
+def test_combined_snapshot_rejects_numeric_json_coercion(field: str, mutate) -> None:
+    snapshot = _snapshot()
+    mutate(snapshot)
+    with pytest.raises(ValueError, match="finite native numbers"):
+        combine_snapshot_context(
+            snapshot=snapshot, context=_context(), case=_case(), tick_index=0
+        )
+
+    context = _context()
+    context["raw_context"][RAW_FEATURE_NAMES[0]] = "0.0"
+    with pytest.raises(ValueError, match="finite native numbers"):
+        combine_snapshot_context(
+            snapshot=_snapshot(), context=context, case=_case(), tick_index=0
+        )
+
+
+@pytest.mark.parametrize(
+    "source_valid,physical,all_k_high_risk,passes",
+    [
+        ([True] * 7 + [False], [False] * 8, False, True),
+        ([True] * 8, [False] * 8, True, True),
+        ([True] * 8, [True] + [False] * 7, False, True),
+        ([True] * 7 + [False], [False] * 8, True, False),
+        ([True] * 8, [False] * 8, False, False),
+        ([True] * 8, [True] + [False] * 7, True, False),
+    ],
+)
+def test_combined_snapshot_freezes_all_k_high_risk_definition(
+    source_valid: list[bool],
+    physical: list[bool],
+    all_k_high_risk: bool,
+    passes: bool,
+) -> None:
+    snapshot = _snapshot()
+    snapshot["feature_payload"]["source_valid_mask"] = source_valid
+    snapshot["feature_payload"]["atom_source_valid_mask"] = [
+        [value] * 14 for value in source_valid
+    ]
+    snapshot["feature_payload"]["atom_applicable_mask"] = [
+        [value] * 14 for value in source_valid
+    ]
+    snapshot["sidecar"]["source_valid_mask"] = source_valid
+    snapshot["sidecar"]["physical_feasible_mask"] = physical
+    snapshot["sidecar"]["all_k_high_risk"] = all_k_high_risk
+
+    if passes:
+        payload = combine_snapshot_context(
+            snapshot=snapshot, context=_context(), case=_case(), tick_index=0
+        )
+        assert payload["sidecar"]["all_k_high_risk"] is all_k_high_risk
+    else:
+        with pytest.raises(ValueError, match="score/mask invariant"):
+            combine_snapshot_context(
+                snapshot=snapshot, context=_context(), case=_case(), tick_index=0
+            )
+
+
+def test_combined_snapshot_rejects_non_bool_all_k_high_risk() -> None:
+    snapshot = _snapshot()
+    snapshot["sidecar"]["all_k_high_risk"] = 0
     with pytest.raises(ValueError, match="score/mask invariant"):
         combine_snapshot_context(
             snapshot=snapshot, context=_context(), case=_case(), tick_index=0

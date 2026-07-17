@@ -41,10 +41,12 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E40
     validate_fixed_k8_candidate_tensor,
 )
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
+    CANONICAL_JSON_BYTE_SPEC_VERSION,
     EXECUTE_RELEASE_SCHEMA_VERSION,
     PREFLIGHT_RELEASE_SCHEMA_VERSION,
     ROOT_ROLES,
     build_critical_implementation_manifest,
+    canonical_json_bytes,
     consume_one_shot_nonce,
     verify_dual_head_contract,
     verify_seven_root_chain,
@@ -83,8 +85,11 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v3"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v3"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v4"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v4"
+SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
+    "camp_dp_v25_full_r_semantic_authority_chains_v2"
+)
 FORMAL_ARTIFACT = Path(
     "/root/autodl-tmp/"
     "camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_"
@@ -105,6 +110,10 @@ TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
 RELEASE_NONCE_LEDGER = Path(
     "/root/autodl-tmp/.camp_dp_v25_controlled_train_release_nonces"
 )
+S01_NATIVE_SOURCE_ROOTS = {
+    "s01_preflight": "bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451",
+    "s01_review": "facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d",
+}
 SUPERSEDED_PARTIAL_CORPUS_ROOT = (
     "a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481"
 )
@@ -488,6 +497,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         camp_head=camp_head,
         mode="preflight" if args.preflight else "execute",
         output_dir=args.output_dir,
+        probe_template=args.probe_template,
+        dp_repo=args.dp_repo,
     )
     if _file_sha256(args.probe_template) != EXPECTED_TEMPLATE_SHA256:
         raise ValueError("probe template SHA256 mismatch")
@@ -525,7 +536,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     _write_json(
         args.output_dir / "semantic_authority_chains.json",
         {
-            "schema_version": "camp_dp_v25_full_r_semantic_authority_chains_v1",
+            "schema_version": SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION,
             "identity_count": len(semantic_authority_chains),
             "chains_root_sha256": semantic_chain_root,
             "chains": semantic_authority_chains,
@@ -536,6 +547,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     )
     common = {
         "schema_version": SCHEMA_VERSION,
+        "canonical_json_byte_spec": CANONICAL_JSON_BYTE_SPEC_VERSION,
         "camp_head": camp_head,
         "implementation_source_head": full_r_authority[
             "implementation_source_head"
@@ -545,6 +557,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         ],
         "current_repo_head_at_run": camp_head,
         "fixed_dp_head": FIXED_DP_HEAD,
+        "dp_repo": str(args.dp_repo.resolve()),
         "formal_artifact": str(FORMAL_ARTIFACT),
         "formal_root_sha256": formal_receipt,
         "probe_template": str(args.probe_template),
@@ -569,6 +582,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "seven_root_bindings_sha256"
         ],
         "release_run_nonce": full_r_authority["release_run_nonce"],
+        "release_nonce_consumption_marker": full_r_authority[
+            "release_nonce_consumption_marker"
+        ],
         "authorized_output_dir": full_r_authority["authorized_output_dir"],
         "critical_implementation_manifest": full_r_authority[
             "critical_implementation_manifest"
@@ -656,8 +672,28 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "seven_root_bindings_sha256": full_r_authority[
                 "seven_root_bindings_sha256"
             ],
-            "release_run_nonce": full_r_authority["release_run_nonce"],
-            "authorized_output_dir": full_r_authority["authorized_output_dir"],
+            "release_run_nonce": full_r_authority[
+                "preflight_release_run_nonce"
+            ],
+            "release_nonce_consumption_marker": {
+                "path": str(
+                    RELEASE_NONCE_LEDGER
+                    / (
+                        "v25_preflight_"
+                        f"{full_r_authority['preflight_release_run_nonce']}.consumed.json"
+                    )
+                ),
+                "sha256": _file_sha256(
+                    RELEASE_NONCE_LEDGER
+                    / (
+                        "v25_preflight_"
+                        f"{full_r_authority['preflight_release_run_nonce']}.consumed.json"
+                    )
+                ),
+            },
+            "authorized_output_dir": full_r_authority[
+                "preflight_authorized_output_dir"
+            ],
             "critical_implementation_manifest": full_r_authority[
                 "critical_implementation_manifest"
             ],
@@ -668,6 +704,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         critical_implementation_manifest=full_r_authority[
             "critical_implementation_manifest"
         ],
+        expected_dp_repo=args.dp_repo,
     )
     common = {
         **common,
@@ -704,6 +741,8 @@ def _verify_full_r_authority(
     camp_head: str,
     mode: str,
     output_dir: Path,
+    probe_template: Path,
+    dp_repo: Path,
 ) -> dict[str, Any]:
     if (
         r0_review_artifact is None
@@ -729,6 +768,16 @@ def _verify_full_r_authority(
         "implementation_source_head",
         "pointer_head_at_release",
         "fixed_dp_head",
+        "formal_artifact",
+        "formal_root_sha256",
+        "probe_template",
+        "probe_template_sha256",
+        "generation_scales",
+        "static_weights",
+        "dp_repo",
+        "fixed_dp_checkpoint",
+        "fixed_dp_args_json",
+        "native_source_roots",
         "root_artifacts",
         "rejected_roots",
         "critical_implementation_manifest",
@@ -749,12 +798,42 @@ def _verify_full_r_authority(
         or preflight_release.get("full_config_preflight_authorized") is not True
         or preflight_release.get("full_r_execute_authorized") is not False
         or preflight_release.get("fixed_dp_head") != FIXED_DP_HEAD
+        or Path(str(preflight_release.get("formal_artifact"))).resolve()
+        != FORMAL_ARTIFACT.resolve()
+        or preflight_release.get("formal_root_sha256") != FORMAL_ROOT_SHA256
+        or Path(str(preflight_release.get("probe_template"))).resolve()
+        != probe_template.resolve()
+        or preflight_release.get("probe_template_sha256")
+        != EXPECTED_TEMPLATE_SHA256
+        or preflight_release.get("generation_scales")
+        != {
+            "path": str(CORRECTED_GENERATION_SCALES),
+            "sha256": _file_sha256(CORRECTED_GENERATION_SCALES),
+        }
+        or Path(str(preflight_release.get("dp_repo"))).resolve()
+        != dp_repo.resolve()
+        or preflight_release.get("native_source_roots") != S01_NATIVE_SOURCE_ROOTS
         or preflight_release.get("rejected_roots")
         != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or preflight_release.get("fresh_b2_opened") is not False
         or preflight_release.get("outcome_fields_consumed") != []
     ):
         raise ValueError("full R config-preflight authority chain is invalid")
+    release_template = _load_json(probe_template)
+    fixed_template = release_template.get("fixed_dp")
+    static_weights = release_template.get("selector", {}).get("weights")
+    if (
+        not isinstance(fixed_template, Mapping)
+        or fixed_template.get("head") != FIXED_DP_HEAD
+        or preflight_release.get("fixed_dp_checkpoint")
+        != fixed_template.get("checkpoint")
+        or preflight_release.get("fixed_dp_args_json")
+        != fixed_template.get("args_json")
+        or preflight_release.get("static_weights") != static_weights
+        or _git_head(dp_repo) != FIXED_DP_HEAD
+        or _tracked_dirty(dp_repo)
+    ):
+        raise ValueError("full R release fixed assets/live DP authority drifted")
     implementation_source_head = str(
         preflight_release["implementation_source_head"]
     )
@@ -820,6 +899,10 @@ def _verify_full_r_authority(
         "seven_root_bindings_sha256": _canonical_sha256(root_bindings),
         "release_run_nonce": str(preflight_release["run_nonce"]),
         "authorized_output_dir": str(preflight_release["authorized_output_dir"]),
+        "preflight_release_run_nonce": str(preflight_release["run_nonce"]),
+        "preflight_authorized_output_dir": str(
+            preflight_release["authorized_output_dir"]
+        ),
         "critical_implementation_manifest": dict(manifest),
     }
     if mode == "preflight":
@@ -834,13 +917,17 @@ def _verify_full_r_authority(
             )
         ):
             raise ValueError("full-config preflight cannot consume execute authority")
-        consume_one_shot_nonce(
+        marker = consume_one_shot_nonce(
             ledger_dir=RELEASE_NONCE_LEDGER,
             gate="preflight",
             nonce=str(preflight_release["run_nonce"]),
             authorized_output_dir=str(preflight_release["authorized_output_dir"]),
             requested_output_dir=output_dir,
         )
+        authority["release_nonce_consumption_marker"] = {
+            "path": str(marker),
+            "sha256": _file_sha256(marker),
+        }
         return authority
     if (
         preflight_artifact is None
@@ -924,7 +1011,7 @@ def _verify_full_r_authority(
         current_pointer_head=str(execute_release["pointer_head_at_release"]),
         implementation_manifest=manifest,
     )
-    consume_one_shot_nonce(
+    marker = consume_one_shot_nonce(
         ledger_dir=RELEASE_NONCE_LEDGER,
         gate="execute",
         nonce=str(execute_release["run_nonce"]),
@@ -939,6 +1026,10 @@ def _verify_full_r_authority(
             "execute_release_root_sha256": execute_release_seal["root_sha256"],
             "release_run_nonce": str(execute_release["run_nonce"]),
             "authorized_output_dir": str(execute_release["authorized_output_dir"]),
+            "release_nonce_consumption_marker": {
+                "path": str(marker),
+                "sha256": _file_sha256(marker),
+            },
         }
     )
     return authority
@@ -1205,8 +1296,9 @@ def _preflight(
     route_assets: Mapping[str, Mapping[str, str]],
     common: Mapping[str, Any],
 ) -> dict[str, Any]:
-    if not _lock_is_free(TRAIN_LOCK):
-        raise RuntimeError("controlled train corpus lock is held")
+    # main() already holds TRAIN_LOCK from before output creation through seal.
+    # A second flock probe on a second file descriptor would reject the owning
+    # process itself on Linux, so the bounded preflight must not re-lock here.
     shared = None
     seen_routes: set[str] = set()
     seen_maps: set[str] = set()
@@ -1364,6 +1456,27 @@ def _asset_receipt_matches(payload: Any) -> bool:
     return path.is_file() and _file_sha256(path) == payload["sha256"]
 
 
+def _preflight_nonce_marker_matches(
+    payload: Any, *, nonce: Any, authorized_output_dir: Any
+) -> bool:
+    if not isinstance(payload, Mapping) or set(payload) != {"path", "sha256"}:
+        return False
+    expected = RELEASE_NONCE_LEDGER / f"v25_preflight_{nonce}.consumed.json"
+    path = Path(str(payload["path"]))
+    if (
+        path.resolve() != expected.resolve()
+        or not path.is_file()
+        or _file_sha256(path) != payload["sha256"]
+    ):
+        return False
+    marker = _load_json(path)
+    return marker == {
+        "gate": "preflight",
+        "nonce": nonce,
+        "authorized_output_dir": str(Path(str(authorized_output_dir)).resolve()),
+    }
+
+
 def _verify_preflight(
     path: Path,
     camp_head: str,
@@ -1372,6 +1485,7 @@ def _verify_preflight(
     expected_authority: Mapping[str, Any],
     implementation_source_head: str,
     critical_implementation_manifest: Mapping[str, Any],
+    expected_dp_repo: Path,
 ) -> dict[str, Any]:
     root = _verify_seal(path)
     report = _load_json(path / "report.json")
@@ -1382,6 +1496,7 @@ def _verify_preflight(
     receipts = report.get("config_receipts")
     required_keys = {
         "schema_version",
+        "canonical_json_byte_spec",
         "status",
         "mode",
         "camp_head",
@@ -1389,6 +1504,7 @@ def _verify_preflight(
         "released_camp_source_head",
         "current_repo_head_at_run",
         "fixed_dp_head",
+        "dp_repo",
         "formal_artifact",
         "formal_root_sha256",
         "probe_template",
@@ -1431,6 +1547,7 @@ def _verify_preflight(
         "seven_root_bindings",
         "seven_root_bindings_sha256",
         "release_run_nonce",
+        "release_nonce_consumption_marker",
         "authorized_output_dir",
         "critical_implementation_manifest",
         "terminal_lock_scope",
@@ -1441,14 +1558,20 @@ def _verify_preflight(
         or report.get("status") != "passed"
         or report.get("mode") != "preflight"
         or report.get("schema_version") != SCHEMA_VERSION
+        or report.get("canonical_json_byte_spec")
+        != CANONICAL_JSON_BYTE_SPEC_VERSION
         or report.get("implementation_source_head")
         != implementation_source_head
         or report.get("released_camp_source_head")
         != implementation_source_head
         or report.get("camp_head") != report.get("current_repo_head_at_run")
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
+        or Path(str(report.get("dp_repo"))).resolve() != expected_dp_repo.resolve()
         or report.get("formal_artifact") != str(FORMAL_ARTIFACT)
         or report.get("formal_root_sha256") != FORMAL_ROOT_SHA256
+        or not Path(str(report.get("probe_template"))).is_file()
+        or _file_sha256(Path(str(report.get("probe_template"))))
+        != EXPECTED_TEMPLATE_SHA256
         or report.get("probe_template_sha256") != EXPECTED_TEMPLATE_SHA256
         or report.get("generation_scales")
         != {
@@ -1501,6 +1624,17 @@ def _verify_preflight(
         or report.get("claim_authorized") is not False
         or report.get("fresh_b_opened") is not False
         or report.get("outcome_fields_consumed") != []
+        or report.get("train_lock") != str(TRAIN_LOCK)
+        or report.get("minimum_free_bytes") != MINIMUM_FREE_BYTES
+        or type(report.get("free_bytes_at_start")) is not int
+        or report.get("free_bytes_at_start") < MINIMUM_FREE_BYTES
+        or report.get("terminal_lock_scope")
+        != "preflight_or_execution_from_before_output_creation_through_progress_report_run_exit_and_seal"
+        or not _preflight_nonce_marker_matches(
+            report.get("release_nonce_consumption_marker"),
+            nonce=report.get("release_run_nonce"),
+            authorized_output_dir=report.get("authorized_output_dir"),
+        )
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or any(report.get(key) != value for key, value in expected_authority.items())
         or not all(
@@ -1789,6 +1923,32 @@ def _execute(
     }
 
 
+def _strict_json_numeric_array(
+    value: Any,
+    shape: tuple[int, ...],
+    *,
+    label: str,
+    dtype: np.dtype[Any] = np.dtype(np.float64),
+) -> np.ndarray:
+    """Reject bool/string/ragged/nonfinite numeric snapshot encodings."""
+    if not isinstance(value, list):
+        raise ValueError(f"{label} must be a JSON list")
+
+    def flatten(node: Any, depth: int) -> list[float]:
+        if depth == len(shape):
+            if type(node) not in (int, float) or not np.isfinite(float(node)):
+                raise ValueError(f"{label} elements must be finite native numbers")
+            return [float(node)]
+        if not isinstance(node, list) or len(node) != shape[depth]:
+            raise ValueError(f"{label} shape drifted")
+        flattened: list[float] = []
+        for child in node:
+            flattened.extend(flatten(child, depth + 1))
+        return flattened
+
+    return np.asarray(flatten(value, 0), dtype=dtype).reshape(shape)
+
+
 def combine_snapshot_context(
     *,
     snapshot: Mapping[str, Any],
@@ -1812,11 +1972,23 @@ def combine_snapshot_context(
         )
     ):
         raise ValueError("controlled snapshot/context payload is malformed")
-    atoms = np.asarray(features.get("atom_matrix"), dtype=np.float64)
-    candidate_tensor = validate_fixed_k8_candidate_tensor(
-        np.asarray(features.get("candidate_tensor"), dtype=np.float32)
+    atoms = _strict_json_numeric_array(
+        features.get("atom_matrix"), (8, 14), label="atom_matrix"
     )
-    default_output = np.asarray(features.get("default_output"), dtype=np.float32)
+    candidate_tensor = validate_fixed_k8_candidate_tensor(
+        _strict_json_numeric_array(
+            features.get("candidate_tensor"),
+            (8, 80, 4),
+            label="candidate_tensor",
+            dtype=np.dtype(np.float32),
+        )
+    )
+    default_output = _strict_json_numeric_array(
+        features.get("default_output"),
+        (80, 4),
+        label="default_output",
+        dtype=np.dtype(np.float32),
+    )
     valid = features.get("source_valid_mask")
     atom_source_valid = np.asarray(features.get("atom_source_valid_mask"))
     atom_applicable = np.asarray(features.get("atom_applicable_mask"))
@@ -1865,7 +2037,11 @@ def combine_snapshot_context(
         )
     if tuple(raw) != RAW_FEATURE_NAMES or tuple(source_complete) != RAW_FEATURE_NAMES:
         raise ValueError("controlled raw-context schema drifted")
-    raw_values = np.asarray([raw[name] for name in RAW_FEATURE_NAMES], dtype=np.float64)
+    raw_values = _strict_json_numeric_array(
+        [raw[name] for name in RAW_FEATURE_NAMES],
+        (len(RAW_FEATURE_NAMES),),
+        label="raw_context",
+    )
     if not np.isfinite(raw_values).all() or any(
         not isinstance(source_complete[name], bool) for name in RAW_FEATURE_NAMES
     ):
@@ -1880,11 +2056,14 @@ def combine_snapshot_context(
         raise ValueError("controlled no-V2I context exposed future signal timing")
     physical = sidecar.get("physical_feasible_mask")
     sidecar_source_valid = sidecar.get("source_valid_mask")
+    all_k_high_risk = sidecar.get("all_k_high_risk")
     default_output_sha256 = sidecar.get("default_output_sha256")
     candidate0_sha256 = sidecar.get("candidate0_sha256")
     default_candidate0_identity = sidecar.get("default_candidate0_identity")
     selected_index = sidecar.get("selected_index")
-    scores = np.asarray(sidecar.get("scores"), dtype=np.float64)
+    scores = _strict_json_numeric_array(
+        sidecar.get("scores"), (8,), label="selector scores"
+    )
     if (
         not isinstance(physical, list)
         or len(physical) != 8
@@ -1896,6 +2075,12 @@ def combine_snapshot_context(
         or np.any(
             np.asarray(physical, dtype=np.bool_)
             & ~np.asarray(valid, dtype=np.bool_)
+        )
+        or type(all_k_high_risk) is not bool
+        or all_k_high_risk
+        is not bool(
+            np.asarray(sidecar_source_valid, dtype=np.bool_).all()
+            and not np.asarray(physical, dtype=np.bool_).any()
         )
         or isinstance(selected_index, bool)
         or not isinstance(selected_index, int)
@@ -2042,7 +2227,7 @@ def combine_snapshot_context(
             "causal_input_sha256": str(sidecar["causal_input_sha256"]),
             "physical_feasible_mask": list(physical),
             "source_valid_mask": list(sidecar_source_valid),
-            "all_k_high_risk": bool(sidecar["all_k_high_risk"]),
+            "all_k_high_risk": all_k_high_risk,
             "selected_index": int(selected_index),
             "selected_trajectory_sha256": str(
                 sidecar["selected_trajectory_sha256"]
@@ -2094,9 +2279,7 @@ def _verify_case_assets_cached(
 
 
 def _canonical_json_bytes(payload: Any) -> bytes:
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), allow_nan=False
-    ).encode("utf-8")
+    return canonical_json_bytes(payload)
 
 
 def _canonical_sha256(payload: Any) -> str:
