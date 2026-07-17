@@ -684,7 +684,7 @@ def build_ledger(
             "retained_failures_remain_in_denominator": True,
             "failure_disposition": "artifact scientifically_ineligible; B/training blocked even if count is below capability cap 32",
         },
-        "dag_contract": plan["dag"],
+        "dag_contract": _dag_contract(),
         "stage_boundaries": {
             "r_authorized": False,
             "full_corpus_started": False,

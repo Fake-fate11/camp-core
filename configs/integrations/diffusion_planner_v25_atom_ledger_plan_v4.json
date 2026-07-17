@@ -86,13 +86,19 @@
     "all_k_bad_retained": true
   },
   "dag": {
-    "A1_1_exit": "new ledger and independent validator sealed; earlier A1/R0 roots remain superseded diagnostic",
-    "R0_1_exit": "21 red identity-chain receipts plus one no-signal identity each run for 64 sequential-K8 ticks and independently reviewed",
-    "full_R_preflight_release": "Ultra release authorizes only the sealed 1500-config preflight",
-    "full_R_execute_release": "independent preflight review then a distinct Ultra execute release bound to both roots",
-    "R_exit": "1500 identity results, each exactly 64 ticks or zero typed retained failure snapshots, sealed and independently reviewed",
-    "B_entry": "R sealed/reviewed and Ultra released",
-    "C_D": "B PASS then separate Ultra release for the seven-family and focused atom audits",
-    "later": "E1 -> T/E2 -> Q -> one-shot F -> E3, each separately Ultra-gated"
+    "S0_to_A": "Ultra S0.1 PASS plus A0 strict-inventory supplement PASS",
+    "A_exit": "14 rows complete; independent semantics/numeric validation PASS; source-valid progress reference frozen",
+    "R0_1_entry": "A1.1 PASS plus sealed Ultra A1.1/R0.1 decision; full R remains closed",
+    "R_entry": "Ultra first releases only a sealed 1500-config preflight; independent review and a distinct Ultra execute release are then mandatory",
+    "R_exit": "1500x64 sequential corpus sealed and independently reviewed; red scientific coverage passes; then stop",
+    "B_entry": "R sealed+reviewed and Ultra-released; train-only empirical audit only",
+    "C_entry": "B PASS and Ultra release; outcome-blind seven-family single-axis perturbations",
+    "C_exit": "expected atom activation/direction/source completeness reported PASS/WARN/FAIL; no outcome-selected parameters",
+    "D_entry": "B PASS and Ultra release; focused algebra/source audit may run read-only in parallel with C only if released",
+    "D_exit": "jerk/speed/lane-clearance/red/lateral findings classified by remediation class and combined review sealed",
+    "E1_entry": "C and D combined review PASS plus Ultra release",
+    "training_calibration_fresh": "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated",
+    "outcome_red_10m_heuristic_gate": "must be replaced or independently certified before calibration or Fresh B2 pre-open",
+    "current_authority": "A1.1/R0.1 bounded only; full R/B/C/D/E/T/Q/F remain closed"
   }
 }

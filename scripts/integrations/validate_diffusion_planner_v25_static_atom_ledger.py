@@ -520,6 +520,26 @@ def _independent_kinematic_algebra() -> dict[str, Any]:
     }
 
 
+def _expected_dag_contract() -> dict[str, str]:
+    """Independent exact Stage-A DAG contract; do not import producer values."""
+    return {
+        "S0_to_A": "Ultra S0.1 PASS plus A0 strict-inventory supplement PASS",
+        "A_exit": "14 rows complete; independent semantics/numeric validation PASS; source-valid progress reference frozen",
+        "R0_1_entry": "A1.1 PASS plus sealed Ultra A1.1/R0.1 decision; full R remains closed",
+        "R_entry": "Ultra first releases only a sealed 1500-config preflight; independent review and a distinct Ultra execute release are then mandatory",
+        "R_exit": "1500x64 sequential corpus sealed and independently reviewed; red scientific coverage passes; then stop",
+        "B_entry": "R sealed+reviewed and Ultra-released; train-only empirical audit only",
+        "C_entry": "B PASS and Ultra release; outcome-blind seven-family single-axis perturbations",
+        "C_exit": "expected atom activation/direction/source completeness reported PASS/WARN/FAIL; no outcome-selected parameters",
+        "D_entry": "B PASS and Ultra release; focused algebra/source audit may run read-only in parallel with C only if released",
+        "D_exit": "jerk/speed/lane-clearance/red/lateral findings classified by remediation class and combined review sealed",
+        "E1_entry": "C and D combined review PASS plus Ultra release",
+        "training_calibration_fresh": "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated",
+        "outcome_red_10m_heuristic_gate": "must be replaced or independently certified before calibration or Fresh B2 pre-open",
+        "current_authority": "A1.1/R0.1 bounded only; full R/B/C/D/E/T/Q/F remain closed",
+    }
+
+
 def validate_ledger(
     *, ledger_artifact: Path, ledger_root_sha256: str
 ) -> dict[str, Any]:
@@ -722,13 +742,7 @@ def validate_ledger(
             and red.get("minimum_complete_by_tier")
             == {"easy": 4, "borderline": 7, "high_risk": 4}
         ),
-        "dag_c_d_gated": (
-            isinstance(dag, Mapping)
-            and "Ultra release" in str(dag.get("C_entry"))
-            and "Ultra release" in str(dag.get("D_entry"))
-            and "PASS/WARN/FAIL" in str(dag.get("C_exit"))
-            and "remediation" in str(dag.get("D_exit"))
-        ),
+        "dag_c_d_gated": dag == _expected_dag_contract(),
         "progress_source_valid_frozen": ledger.get(
             "progress_shortfall_decision", {}
         )

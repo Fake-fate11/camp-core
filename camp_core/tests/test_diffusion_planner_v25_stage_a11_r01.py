@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import copy
+import json
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -26,6 +28,24 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
 from scripts.integrations.run_diffusion_planner_dp_camp_v19_worker import (
     select_camp_candidate,
 )
+from scripts.integrations.build_diffusion_planner_v25_static_atom_ledger import (
+    _dag_contract as producer_dag_contract,
+)
+from scripts.integrations.validate_diffusion_planner_v25_static_atom_ledger import (
+    _expected_dag_contract as reviewer_dag_contract,
+)
+
+
+def test_stage_a_dag_plan_matches_independent_exact_contract() -> None:
+    plan_path = (
+        Path(__file__).resolve().parents[2]
+        / "configs"
+        / "integrations"
+        / "diffusion_planner_v25_atom_ledger_plan_v4.json"
+    )
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    assert plan["dag"] == producer_dag_contract()
+    assert plan["dag"] == reviewer_dag_contract()
 
 
 def _case() -> dict:
