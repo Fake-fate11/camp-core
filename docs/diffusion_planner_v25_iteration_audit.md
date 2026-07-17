@@ -996,3 +996,216 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=48495505408
 current_v25_phase=A_static_atom_ledger_decision_package
 next_work_target=ultra_read_only_stage_A_review_and_progress_reference_decision_before_R
+
+## Stage A1/R0: Frozen Semantics, Signal Authority, and Bounded K8 Preflight
+
+Ultra's 2026-07-17 Stage-A decision accepted S0.1/A0 but downgraded the first
+ledger and validation roots `05449b7a...` and `e07bfcbd...` to superseded
+diagnostic evidence. It released only A1 and R0; full R, a 1,500-identity
+worker/monitor, training, calibration, Scene runtime, V2I, and Fresh remained
+closed. The implementation source range is `8798f3bfda8f04867e2f70aee7472b74931b1c34`
+through `ffd2ec647dabe46734fabe80779027429c59fe04`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+### A1 corrections and independent ledger validation
+
+The canonical progress contract is now frozen to
+`source_valid_candidate_set_reference`: selection eligibility is exactly the
+source-valid candidate set, `r=max(progress[j] where source_valid[j])`, and
+`progress_shortfall[k]=max(r-progress[k],0)`. Empty source-valid sets fail
+closed; candidate0 and all-K fallback are forbidden. Production, generic
+selector, training/evaluation helpers, the ledger, and mutation tests share
+this contract. Reachable mixed-mask and all-K-physically-bad fixtures enforce
+`physical_feasible => source_valid`, independently recompute both reference
+options, and prove that a source-valid all-K-physically-bad set remains defined.
+
+The v3 ledger schema uses flat dependency fields and a source-independent
+geometry/semantic-clone hash whose canonical JSON excludes source family/path
+and map/route/scenario/split/seed identifiers. The validator accepts only the
+PASS/WARN/FAIL enum and independently derives each atom's status, warning
+rationale, formula, sources, dependencies, monotonicity, policies, and required
+fields. Its nontrivial 8x14 sidecar independently recomputes
+`clip(raw/scale,0,10) @ w`, an eligible argmin, lowest-index tie, masks, 9D
+prefix, and candidate SHAs bound to the candidate tensors used by atom
+computation. Generation scales are unchanged and remain generation-only; R
+snapshots now retain raw 8x14 atoms, source/applicability masks, scale SHA, and
+the canonical semantic hash for later sealed-train-only q95 support/stability
+work.
+
+The immutable authority decision, A1 ledger, and independent validation are:
+
+- `/root/autodl-tmp/camp_dp_v25_ultra_stage_a_decision_ffd2ec64_20260717T203912CST`
+  / `b75898b2d9263abf157ebd72b8d03e445ceeb23168a06d8065ae0b959aa3340d`;
+- `/root/autodl-tmp/camp_dp_v25_static_atom_ledger_a1_ffd2ec64_20260717T203912CST`
+  / `f8ecaf1a9235753245cad736cef4172e8a553143a0eff45bf179add2b4ecdac5`;
+- `/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a1_ffd2ec64_20260717T203912CST`
+  / `947d4b00fe39222e8be581e3d681959ed153f6410c7c065adb5b992c9de89d58`.
+
+The independent result is 9 PASS, 5 WARN, 0 FAIL. WARN remains limited to
+`speed_limit_margin_0_0`, `speed_limit_margin_0_5`, `lane_deviation`,
+`planned_red_light_cost`, and `red_stopping_margin_cost`; these are
+generation-scale or future sealed-train support warnings, not atom deletion or
+safety evidence.
+
+### R0 source qualification and bounded no-V2I preflight
+
+R0 binds the Ultra decision, corrected source, S0.1 passed/review roots, A0,
+A1 ledger/validation, the formal root, fixed DP, and rejected old partial root.
+Its source-only census independently qualified all 21 formal red identities
+over four source maps, with easy/borderline/high-risk counts `6/10/5`. Every
+chain binds the TrafficLightRegulatoryElement, physical lights/bulbs, controlled
+lanelets, stop line, route-arc relation, map/geometry SHA, unique regulatory
+mapping, and same-tick current phase. Wrong/multiple IDs, missing stop line,
+route-arc mismatch, phase mismatch, future/replay/stale input, or padded
+unmapped route rows fail closed; distance and traffic-row counts cannot
+substitute for regulatory authority.
+
+The sealed source and independent review roots are:
+
+- `/root/autodl-tmp/camp_dp_v25_r0_authority_source_ffd2ec64_20260717T203912CST`
+  / `69f02664fa96fe9689b60f6432e0c910b9a18bb6ffd1a88f569c10670178d3be`;
+- `/root/autodl-tmp/camp_dp_v25_r0_authority_source_review_ffd2ec64_20260717T203912CST`
+  / `c8b8b926bd63a0a8185d7ea3f422e7b94bc0c40921560e6576ac9e4b0ca786e9`.
+
+Only after that source review passed, one easy, one borderline, and one
+high-risk red identity ran through the unchanged sequential fixed-DP K=8 path,
+exactly 64 ticks each. The 192-tick independent review recomputed scalar
+clip/affine/eligible argmin and verified candidate0 operational-default alias,
+K8/candidate SHAs, raw atoms, masks, context-v2 no-V2I state, selected sequence,
+runtime signal receipts, immutability, and failure class:
+
+- `/root/autodl-tmp/camp_dp_v25_r0_red_sequential_k8_ffd2ec64_20260717T204012CST`
+  / `209fc00b6aeb90d887f9cc2871fefdcd619d0b1086d6ffb3ee3c0ac39911f11d`;
+- `/root/autodl-tmp/camp_dp_v25_r0_red_sequential_k8_review_ffd2ec64_20260717T204012CST`
+  / `e948eb17e3561a93c803ec8485d725d47e341b129a794bcf1c2c6e9593cef946`.
+
+The review statuses are `passed_source_only_full_r_closed` and
+`passed_independent_3x64_review_full_r_closed`. These are bounded correctness
+receipts, not corpus, training, calibration, or safety evidence.
+
+### Preserved failures, verification, and stop boundary
+
+Fail-closed development receipts were not overwritten: the wrong-template R0
+attempt is root `c0ee6e94...` with `run.exit=1`; the corrected source retry root
+`7d149292...` was followed by a serialization-strict review failure root
+`c5a2760e...`; and the first bounded K8 attempt failed before any accepted tick
+at root `e15071f0...` because route lanelet IDs did not cover the sliding route
+tensor. The final fix derives signal row IDs from the same sliding segment and
+requires padded unmapped rows to be zero. All interim 8798/aaf777 artifacts are
+superseded diagnostic and cannot authorize R.
+
+Local focused verification passed `104 passed, 1 skipped`, followed after the
+route-row fix by `48 passed, 1 skipped`. AutoDL passed 74 focused tests, the
+5-test production materializer subset (27 deselected), and 49 final-HEAD tests;
+pycompile, JSON parsing, pointer/audit checks, and `git diff --check` passed.
+At the final source-head check, CAMP local/origin/GitHub/AutoDL were clean at
+`ffd2ec647dabe46734fabe80779027429c59fe04`, fixed DP was clean, worker count
+was zero, GPU compute count was zero, the corpus lock was free, and disk free
+was 48,487,464,960 bytes. Fresh/outcome remains unopened. Full R remains
+unauthorized until a new Ultra read-only decision explicitly releases it.
+
+current_v25_status=v25_a1_r0_bounded_pass_ultra_read_only_review_required
+current_v25_source_head=ffd2ec647dabe46734fabe80779027429c59fe04
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
+current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST
+current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009
+current_v25_s01_failed_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST
+current_v25_s01_failed_preflight_artifact_root_sha256=c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a
+current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_retry_e6ba79a2_20260717T184256CST
+current_v25_correction_preflight_artifact_root_sha256=bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451
+current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_review_e6ba79a2_20260717T184530CST
+current_v25_correction_preflight_review_artifact_root_sha256=facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d
+current_v25_correction_preflight_probe_count=3
+current_v25_correction_preflight_tick_count=192
+current_v25_correction_preflight_check_count=12
+current_v25_correction_preflight_review_check_count=28
+current_v25_correction_preflight_identity0_deterministic=true
+current_v25_correction_preflight_native_canonical_equal=true
+current_v25_correction_preflight_candidate_immutability=true
+current_v25_correction_preflight_candidate0_operational_default_alias=true
+current_v25_s01_remote_focused_test_count=65
+current_v25_s01_remote_pointer_test_count=10
+current_v25_stage_a0_failed_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_f40b6152_20260717T192912CST
+current_v25_stage_a0_failed_artifact_root_sha256=025dcd686ee44a681b14cc3ad8b5e64e885316b0f334d89096fda19d6cd8b810
+current_v25_stage_a0_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_01073398_20260717T193038CST
+current_v25_stage_a0_artifact_root_sha256=b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41
+current_v25_stage_a_superseded_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_01073398_20260717T193052CST
+current_v25_stage_a_superseded_ledger_artifact_root_sha256=05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2
+current_v25_stage_a_superseded_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_e07da58f_20260717T193156CST
+current_v25_stage_a_superseded_validation_artifact_root_sha256=e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72
+current_v25_ultra_stage_a_decision_artifact=/root/autodl-tmp/camp_dp_v25_ultra_stage_a_decision_ffd2ec64_20260717T203912CST
+current_v25_ultra_stage_a_decision_artifact_root_sha256=b75898b2d9263abf157ebd72b8d03e445ceeb23168a06d8065ae0b959aa3340d
+current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_a1_ffd2ec64_20260717T203912CST
+current_v25_atom_ledger_artifact_root_sha256=f8ecaf1a9235753245cad736cef4172e8a553143a0eff45bf179add2b4ecdac5
+current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a1_ffd2ec64_20260717T203912CST
+current_v25_atom_ledger_validation_artifact_root_sha256=947d4b00fe39222e8be581e3d681959ed153f6410c7c065adb5b992c9de89d58
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_r0_authority_source_ffd2ec64_20260717T203912CST
+current_v25_r0_authority_source_artifact_root_sha256=69f02664fa96fe9689b60f6432e0c910b9a18bb6ffd1a88f569c10670178d3be
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_r0_authority_source_review_ffd2ec64_20260717T203912CST
+current_v25_r0_authority_source_review_artifact_root_sha256=c8b8b926bd63a0a8185d7ea3f422e7b94bc0c40921560e6576ac9e4b0ca786e9
+current_v25_r0_bounded_k8_artifact=/root/autodl-tmp/camp_dp_v25_r0_red_sequential_k8_ffd2ec64_20260717T204012CST
+current_v25_r0_bounded_k8_artifact_root_sha256=209fc00b6aeb90d887f9cc2871fefdcd619d0b1086d6ffb3ee3c0ac39911f11d
+current_v25_r0_bounded_k8_review_artifact=/root/autodl-tmp/camp_dp_v25_r0_red_sequential_k8_review_ffd2ec64_20260717T204012CST
+current_v25_r0_bounded_k8_review_artifact_root_sha256=e948eb17e3561a93c803ec8485d725d47e341b129a794bcf1c2c6e9593cef946
+current_v25_stage_a_atom_pass_count=9
+current_v25_stage_a_atom_warn_count=5
+current_v25_stage_a_atom_fail_count=0
+current_v25_stage_a_progress_reference=source_valid_candidate_set_reference
+current_v25_stage_a_progress_reference_frozen=true
+current_v25_stage_a_s01_per_atom_raw_statistics_available=false
+current_v25_a1_r0_local_test_result=104_passed_1_skipped_plus_final_route_subset_48_passed_1_skipped
+current_v25_a1_r0_remote_test_result=74_passed_plus_5_passed_27_deselected_plus_final_head_49_passed
+current_v25_atom_schema=dp_camp_v10_14d
+current_v25_paper_subset=camp_legacy_v1_9d
+current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
+current_v25_context_raw_feature_count=26
+current_v25_phi_dimension=53
+current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
+current_v25_normalization_contract=z_clip_raw_atom_over_scale_0_10
+current_v25_heading_norm_envelope_min=0.5
+current_v25_heading_norm_envelope_max=1.5
+current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
+current_v25_controlled_pilot_case_count=147
+current_v25_controlled_pilot_passed_count=85
+current_v25_controlled_pilot_retained_failure_count=62
+current_v25_controlled_train_executable_identity_count=1500
+current_v25_controlled_train_source_ineligible_retained_count=153
+current_v25_combined_train_snapshot_capacity_at_64_ticks=163796
+current_v25_stopped_train_attempted_identity_count=122
+current_v25_stopped_train_complete_identity_count=121
+current_v25_stopped_train_failed_identity_count=1
+current_v25_stopped_train_snapshot_count=7748
+current_v25_stopped_train_illegal_partial_snapshot_count=4
+current_v25_stopped_train_all_k_high_risk_snapshot_count=1121
+current_v25_stopped_train_training_eligible=false
+current_v25_stopped_train_calibration_eligible=false
+current_v25_stopped_train_evaluation_eligible=false
+current_v25_fresh_b_identity_count=120
+current_v25_fresh_b_paired_run_count=600
+current_v25_fresh_b_independent_route_ceiling=24
+current_v25_fresh_b_independent_corridor_ceiling=3
+current_v25_fresh_b_v1_status=superseded_before_opening
+current_v25_fresh_b2_opened=false
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v3.json
+current_v25_stage_a_executed=true
+current_v25_stage_a1_executed=true
+current_v25_r0_source_executed=true
+current_v25_r0_bounded_k8_executed=true
+current_v25_r0_source_identity_count=21
+current_v25_r0_source_map_count=4
+current_v25_r0_probe_identity_count=3
+current_v25_r0_probe_tick_count=192
+current_v25_corrected_full_corpus_started=false
+current_v25_old_monitor_status=deleted
+v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
+v24_holdout_open_count=1
+v24_holdout_rerun_authorized=false
+current_v25_v24_holdout_read=false
+current_v25_fresh_benchmark_b_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=48487464960
+current_v25_phase=A1_R0_bounded_decision_package
+next_work_target=ultra_read_only_A1_R0_review_before_full_R
