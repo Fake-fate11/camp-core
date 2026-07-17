@@ -2001,13 +2001,59 @@ output, full-config preflight, full R, monitor, training, calibration,
 Scene/V2I, Fresh B2, or outcome exists. The next gate is Ultra read-only
 A1.5/R0.5 review; no subsequent stage is authorized.
 
-current_v25_status=v25_a15_r05_bounded_pass_ultra_review_required
+## Stage A1.6/R0.6 Route-Level Signal-Authority Source-Only Correction
+
+Ultra released one preflight-only nonce after A1.5/R0.5. The corresponding
+release artifact is sealed at
+`/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2`
+with root
+`cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1`.
+The exact nonce
+`5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e`
+was consumed once. Full-config preflight then correctly failed closed before
+model or simulator construction and before candidate generation, training,
+calibration, Fresh, or outcome access. The sealed failed artifact is
+`/root/autodl-tmp/camp_dp_v25_full_config_preflight_1e1c32c7_5f919a54290957e2`
+with root
+`b2022b6eb363023ce4ad842aefebb95c7d575a5101d822c0bdf874890758b62d`;
+its error is `non-red identity lacks a qualified same-tick mapped signal
+source`. Independent full-config review was not run. The release, failure, and
+consumed marker are immutable diagnostic evidence; the nonce is permanently
+invalid and no output may be retried or spliced.
+
+Ultra's outcome-blind read-only census found exact actual route classification
+of 146 mapped-signal and 1,354 no-signal identities across the sealed 1,500
+executable train universe, with no mismatch against the formal mapped flag.
+The mapped set is 21 controlled red-family identities plus 125 non-red
+identities. All 125 have exactly one TrafficLightRegulatoryElement, physical
+light/bulbs, a certified stop line, and a legal controlled-lanelet route
+projection. Their formal `phase=none` means no scenario phase override; it does
+not prove a no-signal route. Therefore Ultra selected route-level option A and
+rejected blanket source-ineligible reclassification.
+
+This gate authorizes only a versioned family-independent mapped-signal static
+authority, same-tick controlled-override versus observed-request phase modes,
+strict current-phase/timestamp receipts, and a no-model/no-simulator/
+no-candidate/no-DP-forward full-universe source census with an independent
+reviewer. The original 1,500 executable plus 153 retained denominator remains
+unchanged. A1.5's seven roots remain immutable history but their binding is not
+sufficient for the full universe; source/source-review/bounded/bounded-review
+must be rebuilt under a later Ultra gate. This gate does not run any K8 root.
+Full-config release/nonce, full R, monitor, training, calibration, Scene/V2I,
+Fresh, outcome, and V24 holdout reads remain closed.
+
+current_v25_status=v25_full_config_preflight_failed_closed_a16_r06_source_only_authorized
 current_v25_source_head=1e1c32c71be4a0672652f8574f7cd62002a3c2b4
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_1e1c32c7_20260718T051807CST
-current_v25_artifact_root_sha256=694ddcde9bd5972c4fb95eeb45da7f46663bb3a6acb87ca5b4cc18abbf97b79c
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053800CST
-current_v25_review_artifact_root_sha256=7dc54a3d9baa3d818284ffdcb3ed1192c0805d93ea7019c6975c86cba20fe47f
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_full_config_preflight_1e1c32c7_5f919a54290957e2
+current_v25_artifact_root_sha256=b2022b6eb363023ce4ad842aefebb95c7d575a5101d822c0bdf874890758b62d
+current_v25_review_artifact=not_run_fail_closed
+current_v25_review_artifact_root_sha256=none
+current_v25_full_config_preflight_release_artifact=/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2
+current_v25_full_config_preflight_release_artifact_root_sha256=cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1
+current_v25_full_config_preflight_consumed_nonce=5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e
+current_v25_full_config_preflight_consumed_marker_sha256=0b62753b0b07ea987d78e309fde4ed9d9aeda5e2cf0b25d1107f7c446a1b864d
+current_v25_full_config_preflight_failure=non_red_identity_lacks_qualified_same_tick_mapped_signal_source
 current_v25_r05_failed_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053400CST
 current_v25_r05_failed_review_artifact_root_sha256=d3cf28b2f62814b89e9b6debace6e3f87a14d5a3b9c38eabd92a50e059b1cab5
 current_v25_ultra_stage_a_decision_artifact_root_sha256=0f48f22861721258be945ae42fb10d3fec7f90992addb386c535a1b8001b3e5a
@@ -2030,8 +2076,8 @@ current_v25_r0_stop_line_geometry_sha256_count=5
 current_v25_r0_probe_identity_count=22
 current_v25_r0_probe_tick_count=1408
 current_v25_r0_non_signal_identity_count=1
-current_v25_full_config_preflight_release_created=false
-current_v25_full_config_preflight_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
 current_v25_corrected_full_corpus_started=false
 current_v25_full_r_authorized=false
 current_v25_monitor_started=false
@@ -2042,6 +2088,6 @@ current_v25_training_started=false
 current_v25_calibration_started=false
 current_v25_fresh_b2_opened=false
 current_v25_fresh_outcome_opened=false
-observed_autodl_free_bytes=46990168064
-current_v25_phase=A1_5_R0_5_bounded_decision_package
-next_work_target=ultra_read_only_A1_5_R0_5_review_before_full_config_preflight_release
+observed_autodl_free_bytes=46989713408
+current_v25_phase=A1_6_R0_6_route_level_signal_authority_source_only_correction
+next_work_target=implement_and_independently_review_A1_6_R0_6_full_universe_source_only_census

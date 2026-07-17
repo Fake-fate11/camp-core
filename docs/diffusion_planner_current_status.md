@@ -36,6 +36,29 @@ roots and row SHAs, reject forbidden context/receipt leakage, enforce
 candidate0/mask/all-K relations, and require the exact critical path manifest.
 The atom-ledger plan is versioned as v6.
 
+Ultra then released exactly one full-config preflight-only nonce. The sealed
+release root is
+`cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1`.
+The preflight consumed that nonce and correctly failed closed before any model,
+simulator, candidate generation, training, calibration, or outcome access:
+125 formal non-red identities used routes with mapped traffic-light regulatory
+elements but the family-specific R0 authority only certified the 21 red-family
+identities. The failed artifact is sealed at root
+`b2022b6eb363023ce4ad842aefebb95c7d575a5101d822c0bdf874890758b62d`;
+the consumed nonce and both artifacts are immutable diagnostic evidence and
+must never be replayed or overwritten. Independent full-config review did not
+run.
+
+Ultra selected A1.6/R0.6 route-level signal-authority correction. Its read-only
+census found the formal executable universe is exactly 146 mapped-signal and
+1,354 no-signal identities; all 125 mapped non-red identities have a unique
+regulatory element, physical light/bulbs, stop line, and legal route projection.
+Their formal `phase=none` means no controlled scenario phase override, not no
+signal rule. Only a source-only, no-model/no-simulator/no-candidate/no-DP-forward
+full-universe census and independent review are authorized. New K8, full-config
+release/nonce, full R, monitor, training, calibration, Scene/V2I, and Fresh or
+outcome access remain closed.
+
 All A1.4/R0.4 roots remain immutable superseded diagnostic evidence. A1.5/R0.5
 rebuilt all seven roots and a fresh bounded producer from identity0 under the
 new implementation HEAD. It qualified all 21 red identities plus one non-signal
@@ -51,13 +74,18 @@ preflight, full R, monitor, training, calibration, Scene/V2I, and Fresh remain
 unauthorized. Worker/GPU counts are zero, the lock is free, disk free is
 46,990,168,064 bytes, and Fresh/outcome remains false.
 
-current_v25_status=v25_a15_r05_bounded_pass_ultra_review_required
+current_v25_status=v25_full_config_preflight_failed_closed_a16_r06_source_only_authorized
 current_v25_source_head=1e1c32c71be4a0672652f8574f7cd62002a3c2b4
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_1e1c32c7_20260718T051807CST
-current_v25_artifact_root_sha256=694ddcde9bd5972c4fb95eeb45da7f46663bb3a6acb87ca5b4cc18abbf97b79c
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053800CST
-current_v25_review_artifact_root_sha256=7dc54a3d9baa3d818284ffdcb3ed1192c0805d93ea7019c6975c86cba20fe47f
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_full_config_preflight_1e1c32c7_5f919a54290957e2
+current_v25_artifact_root_sha256=b2022b6eb363023ce4ad842aefebb95c7d575a5101d822c0bdf874890758b62d
+current_v25_review_artifact=not_run_fail_closed
+current_v25_review_artifact_root_sha256=none
+current_v25_full_config_preflight_release_artifact=/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2
+current_v25_full_config_preflight_release_artifact_root_sha256=cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1
+current_v25_full_config_preflight_consumed_nonce=5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e
+current_v25_full_config_preflight_consumed_marker_sha256=0b62753b0b07ea987d78e309fde4ed9d9aeda5e2cf0b25d1107f7c446a1b864d
+current_v25_full_config_preflight_failure=non_red_identity_lacks_qualified_same_tick_mapped_signal_source
 current_v25_r05_failed_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053400CST
 current_v25_r05_failed_review_artifact_root_sha256=d3cf28b2f62814b89e9b6debace6e3f87a14d5a3b9c38eabd92a50e059b1cab5
 current_v25_s01_failed_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST
@@ -163,8 +191,8 @@ current_v25_r0_non_signal_identity_count=1
 current_v25_r0_physical_signature_count=9
 current_v25_r0_stop_line_geometry_sha256_count=5
 current_v25_corrected_full_corpus_started=false
-current_v25_full_config_preflight_release_created=false
-current_v25_full_config_preflight_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
 current_v25_full_r_authorized=false
 current_v25_monitor_started=false
 current_v25_worker_count=0
@@ -181,9 +209,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=46990168064
-current_v25_phase=A1_5_R0_5_bounded_decision_package
-next_work_target=ultra_read_only_A1_5_R0_5_review_before_full_config_preflight_release
+observed_autodl_free_bytes=46989713408
+current_v25_phase=A1_6_R0_6_route_level_signal_authority_source_only_correction
+next_work_target=implement_and_independently_review_A1_6_R0_6_full_universe_source_only_census
 
 ## Current V24 Status
 
