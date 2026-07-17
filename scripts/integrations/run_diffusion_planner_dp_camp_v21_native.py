@@ -1343,7 +1343,108 @@ def validate_v25_controlled_capability_config(
         raise ValueError("v25 controlled capability protocol mismatch")
 
 
+def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
+    """Validate a frozen outcome-blind controlled-train corpus run."""
+    if config.get("schema_version") != "camp_dp_v25_controlled_train_v1":
+        raise ValueError("v25 controlled train schema mismatch")
+    controlled = _mapping(config, "controlled_scenario")
+    from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
+        validate_controlled_scenario_case,
+    )
+
+    validate_controlled_scenario_case(controlled)
+    if (
+        controlled.get("split") != "train"
+        or controlled.get("runner_eligible") is not True
+        or controlled.get("retention_role") != "executable"
+        or controlled.get("seeds") != [25001]
+    ):
+        raise ValueError("v25 controlled train case is outside the frozen split")
+
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v25 controlled train requires exactly one route")
+    route = _asset_entry_value(routes[0], "route")
+    seeds = _mapping(config, "seeds")
+    if seeds != {
+        "scenario": 25001,
+        "candidate": 25001,
+        "bootstrap": 25001,
+        "formal_forbidden": [11, 12, 13, 24001, 24002, 24003, 24004, 24005],
+    }:
+        raise ValueError("v25 controlled train seed namespace mismatch")
+    selector = _mapping(config, "selector")
+    if selector.get("role") != "v25_controlled_train_fixed_static_behavior_policy":
+        raise ValueError("v25 controlled train behavior-policy role mismatch")
+    spawn = _mapping(config, "spawn_config")
+    if (
+        set(spawn) != SPAWN_CONFIG_FIELDS
+        or spawn.get("seed") != 25001
+        or spawn.get("max_steps") != 64
+        or spawn.get("max_active_npcs") != 0
+        or spawn.get("spawn_probability") != 0.0
+        or spawn.get("static_npc_count") != 0
+        or spawn.get("parked_vehicles_yaml") is not None
+    ):
+        raise ValueError("critical v25 controlled train SpawnConfig value mismatch")
+    protocol = _mapping(config, "protocol")
+    expected_protocol = {
+        "arm_order": ["camp"],
+        "route_order": [route["name"]],
+        "corpus_steps": 64,
+        "sample_every_ticks": 1,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "safety_schema": "safety_cost_native_v22",
+        "route_role": "v25_controlled_outcome_blind_train_corpus",
+        "candidate_k": 8,
+        "claim_authorized": False,
+        "training_data_generation_authorized": True,
+        "selector_training_execution_authorized": False,
+        "calibration_authorized": False,
+        "holdout_access_authorized": False,
+        "fresh_b_opened": False,
+        "outcomes_used_for_selection": False,
+    }
+    if protocol != expected_protocol:
+        raise ValueError("v25 controlled train protocol mismatch")
+
+    # Reuse the already-audited common fixed-DP/selector/route contract by
+    # normalizing only the train-specific fields to the capability contract.
+    normalized = json.loads(json.dumps(config))
+    normalized["schema_version"] = "camp_dp_v25_controlled_capability_v1"
+    normalized["selector"]["role"] = "v25_controlled_capability_probe_only"
+    normalized["controlled_scenario"]["split"] = "pilot_development"
+    normalized["seeds"] = {
+        "scenario": 25991,
+        "candidate": 25991,
+        "bootstrap": 25991,
+        "formal_forbidden": [11, 12, 13, 24001, 24002, 24003, 24004, 24005],
+    }
+    normalized["spawn_config"]["seed"] = 25991
+    normalized["spawn_config"]["max_steps"] = 1
+    normalized["protocol"] = {
+        "arm_order": ["camp"],
+        "route_order": [route["name"]],
+        "capability_route": route["name"],
+        "capability_steps": 1,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "safety_schema": "safety_cost_native_v22",
+        "route_role": "v25_controlled_outcome_blind_coverage_pilot",
+        "candidate_k": 8,
+        "claim_authorized": False,
+        "training_authorized": False,
+        "calibration_authorized": False,
+        "holdout_access_authorized": False,
+        "formal_seeds_authorized": False,
+        "outcomes_used_for_selection": False,
+    }
+    validate_v25_controlled_capability_config(normalized)
+
+
 def _validate_native_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") == "camp_dp_v25_controlled_train_v1":
+        validate_v25_controlled_train_config(config)
+        return
     if config.get("schema_version") == "camp_dp_v25_controlled_capability_v1":
         validate_v25_controlled_capability_config(config)
         return
@@ -2513,6 +2614,8 @@ def build_native_arm_runner(
             "camp_dp_v25_controlled_capability_v1",
         }:
             allowed_steps = {1}
+        elif config.get("schema_version") == "camp_dp_v25_controlled_train_v1":
+            allowed_steps = {int(protocol["corpus_steps"])}
         elif config.get("schema_version") in {
             "camp_dp_v22_native_corpus_run_v1",
             "camp_dp_v24_native_corpus_run_v1",
