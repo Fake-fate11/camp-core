@@ -1,0 +1,144 @@
+{
+  "schema_version": "camp_dp_v25_atom_context_freeze_v1",
+  "source_authority": {
+    "merged_train_corpus": {
+      "artifact": "/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_5b725629_20260716T154602CST",
+      "artifact_root_sha256": "d8278d030cabd71af88f60d13c410a37c515f22e0ea4c606a592abecc598bdcc"
+    },
+    "merged_train_corpus_review": {
+      "artifact": "/root/autodl-tmp/camp_dp_v24_native_corpus_merged_train_assembly_independent_review_5b725629_20260716T154723CST",
+      "artifact_root_sha256": "925db2aa58f136c20b3e9054d87dbd8d73d4162d18d079b10abbcacc63f09490"
+    },
+    "atom_freeze": {
+      "artifact": "/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_dc6f3715_20260716T190035CST",
+      "artifact_root_sha256": "ced620a4a5852e9e4196a2d272ef9b0ac1963512ecd62c2bf3612a3ed252438b"
+    },
+    "atom_freeze_review": {
+      "artifact": "/root/autodl-tmp/camp_dp_v24_train_atom_availability_freeze_independent_review_dc6f3715_20260716T190514CST",
+      "artifact_root_sha256": "a88e6d43041e4f8005a7df5cccd9dd64510758a9c2a4af1de15e339e250e80b8"
+    },
+    "causal_labels": {
+      "artifact": "/root/autodl-tmp/camp_dp_v24_train_causal_labels_56596779_20260716T204104CST",
+      "artifact_root_sha256": "9a14fb003fe9145e62b24c20fcecc013baedd72e312add82a8c6a6e6dcde966c"
+    },
+    "causal_labels_review": {
+      "artifact": "/root/autodl-tmp/camp_dp_v24_train_causal_labels_independent_review_56596779_20260716T204427CST",
+      "artifact_root_sha256": "d23d09564ea675b0ef7ce35d968c6dd03ead1df5e1282c498704827986eab468"
+    }
+  },
+  "corpus_contract": {
+    "split": "train",
+    "route_count": 375,
+    "retained_route_seed_count": 1875,
+    "complete_route_seed_count": 1054,
+    "failed_route_seed_count": 821,
+    "snapshot_count": 67796,
+    "candidate_k": 8,
+    "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    "v24_audit_sha256": "cd9a33655e1919182f33256dd07d3bd7a6bdbe7fd8aab1107199859ccf39f228",
+    "v24_paired_config_sha256": "9dc0ab9415239211f16e65495362d83c2a11ffe04a96f4ddd2881b12fc193c0f"
+  },
+  "atom_contract": {
+    "schema_version": "dp_camp_v10_14d",
+    "atom_names": [
+      "jerk_early",
+      "jerk_late",
+      "jerk_full",
+      "rms_acceleration",
+      "speed_limit_margin_0_0",
+      "speed_limit_margin_0_5",
+      "speed_limit_margin_1_0",
+      "lane_deviation",
+      "clearance",
+      "progress_shortfall",
+      "planned_red_light_cost",
+      "planned_lateral_acceleration_cost",
+      "red_stopping_margin_cost",
+      "dp_prior_jerk_excess_cost"
+    ],
+    "paper_consistent_9d_subset_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "paper_consistent_9d_subset_schema": "camp_legacy_v1_9d",
+    "dp_extension_indices": [9, 10, 11, 12, 13],
+    "active_mask_14d": [true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+    "active_mask_9d": [true, true, true, true, true, true, true, true, true, false, false, false, false, false],
+    "exclusion_policy": "only_explicit_9d_vs_14d_ablation_no_silent_atom_removal",
+    "new_atom_admission_authorized": false,
+    "score_contract": "score_k=a_k^T*w(x)",
+    "weight_domain": "nonnegative_simplex_over_ablation_active_atoms"
+  },
+  "train_only_label_contract": {
+    "schema_version": "camp_dp_v24_causal_soft_risk_surrogate_v1",
+    "physical_risk_penalty": 100.0,
+    "normalized_atom_clip": 10.0,
+    "atom_severity_weights": [0.0, 0.0, 0.25, 0.25, 10.0, 0.0, 0.0, 20.0, 10.0, 1.0, 15.0, 1.0, 15.0, 0.25],
+    "actual_closed_loop_outcome": false,
+    "future_outcome_fields_read": false,
+    "holdout_fields_read": false,
+    "identity_fields_used_as_label_or_feature": false
+  },
+  "audit_contract": {
+    "candidate_variation_epsilon": 1e-12,
+    "zero_epsilon": 1e-12,
+    "normalized_clip_saturation_threshold": 10.0,
+    "redundancy_abs_spearman_threshold": 0.98,
+    "spearman_sample_max_candidate_rows": 100000,
+    "route_identity_use": "audit_grouping_only_never_model_input",
+    "source_stratum_use": "audit_stability_only_never_model_input",
+    "context_utility_rule": "defer_any_unmeasurable_raw_context_utility_to_outcome_blind_phase3_capability_pilot"
+  },
+  "causal_context_contract": {
+    "schema_version": "camp_dp_v25_causal_context_raw_v1",
+    "raw_features": [
+      {"name": "ego_speed_mps", "source": "current_ego_state", "unit": "m/s", "signed": false},
+      {"name": "ego_longitudinal_acceleration_mps2", "source": "current_ego_state", "unit": "m/s^2", "signed": true},
+      {"name": "ego_lateral_acceleration_mps2", "source": "current_ego_state", "unit": "m/s^2", "signed": true},
+      {"name": "ego_yaw_rate_radps", "source": "current_ego_state", "unit": "rad/s", "signed": true},
+      {"name": "route_curvature_mean_abs_radpm", "source": "current_route_geometry", "unit": "rad/m", "signed": false},
+      {"name": "route_curvature_max_abs_radpm", "source": "current_route_geometry", "unit": "rad/m", "signed": false},
+      {"name": "route_lane_width_min_m", "source": "current_route_boundaries", "unit": "m", "signed": false},
+      {"name": "route_lane_width_p50_m", "source": "current_route_boundaries", "unit": "m", "signed": false},
+      {"name": "route_speed_limit_min_mps", "source": "current_route_rules", "unit": "m/s", "signed": false},
+      {"name": "route_speed_limit_current_mps", "source": "current_route_rules", "unit": "m/s", "signed": false},
+      {"name": "traffic_phase_red", "source": "current_traffic_light_state", "unit": "binary", "signed": false},
+      {"name": "traffic_phase_yellow", "source": "current_traffic_light_state", "unit": "binary", "signed": false},
+      {"name": "traffic_phase_green", "source": "current_traffic_light_state", "unit": "binary", "signed": false},
+      {"name": "traffic_phase_unknown", "source": "current_traffic_light_state", "unit": "binary", "signed": false},
+      {"name": "traffic_signal_distance_m", "source": "current_route_signal_geometry", "unit": "m", "signed": false},
+      {"name": "traffic_signal_phase_remaining_s", "source": "current_traffic_light_state", "unit": "s", "signed": false},
+      {"name": "neighbor_count", "source": "current_neighbor_history", "unit": "count", "signed": false},
+      {"name": "neighbor_min_distance_m", "source": "current_neighbor_relative_position", "unit": "m", "signed": false},
+      {"name": "neighbor_min_ttc_s", "source": "current_neighbor_relative_position_velocity", "unit": "s", "signed": false},
+      {"name": "neighbor_closing_speed_mps", "source": "current_neighbor_relative_velocity", "unit": "m/s", "signed": true},
+      {"name": "neighbor_lateral_gap_min_m", "source": "current_neighbor_relative_position", "unit": "m", "signed": false},
+      {"name": "candidate_consensus_rms_median_m", "source": "current_fixed_dp_k8_candidate_tensor", "unit": "m", "signed": false},
+      {"name": "candidate_consensus_rms_mad_m", "source": "current_fixed_dp_k8_candidate_tensor", "unit": "m", "signed": false},
+      {"name": "candidate_endpoint_xy_std_m", "source": "current_fixed_dp_k8_candidate_tensor", "unit": "m", "signed": false},
+      {"name": "candidate_progress_std_m", "source": "current_fixed_dp_k8_candidate_tensor_and_route", "unit": "m", "signed": false},
+      {"name": "candidate_source_valid_fraction", "source": "current_fixed_dp_k8_source_valid_mask", "unit": "fraction", "signed": false}
+    ],
+    "every_feature_causal": true,
+    "future_fields_allowed": false,
+    "closed_loop_outcome_fields_allowed": false,
+    "ground_truth_holdout_fields_allowed": false,
+    "map_route_scenario_split_identity_or_proxy_allowed": false,
+    "private_dp_latent_allowed": false,
+    "normalization_fit_split": "train_only",
+    "normalization_rule": "train_q05_q95_clip_to_unit_interval",
+    "phi_rule": "constant_plus_per_feature_complement_lift_then_constant_sum_normalization",
+    "phi_dimension": 53,
+    "theta_constraint": "every_theta_column_nonnegative_simplex",
+    "weight_rule": "w(x)=Theta*phi(x)_is_nonnegative_simplex_for_every_bounded_phi",
+    "softmax_allowed": false,
+    "neural_context_head_allowed": false
+  },
+  "boundary_contract": {
+    "v24_holdout_read_authorized": false,
+    "v24_holdout_rerun_authorized": false,
+    "fresh_benchmark_b_open_authorized": false,
+    "training_authorized": false,
+    "calibration_authorized": false,
+    "dp_modification_authorized": false,
+    "candidate_or_trajectory_modification_authorized": false,
+    "promotion_deployment_online_activation_authorized": false
+  }
+}
