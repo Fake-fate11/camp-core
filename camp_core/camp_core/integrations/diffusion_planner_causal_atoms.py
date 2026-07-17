@@ -52,13 +52,17 @@ def validate_fixed_k8_candidate_tensor(candidates: np.ndarray) -> np.ndarray:
     heading_norm = np.linalg.norm(
         trajectories[..., 2:4].astype(np.float64), axis=2
     )
-    if not np.allclose(
-        heading_norm,
-        1.0,
-        rtol=0.0,
-        atol=FIXED_K8_HEADING_UNIT_ATOL,
-    ):
-        raise ValueError("candidate headings must be finite unit vectors")
+    heading_deviation = np.abs(heading_norm - 1.0)
+    invalid_heading = heading_deviation > FIXED_K8_HEADING_UNIT_ATOL
+    if np.any(invalid_heading):
+        raise ValueError(
+            "candidate headings must be finite unit vectors: "
+            f"invalid_count={int(np.count_nonzero(invalid_heading))}, "
+            f"minimum_norm={float(heading_norm.min()):.9g}, "
+            f"maximum_norm={float(heading_norm.max()):.9g}, "
+            f"maximum_abs_deviation={float(heading_deviation.max()):.9g}, "
+            f"atol={FIXED_K8_HEADING_UNIT_ATOL:.9g}"
+        )
     return trajectories
 
 
