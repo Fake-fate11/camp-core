@@ -14,6 +14,32 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+FORMAL_ROOT_SHA256 = (
+    "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
+)
+A0_ROOT_SHA256 = (
+    "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
+)
+S01_PREFLIGHT_ROOT_SHA256 = (
+    "bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451"
+)
+S01_REVIEW_ROOT_SHA256 = (
+    "facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d"
+)
+REJECTED_PARTIAL_ROOT_SHA256 = (
+    "a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481"
+)
+A12_SUPERSEDED_ROOTS = frozenset(
+    {
+        "9735a52763e7ef61f516c65445d4f02057cf0fb0beda443354b07e6d69cbe54e",
+        "76b21380fb66ffb2d90f6bd9adbccf887ea34458caf3383226ea8d17f6a1a833",
+        "6e5847cf600048948e778330dd7aad3d7ea8aeb44f0e7e1070a83782114e87dd",
+        "b705b826324a449eab87af36a1dd9325f3f773ebe6a3b14f8b437dc45478e7c8",
+        "04d28ed769625f3db23ba2e9646384014817d4bb58196efae358ee2230677682",
+        "1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd",
+        "27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa",
+    }
+)
 CANONICAL_JSON_BYTE_SPEC_VERSION = "camp_dp_v25_canonical_json_utf8_lf_v1"
 PREFLIGHT_RELEASE_SCHEMA_VERSION = (
     "camp_dp_v25_ultra_full_config_preflight_release_v3"
@@ -29,7 +55,7 @@ ROOT_ROLES = (
     "r01_bounded_review",
 )
 EXPECTED_ROOT_STATUSES = {
-    "a11_decision": "A1_2_R0_2_only_released",
+    "a11_decision": "A1_3_R0_3_only_released",
     "a11_ledger": "passed_with_warnings_progress_source_valid_frozen",
     "a11_validation": "passed_with_warnings_progress_source_valid_frozen",
     "r01_source": "passed_source_only_full_r_closed",
@@ -42,18 +68,18 @@ EXPECTED_ROOT_STATUSES = {
 ROOT_CONTRACTS = {
     "a11_decision": {
         "report_file": "decision.json",
-        "schema_version": "camp_dp_v25_ultra_stage_a12_r02_decision_v3",
+        "schema_version": "camp_dp_v25_ultra_stage_a13_r03_decision_v4",
         "head_path": ("corrected_source_head",),
         "fields": frozenset(
             {
-                "a0_root_sha256", "a1_2_authorized",
+                "a0_root_sha256", "a1_3_authorized",
                 "bounded_21red_1nosignal_x64_authorized_after_source_pass",
                 "calibration_authorized", "candidate0_or_all_k_fallback_allowed",
                 "corrected_source_head", "decision_date", "empty_source_valid",
                 "fixed_dp_head", "formal_root_sha256", "fresh_b2_opened",
                 "full_r_authorized", "monitor_authorized", "outcome_fields_consumed",
                 "progress_formula", "progress_reference",
-                "r0_2_source_authority_preflight_authorized", "rejected_roots",
+                "r0_3_source_authority_preflight_authorized", "rejected_roots",
                 "s01_preflight_root_sha256", "s01_review_root_sha256",
                 "scene_runtime_authorized", "schema_version", "selection_eligibility",
                 "source_thread_id", "status", "superseded_diagnostic_roots",
@@ -177,6 +203,184 @@ ROOT_CONTRACTS = {
         ),
     },
 }
+
+ROOT_EXACT_VALUES: dict[str, dict[tuple[str, ...], Any]] = {
+    "a11_decision": {
+        ("decision_date",): "2026-07-18",
+        ("source_thread_id",): "019f6eee-8fc2-75f3-843c-75562f610b13",
+        ("fixed_dp_head",): FIXED_DP_HEAD,
+        ("formal_root_sha256",): FORMAL_ROOT_SHA256,
+        ("a0_root_sha256",): A0_ROOT_SHA256,
+        ("s01_preflight_root_sha256",): S01_PREFLIGHT_ROOT_SHA256,
+        ("s01_review_root_sha256",): S01_REVIEW_ROOT_SHA256,
+        ("rejected_roots",): [REJECTED_PARTIAL_ROOT_SHA256],
+        ("progress_reference",): "source_valid_candidate_set_reference",
+        ("progress_formula",): (
+            "r=max(progress[j] where source_valid[j]); "
+            "progress_shortfall[k]=max(r-progress[k],0)"
+        ),
+        ("selection_eligibility",): "source_valid",
+        ("empty_source_valid",): "fail_closed",
+        ("candidate0_or_all_k_fallback_allowed",): False,
+        ("a1_3_authorized",): True,
+        ("r0_3_source_authority_preflight_authorized",): True,
+        ("bounded_21red_1nosignal_x64_authorized_after_source_pass",): True,
+        ("full_r_authorized",): False,
+        ("monitor_authorized",): False,
+        ("training_authorized",): False,
+        ("calibration_authorized",): False,
+        ("scene_runtime_authorized",): False,
+        ("v2i_authorized",): False,
+        ("fresh_b2_opened",): False,
+        ("outcome_fields_consumed",): [],
+    },
+    "a11_ledger": {
+        ("stage",): "A_static_atom_semantics",
+        ("authority", "fixed_dp_head"): FIXED_DP_HEAD,
+        ("authority", "formal_source_root_sha256"): FORMAL_ROOT_SHA256,
+        ("authority", "a0_root_sha256"): A0_ROOT_SHA256,
+        ("authority", "s01_preflight_root_sha256"): S01_PREFLIGHT_ROOT_SHA256,
+        ("authority", "s01_review_root_sha256"): S01_REVIEW_ROOT_SHA256,
+        ("authority", "rejected_roots"): [REJECTED_PARTIAL_ROOT_SHA256],
+        ("progress_shortfall_decision", "reference"): (
+            "source_valid_candidate_set_reference"
+        ),
+        ("stage_boundaries",): {
+            "r_authorized": False,
+            "full_corpus_started": False,
+            "training_executed": False,
+            "calibration_executed": False,
+            "scene_runtime_connected": False,
+            "fresh_b2_opened": False,
+            "outcome_fields_consumed": [],
+        },
+    },
+    "a11_validation": {
+        ("atom_count",): 14,
+        ("pass_count",): 9,
+        ("warn_count",): 5,
+        ("fail_count",): 0,
+        ("paper_9d_indices",): list(range(9)),
+        ("progress_reference",): "source_valid_candidate_set_reference",
+        ("progress_reference_ultra_decision_required",): False,
+        ("independent_validator_imported_production_score_results",): False,
+        ("r_authorized",): False,
+        ("training_authorized",): False,
+        ("calibration_authorized",): False,
+        ("fresh_b2_opened",): False,
+        ("outcome_fields_consumed",): [],
+    },
+    "r01_source": {
+        ("a0_root_sha256",): A0_ROOT_SHA256,
+        ("formal_root_sha256",): FORMAL_ROOT_SHA256,
+        ("s01_preflight_root_sha256",): S01_PREFLIGHT_ROOT_SHA256,
+        ("s01_review_root_sha256",): S01_REVIEW_ROOT_SHA256,
+        ("rejected_roots",): [REJECTED_PARTIAL_ROOT_SHA256],
+        ("fixed_dp_head",): FIXED_DP_HEAD,
+        ("all_source_chains_valid",): True,
+        ("source_only",): True,
+        ("candidate_generation_started",): False,
+        ("model_loaded",): False,
+        ("training_executed",): False,
+        ("calibration_executed",): False,
+        ("scene_runtime_connected",): False,
+        ("v2i_enabled",): False,
+        ("monitor_started",): False,
+        ("full_r_authorized",): False,
+        ("full_r_started",): False,
+        ("fresh_b2_opened",): False,
+        ("outcome_fields_consumed",): [],
+        ("formal_executable_red_identity_count",): 21,
+        ("validated_identity_chain_receipt_count",): 21,
+        ("unique_regulatory_chain_count",): 21,
+        ("distinct_source_map_count",): 4,
+        ("physical_signature_count",): 9,
+        ("stop_line_geometry_sha256_count",): 5,
+        ("selected_bounded_probe_identity_count",): 22,
+        ("non_signal_identity_count",): 1,
+        ("red_by_tier",): {"borderline": 10, "easy": 6, "high_risk": 5},
+    },
+    "r01_source_review": {
+        ("fixed_dp_head",): FIXED_DP_HEAD,
+        ("producer_boolean_summary_trusted",): False,
+        ("independent_no_signal_regulatory_scan",): True,
+        ("training_executed",): False,
+        ("calibration_executed",): False,
+        ("monitor_started",): False,
+        ("full_r_authorized",): False,
+        ("full_r_started",): False,
+        ("fresh_b2_opened",): False,
+        ("outcome_fields_consumed",): [],
+        ("reviewed_red_identity_count",): 21,
+        ("reviewed_distinct_source_map_count",): 4,
+        ("reviewed_non_signal_identity_count",): 1,
+        ("bounded_probe_identity_count",): 22,
+        ("reviewed_by_tier",): {
+            "borderline": 10,
+            "easy": 6,
+            "high_risk": 5,
+        },
+    },
+    "r01_bounded": {
+        ("fixed_dp_head",): FIXED_DP_HEAD,
+        ("sequential_k8",): True,
+        ("no_v2i",): True,
+        ("source_valid_progress_and_selection",): True,
+        ("scene14d_runtime_connected",): False,
+        ("training_executed",): False,
+        ("calibration_executed",): False,
+        ("monitor_started",): False,
+        ("full_r_authorized",): False,
+        ("full_r_started",): False,
+        ("fresh_b2_opened",): False,
+        ("outcome_fields_consumed",): [],
+        ("probe_count",): 22,
+        ("probe_tick_count",): 1408,
+        ("red_identity_count",): 21,
+        ("non_signal_identity_count",): 1,
+        ("tiers",): [
+            "borderline", "easy", "high_risk", "easy", "borderline",
+            "borderline", "borderline", "easy", "borderline", "borderline",
+            "borderline", "high_risk", "borderline", "easy", "high_risk",
+            "high_risk", "high_risk", "easy", "borderline", "easy",
+            "borderline", "easy",
+        ],
+    },
+    "r01_bounded_review": {
+        ("fixed_dp_head",): FIXED_DP_HEAD,
+        ("actual_k8_default_context_hashes_independently_recomputed",): True,
+        ("candidate0_operational_default_alias",): True,
+        ("independent_scalar_clip_affine_argmin",): True,
+        ("runtime_signal_receipts_independently_bound",): True,
+        ("training_executed",): False,
+        ("calibration_executed",): False,
+        ("monitor_started",): False,
+        ("full_r_authorized",): False,
+        ("full_r_started",): False,
+        ("fresh_b2_opened",): False,
+        ("outcome_fields_consumed",): [],
+        ("probe_count",): 22,
+        ("probe_tick_count",): 1408,
+    },
+}
+
+
+def _nested_value(payload: Mapping[str, Any], path: tuple[str, ...]) -> Any:
+    value: Any = payload
+    for key in path:
+        if not isinstance(value, Mapping) or key not in value:
+            raise ValueError(f"missing exact-value authority field: {'.'.join(path)}")
+        value = value[key]
+    return value
+
+
+def _verify_root_exact_values(role: str, report: Mapping[str, Any]) -> None:
+    for path, expected in ROOT_EXACT_VALUES[role].items():
+        if _nested_value(report, path) != expected:
+            raise ValueError(
+                f"{role} exact-value authority drifted at {'.'.join(path)}"
+            )
+
 POINTER_ONLY_PATHS = frozenset(
     {
         "docs/diffusion_planner_current_status.md",
@@ -335,6 +539,10 @@ def verify_seven_root_chain(
     fixed_dp_head: str,
     rejected_root_sha256: str,
 ) -> dict[str, dict[str, Any]]:
+    if fixed_dp_head != FIXED_DP_HEAD:
+        raise ValueError("fixed DP authority drifted")
+    if rejected_root_sha256 != REJECTED_PARTIAL_ROOT_SHA256:
+        raise ValueError("rejected partial root authority drifted")
     if set(bindings) != set(ROOT_ROLES):
         raise ValueError("release does not bind the exact seven prerequisite roots")
     verified: dict[str, dict[str, Any]] = {}
@@ -367,6 +575,8 @@ def verify_seven_root_chain(
         report_fixed_dp = report.get("fixed_dp_head")
         if role == "a11_ledger":
             report_fixed_dp = report.get("authority", {}).get("fixed_dp_head")
+        elif role == "a11_validation":
+            report_fixed_dp = heads.get("fixed_dp_head")
         if (
             set(report) != contract["fields"]
             or report.get("schema_version") != contract["schema_version"]
@@ -377,7 +587,7 @@ def verify_seven_root_chain(
                 "fixed_dp_head": fixed_dp_head,
             }
             or report_head != implementation_source_head
-            or report_fixed_dp not in (None, fixed_dp_head)
+            or report_fixed_dp != fixed_dp_head
             or (
                 "fresh_b2_opened" in report
                 and report.get("fresh_b2_opened") is not False
@@ -392,6 +602,7 @@ def verify_seven_root_chain(
             )
         ):
             raise ValueError(f"{role} status/HEADS authority drifted")
+        _verify_root_exact_values(role, report)
         verified[role] = {
             "path": str(artifact),
             "root_sha256": seal["root_sha256"],
@@ -408,7 +619,11 @@ def verify_seven_root_chain(
     bounded_review = verified["r01_bounded_review"]["report"]
     paths = {role: Path(str(bindings[role]["path"])).resolve() for role in ROOT_ROLES}
     if (
-        decision.get("rejected_roots") != [rejected_root_sha256]
+        not A12_SUPERSEDED_ROOTS.issubset(
+            set(decision.get("superseded_diagnostic_roots") or [])
+        )
+        or decision.get("formal_root_sha256") != source.get("formal_root_sha256")
+        or decision.get("rejected_roots") != [rejected_root_sha256]
         or source.get("rejected_roots") != [rejected_root_sha256]
         or ledger.get("authority", {}).get("ultra_decision_root_sha256")
         != roots["a11_decision"]

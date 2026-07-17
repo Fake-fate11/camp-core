@@ -63,6 +63,51 @@ def _write(path: Path, value: Any) -> None:
     )
 
 
+def _oracle_canonical_snapshot_bytes(payload: Any) -> bytes:
+    """Locally implement the frozen V25 snapshot byte contract."""
+    return (
+        json.dumps(
+            payload,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _read_verified_content_addressed_snapshot(
+    path: Path, expected_sha256: Any
+) -> dict[str, Any]:
+    if (
+        not isinstance(expected_sha256, str)
+        or len(expected_sha256) != 64
+        or any(
+            character not in "0123456789abcdef" for character in expected_sha256
+        )
+    ):
+        raise ValueError("snapshot index SHA256 is invalid")
+    data = path.read_bytes()
+    if not data.endswith(b"\n") or data.endswith(b"\n\n"):
+        raise ValueError("snapshot bytes do not end in exactly one LF")
+    try:
+        payload = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("snapshot bytes are not canonical UTF-8 JSON") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("snapshot payload is not an object")
+    canonical = _oracle_canonical_snapshot_bytes(payload)
+    digest = hashlib.sha256(canonical).hexdigest()
+    if (
+        data != canonical
+        or digest != expected_sha256
+        or path.name != f"{expected_sha256}.json"
+    ):
+        raise ValueError("snapshot canonical bytes/content address drifted")
+    return payload
+
+
 def review(corpus: Path, expected_root: str) -> dict[str, Any]:
     head = _git_head(ROOT)
     if _tracked_dirty(ROOT):
@@ -146,9 +191,8 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         ):
             raise ValueError("snapshot index authority is invalid")
         path = corpus / relative
-        data = path.read_bytes()
-        digest = hashlib.sha256(data).hexdigest()
-        snapshot = json.loads(data)
+        digest = row.get("sha256")
+        snapshot = _read_verified_content_addressed_snapshot(path, digest)
         features = snapshot.get("feature_payload", {})
         sidecar = snapshot.get("sidecar", {})
         source = np.asarray(features.get("atom_source_valid_mask"))
@@ -177,9 +221,7 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         )
         selected = sidecar.get("selected_index")
         if (
-            row.get("sha256") != digest
-            or path.name != f"{digest}.json"
-            or snapshot.get("schema_version") != SNAPSHOT_SCHEMA_VERSION
+            snapshot.get("schema_version") != SNAPSHOT_SCHEMA_VERSION
             or sidecar.get("scenario_id") != key[0]
             or sidecar.get("tick_index") != key[1]
             or source.dtype != np.bool_

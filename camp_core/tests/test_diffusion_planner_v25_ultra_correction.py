@@ -32,8 +32,10 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     ScenarioCapabilityReason,
 )
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (
+    A12_SUPERSEDED_ROOTS,
     EXPECTED_ROOT_STATUSES,
     ROOT_CONTRACTS,
+    ROOT_EXACT_VALUES,
     build_critical_implementation_manifest,
     consume_one_shot_nonce,
     verify_dual_head_contract,
@@ -801,6 +803,16 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
     head = "e" * 40
     fixed = corpus.FIXED_DP_HEAD
 
+    def set_nested(payload: dict[str, object], path: tuple[str, ...], value: object):
+        cursor = payload
+        for key in path[:-1]:
+            nested = cursor.get(key)
+            if not isinstance(nested, dict):
+                nested = {}
+                cursor[key] = nested
+            cursor = nested
+        cursor[path[-1]] = copy.deepcopy(value)
+
     def make(role: str, report: dict[str, object], report_file: str | None = None):
         contract = ROOT_CONTRACTS[role]
         report_file = report_file or str(contract["report_file"])
@@ -810,6 +822,8 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
         payload.update(report)
         payload["schema_version"] = contract["schema_version"]
         payload["status"] = EXPECTED_ROOT_STATUSES[role]
+        for path, value in ROOT_EXACT_VALUES[role].items():
+            set_nested(payload, path, value)
         for key in (
             "fresh_b2_opened", "full_r_authorized", "full_r_started",
             "training_authorized", "training_executed", "calibration_authorized",
@@ -831,6 +845,7 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
             }
         elif role == "a11_decision":
             payload["corrected_source_head"] = head
+            payload["superseded_diagnostic_roots"] = sorted(A12_SUPERSEDED_ROOTS)
         elif role in {"a11_validation", "r01_source_review", "r01_bounded_review"}:
             payload["review_head"] = head
         else:
@@ -989,6 +1004,33 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
             "a11_decision", "full_r", lambda value: value.__setitem__("full_r_authorized", True)
         ),
         mutated_role(
+            "r01_source", "training_executed", lambda value: value.__setitem__("training_executed", True)
+        ),
+        mutated_role(
+            "r01_bounded_review", "calibration_executed", lambda value: value.__setitem__("calibration_executed", True)
+        ),
+        mutated_role(
+            "r01_source", "missing_fixed_dp", lambda value: value.__setitem__("fixed_dp_head", None)
+        ),
+        mutated_role(
+            "r01_source", "formal_conflict", lambda value: value.__setitem__("formal_root_sha256", "0" * 64)
+        ),
+        mutated_role(
+            "a11_decision", "a0_conflict", lambda value: value.__setitem__("a0_root_sha256", "0" * 64)
+        ),
+        mutated_role(
+            "a11_decision", "s01_conflict", lambda value: value.__setitem__("s01_review_root_sha256", "0" * 64)
+        ),
+        mutated_role(
+            "a11_ledger", "nested_authority", lambda value: value["authority"].__setitem__("formal_source_root_sha256", "0" * 64)
+        ),
+        mutated_role(
+            "r01_bounded", "denominator", lambda value: value.__setitem__("probe_tick_count", 1407)
+        ),
+        mutated_role(
+            "r01_source", "model_loaded", lambda value: value.__setitem__("model_loaded", True)
+        ),
+        mutated_role(
             "r01_source", "crosslink", lambda value: value.__setitem__("a1_ledger_root_sha256", "0" * 64)
         ),
         mutated_role(
@@ -1003,6 +1045,58 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
                 fixed_dp_head=fixed,
                 rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
             )
+
+    def changed_value(value: object) -> object:
+        if isinstance(value, bool):
+            return not value
+        if isinstance(value, int):
+            return value + 1
+        if isinstance(value, str):
+            return "0" * 64 if len(value) == 64 else value + "_mutated"
+        if isinstance(value, list):
+            return [] if value else ["forbidden"]
+        if isinstance(value, dict):
+            return {}
+        raise AssertionError(f"missing mutation strategy for {type(value)!r}")
+
+    for role, exact_values in ROOT_EXACT_VALUES.items():
+        for path, original in exact_values.items():
+            label = "exact_" + "_".join(path)
+            mutation = mutated_role(
+                role,
+                label,
+                lambda value, field_path=path, expected=original: set_nested(
+                    value, field_path, changed_value(expected)
+                ),
+            )
+            with pytest.raises(ValueError):
+                verify_seven_root_chain(
+                    bindings=mutation,
+                    implementation_source_head=head,
+                    fixed_dp_head=fixed,
+                    rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+                )
+
+    missing_superseded = mutated_role(
+        "a11_decision",
+        "missing_a12_superseded",
+        lambda value: value.__setitem__("superseded_diagnostic_roots", []),
+    )
+    with pytest.raises(ValueError, match="cross-link"):
+        verify_seven_root_chain(
+            bindings=missing_superseded,
+            implementation_source_head=head,
+            fixed_dp_head=fixed,
+            rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+        )
+
+    with pytest.raises(ValueError, match="fixed DP"):
+        verify_seven_root_chain(
+            bindings=rows,
+            implementation_source_head=head,
+            fixed_dp_head="0" * 40,
+            rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+        )
 
     bad_report_file = copy.deepcopy(rows)
     bad_report_file["a11_decision"]["report_file"] = "report.json"

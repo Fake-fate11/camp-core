@@ -1787,25 +1787,12 @@ def _execute(
                             ))
                     paired_count = len(payloads)
                     for tick_index, payload in enumerate(payloads):
-                        data = _canonical_json_bytes(payload) + b"\n"
-                        digest = hashlib.sha256(data).hexdigest()
-                        relative = Path("snapshots") / f"{digest}.json"
-                        target = output_dir / relative
-                        if target.exists() and target.read_bytes() != data:
-                            raise ValueError("content-addressed snapshot collision")
-                        if not target.exists():
-                            target.write_bytes(data)
-                        index_file.write(
-                            json.dumps(
-                                {
-                                    "scenario_id": case["scenario_id"],
-                                    "tick_index": tick_index,
-                                    "relative_path": relative.as_posix(),
-                                    "sha256": digest,
-                                },
-                                sort_keys=True,
-                            )
-                            + "\n"
+                        _write_content_addressed_snapshot(
+                            output_dir=output_dir,
+                            index_file=index_file,
+                            scenario_id=str(case["scenario_id"]),
+                            tick_index=tick_index,
+                            payload=payload,
                         )
                     index_file.flush()
                     snapshot_count += paired_count
@@ -2284,6 +2271,44 @@ def _canonical_json_bytes(payload: Any) -> bytes:
 
 def _canonical_sha256(payload: Any) -> str:
     return hashlib.sha256(_canonical_json_bytes(payload)).hexdigest()
+
+
+def _write_content_addressed_snapshot(
+    *,
+    output_dir: Path,
+    index_file: Any,
+    scenario_id: str,
+    tick_index: int,
+    payload: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Write one snapshot using the sole frozen V25 canonical byte contract."""
+    if not isinstance(scenario_id, str) or not scenario_id:
+        raise ValueError("snapshot scenario_id must be a nonempty string")
+    if (
+        isinstance(tick_index, bool)
+        or not isinstance(tick_index, int)
+        or tick_index < 0
+    ):
+        raise ValueError("snapshot tick_index must be a nonnegative integer")
+    data = _canonical_json_bytes(payload)
+    if not data.endswith(b"\n") or data.endswith(b"\n\n"):
+        raise ValueError("V25 canonical snapshot bytes must end in exactly one LF")
+    digest = hashlib.sha256(data).hexdigest()
+    relative = Path("snapshots") / f"{digest}.json"
+    target = output_dir / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists() and target.read_bytes() != data:
+        raise ValueError("content-addressed snapshot collision")
+    if not target.exists():
+        target.write_bytes(data)
+    row = {
+        "scenario_id": scenario_id,
+        "tick_index": tick_index,
+        "relative_path": relative.as_posix(),
+        "sha256": digest,
+    }
+    index_file.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
+    return row
 
 
 def _write_json_atomic(path: Path, payload: Mapping[str, Any]) -> None:

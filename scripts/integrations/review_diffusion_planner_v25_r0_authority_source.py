@@ -274,7 +274,16 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("s01_review_root_sha256") != PASSED_REVIEW_ROOT
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or input_roots.get("a0") != A0_ROOT
-        or decision.get("status") != "A1_2_R0_2_only_released"
+        or decision.get("schema_version")
+        != "camp_dp_v25_ultra_stage_a13_r03_decision_v4"
+        or decision.get("status") != "A1_3_R0_3_only_released"
+        or decision.get("fixed_dp_head") != FIXED_DP_HEAD
+        or decision.get("formal_root_sha256") != FORMAL_ROOT_SHA256
+        or decision.get("s01_preflight_root_sha256") != PASSED_PREFLIGHT_ROOT
+        or decision.get("s01_review_root_sha256") != PASSED_REVIEW_ROOT
+        or decision.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or decision.get("a1_3_authorized") is not True
+        or decision.get("r0_3_source_authority_preflight_authorized") is not True
         or decision.get("full_r_authorized") is not False
         or a0_report.get("status") != "passed"
         or ledger.get("status")

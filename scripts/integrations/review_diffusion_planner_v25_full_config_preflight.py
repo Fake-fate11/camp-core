@@ -64,6 +64,83 @@ S01_NATIVE_SOURCE_ROOTS = {
     "s01_preflight": "bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451",
     "s01_review": "facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d",
 }
+EXPECTED_FORMAL_ARTIFACT = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_"
+    "20260717T140842CST"
+)
+EXPECTED_FORMAL_ROOT_SHA256 = (
+    "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
+)
+EXPECTED_FORMAL_REPORT_SCHEMA_VERSION = "camp_dp_v25_controlled_scenario_phase_v1"
+EXPECTED_FORMAL_PLAN_SCHEMA_VERSION = "camp_dp_v25_controlled_corpus_final_plan_v1"
+EXPECTED_FORMAL_CASE_SCHEMA_VERSION = "camp_dp_v25_controlled_scenario_case_v1"
+EXPECTED_FORMAL_REPORT_FIELDS = {
+    "schema_version", "status", "mode", "checks", "pilot_review",
+    "source_summary", "model_loaded", "candidate_generation_started",
+    "training_executed", "calibration_executed", "fresh_b_opened",
+    "outcome_fields_consumed", "claim_authorized",
+}
+EXPECTED_FORMAL_PLAN_FIELDS = {
+    "schema_version", "outcome_blind", "outcome_fields_consumed",
+    "fresh_b_outcome_opened", "summary", "train", "calibration", "fresh_b",
+}
+EXPECTED_PROBE_TEMPLATE = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_"
+    "a53d6ee3_20260715T204719CST/prepared/probe_config.json"
+)
+EXPECTED_PROBE_TEMPLATE_SHA256 = (
+    "1e734165f7a614e93019df0a5c22b5e36722298cb50b21c5ce8fd0e4e2cf82bc"
+)
+EXPECTED_PROBE_TEMPLATE_SCHEMA_VERSION = "camp_dp_v24_single_record_source_probe_v1"
+EXPECTED_GENERATION_SCALES = {
+    "path": str(
+        ROOT
+        / "configs"
+        / "integrations"
+        / "diffusion_planner_v25_atom_scales_correction_v2.json"
+    ),
+    "sha256": "e844d159dc6c9c21b099084f5a46bf90fb77ca92571749f529e61e08814fe316",
+}
+EXPECTED_STATIC_WEIGHTS = {
+    "path": (
+        "/root/autodl-tmp/"
+        "camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_"
+        "79c9570b_0c22f85e/models/corrected14d_weights.npy"
+    ),
+    "sha256": "922ae11db719a2bda983bccf0c6bca842c37a899c4df222a1f7a5ac733285134",
+}
+EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
+EXPECTED_FIXED_DP_CHECKPOINT = {
+    "path": "/root/autodl-tmp/camp_dp_assets/diffusion_planner.pth",
+    "sha256": "4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75",
+}
+EXPECTED_FIXED_DP_ARGS = {
+    "path": (
+        "/root/autodl-tmp/"
+        "camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_"
+        "20260710T220921CST/fixed_dp_args.json"
+    ),
+    "sha256": "42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa",
+}
+EXPECTED_DP_NATIVE_SOURCE_SHA256 = {
+    "scenario_generation/mpc_tracker.py": (
+        "bf2fdc6398898a42eda4ab3d12045c5204eb5ce8a993dbf96feee975de04395a"
+    ),
+    "scenario_generation/replay.py": (
+        "92158e32f8e2626a20aeee1783501d1afad228f06d5948f3426716d93320c5eb"
+    ),
+    "scenario_generation/simulate.py": (
+        "de4542fbc8685718379dbf0626499113d8bca6f7dead1c4456d2d34ffd0b9e4e"
+    ),
+    "scenario_generation/tensor_converter.py": (
+        "af0a087dcfa910e5f0ad4732c5d1ebabb2fe5c41d2d61a4aa7aaf0f4351d36a7"
+    ),
+    "scenario_generation/traffic_light.py": (
+        "5a1659fe753102c514528c0bd93c261124bdf8de11bbc00ba5b941c151956af4"
+    ),
+}
 CONFIG_RECEIPT_FIELDS = {
     "schema_version",
     "scenario_id",
@@ -168,6 +245,43 @@ def _oracle_canonical_json_bytes(payload: Any) -> bytes:
 
 def _oracle_sha256(payload: Any) -> str:
     return hashlib.sha256(_oracle_canonical_json_bytes(payload)).hexdigest()
+
+
+def _same_path(value: Any, expected: Path) -> bool:
+    return isinstance(value, str) and Path(value).resolve() == expected.resolve()
+
+
+def _verify_frozen_authority_universe(
+    report: Mapping[str, Any], release: Mapping[str, Any]
+) -> None:
+    """Bind review to the one frozen formal/template/DP universe.
+
+    This oracle intentionally uses local literals rather than producer or
+    release-derived values, so a completely re-signed alternate universe is
+    rejected even when it is internally self-consistent.
+    """
+    if (
+        not _same_path(report.get("formal_artifact"), EXPECTED_FORMAL_ARTIFACT)
+        or report.get("formal_root_sha256") != EXPECTED_FORMAL_ROOT_SHA256
+        or not _same_path(report.get("probe_template"), EXPECTED_PROBE_TEMPLATE)
+        or report.get("probe_template_sha256") != EXPECTED_PROBE_TEMPLATE_SHA256
+        or report.get("generation_scales") != EXPECTED_GENERATION_SCALES
+        or report.get("static_weights") != EXPECTED_STATIC_WEIGHTS
+        or not _same_path(report.get("dp_repo"), EXPECTED_DP_REPO)
+        or not _same_path(release.get("formal_artifact"), EXPECTED_FORMAL_ARTIFACT)
+        or release.get("formal_root_sha256") != EXPECTED_FORMAL_ROOT_SHA256
+        or not _same_path(release.get("probe_template"), EXPECTED_PROBE_TEMPLATE)
+        or release.get("probe_template_sha256")
+        != EXPECTED_PROBE_TEMPLATE_SHA256
+        or release.get("generation_scales") != EXPECTED_GENERATION_SCALES
+        or release.get("static_weights") != EXPECTED_STATIC_WEIGHTS
+        or not _same_path(release.get("dp_repo"), EXPECTED_DP_REPO)
+        or release.get("fixed_dp_head") != FIXED_DP_HEAD
+        or release.get("fixed_dp_checkpoint") != EXPECTED_FIXED_DP_CHECKPOINT
+        or release.get("fixed_dp_args_json") != EXPECTED_FIXED_DP_ARGS
+        or release.get("native_source_roots") != S01_NATIVE_SOURCE_ROOTS
+    ):
+        raise ValueError("frozen formal/template/DP authority universe drifted")
 
 
 def _round_clean(values: np.ndarray, decimals: int = 6) -> np.ndarray:
@@ -721,6 +835,7 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         or release.get("status") != "full_config_preflight_released"
         or release.get("implementation_source_head")
         != report["implementation_source_head"]
+        or release.get("pointer_head_at_release") != report["camp_head"]
         or release.get("root_artifacts") != report["seven_root_bindings"]
         or release.get("rejected_roots") != report["rejected_roots"]
         or release.get("critical_implementation_manifest")
@@ -748,13 +863,30 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         or release.get("outcome_fields_consumed") != []
     ):
         raise ValueError("full-config preflight release binding drifted")
-    fixed_template = _load(Path(str(report["probe_template"]))).get("fixed_dp")
+    _verify_frozen_authority_universe(report, release)
+    template_authority = _load(EXPECTED_PROBE_TEMPLATE)
+    fixed_template = template_authority.get("fixed_dp")
     if (
-        not isinstance(fixed_template, Mapping)
-        or release.get("fixed_dp_checkpoint") != fixed_template.get("checkpoint")
-        or release.get("fixed_dp_args_json") != fixed_template.get("args_json")
+        template_authority.get("schema_version")
+        != EXPECTED_PROBE_TEMPLATE_SCHEMA_VERSION
+        or not isinstance(fixed_template, Mapping)
+        or set(fixed_template)
+        != {"repo", "head", "checkpoint", "args_json", "native_source_sha256"}
+        or fixed_template.get("repo") != str(EXPECTED_DP_REPO)
+        or fixed_template.get("head") != FIXED_DP_HEAD
+        or fixed_template.get("checkpoint") != EXPECTED_FIXED_DP_CHECKPOINT
+        or fixed_template.get("args_json") != EXPECTED_FIXED_DP_ARGS
+        or fixed_template.get("native_source_sha256")
+        != EXPECTED_DP_NATIVE_SOURCE_SHA256
+        or release.get("fixed_dp_checkpoint") != EXPECTED_FIXED_DP_CHECKPOINT
+        or release.get("fixed_dp_args_json") != EXPECTED_FIXED_DP_ARGS
     ):
         raise ValueError("full-config release fixed-DP asset binding drifted")
+    _verify_asset(EXPECTED_FIXED_DP_CHECKPOINT)
+    _verify_asset(EXPECTED_FIXED_DP_ARGS)
+    for relative, expected_sha256 in EXPECTED_DP_NATIVE_SOURCE_SHA256.items():
+        if file_sha256(EXPECTED_DP_REPO / relative) != expected_sha256:
+            raise ValueError("fixed-DP native source file drifted")
     verify_dual_head_contract(
         repo=ROOT,
         implementation_source_head=str(release["implementation_source_head"]),
@@ -790,25 +922,78 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
     ineligible = _retained_ineligible_receipts(plan)
     if (
         (formal / "run.exit").read_text(encoding="ascii") != "0\n"
+        or set(formal_report) != EXPECTED_FORMAL_REPORT_FIELDS
+        or formal_report.get("schema_version")
+        != EXPECTED_FORMAL_REPORT_SCHEMA_VERSION
         or formal_report.get("status") != "passed"
         or formal_report.get("mode") != "freeze_formal"
+        or formal_report.get("source_summary") != plan.get("summary")
+        or formal_report.get("model_loaded") is not False
+        or formal_report.get("candidate_generation_started") is not False
+        or formal_report.get("training_executed") is not False
+        or formal_report.get("calibration_executed") is not False
+        or formal_report.get("fresh_b_opened") is not False
+        or formal_report.get("claim_authorized") is not False
+        or formal_report.get("outcome_fields_consumed") != []
+        or set(plan) != EXPECTED_FORMAL_PLAN_FIELDS
+        or plan.get("schema_version") != EXPECTED_FORMAL_PLAN_SCHEMA_VERSION
         or plan.get("outcome_blind") is not True
         or plan.get("outcome_fields_consumed") != []
         or plan.get("fresh_b_outcome_opened") is not False
+        or not isinstance(plan.get("train"), list)
+        or len(plan["train"])
+        != EXPECTED_EXECUTABLE_IDENTITIES + EXPECTED_RETAINED_INELIGIBLE
         or len(executable) != EXPECTED_EXECUTABLE_IDENTITIES
         or len(ineligible) != EXPECTED_RETAINED_INELIGIBLE
-        or any(case.get("seeds") != [EXPECTED_SEED] for case in executable)
-        or any(case.get("split") != "train" for case in executable)
-        or any(case.get("outcome_fields_consumed") != [] for case in executable)
-        or any(case.get("holdout_outcome_consumed") is not False for case in executable)
+        or len({case.get("scenario_id") for case in plan["train"]})
+        != EXPECTED_EXECUTABLE_IDENTITIES + EXPECTED_RETAINED_INELIGIBLE
+        or any(
+            case.get("schema_version") != EXPECTED_FORMAL_CASE_SCHEMA_VERSION
+            or case.get("seeds") != [EXPECTED_SEED]
+            or case.get("split") != "train"
+            or case.get("outcome_blind") is not True
+            or case.get("outcome_fields_consumed") != []
+            or case.get("holdout_outcome_consumed") is not False
+            or (
+                case.get("runner_eligible") is True
+                and case.get("retention_role") != "executable"
+            )
+            or (
+                case.get("runner_eligible") is False
+                and case.get("retention_role") != "source_ineligible_retained"
+            )
+            or type(case.get("runner_eligible")) is not bool
+            for case in plan["train"]
+        )
+        or plan.get("summary", {}).get("split_counts", {}).get("train", {})
+        != {
+            "executable_corridor_count": 1,
+            "executable_identity_count": 1500,
+            "executable_route_count": 222,
+            "family_counts": {
+                "blocked_lane_static_obstacle": 407,
+                "cut_in_merge": 215,
+                "lead_vehicle_hard_brake": 215,
+                "narrow_encounter": 214,
+                "pedestrian_cyclist_crossing": 214,
+                "red_light_phase_timing": 21,
+                "unprotected_turn_oncoming_conflict": 214,
+            },
+            "inventory_corridor_count": 1,
+            "inventory_route_count": 375,
+            "manifest_identity_count": 1653,
+            "scenario_seed_run_count": 1500,
+            "source_ineligible_identity_count": 153,
+            "tier_counts": {"borderline": 444, "easy": 612, "high_risk": 444},
+        }
         or report.get("retained_ineligible_receipts") != ineligible
         or report.get("retained_ineligible_receipts_root_sha256")
         != _oracle_sha256(ineligible)
     ):
         raise ValueError("formal retained-ineligible denominator/root drifted")
 
-    template_path = Path(str(report["probe_template"]))
-    if file_sha256(template_path) != report["probe_template_sha256"]:
+    template_path = EXPECTED_PROBE_TEMPLATE
+    if file_sha256(template_path) != EXPECTED_PROBE_TEMPLATE_SHA256:
         raise ValueError("probe template actual SHA drifted")
     template = _load(template_path)
     scales = _verify_asset(report["generation_scales"])

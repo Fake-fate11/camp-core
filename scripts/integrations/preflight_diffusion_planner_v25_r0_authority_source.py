@@ -315,11 +315,17 @@ def _verify_input_artifacts(
     if (
         bindings["a0_root_sha256"] != A0_ROOT
         or decision.get("schema_version")
-        != "camp_dp_v25_ultra_stage_a12_r02_decision_v3"
-        or decision.get("status") != "A1_2_R0_2_only_released"
+        != "camp_dp_v25_ultra_stage_a13_r03_decision_v4"
+        or decision.get("status") != "A1_3_R0_3_only_released"
         or decision.get("corrected_source_head") != current_head
         or decision.get("fixed_dp_head") != FIXED_DP_HEAD
+        or decision.get("s01_preflight_root_sha256") != PASSED_PREFLIGHT_ROOT
+        or decision.get("s01_review_root_sha256") != PASSED_REVIEW_ROOT
+        or decision.get("formal_root_sha256") != FORMAL_ROOT_SHA256
         or decision.get("a0_root_sha256") != bindings["a0_root_sha256"]
+        or decision.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or decision.get("a1_3_authorized") is not True
+        or decision.get("r0_3_source_authority_preflight_authorized") is not True
         or decision.get("full_r_authorized") is not False
         or a0_report.get("stage_a0_code_head") is None
         or a0_report.get("fixed_dp_head") != FIXED_DP_HEAD
@@ -501,7 +507,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "physical_signatures": 9,
         "stop_line_geometry_shas": 5,
     }:
-        raise ValueError(f"R0.2 physical authority census drifted: {observed_counts}")
+        raise ValueError(f"R0.3 physical authority census drifted: {observed_counts}")
     report = {
         "schema_version": SCHEMA_VERSION,
         "status": "passed_source_only_full_r_closed",
