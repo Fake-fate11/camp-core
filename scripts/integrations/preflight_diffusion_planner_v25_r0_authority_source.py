@@ -66,6 +66,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 
 SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_preflight_v2"
 A0_ROOT = "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
+PHYSICAL_SIGNATURE_SCHEMA_VERSION = "camp_dp_v25_signal_physical_signature_v1"
 
 
 def parse_args() -> argparse.Namespace:
@@ -135,6 +136,60 @@ def _project_stop_to_controlled_route(
     if best is None:
         raise ValueError("stop line has no controlled route lanelet projection")
     return best[0], best[1], total, best[2]
+
+
+def _physical_signature_payload(
+    controlled_centerlines_world: list[np.ndarray],
+    stop_points_world: np.ndarray,
+    route_tangent_world: np.ndarray,
+) -> dict[str, Any]:
+    """Build an SE(2)-invariant physical signature without source or object IDs."""
+    stop = np.asarray(stop_points_world, dtype=np.float64)
+    tangent = np.asarray(route_tangent_world, dtype=np.float64)
+    if stop.ndim != 2 or stop.shape[1] != 2 or len(stop) < 2:
+        raise ValueError("physical signature stop line is invalid")
+    norm = float(np.linalg.norm(tangent))
+    if tangent.shape != (2,) or not np.isfinite(tangent).all() or norm <= 1e-12:
+        raise ValueError("physical signature tangent is invalid")
+    tangent = tangent / norm
+    normal = np.asarray([-tangent[1], tangent[0]], dtype=np.float64)
+    basis = np.stack([tangent, normal], axis=1)
+    origin = stop.mean(axis=0)
+    local_stop = np.round((stop - origin) @ basis, 6).tolist()
+    local_stop.sort()
+    local_centerlines: list[list[list[float]]] = []
+    for raw in controlled_centerlines_world:
+        line = np.asarray(raw, dtype=np.float64)
+        if (
+            line.ndim != 2
+            or line.shape[1] != 2
+            or len(line) < 2
+            or not np.isfinite(line).all()
+        ):
+            raise ValueError("physical signature controlled centerline is invalid")
+        local = np.round((line - origin) @ basis, 6)
+        if float(local[-1, 0]) < float(local[0, 0]):
+            local = local[::-1]
+        local_centerlines.append(local.tolist())
+    local_centerlines.sort(key=canonical_json_sha256)
+    return {
+        "schema_version": PHYSICAL_SIGNATURE_SCHEMA_VERSION,
+        "frame": "certified_stop_midpoint_route_tangent_normal",
+        "controlled_centerlines_local_m": local_centerlines,
+        "stop_line_local_m": local_stop,
+    }
+
+
+def _physical_signature_sha256(builder: Any, chain: Mapping[str, Any]) -> str:
+    payload = _physical_signature_payload(
+        [
+            np.asarray(builder._cache[int(lanelet_id)].raw_centerline, dtype=np.float64)
+            for lanelet_id in chain["controlled_lanelet_ids"]
+        ],
+        np.asarray(chain["stop_line_geometry_m"], dtype=np.float64),
+        np.asarray(chain["route_tangent_world"], dtype=np.float64),
+    )
+    return canonical_json_sha256(payload)
 
 
 def _extract_chain(case: Mapping[str, Any], builder: Any) -> dict[str, Any]:
@@ -352,6 +407,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             builders[map_path] = LaneletSceneBuilder(map_path)
         chains.append(_extract_chain(case, builders[map_path]))
     chain_by_id = {chain["scenario_id"]: chain for chain in chains}
+    physical_signature_by_id = {
+        chain["scenario_id"]: _physical_signature_sha256(
+            builders[str(next(
+                case["source_map_path"]
+                for case in red_cases
+                if str(case["scenario_id"]) == chain["scenario_id"]
+            ))],
+            chain,
+        )
+        for chain in chains
+    }
     selected = []
     for case in sorted(red_cases, key=lambda item: str(item["scenario_id"])):
         enriched = json.loads(json.dumps(case))
@@ -413,6 +479,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     case.get("red_signal_authority")
                     or case.get("no_signal_authority")
                 )["source_chain_sha256"],
+                "physical_signature_sha256": physical_signature_by_id.get(
+                    str(case["scenario_id"])
+                ),
                 "config_sha256": _canonical_sha256(config),
                 "config": config,
             }
@@ -421,7 +490,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     observed_counts = {
         "source_map_files": len({chain["source_map_sha256"] for chain in chains}),
         "physical_signatures": len(
-            {chain["route_geometry_sha256"] for chain in chains}
+            set(physical_signature_by_id.values())
         ),
         "stop_line_geometry_shas": len(
             {chain["stop_line_geometry_sha256"] for chain in chains}
@@ -449,6 +518,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "unique_regulatory_chain_count": len(chains),
         "validated_identity_chain_receipt_count": len(chains),
         "physical_signature_count": observed_counts["physical_signatures"],
+        "physical_signature_sha256s": sorted(set(physical_signature_by_id.values())),
         "stop_line_geometry_sha256_count": observed_counts[
             "stop_line_geometry_shas"
         ],

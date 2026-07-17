@@ -191,6 +191,37 @@ def _independent_chain_checks(
     return _native_bool_checks(checks)
 
 
+def _independent_physical_signature_sha256(
+    builder: Any, chain: Mapping[str, Any]
+) -> str:
+    stop = np.asarray(chain["stop_line_geometry_m"], dtype=np.float64)
+    tangent = np.asarray(chain["route_tangent_world"], dtype=np.float64)
+    tangent = tangent / np.linalg.norm(tangent)
+    normal = np.asarray([-tangent[1], tangent[0]], dtype=np.float64)
+    basis = np.stack([tangent, normal], axis=1)
+    origin = stop.mean(axis=0)
+    stop_local = np.round((stop - origin) @ basis, 6).tolist()
+    stop_local.sort()
+    centerlines = []
+    for lanelet_id in chain["controlled_lanelet_ids"]:
+        raw = np.asarray(
+            builder._cache[int(lanelet_id)].raw_centerline, dtype=np.float64
+        )
+        local = np.round((raw - origin) @ basis, 6)
+        if float(local[-1, 0]) < float(local[0, 0]):
+            local = local[::-1]
+        centerlines.append(local.tolist())
+    centerlines.sort(key=canonical_json_sha256)
+    return canonical_json_sha256(
+        {
+            "schema_version": "camp_dp_v25_signal_physical_signature_v1",
+            "frame": "certified_stop_midpoint_route_tangent_normal",
+            "controlled_centerlines_local_m": centerlines,
+            "stop_line_local_m": stop_local,
+        }
+    )
+
+
 def review(args: argparse.Namespace) -> dict[str, Any]:
     head = _git_head(ROOT)
     if _tracked_dirty(ROOT):
@@ -282,6 +313,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("R0 chain denominator differs from formal red identities")
     builders: dict[str, Any] = {}
     reviewed = []
+    observed_physical_signatures = []
     for chain in chains:
         case = red_cases[str(chain["scenario_id"])]
         map_path = str(case["source_map_path"])
@@ -295,13 +327,24 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             install_lanelet2_projection_fallback(path)
             builders[map_path] = LaneletSceneBuilder(map_path)
         checks = _independent_chain_checks(case, chain, builders[map_path])
+        physical_signature = _independent_physical_signature_sha256(
+            builders[map_path], chain
+        )
+        observed_physical_signatures.append(physical_signature)
         reviewed.append(
             {
                 "scenario_id": case["scenario_id"],
                 "chain_sha256": chain["source_chain_sha256"],
+                "physical_signature_sha256": physical_signature,
                 "checks": checks,
             }
         )
+    if (
+        len(set(observed_physical_signatures)) != 9
+        or sorted(set(observed_physical_signatures))
+        != report.get("physical_signature_sha256s")
+    ):
+        raise ValueError("R0 physical signature census/review drifted")
     selected = bounded.get("cases")
     selected_ids = [case.get("scenario_id") for case in selected] if isinstance(selected, list) else []
     if (
@@ -337,6 +380,16 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 or case.get("no_signal_authority")
                 or {}
             ).get("source_chain_sha256")
+            or receipt.get("physical_signature_sha256")
+            != (
+                next(
+                    item["physical_signature_sha256"]
+                    for item in reviewed
+                    if item["scenario_id"] == case.get("scenario_id")
+                )
+                if case.get("family") == "red_light_phase_timing"
+                else None
+            )
             or receipt.get("config", {}).get("controlled_scenario") != case
             or receipt.get("config", {}).get("fixed_dp", {}).get("head")
             != FIXED_DP_HEAD

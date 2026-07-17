@@ -34,6 +34,9 @@ from scripts.integrations.build_diffusion_planner_v25_static_atom_ledger import 
 from scripts.integrations.validate_diffusion_planner_v25_static_atom_ledger import (
     _expected_dag_contract as reviewer_dag_contract,
 )
+from scripts.integrations.preflight_diffusion_planner_v25_r0_authority_source import (
+    _physical_signature_payload,
+)
 
 
 def test_stage_a_dag_plan_matches_independent_exact_contract() -> None:
@@ -46,6 +49,32 @@ def test_stage_a_dag_plan_matches_independent_exact_contract() -> None:
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     assert plan["dag"] == producer_dag_contract()
     assert plan["dag"] == reviewer_dag_contract()
+
+
+def test_physical_signature_is_se2_and_controlled_order_invariant() -> None:
+    controlled = [
+        np.asarray([[0.0, 0.0], [10.0, 0.5], [20.0, 1.0]]),
+        np.asarray([[0.0, 3.0], [10.0, 3.5], [20.0, 4.0]]),
+    ]
+    stop = np.asarray([[12.0, -2.0], [12.0, 6.0]])
+    tangent = np.asarray([1.0, 0.05])
+    baseline = _physical_signature_payload(controlled, stop, tangent)
+    angle = 0.73
+    rotation = np.asarray(
+        [[math.cos(angle), -math.sin(angle)], [math.sin(angle), math.cos(angle)]]
+    )
+    translation = np.asarray([87.0, -31.0])
+    transformed = _physical_signature_payload(
+        [line @ rotation.T + translation for line in reversed(controlled)],
+        stop @ rotation.T + translation,
+        tangent @ rotation.T,
+    )
+    assert canonical_json_sha256(transformed) == canonical_json_sha256(baseline)
+
+    mutated = _physical_signature_payload(
+        [controlled[0] + np.asarray([0.0, 0.4]), controlled[1]], stop, tangent
+    )
+    assert canonical_json_sha256(mutated) != canonical_json_sha256(baseline)
 
 
 def _case() -> dict:
