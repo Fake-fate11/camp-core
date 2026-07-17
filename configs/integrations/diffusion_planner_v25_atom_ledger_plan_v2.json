@@ -1,6 +1,6 @@
 {
   "schema_version": "camp_dp_v25_atom_ledger_path_plan_v2",
-  "stage": "A_not_executed_s01_path_plan_only",
+  "stage": "A_ultra_released_bounded_execution_plan",
   "atom_count": 14,
   "wire_schema": "dp_camp_v10_14d",
   "ordered_atom_names": [
@@ -26,6 +26,7 @@
   "ledger_artifact_template": "/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_{HEAD}_{CST}",
   "validation_artifact_template": "/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_{HEAD}_{CST}",
   "required_inputs": [
+    "A0 strict recursive inventory and exact formal-probe authority supplement",
     "formal controlled split/source root c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531",
     "fixed DP 7a1d33da277a1992ec474b5383a0c963c72e04e4",
     "released S0.1 correction packet and independent review roots"
@@ -167,8 +168,15 @@
   "training_scale_estimator_plan": {
     "stage": "B_train_only_after_R_seal_and_review",
     "inputs": "sealed corrected train rows only",
-    "block_weighting": "route to semantic-scenario block to seed to tick macro weighting",
-    "positive_support_rule": "pre-registered positive-support quantile estimator; binary alternative reported separately for red atoms",
+    "block_weighting": "equal total mass per source-independent semantic block, then equal route, seed, tick, and eligible-candidate mass within each parent",
+    "positive_support_quantile": 0.95,
+    "minimum_positive_support": {
+      "unique_source_independent_semantic_blocks": 20,
+      "positive_candidate_rows": 128
+    },
+    "positive_support_rule": "strictly positive finite raw values among source-valid applicable candidate rows only",
+    "zero_support_rule": "no continuous estimate; mark support-limited and block silent substitution or removal",
+    "red_binary_alternative": "report 1(raw_atom>0) with scale 1.0 beside the continuous definition; no automatic replacement",
     "generation_behavior_floor_is_empirical_training_scale": false,
     "calibration_or_fresh_consumed": false
   },
@@ -185,15 +193,36 @@
   },
   "stage_dag": [
     "S0.1 correction and bounded preflight",
+    "A0 strict inventory, exact formal probe authority, and simplex hardening",
     "A static atom ledger and independent validation",
     "R corrected 1500x64 train corpus",
     "B sealed train-only empirical audit and training-scale freeze",
+    "C seven-family outcome-blind single-axis perturbation audit",
+    "D jerk/speed/lane-clearance/red/lateral focused audit",
     "E1 pre-calibration freeze",
     "T training and E2 calibration",
     "Q Fresh B2 pre-open qualification and power",
     "F one-shot Fresh B2",
     "E3 final evidence and closeout"
   ],
+  "stage_gate_contracts": {
+    "A_exit": "14 rows complete, source/formula/clip/mask checks pass, independent numeric recompute passes, and progress choice is packaged for Ultra",
+    "R_entry": "separate Ultra release binding S0.1, A0, ledger, validation, progress decision, fixed DP, formal source, and corrected HEAD",
+    "C_entry": "B PASS and separate Ultra release",
+    "C_exit": "seven-family PASS/WARN/FAIL plus remediation class, with no outcome-selected parameters",
+    "D_entry": "B PASS and separate Ultra release",
+    "D_exit": "focused algebra/source findings plus combined independent review",
+    "E1_entry": "C and D combined review PASS plus Ultra release"
+  },
+  "r_red_scientific_coverage_freeze": {
+    "formal_executable_red_identities": 21,
+    "formal_by_tier": {"easy": 6, "borderline": 10, "high_risk": 5},
+    "formal_distinct_source_maps": 4,
+    "minimum_complete_by_tier": {"easy": 4, "borderline": 7, "high_risk": 4},
+    "minimum_distinct_source_maps": 3,
+    "all_21_retained_capability_failures_scientifically_pass": false,
+    "failure_disposition": "retain denominator but mark artifact scientifically_ineligible and block B/training"
+  },
   "execution_authorized": false,
   "sealed_corpus_statistics_authorized": false,
   "stage_a_executed": false,

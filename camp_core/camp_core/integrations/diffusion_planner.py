@@ -406,18 +406,35 @@ def project_simplex(values: np.ndarray) -> np.ndarray:
     return np.maximum(values - theta, 0.0)
 
 
-def _normalized_weights(weights: np.ndarray, num_atoms: int) -> np.ndarray:
+def _strict_normalized_simplex_weights(
+    weights: np.ndarray,
+    num_atoms: int,
+    *,
+    label: str = "CAMP weights",
+) -> np.ndarray:
     weights = np.asarray(weights, dtype=np.float64).reshape(-1)
     if weights.shape != (num_atoms,):
         raise ValueError(
-            f"Expected {num_atoms} CAMP weights, got shape {weights.shape}."
+            f"Expected {num_atoms} {label}, got shape {weights.shape}."
         )
-    weights = np.nan_to_num(weights, nan=0.0, posinf=0.0, neginf=0.0)
-    weights = np.maximum(weights, 0.0)
-    total = float(weights.sum())
-    if total <= 0.0:
-        return np.full(num_atoms, 1.0 / num_atoms, dtype=np.float64)
-    return weights / total
+    if not np.all(np.isfinite(weights)):
+        raise ValueError(f"{label} must contain only finite values.")
+    if np.any(weights < 0.0):
+        raise ValueError(f"{label} must contain only nonnegative values.")
+    with np.errstate(over="ignore", invalid="ignore"):
+        total = float(np.sum(weights, dtype=np.float64))
+    if not np.isfinite(total) or total <= 0.0:
+        raise ValueError(f"{label} must have a finite positive total mass.")
+    normalized = weights / total
+    normalized_total = float(np.sum(normalized, dtype=np.float64))
+    if (
+        not np.all(np.isfinite(normalized))
+        or np.any(normalized < 0.0)
+        or not np.isfinite(normalized_total)
+        or not np.isclose(normalized_total, 1.0, rtol=0.0, atol=1e-12)
+    ):
+        raise ValueError(f"{label} could not be normalized to a finite simplex.")
+    return normalized
 
 
 def _load_checkpoint_payload(path: Path) -> dict[str, Any]:
@@ -2821,27 +2838,19 @@ class CAMPSelector:
                     "fallback_atom_scales must contain only finite positive values."
                 )
             self.fallback_atom_scales = fallback_scales
-            fallback_weights = np.asarray(
-                fallback_static_weights, dtype=np.float64
-            ).reshape(-1)
-            if (
-                fallback_weights.shape != (self.num_atoms,)
-                or not np.all(np.isfinite(fallback_weights))
-                or np.any(fallback_weights < 0.0)
-                or float(np.sum(fallback_weights)) <= 0.0
-            ):
-                raise ValueError(
-                    "fallback_static_weights must be finite nonnegative values "
-                    "with positive total mass."
-                )
-            self.fallback_static_weights = _normalized_weights(
-                fallback_weights,
+            self.fallback_static_weights = _strict_normalized_simplex_weights(
+                fallback_static_weights,
                 self.num_atoms,
+                label="fallback_static_weights",
             )
 
         self.static_weights = None
         if static_weights is not None:
-            self.static_weights = _normalized_weights(static_weights, self.num_atoms)
+            self.static_weights = _strict_normalized_simplex_weights(
+                static_weights,
+                self.num_atoms,
+                label="static_weights",
+            )
 
         self.theta = None
         if theta is not None:

@@ -16,6 +16,10 @@ from camp_core.integrations.diffusion_planner import (
     CAMP_ATOM_NAMES,
     DP_CAMP_ATOM_NAMES_V10,
 )
+from camp_core.integrations.diffusion_planner_artifact_seal import (
+    seal_artifact as _strict_seal_artifact,
+    verify_complete_seal,
+)
 from camp_core.integrations.diffusion_planner_causal_atoms import (
     CANONICAL_ATOM_CONTRACTS,
     CANONICAL_NORMALIZED_ATOM_CLIP,
@@ -98,52 +102,17 @@ def _read_manifest(path: Path) -> dict[str, str]:
 
 
 def verify_seal(root: Path, expected_root_sha256: str) -> int:
-    source = Path(root).resolve()
-    manifest = source / "SHA256SUMS"
-    receipt = source / "ROOT_SHA256SUMS"
-    if (
-        not source.is_dir()
-        or not _is_sha256(expected_root_sha256)
-        or not manifest.is_file()
-        or not receipt.is_file()
-        or _file_sha256(manifest) != expected_root_sha256
-        or receipt.read_text(encoding="ascii")
-        != f"{expected_root_sha256}  SHA256SUMS\n"
-    ):
-        raise ValueError(f"sealed artifact root mismatch: {source}")
-    entries = _read_manifest(manifest)
-    actual = {
-        path.relative_to(source).as_posix()
-        for path in source.rglob("*")
-        if path.is_file() and path.name not in {"SHA256SUMS", "ROOT_SHA256SUMS"}
-    }
-    if actual != set(entries):
-        raise ValueError(f"sealed artifact inventory mismatch: {source}")
-    for relative, digest in entries.items():
-        if _file_sha256(source / relative) != digest:
-            raise ValueError(f"sealed artifact payload mismatch: {source / relative}")
-    return len(entries)
+    return int(
+        verify_complete_seal(
+            root,
+            expected_root_sha256,
+            label="V25 atom/context source",
+        )["file_count"]
+    )
 
 
 def seal_artifact(root: Path) -> str:
-    source = Path(root)
-    files = sorted(
-        path
-        for path in source.rglob("*")
-        if path.is_file() and path.name not in {"SHA256SUMS", "ROOT_SHA256SUMS"}
-    )
-    (source / "SHA256SUMS").write_text(
-        "".join(
-            f"{_file_sha256(path)}  {path.relative_to(source).as_posix()}\n"
-            for path in files
-        ),
-        encoding="utf-8",
-    )
-    digest = _file_sha256(source / "SHA256SUMS")
-    (source / "ROOT_SHA256SUMS").write_text(
-        f"{digest}  SHA256SUMS\n", encoding="ascii"
-    )
-    return digest
+    return _strict_seal_artifact(root, label="V25 atom/context artifact")
 
 
 def validate_config(config: Mapping[str, Any]) -> dict[str, Any]:

@@ -45,9 +45,12 @@ from scripts.integrations.preflight_diffusion_planner_v25_ultra_correction impor
 from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # noqa: E402
     FIXED_DP_HEAD,
 )
+from scripts.integrations.review_diffusion_planner_v25_stage_a0_authority import (  # noqa: E402
+    validate_probe_config_authority,
+)
 
 
-SCHEMA_VERSION = "camp_dp_v25_ultra_correction_preflight_review_v2"
+SCHEMA_VERSION = "camp_dp_v25_ultra_correction_preflight_review_v3"
 IDENTITY_RECEIPT_KEYS = frozenset(
     {
         "elementwise_equal",
@@ -164,6 +167,10 @@ def _review(artifact: Path) -> dict[str, Any]:
         config_receipts,
         expected_root=report.get("config_receipts_root_sha256"),
     )
+    formal_probe_authority = validate_probe_config_authority(
+        preflight_root=artifact,
+        formal_root=FORMAL_ARTIFACT,
+    )
     row_checks = [_review_probe_row(row, config_receipts) for row in rows]
     checks = {
         "source_schema": report.get("schema_version") == SOURCE_SCHEMA_VERSION,
@@ -202,6 +209,10 @@ def _review(artifact: Path) -> dict[str, Any]:
         ),
         "static_weights_bound": _asset_receipt_is_live(report.get("static_weights")),
         "config_receipts_recomputed": all(config_checks.values()),
+        "formal_probe_cases_and_shared_assets_exact": (
+            formal_probe_authority.get("formal_case_count") == 2
+            and len(formal_probe_authority.get("rows", [])) == 2
+        ),
         "command_present": bool(command),
         "source_fresh_false": report.get("fresh_b_opened") is False,
         "source_outcomes_not_consumed": report.get("outcome_fields_consumed") == [],
@@ -253,6 +264,7 @@ def _review(artifact: Path) -> dict[str, Any]:
         "reviewed_root_sha256": source_root,
         "checks": checks,
         "config_checks": config_checks,
+        "formal_probe_authority": formal_probe_authority,
         "probe_row_checks": row_checks,
         "probe_count": len(rows),
         "probe_tick_count": sum(int(row["tick_count"]) for row in rows),

@@ -36,6 +36,10 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import ( 
     build_controlled_scenario_plan,
     build_final_controlled_corpus_plan,
 )
+from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
+    seal_artifact as _strict_seal_artifact,
+    verify_complete_seal as _strict_verify_complete_seal,
+)
 from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # noqa: E402
     FIXED_DP_HEAD,
     build_native_arm_runner,
@@ -809,34 +813,13 @@ def _file_sha256(path: Path) -> str:
 
 
 def _seal(root: Path) -> str:
-    excluded = {"SHA256SUMS", "ROOT_SHA256SUMS"}
-    files = sorted(
-        path for path in root.rglob("*") if path.is_file() and path.name not in excluded
-    )
-    sums = root / "SHA256SUMS"
-    with sums.open("w", encoding="utf-8", newline="\n") as handle:
-        for path in files:
-            handle.write(f"{_file_sha256(path)}  {path.relative_to(root).as_posix()}\n")
-    root_sha = _file_sha256(sums)
-    with (root / "ROOT_SHA256SUMS").open(
-        "w", encoding="ascii", newline="\n"
-    ) as handle:
-        handle.write(f"{root_sha}  SHA256SUMS\n")
-    return root_sha
+    return _strict_seal_artifact(root, label="V25 artifact")
 
 
 def _verify_seal(root: Path) -> str:
-    sums = root / "SHA256SUMS"
-    for line in sums.read_text(encoding="utf-8").splitlines():
-        digest, relative = line.split("  ", 1)
-        if _file_sha256(root / relative) != digest:
-            raise ValueError(f"artifact SHA256 mismatch: {relative}")
-    root_digest, relative = (root / "ROOT_SHA256SUMS").read_text(
-        encoding="ascii"
-    ).strip().split("  ", 1)
-    if relative != "SHA256SUMS" or _file_sha256(sums) != root_digest:
-        raise ValueError("artifact root SHA256 mismatch")
-    return root_digest
+    return str(
+        _strict_verify_complete_seal(root, label="V25 artifact")["root_sha256"]
+    )
 
 
 if __name__ == "__main__":

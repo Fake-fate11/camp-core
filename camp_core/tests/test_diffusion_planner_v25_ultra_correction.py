@@ -674,7 +674,7 @@ def test_atom_ledger_is_only_a_versioned_s0_path_plan() -> None:
             / "diffusion_planner_v25_atom_ledger_plan_v2.json"
         ).read_text(encoding="utf-8")
     )
-    assert plan["stage"] == "A_not_executed_s01_path_plan_only"
+    assert plan["stage"] == "A_ultra_released_bounded_execution_plan"
     assert plan["atom_count"] == 14
     assert len(plan["ordered_atom_names"]) == 14
     assert [row["name"] for row in plan["planned_atom_rows"]] == plan[
@@ -695,6 +695,12 @@ def test_atom_ledger_is_only_a_versioned_s0_path_plan() -> None:
     assert plan["training_scale_estimator_plan"][
         "generation_behavior_floor_is_empirical_training_scale"
     ] is False
+    assert plan["training_scale_estimator_plan"]["positive_support_quantile"] == 0.95
+    assert plan["r_red_scientific_coverage_freeze"][
+        "all_21_retained_capability_failures_scientifically_pass"
+    ] is False
+    assert "C_entry" in plan["stage_gate_contracts"]
+    assert "D_exit" in plan["stage_gate_contracts"]
     assert plan["scene14d_runtime_future_c_gate"]["execution_in_s01"] is False
     assert plan["stage_a_executed"] is False
     assert plan["corrected_full_corpus_started"] is False

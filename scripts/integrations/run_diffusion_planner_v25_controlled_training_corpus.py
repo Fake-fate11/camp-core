@@ -87,6 +87,12 @@ PREREGISTERED_CAPABILITY_FAILURE_LIMITS = {
         ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value,
     ): 32,
 }
+RED_SCIENTIFIC_MIN_COMPLETE_BY_TIER = {
+    "easy": 4,
+    "borderline": 7,
+    "high_risk": 4,
+}
+RED_SCIENTIFIC_MIN_DISTINCT_SOURCE_MAPS = 3
 
 
 class ArtifactContractViolation(RuntimeError):
@@ -144,7 +150,8 @@ def validate_terminal_acceptance(
     expected_identity_count: int = EXPECTED_EXECUTABLE_IDENTITIES,
     capability_allowlist: Mapping[str, Mapping[str, Any]] | None = None,
     expected_identity_families: Mapping[str, str] | None = None,
-) -> dict[str, int]:
+    expected_red_authority: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
     if len(results) != expected_identity_count:
         raise ArtifactContractViolation(
             "terminal identity denominator is incomplete"
@@ -192,7 +199,14 @@ def validate_terminal_acceptance(
                     "capability failure receipt does not bind the result identity"
                 )
             retained_capability += 1
-            retained_by_contract[(receipt["family"], receipt["reason"])] += 1
+            contract = (receipt["family"], receipt["reason"])
+            retained_by_contract[contract] += 1
+            limit = PREREGISTERED_CAPABILITY_FAILURE_LIMITS.get(contract)
+            if limit is None or retained_by_contract[contract] > limit:
+                raise ArtifactContractViolation(
+                    "retained scenario-capability failures exceed the "
+                    "preregistered limit"
+                )
         else:
             raise ArtifactContractViolation(
                 "terminal results contain an illegal failure or partial identity"
@@ -208,15 +222,84 @@ def validate_terminal_acceptance(
             raise ArtifactContractViolation(
                 "retained scenario-capability failures exceed the preregistered limit"
             )
+    red_coverage = None
+    if expected_red_authority is not None:
+        if len(expected_red_authority) != 21:
+            raise ArtifactContractViolation(
+                "formal red-light authority must contain exactly 21 identities"
+            )
+        formal_by_tier: collections.Counter[str] = collections.Counter()
+        formal_maps: set[str] = set()
+        for scenario_id, authority in expected_red_authority.items():
+            if (
+                not isinstance(scenario_id, str)
+                or not isinstance(authority, Mapping)
+                or authority.get("tier") not in RED_SCIENTIFIC_MIN_COMPLETE_BY_TIER
+                or authority.get("mapped_traffic_light") is not True
+                or not isinstance(authority.get("source_map_sha256"), str)
+            ):
+                raise ArtifactContractViolation(
+                    "formal red-light mapping authority is invalid"
+                )
+            formal_by_tier[str(authority["tier"])] += 1
+            formal_maps.add(str(authority["source_map_sha256"]))
+        if dict(formal_by_tier) != {
+            "easy": 6,
+            "borderline": 10,
+            "high_risk": 5,
+        } or len(formal_maps) != 4:
+            raise ArtifactContractViolation(
+                "formal red-light capability census drifted"
+            )
+        complete_ids = {
+            str(row["scenario_id"])
+            for row in results
+            if row.get("status") == "complete"
+        }
+        complete_by_tier: collections.Counter[str] = collections.Counter()
+        complete_maps: set[str] = set()
+        for scenario_id, authority in expected_red_authority.items():
+            if scenario_id in complete_ids:
+                complete_by_tier[str(authority["tier"])] += 1
+                complete_maps.add(str(authority["source_map_sha256"]))
+        tier_pass = all(
+            complete_by_tier[tier] >= minimum
+            for tier, minimum in RED_SCIENTIFIC_MIN_COMPLETE_BY_TIER.items()
+        )
+        maps_pass = len(complete_maps) >= RED_SCIENTIFIC_MIN_DISTINCT_SOURCE_MAPS
+        red_coverage = {
+            "formal_identity_count": len(expected_red_authority),
+            "formal_by_tier": dict(formal_by_tier),
+            "formal_distinct_source_map_count": len(formal_maps),
+            "complete_by_tier": {
+                tier: int(complete_by_tier[tier])
+                for tier in RED_SCIENTIFIC_MIN_COMPLETE_BY_TIER
+            },
+            "complete_distinct_source_map_count": len(complete_maps),
+            "minimum_complete_by_tier": dict(
+                RED_SCIENTIFIC_MIN_COMPLETE_BY_TIER
+            ),
+            "minimum_distinct_source_maps": (
+                RED_SCIENTIFIC_MIN_DISTINCT_SOURCE_MAPS
+            ),
+            "passed": bool(tier_pass and maps_pass),
+        }
+        if not red_coverage["passed"]:
+            raise ArtifactContractViolation(
+                "red-light capability coverage is scientifically ineligible"
+            )
     if snapshot_index_count != expected_snapshots:
         raise ArtifactContractViolation(
             "terminal snapshot index does not match complete identities"
         )
-    return {
+    summary: dict[str, Any] = {
         "complete_identity_count": complete,
         "retained_capability_failure_count": retained_capability,
         "training_snapshot_count": expected_snapshots,
     }
+    if red_coverage is not None:
+        summary["red_scientific_coverage"] = red_coverage
+    return summary
 
 
 def build_capability_failure_allowlist(
@@ -918,6 +1001,17 @@ def _execute(
         expected_identity_families={
             str(case["scenario_id"]): str(case["family"]) for case in cases
         },
+        expected_red_authority={
+            str(case["scenario_id"]): {
+                "tier": str(case["tier"]),
+                "source_map_sha256": str(case["source_map_sha256"]),
+                "mapped_traffic_light": case.get("source_availability", {}).get(
+                    "mapped_traffic_light"
+                ),
+            }
+            for case in cases
+            if case.get("family") == "red_light_phase_timing"
+        },
     )
     family_counts = collections.Counter(row["family"] for row in results)
     family_snapshots = collections.Counter()
@@ -956,6 +1050,7 @@ def _execute(
         "retained_capability_failure_count": terminal[
             "retained_capability_failure_count"
         ],
+        "red_scientific_coverage": terminal["red_scientific_coverage"],
         "retained_identity_count": len(results),
         "snapshot_count": snapshot_count,
         "snapshot_capacity": len(cases) * CORPUS_STEPS,
