@@ -22,6 +22,7 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
 )
 from scripts.integrations import (
     build_diffusion_planner_v25_static_atom_ledger as builder,
+    review_diffusion_planner_v25_r0_authority_source as source_reviewer,
     run_diffusion_planner_v25_controlled_training_corpus as corpus,
     validate_diffusion_planner_v25_static_atom_ledger as validator,
 )
@@ -252,6 +253,14 @@ def test_full_r_executor_cannot_self_authorize_without_ultra_chain() -> None:
             ultra_release_root_sha256=None,
             camp_head="a" * 40,
         )
+
+
+def test_r0_source_reviewer_serializes_numpy_check_results_as_native_bool() -> None:
+    checks = source_reviewer._native_bool_checks(
+        {"numpy_true": np.bool_(True), "numpy_false": np.bool_(False)}
+    )
+    assert checks == {"numpy_true": True, "numpy_false": False}
+    assert all(type(value) is bool for value in checks.values())
 
 
 def _write_stage_a_inputs(tmp_path: Path) -> tuple[Path, str, Path, str]:

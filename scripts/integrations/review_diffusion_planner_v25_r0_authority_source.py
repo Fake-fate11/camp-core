@@ -61,6 +61,10 @@ SCHEMA_VERSION = "camp_dp_v25_r0_authority_source_review_v1"
 SOURCE_SCHEMA_VERSION = "camp_dp_v25_r0_authority_source_preflight_v1"
 
 
+def _native_bool_checks(checks: Mapping[str, Any]) -> dict[str, bool]:
+    return {str(name): bool(value) for name, value in checks.items()}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-artifact", type=Path, required=True)
@@ -174,7 +178,7 @@ def _independent_chain_checks(
             "independent red source-chain mismatch: "
             + ",".join(name for name, value in checks.items() if not value)
         )
-    return checks
+    return _native_bool_checks(checks)
 
 
 def review(args: argparse.Namespace) -> dict[str, Any]:
