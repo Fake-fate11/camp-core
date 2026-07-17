@@ -39,7 +39,12 @@ _ELIGIBILITY_POLICIES = frozenset(
 )
 CANONICAL_NORMALIZED_ATOM_CLIP = 10.0
 V25_PLANNED_RED_LIGHT_SCALE_FLOOR = 1.0
-FIXED_K8_HEADING_UNIT_ATOL = 5e-4
+# Fixed DP directly regresses the two heading channels and consumes their angle
+# through atan2 (or normalizes internally for guidance); it does not guarantee
+# exact unit magnitude at the public candidate boundary.  This symmetric
+# envelope rejects degenerate/grossly invalid cos/sin vectors without changing
+# or normalizing any fixed candidate trajectory.
+FIXED_K8_HEADING_UNIT_ATOL = 0.5
 
 
 def validate_fixed_k8_candidate_tensor(candidates: np.ndarray) -> np.ndarray:

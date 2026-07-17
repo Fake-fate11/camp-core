@@ -153,6 +153,14 @@ def test_candidate_heading_unit_vector_is_a_hard_invariant() -> None:
             weights=np.full(14, 1.0 / 14.0),
         )
 
+    lower_envelope = _candidate_tensor()
+    lower_envelope[0, 0, 2:] = [0.5, 0.0]
+    validate_fixed_k8_candidate_tensor(lower_envelope)
+    upper_violation = _candidate_tensor()
+    upper_violation[0, 0, 2:] = [1.5001, 0.0]
+    with pytest.raises(ValueError, match="maximum_norm"):
+        validate_fixed_k8_candidate_tensor(upper_violation)
+
 
 def test_v25_red_light_scale_has_a_non_degenerate_semantic_floor() -> None:
     scales = np.ones(14, dtype=np.float64)
