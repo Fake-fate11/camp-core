@@ -62,7 +62,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v3"
+SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v4"
 
 
 def parse_args() -> argparse.Namespace:

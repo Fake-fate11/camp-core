@@ -38,6 +38,13 @@ A12_SUPERSEDED_ROOTS = frozenset(
         "04d28ed769625f3db23ba2e9646384014817d4bb58196efae358ee2230677682",
         "1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd",
         "27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa",
+        "1b2dd591e342fdfa0d88f05a2d2537bc8f51292d71502a22e701147cee15488c",
+        "02529652c60e5843c2bb5568222291e5e3b5884fc218ab2e3cd0884810620ae4",
+        "e2f7f484bdbb18d9eac7963cc7737cc6f39fc6427deb39e07a62060a9ecdc2a0",
+        "c7375c3539727abf7b5a726b437bcb643de96fcbf2911b966bfa5e13f20881f8",
+        "7d6308d5f3b36a3ec3925ffe1a3ef929f5e45940429e117b8fe52837a4e2f332",
+        "50ae46bb76f76e07bac6a91405e30cade7bdfd715cf417a6e7d5931cdaaa3878",
+        "c07e1c4cd63db8aaa21118925e7a78bbb2b6c1687ecbaf4939047057863979b1",
     }
 )
 CANONICAL_JSON_BYTE_SPEC_VERSION = "camp_dp_v25_canonical_json_utf8_lf_v1"
@@ -55,7 +62,7 @@ ROOT_ROLES = (
     "r01_bounded_review",
 )
 EXPECTED_ROOT_STATUSES = {
-    "a11_decision": "A1_3_R0_3_only_released",
+    "a11_decision": "A1_4_R0_4_only_released",
     "a11_ledger": "passed_with_warnings_progress_source_valid_frozen",
     "a11_validation": "passed_with_warnings_progress_source_valid_frozen",
     "r01_source": "passed_source_only_full_r_closed",
@@ -68,18 +75,18 @@ EXPECTED_ROOT_STATUSES = {
 ROOT_CONTRACTS = {
     "a11_decision": {
         "report_file": "decision.json",
-        "schema_version": "camp_dp_v25_ultra_stage_a13_r03_decision_v4",
+        "schema_version": "camp_dp_v25_ultra_stage_a14_r04_decision_v5",
         "head_path": ("corrected_source_head",),
         "fields": frozenset(
             {
-                "a0_root_sha256", "a1_3_authorized",
+                "a0_root_sha256", "a1_4_authorized",
                 "bounded_21red_1nosignal_x64_authorized_after_source_pass",
                 "calibration_authorized", "candidate0_or_all_k_fallback_allowed",
                 "corrected_source_head", "decision_date", "empty_source_valid",
                 "fixed_dp_head", "formal_root_sha256", "fresh_b2_opened",
                 "full_r_authorized", "monitor_authorized", "outcome_fields_consumed",
                 "progress_formula", "progress_reference",
-                "r0_3_source_authority_preflight_authorized", "rejected_roots",
+                "r0_4_source_authority_preflight_authorized", "rejected_roots",
                 "s01_preflight_root_sha256", "s01_review_root_sha256",
                 "scene_runtime_authorized", "schema_version", "selection_eligibility",
                 "source_thread_id", "status", "superseded_diagnostic_roots",
@@ -89,7 +96,7 @@ ROOT_CONTRACTS = {
     },
     "a11_ledger": {
         "report_file": "atom_ledger.json",
-        "schema_version": "camp_dp_v25_static_atom_ledger_v4",
+        "schema_version": "camp_dp_v25_static_atom_ledger_v5",
         "head_path": ("authority", "stage_a_producer_head"),
         "fields": frozenset(
             {
@@ -105,7 +112,7 @@ ROOT_CONTRACTS = {
     },
     "a11_validation": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_static_atom_ledger_validation_v4",
+        "schema_version": "camp_dp_v25_static_atom_ledger_validation_v5",
         "head_path": ("review_head",),
         "fields": frozenset(
             {
@@ -123,7 +130,7 @@ ROOT_CONTRACTS = {
     },
     "r01_source": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_authority_source_preflight_v2",
+        "schema_version": "camp_dp_v25_r01_authority_source_preflight_v3",
         "head_path": ("camp_head",),
         "fields": frozenset(
             {
@@ -150,7 +157,7 @@ ROOT_CONTRACTS = {
     },
     "r01_source_review": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_authority_source_review_v2",
+        "schema_version": "camp_dp_v25_r01_authority_source_review_v3",
         "head_path": ("review_head",),
         "fields": frozenset(
             {
@@ -168,7 +175,7 @@ ROOT_CONTRACTS = {
     },
     "r01_bounded": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v3",
+        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v4",
         "head_path": ("camp_head",),
         "fields": frozenset(
             {
@@ -186,7 +193,7 @@ ROOT_CONTRACTS = {
     },
     "r01_bounded_review": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v3",
+        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v4",
         "head_path": ("review_head",),
         "fields": frozenset(
             {
@@ -222,8 +229,8 @@ ROOT_EXACT_VALUES: dict[str, dict[tuple[str, ...], Any]] = {
         ("selection_eligibility",): "source_valid",
         ("empty_source_valid",): "fail_closed",
         ("candidate0_or_all_k_fallback_allowed",): False,
-        ("a1_3_authorized",): True,
-        ("r0_3_source_authority_preflight_authorized",): True,
+        ("a1_4_authorized",): True,
+        ("r0_4_source_authority_preflight_authorized",): True,
         ("bounded_21red_1nosignal_x64_authorized_after_source_pass",): True,
         ("full_r_authorized",): False,
         ("monitor_authorized",): False,
@@ -374,12 +381,133 @@ def _nested_value(payload: Mapping[str, Any], path: tuple[str, ...]) -> Any:
     return value
 
 
+def strict_json_equal(actual: Any, expected: Any) -> bool:
+    """Compare JSON values without Python's bool/int/float coercions."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return set(actual) == set(expected) and all(
+            strict_json_equal(actual[key], value)
+            for key, value in expected.items()
+        )
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(
+            strict_json_equal(left, right)
+            for left, right in zip(actual, expected, strict=True)
+        )
+    if isinstance(expected, float):
+        return expected == actual and actual not in (float("inf"), float("-inf"))
+    return actual == expected
+
+
+_LEDGER_AUTHORITY_FIELDS = frozenset(
+    {
+        "s01_source_head",
+        "s01_release_baseline_head",
+        "stage_a_producer_head",
+        "fixed_dp_head",
+        "s01_preflight_root_sha256",
+        "s01_review_root_sha256",
+        "formal_source_root_sha256",
+        "a0_artifact",
+        "a0_root_sha256",
+        "ultra_decision_artifact",
+        "ultra_decision_root_sha256",
+        "plan_path",
+        "plan_sha256",
+        "rejected_roots",
+    }
+)
+_LEDGER_STAGE_BOUNDARY_FIELDS = frozenset(
+    {
+        "r_authorized",
+        "full_corpus_started",
+        "training_executed",
+        "calibration_executed",
+        "scene_runtime_connected",
+        "fresh_b2_opened",
+        "outcome_fields_consumed",
+    }
+)
+_NESTED_EXACT_KEYSETS = {
+    ("a11_ledger", "authority"): _LEDGER_AUTHORITY_FIELDS,
+    ("a11_ledger", "stage_boundaries"): _LEDGER_STAGE_BOUNDARY_FIELDS,
+}
+_ALLOWED_NESTED_CONTROL_PATHS = frozenset(
+    {
+        ("a11_ledger", "stage_boundaries", field)
+        for field in _LEDGER_STAGE_BOUNDARY_FIELDS
+    }
+    | {
+        (
+            "a11_ledger",
+            "passive_latency_instrumentation",
+            "microbatch_cache_sharding_enabled",
+        ),
+        ("a11_ledger", "dag_contract", "training_calibration_fresh"),
+        ("a11_ledger", "dag_contract", "outcome_red_10m_heuristic_gate"),
+        (
+            "a11_ledger",
+            "red_signal_contract",
+            "outcome_evaluator_10m_nearest_line_heuristic",
+        ),
+    }
+)
+_CONTROL_SUFFIXES = (
+    "_authorized",
+    "_executed",
+    "_started",
+    "_connected",
+    "_enabled",
+)
+_CONTROL_SUBSTRINGS = ("fresh", "outcome", "future", "holdout", "label")
+
+
+def _verify_nested_control_schema(role: str, report: Mapping[str, Any]) -> None:
+    for (key_role, field), expected_keys in _NESTED_EXACT_KEYSETS.items():
+        if key_role != role:
+            continue
+        value = report.get(field)
+        if not isinstance(value, Mapping) or set(value) != expected_keys:
+            raise ValueError(f"{role}.{field} nested exact key set drifted")
+
+    def visit(value: Any, path: tuple[str, ...]) -> None:
+        if isinstance(value, Mapping):
+            for raw_key, child in value.items():
+                if type(raw_key) is not str:
+                    raise ValueError(f"{role} contains a non-string JSON key")
+                child_path = (*path, raw_key)
+                lowered = raw_key.lower()
+                is_control = (
+                    lowered.endswith(_CONTROL_SUFFIXES)
+                    or any(token in lowered for token in _CONTROL_SUBSTRINGS)
+                    or "id_proxy" in lowered
+                    or "identity_proxy" in lowered
+                )
+                if (
+                    len(child_path) > 2
+                    and is_control
+                    and child_path not in _ALLOWED_NESTED_CONTROL_PATHS
+                ):
+                    raise ValueError(
+                        f"{role} contains unregistered nested control field: "
+                        + ".".join(child_path[1:])
+                    )
+                visit(child, child_path)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child, path)
+
+    visit(report, (role,))
+
+
 def _verify_root_exact_values(role: str, report: Mapping[str, Any]) -> None:
     for path, expected in ROOT_EXACT_VALUES[role].items():
-        if _nested_value(report, path) != expected:
+        if not strict_json_equal(_nested_value(report, path), expected):
             raise ValueError(
                 f"{role} exact-value authority drifted at {'.'.join(path)}"
             )
+    _verify_nested_control_schema(role, report)
 
 POINTER_ONLY_PATHS = frozenset(
     {
@@ -399,8 +527,9 @@ CRITICAL_IMPLEMENTATION_PATHS = (
     "scripts/integrations/preflight_diffusion_planner_v25_r0_red_k8.py",
     "scripts/integrations/review_diffusion_planner_v25_r0_red_k8.py",
     "scripts/integrations/review_diffusion_planner_v25_full_config_preflight.py",
+    "scripts/integrations/review_diffusion_planner_v25_controlled_training_corpus.py",
     "configs/integrations/diffusion_planner_v25_atom_scales_correction_v2.json",
-    "configs/integrations/diffusion_planner_v25_atom_ledger_plan_v4.json",
+    "configs/integrations/diffusion_planner_v25_atom_ledger_plan_v5.json",
 )
 _SHA_CHARS = frozenset("0123456789abcdef")
 

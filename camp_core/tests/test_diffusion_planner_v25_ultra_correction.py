@@ -641,7 +641,7 @@ def test_minimal_self_signed_1500_preflight_is_rejected_as_incomplete(
             ),
             expected_dp_repo=tmp_path,
         )
-    with pytest.raises(ValueError, match="report contract drifted"):
+    with pytest.raises(ValueError, match="preflight report|report contract drifted"):
         full_config_reviewer.review(artifact, corpus._verify_seal(artifact))
 
 
@@ -840,8 +840,13 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
         if role == "a11_ledger":
             payload["authority"] = {
                 **dict(payload.get("authority") or {}),
+                "s01_source_head": "a" * 40,
+                "s01_release_baseline_head": "b" * 40,
                 "stage_a_producer_head": head,
                 "fixed_dp_head": fixed,
+                "a0_artifact": str(tmp_path / "a0"),
+                "plan_path": str(tmp_path / "plan.json"),
+                "plan_sha256": "c" * 64,
             }
         elif role == "a11_decision":
             payload["corrected_source_head"] = head
@@ -1038,6 +1043,56 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
         ),
     ]
     for mutation in mutations:
+        with pytest.raises(ValueError):
+            verify_seven_root_chain(
+                bindings=mutation,
+                implementation_source_head=head,
+                fixed_dp_head=fixed,
+                rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+            )
+
+    type_smuggling_mutations = [
+        mutated_role(
+            "r01_source",
+            "training_bool_to_int",
+            lambda value: value.__setitem__("training_executed", 0),
+        ),
+        mutated_role(
+            "r01_source",
+            "chain_bool_to_int",
+            lambda value: value.__setitem__("all_source_chains_valid", 1),
+        ),
+        mutated_role(
+            "r01_bounded",
+            "probe_count_int_to_float",
+            lambda value: value.__setitem__("probe_count", 22.0),
+        ),
+        mutated_role(
+            "a11_validation",
+            "pass_count_int_to_float",
+            lambda value: value.__setitem__("pass_count", 9.0),
+        ),
+        mutated_role(
+            "r01_bounded_review",
+            "calibration_bool_to_int",
+            lambda value: value.__setitem__("calibration_executed", 0),
+        ),
+        mutated_role(
+            "a11_ledger",
+            "unregistered_nested_gate",
+            lambda value: value["authority"].__setitem__(
+                "full_r_authorized", True
+            ),
+        ),
+        mutated_role(
+            "a11_ledger",
+            "nested_stage_bool_to_int",
+            lambda value: value["stage_boundaries"].__setitem__(
+                "training_executed", 0
+            ),
+        ),
+    ]
+    for mutation in type_smuggling_mutations:
         with pytest.raises(ValueError):
             verify_seven_root_chain(
                 bindings=mutation,

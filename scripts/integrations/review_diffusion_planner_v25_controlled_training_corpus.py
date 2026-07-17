@@ -37,6 +37,72 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 
 
 SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v1"
+SNAPSHOT_INDEX_FIELDS = frozenset(
+    {"scenario_id", "tick_index", "relative_path", "sha256"}
+)
+SNAPSHOT_FIELDS = frozenset({"schema_version", "feature_payload", "sidecar"})
+FEATURE_PAYLOAD_FIELDS = frozenset(
+    {
+        "atom_matrix",
+        "source_valid_mask",
+        "atom_source_valid_mask",
+        "atom_applicable_mask",
+        "physical_feasible_mask",
+        "candidate_row_sha256",
+        "candidate_tensor",
+        "default_output",
+        "raw_context",
+        "context_source_complete",
+    }
+)
+SIDECAR_FIELDS = frozenset(
+    {
+        "tick_index",
+        "dt_s",
+        "scenario_id",
+        "family",
+        "tier",
+        "parameter_block_id",
+        "route_identity_sha256",
+        "corridor_group_sha256",
+        "map_family_id",
+        "seed",
+        "candidate_tensor_sha256_before",
+        "candidate_tensor_sha256_after",
+        "default_output_sha256",
+        "candidate0_sha256",
+        "default_candidate0_identity",
+        "candidate0_semantics",
+        "candidate0_independent_second_forward",
+        "causal_input_sha256",
+        "physical_feasible_mask",
+        "source_valid_mask",
+        "all_k_high_risk",
+        "selected_index",
+        "selected_trajectory_sha256",
+        "score_contract",
+        "tie_break_contract",
+        "normalized_atom_matrix_sha256",
+        "context_schema_version",
+        "context_source_receipt",
+        "generation_behavior_scale_sha256",
+        "canonical_semantic_clone_sha256",
+        "controlled_signal_source_receipt",
+        "causal_signal_atom_input",
+        "offline_label_provenance",
+        "outcome_fields_consumed",
+        "fresh_b_opened",
+    }
+)
+DEFAULT_CANDIDATE0_IDENTITY_FIELDS = frozenset(
+    {
+        "elementwise_equal",
+        "default_output_sha256",
+        "candidate0_sha256",
+        "native_ranked_k8",
+    }
+)
+_SHA_CHARS = frozenset("0123456789abcdef")
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -75,6 +141,171 @@ def _oracle_canonical_snapshot_bytes(payload: Any) -> bytes:
         )
         + "\n"
     ).encode("utf-8")
+
+
+def _is_sha256(value: Any) -> bool:
+    return type(value) is str and len(value) == 64 and not set(value) - _SHA_CHARS
+
+
+def _native_bool_list(value: Any, length: int, label: str) -> None:
+    if type(value) is not list or len(value) != length or any(
+        type(item) is not bool for item in value
+    ):
+        raise ValueError(f"{label} must be a native boolean list[{length}]")
+
+
+def _reject_forbidden_nested_fields(value: Any, path: tuple[str, ...] = ()) -> None:
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            if type(key) is not str:
+                raise ValueError("snapshot contains a non-string JSON key")
+            lowered = key.lower()
+            forbidden = (
+                "future" in lowered
+                or "holdout" in lowered
+                or "id_proxy" in lowered
+                or "identity_proxy" in lowered
+                or ("outcome" in lowered and key != "outcome_fields_consumed")
+                or ("label" in lowered and key != "offline_label_provenance")
+            )
+            if forbidden:
+                raise ValueError(
+                    "snapshot contains forbidden field: " + ".".join((*path, key))
+                )
+            _reject_forbidden_nested_fields(child, (*path, key))
+    elif isinstance(value, list):
+        for child in value:
+            _reject_forbidden_nested_fields(child, path)
+
+
+def _validate_snapshot_index_row(row: Any) -> None:
+    if type(row) is not dict or set(row) != SNAPSHOT_INDEX_FIELDS:
+        raise ValueError("snapshot index row exact field set drifted")
+    if not _is_sha256(row.get("scenario_id")):
+        raise ValueError("snapshot index scenario_id must be a SHA256 string")
+    if type(row.get("tick_index")) is not int:
+        raise ValueError("snapshot index tick_index must be a native integer")
+    relative = row.get("relative_path")
+    if type(relative) is not str:
+        raise ValueError("snapshot index relative_path must be a native string")
+    if not _is_sha256(row.get("sha256")):
+        raise ValueError("snapshot index sha256 must be a SHA256 string")
+
+
+def _validate_snapshot_field_schema(snapshot: Any) -> None:
+    if type(snapshot) is not dict or set(snapshot) != SNAPSHOT_FIELDS:
+        raise ValueError("snapshot top-level exact field set drifted")
+    features = snapshot.get("feature_payload")
+    sidecar = snapshot.get("sidecar")
+    if type(features) is not dict or set(features) != FEATURE_PAYLOAD_FIELDS:
+        raise ValueError("snapshot feature_payload exact field set drifted")
+    if type(sidecar) is not dict or set(sidecar) != SIDECAR_FIELDS:
+        raise ValueError("snapshot sidecar exact field set drifted")
+    if type(snapshot.get("schema_version")) is not str:
+        raise ValueError("snapshot schema_version must be a native string")
+
+    _native_bool_list(features.get("source_valid_mask"), 8, "source_valid_mask")
+    _native_bool_list(
+        features.get("physical_feasible_mask"), 8, "physical_feasible_mask"
+    )
+    for field in ("atom_source_valid_mask", "atom_applicable_mask"):
+        matrix = features.get(field)
+        if type(matrix) is not list or any(
+            type(row) is not list or any(type(item) is not bool for item in row)
+            for row in matrix
+        ):
+            raise ValueError(f"{field} must contain only native booleans")
+    rows = features.get("candidate_row_sha256")
+    if type(rows) is not list or len(rows) != 8 or any(
+        not _is_sha256(value) for value in rows
+    ):
+        raise ValueError("candidate_row_sha256 must be eight SHA256 strings")
+    for field in ("atom_matrix", "candidate_tensor", "default_output"):
+        if type(features.get(field)) is not list:
+            raise ValueError(f"{field} must be a JSON list")
+    raw_context = features.get("raw_context")
+    source_complete = features.get("context_source_complete")
+    if type(raw_context) is not dict or any(
+        type(value) not in (int, float) or not np.isfinite(float(value))
+        for value in raw_context.values()
+    ):
+        raise ValueError("raw_context must contain finite native numbers")
+    if type(source_complete) is not dict or any(
+        type(value) is not bool for value in source_complete.values()
+    ):
+        raise ValueError("context_source_complete must contain native booleans")
+
+    if type(sidecar.get("tick_index")) is not int:
+        raise ValueError("sidecar tick_index must be a native integer")
+    if type(sidecar.get("dt_s")) is not float or not np.isfinite(sidecar["dt_s"]):
+        raise ValueError("sidecar dt_s must be a finite native float")
+    if type(sidecar.get("seed")) is not int:
+        raise ValueError("sidecar seed must be a native integer")
+    for field in (
+        "scenario_id",
+        "family",
+        "tier",
+        "parameter_block_id",
+        "route_identity_sha256",
+        "corridor_group_sha256",
+        "map_family_id",
+        "candidate0_semantics",
+        "score_contract",
+        "tie_break_contract",
+        "context_schema_version",
+        "offline_label_provenance",
+    ):
+        if type(sidecar.get(field)) is not str:
+            raise ValueError(f"sidecar {field} must be a native string")
+    for field in (
+        "candidate_tensor_sha256_before",
+        "candidate_tensor_sha256_after",
+        "default_output_sha256",
+        "candidate0_sha256",
+        "causal_input_sha256",
+        "selected_trajectory_sha256",
+        "normalized_atom_matrix_sha256",
+        "generation_behavior_scale_sha256",
+    ):
+        if not _is_sha256(sidecar.get(field)):
+            raise ValueError(f"sidecar {field} must be a SHA256 string")
+    semantic = sidecar.get("canonical_semantic_clone_sha256")
+    if semantic is not None and not _is_sha256(semantic):
+        raise ValueError("canonical semantic clone must be null or SHA256")
+    for field in (
+        "candidate0_independent_second_forward",
+        "all_k_high_risk",
+        "fresh_b_opened",
+    ):
+        if type(sidecar.get(field)) is not bool:
+            raise ValueError(f"sidecar {field} must be a native boolean")
+    if type(sidecar.get("selected_index")) is not int:
+        raise ValueError("sidecar selected_index must be a native integer")
+    _native_bool_list(
+        sidecar.get("physical_feasible_mask"), 8, "sidecar physical_feasible_mask"
+    )
+    _native_bool_list(
+        sidecar.get("source_valid_mask"), 8, "sidecar source_valid_mask"
+    )
+    identity = sidecar.get("default_candidate0_identity")
+    if type(identity) is not dict or set(identity) != DEFAULT_CANDIDATE0_IDENTITY_FIELDS:
+        raise ValueError("default_candidate0_identity exact field set drifted")
+    if (
+        type(identity.get("elementwise_equal")) is not bool
+        or type(identity.get("native_ranked_k8")) is not bool
+        or not _is_sha256(identity.get("default_output_sha256"))
+        or not _is_sha256(identity.get("candidate0_sha256"))
+    ):
+        raise ValueError("default_candidate0_identity type contract drifted")
+    if type(sidecar.get("context_source_receipt")) is not dict:
+        raise ValueError("context_source_receipt must be an object")
+    for field in ("controlled_signal_source_receipt", "causal_signal_atom_input"):
+        value = sidecar.get(field)
+        if value is not None and type(value) is not dict:
+            raise ValueError(f"sidecar {field} must be null or an object")
+    if type(sidecar.get("outcome_fields_consumed")) is not list:
+        raise ValueError("outcome_fields_consumed must be a list")
+    _reject_forbidden_nested_fields(snapshot)
 
 
 def _read_verified_content_addressed_snapshot(
@@ -177,7 +408,8 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         raise ValueError("corpus snapshot denominator is inconsistent")
     seen_ticks: set[tuple[str, int]] = set()
     for row in index:
-        key = (str(row.get("scenario_id")), row.get("tick_index"))
+        _validate_snapshot_index_row(row)
+        key = (row["scenario_id"], row["tick_index"])
         relative = row.get("relative_path")
         if (
             key in seen_ticks
@@ -193,8 +425,9 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         path = corpus / relative
         digest = row.get("sha256")
         snapshot = _read_verified_content_addressed_snapshot(path, digest)
-        features = snapshot.get("feature_payload", {})
-        sidecar = snapshot.get("sidecar", {})
+        _validate_snapshot_field_schema(snapshot)
+        features = snapshot["feature_payload"]
+        sidecar = snapshot["sidecar"]
         source = np.asarray(features.get("atom_source_valid_mask"))
         applicable = np.asarray(features.get("atom_applicable_mask"))
         physical = features.get("physical_feasible_mask")

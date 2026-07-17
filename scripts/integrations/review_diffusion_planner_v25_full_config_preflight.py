@@ -247,6 +247,77 @@ def _oracle_sha256(payload: Any) -> str:
     return hashlib.sha256(_oracle_canonical_json_bytes(payload)).hexdigest()
 
 
+def _strict_json_equal(actual: Any, expected: Any) -> bool:
+    """Independent type-exact JSON comparison (bool is never an int)."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return set(actual) == set(expected) and all(
+            _strict_json_equal(actual[key], value)
+            for key, value in expected.items()
+        )
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(
+            _strict_json_equal(left, right)
+            for left, right in zip(actual, expected, strict=True)
+        )
+    if isinstance(expected, float):
+        return math.isfinite(actual) and actual == expected
+    return actual == expected
+
+
+def _require_json_int(value: Any, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be a native JSON integer")
+    return value
+
+
+def _require_json_bool(value: Any, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be a native JSON boolean")
+    return value
+
+
+def _validate_config_receipts(
+    actual: Any, expected: list[dict[str, Any]], reported_root: Any
+) -> str:
+    if type(actual) is not list or len(actual) != len(expected):
+        raise ValueError("config receipt list/count drifted")
+    for ordinal, row in enumerate(actual):
+        if type(row) is not dict or set(row) != CONFIG_RECEIPT_FIELDS:
+            raise ValueError(f"config receipt {ordinal} field set drifted")
+        _require_json_int(row.get("seed"), f"config receipt {ordinal} seed")
+        _require_json_int(
+            row.get("corpus_steps"), f"config receipt {ordinal} corpus_steps"
+        )
+        for field in (
+            "selector_training_execution_authorized",
+            "calibration_authorized",
+            "holdout_access_authorized",
+            "fresh_b_opened",
+        ):
+            _require_json_bool(row.get(field), f"config receipt {ordinal} {field}")
+        authority = {
+            key: value
+            for key, value in row.items()
+            if key != "config_authority_sha256"
+        }
+        claimed = row.get("config_authority_sha256")
+        if type(claimed) is not str or claimed != _oracle_sha256(authority):
+            raise ValueError(f"config receipt {ordinal} row authority SHA drifted")
+    if not _strict_json_equal(actual, expected):
+        raise ValueError("actual config receipts differ type-exactly from oracle")
+    actual_root = _oracle_sha256(actual)
+    expected_root = _oracle_sha256(expected)
+    if (
+        type(reported_root) is not str
+        or reported_root != actual_root
+        or actual_root != expected_root
+    ):
+        raise ValueError("config receipt actual/expected/reported root drifted")
+    return actual_root
+
+
 def _same_path(value: Any, expected: Path) -> bool:
     return isinstance(value, str) and Path(value).resolve() == expected.resolve()
 
@@ -719,9 +790,32 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
     )
     report = _load(preflight / "report.json")
     source = _load(preflight / "source_receipt.json")
+    for field in (
+        "seed",
+        "corpus_steps",
+        "snapshot_capacity",
+        "minimum_free_bytes",
+        "free_bytes_at_start",
+        "semantic_authority_identity_count",
+        "validated_identity_count",
+        "source_ineligible_retained_identity_count",
+        "formal_train_manifest_identity_count",
+        "unique_route_count",
+    ):
+        _require_json_int(report.get(field), f"preflight report {field}")
+    for field in (
+        "model_loaded",
+        "candidate_generation_started",
+        "simulator_started",
+        "training_executed",
+        "calibration_executed",
+        "fresh_b_opened",
+        "claim_authorized",
+    ):
+        _require_json_bool(report.get(field), f"preflight report {field}")
     if (
         (preflight / "run.exit").read_text(encoding="ascii") != "0\n"
-        or source != report
+        or not _strict_json_equal(source, report)
         or set(report) != REQUIRED_REPORT_FIELDS
         or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
         or report.get("canonical_json_byte_spec")
@@ -738,7 +832,6 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         or report.get("seed") != EXPECTED_SEED
         or report.get("train_lock") != EXPECTED_TRAIN_LOCK
         or report.get("minimum_free_bytes") != MINIMUM_FREE_BYTES
-        or type(report.get("free_bytes_at_start")) is not int
         or report.get("free_bytes_at_start") < MINIMUM_FREE_BYTES
         or report.get("terminal_lock_scope")
         != "preflight_or_execution_from_before_output_creation_through_progress_report_run_exit_and_seal"
@@ -920,6 +1013,26 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
     plan = _load(formal / "controlled_corpus_final_plan.json")
     executable = [case for case in plan["train"] if case.get("runner_eligible") is True]
     ineligible = _retained_ineligible_receipts(plan)
+    expected_train_summary = {
+        "executable_corridor_count": 1,
+        "executable_identity_count": 1500,
+        "executable_route_count": 222,
+        "family_counts": {
+            "blocked_lane_static_obstacle": 407,
+            "cut_in_merge": 215,
+            "lead_vehicle_hard_brake": 215,
+            "narrow_encounter": 214,
+            "pedestrian_cyclist_crossing": 214,
+            "red_light_phase_timing": 21,
+            "unprotected_turn_oncoming_conflict": 214,
+        },
+        "inventory_corridor_count": 1,
+        "inventory_route_count": 375,
+        "manifest_identity_count": 1653,
+        "scenario_seed_run_count": 1500,
+        "source_ineligible_identity_count": 153,
+        "tier_counts": {"borderline": 444, "easy": 612, "high_risk": 444},
+    }
     if (
         (formal / "run.exit").read_text(encoding="ascii") != "0\n"
         or set(formal_report) != EXPECTED_FORMAL_REPORT_FIELDS
@@ -927,7 +1040,9 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         != EXPECTED_FORMAL_REPORT_SCHEMA_VERSION
         or formal_report.get("status") != "passed"
         or formal_report.get("mode") != "freeze_formal"
-        or formal_report.get("source_summary") != plan.get("summary")
+        or not _strict_json_equal(
+            formal_report.get("source_summary"), plan.get("summary")
+        )
         or formal_report.get("model_loaded") is not False
         or formal_report.get("candidate_generation_started") is not False
         or formal_report.get("training_executed") is not False
@@ -949,7 +1064,10 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         != EXPECTED_EXECUTABLE_IDENTITIES + EXPECTED_RETAINED_INELIGIBLE
         or any(
             case.get("schema_version") != EXPECTED_FORMAL_CASE_SCHEMA_VERSION
-            or case.get("seeds") != [EXPECTED_SEED]
+            or type(case.get("seeds")) is not list
+            or len(case["seeds"]) != 1
+            or type(case["seeds"][0]) is not int
+            or case["seeds"][0] != EXPECTED_SEED
             or case.get("split") != "train"
             or case.get("outcome_blind") is not True
             or case.get("outcome_fields_consumed") != []
@@ -965,28 +1083,16 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
             or type(case.get("runner_eligible")) is not bool
             for case in plan["train"]
         )
-        or plan.get("summary", {}).get("split_counts", {}).get("train", {})
-        != {
-            "executable_corridor_count": 1,
-            "executable_identity_count": 1500,
-            "executable_route_count": 222,
-            "family_counts": {
-                "blocked_lane_static_obstacle": 407,
-                "cut_in_merge": 215,
-                "lead_vehicle_hard_brake": 215,
-                "narrow_encounter": 214,
-                "pedestrian_cyclist_crossing": 214,
-                "red_light_phase_timing": 21,
-                "unprotected_turn_oncoming_conflict": 214,
-            },
-            "inventory_corridor_count": 1,
-            "inventory_route_count": 375,
-            "manifest_identity_count": 1653,
-            "scenario_seed_run_count": 1500,
-            "source_ineligible_identity_count": 153,
-            "tier_counts": {"borderline": 444, "easy": 612, "high_risk": 444},
-        }
-        or report.get("retained_ineligible_receipts") != ineligible
+        or not _strict_json_equal(
+            plan.get("summary", {}).get("split_counts", {}).get("train", {}),
+            expected_train_summary,
+        )
+        or not _strict_json_equal(
+            report.get("retained_ineligible_receipts"), ineligible
+        )
+        or type(report.get("retained_ineligible_receipts_root_sha256")) is not str
+        or report.get("retained_ineligible_receipts_root_sha256")
+        != _oracle_sha256(report.get("retained_ineligible_receipts"))
         or report.get("retained_ineligible_receipts_root_sha256")
         != _oracle_sha256(ineligible)
     ):
@@ -1007,6 +1113,7 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         != {"schema_version", "identity_count", "chains_root_sha256", "chains"}
         or chain_payload.get("schema_version")
         != SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION
+        or type(chain_payload.get("identity_count")) is not int
         or chain_payload.get("identity_count") != EXPECTED_EXECUTABLE_IDENTITIES
         or not isinstance(chains, list)
         or len(chains) != EXPECTED_EXECUTABLE_IDENTITIES
@@ -1015,14 +1122,24 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         != _oracle_sha256(chains)
     ):
         raise ValueError("semantic authority chain sidecar drifted")
-    semantic_receipts = [
-        {
-            "scenario_id": str(chain["scenario_id"]),
-            "semantic_clone_sha256": str(chain["semantic_clone_sha256"]),
-            "source_chain_sha256": str(chain["source_chain_sha256"]),
-        }
-        for chain in chains
-    ]
+    semantic_receipts = []
+    for ordinal, chain in enumerate(chains):
+        if type(chain) is not dict:
+            raise ValueError(f"semantic chain {ordinal} is not an object")
+        for field in (
+            "scenario_id", "semantic_clone_sha256", "source_chain_sha256"
+        ):
+            if type(chain.get(field)) is not str:
+                raise ValueError(
+                    f"semantic chain {ordinal} {field} is not a native string"
+                )
+        semantic_receipts.append(
+            {
+                "scenario_id": chain["scenario_id"],
+                "semantic_clone_sha256": chain["semantic_clone_sha256"],
+                "source_chain_sha256": chain["source_chain_sha256"],
+            }
+        )
     if report.get("semantic_authority_root_sha256") != _oracle_sha256(
         semantic_receipts
     ):
@@ -1037,15 +1154,18 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         dp_repo=Path(str(report["dp_repo"])),
     )
     receipts = report.get("config_receipts")
+    _validate_config_receipts(
+        receipts, expected, report.get("config_receipts_root_sha256")
+    )
+    expected_family_counts = dict(
+        collections.Counter(case["family"] for case in executable)
+    )
+    expected_tier_counts = dict(
+        collections.Counter(case["tier"] for case in executable)
+    )
     if (
-        not isinstance(receipts, list)
-        or any(not isinstance(row, Mapping) or set(row) != CONFIG_RECEIPT_FIELDS for row in receipts)
-        or receipts != expected
-        or report.get("config_receipts_root_sha256") != _oracle_sha256(expected)
-        or report.get("family_counts")
-        != dict(collections.Counter(case["family"] for case in executable))
-        or report.get("tier_counts")
-        != dict(collections.Counter(case["tier"] for case in executable))
+        not _strict_json_equal(report.get("family_counts"), expected_family_counts)
+        or not _strict_json_equal(report.get("tier_counts"), expected_tier_counts)
         or report.get("unique_route_count")
         != len({case["route_identity_sha256"] for case in executable})
     ):
