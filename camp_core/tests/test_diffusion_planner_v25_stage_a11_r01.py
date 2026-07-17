@@ -44,6 +44,7 @@ from scripts.integrations.preflight_diffusion_planner_v25_r0_authority_source im
 )
 from scripts.integrations import review_diffusion_planner_v25_r0_red_k8 as r0_reviewer
 from scripts.integrations import (
+    build_diffusion_planner_v25_ultra_stage_a_decision as stage_a_decision,
     review_diffusion_planner_v25_full_config_preflight as full_config_reviewer,
 )
 
@@ -58,6 +59,19 @@ def test_stage_a_dag_plan_matches_independent_exact_contract() -> None:
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     assert plan["dag"] == producer_dag_contract()
     assert plan["dag"] == reviewer_dag_contract()
+
+
+def test_replacement_decision_preserves_prior_seven_roots_as_superseded() -> None:
+    expected = {
+        "d98929000c09cbe1f3bcdc7f57290091e0be31e67726f4920d201bc98292897e",
+        "836d5468fd05cdbd837037352d14cd20fb21a6b653ece41272bb85b30c42ad82",
+        "a37fd179db35ab51b4ca08c99e669c3b62ecb5804a3679fafd9b35450d618352",
+        "e099837be509085fd761244ca676d387ee4debfe0214cf22057b631ba4dff1fa",
+        "e28c5851d15a0d313afe2f577c13ed9207686fa0a724d1738514675aae0fbb1e",
+        "a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c",
+        "81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b",
+    }
+    assert expected.issubset(stage_a_decision.SUPERSEDED_A1_R0_ROOTS)
 
 
 def test_physical_signature_is_se2_and_controlled_order_invariant() -> None:

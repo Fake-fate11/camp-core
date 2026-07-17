@@ -50,6 +50,15 @@ SUPERSEDED_A1_R0_ROOTS = [
     "c8b8b926bd63a0a8185d7ea3f422e7b94bc0c40921560e6576ac9e4b0ca786e9",
     "209fc00b6aeb90d887f9cc2871fefdcd619d0b1086d6ffb3ee3c0ac39911f11d",
     "e948eb17e3561a93c803ec8485d725d47e341b129a794bcf1c2c6e9593cef946",
+    # Ultra A1.1/R0.1 review kept these seven immutable but downgraded the
+    # branch-cut-affected chain to superseded diagnostic evidence.
+    "d98929000c09cbe1f3bcdc7f57290091e0be31e67726f4920d201bc98292897e",
+    "836d5468fd05cdbd837037352d14cd20fb21a6b653ece41272bb85b30c42ad82",
+    "a37fd179db35ab51b4ca08c99e669c3b62ecb5804a3679fafd9b35450d618352",
+    "e099837be509085fd761244ca676d387ee4debfe0214cf22057b631ba4dff1fa",
+    "e28c5851d15a0d313afe2f577c13ed9207686fa0a724d1738514675aae0fbb1e",
+    "a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c",
+    "81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b",
 ]
 
 
