@@ -32,7 +32,7 @@ The first S0.1 invocation failed closed before model execution because the
 operator supplied the wrong same-named template; its immutable `run.exit=1`
 artifact is retained below. The corrected bounded sequential-K8 preflight then
 passed all 12 checks over three 64-tick probes, and strengthened review passed
-all 28 checks. AutoDL passed 65 focused S0.1 tests plus 9 pointer tests. No full
+all 28 checks. AutoDL passed 65 focused S0.1 tests plus 10 final pointer tests. No full
 corpus, Stage A ledger execution, Scene runtime, training, calibration, Fresh
 B2, promotion, or activation started. Worker count is zero, GPU is idle, and
 the execution lock is free. S0.1 now waits for Ultra's read-only decision; A,
@@ -60,7 +60,7 @@ current_v25_correction_preflight_native_canonical_equal=true
 current_v25_correction_preflight_candidate_immutability=true
 current_v25_correction_preflight_candidate0_operational_default_alias=true
 current_v25_s01_remote_focused_test_count=65
-current_v25_s01_remote_pointer_test_count=9
+current_v25_s01_remote_pointer_test_count=10
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v2

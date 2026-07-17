@@ -730,10 +730,11 @@ The eight S0.1 findings map to bounded corrections as follows:
 
 Local validation used Python 3.12: the five focused S0.1 files passed 50 tests
 with one local cvxpy-dependent skip, the dedicated fallback selection passed
-14 tests, pointer/audit passed 9 tests, pycompile passed, JSON parsing passed,
-and `git diff --check` passed. On AutoDL, the same focused files passed all 51
-tests, the generic/dedicated fallback selection passed all 14 tests, and the 9
-pointer tests passed: 65 focused correctness tests plus 9 pointer tests.
+14 tests, the final pointer/audit suite passed 10 tests, pycompile passed, JSON
+parsing passed, and `git diff --check` passed. On AutoDL, the same focused files
+passed all 51 tests, the generic/dedicated fallback selection passed all 14
+tests, and the final pointer suite passed all 10 tests: 65 focused correctness
+tests plus 10 pointer tests.
 
 The first new invocation is immutable failure accounting:
 
@@ -805,7 +806,7 @@ current_v25_correction_preflight_native_canonical_equal=true
 current_v25_correction_preflight_candidate_immutability=true
 current_v25_correction_preflight_candidate0_operational_default_alias=true
 current_v25_s01_remote_focused_test_count=65
-current_v25_s01_remote_pointer_test_count=9
+current_v25_s01_remote_pointer_test_count=10
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
