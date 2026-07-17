@@ -12,37 +12,53 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-The first 1,500-identity controlled-train execution was stopped fail-closed at
-122 attempted identities after two Critical scientific-contract defects were
-confirmed: the native selector scored un-clipped atoms instead of canonical
-`clip(a/s, 0, 10)`, and the no-V2I context marked frozen future signal timing
-as source-complete. A candidate-heading unit-vector failure had also been
-downgraded while four partial snapshots were retained. The stopped execution
-contains 121 complete identities, one failed identity, and 7,748 snapshots; it
-is superseded and ineligible for training, calibration, evaluation, merging,
-or claims. Its original bytes and running progress state remain unchanged.
+The stopped 1,500-identity attempt remains the current rejected corpus
+authority: 122 attempted, 121 complete, one failed, 7,748 snapshots, four
+illegal partial snapshots, and 1,121 all-K-high-risk snapshots. Its bytes and
+running progress state are unchanged; the separate diagnostic seal and review
+remain training/calibration/evaluation-ineligible.
 
-The separate diagnostic seal and independent review preserve all failures and
-1,121 all-K-high-risk snapshots while proving that the worker, GPU process, and
-lock were released. No replacement worker, training, calibration, or Fresh
-outcome started. Fresh Benchmark B v1 is formally superseded before opening;
-Fresh B2 remains closed. Only contract correction, focused tests, and a bounded
-sequential-K8 preflight are authorized. A new 1,500-identity execution requires
-an Ultra correction-gate review.
+S0 correction is now implemented at source HEAD
+`676e8960338eaf00f8867691c0eb2fa7bff34a8c`. Native, training, and audit paths
+share strict finite/nonnegative handling and `clip(a/s,0,10)`; context-v2 masks
+phase remaining in the no-V2I main method; candidate, heading-envelope,
+snapshot, 64-tick, terminal, lock-through-seal, and partial-artifact contracts
+fail closed. Fixed DP candidate values are never normalized or modified.
 
-current_v25_status=v25_controlled_train_worker_stopped_superseded_ineligible_ultra_correction_gate
-current_v25_source_head=491716fc63da8f73ef95c6daa01fa0e0722f19b3
+The bounded sequential-K8 preflight passed all 12 registered checks over three
+64-tick probes (identity0 twice plus red-light/easy), and its independent
+review passed all 18 checks. The two identity0 runs have the same 64-tick
+fingerprint root and selected-sequence SHA. No full corpus, Stage A ledger,
+training, calibration, Fresh B2, promotion, or activation started. The old
+heartbeat remains deleted; GPU is idle and the execution lock is free. S0 now
+waits for Ultra's read-only decision. A, R, and every later DAG stage remain
+unauthorized until separately released.
+
+current_v25_status=v25_s0_correction_preflight_passed_ultra_read_only_review_required
+current_v25_source_head=676e8960338eaf00f8867691c0eb2fa7bff34a8c
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
 current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
 current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST
 current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009
+current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_676e8960_20260717T170655CST
+current_v25_correction_preflight_artifact_root_sha256=d76a772ff15497a13e72538382a99e1027fb9ef53561270523bdc8975afc4fa9
+current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_review_676e8960_20260717T170900CST
+current_v25_correction_preflight_review_artifact_root_sha256=2465fa31b52891ab9130a47bc6f77d1191a83be807eb8b7f2c31c8c8ef1f3138
+current_v25_correction_preflight_probe_count=3
+current_v25_correction_preflight_tick_count=192
+current_v25_correction_preflight_identity0_deterministic=true
+current_v25_correction_preflight_native_canonical_equal=true
+current_v25_correction_preflight_candidate_immutability=true
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
-current_v25_context_schema=camp_dp_v25_causal_context_raw_v1_ineligible_pending_v2
+current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
 current_v25_context_raw_feature_count=26
 current_v25_phi_dimension=53
 current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
+current_v25_normalization_contract=z_clip_raw_atom_over_scale_0_10
+current_v25_heading_norm_envelope_min=0.5
+current_v25_heading_norm_envelope_max=1.5
 current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
 current_v25_controlled_pilot_case_count=147
 current_v25_controlled_pilot_passed_count=85
@@ -65,6 +81,10 @@ current_v25_fresh_b_independent_route_ceiling=24
 current_v25_fresh_b_independent_corridor_ceiling=3
 current_v25_fresh_b_v1_status=superseded_before_opening
 current_v25_fresh_b2_opened=false
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json
+current_v25_stage_a_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_old_monitor_status=deleted
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
 v24_holdout_open_count=1
 v24_holdout_rerun_authorized=false
@@ -72,9 +92,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48542638080
-current_v25_phase=5_ultra_scientific_contract_correction_gate
-next_work_target=v25_ultra_correction_contract_tdd_and_bounded_preflight_only
+observed_autodl_free_bytes=48499146752
+current_v25_phase=S0_correction_preflight_decision_package
+next_work_target=ultra_read_only_review_required_before_stage_A_or_R
 
 ## Current V24 Status
 

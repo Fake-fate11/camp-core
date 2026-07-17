@@ -475,19 +475,164 @@ calibration, scale fitting, model fitting, and any replacement 1,500-identity
 execution remain prohibited. Only TDD correction and a bounded sequential-K8
 preflight are authorized before an Ultra read-only correction-gate review.
 
-current_v25_status=v25_controlled_train_worker_stopped_superseded_ineligible_ultra_correction_gate
-current_v25_source_head=491716fc63da8f73ef95c6daa01fa0e0722f19b3
+## Phase 5 S0: Correction/Preflight Decision Package
+
+S0 correction is complete at source HEAD
+`676e8960338eaf00f8867691c0eb2fa7bff34a8c`; it is not authorization for
+Stage A, R, training, calibration, or Fresh. The S0 implementation makes the
+following contracts shared and fail-closed:
+
+- native selection, the 14D training loader/master, and the V25 audit use
+  finite nonnegative raw atoms, finite positive approved scales, and exactly
+  `z=clip(a/s,0,10)` before the affine score `z_k^T w`; NaN/Inf is rejected,
+  not silently coerced;
+- the registered `>10x` counterexample changes the un-clipped selection from
+  candidate 1 to canonical/native candidate 0, proving that clipping is on the
+  executed path; equal scores use the lowest eligible candidate index;
+- context-v2 never reads the frozen scenario phase schedule in the no-V2I main
+  method. `traffic_signal_phase_remaining_s` is zero and unavailable there.
+  The separate V2I input requires a mapped current regulatory signal, source
+  id, decision/source timestamps, maximum age, validity, and freshness;
+- source-valid and physical-feasible masks remain distinct. Candidate 0 is
+  bound per tick to the independently generated DP operational default, not a
+  native-ranked Top-1;
+- candidate shape/dtype/finite state, K=8 SHA, candidate0 SHA, atom/context
+  finite state, heading envelope, selected index, exact selected candidate,
+  snapshot/context counts, and terminal denominator are hard invariants. A
+  complete identity is exactly 64 ticks; an illegal partial identity aborts
+  the artifact and cannot enter training;
+- the exclusive corpus lock covers execution through terminal progress,
+  report, `run.exit`, and seal. Only an explicitly preregistered zero-tick
+  scenario-capability failure can be retained; invariant/schema/immutability
+  failures cannot be downgraded.
+
+Fixed DP directly regresses the two `(cos,sin)` heading channels; its loss does
+not force exact unit magnitude, while its own guidance normalizes internally
+and the operational runtime consumes the angle through `atan2`. A first strict
+`5e-4` diagnostic therefore rejected 639/640 legitimate identity0 vectors,
+whose norms were `0.956490205` to `1.0012432`. S0 freezes the fixed-DP-compatible
+near-unit envelope `[0.5,1.5]`: zero/degenerate and grossly invalid vectors fail
+closed, but CAMP does not normalize, repair, or otherwise modify the fixed
+candidate tensor. Boundary and zero-vector tests are registered.
+
+The no-V2I generation scale file is
+`configs/integrations/diffusion_planner_v25_atom_scales_correction_v2.json`.
+It replaces only the degenerate planned-red generation scale with a semantic
+floor of 1.0; this is not the final training scale. Stage B must fit any final
+red continuous/binary scale only from sealed train positive support under its
+preregistered rule. `progress_shortfall` is explicitly named a higher-is-worse
+candidate-set reference cost; Stage A still must present the source-valid and
+physical-feasible adversarial alternatives to Ultra. No fallback is frozen at
+S0.
+
+The Stage A path/schema plan exists only at
+`configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json`. It plans
+an exactly-14-row immutable semantics ledger plus a separate validation
+receipt, keeps 9D as canonical 14D indices 0:9, and rejects the stopped partial
+root. No sealed-corpus statistics or Stage A artifact was created.
+
+AutoDL at the final correction source HEAD passed the focused selector/native/
+context/corpus/master/pointer suite (`56 passed`). Four bounded preflight
+attempts remain immutable failure accounting:
+
+- device-contract rejection before model execution:
+  `/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_2fca607b_20260717T165224CST`,
+  root `1c8d2326521a7d565028153dc7b9029bfe932f0a2f70b3c27eb0b9e492d520a2`;
+- strict learned-heading mismatch:
+  `/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_56872a1b_20260717T165805CST`,
+  root `465e45baaf53e054fef2e66c4d930e8a9c41686112548602cd7d3b4f9a747090`;
+- the same mismatch with finite norm diagnostics:
+  `/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_701fdd5d_20260717T170052CST`,
+  root `d926400fd9795e4ce44c3b66245588bdd4a3d314eedb163a1c2b34928d4ee0b3`;
+- all three probes executed but strict JSON sealing rejected a `numpy.bool_`:
+  `/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_22a06ea0_20260717T170338CST`,
+  root `ad20cbaa8d47991bc1aaa72122cf42d49f4339673bbbc916d081d59a8e9d8310`.
+
+None was patched or promoted to passed. The final bounded sequential-K8
+preflight is:
+
+`/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_676e8960_20260717T170655CST`
+
+with root SHA256
+`d76a772ff15497a13e72538382a99e1027fb9ef53561270523bdc8975afc4fa9`.
+It passed all 12 checks over 192 ticks: formal identity0 twice and one
+red-light/easy identity. Both identity0 runs have selected-sequence SHA
+`53240671aa0a6f66d11298c8e227bb2a269067d103bbc9b82ed49a5cdb3a2dbd`
+and full tick-fingerprint root
+`c5af99b39635ae6cba77fa11e45a121624aa9047a30420ad73e91e256880a92b`.
+The red-light/easy run has selected-sequence SHA
+`7d124de90255b68511550187e6c6a78cbca8347b4736fd79edf4469484dc90ec`
+and tick-fingerprint root
+`21d9480a180b1e17bb02e1d0da4de52b0b1e30073e8b32388d6f492678c503d7`.
+Native and canonical normalized atoms, scores, tie-breaks, and selected indices
+matched at every tick; candidate tensors were immutable; candidate0 matched
+the operational default; all speed sources were complete; all contexts were
+context-v2/no-V2I; and Fresh remained unopened. The actual probes included
+839, 839, and 1,536 raw atom values above 10 times scale, so the executed clip
+path was materially exercised rather than only synthetically tested.
+
+The independent read-only review is:
+
+`/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_review_676e8960_20260717T170900CST`
+
+with root SHA256
+`2465fa31b52891ab9130a47bc6f77d1191a83be807eb8b7f2c31c8c8ef1f3138`.
+It passed all 18 checks, independently rehashed the preflight seal and per-run
+fingerprint/selection roots, reproduced identity0 exact repeat equality, and
+confirmed the rejected old partial root, `run.exit=0`, sequential K=8, no
+micro-batch/cache/sharding, no full corpus, no outcome consumption, and
+Fresh=false.
+
+Existing passive timing shows selector mean about 0.20 ms, candidate inference
+about 354--360 ms, and total planning about 459--479 ms in these bounded probes;
+these are capability timings, not final evaluation latency claims. The S0
+packet records a design-only monotonic-clock breakdown for DP default, extra
+fixed-K8 generation, atom, context, scene weight, selector, tracker, and total,
+with mean/median/p95/p99/max. No micro-batch, cache, or sharding optimization
+was implemented in S0.
+
+If Ultra later releases R after Stage A, the next full artifact is planned as
+`/root/autodl-tmp/camp_dp_v25_corrected_controlled_train_sequential_k8_{RELEASED_HEAD}_{CST}`.
+It must start from formal identity0 scenario
+`fcd9f37128afcd277f02b1bbfb50c7f2609538f5c61968bd539cd52ccf913b89`,
+route identity
+`888d9b85c647b79a30308a5ff2928b55ef6ec09838b9f0bada390fa3c09afafd`,
+and must list the stopped partial root in `rejected_roots`. This is a plan only:
+no full worker or replacement monitor exists. The obsolete heartbeat remains
+deleted. CAMP local/GitHub/AutoDL and fixed DP were clean and aligned for S0;
+free disk was 48,499,146,752 bytes, GPU was idle, and the corpus lock was free.
+
+S0 is now stopped at the required Ultra read-only review boundary. Stage A and
+R are both unexecuted; B--F and all later gates are likewise closed. Fresh B v1
+remains superseded before opening, Fresh B2 remains unopened, V24 remains
+frozen, and no training, calibration, promotion, deployment, or activation is
+authorized.
+
+current_v25_status=v25_s0_correction_preflight_passed_ultra_read_only_review_required
+current_v25_source_head=676e8960338eaf00f8867691c0eb2fa7bff34a8c
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
 current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
 current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST
 current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009
+current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_676e8960_20260717T170655CST
+current_v25_correction_preflight_artifact_root_sha256=d76a772ff15497a13e72538382a99e1027fb9ef53561270523bdc8975afc4fa9
+current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_review_676e8960_20260717T170900CST
+current_v25_correction_preflight_review_artifact_root_sha256=2465fa31b52891ab9130a47bc6f77d1191a83be807eb8b7f2c31c8c8ef1f3138
+current_v25_correction_preflight_probe_count=3
+current_v25_correction_preflight_tick_count=192
+current_v25_correction_preflight_identity0_deterministic=true
+current_v25_correction_preflight_native_canonical_equal=true
+current_v25_correction_preflight_candidate_immutability=true
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
-current_v25_context_schema=camp_dp_v25_causal_context_raw_v1_ineligible_pending_v2
+current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
 current_v25_context_raw_feature_count=26
 current_v25_phi_dimension=53
 current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
+current_v25_normalization_contract=z_clip_raw_atom_over_scale_0_10
+current_v25_heading_norm_envelope_min=0.5
+current_v25_heading_norm_envelope_max=1.5
 current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
 current_v25_controlled_pilot_case_count=147
 current_v25_controlled_pilot_passed_count=85
@@ -510,6 +655,10 @@ current_v25_fresh_b_independent_route_ceiling=24
 current_v25_fresh_b_independent_corridor_ceiling=3
 current_v25_fresh_b_v1_status=superseded_before_opening
 current_v25_fresh_b2_opened=false
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json
+current_v25_stage_a_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_old_monitor_status=deleted
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
 v24_holdout_open_count=1
 v24_holdout_rerun_authorized=false
@@ -517,6 +666,6 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48542638080
-current_v25_phase=5_ultra_scientific_contract_correction_gate
-next_work_target=v25_ultra_correction_contract_tdd_and_bounded_preflight_only
+observed_autodl_free_bytes=48499146752
+current_v25_phase=S0_correction_preflight_decision_package
+next_work_target=ultra_read_only_review_required_before_stage_A_or_R
