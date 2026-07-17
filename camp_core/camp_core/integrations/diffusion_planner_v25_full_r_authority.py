@@ -52,13 +52,20 @@ A12_SUPERSEDED_ROOTS = frozenset(
         "4ec520d710a329a0ed728067d0251b744f03a24aa71c1d6e0d4ac7dfab2c0350",
         "de278472be78e6f6ebec087e36cdf87115047cfab0850213891054499165c105",
         "71a2be88ab93a8cc6406e20dac8f7eee90717456240fc4e44befb9965343c2a6",
+        "baaf879f1eac5579a1029c2eb046dc125d8c82e7677f904b2b41dd8bfcd00947",
+        "5d7ff800eb79a9d8cd1b6b91af0d9fb239d654c9661a65e3bdda83d69046d214",
+        "ac557c902d9aa5069059e20072e3853f85a9c9f6a69f3b3d350d936bd0e1ab93",
+        "1f2b042887bb9499f4af4b2c8cfff1000d0229988cde98cea91a8e7be54c9414",
+        "9055042f5503e7b1e23067691d516e1933557dac7c3b5baf99bce893ea393069",
+        "1afd6ccfe1dda380be1b3d912515cb112e8c315e1cf9a9a1e45bbbe069666106",
+        "55ff4688dc4926348e26b8e9e161f4203c816eb8829dea974396f4f0aaa32b88",
     }
 )
 CANONICAL_JSON_BYTE_SPEC_VERSION = "camp_dp_v25_canonical_json_utf8_lf_v1"
 PREFLIGHT_RELEASE_SCHEMA_VERSION = (
-    "camp_dp_v25_ultra_full_config_preflight_release_v3"
+    "camp_dp_v25_ultra_full_config_preflight_release_v4"
 )
-EXECUTE_RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_full_r_execute_release_v3"
+EXECUTE_RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_full_r_execute_release_v4"
 ROOT_ROLES = (
     "a11_decision",
     "a11_ledger",
@@ -69,7 +76,7 @@ ROOT_ROLES = (
     "r01_bounded_review",
 )
 EXPECTED_ROOT_STATUSES = {
-    "a11_decision": "A1_4_R0_4_only_released",
+    "a11_decision": "A1_5_R0_5_only_released",
     "a11_ledger": "passed_with_warnings_progress_source_valid_frozen",
     "a11_validation": "passed_with_warnings_progress_source_valid_frozen",
     "r01_source": "passed_source_only_full_r_closed",
@@ -82,18 +89,18 @@ EXPECTED_ROOT_STATUSES = {
 ROOT_CONTRACTS = {
     "a11_decision": {
         "report_file": "decision.json",
-        "schema_version": "camp_dp_v25_ultra_stage_a14_r04_decision_v5",
+        "schema_version": "camp_dp_v25_ultra_stage_a15_r05_decision_v6",
         "head_path": ("corrected_source_head",),
         "fields": frozenset(
             {
-                "a0_root_sha256", "a1_4_authorized",
+                "a0_root_sha256", "a1_5_authorized",
                 "bounded_21red_1nosignal_x64_authorized_after_source_pass",
                 "calibration_authorized", "candidate0_or_all_k_fallback_allowed",
                 "corrected_source_head", "decision_date", "empty_source_valid",
                 "fixed_dp_head", "formal_root_sha256", "fresh_b2_opened",
                 "full_r_authorized", "monitor_authorized", "outcome_fields_consumed",
                 "progress_formula", "progress_reference",
-                "r0_4_source_authority_preflight_authorized", "rejected_roots",
+                "r0_5_source_authority_preflight_authorized", "rejected_roots",
                 "s01_preflight_root_sha256", "s01_review_root_sha256",
                 "scene_runtime_authorized", "schema_version", "selection_eligibility",
                 "source_thread_id", "status", "superseded_diagnostic_roots",
@@ -103,7 +110,7 @@ ROOT_CONTRACTS = {
     },
     "a11_ledger": {
         "report_file": "atom_ledger.json",
-        "schema_version": "camp_dp_v25_static_atom_ledger_v5",
+        "schema_version": "camp_dp_v25_static_atom_ledger_v6",
         "head_path": ("authority", "stage_a_producer_head"),
         "fields": frozenset(
             {
@@ -119,7 +126,7 @@ ROOT_CONTRACTS = {
     },
     "a11_validation": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_static_atom_ledger_validation_v5",
+        "schema_version": "camp_dp_v25_static_atom_ledger_validation_v6",
         "head_path": ("review_head",),
         "fields": frozenset(
             {
@@ -137,7 +144,7 @@ ROOT_CONTRACTS = {
     },
     "r01_source": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_authority_source_preflight_v3",
+        "schema_version": "camp_dp_v25_r01_authority_source_preflight_v4",
         "head_path": ("camp_head",),
         "fields": frozenset(
             {
@@ -164,7 +171,7 @@ ROOT_CONTRACTS = {
     },
     "r01_source_review": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_authority_source_review_v3",
+        "schema_version": "camp_dp_v25_r01_authority_source_review_v4",
         "head_path": ("review_head",),
         "fields": frozenset(
             {
@@ -182,7 +189,7 @@ ROOT_CONTRACTS = {
     },
     "r01_bounded": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v4",
+        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v5",
         "head_path": ("camp_head",),
         "fields": frozenset(
             {
@@ -200,7 +207,7 @@ ROOT_CONTRACTS = {
     },
     "r01_bounded_review": {
         "report_file": "report.json",
-        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v4",
+        "schema_version": "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v5",
         "head_path": ("review_head",),
         "fields": frozenset(
             {
@@ -236,8 +243,8 @@ ROOT_EXACT_VALUES: dict[str, dict[tuple[str, ...], Any]] = {
         ("selection_eligibility",): "source_valid",
         ("empty_source_valid",): "fail_closed",
         ("candidate0_or_all_k_fallback_allowed",): False,
-        ("a1_4_authorized",): True,
-        ("r0_4_source_authority_preflight_authorized",): True,
+        ("a1_5_authorized",): True,
+        ("r0_5_source_authority_preflight_authorized",): True,
         ("bounded_21red_1nosignal_x64_authorized_after_source_pass",): True,
         ("full_r_authorized",): False,
         ("monitor_authorized",): False,
@@ -268,6 +275,24 @@ ROOT_EXACT_VALUES: dict[str, dict[tuple[str, ...], Any]] = {
             "fresh_b2_opened": False,
             "outcome_fields_consumed": [],
         },
+        (
+            "passive_latency_instrumentation",
+            "microbatch_cache_sharding_enabled",
+        ): False,
+        ("dag_contract", "training_calibration_fresh"): (
+            "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated"
+        ),
+        ("dag_contract", "outcome_red_10m_heuristic_gate"): (
+            "must be replaced or independently certified before calibration "
+            "or Fresh B2 pre-open"
+        ),
+        (
+            "red_signal_contract",
+            "outcome_evaluator_10m_nearest_line_heuristic",
+        ): (
+            "calibration/Fresh B2 pre-open hard gate; not accepted as "
+            "regulatory authority"
+        ),
     },
     "a11_validation": {
         ("atom_count",): 14,
@@ -283,6 +308,13 @@ ROOT_EXACT_VALUES: dict[str, dict[tuple[str, ...], Any]] = {
         ("calibration_authorized",): False,
         ("fresh_b2_opened",): False,
         ("outcome_fields_consumed",): [],
+        ("contract_checks",): {
+            "training_estimator_frozen": True,
+            "red_coverage_fail_closed": True,
+            "dag_c_d_gated": True,
+            "progress_source_valid_frozen": True,
+            "r_and_fresh_closed": True,
+        },
     },
     "r01_source": {
         ("a0_root_sha256",): A0_ROOT_SHA256,
@@ -436,9 +468,19 @@ _LEDGER_STAGE_BOUNDARY_FIELDS = frozenset(
         "outcome_fields_consumed",
     }
 )
+_VALIDATION_CONTRACT_CHECK_FIELDS = frozenset(
+    {
+        "training_estimator_frozen",
+        "red_coverage_fail_closed",
+        "dag_c_d_gated",
+        "progress_source_valid_frozen",
+        "r_and_fresh_closed",
+    }
+)
 _NESTED_EXACT_KEYSETS = {
     ("a11_ledger", "authority"): _LEDGER_AUTHORITY_FIELDS,
     ("a11_ledger", "stage_boundaries"): _LEDGER_STAGE_BOUNDARY_FIELDS,
+    ("a11_validation", "contract_checks"): _VALIDATION_CONTRACT_CHECK_FIELDS,
 }
 _ALLOWED_NESTED_CONTROL_PATHS = frozenset(
     {
@@ -461,14 +503,27 @@ _ALLOWED_NESTED_CONTROL_PATHS = frozenset(
         ("a11_validation", "contract_checks", "r_and_fresh_closed"),
     }
 )
-_CONTROL_SUFFIXES = (
-    "_authorized",
-    "_executed",
-    "_started",
-    "_connected",
-    "_enabled",
+_CONTROL_SUFFIXES_NORMALIZED = (
+    "authorized",
+    "executed",
+    "started",
+    "connected",
+    "enabled",
 )
-_CONTROL_SUBSTRINGS = ("fresh", "outcome", "future", "holdout", "label")
+_CONTROL_SUBSTRINGS_NORMALIZED = (
+    "fresh",
+    "outcome",
+    "future",
+    "holdout",
+    "label",
+    "idproxy",
+    "identityproxy",
+)
+
+
+def _normalized_control_name(value: str) -> str:
+    """Normalize snake/camel/hyphen spellings before control-field checks."""
+    return "".join(character for character in value.lower() if character.isalnum())
 
 
 def _verify_nested_control_schema(role: str, report: Mapping[str, Any]) -> None:
@@ -485,12 +540,13 @@ def _verify_nested_control_schema(role: str, report: Mapping[str, Any]) -> None:
                 if type(raw_key) is not str:
                     raise ValueError(f"{role} contains a non-string JSON key")
                 child_path = (*path, raw_key)
-                lowered = raw_key.lower()
+                normalized = _normalized_control_name(raw_key)
                 is_control = (
-                    lowered.endswith(_CONTROL_SUFFIXES)
-                    or any(token in lowered for token in _CONTROL_SUBSTRINGS)
-                    or "id_proxy" in lowered
-                    or "identity_proxy" in lowered
+                    normalized.endswith(_CONTROL_SUFFIXES_NORMALIZED)
+                    or any(
+                        token in normalized
+                        for token in _CONTROL_SUBSTRINGS_NORMALIZED
+                    )
                 )
                 if (
                     len(child_path) > 2
@@ -537,7 +593,7 @@ CRITICAL_IMPLEMENTATION_PATHS = (
     "scripts/integrations/review_diffusion_planner_v25_full_config_preflight.py",
     "scripts/integrations/review_diffusion_planner_v25_controlled_training_corpus.py",
     "configs/integrations/diffusion_planner_v25_atom_scales_correction_v2.json",
-    "configs/integrations/diffusion_planner_v25_atom_ledger_plan_v5.json",
+    "configs/integrations/diffusion_planner_v25_atom_ledger_plan_v6.json",
 )
 _SHA_CHARS = frozenset("0123456789abcdef")
 
@@ -588,13 +644,12 @@ def _load_object(path: Path) -> dict[str, Any]:
 
 
 def _safe_repo_path(value: Any) -> str:
-    if not isinstance(value, str) or not value:
+    if type(value) is not str or not value or "\\" in value:
         raise ValueError("implementation manifest path is empty")
-    normalized = value.replace("\\", "/")
-    pure = PurePosixPath(normalized)
-    if pure.is_absolute() or ".." in pure.parts or normalized != pure.as_posix():
+    pure = PurePosixPath(value)
+    if pure.is_absolute() or ".." in pure.parts or value != pure.as_posix():
         raise ValueError("implementation manifest path is unsafe")
-    return normalized
+    return value
 
 
 def build_critical_implementation_manifest(repo: Path) -> dict[str, str]:
@@ -622,10 +677,13 @@ def verify_dual_head_contract(
     ):
         raise ValueError("dual-HEAD values are invalid")
     expected_manifest = build_critical_implementation_manifest(repo)
-    normalized_manifest = {
-        _safe_repo_path(key): value for key, value in implementation_manifest.items()
-    }
-    if normalized_manifest != expected_manifest:
+    if (
+        type(implementation_manifest) is not dict
+        or set(implementation_manifest) != set(CRITICAL_IMPLEMENTATION_PATHS)
+        or any(_safe_repo_path(key) != key for key in implementation_manifest)
+        or any(not is_sha256(value) for value in implementation_manifest.values())
+        or not strict_json_equal(implementation_manifest, expected_manifest)
+    ):
         raise ValueError("critical implementation manifest drifted")
     changed: list[str] = []
     if implementation_source_head != current_pointer_head:
@@ -806,9 +864,14 @@ def consume_one_shot_nonce(
     authorized_output_dir: str,
     requested_output_dir: Path,
 ) -> Path:
-    if gate not in {"preflight", "execute"} or not is_sha256(nonce):
+    if gate not in {"preflight", "execute"} or type(nonce) is not str or not is_sha256(nonce):
         raise ValueError("one-shot gate/nonce is invalid")
-    expected = Path(authorized_output_dir).resolve()
+    if type(authorized_output_dir) is not str or not authorized_output_dir:
+        raise ValueError("authorized output directory must be a native string")
+    expected_raw = Path(authorized_output_dir)
+    expected = expected_raw.resolve()
+    if not expected_raw.is_absolute() or authorized_output_dir != str(expected):
+        raise ValueError("authorized output directory is not absolute canonical")
     requested = requested_output_dir.resolve()
     if requested != expected:
         raise ValueError("release is bound to a different exact output directory")

@@ -1,0 +1,108 @@
+{
+  "schema_version": "camp_dp_v25_atom_ledger_plan_v6",
+  "atom_schema": "dp_camp_v10_14d",
+  "ordered_atom_names": [
+    "jerk_early", "jerk_late", "jerk_full", "rms_acceleration",
+    "speed_limit_margin_0_0", "speed_limit_margin_0_5", "speed_limit_margin_1_0",
+    "lane_deviation", "clearance", "progress_shortfall", "planned_red_light_cost",
+    "planned_lateral_acceleration_cost", "red_stopping_margin_cost",
+    "dp_prior_jerk_excess_cost"
+  ],
+  "paper_9d_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  "source_state_enum": ["available", "not_applicable", "unavailable", "invalid"],
+  "status_enum": ["PASS", "WARN", "FAIL"],
+  "required_row_fields": [
+    "index", "name", "paper_9d_member", "paper_mapping", "formula", "unit",
+    "dt_contract", "finite_contract", "nonnegative_contract", "raw_bounds",
+    "generation_behavior_scale", "normalized_clip", "causal_source_class",
+    "decision_time_availability", "source_state_policy", "invalid_policy",
+    "mask_policy", "monotonicity_domain", "k8_dependency", "candidate0_dependency",
+    "route_dependency", "lane_dependency", "neighbor_dependency", "signal_dependency",
+    "speed_rule_dependency", "forbidden_sources", "legal_zero_fixture",
+    "legal_positive_fixture", "candidate_distinguishing_fixture", "status", "warning"
+  ],
+  "warning_contract": {
+    "speed_limit_margin_0_0": "generation scale is a 1e-6 legacy floor; not a train-only empirical scale",
+    "speed_limit_margin_0_5": "generation scale is a 1e-6 legacy floor; not a train-only empirical scale",
+    "lane_deviation": "generation scale is a 1e-6 legacy floor; not a train-only empirical scale",
+    "planned_red_light_cost": "continuous support is sparse; scale 1.0 is a generation-only semantic floor",
+    "red_stopping_margin_cost": "legacy generation scale 4.952895923795447e-4 is support-sensitive and is not a final training scale"
+  },
+  "progress_shortfall_contract": {
+    "reference_set": "source_valid",
+    "formula": "r=max(progress[j] where source_valid[j]); progress_shortfall[k]=max(r-progress[k],0)",
+    "selection_eligibility": "source_valid",
+    "empty_source_valid": "fail_closed",
+    "candidate0_fallback": false,
+    "all_k_fallback": false,
+    "physical_feasible_must_be_subset_of_source_valid": true
+  },
+  "semantic_clone_contract": {
+    "algorithm": "sha256 canonical compact sorted-key JSON",
+    "payload_schema": "camp_dp_v25_semantic_clone_payload_v3",
+    "frame": "SE(2)-invariant route-local tangent/normal frame",
+    "include": [
+      "route-local geometry and stop-line geometry when applicable",
+      "route-local actor initial position, heading, tangent and normal",
+      "strictly whitelisted outcome-blind physical parameters",
+      "same-tick current signal phase and no-V2I source mode"
+    ],
+    "exclude": [
+      "source family, repository and artifact path",
+      "map, route, actor, scenario, split, seed and parameter-block IDs or proxies",
+      "Fresh, holdout, closed-loop outcome and future fields"
+    ],
+    "actor_order_invariant": true,
+    "cross_source_export_clones_deduplicated": true
+  },
+  "training_scale_estimator_freeze": {
+    "stage": "B sealed corrected train only; calibration/Fresh/outcomes forbidden",
+    "quantile": 0.95,
+    "support": "strictly positive finite raw values among source-valid applicable candidate rows",
+    "minimum_unique_semantic_blocks": 20,
+    "minimum_positive_candidate_rows": 128,
+    "block_weighting": "equal semantic-clone block mass, then route, seed, tick and eligible candidate mass",
+    "zero_support": "support-limited; no silent substitution or atom removal",
+    "red_binary_alternative": "1(raw_atom>0) scale 1.0 as a named ablation only",
+    "generation_floor_is_training_estimate": false,
+    "calibration_may_refit_scale": false
+  },
+  "red_signal_contract": {
+    "required_chain": [
+      "TrafficLightRegulatoryElement ID", "physical traffic-light and bulb IDs",
+      "controlled route lanelet IDs", "unique stop-line geometry and SHA",
+      "route arc and tangent", "same-tick current phase receipt",
+      "explicit world-to-ego causal atom input bound to chain and receipt SHA"
+    ],
+    "wrong_id_multi_id_no_stopline_bad_route_arc_phase_mismatch": "fail_closed",
+    "distance_or_tensor_row_count_may_substitute_mapping": false,
+    "phase_remaining_no_v2i": "unavailable",
+    "outcome_10m_nearest_line_heuristic": "calibration_and_Fresh_B2_preopen_hard_gate"
+  },
+  "snapshot_schema": {
+    "atom_source_valid_mask": "strict bool[8,14]",
+    "atom_applicable_mask": "strict bool[8,14] and subset of source-valid",
+    "physical_feasible_mask": "strict bool[8], never an applicability or scale mask",
+    "all_k_bad_retained": true,
+    "raw_context_and_source_complete": "exact RAW_FEATURE_NAMES with no ID proxy fields",
+    "context_and_signal_receipts": "versioned exact schemas; nested future/outcome/label forbidden",
+    "numeric_tensors": "finite native JSON numbers only; bool/string rejected",
+    "candidate0": "operational-default alias from the same fixed-K8 forward"
+  },
+  "dag": {
+    "S0_to_A": "Ultra S0.1 PASS plus A0 strict-inventory supplement PASS",
+    "A_exit": "14 rows complete; independent semantics/numeric validation PASS; source-valid progress reference frozen",
+    "R0_5_entry": "A1.5 PASS plus sealed Ultra A1.5/R0.5 decision; full R remains closed",
+    "R_entry": "Ultra first releases only a sealed 1500-config preflight; independent review and a distinct Ultra execute release are then mandatory",
+    "R_exit": "1500x64 sequential corpus sealed and independently reviewed; red scientific coverage passes; then stop",
+    "B_entry": "R sealed+reviewed and Ultra-released; train-only empirical audit only",
+    "C_entry": "B PASS and Ultra release; outcome-blind seven-family single-axis perturbations",
+    "C_exit": "expected atom activation/direction/source completeness reported PASS/WARN/FAIL; no outcome-selected parameters",
+    "D_entry": "B PASS and Ultra release; focused algebra/source audit may run read-only in parallel with C only if released",
+    "D_exit": "jerk/speed/lane-clearance/red/lateral findings classified by remediation class and combined review sealed",
+    "E1_entry": "C and D combined review PASS plus Ultra release",
+    "training_calibration_fresh": "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated",
+    "outcome_red_10m_heuristic_gate": "must be replaced or independently certified before calibration or Fresh B2 pre-open",
+    "current_authority": "A1.5/R0.5 bounded only; full R/B/C/D/E/T/Q/F remain closed"
+  }
+}

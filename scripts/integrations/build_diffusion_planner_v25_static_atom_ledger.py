@@ -54,12 +54,12 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v5"
-FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v4"
+SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v6"
+FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v5"
 SOURCE_STATE_ENUM = ("available", "not_applicable", "unavailable", "invalid")
 ATOM_NAMES = tuple(DP_CAMP_ATOM_NAMES_V10)
 PAPER_9D = tuple(CAMP_ATOM_NAMES)
-PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v5.json"
+PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v6.json"
 A0_REQUIRED_FIELDS = {
     "schema_version", "status", "stage", "stage_a0_code_head",
     "released_s01_source_head", "released_s01_final_baseline_head",
@@ -75,8 +75,8 @@ DECISION_REQUIRED_FIELDS = {
     "s01_review_root_sha256", "a0_root_sha256", "formal_root_sha256",
     "rejected_roots", "superseded_diagnostic_roots", "progress_reference",
     "progress_formula", "selection_eligibility", "empty_source_valid",
-    "candidate0_or_all_k_fallback_allowed", "a1_4_authorized",
-    "r0_4_source_authority_preflight_authorized",
+    "candidate0_or_all_k_fallback_allowed", "a1_5_authorized",
+    "r0_5_source_authority_preflight_authorized",
     "bounded_21red_1nosignal_x64_authorized_after_source_pass",
     "full_r_authorized", "monitor_authorized", "training_authorized",
     "calibration_authorized", "scene_runtime_authorized", "v2i_authorized",
@@ -149,8 +149,8 @@ def validate_a11_authority_payloads(
     if (
         set(decision) != DECISION_REQUIRED_FIELDS
         or decision.get("schema_version")
-        != "camp_dp_v25_ultra_stage_a14_r04_decision_v5"
-        or decision.get("status") != "A1_4_R0_4_only_released"
+        != "camp_dp_v25_ultra_stage_a15_r05_decision_v6"
+        or decision.get("status") != "A1_5_R0_5_only_released"
         or decision.get("corrected_source_head") != current_head
         or decision.get("fixed_dp_head") != FIXED_DP_HEAD
         or decision.get("s01_preflight_root_sha256") != PASSED_PREFLIGHT_ROOT
@@ -160,8 +160,8 @@ def validate_a11_authority_payloads(
         or decision.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or decision.get("progress_reference")
         != "source_valid_candidate_set_reference"
-        or decision.get("a1_4_authorized") is not True
-        or decision.get("r0_4_source_authority_preflight_authorized") is not True
+        or decision.get("a1_5_authorized") is not True
+        or decision.get("r0_5_source_authority_preflight_authorized") is not True
         or decision.get(
             "bounded_21red_1nosignal_x64_authorized_after_source_pass"
         ) is not True
@@ -175,7 +175,7 @@ def validate_a11_authority_payloads(
         )
         or decision.get("outcome_fields_consumed") != []
     ):
-        raise ValueError("Ultra A1.4/R0.4 decision exact field/value contract drifted")
+        raise ValueError("Ultra A1.5/R0.5 decision exact field/value contract drifted")
 
 
 def _source_policy(name: str) -> dict[str, str]:
@@ -528,7 +528,7 @@ def _dag_contract() -> dict[str, Any]:
     return {
         "S0_to_A": "Ultra S0.1 PASS plus A0 strict-inventory supplement PASS",
         "A_exit": "14 rows complete; independent semantics/numeric validation PASS; source-valid progress reference frozen",
-        "R0_4_entry": "A1.4 PASS plus sealed Ultra A1.4/R0.4 decision; full R remains closed",
+        "R0_5_entry": "A1.5 PASS plus sealed Ultra A1.5/R0.5 decision; full R remains closed",
         "R_entry": "Ultra first releases only a sealed 1500-config preflight; independent review and a distinct Ultra execute release are then mandatory",
         "R_exit": "1500x64 sequential corpus sealed and independently reviewed; red scientific coverage passes; then stop",
         "B_entry": "R sealed+reviewed and Ultra-released; train-only empirical audit only",
@@ -539,7 +539,7 @@ def _dag_contract() -> dict[str, Any]:
         "E1_entry": "C and D combined review PASS plus Ultra release",
         "training_calibration_fresh": "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated",
         "outcome_red_10m_heuristic_gate": "must be replaced or independently certified before calibration or Fresh B2 pre-open",
-        "current_authority": "A1.4/R0.4 bounded only; full R/B/C/D/E/T/Q/F remain closed",
+        "current_authority": "A1.5/R0.5 bounded only; full R/B/C/D/E/T/Q/F remain closed",
     }
 
 
@@ -599,7 +599,7 @@ def build_ledger(
     scale_sha256 = _file_sha256(CORRECTED_GENERATION_SCALES)
     plan = _load_json(PLAN)
     if (
-        plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v5"
+        plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v6"
         or not isinstance(plan.get("warning_contract"), Mapping)
     ):
         raise ValueError("Stage A1 plan schema drifted")

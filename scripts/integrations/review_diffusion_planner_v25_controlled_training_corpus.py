@@ -34,9 +34,23 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
     _git_head,
     _tracked_dirty,
 )
+from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
+    RAW_FEATURE_NAMES,
+)
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
+    RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
+    validate_causal_signal_atom_input,
+)
+from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    validate_fixed_k8_candidate_tensor,
+)
+from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
+    verify_dual_head_contract,
+)
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v1"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v2"
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -102,6 +116,87 @@ DEFAULT_CANDIDATE0_IDENTITY_FIELDS = frozenset(
         "native_ranked_k8",
     }
 )
+CONTEXT_SOURCE_RECEIPT_FIELDS = frozenset(
+    {"mode", "phase_remaining_available", "regulatory_signal_mapped"}
+)
+RUNTIME_SIGNAL_RECEIPT_FIELDS = frozenset(
+    {
+        "schema_version", "scenario_id", "tick_index", "decision_time_s",
+        "source_mode", "current_phase", "regulatory_element_id",
+        "physical_light_ids", "bulb_ids", "controlled_lanelet_ids",
+        "stop_line_id", "stop_line_geometry_sha256", "route_geometry_sha256",
+        "route_arc_m", "route_tangent_world", "source_chain_sha256",
+        "semantic_clone_sha256", "applied_route_lanelet_ids",
+        "applied_map_lanelet_ids", "phase_remaining_available", "source_valid",
+    }
+)
+RUNTIME_NO_SIGNAL_RECEIPT_FIELDS = frozenset(
+    {
+        "schema_version", "scenario_id", "tick_index", "decision_time_s",
+        "source_mode", "current_phase", "route_geometry_sha256",
+        "route_lanelet_ids", "traffic_light_regulatory_element_ids",
+        "source_chain_sha256", "semantic_clone_sha256",
+        "phase_remaining_available", "source_valid", "applicable",
+    }
+)
+CAUSAL_SIGNAL_ATOM_INPUT_FIELDS = frozenset(
+    {
+        "schema_version", "source_state", "source_valid", "applicable",
+        "current_phase", "decision_time_s", "ego_position_world_m",
+        "ego_heading_rad", "regulatory_element_id", "stop_line_id",
+        "stop_line_geometry_world_m", "stop_line_geometry_ego_m",
+        "stop_line_geometry_sha256", "route_tangent_world",
+        "route_tangent_ego", "route_geometry_sha256", "route_arc_m",
+        "source_chain_sha256", "runtime_receipt", "runtime_receipt_sha256",
+    }
+)
+PROGRESS_FIELDS = frozenset(
+    {
+        "schema_version", "status", "completed", "total", "complete", "failed",
+        "snapshot_count", "elapsed_seconds", "free_bytes", "fresh_b_opened",
+    }
+)
+RESULT_FIELDS = frozenset(
+    {
+        "ordinal", "scenario_id", "family", "tier", "route_identity_sha256",
+        "seed", "status", "snapshot_count", "failure_type", "failure_reason",
+        "capability_failure", "wall_seconds", "retained",
+        "outcome_fields_consumed", "fresh_b_opened",
+    }
+)
+REPORT_FIELDS = frozenset(
+    {
+        "schema_version", "canonical_json_byte_spec", "camp_head",
+        "implementation_source_head", "released_camp_source_head",
+        "current_repo_head_at_run", "fixed_dp_head", "dp_repo",
+        "formal_artifact", "formal_root_sha256", "probe_template",
+        "probe_template_sha256", "generation_scales", "static_weights", "seed",
+        "corpus_steps", "snapshot_capacity", "train_lock", "minimum_free_bytes",
+        "rejected_roots", "r0_review_artifact", "r0_review_root_sha256",
+        "r0_source_artifact", "r0_source_root_sha256", "seven_root_bindings",
+        "seven_root_bindings_sha256", "release_run_nonce",
+        "release_nonce_consumption_marker", "authorized_output_dir",
+        "critical_implementation_manifest",
+        "ultra_full_config_preflight_release_artifact",
+        "ultra_full_config_preflight_release_root_sha256",
+        "semantic_authority_root_sha256", "semantic_authority_identity_count",
+        "semantic_authority_chains_root_sha256", "terminal_lock_scope",
+        "free_bytes_at_start", "fresh_b_opened", "outcome_fields_consumed",
+        "preflight_review_artifact", "preflight_review_root_sha256",
+        "ultra_full_r_execute_release_artifact",
+        "ultra_full_r_execute_release_root_sha256", "config_receipts_root_sha256",
+        "mode", "status", "preflight_artifact", "preflight_root_sha256",
+        "attempted_identity_count", "source_ineligible_retained_identity_count",
+        "formal_train_manifest_identity_count", "complete_identity_count",
+        "failed_identity_count", "retained_capability_failure_count",
+        "red_scientific_coverage", "retained_identity_count", "snapshot_count",
+        "family_identity_counts", "family_snapshot_counts", "failure_reason_counts",
+        "wall_seconds", "candidate_tensors_modified",
+        "training_snapshot_outcome_fields",
+        "runtime_outcomes_not_read_or_copied_to_training_snapshots",
+        "selector_training_executed", "calibration_executed", "claim_authorized",
+    }
+)
 _SHA_CHARS = frozenset("0123456789abcdef")
 
 
@@ -154,19 +249,246 @@ def _native_bool_list(value: Any, length: int, label: str) -> None:
         raise ValueError(f"{label} must be a native boolean list[{length}]")
 
 
+def _native_numeric_array(value: Any, shape: tuple[int, ...], label: str) -> np.ndarray:
+    def flatten(node: Any, depth: int) -> list[float]:
+        if depth == len(shape):
+            if type(node) not in (int, float) or not np.isfinite(float(node)):
+                raise ValueError(f"{label} must contain finite native numbers")
+            return [float(node)]
+        if type(node) is not list or len(node) != shape[depth]:
+            raise ValueError(f"{label} shape drifted")
+        values: list[float] = []
+        for child in node:
+            values.extend(flatten(child, depth + 1))
+        return values
+
+    return np.asarray(flatten(value, 0), dtype=np.float64).reshape(shape)
+
+
+def _native_int(value: Any, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be a native integer")
+    return value
+
+
+def _native_bool(value: Any, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be a native boolean")
+    return value
+
+
+def _json_type_exact_equal(actual: Any, expected: Any) -> bool:
+    if type(actual) is not type(expected):
+        return False
+    if type(expected) is dict:
+        return set(actual) == set(expected) and all(
+            _json_type_exact_equal(actual[key], value)
+            for key, value in expected.items()
+        )
+    if type(expected) is list:
+        return len(actual) == len(expected) and all(
+            _json_type_exact_equal(left, right)
+            for left, right in zip(actual, expected)
+        )
+    return actual == expected
+
+
+def _native_finite_number(value: Any, label: str) -> float:
+    if type(value) not in (int, float) or not np.isfinite(float(value)):
+        raise ValueError(f"{label} must be a finite native number")
+    return float(value)
+
+
+def _native_string(value: Any, label: str) -> str:
+    if type(value) is not str:
+        raise ValueError(f"{label} must be a native string")
+    return value
+
+
+def _validate_string_int_mapping(value: Any, label: str) -> None:
+    if type(value) is not dict or any(
+        type(key) is not str or type(count) is not int or count < 0
+        for key, count in value.items()
+    ):
+        raise ValueError(f"{label} must be an exact string-to-native-int object")
+
+
+def _validate_terminal_schemas(
+    report: Any, progress: Any, results: Any
+) -> None:
+    """Freeze terminal JSON field sets and discrete JSON-native types."""
+    if type(report) is not dict or set(report) != REPORT_FIELDS:
+        raise ValueError("corrected corpus report exact field set drifted")
+    if type(progress) is not dict or set(progress) != PROGRESS_FIELDS:
+        raise ValueError("corrected corpus progress exact field set drifted")
+    if type(results) is not list:
+        raise ValueError("corrected corpus results must be a list")
+    for field in (
+        "seed",
+        "corpus_steps",
+        "snapshot_capacity",
+        "minimum_free_bytes",
+        "free_bytes_at_start",
+        "semantic_authority_identity_count",
+        "attempted_identity_count",
+        "source_ineligible_retained_identity_count",
+        "formal_train_manifest_identity_count",
+        "complete_identity_count",
+        "failed_identity_count",
+        "retained_capability_failure_count",
+        "retained_identity_count",
+        "snapshot_count",
+    ):
+        if _native_int(report.get(field), f"report.{field}") < 0:
+            raise ValueError(f"report.{field} must be nonnegative")
+    for field in (
+        "fresh_b_opened",
+        "candidate_tensors_modified",
+        "runtime_outcomes_not_read_or_copied_to_training_snapshots",
+        "selector_training_executed",
+        "calibration_executed",
+        "claim_authorized",
+    ):
+        _native_bool(report.get(field), f"report.{field}")
+    _native_finite_number(report.get("wall_seconds"), "report.wall_seconds")
+    for field in (
+        "family_identity_counts",
+        "family_snapshot_counts",
+        "failure_reason_counts",
+    ):
+        _validate_string_int_mapping(report.get(field), f"report.{field}")
+    if (
+        type(report.get("rejected_roots")) is not list
+        or any(not _is_sha256(value) for value in report["rejected_roots"])
+        or type(report.get("outcome_fields_consumed")) is not list
+        or report["outcome_fields_consumed"] != []
+        or type(report.get("training_snapshot_outcome_fields")) is not list
+        or report["training_snapshot_outcome_fields"] != []
+        or type(report.get("critical_implementation_manifest")) is not dict
+    ):
+        raise ValueError("corrected corpus report list/mapping contract drifted")
+    for field in ("generation_scales", "static_weights", "release_nonce_consumption_marker"):
+        value = report.get(field)
+        if type(value) is not dict or set(value) != {"path", "sha256"}:
+            raise ValueError(f"report.{field} exact receipt schema drifted")
+        _native_string(value.get("path"), f"report.{field}.path")
+        if not _is_sha256(value.get("sha256")):
+            raise ValueError(f"report.{field}.sha256 is invalid")
+    if (
+        not _is_sha256(report.get("release_run_nonce"))
+        or type(report.get("authorized_output_dir")) is not str
+        or not Path(report["authorized_output_dir"]).is_absolute()
+        or report["authorized_output_dir"]
+        != str(Path(report["authorized_output_dir"]).resolve())
+        or type(report.get("seven_root_bindings")) is not dict
+        or not _is_sha256(report.get("seven_root_bindings_sha256"))
+    ):
+        raise ValueError("corrected corpus release/root authority type drifted")
+    coverage = report.get("red_scientific_coverage")
+    coverage_fields = {
+        "formal_identity_count", "formal_by_tier",
+        "formal_distinct_source_map_count", "complete_by_tier",
+        "complete_distinct_source_map_count", "minimum_complete_by_tier",
+        "minimum_distinct_source_maps", "passed",
+    }
+    if type(coverage) is not dict or set(coverage) != coverage_fields:
+        raise ValueError("report.red_scientific_coverage exact schema drifted")
+    for field in (
+        "formal_identity_count", "formal_distinct_source_map_count",
+        "complete_distinct_source_map_count", "minimum_distinct_source_maps",
+    ):
+        if _native_int(coverage.get(field), f"red coverage {field}") < 0:
+            raise ValueError(f"red coverage {field} must be nonnegative")
+    for field in ("formal_by_tier", "complete_by_tier", "minimum_complete_by_tier"):
+        value = coverage.get(field)
+        if type(value) is not dict or set(value) != {"easy", "borderline", "high_risk"}:
+            raise ValueError(f"red coverage {field} tier schema drifted")
+        _validate_string_int_mapping(value, f"red coverage {field}")
+    _native_bool(coverage.get("passed"), "red coverage passed")
+    for field in (
+        "completed",
+        "total",
+        "complete",
+        "failed",
+        "snapshot_count",
+        "free_bytes",
+    ):
+        if _native_int(progress.get(field), f"progress.{field}") < 0:
+            raise ValueError(f"progress.{field} must be nonnegative")
+    _native_finite_number(progress.get("elapsed_seconds"), "progress.elapsed_seconds")
+    _native_bool(progress.get("fresh_b_opened"), "progress.fresh_b_opened")
+    _native_string(progress.get("schema_version"), "progress.schema_version")
+    _native_string(progress.get("status"), "progress.status")
+    for ordinal, row in enumerate(results):
+        if type(row) is not dict or set(row) != RESULT_FIELDS:
+            raise ValueError("corrected corpus result exact field set drifted")
+        if _native_int(row.get("ordinal"), "result.ordinal") != ordinal:
+            raise ValueError("corrected corpus result ordinal drifted")
+        if _native_int(row.get("seed"), "result.seed") < 0:
+            raise ValueError("corrected corpus result seed is invalid")
+        if _native_int(row.get("snapshot_count"), "result.snapshot_count") < 0:
+            raise ValueError("corrected corpus result snapshot_count is invalid")
+        for field in (
+            "scenario_id",
+            "family",
+            "tier",
+            "route_identity_sha256",
+            "status",
+        ):
+            _native_string(row.get(field), f"result.{field}")
+        _native_bool(row.get("retained"), "result.retained")
+        _native_bool(row.get("fresh_b_opened"), "result.fresh_b_opened")
+        _native_finite_number(row.get("wall_seconds"), "result.wall_seconds")
+        if type(row.get("outcome_fields_consumed")) is not list:
+            raise ValueError("result.outcome_fields_consumed must be a list")
+        if row["outcome_fields_consumed"] != []:
+            raise ValueError("result consumed forbidden outcome fields")
+        if not _is_sha256(row["scenario_id"]) or not _is_sha256(
+            row["route_identity_sha256"]
+        ):
+            raise ValueError("result identity SHA contract drifted")
+        if row["status"] == "complete":
+            if any(
+                row[field] is not None
+                for field in ("failure_type", "failure_reason", "capability_failure")
+            ):
+                raise ValueError("complete result carries failure metadata")
+        elif row["status"] == "failed":
+            failure = row.get("capability_failure")
+            if (
+                type(row.get("failure_type")) is not str
+                or type(row.get("failure_reason")) is not str
+                or type(failure) is not dict
+                or set(failure) != {"scenario_id", "family", "reason"}
+                or any(type(value) is not str for value in failure.values())
+            ):
+                raise ValueError("failed result capability receipt schema drifted")
+        else:
+            raise ValueError("result status is invalid")
+
+
 def _reject_forbidden_nested_fields(value: Any, path: tuple[str, ...] = ()) -> None:
     if isinstance(value, Mapping):
         for key, child in value.items():
             if type(key) is not str:
                 raise ValueError("snapshot contains a non-string JSON key")
             lowered = key.lower()
+            normalized = "".join(
+                character for character in lowered if character.isalnum()
+            )
             forbidden = (
-                "future" in lowered
-                or "holdout" in lowered
-                or "id_proxy" in lowered
-                or "identity_proxy" in lowered
-                or ("outcome" in lowered and key != "outcome_fields_consumed")
-                or ("label" in lowered and key != "offline_label_provenance")
+                "future" in normalized
+                or "holdout" in normalized
+                or "idproxy" in normalized
+                or "identityproxy" in normalized
+                or (
+                    "outcome" in normalized
+                    and key != "outcome_fields_consumed"
+                )
+                or (
+                    "label" in normalized
+                    and key != "offline_label_provenance"
+                )
             )
             if forbidden:
                 raise ValueError(
@@ -176,6 +498,136 @@ def _reject_forbidden_nested_fields(value: Any, path: tuple[str, ...] = ()) -> N
     elif isinstance(value, list):
         for child in value:
             _reject_forbidden_nested_fields(child, path)
+
+
+def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
+    context = sidecar.get("context_source_receipt")
+    if type(context) is not dict or set(context) != CONTEXT_SOURCE_RECEIPT_FIELDS:
+        raise ValueError("context_source_receipt exact schema drifted")
+    if (
+        context.get("mode") != "no_v2i"
+        or type(context.get("phase_remaining_available")) is not bool
+        or context.get("phase_remaining_available") is not False
+        or type(context.get("regulatory_signal_mapped")) is not bool
+    ):
+        raise ValueError("context_source_receipt no-V2I contract drifted")
+
+    receipt = sidecar.get("controlled_signal_source_receipt")
+    causal = sidecar.get("causal_signal_atom_input")
+    if type(receipt) is not dict or type(causal) is not dict:
+        raise ValueError("signal/no-signal receipts must be exact objects")
+    mode = receipt.get("source_mode")
+    expected_fields = (
+        RUNTIME_SIGNAL_RECEIPT_FIELDS
+        if mode == "same_tick_current_phase_no_v2i"
+        else RUNTIME_NO_SIGNAL_RECEIPT_FIELDS
+        if mode == "same_tick_no_signal_rule_no_v2i"
+        else frozenset()
+    )
+    if set(receipt) != expected_fields:
+        raise ValueError("runtime signal receipt exact schema drifted")
+    if (
+        receipt.get("schema_version") != RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION
+        or type(receipt.get("tick_index")) is not int
+        or type(receipt.get("decision_time_s")) is not float
+        or not np.isfinite(receipt["decision_time_s"])
+        or type(receipt.get("phase_remaining_available")) is not bool
+        or receipt.get("phase_remaining_available") is not False
+        or type(receipt.get("source_valid")) is not bool
+        or receipt.get("source_valid") is not True
+    ):
+        raise ValueError("runtime signal receipt type/value contract drifted")
+    if mode == "same_tick_current_phase_no_v2i":
+        for field in (
+            "regulatory_element_id",
+            "stop_line_id",
+        ):
+            _native_int(receipt.get(field), f"runtime receipt {field}")
+        for field in (
+            "physical_light_ids",
+            "bulb_ids",
+            "controlled_lanelet_ids",
+            "applied_route_lanelet_ids",
+            "applied_map_lanelet_ids",
+        ):
+            values = receipt.get(field)
+            if type(values) is not list or any(type(value) is not int for value in values):
+                raise ValueError(f"runtime receipt {field} must be native int list")
+        _native_finite_number(receipt.get("route_arc_m"), "runtime receipt route_arc_m")
+        _native_numeric_array(
+            receipt.get("route_tangent_world"), (2,), "runtime route tangent"
+        )
+        if receipt.get("current_phase") not in {"green", "yellow", "red"}:
+            raise ValueError("runtime signal phase is invalid")
+    else:
+        for field in (
+            "route_lanelet_ids",
+            "traffic_light_regulatory_element_ids",
+        ):
+            values = receipt.get(field)
+            if type(values) is not list or any(type(value) is not int for value in values):
+                raise ValueError(f"runtime no-signal {field} must be native int list")
+        _native_bool(receipt.get("applicable"), "runtime no-signal applicable")
+        if receipt.get("current_phase") != "none":
+            raise ValueError("runtime no-signal phase is invalid")
+    if set(causal) != CAUSAL_SIGNAL_ATOM_INPUT_FIELDS:
+        raise ValueError("causal signal atom input exact schema drifted")
+    if (
+        causal.get("schema_version") != CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION
+        or type(causal.get("source_valid")) is not bool
+        or type(causal.get("applicable")) is not bool
+        or type(causal.get("decision_time_s")) is not float
+        or not np.isfinite(causal["decision_time_s"])
+        or not _json_type_exact_equal(causal.get("runtime_receipt"), receipt)
+    ):
+        raise ValueError("causal signal atom input type/value contract drifted")
+    if causal.get("source_state") not in {"available", "not_applicable"}:
+        raise ValueError("causal signal source state is invalid")
+    if causal.get("source_state") == "available":
+        _native_numeric_array(
+            causal.get("ego_position_world_m"), (2,), "causal ego position"
+        )
+        _native_finite_number(causal.get("ego_heading_rad"), "causal ego heading")
+        stop_world = causal.get("stop_line_geometry_world_m")
+        stop_ego = causal.get("stop_line_geometry_ego_m")
+        if (
+            type(stop_world) is not list
+            or len(stop_world) < 2
+            or type(stop_ego) is not list
+            or len(stop_ego) != len(stop_world)
+        ):
+            raise ValueError("causal stop-line geometry shape drifted")
+        _native_numeric_array(
+            stop_world, (len(stop_world), 2), "causal world stop line"
+        )
+        _native_numeric_array(
+            stop_ego, (len(stop_ego), 2), "causal ego stop line"
+        )
+        _native_numeric_array(
+            causal.get("route_tangent_world"), (2,), "causal world route tangent"
+        )
+        _native_numeric_array(
+            causal.get("route_tangent_ego"), (2,), "causal ego route tangent"
+        )
+        _native_finite_number(causal.get("route_arc_m"), "causal route arc")
+        _native_int(causal.get("regulatory_element_id"), "causal regulatory id")
+        _native_int(causal.get("stop_line_id"), "causal stop line id")
+    else:
+        for field in (
+            "ego_position_world_m",
+            "ego_heading_rad",
+            "regulatory_element_id",
+            "stop_line_id",
+            "stop_line_geometry_world_m",
+            "stop_line_geometry_ego_m",
+            "stop_line_geometry_sha256",
+            "route_tangent_world",
+            "route_tangent_ego",
+            "route_arc_m",
+        ):
+            if causal.get(field) is not None:
+                raise ValueError(f"causal no-signal {field} must be null")
+    validate_causal_signal_atom_input(causal)
 
 
 def _validate_snapshot_index_row(row: Any) -> None:
@@ -210,30 +662,41 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
     )
     for field in ("atom_source_valid_mask", "atom_applicable_mask"):
         matrix = features.get(field)
-        if type(matrix) is not list or any(
-            type(row) is not list or any(type(item) is not bool for item in row)
+        if type(matrix) is not list or len(matrix) != 8 or any(
+            type(row) is not list
+            or len(row) != 14
+            or any(type(item) is not bool for item in row)
             for row in matrix
         ):
-            raise ValueError(f"{field} must contain only native booleans")
+            raise ValueError(f"{field} must be native bool[8,14]")
     rows = features.get("candidate_row_sha256")
     if type(rows) is not list or len(rows) != 8 or any(
         not _is_sha256(value) for value in rows
     ):
         raise ValueError("candidate_row_sha256 must be eight SHA256 strings")
-    for field in ("atom_matrix", "candidate_tensor", "default_output"):
-        if type(features.get(field)) is not list:
-            raise ValueError(f"{field} must be a JSON list")
+    atoms = _native_numeric_array(features.get("atom_matrix"), (8, 14), "atom_matrix")
+    candidates = _native_numeric_array(
+        features.get("candidate_tensor"), (8, 80, 4), "candidate_tensor"
+    ).astype(np.float32)
+    validate_fixed_k8_candidate_tensor(candidates)
+    default = _native_numeric_array(
+        features.get("default_output"), (80, 4), "default_output"
+    ).astype(np.float32)
+    if np.any(atoms < 0.0):
+        raise ValueError("atom_matrix must be nonnegative")
     raw_context = features.get("raw_context")
     source_complete = features.get("context_source_complete")
-    if type(raw_context) is not dict or any(
+    if type(raw_context) is not dict or set(raw_context) != set(RAW_FEATURE_NAMES) or any(
         type(value) not in (int, float) or not np.isfinite(float(value))
         for value in raw_context.values()
     ):
-        raise ValueError("raw_context must contain finite native numbers")
-    if type(source_complete) is not dict or any(
+        raise ValueError("raw_context must exactly match finite RAW_FEATURE_NAMES")
+    if type(source_complete) is not dict or set(source_complete) != set(RAW_FEATURE_NAMES) or any(
         type(value) is not bool for value in source_complete.values()
     ):
-        raise ValueError("context_source_complete must contain native booleans")
+        raise ValueError(
+            "context_source_complete must exactly match boolean RAW_FEATURE_NAMES"
+        )
 
     if type(sidecar.get("tick_index")) is not int:
         raise ValueError("sidecar tick_index must be a native integer")
@@ -297,14 +760,72 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
         or not _is_sha256(identity.get("candidate0_sha256"))
     ):
         raise ValueError("default_candidate0_identity type contract drifted")
-    if type(sidecar.get("context_source_receipt")) is not dict:
-        raise ValueError("context_source_receipt must be an object")
-    for field in ("controlled_signal_source_receipt", "causal_signal_atom_input"):
-        value = sidecar.get(field)
-        if value is not None and type(value) is not dict:
-            raise ValueError(f"sidecar {field} must be null or an object")
+    _validate_context_and_signal_receipts(sidecar)
     if type(sidecar.get("outcome_fields_consumed")) is not list:
         raise ValueError("outcome_fields_consumed must be a list")
+    source_valid = features["source_valid_mask"]
+    source_matrix = features["atom_source_valid_mask"]
+    applicable = features["atom_applicable_mask"]
+    physical = features["physical_feasible_mask"]
+    sidecar_source = sidecar["source_valid_mask"]
+    sidecar_physical = sidecar["physical_feasible_mask"]
+    candidate_rows = [
+        hashlib.sha256(np.ascontiguousarray(row).tobytes()).hexdigest()
+        for row in candidates
+    ]
+    tensor_sha = hashlib.sha256(
+        np.ascontiguousarray(candidates).tobytes()
+    ).hexdigest()
+    default_sha = hashlib.sha256(np.ascontiguousarray(default).tobytes()).hexdigest()
+    selected = sidecar["selected_index"]
+    causal_signal = sidecar["causal_signal_atom_input"]
+    signal_applicable = (
+        causal_signal["source_state"] == "available"
+        and causal_signal["current_phase"] == "red"
+    )
+    signal_columns = (10, 12)
+    if (
+        not any(source_valid)
+        or source_valid != [all(row) for row in source_matrix]
+        or any(
+            applicable[row][column] and not source_matrix[row][column]
+            for row in range(8)
+            for column in range(14)
+        )
+        or sidecar_source != source_valid
+        or sidecar_physical != physical
+        or any(physical[index] and not source_valid[index] for index in range(8))
+        or sidecar["all_k_high_risk"]
+        is not (all(source_valid) and not any(physical))
+        or features["candidate_row_sha256"] != candidate_rows
+        or sidecar["candidate_tensor_sha256_before"] != tensor_sha
+        or sidecar["candidate_tensor_sha256_after"] != tensor_sha
+        or sidecar["default_output_sha256"] != default_sha
+        or sidecar["candidate0_sha256"] != candidate_rows[0]
+        or not np.array_equal(default, candidates[0])
+        or identity["elementwise_equal"] is not True
+        or identity["native_ranked_k8"] is not False
+        or identity["default_output_sha256"] != default_sha
+        or identity["candidate0_sha256"] != candidate_rows[0]
+        or sidecar["candidate0_semantics"]
+        != "operational_default_alias_from_same_forward"
+        or sidecar["candidate0_independent_second_forward"] is not False
+        or not 0 <= selected < 8
+        or not source_valid[selected]
+        or sidecar["selected_trajectory_sha256"] != candidate_rows[selected]
+        or any(
+            applicable[row][column] is not signal_applicable
+            for row in range(8)
+            for column in signal_columns
+        )
+        or (
+            not signal_applicable
+            and any(atoms[row, column] != 0.0 for row in range(8) for column in signal_columns)
+        )
+        or sidecar["outcome_fields_consumed"] != []
+        or sidecar["fresh_b_opened"] is not False
+    ):
+        raise ValueError("snapshot candidate0/mask/source/all-K contract drifted")
     _reject_forbidden_nested_fields(snapshot)
 
 
@@ -348,6 +869,19 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
     progress = _json(corpus / "progress.json")
     results = _jsonl(corpus / "results.jsonl")
     index = _jsonl(corpus / "snapshot_index.jsonl")
+    _validate_terminal_schemas(report, progress, results)
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=report["implementation_source_head"],
+        current_pointer_head=report["camp_head"],
+        implementation_manifest=report["critical_implementation_manifest"],
+    )
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=report["implementation_source_head"],
+        current_pointer_head=head,
+        implementation_manifest=report["critical_implementation_manifest"],
+    )
     if (
         (corpus / "run.exit").read_text(encoding="ascii") != "0\n"
         or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
@@ -414,8 +948,7 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         if (
             key in seen_ticks
             or key[0] not in seen_results
-            or isinstance(key[1], bool)
-            or not isinstance(key[1], int)
+            or type(key[1]) is not int
             or not 0 <= key[1] < CORPUS_STEPS
             or not isinstance(relative, str)
             or not relative.startswith("snapshots/")
@@ -428,12 +961,16 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         _validate_snapshot_field_schema(snapshot)
         features = snapshot["feature_payload"]
         sidecar = snapshot["sidecar"]
-        source = np.asarray(features.get("atom_source_valid_mask"))
-        applicable = np.asarray(features.get("atom_applicable_mask"))
+        source = np.asarray(features["atom_source_valid_mask"], dtype=np.bool_)
+        applicable = np.asarray(features["atom_applicable_mask"], dtype=np.bool_)
         physical = features.get("physical_feasible_mask")
-        atoms = np.asarray(features.get("atom_matrix"), dtype=np.float64)
-        candidates = np.asarray(features.get("candidate_tensor"), dtype=np.float32)
-        default = np.asarray(features.get("default_output"), dtype=np.float32)
+        atoms = _native_numeric_array(features["atom_matrix"], (8, 14), "atom_matrix")
+        candidates = _native_numeric_array(
+            features["candidate_tensor"], (8, 80, 4), "candidate_tensor"
+        ).astype(np.float32)
+        default = _native_numeric_array(
+            features["default_output"], (80, 4), "default_output"
+        ).astype(np.float32)
         candidate_rows = (
             [
                 hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
@@ -473,14 +1010,13 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
             or sidecar.get("default_output_sha256") != default_sha
             or sidecar.get("candidate0_sha256") != candidate_rows[0]
             or not np.array_equal(default, candidates[0])
-            or isinstance(selected, bool)
-            or not isinstance(selected, int)
+            or type(selected) is not int
             or not 0 <= selected < 8
             or sidecar.get("selected_trajectory_sha256")
             != candidate_rows[selected]
-            or not isinstance(physical, list)
+            or type(physical) is not list
             or len(physical) != 8
-            or any(not isinstance(value, bool) for value in physical)
+            or any(type(value) is not bool for value in physical)
             or sidecar.get("fresh_b_opened") is not False
             or sidecar.get("outcome_fields_consumed") != []
         ):

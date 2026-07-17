@@ -312,8 +312,8 @@ def _write_stage_a_inputs(tmp_path: Path) -> tuple[Path, str, Path, str]:
     decision = tmp_path / "decision"
     decision.mkdir()
     decision_payload = {
-        "schema_version": "camp_dp_v25_ultra_stage_a14_r04_decision_v5",
-        "status": "A1_4_R0_4_only_released",
+        "schema_version": "camp_dp_v25_ultra_stage_a15_r05_decision_v6",
+        "status": "A1_5_R0_5_only_released",
         "decision_date": "2026-07-18",
         "source_thread_id": "test",
         "corrected_source_head": "a" * 40,
@@ -329,8 +329,8 @@ def _write_stage_a_inputs(tmp_path: Path) -> tuple[Path, str, Path, str]:
         "selection_eligibility": "source_valid",
         "empty_source_valid": "fail_closed",
         "candidate0_or_all_k_fallback_allowed": False,
-        "a1_4_authorized": True,
-        "r0_4_source_authority_preflight_authorized": True,
+        "a1_5_authorized": True,
+        "r0_5_source_authority_preflight_authorized": True,
         "bounded_21red_1nosignal_x64_authorized_after_source_pass": True,
         "full_r_authorized": False,
         "monitor_authorized": False,

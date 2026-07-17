@@ -58,8 +58,8 @@ from scripts.integrations.preflight_diffusion_planner_v25_r0_authority_source im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_review_v3"
-SOURCE_SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_preflight_v3"
+SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_review_v4"
+SOURCE_SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_preflight_v4"
 
 
 def _native_bool_checks(checks: Mapping[str, Any]) -> dict[str, bool]:
@@ -275,15 +275,15 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or input_roots.get("a0") != A0_ROOT
         or decision.get("schema_version")
-        != "camp_dp_v25_ultra_stage_a14_r04_decision_v5"
-        or decision.get("status") != "A1_4_R0_4_only_released"
+        != "camp_dp_v25_ultra_stage_a15_r05_decision_v6"
+        or decision.get("status") != "A1_5_R0_5_only_released"
         or decision.get("fixed_dp_head") != FIXED_DP_HEAD
         or decision.get("formal_root_sha256") != FORMAL_ROOT_SHA256
         or decision.get("s01_preflight_root_sha256") != PASSED_PREFLIGHT_ROOT
         or decision.get("s01_review_root_sha256") != PASSED_REVIEW_ROOT
         or decision.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
-        or decision.get("a1_4_authorized") is not True
-        or decision.get("r0_4_source_authority_preflight_authorized") is not True
+        or decision.get("a1_5_authorized") is not True
+        or decision.get("r0_5_source_authority_preflight_authorized") is not True
         or decision.get("full_r_authorized") is not False
         or a0_report.get("status") != "passed"
         or ledger.get("status")

@@ -764,6 +764,11 @@ def test_dual_head_contract_accepts_docs_only_and_rejects_code_diff(
         lambda _repo: dict(manifest),
     )
     monkeypatch.setattr(
+        full_r_authority,
+        "CRITICAL_IMPLEMENTATION_PATHS",
+        tuple(manifest),
+    )
+    monkeypatch.setattr(
         full_r_authority.subprocess,
         "run",
         lambda *args, **kwargs: SimpleNamespace(
@@ -853,8 +858,6 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
             payload["superseded_diagnostic_roots"] = sorted(A12_SUPERSEDED_ROOTS)
         elif role in {"a11_validation", "r01_source_review", "r01_bounded_review"}:
             payload["review_head"] = head
-            if role == "a11_validation":
-                payload["contract_checks"] = {"r_and_fresh_closed": True}
         else:
             payload["camp_head"] = head
         (artifact / report_file).write_text(

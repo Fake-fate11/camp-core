@@ -56,7 +56,7 @@ def test_stage_a_dag_plan_matches_independent_exact_contract() -> None:
         Path(__file__).resolve().parents[2]
         / "configs"
         / "integrations"
-        / "diffusion_planner_v25_atom_ledger_plan_v5.json"
+        / "diffusion_planner_v25_atom_ledger_plan_v6.json"
     )
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
     assert plan["dag"] == producer_dag_contract()

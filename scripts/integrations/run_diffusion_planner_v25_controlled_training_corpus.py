@@ -85,8 +85,8 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v4"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v4"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v5"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v5"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
     "camp_dp_v25_full_r_semantic_authority_chains_v2"
 )
@@ -817,6 +817,12 @@ def _verify_full_r_authority(
         != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or preflight_release.get("fresh_b2_opened") is not False
         or preflight_release.get("outcome_fields_consumed") != []
+        or type(preflight_release.get("run_nonce")) is not str
+        or not _is_sha256(preflight_release.get("run_nonce"))
+        or type(preflight_release.get("authorized_output_dir")) is not str
+        or not Path(preflight_release["authorized_output_dir"]).is_absolute()
+        or preflight_release["authorized_output_dir"]
+        != str(Path(preflight_release["authorized_output_dir"]).resolve())
     ):
         raise ValueError("full R config-preflight authority chain is invalid")
     release_template = _load_json(probe_template)
@@ -897,12 +903,12 @@ def _verify_full_r_authority(
             for role in ROOT_ROLES
         },
         "seven_root_bindings_sha256": _canonical_sha256(root_bindings),
-        "release_run_nonce": str(preflight_release["run_nonce"]),
-        "authorized_output_dir": str(preflight_release["authorized_output_dir"]),
-        "preflight_release_run_nonce": str(preflight_release["run_nonce"]),
-        "preflight_authorized_output_dir": str(
-            preflight_release["authorized_output_dir"]
-        ),
+        "release_run_nonce": preflight_release["run_nonce"],
+        "authorized_output_dir": preflight_release["authorized_output_dir"],
+        "preflight_release_run_nonce": preflight_release["run_nonce"],
+        "preflight_authorized_output_dir": preflight_release[
+            "authorized_output_dir"
+        ],
         "critical_implementation_manifest": dict(manifest),
     }
     if mode == "preflight":
@@ -920,8 +926,8 @@ def _verify_full_r_authority(
         marker = consume_one_shot_nonce(
             ledger_dir=RELEASE_NONCE_LEDGER,
             gate="preflight",
-            nonce=str(preflight_release["run_nonce"]),
-            authorized_output_dir=str(preflight_release["authorized_output_dir"]),
+            nonce=preflight_release["run_nonce"],
+            authorized_output_dir=preflight_release["authorized_output_dir"],
             requested_output_dir=output_dir,
         )
         authority["release_nonce_consumption_marker"] = {
@@ -1003,6 +1009,12 @@ def _verify_full_r_authority(
         or execute_release.get("full_r_execute_authorized") is not True
         or execute_release.get("fresh_b2_opened") is not False
         or execute_release.get("outcome_fields_consumed") != []
+        or type(execute_release.get("run_nonce")) is not str
+        or not _is_sha256(execute_release.get("run_nonce"))
+        or type(execute_release.get("authorized_output_dir")) is not str
+        or not Path(execute_release["authorized_output_dir"]).is_absolute()
+        or execute_release["authorized_output_dir"]
+        != str(Path(execute_release["authorized_output_dir"]).resolve())
     ):
         raise ValueError("full R execute authority chain is invalid")
     verify_dual_head_contract(
@@ -1014,8 +1026,8 @@ def _verify_full_r_authority(
     marker = consume_one_shot_nonce(
         ledger_dir=RELEASE_NONCE_LEDGER,
         gate="execute",
-        nonce=str(execute_release["run_nonce"]),
-        authorized_output_dir=str(execute_release["authorized_output_dir"]),
+        nonce=execute_release["run_nonce"],
+        authorized_output_dir=execute_release["authorized_output_dir"],
         requested_output_dir=output_dir,
     )
     authority.update(
@@ -1024,8 +1036,8 @@ def _verify_full_r_authority(
             "preflight_review_root_sha256": preflight_review_seal["root_sha256"],
             "execute_release_artifact": str(execute_release_artifact),
             "execute_release_root_sha256": execute_release_seal["root_sha256"],
-            "release_run_nonce": str(execute_release["run_nonce"]),
-            "authorized_output_dir": str(execute_release["authorized_output_dir"]),
+            "release_run_nonce": execute_release["run_nonce"],
+            "authorized_output_dir": execute_release["authorized_output_dir"],
             "release_nonce_consumption_marker": {
                 "path": str(marker),
                 "sha256": _file_sha256(marker),
@@ -1459,6 +1471,16 @@ def _asset_receipt_matches(payload: Any) -> bool:
 def _preflight_nonce_marker_matches(
     payload: Any, *, nonce: Any, authorized_output_dir: Any
 ) -> bool:
+    if (
+        type(nonce) is not str
+        or not _is_sha256(nonce)
+        or type(authorized_output_dir) is not str
+        or not authorized_output_dir
+    ):
+        return False
+    authorized = Path(authorized_output_dir)
+    if not authorized.is_absolute() or authorized_output_dir != str(authorized.resolve()):
+        return False
     if not isinstance(payload, Mapping) or set(payload) != {"path", "sha256"}:
         return False
     expected = RELEASE_NONCE_LEDGER / f"v25_preflight_{nonce}.consumed.json"
@@ -1473,7 +1495,7 @@ def _preflight_nonce_marker_matches(
     return marker == {
         "gate": "preflight",
         "nonce": nonce,
-        "authorized_output_dir": str(Path(str(authorized_output_dir)).resolve()),
+        "authorized_output_dir": authorized_output_dir,
     }
 
 
@@ -1553,8 +1575,37 @@ def _verify_preflight(
         "terminal_lock_scope",
         "free_bytes_at_start",
     }
+    integer_fields = (
+        "seed",
+        "corpus_steps",
+        "snapshot_capacity",
+        "minimum_free_bytes",
+        "free_bytes_at_start",
+        "validated_identity_count",
+        "source_ineligible_retained_identity_count",
+        "formal_train_manifest_identity_count",
+        "unique_route_count",
+        "semantic_authority_identity_count",
+    )
+    boolean_fields = (
+        "model_loaded",
+        "candidate_generation_started",
+        "simulator_started",
+        "training_executed",
+        "calibration_executed",
+        "claim_authorized",
+        "fresh_b_opened",
+    )
     if (
         set(report) != required_keys
+        or any(type(report.get(field)) is not int for field in integer_fields)
+        or any(type(report.get(field)) is not bool for field in boolean_fields)
+        or type(report.get("release_run_nonce")) is not str
+        or not _is_sha256(report.get("release_run_nonce"))
+        or type(report.get("authorized_output_dir")) is not str
+        or not Path(report["authorized_output_dir"]).is_absolute()
+        or report["authorized_output_dir"]
+        != str(Path(report["authorized_output_dir"]).resolve())
         or report.get("status") != "passed"
         or report.get("mode") != "preflight"
         or report.get("schema_version") != SCHEMA_VERSION

@@ -34,7 +34,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_ultra_stage_a14_r04_decision_v5"
+SCHEMA_VERSION = "camp_dp_v25_ultra_stage_a15_r05_decision_v6"
 A0_ROOT = "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
 SUPERSEDED_LEDGER_ROOT = (
     "05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2"
@@ -98,6 +98,16 @@ SUPERSEDED_A1_R0_ROOTS = [
     "4ec520d710a329a0ed728067d0251b744f03a24aa71c1d6e0d4ac7dfab2c0350",
     "de278472be78e6f6ebec087e36cdf87115047cfab0850213891054499165c105",
     "71a2be88ab93a8cc6406e20dac8f7eee90717456240fc4e44befb9965343c2a6",
+    # Ultra A1.4/R0.4 accepted the bounded mechanics but blocked these roots
+    # from release-chain use because nested control and future schema contracts
+    # were not yet value/type exact. They remain immutable diagnostics.
+    "baaf879f1eac5579a1029c2eb046dc125d8c82e7677f904b2b41dd8bfcd00947",
+    "5d7ff800eb79a9d8cd1b6b91af0d9fb239d654c9661a65e3bdda83d69046d214",
+    "ac557c902d9aa5069059e20072e3853f85a9c9f6a69f3b3d350d936bd0e1ab93",
+    "1f2b042887bb9499f4af4b2c8cfff1000d0229988cde98cea91a8e7be54c9414",
+    "9055042f5503e7b1e23067691d516e1933557dac7c3b5baf99bce893ea393069",
+    "1afd6ccfe1dda380be1b3d912515cb112e8c315e1cf9a9a1e45bbbe069666106",
+    "55ff4688dc4926348e26b8e9e161f4203c816eb8829dea974396f4f0aaa32b88",
 ]
 
 
@@ -123,7 +133,7 @@ def main() -> None:
         raise ValueError("CAMP tracked worktree is dirty")
     decision = {
         "schema_version": SCHEMA_VERSION,
-        "status": "A1_4_R0_4_only_released",
+        "status": "A1_5_R0_5_only_released",
         "decision_date": "2026-07-18",
         "source_thread_id": "019f6eee-8fc2-75f3-843c-75562f610b13",
         "corrected_source_head": head,
@@ -143,8 +153,8 @@ def main() -> None:
         "selection_eligibility": "source_valid",
         "empty_source_valid": "fail_closed",
         "candidate0_or_all_k_fallback_allowed": False,
-        "a1_4_authorized": True,
-        "r0_4_source_authority_preflight_authorized": True,
+        "a1_5_authorized": True,
+        "r0_5_source_authority_preflight_authorized": True,
         "bounded_21red_1nosignal_x64_authorized_after_source_pass": True,
         "full_r_authorized": False,
         "monitor_authorized": False,

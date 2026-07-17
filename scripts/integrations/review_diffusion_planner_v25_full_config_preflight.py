@@ -40,8 +40,8 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_full_config_preflight_review_v3"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v4"
+SCHEMA_VERSION = "camp_dp_v25_full_config_preflight_review_v4"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v5"
 CANONICAL_JSON_BYTE_SPEC_VERSION = "camp_dp_v25_canonical_json_utf8_lf_v1"
 SEMANTIC_PAYLOAD_SCHEMA_VERSION = "camp_dp_v25_semantic_clone_payload_v3"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
@@ -275,6 +275,25 @@ def _require_json_int(value: Any, label: str) -> int:
 def _require_json_bool(value: Any, label: str) -> bool:
     if type(value) is not bool:
         raise ValueError(f"{label} must be a native JSON boolean")
+    return value
+
+
+def _require_sha256_string(value: Any, label: str) -> str:
+    if (
+        type(value) is not str
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"{label} must be a native 64-hex string")
+    return value
+
+
+def _require_canonical_absolute_path(value: Any, label: str) -> str:
+    if type(value) is not str or not value:
+        raise ValueError(f"{label} must be a native path string")
+    path = Path(value)
+    if not path.is_absolute() or value != str(path.resolve()):
+        raise ValueError(f"{label} must be an absolute canonical path string")
     return value
 
 
@@ -790,6 +809,10 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
     )
     report = _load(preflight / "report.json")
     source = _load(preflight / "source_receipt.json")
+    _require_sha256_string(report.get("release_run_nonce"), "preflight report nonce")
+    _require_canonical_absolute_path(
+        report.get("authorized_output_dir"), "preflight report output directory"
+    )
     for field in (
         "seed",
         "corpus_steps",
@@ -911,6 +934,10 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         label="V25 full-config preflight release",
     )
     release = _load(release_artifact / "decision.json")
+    _require_sha256_string(release.get("run_nonce"), "preflight release nonce")
+    _require_canonical_absolute_path(
+        release.get("authorized_output_dir"), "preflight release output directory"
+    )
     release_fields = {
         "schema_version", "status", "implementation_source_head",
         "pointer_head_at_release", "fixed_dp_head", "formal_artifact",
@@ -946,10 +973,8 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         != Path(str(report["dp_repo"])).resolve()
         or release.get("native_source_roots") != S01_NATIVE_SOURCE_ROOTS
         or release.get("run_nonce") != report["release_run_nonce"]
-        or Path(str(release.get("authorized_output_dir"))).resolve()
-        != preflight.resolve()
-        or Path(str(report["authorized_output_dir"])).resolve()
-        != preflight.resolve()
+        or release.get("authorized_output_dir") != str(preflight.resolve())
+        or report["authorized_output_dir"] != str(preflight.resolve())
         or release.get("full_config_preflight_authorized") is not True
         or release.get("full_r_execute_authorized") is not False
         or release.get("fresh_b2_opened") is not False
