@@ -484,30 +484,37 @@ free global lock, zero related processes, clean CAMP/DP, and the 10 GiB disk
 floor. The builder/output must not be rerun; only independent package review
 TDD/static preflight is authorized next.
 
-The evidence/claim independent-review implementation and synthetic TDD are now
-frozen at source HEAD `cb013b56eacd5db8df53d5f22bbb3446481fa276`.
-Local joint verification passed `250` tests with two Windows-only POSIX skips;
-AutoDL Python 3.9 passed all `252` tests. Final independent adversarial review
-found zero P1/P2. The reviewer fixes the production source/evidence/launch
-paths and roots, exact schemas and SHA chains, full reviewed-metrics equality,
-the 14D selector and route/request bindings, holdout-once state, code/test Git
-blobs, current authority, fixed DP, global lock/process guards, and the
-non-degradable 10 GiB floor. All path components are checked before access and
-publication is deterministic atomic no-clobber.
+The original evidence/claim independent-review TDD/static gate was frozen at
+`cb013b56eacd5db8df53d5f22bbb3446481fa276`. Its first production invocation
+failed closed before publication with `source reviewer training/runtime root
+binding mismatch`. No output or staging directory remained, the lock released,
+the holdout marker stayed byte-identical at open-count one/rerun false, fixed
+DP stayed clean, and the 10 GiB floor held. This was a reviewer fixture defect,
+not an evidence, outcome, holdout, or DP failure: the sealed production runtime
+selector receipt is root `ef5539ba04ca5264f1c38951e15f7daac9d32a1dae9c4a80cf0d21109eed2cc5`
+with three files including `adapter_receipt.json`, while the synthetic fixture
+had mirrored a stale two-file internal constant.
 
-The synthetic-only AutoDL preflight opened no real artifact and sealed exactly
-16 payloads at
-`/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_cb013b56_20260717T093654CST`,
+The minimal production-receipt fix and literal regression are frozen at
+`21e60ff2af77cc471fadacb80d383f637c9a50cd`; script/test SHA256 values are
+`7e0f0706bf03886b9f582c3e46af17a6ade1befd44bc8de71329a547ea68f62c` /
+`0588ca457f077ae6908c50f892c5ae8e26c8fdcfe0208edd1908e1a65e764cb5`.
+Local focused/joint verification passed `116 / 252` with two Windows-only POSIX
+skips in each suite, and three independent reviews found zero P1/P2. The new
+Linux-complete static preflight passed all `254` tests and sealed 16 payloads at
+`/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_21e60ff2_20260717T100426CST`,
 rooted at
-`6d0cc6c69c9dfc22ea66b3a80894d89f89b35f446578c89fbb0bd11417068411`.
-Its receipt records `real_artifacts_unopened=true`, empty consumed roots, and
-all reviewer/evaluator/runner/model/simulator/holdout operations false. A
-separate read-only check reverified the seal, free lock, clean CAMP/DP heads,
-and `48,677,253,120` free bytes. AB/BA remains `60/60` with independent resets;
-post-divergence cross-arm tensors remain intentionally non-comparable and
-latency remains descriptive-only. Only the one read-only independent-review
-execution is authorized next; no builder, paired arm, or holdout rerun is
-allowed.
+`77f0002abf172f5f5bfe9d9c015443b9c8ac11f120e662d2c8b6157082b902d2`.
+It opened no production artifact and performed no reviewer/evaluator/runner/
+model/simulator/holdout operation. Independent verification rechecked the
+seal, free lock, clean CAMP/DP heads, and `48,676,618,240` free bytes.
+
+AB/BA remains the exact per-pair outcome-blind route+seed hash order, not only
+an aggregate `60/60` count, with independent resets and common initial/exogenous
+seeds. Post-divergence cross-arm tensors remain intentionally non-comparable;
+latency remains descriptive-only. Only the corrected independent-review
+execution is authorized next; no builder, paired arm, training, or holdout
+rerun is allowed.
 
 current_v24_status=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight_passed
 current_v24_artifact_source_head=f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a
@@ -521,11 +528,11 @@ current_v24_launch_status=sealed_wrapper_validation_false_negative_builder_exit_
 current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
 current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
 current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
-current_v24_independent_review_source_head=cb013b56eacd5db8df53d5f22bbb3446481fa276
-current_v24_independent_review_script_sha256=5471aa7cb8ed50eccf2cc59696c204098a812f26f9c5c6737c0977a756a269f4
-current_v24_independent_review_test_sha256=e58206d80cd39f413f99310b8f33572dc4eb06a4ac575a428b707cc6835dbbdc
-current_v24_independent_review_static_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_cb013b56_20260717T093654CST
-current_v24_independent_review_static_artifact_root_sha256=6d0cc6c69c9dfc22ea66b3a80894d89f89b35f446578c89fbb0bd11417068411
+current_v24_independent_review_source_head=21e60ff2af77cc471fadacb80d383f637c9a50cd
+current_v24_independent_review_script_sha256=7e0f0706bf03886b9f582c3e46af17a6ade1befd44bc8de71329a547ea68f62c
+current_v24_independent_review_test_sha256=0588ca457f077ae6908c50f892c5ae8e26c8fdcfe0208edd1908e1a65e764cb5
+current_v24_independent_review_static_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_21e60ff2_20260717T100426CST
+current_v24_independent_review_static_artifact_root_sha256=77f0002abf172f5f5bfe9d9c015443b9c8ac11f120e662d2c8b6157082b902d2
 current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
 current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
 current_v24_holdout_open_count=1

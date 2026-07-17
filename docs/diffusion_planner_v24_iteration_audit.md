@@ -3857,3 +3857,91 @@ source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
 next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_execution_only
+
+## Gate 60: Reviewer First-Execution Fail-Closed and Production-Receipt Remediation
+
+Status: failed closed at the first production invocation, then remediated by
+TDD and complete-sealed static preflight. Only the corrected read-only
+independent-review execution is authorized next. No evidence builder, paired
+arm, evaluator, runner, model, simulator, candidate, outcome, training, or
+holdout execution is authorized.
+
+After AutoDL CAMP fast-forwarded to authority HEAD
+`271830dc480f243652c37d1188923f4830758ee1`, the first reviewer invocation
+opened the already sealed inputs read-only and stopped before publication with
+`ValueError: source reviewer training/runtime root binding mismatch`. The
+deterministic output directory and its `.tmp` sibling both remained absent.
+The global lock released, the reviewer process count returned to zero, the
+holdout marker remained byte-identical at
+`f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633`,
+fixed DP remained clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`,
+and `48,676,823,040` bytes remained free. The failure therefore changes no
+outcome, claim, holdout, model, or fixed-DP fact.
+
+Read-only field comparison isolated a synthetic-fixture false negative. The
+sealed source reviewer records runtime-selector root
+`ef5539ba04ca5264f1c38951e15f7daac9d32a1dae9c4a80cf0d21109eed2cc5`,
+`file_count=3`, and exact paths `adapter_receipt.json`, `atom_scales.json`, and
+`weights.npy`. The old synthetic fixture mirrored a stale reviewer constant
+for a different two-file inventory rooted at `94ea5cca...`, so tests could be
+self-consistent while disagreeing with the frozen production receipt.
+
+The minimal fix freezes the exact production root and three-file manifest,
+keeps all source/evidence complete-seal and deep-binding checks unchanged, and
+adds a literal regression independent of fixture-derived values. It is frozen
+at CAMP HEAD `21e60ff2af77cc471fadacb80d383f637c9a50cd`; script/test SHA256 values are
+`7e0f0706bf03886b9f582c3e46af17a6ade1befd44bc8de71329a547ea68f62c`
+and
+`0588ca457f077ae6908c50f892c5ae8e26c8fdcfe0208edd1908e1a65e764cb5`.
+Local Python 3.12 focused and joint suites passed `116` and `252` tests,
+respectively, each with `2` Windows-only POSIX skips. Three independent reviews
+reported zero P1/P2; explicit probes confirmed the old root, count `2`, and
+missing adapter receipt all still fail closed.
+
+AutoDL Python 3.9 ran the Linux-complete joint suite and passed all `254` tests.
+The synthetic-only process opened no production artifact, consumed no artifact
+root, and performed no independent-review, builder, evaluator, runner, model,
+simulator, or holdout operation. It atomically sealed 16 payload files at:
+
+`/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_21e60ff2_20260717T100426CST`
+/
+`77f0002abf172f5f5bfe9d9c015443b9c8ac11f120e662d2c8b6157082b902d2`.
+
+Independent seal/schema verification passed. Local, origin, GitHub, and AutoDL
+CAMP were aligned at `21e60ff2af77cc471fadacb80d383f637c9a50cd`; fixed DP
+remained clean, the global lock was free, and `48,676,618,240` bytes remained
+free. The arm-order audit is carried forward by reconstructing the exact
+per-pair `camp-v24-paired-arm-order-v1` outcome-blind route+seed hash order, not
+merely checking aggregate AB/BA `60/60`; independent per-arm reset and common
+initial/exogenous seeds remain required, while latency remains descriptive-only.
+
+current_v24_status=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight_passed
+current_v24_artifact_source_head=f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a
+current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_artifact_root_sha256=044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808
+current_v24_launch_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf_launch
+current_v24_launch_artifact_root_sha256=8a7ee77bea252de0ac84a6531408a8f82b071ba144eee42c924531042e90c3af
+current_v24_launch_status=sealed_wrapper_validation_false_negative_builder_exit_0
+current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
+current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
+current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+current_v24_independent_review_source_head=21e60ff2af77cc471fadacb80d383f637c9a50cd
+current_v24_independent_review_script_sha256=7e0f0706bf03886b9f582c3e46af17a6ade1befd44bc8de71329a547ea68f62c
+current_v24_independent_review_test_sha256=0588ca457f077ae6908c50f892c5ae8e26c8fdcfe0208edd1908e1a65e764cb5
+current_v24_independent_review_static_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_21e60ff2_20260717T100426CST
+current_v24_independent_review_static_artifact_root_sha256=77f0002abf172f5f5bfe9d9c015443b9c8ac11f120e662d2c8b6157082b902d2
+current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
+current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
+current_v24_holdout_open_count=1
+current_v24_holdout_rerun_authorized=false
+source_a_status=source_ineligible_missing_authorized_build_prerequisites
+source_a_terminal=true
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_independent_review_tdd_static_preflight_passed
+source_b_terminal=false
+authorized_source_count=2
+source_terminal_count=1
+global_stop_authorized=false
+global_stop_reason=none
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_execution_only
