@@ -135,6 +135,7 @@ def test_generic_static_and_learned_fallback_share_strict_simplex_helper() -> No
 
 
 def test_probe_case_authority_selects_exact_formal_identity0_and_red_easy() -> None:
+    assert a0.FORMAL_SOURCE_CAMP_HEAD == "ff02838780c7b2fa7fc557680e43d85967ee843e"
     identity0 = {
         "scenario_id": "1" * 64,
         "family": "lead_vehicle_hard_brake",

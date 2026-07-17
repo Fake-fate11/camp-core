@@ -44,6 +44,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 SCHEMA_VERSION = "camp_dp_v25_stage_a0_authority_supplement_v1"
 S01_SOURCE_HEAD = "e6ba79a229ea3cc8e3a69d776ea1913cff8e3279"
 S01_RELEASE_BASELINE_HEAD = "000d4308ba1a815a93f40a39a2a699cddcd3f3e5"
+FORMAL_SOURCE_CAMP_HEAD = "ff02838780c7b2fa7fc557680e43d85967ee843e"
 FAILED_PREFLIGHT = Path(
     "/root/autodl-tmp/"
     "camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST"
@@ -131,10 +132,7 @@ def validate_probe_config_authority(
         raise ValueError("probe config receipt root mismatch")
     if formal_report.get("status") != "passed" or formal_report.get("mode") != "freeze_formal":
         raise ValueError("formal source report is not the passed freeze")
-    if (
-        formal_source.get("camp_head") != S01_SOURCE_HEAD
-        and formal_source.get("camp_head") != "ff028387c17600f65fb23b3d8047e562203e2881"
-    ):
+    if formal_source.get("camp_head") != FORMAL_SOURCE_CAMP_HEAD:
         raise ValueError("formal source CAMP authority is unexpected")
     if formal_source.get("fixed_dp_head") != FIXED_DP_HEAD:
         raise ValueError("formal fixed-DP authority drifted")
