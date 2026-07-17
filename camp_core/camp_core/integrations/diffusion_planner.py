@@ -30,6 +30,14 @@ from camp_core.integrations.diffusion_planner_progress_support import (
     PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
     build_progress_support_logging_payload,
 )
+from camp_core.integrations.diffusion_planner_v25_context import (
+    CONTEXT_SCHEMA_VERSION as V25_CONTEXT_SCHEMA_VERSION,
+    PHI_DIMENSION as V25_PHI_DIMENSION,
+    RAW_FEATURE_NAMES as V25_RAW_FEATURE_NAMES,
+    V25ContextScaler,
+    context_weights as v25_context_weights,
+    validate_column_simplex_theta,
+)
 
 
 AUTOWARE_UNSUPPORTED_REGULATORY_SUBTYPES = frozenset(
@@ -2736,9 +2744,12 @@ class CAMPSelector:
 
     ``mode="static"`` uses the learned offline CAMP weights and is the
     deployable bridge for the current Diffusion-Planner simulator.
-    ``mode="linear"`` uses the CAMP ``Theta`` matrix and requires a compatible
+    ``mode="linear"`` uses the legacy CAMP ``Theta`` matrix and requires a compatible
     per-step scene embedding. A Diffusion-Planner encoder feature is not
     considered compatible without a separately trained adapter.
+    ``mode="context_simplex"`` is the strict V25 path: it accepts only the
+    frozen 26D causal raw context, applies train-only q05/q95 complement lifting,
+    and multiplies a column-simplex ``Theta`` without softmax or projection.
     """
 
     def __init__(
@@ -2749,6 +2760,10 @@ class CAMPSelector:
         theta: Optional[np.ndarray] = None,
         feature_center: Optional[np.ndarray] = None,
         feature_scale: Optional[np.ndarray] = None,
+        context_q05: Optional[np.ndarray] = None,
+        context_q95: Optional[np.ndarray] = None,
+        context_feature_names: Optional[Sequence[str]] = None,
+        context_schema_version: str = V25_CONTEXT_SCHEMA_VERSION,
         feature_clip: float = 5.0,
         linear_activation: str = "project_simplex",
         mode: str = "static",
@@ -2765,7 +2780,7 @@ class CAMPSelector:
         self.atom_scales = np.maximum(self.atom_scales, 1e-6)
         self.num_atoms = int(self.atom_scales.size)
 
-        if mode not in {"static", "linear"}:
+        if mode not in {"static", "linear", "context_simplex"}:
             raise ValueError(f"Unknown CAMP selector mode {mode!r}.")
         self.mode = mode
         self.atom_clip = float(atom_clip)
@@ -2816,14 +2831,18 @@ class CAMPSelector:
             theta_arr = np.asarray(theta, dtype=np.float64)
             if theta_arr.ndim != 2 or theta_arr.shape[0] != self.num_atoms:
                 raise ValueError(
-                    "Theta must have shape [num_atoms, embedding_dim + 1], "
+                    "Theta must be a matrix with one row per atom, "
                     f"got {theta_arr.shape}."
+                )
+            if mode == "context_simplex":
+                validate_column_simplex_theta(
+                    theta_arr, num_atoms=self.num_atoms
                 )
             self.theta = theta_arr
 
         self.feature_center = None
         self.feature_scale = None
-        if self.theta is not None:
+        if self.theta is not None and self.mode == "linear":
             expected_dim = self.theta.shape[1] - 1
             if feature_center is not None:
                 center = np.asarray(feature_center, dtype=np.float64).reshape(-1)
@@ -2841,6 +2860,37 @@ class CAMPSelector:
                         f"got {scale.shape}, expected ({expected_dim},)."
                     )
                 self.feature_scale = np.maximum(scale, 1e-6)
+
+        self.context_scaler = None
+        self.context_feature_names = None
+        self.context_schema_version = None
+        if self.mode == "context_simplex":
+            if self.theta is None:
+                raise ValueError("V25 context-simplex CAMP selection requires Theta.")
+            if self.theta.shape[1] != V25_PHI_DIMENSION:
+                raise ValueError(
+                    f"V25 context Theta requires {V25_PHI_DIMENSION} columns."
+                )
+            if context_q05 is None or context_q95 is None:
+                raise ValueError("V25 context mode requires train-only context_q05/q95.")
+            names = tuple(
+                str(name)
+                for name in (() if context_feature_names is None else context_feature_names)
+            )
+            if names != tuple(V25_RAW_FEATURE_NAMES):
+                raise ValueError("V25 context feature names/order must match the freeze.")
+            if str(context_schema_version) != V25_CONTEXT_SCHEMA_VERSION:
+                raise ValueError("V25 context schema version does not match the freeze.")
+            if feature_center is not None or feature_scale is not None:
+                raise ValueError(
+                    "V25 context mode forbids legacy embedding center/scale fields."
+                )
+            self.context_scaler = V25ContextScaler(
+                q05=np.asarray(context_q05, dtype=np.float64),
+                q95=np.asarray(context_q95, dtype=np.float64),
+            )
+            self.context_feature_names = names
+            self.context_schema_version = str(context_schema_version)
 
         if self.mode == "static" and self.static_weights is None:
             raise ValueError("Static CAMP selection requires static_weights.")
@@ -2867,6 +2917,10 @@ class CAMPSelector:
         theta = None
         feature_center = None
         feature_scale = None
+        context_q05 = None
+        context_q95 = None
+        context_feature_names = None
+        context_schema_version = V25_CONTEXT_SCHEMA_VERSION
         feature_clip = 5.0
         linear_activation = "project_simplex"
         if checkpoint_path is not None:
@@ -2879,6 +2933,19 @@ class CAMPSelector:
                 feature_center = np.asarray(payload["feature_center"], dtype=np.float64)
             if "feature_scale" in payload:
                 feature_scale = np.asarray(payload["feature_scale"], dtype=np.float64)
+            if "context_q05" in payload:
+                context_q05 = np.asarray(payload["context_q05"], dtype=np.float64)
+            if "context_q95" in payload:
+                context_q95 = np.asarray(payload["context_q95"], dtype=np.float64)
+            if "context_feature_names" in payload:
+                context_feature_names = tuple(
+                    str(value) for value in np.asarray(payload["context_feature_names"]).reshape(-1)
+                )
+            context_schema_version = _payload_string(
+                payload,
+                "context_schema_version",
+                context_schema_version,
+            )
             if "feature_clip" in payload:
                 feature_clip = float(np.asarray(payload["feature_clip"]).reshape(-1)[0])
             linear_activation = _payload_string(
@@ -2905,6 +2972,10 @@ class CAMPSelector:
             theta=theta,
             feature_center=feature_center,
             feature_scale=feature_scale,
+            context_q05=context_q05,
+            context_q95=context_q95,
+            context_feature_names=context_feature_names,
+            context_schema_version=context_schema_version,
             feature_clip=feature_clip,
             linear_activation=linear_activation,
             mode=mode,
@@ -2914,9 +2985,27 @@ class CAMPSelector:
             atom_clip=atom_clip,
         )
 
-    def weights_for(self, scene_embedding: Optional[np.ndarray] = None) -> np.ndarray:
+    def weights_for(
+        self,
+        scene_embedding: Optional[np.ndarray] = None,
+        *,
+        raw_context: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
         if self.mode == "static":
             return self.static_weights.copy()
+
+        if self.mode == "context_simplex":
+            if scene_embedding is not None:
+                raise ValueError(
+                    "V25 context mode rejects scene_embedding/private latent; "
+                    "pass the frozen 26D raw_context."
+                )
+            if raw_context is None:
+                raise ValueError("V25 context-simplex selection requires raw_context.")
+            phi = self.context_scaler.lift(
+                np.asarray(raw_context, dtype=np.float64).reshape(-1)
+            )
+            return v25_context_weights(self.theta, phi)
 
         if scene_embedding is None:
             raise ValueError(
@@ -2951,6 +3040,7 @@ class CAMPSelector:
         context: DriverAtomContext,
         *,
         scene_embedding: Optional[np.ndarray] = None,
+        raw_context: Optional[np.ndarray] = None,
         candidate_obstacles: Optional[np.ndarray] = None,
         candidate_progress: Optional[np.ndarray] = None,
         candidate_planned_red_light_cost: Optional[np.ndarray] = None,
@@ -3259,7 +3349,7 @@ class CAMPSelector:
         if self.atom_clip > 0:
             normalized = np.clip(normalized, 0.0, self.atom_clip)
 
-        weights = self.weights_for(scene_embedding)
+        weights = self.weights_for(scene_embedding, raw_context=raw_context)
         scores = normalized @ weights
         used_fallback = not feasible_mask.any()
         selection_weights = weights
