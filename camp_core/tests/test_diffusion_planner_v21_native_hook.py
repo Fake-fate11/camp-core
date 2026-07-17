@@ -45,7 +45,11 @@ class _FakeModel:
         prediction = np.zeros((batch, 33, 80, 4), dtype=np.float32)
         for index in range(batch):
             base = np.float32(markers[index] * 10.0)
-            prediction[index, 0] = latent[index, 0, 1:] + base
+            ego_prediction = latent[index, 0, 1:] + base
+            heading = ego_prediction[:, 2].copy()
+            ego_prediction[:, 2] = np.cos(heading)
+            ego_prediction[:, 3] = np.sin(heading)
+            prediction[index, 0] = ego_prediction
             interaction = np.float32(latent[index, 0].mean())
             for neighbor in range(32):
                 prediction[index, neighbor + 1] = base + neighbor + interaction
@@ -139,8 +143,8 @@ def _dump_step_npz(scene, map_cache, future_len, predicted_neighbor_num=32):
 def _materialize(**kwargs):
     candidates = kwargs["candidates"]
     atom_matrix = np.ones((8, 14), dtype=np.float64)
-    atom_matrix[:, 0] = np.arange(8, dtype=np.float64)
-    atom_matrix[3, 0] = -1.0
+    atom_matrix[:, 0] = np.arange(1, 9, dtype=np.float64)
+    atom_matrix[3, 0] = 0.0
     return {
         "canonical_eligible": True,
         "atom_matrix": atom_matrix,
