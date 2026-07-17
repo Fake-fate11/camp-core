@@ -82,6 +82,7 @@ def _semantic_and_chain() -> tuple[dict, dict]:
         "stop_line_route_distance_m": 0.01,
         "route_arc_m": 20.0,
         "route_length_m": 100.0,
+        "route_tangent_world": [1.0, 0.0],
         "expected_current_phase": "red",
         "semantic_clone_payload": semantic,
         "semantic_clone_sha256": canonical_json_sha256(semantic),
@@ -243,15 +244,21 @@ def test_runtime_signal_receipt_rejects_phase_or_lanelet_mismatch() -> None:
 
 
 def test_full_r_executor_cannot_self_authorize_without_ultra_chain() -> None:
-    with pytest.raises(ValueError, match="Ultra full-R release"):
+    with pytest.raises(ValueError, match="Ultra preflight release"):
         corpus._verify_full_r_authority(
             r0_review_artifact=None,
             r0_review_root_sha256=None,
             r0_source_artifact=None,
             r0_source_root_sha256=None,
-            ultra_release_artifact=None,
-            ultra_release_root_sha256=None,
+            preflight_release_artifact=None,
+            preflight_release_root_sha256=None,
+            preflight_artifact=None,
+            preflight_review_artifact=None,
+            preflight_review_root_sha256=None,
+            execute_release_artifact=None,
+            execute_release_root_sha256=None,
             camp_head="a" * 40,
+            mode="preflight",
         )
 
 
@@ -266,34 +273,81 @@ def test_r0_source_reviewer_serializes_numpy_check_results_as_native_bool() -> N
 def _write_stage_a_inputs(tmp_path: Path) -> tuple[Path, str, Path, str]:
     a0 = tmp_path / "a0"
     a0.mkdir()
+    a0_report = {
+        "schema_version": builder.A0_SCHEMA_VERSION,
+        "status": "passed",
+        "stage": "A0_authority_hardening",
+        "stage_a0_code_head": "0" * 40,
+        "released_s01_source_head": "1" * 40,
+        "released_s01_final_baseline_head": "2" * 40,
+        "fixed_dp_head": builder.FIXED_DP_HEAD,
+        "strict_inventory": {},
+        "probe_authority": {},
+        "rejected_roots": [builder.SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        "failed_preflight_role": "diagnostic_only_training_calibration_evaluation_ineligible",
+        "existing_3x64_model_rerun": False,
+        "gpu_work_started": False,
+        "stage_a_authorized": True,
+        "r_authorized": False,
+        "training_authorized": False,
+        "calibration_authorized": False,
+        "scene_runtime_authorized": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
     (a0 / "report.json").write_text(
-        json.dumps(
-            {
-                "schema_version": builder.A0_SCHEMA_VERSION,
-                "status": "passed",
-                "fresh_b2_opened": False,
-                "outcome_fields_consumed": [],
-            }
-        )
+        json.dumps(a0_report)
         + "\n",
         encoding="utf-8",
     )
+    (a0 / "HEADS").write_text(
+        f"camp_head={'0' * 40}\nfixed_dp_head={builder.FIXED_DP_HEAD}\n",
+        encoding="ascii",
+    )
+    (a0 / "run.exit").write_text("0\n", encoding="ascii")
     a0_root = seal_artifact(a0, label="test a0")
     decision = tmp_path / "decision"
     decision.mkdir()
+    decision_payload = {
+        "schema_version": "camp_dp_v25_ultra_stage_a11_r01_decision_v2",
+        "status": "A1_1_R0_1_only_released",
+        "decision_date": "2026-07-17",
+        "source_thread_id": "test",
+        "corrected_source_head": "a" * 40,
+        "fixed_dp_head": builder.FIXED_DP_HEAD,
+        "s01_preflight_root_sha256": "3" * 64,
+        "s01_review_root_sha256": "4" * 64,
+        "a0_root_sha256": a0_root,
+        "formal_root_sha256": builder.FORMAL_ROOT_SHA256,
+        "rejected_roots": [builder.SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        "superseded_diagnostic_roots": ["5" * 64],
+        "progress_reference": "source_valid_candidate_set_reference",
+        "progress_formula": "r=max(progress[j] where source_valid[j]); progress_shortfall[k]=max(r-progress[k],0)",
+        "selection_eligibility": "source_valid",
+        "empty_source_valid": "fail_closed",
+        "candidate0_or_all_k_fallback_allowed": False,
+        "a1_1_authorized": True,
+        "r0_1_source_authority_preflight_authorized": True,
+        "bounded_21red_1nosignal_x64_authorized_after_source_pass": True,
+        "full_r_authorized": False,
+        "monitor_authorized": False,
+        "training_authorized": False,
+        "calibration_authorized": False,
+        "scene_runtime_authorized": False,
+        "v2i_authorized": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
     (decision / "decision.json").write_text(
-        json.dumps(
-            {
-                "schema_version": "camp_dp_v25_ultra_stage_a_decision_v1",
-                "status": "A1_R0_only_released",
-                "progress_reference": "source_valid_candidate_set_reference",
-                "full_r_authorized": False,
-                "fresh_b2_opened": False,
-            }
-        )
+        json.dumps(decision_payload)
         + "\n",
         encoding="utf-8",
     )
+    (decision / "HEADS").write_text(
+        f"camp_head={'a' * 40}\nfixed_dp_head={builder.FIXED_DP_HEAD}\n",
+        encoding="ascii",
+    )
+    (decision / "run.exit").write_text("0\n", encoding="ascii")
     decision_root = seal_artifact(decision, label="test decision")
     return a0, a0_root, decision, decision_root
 
@@ -310,6 +364,30 @@ def _write_ledger_artifact(
     )
     (path / "run.exit").write_text("0\n", encoding="ascii")
     return seal_artifact(path, label="test A1 ledger")
+
+
+@pytest.mark.parametrize("mutation", ["delete", "substitute_head", "substitute_a0"])
+def test_a11_authority_exact_fields_fail_closed(
+    tmp_path: Path, mutation: str
+) -> None:
+    a0, a0_root, decision, _ = _write_stage_a_inputs(tmp_path)
+    a0_payload = json.loads((a0 / "report.json").read_text(encoding="utf-8"))
+    decision_payload = json.loads(
+        (decision / "decision.json").read_text(encoding="utf-8")
+    )
+    if mutation == "delete":
+        decision_payload.pop("outcome_fields_consumed")
+    elif mutation == "substitute_head":
+        decision_payload["corrected_source_head"] = "b" * 40
+    else:
+        decision_payload["a0_root_sha256"] = "c" * 64
+    with pytest.raises(ValueError, match="exact field/value contract"):
+        builder.validate_a11_authority_payloads(
+            a0_payload,
+            decision_payload,
+            a0_root_sha256=a0_root,
+            current_head="a" * 40,
+        )
 
 
 @pytest.mark.parametrize("mutation", ["status", "formula", "nested", "progress"])

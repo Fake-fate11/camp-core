@@ -354,14 +354,22 @@ def select_camp_candidate(
     }:
         raise ValueError("unknown eligibility mask")
     before = array_sha256(trajectories)
-    physical = np.asarray(materialized["physical_feasible_mask"], dtype=bool)
-    if physical.shape != (8,):
-        raise ValueError("physical feasible mask must have shape [8]")
-    source_valid = np.asarray(
-        materialized.get("source_valid_mask", physical), dtype=bool
-    )
-    if source_valid.shape != (8,):
-        raise ValueError("source valid mask must have shape [8]")
+    def strict_mask(key: str) -> np.ndarray:
+        if key not in materialized:
+            raise ValueError(f"materialized {key} is required")
+        raw = np.asarray(materialized[key])
+        if raw.dtype != np.bool_:
+            raise ValueError(f"{key} must contain strict booleans")
+        if raw.shape != (8,):
+            raise ValueError(f"{key} must have shape [8]")
+        return raw.copy()
+
+    physical = strict_mask("physical_feasible_mask")
+    source_valid = strict_mask("source_valid_mask")
+    if np.any(physical & ~source_valid):
+        raise ValueError("physical feasible mask must be a subset of source valid")
+    if eligibility_mask_name == "source_valid_mask" and not source_valid.any():
+        raise ValueError("source_valid candidate set is empty; fallback is forbidden")
     eligible = (
         physical
         if eligibility_mask_name == "physical_feasible_mask"

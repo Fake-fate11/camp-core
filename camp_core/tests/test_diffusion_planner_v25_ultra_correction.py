@@ -124,6 +124,9 @@ def test_canonical_score_is_fail_closed_and_tie_breaks_by_lowest_index() -> None
     materialized["source_valid_mask"] = np.array(
         [False, False, False, True, False, True, False, False]
     )
+    materialized["physical_feasible_mask"] = materialized[
+        "source_valid_mask"
+    ].copy()
     selected = select_camp_candidate(
         candidates=_candidate_tensor(),
         materialized=materialized,
@@ -583,8 +586,8 @@ def test_full_corpus_executor_preflight_authority_is_fail_closed(
         "r0_review_root_sha256": "1" * 64,
         "r0_source_artifact": "/sealed/r0-source",
         "r0_source_root_sha256": "2" * 64,
-        "ultra_full_r_release_artifact": "/sealed/ultra-full-r-release",
-        "ultra_full_r_release_root_sha256": "3" * 64,
+        "ultra_full_config_preflight_release_artifact": "/sealed/ultra-full-config-preflight-release",
+        "ultra_full_config_preflight_release_root_sha256": "3" * 64,
         "semantic_authority_root_sha256": "4" * 64,
         "semantic_authority_identity_count": corpus.EXPECTED_EXECUTABLE_IDENTITIES,
     }
@@ -605,8 +608,8 @@ def test_full_corpus_executor_preflight_authority_is_fail_closed(
             "r0_review_root_sha256",
             "r0_source_artifact",
             "r0_source_root_sha256",
-            "ultra_full_r_release_artifact",
-            "ultra_full_r_release_root_sha256",
+                "ultra_full_config_preflight_release_artifact",
+                "ultra_full_config_preflight_release_root_sha256",
             "semantic_authority_root_sha256",
             "semantic_authority_identity_count",
         )

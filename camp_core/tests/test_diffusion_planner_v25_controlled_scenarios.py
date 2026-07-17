@@ -248,6 +248,7 @@ def _signal_authority(case: dict) -> dict:
         "stop_line_route_distance_m": 0.0,
         "route_arc_m": 20.0,
         "route_length_m": 100.0,
+        "route_tangent_world": [1.0, 0.0],
         "expected_current_phase": case["signal"]["phase"],
         "semantic_clone_payload": semantic,
         "semantic_clone_sha256": canonical_json_sha256(semantic),

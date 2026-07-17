@@ -19,6 +19,9 @@ from camp_core.integrations.diffusion_planner import (
     compute_lateral_comfort_shadow_costs,
     compute_red_stopping_margin_costs,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    validate_causal_signal_atom_input,
+)
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     validate_causal_dp_input,
 )
@@ -254,7 +257,7 @@ CANONICAL_ATOM_CONTRACTS = (
     _contract(
         "lane_deviation",
         "m^2*s",
-        "dt * sum(max(abs(projected_lateral_offset) - lane_half_width, 0)^2)",
+        "dt * sum(where(offset>=0, max(offset-left_width,0), max(-offset-right_width,0))^2)",
         (
             "fixed DP candidate_xy[K,80,2]",
             "ordered current route centerline",
@@ -268,7 +271,7 @@ CANONICAL_ATOM_CONTRACTS = (
     _contract(
         "clearance",
         "m^2*s",
-        "dt * sum(max(safety_radius + margin - minimum_obstacle_distance_t, 0)^2)",
+        "dt * sum(max(3m-candidate_specific_minimum_OBB_surface_clearance_t,0)^2)",
         (
             "fixed DP candidate_xy[K,80,2]",
             "candidate-specific fixed-DP neighbor predictions[K,M,80,D]",
@@ -326,7 +329,8 @@ CANONICAL_ATOM_CONTRACTS = (
         "dt * sum(proximity * max(speed - sqrt(2*a*max(distance-buffer,0)),0)^2)",
         (
             "fixed DP candidate_xy[K,80,2]",
-            "current red route points and directions",
+            "R0-certified unique stop-line geometry transformed to the current ego frame",
+            "R0-certified route tangent, route arc, source-chain SHA, and same-tick phase receipt",
             "dt=0.1 s",
         ),
         "requires explicit current red signal state aligned to route",
@@ -383,6 +387,112 @@ def source_valid_progress_shortfall(
         raise ValueError("source_valid candidate set is empty; fallback is forbidden")
     reference = float(np.max(values[source_valid]))
     return reference, np.maximum(reference - values, 0.0)
+
+
+def lane_boundary_deviation_costs(
+    lateral_offset: np.ndarray,
+    left_width: np.ndarray,
+    right_width: np.ndarray,
+    dt: float,
+) -> np.ndarray:
+    """Exact asymmetric signed-boundary lane atom used by production."""
+    lateral = np.asarray(lateral_offset, dtype=np.float64)
+    left = np.asarray(left_width, dtype=np.float64)
+    right = np.asarray(right_width, dtype=np.float64)
+    if (
+        lateral.ndim != 2
+        or left.shape != lateral.shape
+        or right.shape != lateral.shape
+        or not np.isfinite(np.concatenate((lateral.ravel(), left.ravel(), right.ravel()))).all()
+        or np.any(left <= 0.0)
+        or np.any(right <= 0.0)
+        or not np.isfinite(dt)
+        or dt <= 0.0
+    ):
+        raise ValueError("lane boundary atom inputs are invalid")
+    boundary_overrun = np.where(
+        lateral >= 0.0,
+        np.maximum(lateral - left, 0.0),
+        np.maximum(-lateral - right, 0.0),
+    )
+    return float(dt) * np.sum(boundary_overrun**2, axis=1)
+
+
+def clearance_hinge_costs(
+    minimum_obb_surface_clearance_m: np.ndarray,
+    dt: float,
+    *,
+    threshold_m: float = 3.0,
+) -> np.ndarray:
+    """Integrate the candidate-specific OBB surface-clearance hinge."""
+    clearance = np.asarray(minimum_obb_surface_clearance_m, dtype=np.float64)
+    if (
+        clearance.ndim != 2
+        or not np.isfinite(clearance).all()
+        or np.any(clearance < 0.0)
+        or not np.isfinite(dt)
+        or dt <= 0.0
+        or not np.isfinite(threshold_m)
+        or threshold_m <= 0.0
+    ):
+        raise ValueError("clearance atom inputs are invalid")
+    return float(dt) * np.sum(
+        np.maximum(float(threshold_m) - clearance, 0.0) ** 2,
+        axis=1,
+    )
+
+
+def compute_authorized_red_stopping_margin_costs(
+    candidates: np.ndarray,
+    causal_signal_atom_input: Mapping[str, object],
+    dt: float,
+) -> np.ndarray:
+    """Compute red stopping cost only from the certified stop-line receipt."""
+    signal_input = validate_causal_signal_atom_input(causal_signal_atom_input)
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
+        raise ValueError("authorized red stopping candidates must be finite [8,80,4]")
+    if not signal_input["applicable"]:
+        return np.zeros(8, dtype=np.float64)
+    stop_line = np.asarray(
+        signal_input["stop_line_geometry_ego_m"], dtype=np.float64
+    )
+    tangent = np.asarray(signal_input["route_tangent_ego"], dtype=np.float64)
+    authorized_point = np.concatenate((stop_line.mean(axis=0), tangent))[None, :]
+    return compute_red_stopping_margin_costs(
+        trajectories,
+        authorized_point,
+        float(dt),
+    )
+
+
+def build_v25_atom_source_masks(
+    *,
+    route_speed_source_valid: np.ndarray,
+    signal_source_state: str,
+    current_phase: str,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return strict [K=8,14] source-valid and applicability masks."""
+    raw_speed = np.asarray(route_speed_source_valid)
+    if raw_speed.dtype != np.bool_ or raw_speed.shape != (8,):
+        raise ValueError("route speed source mask must be strict bool [8]")
+    if signal_source_state not in {"available", "not_applicable", "unavailable"}:
+        raise ValueError("unknown signal source state")
+    if current_phase not in {"none", "green", "yellow", "red"}:
+        raise ValueError("unknown current signal phase")
+    if signal_source_state == "unavailable":
+        raise ValueError("signal source is unavailable; fail closed")
+    if signal_source_state == "available" and current_phase == "none":
+        raise ValueError("available signal source cannot have phase none")
+    if signal_source_state == "not_applicable" and current_phase != "none":
+        raise ValueError("not-applicable signal source must have phase none")
+    source = np.ones((8, 14), dtype=bool)
+    applicable = np.ones((8, 14), dtype=bool)
+    source[:, 4:7] = raw_speed[:, None]
+    signal_applicable = signal_source_state == "available" and current_phase == "red"
+    applicable[:, 10] = signal_applicable
+    applicable[:, 12] = signal_applicable
+    return source, applicable
 
 
 _SCHEMAS = {
@@ -594,13 +704,14 @@ def observable_feasibility(
     ego_shape: np.ndarray,
 ) -> dict[str, object]:
     trajectories = np.asarray(candidates, dtype=np.float64)
-    signal = np.asarray(signal_mask, dtype=bool).reshape(-1)
+    raw_signal = np.asarray(signal_mask)
+    if raw_signal.dtype != np.bool_ or raw_signal.shape != (8,):
+        raise ValueError("signal_mask must contain strict booleans with shape [8]")
+    signal = raw_signal.copy()
     obstacles = np.asarray(obstacle_obbs, dtype=np.float64)
     shape = np.asarray(ego_shape, dtype=np.float64).reshape(-1)
     if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
         raise ValueError("candidates must be finite [8,80,4]")
-    if signal.shape != (8,):
-        raise ValueError("signal_mask must have shape [8]")
     if obstacles.shape != (8, 37, 80, 5) or not np.isfinite(obstacles).all():
         raise ValueError("obstacle_obbs must be finite [8,37,80,5]")
     if shape.shape != (3,) or not np.isfinite(shape).all() or np.any(shape <= 0.0):
@@ -705,6 +816,7 @@ def materialize_canonical_14d(
     neighbor_valid_mask: np.ndarray,
     signal_mask: np.ndarray,
     planned_red_light_cost: np.ndarray,
+    causal_signal_atom_input: Mapping[str, object] | None = None,
     dt: float,
     speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
     eligibility_policy: str = V21_PHYSICAL_ELIGIBILITY,
@@ -753,7 +865,29 @@ def materialize_canonical_14d(
         projection["route_speed_source_eligible_mask"], dtype=bool
     )
     signal = np.asarray(feasibility["signal_mask"], dtype=bool)
-    source_valid = signal & source_complete
+    signal_input = None
+    if eligibility_policy == V22_SOURCE_VALID_ELIGIBILITY:
+        if causal_signal_atom_input is None:
+            raise ValueError(
+                "V25 source-valid materialization requires explicit causal_signal_atom_input"
+            )
+        signal_input = validate_causal_signal_atom_input(causal_signal_atom_input)
+        if not signal.all():
+            raise ValueError("mapped signal source mask is incomplete")
+        if not signal_input["applicable"] and np.any(planned_red != 0.0):
+            raise ValueError("non-red/not-applicable planned-red atom must be legal zero")
+        atom_source_valid_mask, atom_applicable_mask = build_v25_atom_source_masks(
+            route_speed_source_valid=source_complete,
+            signal_source_state=str(signal_input["source_state"]),
+            current_phase=str(signal_input["current_phase"]),
+        )
+        source_valid = atom_source_valid_mask.all(axis=1)
+    else:
+        source_valid = signal & source_complete
+        atom_source_valid_mask = np.broadcast_to(
+            source_valid[:, None], (8, 14)
+        ).copy()
+        atom_applicable_mask = np.ones((8, 14), dtype=bool)
     physical = np.asarray(feasibility["physical_feasible_mask"], dtype=bool).copy()
     physical &= source_valid
     candidate_reasons = tuple(
@@ -778,6 +912,8 @@ def materialize_canonical_14d(
         "route_progress": projection["route_progress"],
         "route_speed_source_eligible_mask": source_complete,
         "source_valid_mask": source_valid,
+        "atom_source_valid_mask": atom_source_valid_mask,
+        "atom_applicable_mask": atom_applicable_mask,
         "minimum_obb_clearance": feasibility["minimum_obb_clearance"],
         "progress_reference": None,
         "all_k_high_risk": bool(source_valid.all() and not physical.any()),
@@ -836,19 +972,13 @@ def materialize_canonical_14d(
     lateral = np.asarray(projection["lateral_offset"], dtype=np.float64)
     left = np.asarray(projection["left_width"], dtype=np.float64)
     right = np.asarray(projection["right_width"], dtype=np.float64)
-    boundary_overrun = np.where(
-        lateral >= 0.0,
-        np.maximum(lateral - left, 0.0),
-        np.maximum(-lateral - right, 0.0),
+    lane_deviation = lane_boundary_deviation_costs(
+        lateral, left, right, float(dt)
     )
-    lane_deviation = float(dt) * np.sum(boundary_overrun**2, axis=1)
     minimum_clearance = np.asarray(
         feasibility["minimum_obb_clearance"], dtype=np.float64
     )
-    clearance = float(dt) * np.sum(
-        np.maximum(3.0 - minimum_clearance, 0.0) ** 2,
-        axis=1,
-    )
+    clearance = clearance_hinge_costs(minimum_clearance, float(dt))
     progress = np.asarray(projection["route_progress"], dtype=np.float64)
     if eligibility_policy == V22_SOURCE_VALID_ELIGIBILITY:
         progress_reference, progress_shortfall = source_valid_progress_shortfall(
@@ -861,10 +991,22 @@ def materialize_canonical_14d(
     lateral_acceleration = compute_lateral_comfort_shadow_costs(
         trajectories, float(dt)
     )[0]
-    red_stopping = compute_red_stopping_margin_costs(
-        trajectories,
-        _red_route_points_from_lanes(causal_input["route_lanes"]),
-        float(dt),
+    red_stopping = (
+        (
+            compute_authorized_red_stopping_margin_costs(
+                trajectories,
+                signal_input,
+                float(dt),
+            )
+            if signal_input["applicable"]
+            else np.zeros(8, dtype=np.float64)
+        )
+        if eligibility_policy == V22_SOURCE_VALID_ELIGIBILITY
+        else compute_red_stopping_margin_costs(
+            trajectories,
+            _red_route_points_from_lanes(causal_input["route_lanes"]),
+            float(dt),
+        )
     )
     dp_prior_jerk = compute_dp_prior_comfort_excess_costs(
         trajectories, float(dt)
@@ -892,8 +1034,16 @@ def materialize_canonical_14d(
         candidate_neighbor_predictions_available=True,
         static_obstacle_context_available=True,
         feasibility_mask_available=True,
-        traffic_light_state_available=True,
-        red_stop_geometry_available=True,
+        traffic_light_state_available=(
+            bool(signal_input["source_valid"])
+            if signal_input is not None
+            else True
+        ),
+        red_stop_geometry_available=(
+            bool(signal_input["source_valid"])
+            if signal_input is not None
+            else False
+        ),
         # Legacy availability flag name: this certifies the fixed candidate-0
         # reference position only, not native K=8 ranking or independent
         # deterministic/MAP equivalence evidence.

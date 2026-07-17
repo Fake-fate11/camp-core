@@ -33,6 +33,9 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import ( 
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     canonical_json_sha256,
+    validate_causal_signal_atom_input,
+    validate_no_signal_chain,
+    validate_runtime_no_signal_receipt,
     validate_runtime_signal_receipt,
     validate_signal_chain,
 )
@@ -58,7 +61,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r0_red_sequential_k8_preflight_v1"
+SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -82,8 +85,17 @@ def _run_case(
     weights: np.ndarray,
     output_dir: Path,
 ) -> dict[str, Any]:
-    chain = validate_signal_chain(case["red_signal_authority"])
-    adapter = V25ControlledSceneAdapter(case, red_signal_authority=chain)
+    is_red = case.get("family") == "red_light_phase_timing"
+    chain = (
+        validate_signal_chain(case["red_signal_authority"])
+        if is_red
+        else validate_no_signal_chain(case["no_signal_authority"])
+    )
+    adapter = V25ControlledSceneAdapter(
+        case,
+        red_signal_authority=chain if is_red else None,
+        no_signal_authority=chain if not is_red else None,
+    )
     snapshots: list[Mapping[str, Any]] = []
     contexts: list[Mapping[str, Any]] = []
     receipt = runner(
@@ -118,7 +130,7 @@ def _run_case(
             receipt["ticks"], snapshots, contexts, adapter.receipts, strict=True
         )
     ):
-        combine_snapshot_context(
+        combined = combine_snapshot_context(
             snapshot=snapshot,
             context=context,
             case=case,
@@ -126,7 +138,10 @@ def _run_case(
             controlled_scene_receipt=controlled,
         )
         signal_receipt = controlled.get("signal", {}).get("source_receipt")
-        validate_runtime_signal_receipt(signal_receipt, chain)
+        if is_red:
+            validate_runtime_signal_receipt(signal_receipt, chain)
+        else:
+            validate_runtime_no_signal_receipt(signal_receipt, chain)
         atoms = np.asarray(snapshot["feature_payload"]["atom_matrix"], dtype=np.float64)
         source_valid = np.asarray(
             snapshot["feature_payload"]["source_valid_mask"], dtype=bool
@@ -134,12 +149,23 @@ def _run_case(
         physical = np.asarray(
             snapshot["sidecar"]["physical_feasible_mask"], dtype=bool
         )
+        atom_source_valid = np.asarray(
+            snapshot["feature_payload"]["atom_source_valid_mask"], dtype=np.bool_
+        )
+        atom_applicable = np.asarray(
+            snapshot["feature_payload"]["atom_applicable_mask"], dtype=np.bool_
+        )
+        causal_signal = snapshot["sidecar"]["causal_signal_atom_input"]
+        validate_causal_signal_atom_input(causal_signal)
         if (
             atoms.shape != (8, 14)
             or source_valid.shape != (8,)
             or physical.shape != (8,)
             or np.any(physical & ~source_valid)
             or not source_valid.any()
+            or atom_source_valid.shape != (8, 14)
+            or atom_applicable.shape != (8, 14)
+            or np.any(atom_applicable & ~atom_source_valid)
         ):
             raise ValueError("R0 bounded red masks/atoms violate source-valid contract")
         normalized, scores = canonical_score_atoms(atoms, scales, weights)
@@ -166,9 +192,11 @@ def _run_case(
         payload = {
             "tick_index": tick_index,
             "candidate_tensor_sha256": tick["candidate_tensor_sha256_before"],
+            "candidate_tensor": snapshot["feature_payload"]["candidate_tensor"],
             "candidate_row_sha256": list(tick["candidate_row_sha256"]),
             "candidate0_sha256": tick["candidate_row_sha256"][0],
             "default_output_sha256": tick["default_output_sha256"],
+            "default_output": snapshot["feature_payload"]["default_output"],
             "atom_matrix_sha256": tick["atom_matrix_sha256"],
             "raw_atom_matrix": atoms.tolist(),
             "production_scores": list(tick["scores"]),
@@ -182,13 +210,19 @@ def _run_case(
             "selected_trajectory_sha256": tick["selected_trajectory_sha256"],
             "source_valid_mask": source_valid.tolist(),
             "physical_feasible_mask": physical.tolist(),
+            "atom_source_valid_mask": atom_source_valid.tolist(),
+            "atom_applicable_mask": atom_applicable.tolist(),
             "all_k_high_risk": bool(source_valid.all() and not physical.any()),
             "source_chain_sha256": chain["source_chain_sha256"],
             "semantic_clone_sha256": chain["semantic_clone_sha256"],
             "runtime_signal_receipt": dict(signal_receipt),
             "runtime_signal_receipt_sha256": canonical_json_sha256(signal_receipt),
+            "causal_signal_atom_input": causal_signal,
+            "causal_signal_atom_input_sha256": canonical_json_sha256(causal_signal),
             "current_phase": signal_receipt["current_phase"],
             "context_sha256": canonical_json_sha256(context),
+            "complete_context": context,
+            "combined_snapshot_sha256": canonical_json_sha256(combined),
         }
         fingerprints.append(
             {**payload, "fingerprint_sha256": canonical_json_sha256(payload)}
@@ -196,6 +230,7 @@ def _run_case(
     return {
         "scenario_id": case["scenario_id"],
         "tier": case["tier"],
+        "family": case["family"],
         "tick_count": len(fingerprints),
         "source_chain_sha256": chain["source_chain_sha256"],
         "semantic_clone_sha256": chain["semantic_clone_sha256"],
@@ -243,12 +278,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         or review_report.get("full_r_authorized") is not False
         or not isinstance(cases, list)
         or not isinstance(receipts, list)
-        or len(cases) != 3
-        or len(receipts) != 3
+        or len(cases) != 22
+        or len(receipts) != 22
         or [case.get("scenario_id") for case in cases]
         != [receipt.get("scenario_id") for receipt in receipts]
     ):
         raise ValueError("R0 bounded execution authority is invalid")
+    if (
+        sum(case.get("family") == "red_light_phase_timing" for case in cases) != 21
+        or sum(case.get("signal", {}).get("phase") == "none" for case in cases) != 1
+    ):
+        raise ValueError("R0.1 bounded denominator is not 21 red plus one non-signal")
     configs = {str(row["scenario_id"]): row["config"] for row in receipts}
     first = configs[str(cases[0]["scenario_id"])]
     scales, _ = _load_frozen_selector_scales(
@@ -284,7 +324,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _write_json(args.output_dir / "selector_contract.json", selector_contract)
     return {
         "schema_version": SCHEMA_VERSION,
-        "status": "passed_bounded_3x64_full_r_closed",
+        "status": "passed_bounded_21red_1nosignal_x64_full_r_closed",
         "camp_head": head,
         "fixed_dp_head": FIXED_DP_HEAD,
         "r0_source_artifact": str(args.r0_source_artifact),
@@ -294,6 +334,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "probe_count": len(results),
         "probe_tick_count": sum(result["tick_count"] for result in results),
         "tiers": [result["tier"] for result in results],
+        "red_identity_count": sum(
+            result["family"] == "red_light_phase_timing" for result in results
+        ),
+        "non_signal_identity_count": sum(
+            result["family"] != "red_light_phase_timing" for result in results
+        ),
         "probe_fingerprint_roots": [
             result["tick_fingerprint_root_sha256"] for result in results
         ],

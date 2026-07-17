@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -13,6 +14,12 @@ from camp_core.integrations.diffusion_planner_v25_context import (
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     build_controlled_scenario_case,
+)
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+    build_no_signal_causal_atom_input,
+    build_runtime_no_signal_receipt,
+    canonical_json_sha256,
 )
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as runner
 from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus import (
@@ -114,17 +121,32 @@ def test_controlled_train_config_rejects_split_seed_or_outcome_drift() -> None:
 
 
 def _snapshot() -> dict:
-    rows = [f"{index + 10:064x}" for index in range(8)]
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates[:, :, 2] = 1.0
+    for index in range(8):
+        candidates[index, :, 0] = float(index)
+    default = np.array(candidates[0], copy=True)
+    rows = [
+        hashlib.sha256(np.ascontiguousarray(row).tobytes()).hexdigest()
+        for row in candidates
+    ]
+    tensor_sha = hashlib.sha256(
+        np.ascontiguousarray(candidates).tobytes()
+    ).hexdigest()
     return {
         "schema_version": "v22_native_decision_snapshot_v1",
         "feature_payload": {
             "atom_matrix": np.ones((8, 14), dtype=np.float64).tolist(),
             "source_valid_mask": [True] * 8,
             "candidate_row_sha256": rows,
+            "candidate_tensor": candidates.tolist(),
+            "default_output": default.tolist(),
+            "atom_source_valid_mask": np.ones((8, 14), dtype=np.bool_).tolist(),
+            "atom_applicable_mask": np.ones((8, 14), dtype=np.bool_).tolist(),
         },
         "sidecar": {
-            "candidate_tensor_sha256_before": "a" * 64,
-            "candidate_tensor_sha256_after": "a" * 64,
+            "candidate_tensor_sha256_before": tensor_sha,
+            "candidate_tensor_sha256_after": tensor_sha,
             "candidate0_sha256": rows[0],
             "default_output_sha256": rows[0],
             "default_candidate0_identity": {
@@ -136,6 +158,7 @@ def _snapshot() -> dict:
             },
             "normalized_atom_matrix_sha256": "d" * 64,
             "selected_index": 0,
+            "selected_trajectory_sha256": rows[0],
             "score_contract": "score_k=clip(a_k/s,0,10)^T w",
             "tie_break_contract": "lowest_eligible_candidate_index",
             "scores": [0.0] * 8,
@@ -145,6 +168,29 @@ def _snapshot() -> dict:
             "all_k_high_risk": False,
         },
     }
+
+
+def _no_signal_authority(case: dict) -> tuple[dict, dict]:
+    semantic = {"schema_version": "test_semantic_v1", "physical": "route"}
+    chain = {
+        "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+        "scenario_id": case["scenario_id"],
+        "route_identity_sha256": case["route_identity_sha256"],
+        "source_map_sha256": case["source_map_sha256"],
+        "route_lanelet_ids": list(case["route_spec"]["lanelet_ids"]),
+        "route_geometry_sha256": "e" * 64,
+        "traffic_light_regulatory_element_ids": [],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": canonical_json_sha256(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = canonical_json_sha256(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    receipt = build_runtime_no_signal_receipt(
+        chain, scenario_id=case["scenario_id"], tick_index=7, decision_time_s=0.7
+    )
+    return chain, receipt
 
 
 def _context() -> dict:
@@ -166,9 +212,19 @@ def _context() -> dict:
 
 def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
     case = _case()
-    case["canonical_semantic_clone_sha256"] = "f" * 64
+    chain, receipt = _no_signal_authority(case)
+    case["no_signal_authority"] = chain
+    case["canonical_semantic_clone_sha256"] = chain["semantic_clone_sha256"]
+    snapshot = _snapshot()
+    snapshot["sidecar"]["causal_signal_atom_input"] = (
+        build_no_signal_causal_atom_input(chain, receipt)
+    )
     payload = combine_snapshot_context(
-        snapshot=_snapshot(), context=_context(), case=case, tick_index=7
+        snapshot=snapshot,
+        context=_context(),
+        case=case,
+        tick_index=7,
+        controlled_scene_receipt={"signal": {"source_receipt": receipt}},
     )
 
     assert payload["schema_version"] == SNAPSHOT_SCHEMA_VERSION
@@ -182,8 +238,10 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
         "operational_default_alias_from_same_forward"
     )
     assert payload["sidecar"]["candidate0_independent_second_forward"] is False
-    assert payload["feature_payload"]["physical_applicability_mask"] == [True] * 8
-    assert payload["sidecar"]["canonical_semantic_clone_sha256"] == "f" * 64
+    assert payload["feature_payload"]["physical_feasible_mask"] == [True] * 8
+    assert payload["sidecar"]["canonical_semantic_clone_sha256"] == chain[
+        "semantic_clone_sha256"
+    ]
     assert payload["sidecar"]["generation_behavior_scale_sha256"] == _file_sha256(
         CORRECTED_GENERATION_SCALES
     )

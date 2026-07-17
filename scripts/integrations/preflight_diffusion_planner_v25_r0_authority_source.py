@@ -30,9 +30,11 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     verify_complete_seal,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    NO_SIGNAL_CHAIN_SCHEMA_VERSION,
     SIGNAL_CHAIN_SCHEMA_VERSION,
     build_semantic_clone_payload,
     canonical_json_sha256,
+    validate_no_signal_chain,
     validate_signal_chain,
 )
 from scripts.integrations.review_diffusion_planner_v25_stage_a0_authority import (  # noqa: E402
@@ -62,7 +64,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r0_authority_source_preflight_v1"
+SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_preflight_v2"
 A0_ROOT = "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
 
 
@@ -100,10 +102,10 @@ def _project_stop_to_controlled_route(
     route_ids: list[int],
     controlled_ids: list[int],
     stop_points: np.ndarray,
-) -> tuple[float, float, float]:
+) -> tuple[float, float, float, np.ndarray]:
     midpoint = np.asarray(stop_points, dtype=np.float64).mean(axis=0)
     route_offset = 0.0
-    best: tuple[float, float] | None = None
+    best: tuple[float, float, np.ndarray] | None = None
     total = 0.0
     for lanelet_id in route_ids:
         line = np.asarray(builder._cache[lanelet_id].raw_centerline, dtype=np.float64)
@@ -119,15 +121,20 @@ def _project_stop_to_controlled_route(
             if lanelet_id in controlled_ids:
                 projected = start + fraction * vector
                 distance = float(np.linalg.norm(midpoint - projected))
-                candidate = (distance, route_offset + local_offset + fraction * length)
-                if best is None or candidate < best:
+                tangent = vector / length if length > 1e-12 else np.zeros(2)
+                candidate = (
+                    distance,
+                    route_offset + local_offset + fraction * length,
+                    tangent,
+                )
+                if best is None or candidate[:2] < best[:2]:
                     best = candidate
             local_offset += length
         route_offset += local_offset
         total += local_offset
     if best is None:
         raise ValueError("stop line has no controlled route lanelet projection")
-    return best[0], best[1], total
+    return best[0], best[1], total, best[2]
 
 
 def _extract_chain(case: Mapping[str, Any], builder: Any) -> dict[str, Any]:
@@ -152,7 +159,7 @@ def _extract_chain(case: Mapping[str, Any], builder: Any) -> dict[str, Any]:
         raise ValueError("red route TrafficLightRegulatoryElement has no stop line")
     stop_points = np.asarray([(point.x, point.y) for point in stop], dtype=np.float64)
     controlled = sorted(set(int(value) for value in entry["lanelet_ids"]))
-    distance, route_arc, route_length = _project_stop_to_controlled_route(
+    distance, route_arc, route_length, route_tangent = _project_stop_to_controlled_route(
         builder, route_ids, controlled, stop_points
     )
     route_polyline = _route_polyline(builder, route_ids)
@@ -182,6 +189,7 @@ def _extract_chain(case: Mapping[str, Any], builder: Any) -> dict[str, Any]:
         "stop_line_route_distance_m": distance,
         "route_arc_m": route_arc,
         "route_length_m": route_length,
+        "route_tangent_world": route_tangent.tolist(),
         "expected_current_phase": str(case["signal"]["phase"]),
         "semantic_clone_payload": semantic,
         "semantic_clone_sha256": canonical_json_sha256(semantic),
@@ -193,7 +201,45 @@ def _extract_chain(case: Mapping[str, Any], builder: Any) -> dict[str, Any]:
     return validate_signal_chain(chain)
 
 
-def _verify_input_artifacts(args: argparse.Namespace) -> dict[str, str]:
+def _extract_no_signal_chain(
+    case: Mapping[str, Any], builder: Any
+) -> dict[str, Any]:
+    route_ids = [int(value) for value in case["route_spec"]["lanelet_ids"]]
+    regulatory_ids: set[int] = set()
+    for lanelet_id in route_ids:
+        lanelet = builder._ll_by_id.get(lanelet_id)
+        if lanelet is None:
+            raise ValueError("formal no-signal route lanelet is missing")
+        regulatory_ids.update(int(reg.id) for reg in lanelet.trafficLights())
+    if regulatory_ids:
+        raise ValueError("formal no-signal route unexpectedly has signal authority")
+    route_polyline = _route_polyline(builder, route_ids)
+    semantic = build_semantic_clone_payload(
+        case, route_polyline_world=route_polyline, stop_line_world=None
+    )
+    chain: dict[str, Any] = {
+        "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+        "scenario_id": str(case["scenario_id"]),
+        "route_identity_sha256": str(case["route_identity_sha256"]),
+        "source_map_sha256": str(case["source_map_sha256"]),
+        "route_lanelet_ids": route_ids,
+        "route_geometry_sha256": canonical_json_sha256(
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+        ),
+        "traffic_light_regulatory_element_ids": [],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": canonical_json_sha256(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = canonical_json_sha256(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    return validate_no_signal_chain(chain)
+
+
+def _verify_input_artifacts(
+    args: argparse.Namespace, *, current_head: str
+) -> dict[str, str]:
     bindings: dict[str, str] = {}
     for label, path, root in (
         ("ultra_decision", args.ultra_decision_artifact, args.ultra_decision_root_sha256),
@@ -208,18 +254,63 @@ def _verify_input_artifacts(args: argparse.Namespace) -> dict[str, str]:
         if (path / "run.exit").read_text(encoding="ascii") != "0\n":
             raise ValueError(f"{label} run.exit is not zero")
     decision = _load_json(args.ultra_decision_artifact / "decision.json")
+    a0_report = _load_json(args.a0_artifact / "report.json")
+    ledger = _load_json(args.a1_ledger_artifact / "atom_ledger.json")
     validation = _load_json(args.a1_validation_artifact / "report.json")
     if (
         bindings["a0_root_sha256"] != A0_ROOT
-        or decision.get("status") != "A1_R0_only_released"
+        or decision.get("schema_version")
+        != "camp_dp_v25_ultra_stage_a11_r01_decision_v2"
+        or decision.get("status") != "A1_1_R0_1_only_released"
+        or decision.get("corrected_source_head") != current_head
+        or decision.get("fixed_dp_head") != FIXED_DP_HEAD
+        or decision.get("a0_root_sha256") != bindings["a0_root_sha256"]
         or decision.get("full_r_authorized") is not False
+        or a0_report.get("stage_a0_code_head") is None
+        or a0_report.get("fixed_dp_head") != FIXED_DP_HEAD
+        or ledger.get("schema_version") != "camp_dp_v25_static_atom_ledger_v4"
+        or ledger.get("authority", {}).get("stage_a_producer_head") != current_head
+        or ledger.get("authority", {}).get("fixed_dp_head") != FIXED_DP_HEAD
+        or ledger.get("authority", {}).get("a0_root_sha256")
+        != bindings["a0_root_sha256"]
+        or ledger.get("authority", {}).get("ultra_decision_root_sha256")
+        != bindings["ultra_decision_root_sha256"]
+        or validation.get("schema_version")
+        != "camp_dp_v25_static_atom_ledger_validation_v4"
         or validation.get("status")
         != "passed_with_warnings_progress_source_valid_frozen"
         or validation.get("progress_reference")
         != "source_valid_candidate_set_reference"
         or validation.get("fail_count") != 0
+        or validation.get("reviewed_root_sha256")
+        != bindings["a1_ledger_root_sha256"]
     ):
         raise ValueError("R0 input authority is invalid")
+    expected_heads = {
+        "ultra_decision": [
+            f"camp_head={current_head}", f"fixed_dp_head={FIXED_DP_HEAD}"
+        ],
+        "a0": [
+            f"camp_head={a0_report['stage_a0_code_head']}",
+            f"fixed_dp_head={FIXED_DP_HEAD}",
+        ],
+        "a1_ledger": [
+            f"camp_head={current_head}", f"fixed_dp_head={FIXED_DP_HEAD}"
+        ],
+        "a1_validation": [
+            f"camp_head={current_head}", f"fixed_dp_head={FIXED_DP_HEAD}"
+        ],
+    }
+    for label, path in (
+        ("ultra_decision", args.ultra_decision_artifact),
+        ("a0", args.a0_artifact),
+        ("a1_ledger", args.a1_ledger_artifact),
+        ("a1_validation", args.a1_validation_artifact),
+    ):
+        if (path / "HEADS").read_text(encoding="ascii").splitlines() != expected_heads[
+            label
+        ]:
+            raise ValueError(f"R0 input authority HEADS drifted: {label}")
     return bindings
 
 
@@ -236,7 +327,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             sys.path.insert(0, str(path))
     if _file_sha256(args.probe_template) != EXPECTED_TEMPLATE_SHA256:
         raise ValueError("probe template SHA drifted")
-    inputs = _verify_input_artifacts(args)
+    inputs = _verify_input_artifacts(args, current_head=head)
     plan, formal_root = _load_formal_plan()
     red_cases = [
         case
@@ -262,11 +353,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         chains.append(_extract_chain(case, builders[map_path]))
     chain_by_id = {chain["scenario_id"]: chain for chain in chains}
     selected = []
-    for tier in ("easy", "borderline", "high_risk"):
-        case = min(
-            (item for item in red_cases if item.get("tier") == tier),
-            key=lambda item: str(item["scenario_id"]),
-        )
+    for case in sorted(red_cases, key=lambda item: str(item["scenario_id"])):
         enriched = json.loads(json.dumps(case))
         chain = chain_by_id[str(case["scenario_id"])]
         enriched["red_signal_authority"] = chain
@@ -274,6 +361,40 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "semantic_clone_sha256"
         ]
         selected.append(enriched)
+    no_signal_case = None
+    no_signal_chain = None
+    for candidate in sorted(
+        (
+            item
+            for item in plan["train"]
+            if item.get("runner_eligible") is True
+            and item.get("signal", {}).get("phase") == "none"
+        ),
+        key=lambda item: str(item["scenario_id"]),
+    ):
+        map_path = str(candidate["source_map_path"])
+        if map_path not in builders:
+            from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
+
+            path = Path(map_path)
+            require_source_preserving_lanelet2_regulatory_adapter(path)
+            sys.modules.pop("autoware_lanelet2_extension_python.projection", None)
+            sys.modules.pop("autoware_lanelet2_extension_python", None)
+            install_lanelet2_projection_fallback(path)
+            builders[map_path] = LaneletSceneBuilder(map_path)
+        try:
+            no_signal_chain = _extract_no_signal_chain(candidate, builders[map_path])
+        except ValueError:
+            continue
+        no_signal_case = json.loads(json.dumps(candidate))
+        no_signal_case["no_signal_authority"] = no_signal_chain
+        no_signal_case["canonical_semantic_clone_sha256"] = no_signal_chain[
+            "semantic_clone_sha256"
+        ]
+        selected.append(no_signal_case)
+        break
+    if no_signal_case is None or no_signal_chain is None:
+        raise ValueError("no executable source-qualified non-signal identity exists")
     route_assets = _materialize_routes(selected, args.output_dir / "routes", args.dp_repo)
     template = _load_json(args.probe_template)
     config_receipts = []
@@ -286,13 +407,32 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "scenario_id": case["scenario_id"],
                 "tier": case["tier"],
+                "family": case["family"],
                 "semantic_clone_sha256": case["canonical_semantic_clone_sha256"],
-                "source_chain_sha256": case["red_signal_authority"]["source_chain_sha256"],
+                "source_chain_sha256": (
+                    case.get("red_signal_authority")
+                    or case.get("no_signal_authority")
+                )["source_chain_sha256"],
                 "config_sha256": _canonical_sha256(config),
                 "config": config,
             }
         )
     tier_counts = collections.Counter(str(case["tier"]) for case in red_cases)
+    observed_counts = {
+        "source_map_files": len({chain["source_map_sha256"] for chain in chains}),
+        "physical_signatures": len(
+            {chain["route_geometry_sha256"] for chain in chains}
+        ),
+        "stop_line_geometry_shas": len(
+            {chain["stop_line_geometry_sha256"] for chain in chains}
+        ),
+    }
+    if observed_counts != {
+        "source_map_files": 4,
+        "physical_signatures": 9,
+        "stop_line_geometry_shas": 5,
+    }:
+        raise ValueError(f"R0.1 physical authority census drifted: {observed_counts}")
     report = {
         "schema_version": SCHEMA_VERSION,
         "status": "passed_source_only_full_r_closed",
@@ -305,8 +445,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
         "formal_executable_red_identity_count": len(red_cases),
         "red_by_tier": dict(tier_counts),
-        "distinct_source_map_count": len({chain["source_map_sha256"] for chain in chains}),
+        "distinct_source_map_count": observed_counts["source_map_files"],
         "unique_regulatory_chain_count": len(chains),
+        "validated_identity_chain_receipt_count": len(chains),
+        "physical_signature_count": observed_counts["physical_signatures"],
+        "stop_line_geometry_sha256_count": observed_counts[
+            "stop_line_geometry_shas"
+        ],
+        "non_signal_identity_count": 1,
         "all_source_chains_valid": True,
         "selected_bounded_probe_identity_count": len(selected),
         "selected_bounded_probe_scenario_ids": [case["scenario_id"] for case in selected],
@@ -325,6 +471,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "outcome_fields_consumed": [],
     }
     _write_json(args.output_dir / "red_signal_chains.json", {"chains": chains})
+    _write_json(
+        args.output_dir / "no_signal_chains.json", {"chains": [no_signal_chain]}
+    )
     _write_json(args.output_dir / "bounded_red_cases.json", {"cases": selected})
     _write_json(args.output_dir / "config_receipts.json", {"receipts": config_receipts})
     return report

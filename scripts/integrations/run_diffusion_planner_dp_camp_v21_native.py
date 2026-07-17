@@ -249,6 +249,10 @@ class NativeCampPredictBatch:
         scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
         v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
         v25_v2i_signal_timing: Mapping[str, Any] | None = None,
+        causal_signal_atom_input_provider: Callable[
+            [Any, int], Mapping[str, Any]
+        ]
+        | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -293,6 +297,7 @@ class NativeCampPredictBatch:
         self.scene_adapter = scene_adapter
         self.v25_context_sink = v25_context_sink
         self.v25_v2i_signal_timing = v25_v2i_signal_timing
+        self.causal_signal_atom_input_provider = causal_signal_atom_input_provider
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.weights is None
@@ -302,6 +307,10 @@ class NativeCampPredictBatch:
             or self.select_candidate is None
             or self.signal_mask is None
             or self.planned_red_cost is None
+            or (
+                selection_policy == V22_SOURCE_VALID_SELECTION
+                and self.causal_signal_atom_input_provider is None
+            )
         ):
             raise ValueError("atom scales and weights must each have shape [14]")
 
@@ -499,6 +508,11 @@ class NativeCampPredictBatch:
                 self.planned_red_cost(candidate_tensor, causal_input, scene),
                 dtype=np.float64,
             )
+            causal_signal_atom_input = (
+                self.causal_signal_atom_input_provider(scene, tick_index)
+                if self.causal_signal_atom_input_provider is not None
+                else None
+            )
             atom_started = time.perf_counter_ns()
             materialized = self.materialize(
                 candidates=candidate_tensor,
@@ -507,6 +521,7 @@ class NativeCampPredictBatch:
                 neighbor_valid_mask=neighbor_valid,
                 signal_mask=signals,
                 planned_red_light_cost=red_cost,
+                causal_signal_atom_input=causal_signal_atom_input,
                 dt=float(scene.dt),
                 eligibility_policy=self.selection_policy,
             )
@@ -534,22 +549,28 @@ class NativeCampPredictBatch:
             receipt.update(
                 verify_candidate_tensor_immutable(candidate_tensor, before_sha)
             )
+            for mask_key in ("physical_feasible_mask", "source_valid_mask"):
+                if mask_key not in selection:
+                    raise ValueError(f"selector omitted required {mask_key}")
+                raw_mask = np.asarray(selection[mask_key])
+                if raw_mask.dtype != np.bool_ or raw_mask.shape != (8,):
+                    raise ValueError(
+                        f"selector {mask_key} must be strict bool [8]"
+                    )
+            selected_physical = np.asarray(selection["physical_feasible_mask"])
+            selected_source = np.asarray(selection["source_valid_mask"])
+            if np.any(selected_physical & ~selected_source):
+                raise ValueError(
+                    "selector physical feasible mask is not a source-valid subset"
+                )
+            if not selected_source.any():
+                raise ValueError("selector source-valid set is empty")
             selector_diagnostics = {
                 "candidate_reasons": [
                     list(value) for value in selection.get("candidate_reasons", [])
                 ],
-                "physical_feasible_mask": np.asarray(
-                    selection.get("physical_feasible_mask", []), dtype=bool
-                ).tolist(),
-                "source_valid_mask": np.asarray(
-                    selection.get(
-                        "source_valid_mask",
-                        materialized.get(
-                            "route_speed_source_eligible_mask", []
-                        ),
-                    ),
-                    dtype=bool,
-                ).tolist(),
+                "physical_feasible_mask": selected_physical.tolist(),
+                "source_valid_mask": selected_source.tolist(),
                 "source_complete_mask": np.asarray(
                     materialized.get("route_speed_source_eligible_mask", []),
                     dtype=bool,
@@ -631,16 +652,10 @@ class NativeCampPredictBatch:
                     "npc_operational_outputs_unchanged": True,
                     "default_turn_indicators_retained": True,
                     "physical_feasible_mask": np.asarray(
-                        materialized.get("physical_feasible_mask", []), dtype=bool
+                        materialized["physical_feasible_mask"]
                     ).tolist(),
                     "source_valid_mask": np.asarray(
-                        materialized.get(
-                            "source_valid_mask",
-                            materialized.get(
-                                "route_speed_source_eligible_mask", []
-                            ),
-                        ),
-                        dtype=bool,
+                        materialized["source_valid_mask"]
                     ).tolist(),
                     "source_complete_mask": np.asarray(
                         materialized.get(
@@ -673,21 +688,38 @@ class NativeCampPredictBatch:
                     materialized.get("atom_matrix"), dtype=np.float64
                 )
                 source_valid = np.asarray(
-                    receipt["source_valid_mask"], dtype=bool
+                    receipt["source_valid_mask"]
+                )
+                atom_source_valid = np.asarray(
+                    materialized["atom_source_valid_mask"]
+                )
+                atom_applicable = np.asarray(
+                    materialized["atom_applicable_mask"]
                 )
                 candidate_row_sha256 = [
                     array_sha256(candidate_tensor[index]) for index in range(8)
                 ]
                 if atom_matrix.shape != (8, 14) or not np.isfinite(atom_matrix).all():
                     raise ValueError("decision snapshot atom matrix must be finite [8,14]")
-                if source_valid.shape != (8,):
-                    raise ValueError("decision snapshot source-valid mask must be [8]")
+                if source_valid.dtype != np.bool_ or source_valid.shape != (8,):
+                    raise ValueError("decision snapshot source-valid mask must be strict bool [8]")
+                if (
+                    atom_source_valid.dtype != np.bool_
+                    or atom_applicable.dtype != np.bool_
+                    or atom_source_valid.shape != (8, 14)
+                    or atom_applicable.shape != (8, 14)
+                ):
+                    raise ValueError("decision snapshot atom masks must be strict bool [8,14]")
                 snapshot = {
                     "schema_version": "v22_native_decision_snapshot_v1",
                     "feature_payload": {
                         "atom_matrix": atom_matrix.tolist(),
                         "source_valid_mask": source_valid.tolist(),
+                        "atom_source_valid_mask": atom_source_valid.tolist(),
+                        "atom_applicable_mask": atom_applicable.tolist(),
                         "candidate_row_sha256": candidate_row_sha256,
+                        "candidate_tensor": candidate_tensor.tolist(),
+                        "default_output": np.asarray(default_ego).tolist(),
                     },
                     "sidecar": {
                         "tick_index": tick_index,
@@ -707,6 +739,9 @@ class NativeCampPredictBatch:
                             receipt["normalized_atom_matrix_sha256"]
                         ),
                         "selected_index": int(receipt["selected_index"]),
+                        "selected_trajectory_sha256": str(
+                            receipt["selected_trajectory_sha256"]
+                        ),
                         "score_contract": str(receipt["score_contract"]),
                         "tie_break_contract": str(
                             selection["tie_break_contract"]
@@ -722,6 +757,11 @@ class NativeCampPredictBatch:
                             receipt["source_valid_mask"]
                         ),
                         "all_k_high_risk": bool(receipt["all_k_high_risk"]),
+                        "causal_signal_atom_input": (
+                            None
+                            if causal_signal_atom_input is None
+                            else dict(causal_signal_atom_input)
+                        ),
                         "offline_label_provenance": (
                             "pending_train_only_offline_supervision_sidecar"
                         ),
@@ -2763,6 +2803,12 @@ def build_native_arm_runner(
                 scene_adapter=runtime_scene_adapter,
                 v25_context_sink=v25_context_sink,
                 v25_v2i_signal_timing=None,
+                causal_signal_atom_input_provider=(
+                    scene_adapter.causal_signal_atom_input
+                    if scene_adapter is not None
+                    and hasattr(scene_adapter, "causal_signal_atom_input")
+                    else None
+                ),
             )
         elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
             replacement = NativeCampPredictBatch(

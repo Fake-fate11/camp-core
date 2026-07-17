@@ -37,8 +37,13 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     verify_complete_seal,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    NO_SIGNAL_CHAIN_SCHEMA_VERSION,
     build_semantic_clone_payload,
     canonical_json_sha256,
+    validate_causal_signal_atom_input,
+    validate_no_signal_chain,
+    validate_runtime_no_signal_receipt,
+    validate_runtime_signal_receipt,
     validate_signal_chain,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
@@ -65,8 +70,8 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v2"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v2"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v3"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v3"
 FORMAL_ARTIFACT = Path(
     "/root/autodl-tmp/"
     "camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_"
@@ -377,8 +382,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--r0-review-root-sha256")
     parser.add_argument("--r0-source-artifact", type=Path)
     parser.add_argument("--r0-source-root-sha256")
-    parser.add_argument("--ultra-full-r-release-artifact", type=Path)
-    parser.add_argument("--ultra-full-r-release-root-sha256")
+    parser.add_argument("--ultra-full-config-preflight-release-artifact", type=Path)
+    parser.add_argument("--ultra-full-config-preflight-release-root-sha256")
+    parser.add_argument("--preflight-review-artifact", type=Path)
+    parser.add_argument("--preflight-review-root-sha256")
+    parser.add_argument("--ultra-full-r-execute-release-artifact", type=Path)
+    parser.add_argument("--ultra-full-r-execute-release-root-sha256")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--preflight", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -447,9 +456,21 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         r0_review_root_sha256=args.r0_review_root_sha256,
         r0_source_artifact=args.r0_source_artifact,
         r0_source_root_sha256=args.r0_source_root_sha256,
-        ultra_release_artifact=args.ultra_full_r_release_artifact,
-        ultra_release_root_sha256=args.ultra_full_r_release_root_sha256,
+        preflight_release_artifact=(
+            args.ultra_full_config_preflight_release_artifact
+        ),
+        preflight_release_root_sha256=(
+            args.ultra_full_config_preflight_release_root_sha256
+        ),
+        preflight_artifact=args.preflight_artifact,
+        preflight_review_artifact=args.preflight_review_artifact,
+        preflight_review_root_sha256=args.preflight_review_root_sha256,
+        execute_release_artifact=args.ultra_full_r_execute_release_artifact,
+        execute_release_root_sha256=(
+            args.ultra_full_r_execute_release_root_sha256
+        ),
         camp_head=camp_head,
+        mode="preflight" if args.preflight else "execute",
     )
     if _file_sha256(args.probe_template) != EXPECTED_TEMPLATE_SHA256:
         raise ValueError("probe template SHA256 mismatch")
@@ -467,9 +488,12 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
                 case["canonical_semantic_clone_sha256"]
             ),
             "source_chain_sha256": (
-                str(case["red_signal_authority"]["source_chain_sha256"])
-                if case.get("family") == "red_light_phase_timing"
-                else None
+                str(
+                    (
+                        case.get("red_signal_authority")
+                        or case.get("no_signal_authority")
+                    )["source_chain_sha256"]
+                )
             ),
         }
         for case in cases
@@ -503,11 +527,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "r0_review_root_sha256": full_r_authority["r0_review_root_sha256"],
         "r0_source_artifact": full_r_authority["r0_source_artifact"],
         "r0_source_root_sha256": full_r_authority["r0_source_root_sha256"],
-        "ultra_full_r_release_artifact": full_r_authority[
-            "ultra_release_artifact"
+        "ultra_full_config_preflight_release_artifact": full_r_authority[
+            "preflight_release_artifact"
         ],
-        "ultra_full_r_release_root_sha256": full_r_authority[
-            "ultra_release_root_sha256"
+        "ultra_full_config_preflight_release_root_sha256": full_r_authority[
+            "preflight_release_root_sha256"
         ],
         "semantic_authority_root_sha256": semantic_authority_root,
         "semantic_authority_identity_count": len(semantic_authority_receipts),
@@ -516,6 +540,23 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "fresh_b_opened": False,
         "outcome_fields_consumed": [],
     }
+    if args.execute:
+        common.update(
+            {
+                "preflight_review_artifact": full_r_authority[
+                    "preflight_review_artifact"
+                ],
+                "preflight_review_root_sha256": full_r_authority[
+                    "preflight_review_root_sha256"
+                ],
+                "ultra_full_r_execute_release_artifact": full_r_authority[
+                    "execute_release_artifact"
+                ],
+                "ultra_full_r_execute_release_root_sha256": full_r_authority[
+                    "execute_release_root_sha256"
+                ],
+            }
+        )
     (args.output_dir / "HEADS").write_text(
         f"camp_source_head={camp_head}\nfixed_dp_head={FIXED_DP_HEAD}\n",
         encoding="ascii",
@@ -548,11 +589,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "r0_source_root_sha256": full_r_authority[
                 "r0_source_root_sha256"
             ],
-            "ultra_full_r_release_artifact": full_r_authority[
-                "ultra_release_artifact"
+            "ultra_full_config_preflight_release_artifact": full_r_authority[
+                "preflight_release_artifact"
             ],
-            "ultra_full_r_release_root_sha256": full_r_authority[
-                "ultra_release_root_sha256"
+            "ultra_full_config_preflight_release_root_sha256": full_r_authority[
+                "preflight_release_root_sha256"
             ],
             "semantic_authority_root_sha256": semantic_authority_root,
             "semantic_authority_identity_count": len(cases),
@@ -583,20 +624,27 @@ def _verify_full_r_authority(
     r0_review_root_sha256: str | None,
     r0_source_artifact: Path | None,
     r0_source_root_sha256: str | None,
-    ultra_release_artifact: Path | None,
-    ultra_release_root_sha256: str | None,
+    preflight_release_artifact: Path | None,
+    preflight_release_root_sha256: str | None,
+    preflight_artifact: Path | None,
+    preflight_review_artifact: Path | None,
+    preflight_review_root_sha256: str | None,
+    execute_release_artifact: Path | None,
+    execute_release_root_sha256: str | None,
     camp_head: str,
-) -> dict[str, str]:
+    mode: str,
+) -> dict[str, str | None]:
     if (
         r0_review_artifact is None
         or r0_review_root_sha256 is None
         or r0_source_artifact is None
         or r0_source_root_sha256 is None
-        or ultra_release_artifact is None
-        or ultra_release_root_sha256 is None
+        or preflight_release_artifact is None
+        or preflight_release_root_sha256 is None
+        or mode not in {"preflight", "execute"}
     ):
         raise ValueError(
-            "full R requires sealed R0 independent review and Ultra full-R release"
+            "full R config preflight requires sealed R0 review and Ultra preflight release"
         )
     review_seal = verify_complete_seal(
         r0_review_artifact,
@@ -608,65 +656,159 @@ def _verify_full_r_authority(
         r0_source_root_sha256,
         label="V25 R0 source authority",
     )
-    release_seal = verify_complete_seal(
-        ultra_release_artifact,
-        ultra_release_root_sha256,
-        label="V25 Ultra full-R release",
+    preflight_release_seal = verify_complete_seal(
+        preflight_release_artifact,
+        preflight_release_root_sha256,
+        label="V25 Ultra full-config-preflight release",
     )
     review = _load_json(r0_review_artifact / "report.json")
     source = _load_json(r0_source_artifact / "report.json")
-    release = _load_json(ultra_release_artifact / "decision.json")
+    preflight_release = _load_json(preflight_release_artifact / "decision.json")
+    required_preflight_release_fields = {
+        "schema_version",
+        "status",
+        "corrected_source_head",
+        "fixed_dp_head",
+        "r0_review_root_sha256",
+        "r0_source_root_sha256",
+        "full_config_preflight_authorized",
+        "full_r_execute_authorized",
+        "fresh_b2_opened",
+        "outcome_fields_consumed",
+    }
     if (
         (r0_review_artifact / "run.exit").read_text(encoding="ascii") != "0\n"
         or (r0_source_artifact / "run.exit").read_text(encoding="ascii")
         != "0\n"
-        or (ultra_release_artifact / "run.exit").read_text(encoding="ascii")
+        or (preflight_release_artifact / "run.exit").read_text(encoding="ascii")
         != "0\n"
         or review.get("status")
-        != "passed_independent_3x64_review_full_r_closed"
+        != "passed_independent_21red_1nosignal_x64_review_full_r_closed"
         or review.get("full_r_authorized") is not False
         or source.get("status") != "passed_source_only_full_r_closed"
         or review.get("r0_source_root_sha256") != source_seal["root_sha256"]
         or review.get("fresh_b2_opened") is not False
-        or release.get("schema_version")
-        != "camp_dp_v25_ultra_full_r_release_v1"
-        or release.get("status") != "full_R_released"
-        or release.get("full_r_authorized") is not True
-        or release.get("corrected_source_head") != camp_head
-        or release.get("fixed_dp_head") != FIXED_DP_HEAD
-        or release.get("r0_review_root_sha256") != review_seal["root_sha256"]
-        or release.get("r0_preflight_root_sha256")
-        != review.get("reviewed_root_sha256")
-        or release.get("r0_source_root_sha256")
+        or set(preflight_release) != required_preflight_release_fields
+        or preflight_release.get("schema_version")
+        != "camp_dp_v25_ultra_full_config_preflight_release_v1"
+        or preflight_release.get("status") != "full_config_preflight_released"
+        or preflight_release.get("full_config_preflight_authorized") is not True
+        or preflight_release.get("full_r_execute_authorized") is not False
+        or preflight_release.get("corrected_source_head") != camp_head
+        or preflight_release.get("fixed_dp_head") != FIXED_DP_HEAD
+        or preflight_release.get("r0_review_root_sha256")
+        != review_seal["root_sha256"]
+        or preflight_release.get("r0_source_root_sha256")
         != source_seal["root_sha256"]
-        or release.get("r0_source_review_root_sha256")
-        != review.get("r0_source_review_root_sha256")
-        or release.get("s01_preflight_root_sha256")
-        != source.get("s01_preflight_root_sha256")
-        or release.get("s01_review_root_sha256")
-        != source.get("s01_review_root_sha256")
-        or release.get("a0_root_sha256") != source.get("a0_root_sha256")
-        or release.get("ultra_stage_a_decision_root_sha256")
-        != source.get("ultra_decision_root_sha256")
-        or release.get("a1_ledger_root_sha256")
-        != source.get("a1_ledger_root_sha256")
-        or release.get("a1_validation_root_sha256")
-        != source.get("a1_validation_root_sha256")
-        or release.get("formal_root_sha256")
-        != source.get("formal_root_sha256")
-        or release.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
-        or release.get("fresh_b2_opened") is not False
-        or release.get("outcome_fields_consumed") != []
+        or preflight_release.get("fresh_b2_opened") is not False
+        or preflight_release.get("outcome_fields_consumed") != []
     ):
-        raise ValueError("full R authority chain is invalid")
-    return {
+        raise ValueError("full R config-preflight authority chain is invalid")
+    authority: dict[str, str | None] = {
         "r0_review_artifact": str(r0_review_artifact),
         "r0_review_root_sha256": review_seal["root_sha256"],
         "r0_source_artifact": str(r0_source_artifact),
         "r0_source_root_sha256": source_seal["root_sha256"],
-        "ultra_release_artifact": str(ultra_release_artifact),
-        "ultra_release_root_sha256": release_seal["root_sha256"],
+        "preflight_release_artifact": str(preflight_release_artifact),
+        "preflight_release_root_sha256": preflight_release_seal["root_sha256"],
+        "preflight_review_artifact": None,
+        "preflight_review_root_sha256": None,
+        "execute_release_artifact": None,
+        "execute_release_root_sha256": None,
     }
+    if mode == "preflight":
+        if any(
+            value is not None
+            for value in (
+                preflight_artifact,
+                preflight_review_artifact,
+                preflight_review_root_sha256,
+                execute_release_artifact,
+                execute_release_root_sha256,
+            )
+        ):
+            raise ValueError("full-config preflight cannot consume execute authority")
+        return authority
+    if (
+        preflight_artifact is None
+        or preflight_review_artifact is None
+        or preflight_review_root_sha256 is None
+        or execute_release_artifact is None
+        or execute_release_root_sha256 is None
+    ):
+        raise ValueError(
+            "full R execute requires sealed config preflight review and Ultra execute release"
+        )
+    preflight_seal = verify_complete_seal(
+        preflight_artifact, None, label="V25 full-config preflight"
+    )
+    preflight_review_seal = verify_complete_seal(
+        preflight_review_artifact,
+        preflight_review_root_sha256,
+        label="V25 full-config preflight review",
+    )
+    execute_release_seal = verify_complete_seal(
+        execute_release_artifact,
+        execute_release_root_sha256,
+        label="V25 Ultra full-R execute release",
+    )
+    preflight_review = _load_json(preflight_review_artifact / "report.json")
+    execute_release = _load_json(execute_release_artifact / "decision.json")
+    required_execute_fields = {
+        "schema_version",
+        "status",
+        "corrected_source_head",
+        "fixed_dp_head",
+        "r0_review_root_sha256",
+        "r0_source_root_sha256",
+        "preflight_release_root_sha256",
+        "full_config_preflight_root_sha256",
+        "full_config_preflight_review_root_sha256",
+        "full_r_execute_authorized",
+        "fresh_b2_opened",
+        "outcome_fields_consumed",
+    }
+    if (
+        (preflight_artifact / "run.exit").read_text(encoding="ascii") != "0\n"
+        or (preflight_review_artifact / "run.exit").read_text(encoding="ascii")
+        != "0\n"
+        or (execute_release_artifact / "run.exit").read_text(encoding="ascii")
+        != "0\n"
+        or preflight_review.get("status")
+        != "passed_independent_1500_config_preflight_review_execute_closed"
+        or preflight_review.get("reviewed_root_sha256")
+        != preflight_seal["root_sha256"]
+        or preflight_review.get("identity_count") != 1500
+        or set(execute_release) != required_execute_fields
+        or execute_release.get("schema_version")
+        != "camp_dp_v25_ultra_full_r_execute_release_v1"
+        or execute_release.get("status") != "full_R_execute_released"
+        or execute_release.get("corrected_source_head") != camp_head
+        or execute_release.get("fixed_dp_head") != FIXED_DP_HEAD
+        or execute_release.get("r0_review_root_sha256")
+        != review_seal["root_sha256"]
+        or execute_release.get("r0_source_root_sha256")
+        != source_seal["root_sha256"]
+        or execute_release.get("preflight_release_root_sha256")
+        != preflight_release_seal["root_sha256"]
+        or execute_release.get("full_config_preflight_root_sha256")
+        != preflight_seal["root_sha256"]
+        or execute_release.get("full_config_preflight_review_root_sha256")
+        != preflight_review_seal["root_sha256"]
+        or execute_release.get("full_r_execute_authorized") is not True
+        or execute_release.get("fresh_b2_opened") is not False
+        or execute_release.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("full R execute authority chain is invalid")
+    authority.update(
+        {
+            "preflight_review_artifact": str(preflight_review_artifact),
+            "preflight_review_root_sha256": preflight_review_seal["root_sha256"],
+            "execute_release_artifact": str(execute_release_artifact),
+            "execute_release_root_sha256": execute_release_seal["root_sha256"],
+        }
+    )
+    return authority
 
 
 def build_controlled_train_config(
@@ -841,10 +983,45 @@ def _attach_semantic_clone_authority(
         else:
             if chain is not None:
                 raise ValueError("non-red identity unexpectedly has red authority")
+            regulatory_ids = sorted(
+                {
+                    int(reg.id)
+                    for lanelet_id in route_ids
+                    for reg in builders[map_path]._ll_by_id[lanelet_id].trafficLights()
+                }
+            )
+            if regulatory_ids:
+                raise ValueError(
+                    "non-red identity lacks a qualified same-tick mapped signal source"
+                )
             semantic = build_semantic_clone_payload(
                 case,
                 route_polyline_world=route_polyline,
                 stop_line_world=None,
+            )
+            no_signal_chain: dict[str, Any] = {
+                "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+                "scenario_id": scenario_id,
+                "route_identity_sha256": str(case["route_identity_sha256"]),
+                "source_map_sha256": str(case["source_map_sha256"]),
+                "route_lanelet_ids": route_ids,
+                "route_geometry_sha256": canonical_json_sha256(
+                    {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+                ),
+                "traffic_light_regulatory_element_ids": [],
+                "semantic_clone_payload": semantic,
+                "semantic_clone_sha256": canonical_json_sha256(semantic),
+                "source_chain_sha256": "",
+            }
+            no_signal_chain["source_chain_sha256"] = canonical_json_sha256(
+                {
+                    key: value
+                    for key, value in no_signal_chain.items()
+                    if key != "source_chain_sha256"
+                }
+            )
+            case["no_signal_authority"] = validate_no_signal_chain(
+                no_signal_chain
             )
         case["canonical_semantic_clone_sha256"] = canonical_json_sha256(
             semantic
@@ -985,10 +1162,11 @@ def _config_authority_receipt(config: Mapping[str, Any]) -> dict[str, Any]:
         "canonical_semantic_clone_sha256": str(
             controlled["canonical_semantic_clone_sha256"]
         ),
-        "red_signal_source_chain_sha256": (
-            str(controlled["red_signal_authority"]["source_chain_sha256"])
-            if controlled["family"] == "red_light_phase_timing"
-            else None
+        "signal_source_chain_sha256": str(
+            (
+                controlled.get("red_signal_authority")
+                or controlled.get("no_signal_authority")
+            )["source_chain_sha256"]
         ),
         "map_sha256": str(config["map"]["sha256"]),
         "route_sha256": str(route["sha256"]),
@@ -1066,8 +1244,8 @@ def _verify_preflight(
         "r0_review_root_sha256",
         "r0_source_artifact",
         "r0_source_root_sha256",
-        "ultra_full_r_release_artifact",
-        "ultra_full_r_release_root_sha256",
+        "ultra_full_config_preflight_release_artifact",
+        "ultra_full_config_preflight_release_root_sha256",
         "semantic_authority_root_sha256",
         "semantic_authority_identity_count",
     }
@@ -1131,7 +1309,7 @@ def _verify_preflight(
             for key in (
                 "r0_review_artifact",
                 "r0_source_artifact",
-                "ultra_full_r_release_artifact",
+                "ultra_full_config_preflight_release_artifact",
             )
         )
         or not all(
@@ -1139,7 +1317,7 @@ def _verify_preflight(
             for key in (
                 "r0_review_root_sha256",
                 "r0_source_root_sha256",
-                "ultra_full_r_release_root_sha256",
+                "ultra_full_config_preflight_release_root_sha256",
                 "semantic_authority_root_sha256",
             )
         )
@@ -1199,6 +1377,7 @@ def _execute(
                     adapter = V25ControlledSceneAdapter(
                         case,
                         red_signal_authority=case.get("red_signal_authority"),
+                        no_signal_authority=case.get("no_signal_authority"),
                     )
                     snapshots: list[Mapping[str, Any]] = []
                     contexts: list[Mapping[str, Any]] = []
@@ -1419,11 +1598,19 @@ def combine_snapshot_context(
     ):
         raise ValueError("controlled snapshot/context payload is malformed")
     atoms = np.asarray(features.get("atom_matrix"), dtype=np.float64)
+    candidate_tensor = np.asarray(features.get("candidate_tensor"), dtype=np.float32)
+    default_output = np.asarray(features.get("default_output"), dtype=np.float32)
     valid = features.get("source_valid_mask")
+    atom_source_valid = np.asarray(features.get("atom_source_valid_mask"))
+    atom_applicable = np.asarray(features.get("atom_applicable_mask"))
     rows = features.get("candidate_row_sha256")
     if (
         atoms.shape != (8, 14)
+        or candidate_tensor.shape != (8, 80, 4)
+        or default_output.shape != (80, 4)
         or not np.isfinite(atoms).all()
+        or not np.isfinite(candidate_tensor).all()
+        or not np.isfinite(default_output).all()
         or np.any(atoms < 0.0)
         or not isinstance(valid, list)
         or len(valid) != 8
@@ -1431,8 +1618,30 @@ def combine_snapshot_context(
         or not isinstance(rows, list)
         or len(rows) != 8
         or any(not _is_sha256(value) for value in rows)
+        or atom_source_valid.dtype != np.bool_
+        or atom_applicable.dtype != np.bool_
+        or atom_source_valid.shape != (8, 14)
+        or atom_applicable.shape != (8, 14)
     ):
         raise ValueError("controlled snapshot atoms/masks are invalid")
+    candidate_rows = [
+        hashlib.sha256(np.ascontiguousarray(candidate_tensor[index]).tobytes()).hexdigest()
+        for index in range(8)
+    ]
+    default_sha = hashlib.sha256(
+        np.ascontiguousarray(default_output).tobytes()
+    ).hexdigest()
+    candidate_tensor_sha = hashlib.sha256(
+        np.ascontiguousarray(candidate_tensor).tobytes()
+    ).hexdigest()
+    if candidate_rows != rows or default_sha != rows[0] or not np.array_equal(
+        default_output, candidate_tensor[0]
+    ) or sidecar.get("candidate_tensor_sha256_before") != candidate_tensor_sha or (
+        sidecar.get("candidate_tensor_sha256_after") != candidate_tensor_sha
+    ):
+        raise ValueError(
+            "controlled snapshot candidate/default immutability tensors do not match SHAs"
+        )
     if tuple(raw) != RAW_FEATURE_NAMES or tuple(source_complete) != RAW_FEATURE_NAMES:
         raise ValueError("controlled raw-context schema drifted")
     raw_values = np.asarray([raw[name] for name in RAW_FEATURE_NAMES], dtype=np.float64)
@@ -1480,6 +1689,7 @@ def combine_snapshot_context(
             )
         )
         or not _is_sha256(sidecar.get("normalized_atom_matrix_sha256"))
+        or sidecar.get("selected_trajectory_sha256") != rows[selected_index]
         or not isinstance(default_candidate0_identity, Mapping)
         or default_output_sha256 != rows[0]
         or candidate0_sha256 != rows[0]
@@ -1510,22 +1720,46 @@ def combine_snapshot_context(
             signal = controlled_scene_receipt.get("signal")
             if not isinstance(signal, Mapping):
                 raise ValueError("controlled red tick lacks signal receipt")
-            from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
-                validate_runtime_signal_receipt,
-            )
-
             controlled_signal_receipt = validate_runtime_signal_receipt(
                 signal.get("source_receipt", {}), chain
             )
         elif semantic_clone_sha256 is not None:
             raise ValueError("controlled red snapshot lacks same-tick source receipt")
+    causal_signal_atom_input = sidecar.get("causal_signal_atom_input")
+    if case.get("family") == "red_light_phase_timing":
+        if not isinstance(causal_signal_atom_input, Mapping):
+            raise ValueError("controlled red snapshot lacks causal stop-line input")
+        validate_causal_signal_atom_input(
+            causal_signal_atom_input,
+            chain,
+            controlled_signal_receipt,
+        )
+    elif semantic_clone_sha256 is not None:
+        chain = validate_no_signal_chain(case.get("no_signal_authority", {}))
+        if controlled_scene_receipt is None:
+            raise ValueError("controlled non-signal snapshot lacks same-tick source receipt")
+        signal = controlled_scene_receipt.get("signal")
+        if not isinstance(signal, Mapping):
+            raise ValueError("controlled non-signal tick lacks source receipt")
+        controlled_signal_receipt = validate_runtime_no_signal_receipt(
+            signal.get("source_receipt", {}), chain
+        )
+        if not isinstance(causal_signal_atom_input, Mapping):
+            raise ValueError("controlled non-signal snapshot lacks causal source input")
+        validate_causal_signal_atom_input(
+            causal_signal_atom_input, chain, controlled_signal_receipt
+        )
     return {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "feature_payload": {
             "atom_matrix": atoms.tolist(),
             "source_valid_mask": list(valid),
-            "physical_applicability_mask": list(physical),
+            "atom_source_valid_mask": atom_source_valid.tolist(),
+            "atom_applicable_mask": atom_applicable.tolist(),
+            "physical_feasible_mask": list(physical),
             "candidate_row_sha256": list(rows),
+            "candidate_tensor": candidate_tensor.tolist(),
+            "default_output": default_output.tolist(),
             "raw_context": {name: float(raw[name]) for name in RAW_FEATURE_NAMES},
             "context_source_complete": {
                 name: bool(source_complete[name]) for name in RAW_FEATURE_NAMES
@@ -1559,6 +1793,9 @@ def combine_snapshot_context(
             "source_valid_mask": list(sidecar_source_valid),
             "all_k_high_risk": bool(sidecar["all_k_high_risk"]),
             "selected_index": int(selected_index),
+            "selected_trajectory_sha256": str(
+                sidecar["selected_trajectory_sha256"]
+            ),
             "score_contract": str(sidecar["score_contract"]),
             "tie_break_contract": str(sidecar["tie_break_contract"]),
             "normalized_atom_matrix_sha256": str(
@@ -1571,6 +1808,7 @@ def combine_snapshot_context(
             ),
             "canonical_semantic_clone_sha256": semantic_clone_sha256,
             "controlled_signal_source_receipt": controlled_signal_receipt,
+            "causal_signal_atom_input": causal_signal_atom_input,
             "offline_label_provenance": "pending_train_only_causal_label",
             "outcome_fields_consumed": [],
             "fresh_b_opened": False,

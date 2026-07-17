@@ -10,14 +10,67 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 
-SEMANTIC_PAYLOAD_SCHEMA_VERSION = "camp_dp_v25_semantic_clone_payload_v1"
-SIGNAL_CHAIN_SCHEMA_VERSION = "camp_dp_v25_red_signal_source_chain_v1"
+SEMANTIC_PAYLOAD_SCHEMA_VERSION = "camp_dp_v25_semantic_clone_payload_v2"
+SIGNAL_CHAIN_SCHEMA_VERSION = "camp_dp_v25_red_signal_source_chain_v2"
+NO_SIGNAL_CHAIN_SCHEMA_VERSION = "camp_dp_v25_no_signal_source_chain_v1"
 RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION = (
-    "camp_dp_v25_current_signal_runtime_receipt_v1"
+    "camp_dp_v25_current_signal_runtime_receipt_v2"
+)
+CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION = (
+    "camp_dp_v25_causal_signal_atom_input_v2"
 )
 _SHA_CHARS = frozenset("0123456789abcdef")
 _PHASES = frozenset({"green", "yellow", "red"})
 _SCENARIO_PHASES = frozenset({"none", "green", "yellow", "red"})
+_PARAMETER_FIELDS = frozenset(
+    {
+        "headway_m",
+        "ego_speed_mps",
+        "other_speed_mps",
+        "deceleration_mps2",
+        "trigger_time_s",
+        "lateral_offset_m",
+        "lateral_speed_mps",
+        "crossing_speed_mps",
+        "variant",
+    }
+)
+_ACTOR_FIELDS = frozenset(
+    {
+        "id",
+        "agent_type",
+        "initial_xy",
+        "initial_heading_rad",
+        "route_tangent",
+        "route_normal",
+        "trigger_time_s",
+        "longitudinal_speed_mps",
+        "lateral_offset_m",
+        "lateral_speed_mps",
+        "lateral_target_m",
+        "longitudinal_acceleration_mps2",
+        "length_m",
+        "width_m",
+        "wheelbase_m",
+    }
+)
+_FORBIDDEN_SEMANTIC_TOKENS = (
+    "outcome",
+    "fresh",
+    "holdout",
+    "future",
+    "split",
+    "seed",
+    "scenario_id",
+    "route_identity",
+    "map_family",
+    "route_family",
+    "parameter_block",
+    "source_family",
+    "source_map",
+    "repository",
+    "record_key",
+)
 
 
 def canonical_json_bytes(payload: Any) -> bytes:
@@ -84,6 +137,12 @@ def _local_frame(points: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray
     return sampled, origin, rotation
 
 
+def _round_clean(values: np.ndarray, decimals: int = 6) -> np.ndarray:
+    rounded = np.round(np.asarray(values, dtype=np.float64), decimals)
+    rounded[np.abs(rounded) < 0.5 * 10.0 ** (-decimals)] = 0.0
+    return rounded
+
+
 def build_semantic_clone_payload(
     case: Mapping[str, Any],
     *,
@@ -97,32 +156,95 @@ def build_semantic_clone_payload(
         point = np.asarray(values, dtype=np.float64)
         if point.shape != (2,) or not np.isfinite(point).all():
             raise ValueError("semantic geometry point is invalid")
-        return np.round((point - origin) @ rotation, 6).tolist()
+        return _round_clean((point - origin) @ rotation).tolist()
+
+    parameters_raw = case.get("parameters", {})
+    if not isinstance(parameters_raw, Mapping):
+        raise ValueError("semantic parameters are invalid")
+    unexpected_parameters = set(parameters_raw) - _PARAMETER_FIELDS
+    if unexpected_parameters:
+        raise ValueError(
+            "semantic parameter whitelist rejected fields: "
+            f"{sorted(unexpected_parameters)}"
+        )
+    parameters: dict[str, float] = {}
+    for key, value in parameters_raw.items():
+        if key == "variant":
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise ValueError("semantic parameter variant must be an integer")
+            continue
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise ValueError(f"semantic parameter {key} must be a physical scalar")
+        numeric = float(value)
+        if not math.isfinite(numeric):
+            raise ValueError(f"semantic parameter {key} must be finite")
+        parameters[key] = numeric
 
     actors = []
     for actor in case.get("actors", []):
         if not isinstance(actor, Mapping):
             raise ValueError("semantic actor is invalid")
-        item = {
-            key: value
-            for key, value in actor.items()
-            if key
-            not in {
-                "id",
-                "scenario_id",
-                "route_identity_sha256",
-                "record_key",
-            }
+        unexpected_actor = set(actor) - _ACTOR_FIELDS
+        if unexpected_actor:
+            raise ValueError(
+                "semantic actor whitelist rejected fields: "
+                f"{sorted(unexpected_actor)}"
+            )
+        required_actor = _ACTOR_FIELDS - {"id"}
+        if not required_actor.issubset(actor):
+            raise ValueError(
+                "semantic actor is missing physical fields: "
+                f"{sorted(required_actor - set(actor))}"
+            )
+        tangent = np.asarray(actor["route_tangent"], dtype=np.float64)
+        actor_normal = np.asarray(actor["route_normal"], dtype=np.float64)
+        if (
+            tangent.shape != (2,)
+            or actor_normal.shape != (2,)
+            or not np.isfinite(np.concatenate((tangent, actor_normal))).all()
+            or not np.isclose(np.linalg.norm(tangent), 1.0, atol=1e-6)
+            or not np.isclose(np.linalg.norm(actor_normal), 1.0, atol=1e-6)
+            or not np.isclose(float(tangent @ actor_normal), 0.0, atol=1e-6)
+        ):
+            raise ValueError("semantic actor route frame is invalid")
+        heading = actor["initial_heading_rad"]
+        if isinstance(heading, bool) or not isinstance(heading, (int, float)) or not math.isfinite(float(heading)):
+            raise ValueError("semantic actor heading is invalid")
+        heading_world = np.array(
+            [math.cos(float(heading)), math.sin(float(heading))], dtype=np.float64
+        )
+        heading_local = heading_world @ rotation
+        item: dict[str, Any] = {
+            "agent_type": str(actor["agent_type"]),
+            "initial_xy_local_m": local(actor["initial_xy"]),
+            "initial_heading_local_rad": round(
+                math.atan2(float(heading_local[1]), float(heading_local[0])), 6
+            ),
+            "route_tangent_local": _round_clean(tangent @ rotation).tolist(),
+            "route_normal_local": _round_clean(actor_normal @ rotation).tolist(),
         }
-        if "initial_xy" in item:
-            item["initial_xy_local_m"] = local(item.pop("initial_xy"))
+        for key in sorted(
+            required_actor
+            - {
+                "agent_type",
+                "initial_xy",
+                "initial_heading_rad",
+                "route_tangent",
+                "route_normal",
+            }
+        ):
+            value = actor[key]
+            if value is None and key == "lateral_target_m":
+                item[key] = None
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValueError(f"semantic actor {key} must be a physical scalar")
+            numeric = float(value)
+            if not math.isfinite(numeric):
+                raise ValueError(f"semantic actor {key} must be finite")
+            item[key] = numeric
         actors.append(item)
     actors.sort(key=canonical_json_sha256)
-    parameters = {
-        key: value
-        for key, value in dict(case.get("parameters", {})).items()
-        if key != "variant"
-    }
     signal = case.get("signal")
     if not isinstance(signal, Mapping) or signal.get("phase") not in _SCENARIO_PHASES:
         raise ValueError("semantic red-signal phase is invalid")
@@ -138,16 +260,16 @@ def build_semantic_clone_payload(
             "mapped_source_required": signal.get("mapped_source_required") is True,
             "source_mode": "no_v2i",
         },
-        "route_polyline_local_m": np.round(
-            (sampled - origin) @ rotation, 6
+        "route_polyline_local_m": _round_clean(
+            (sampled - origin) @ rotation
         ).tolist(),
     }
     if stop_line_world is not None:
         stop = np.asarray(stop_line_world, dtype=np.float64)
         if stop.ndim != 2 or stop.shape[1] != 2 or len(stop) < 2:
             raise ValueError("stop-line geometry is invalid")
-        payload["stop_line_local_m"] = np.round(
-            (stop - origin) @ rotation, 6
+        payload["stop_line_local_m"] = _round_clean(
+            (stop - origin) @ rotation
         ).tolist()
     forbidden = (
         "source_map_path",
@@ -166,6 +288,11 @@ def build_semantic_clone_payload(
     encoded = canonical_json_bytes(payload).decode("utf-8")
     if any(f'"{key}"' in encoded for key in forbidden):
         raise ValueError("semantic clone payload contains a forbidden ID/source key")
+    for container in (parameters_raw, *case.get("actors", [])):
+        for key in container:
+            lowered = str(key).lower()
+            if any(token in lowered for token in _FORBIDDEN_SEMANTIC_TOKENS):
+                raise ValueError("semantic input contains a forbidden outcome/future/ID proxy")
     return payload
 
 
@@ -187,6 +314,7 @@ def validate_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
         "stop_line_route_distance_m",
         "route_arc_m",
         "route_length_m",
+        "route_tangent_world",
         "expected_current_phase",
         "semantic_clone_payload",
         "semantic_clone_sha256",
@@ -252,6 +380,13 @@ def validate_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("red signal stop-line/route-arc relation is invalid")
     if chain.get("expected_current_phase") not in _PHASES:
         raise ValueError("red signal expected current phase is invalid")
+    tangent = np.asarray(chain.get("route_tangent_world"), dtype=np.float64)
+    if (
+        tangent.shape != (2,)
+        or not np.isfinite(tangent).all()
+        or not np.isclose(np.linalg.norm(tangent), 1.0, atol=1e-6)
+    ):
+        raise ValueError("red signal route tangent is invalid")
     if chain.get("semantic_clone_sha256") != canonical_json_sha256(
         chain.get("semantic_clone_payload")
     ):
@@ -260,6 +395,99 @@ def validate_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
     if chain.get("source_chain_sha256") != canonical_json_sha256(without_hash):
         raise ValueError("red signal source-chain hash mismatch")
     return dict(chain)
+
+
+def validate_no_signal_chain(chain: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate a source-only receipt proving that a route has no signal rule."""
+    required = {
+        "schema_version",
+        "scenario_id",
+        "route_identity_sha256",
+        "source_map_sha256",
+        "route_lanelet_ids",
+        "route_geometry_sha256",
+        "traffic_light_regulatory_element_ids",
+        "semantic_clone_payload",
+        "semantic_clone_sha256",
+        "source_chain_sha256",
+    }
+    if not isinstance(chain, Mapping) or set(chain) != required:
+        raise ValueError("no-signal source-chain field set drifted")
+    if chain.get("schema_version") != NO_SIGNAL_CHAIN_SCHEMA_VERSION:
+        raise ValueError("no-signal source-chain schema drifted")
+    for key in (
+        "scenario_id",
+        "route_identity_sha256",
+        "source_map_sha256",
+        "route_geometry_sha256",
+    ):
+        if not _is_sha256(chain.get(key)):
+            raise ValueError(f"no-signal source-chain {key} is invalid")
+    route = chain.get("route_lanelet_ids")
+    if (
+        not isinstance(route, list)
+        or not route
+        or len(set(route)) != len(route)
+        or any(isinstance(value, bool) or not isinstance(value, int) for value in route)
+        or chain.get("traffic_light_regulatory_element_ids") != []
+    ):
+        raise ValueError("no-signal route authority is invalid")
+    if chain.get("semantic_clone_sha256") != canonical_json_sha256(
+        chain.get("semantic_clone_payload")
+    ):
+        raise ValueError("no-signal semantic clone payload/hash mismatch")
+    without_hash = {
+        key: value for key, value in chain.items() if key != "source_chain_sha256"
+    }
+    if chain.get("source_chain_sha256") != canonical_json_sha256(without_hash):
+        raise ValueError("no-signal source-chain hash mismatch")
+    return dict(chain)
+
+
+def build_runtime_no_signal_receipt(
+    chain: Mapping[str, Any],
+    *,
+    scenario_id: str,
+    tick_index: int,
+    decision_time_s: float,
+) -> dict[str, Any]:
+    validated = validate_no_signal_chain(chain)
+    if scenario_id != validated["scenario_id"]:
+        raise ValueError("runtime no-signal scenario/source-chain mismatch")
+    if isinstance(tick_index, bool) or not isinstance(tick_index, int) or tick_index < 0:
+        raise ValueError("runtime no-signal tick is invalid")
+    if not math.isfinite(float(decision_time_s)) or float(decision_time_s) < 0.0:
+        raise ValueError("runtime no-signal decision time is invalid")
+    return {
+        "schema_version": RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
+        "scenario_id": scenario_id,
+        "tick_index": tick_index,
+        "decision_time_s": float(decision_time_s),
+        "source_mode": "same_tick_no_signal_rule_no_v2i",
+        "current_phase": "none",
+        "route_geometry_sha256": validated["route_geometry_sha256"],
+        "route_lanelet_ids": list(validated["route_lanelet_ids"]),
+        "traffic_light_regulatory_element_ids": [],
+        "source_chain_sha256": validated["source_chain_sha256"],
+        "semantic_clone_sha256": validated["semantic_clone_sha256"],
+        "phase_remaining_available": False,
+        "source_valid": True,
+        "applicable": False,
+    }
+
+
+def validate_runtime_no_signal_receipt(
+    receipt: Mapping[str, Any], chain: Mapping[str, Any]
+) -> dict[str, Any]:
+    expected = build_runtime_no_signal_receipt(
+        chain,
+        scenario_id=str(receipt.get("scenario_id")),
+        tick_index=receipt.get("tick_index"),
+        decision_time_s=receipt.get("decision_time_s"),
+    )
+    if dict(receipt) != expected:
+        raise ValueError("runtime no-signal receipt field/value mismatch")
+    return expected
 
 
 def build_runtime_signal_receipt(
@@ -301,6 +529,7 @@ def build_runtime_signal_receipt(
         "stop_line_geometry_sha256": validated["stop_line_geometry_sha256"],
         "route_geometry_sha256": validated["route_geometry_sha256"],
         "route_arc_m": validated["route_arc_m"],
+        "route_tangent_world": list(validated["route_tangent_world"]),
         "source_chain_sha256": validated["source_chain_sha256"],
         "semantic_clone_sha256": validated["semantic_clone_sha256"],
         "applied_route_lanelet_ids": route_rows,
@@ -326,3 +555,236 @@ def validate_runtime_signal_receipt(
     if dict(receipt) != expected:
         raise ValueError("runtime signal receipt field/value mismatch")
     return expected
+
+
+def _world_to_ego(
+    points: np.ndarray, ego_position_world_m: np.ndarray, ego_heading_rad: float
+) -> np.ndarray:
+    relative = np.asarray(points, dtype=np.float64) - ego_position_world_m.reshape(1, 2)
+    c = math.cos(float(ego_heading_rad))
+    s = math.sin(float(ego_heading_rad))
+    rotation = np.array([[c, s], [-s, c]], dtype=np.float64)
+    return relative @ rotation.T
+
+
+def build_causal_signal_atom_input(
+    chain: Mapping[str, Any],
+    runtime_receipt: Mapping[str, Any],
+    *,
+    ego_position_world_m: Sequence[float],
+    ego_heading_rad: float,
+) -> dict[str, Any]:
+    """Bind the authorized regulatory stop line to the same-tick ego frame."""
+    validated = validate_signal_chain(chain)
+    receipt = validate_runtime_signal_receipt(runtime_receipt, validated)
+    ego_position = np.asarray(ego_position_world_m, dtype=np.float64)
+    if (
+        ego_position.shape != (2,)
+        or not np.isfinite(ego_position).all()
+        or isinstance(ego_heading_rad, bool)
+        or not isinstance(ego_heading_rad, (int, float))
+        or not math.isfinite(float(ego_heading_rad))
+    ):
+        raise ValueError("causal signal ego pose is invalid")
+    stop_world = np.asarray(validated["stop_line_geometry_m"], dtype=np.float64)
+    stop_ego = _world_to_ego(stop_world, ego_position, float(ego_heading_rad))
+    tangent_world = np.asarray(validated["route_tangent_world"], dtype=np.float64)
+    c = math.cos(float(ego_heading_rad))
+    s = math.sin(float(ego_heading_rad))
+    rotation = np.array([[c, s], [-s, c]], dtype=np.float64)
+    tangent_ego = rotation @ tangent_world
+    phase = str(receipt["current_phase"])
+    payload = {
+        "schema_version": CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
+        "source_state": "available",
+        "source_valid": True,
+        "applicable": phase == "red",
+        "current_phase": phase,
+        "decision_time_s": float(receipt["decision_time_s"]),
+        "ego_position_world_m": ego_position.tolist(),
+        "ego_heading_rad": float(ego_heading_rad),
+        "regulatory_element_id": validated["regulatory_element_ids"][0],
+        "stop_line_id": validated["stop_line_id"],
+        "stop_line_geometry_world_m": stop_world.tolist(),
+        "stop_line_geometry_ego_m": stop_ego.tolist(),
+        "stop_line_geometry_sha256": validated["stop_line_geometry_sha256"],
+        "route_tangent_world": tangent_world.tolist(),
+        "route_tangent_ego": tangent_ego.tolist(),
+        "route_geometry_sha256": validated["route_geometry_sha256"],
+        "route_arc_m": float(validated["route_arc_m"]),
+        "source_chain_sha256": validated["source_chain_sha256"],
+        "runtime_receipt": receipt,
+        "runtime_receipt_sha256": canonical_json_sha256(receipt),
+    }
+    return validate_causal_signal_atom_input(payload)
+
+
+def build_no_signal_causal_atom_input(
+    chain: Mapping[str, Any], runtime_receipt: Mapping[str, Any]
+) -> dict[str, Any]:
+    validated = validate_no_signal_chain(chain)
+    receipt = validate_runtime_no_signal_receipt(runtime_receipt, validated)
+    payload = {
+        "schema_version": CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
+        "source_state": "not_applicable",
+        "source_valid": True,
+        "applicable": False,
+        "current_phase": "none",
+        "decision_time_s": float(receipt["decision_time_s"]),
+        "ego_position_world_m": None,
+        "ego_heading_rad": None,
+        "regulatory_element_id": None,
+        "stop_line_id": None,
+        "stop_line_geometry_world_m": None,
+        "stop_line_geometry_ego_m": None,
+        "stop_line_geometry_sha256": None,
+        "route_tangent_world": None,
+        "route_tangent_ego": None,
+        "route_geometry_sha256": validated["route_geometry_sha256"],
+        "route_arc_m": None,
+        "source_chain_sha256": validated["source_chain_sha256"],
+        "runtime_receipt": receipt,
+        "runtime_receipt_sha256": canonical_json_sha256(receipt),
+    }
+    return validate_causal_signal_atom_input(payload)
+
+
+def validate_causal_signal_atom_input(
+    payload: Mapping[str, Any],
+    chain: Mapping[str, Any] | None = None,
+    runtime_receipt: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    required = {
+        "schema_version",
+        "source_state",
+        "source_valid",
+        "applicable",
+        "current_phase",
+        "decision_time_s",
+        "ego_position_world_m",
+        "ego_heading_rad",
+        "regulatory_element_id",
+        "stop_line_id",
+        "stop_line_geometry_world_m",
+        "stop_line_geometry_ego_m",
+        "stop_line_geometry_sha256",
+        "route_tangent_world",
+        "route_tangent_ego",
+        "route_geometry_sha256",
+        "route_arc_m",
+        "source_chain_sha256",
+        "runtime_receipt",
+        "runtime_receipt_sha256",
+    }
+    if not isinstance(payload, Mapping) or set(payload) != required:
+        raise ValueError("causal signal atom input field set drifted")
+    if payload.get("schema_version") != CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION:
+        raise ValueError("causal signal atom input schema drifted")
+    if payload.get("source_state") == "not_applicable":
+        null_fields = {
+            "ego_position_world_m",
+            "ego_heading_rad",
+            "regulatory_element_id",
+            "stop_line_id",
+            "stop_line_geometry_world_m",
+            "stop_line_geometry_ego_m",
+            "stop_line_geometry_sha256",
+            "route_tangent_world",
+            "route_tangent_ego",
+            "route_arc_m",
+        }
+        receipt = payload.get("runtime_receipt")
+        if (
+            payload.get("source_valid") is not True
+            or payload.get("applicable") is not False
+            or payload.get("current_phase") != "none"
+            or any(payload.get(key) is not None for key in null_fields)
+            or not isinstance(receipt, Mapping)
+            or payload.get("runtime_receipt_sha256")
+            != canonical_json_sha256(receipt)
+            or receipt.get("source_mode") != "same_tick_no_signal_rule_no_v2i"
+            or receipt.get("current_phase") != "none"
+            or receipt.get("source_chain_sha256")
+            != payload.get("source_chain_sha256")
+            or receipt.get("route_geometry_sha256")
+            != payload.get("route_geometry_sha256")
+            or float(receipt.get("decision_time_s", -1.0))
+            != float(payload.get("decision_time_s"))
+        ):
+            raise ValueError("causal no-signal atom source state is invalid")
+        if chain is not None or runtime_receipt is not None:
+            if chain is None or runtime_receipt is None:
+                raise ValueError("chain and runtime receipt must be provided together")
+            expected = build_no_signal_causal_atom_input(chain, runtime_receipt)
+            if dict(payload) != expected:
+                raise ValueError("causal no-signal input does not match source chain")
+        return dict(payload)
+    if (
+        payload.get("source_state") != "available"
+        or payload.get("source_valid") is not True
+        or not isinstance(payload.get("applicable"), bool)
+        or payload.get("current_phase") not in _PHASES
+        or payload.get("applicable") is not (payload.get("current_phase") == "red")
+    ):
+        raise ValueError("causal signal atom source state is invalid")
+    stop_world = np.asarray(payload.get("stop_line_geometry_world_m"), dtype=np.float64)
+    stop_ego = np.asarray(payload.get("stop_line_geometry_ego_m"), dtype=np.float64)
+    ego_position = np.asarray(payload.get("ego_position_world_m"), dtype=np.float64)
+    heading = payload.get("ego_heading_rad")
+    if (
+        stop_world.ndim != 2
+        or stop_world.shape[1] != 2
+        or len(stop_world) < 2
+        or stop_ego.shape != stop_world.shape
+        or ego_position.shape != (2,)
+        or not np.isfinite(np.concatenate((stop_world.ravel(), stop_ego.ravel(), ego_position))).all()
+        or isinstance(heading, bool)
+        or not isinstance(heading, (int, float))
+        or not math.isfinite(float(heading))
+        or payload.get("stop_line_geometry_sha256")
+        != canonical_json_sha256(stop_world.tolist())
+    ):
+        raise ValueError("causal signal stop-line geometry is invalid")
+    expected_stop_ego = _world_to_ego(stop_world, ego_position, float(heading))
+    if not np.allclose(stop_ego, expected_stop_ego, rtol=0.0, atol=1e-9):
+        raise ValueError("causal signal ego-frame stop line does not match authority")
+    tangent_world = np.asarray(payload.get("route_tangent_world"), dtype=np.float64)
+    tangent_ego = np.asarray(payload.get("route_tangent_ego"), dtype=np.float64)
+    c = math.cos(float(heading))
+    s = math.sin(float(heading))
+    expected_tangent_ego = np.array([[c, s], [-s, c]]) @ tangent_world
+    if (
+        tangent_world.shape != (2,)
+        or tangent_ego.shape != (2,)
+        or not np.isfinite(np.concatenate((tangent_world, tangent_ego))).all()
+        or not np.isclose(np.linalg.norm(tangent_world), 1.0, atol=1e-6)
+        or not np.allclose(tangent_ego, expected_tangent_ego, rtol=0.0, atol=1e-9)
+    ):
+        raise ValueError("causal signal route tangent is invalid")
+    receipt = payload.get("runtime_receipt")
+    if (
+        not isinstance(receipt, Mapping)
+        or payload.get("runtime_receipt_sha256") != canonical_json_sha256(receipt)
+        or receipt.get("source_chain_sha256") != payload.get("source_chain_sha256")
+        or receipt.get("stop_line_geometry_sha256")
+        != payload.get("stop_line_geometry_sha256")
+        or receipt.get("route_geometry_sha256") != payload.get("route_geometry_sha256")
+        or receipt.get("regulatory_element_id") != payload.get("regulatory_element_id")
+        or receipt.get("stop_line_id") != payload.get("stop_line_id")
+        or receipt.get("current_phase") != payload.get("current_phase")
+        or float(receipt.get("decision_time_s", -1.0))
+        != float(payload.get("decision_time_s"))
+    ):
+        raise ValueError("causal signal runtime receipt binding is invalid")
+    if chain is not None or runtime_receipt is not None:
+        if chain is None or runtime_receipt is None:
+            raise ValueError("chain and runtime receipt must be provided together")
+        expected = build_causal_signal_atom_input(
+            chain,
+            runtime_receipt,
+            ego_position_world_m=ego_position,
+            ego_heading_rad=float(heading),
+        )
+        if dict(payload) != expected:
+            raise ValueError("causal signal atom input does not match source chain")
+    return dict(payload)

@@ -10,7 +10,11 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    build_causal_signal_atom_input,
+    build_no_signal_causal_atom_input,
+    build_runtime_no_signal_receipt,
     build_runtime_signal_receipt,
+    validate_no_signal_chain,
     validate_signal_chain,
 )
 
@@ -513,6 +517,7 @@ class V25ControlledSceneAdapter:
         case: Mapping[str, Any],
         *,
         red_signal_authority: Mapping[str, Any] | None = None,
+        no_signal_authority: Mapping[str, Any] | None = None,
     ) -> None:
         validate_controlled_scenario_case(case)
         if case.get("runner_eligible") is not True:
@@ -523,6 +528,13 @@ class V25ControlledSceneAdapter:
             if red_signal_authority is None
             else validate_signal_chain(red_signal_authority)
         )
+        self.no_signal_authority = (
+            None
+            if no_signal_authority is None
+            else validate_no_signal_chain(no_signal_authority)
+        )
+        if self.red_signal_authority is not None and self.no_signal_authority is not None:
+            raise ValueError("controlled scenario has ambiguous signal authority")
         self._route_lanelet_ids: tuple[int, ...] = ()
         self._map_lanelet_ids: tuple[int, ...] = ()
         self.receipts: list[dict[str, Any]] = []
@@ -569,6 +581,37 @@ class V25ControlledSceneAdapter:
         }
         self.receipts.append(receipt)
         return receipt
+
+    def causal_signal_atom_input(
+        self, scene: Any, tick_index: int
+    ) -> Mapping[str, Any]:
+        """Return the same-tick R0-authorized stop line in the ego frame."""
+        if self.red_signal_authority is None and self.no_signal_authority is None:
+            raise RetainedScenarioCapabilityFailure(
+                scenario_id=str(self.case["scenario_id"]),
+                family=str(self.case["family"]),
+                reason=ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE,
+            )
+        if not self.receipts or self.receipts[-1].get("tick_index") != tick_index:
+            raise ValueError("controlled signal receipt is not same-tick")
+        signal = self.receipts[-1].get("signal")
+        if not isinstance(signal, Mapping) or not isinstance(
+            signal.get("source_receipt"), Mapping
+        ):
+            raise ValueError("controlled signal source receipt is unavailable")
+        if self.no_signal_authority is not None:
+            return build_no_signal_causal_atom_input(
+                self.no_signal_authority, signal["source_receipt"]
+            )
+        ego = scene.ego_agent
+        if ego is None:
+            raise ValueError("controlled signal atom input requires ego state")
+        return build_causal_signal_atom_input(
+            self.red_signal_authority,
+            signal["source_receipt"],
+            ego_position_world_m=np.asarray(ego.current_position, dtype=np.float64),
+            ego_heading_rad=float(ego.current_heading),
+        )
 
     def _upsert_actor(
         self, scene: Any, ego: Any, spec: Mapping[str, Any], sim_time_s: float
@@ -633,7 +676,20 @@ class V25ControlledSceneAdapter:
         signal = self.case["signal"]
         phase = str(signal["phase"])
         if phase == "none":
-            return {"phase": phase, "source_row_count": 0, "applied": False}
+            if self.no_signal_authority is None:
+                return {"phase": phase, "source_row_count": 0, "applied": False}
+            receipt = build_runtime_no_signal_receipt(
+                self.no_signal_authority,
+                scenario_id=str(self.case["scenario_id"]),
+                tick_index=tick_index,
+                decision_time_s=sim_time_s,
+            )
+            return {
+                "phase": phase,
+                "source_row_count": 0,
+                "applied": False,
+                "source_receipt": receipt,
+            }
         if self.red_signal_authority is None:
             raise RetainedScenarioCapabilityFailure(
                 scenario_id=str(self.case["scenario_id"]),

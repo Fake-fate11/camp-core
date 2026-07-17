@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -24,6 +25,9 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     canonical_json_sha256,
+    validate_causal_signal_atom_input,
+    validate_no_signal_chain,
+    validate_runtime_no_signal_receipt,
     validate_runtime_signal_receipt,
     validate_signal_chain,
 )
@@ -41,8 +45,8 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r0_red_sequential_k8_review_v1"
-SOURCE_SCHEMA_VERSION = "camp_dp_v25_r0_red_sequential_k8_preflight_v1"
+SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v2"
+SOURCE_SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v2"
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,11 +93,15 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     chains = _load_json(args.r0_source_artifact / "red_signal_chains.json").get(
         "chains"
     )
+    no_signal_chains = _load_json(
+        args.r0_source_artifact / "no_signal_chains.json"
+    ).get("chains")
     source_review = _load_json(args.r0_review_artifact / "report.json")
     results = probe_payload.get("results")
     if (
         report.get("schema_version") != SOURCE_SCHEMA_VERSION
-        or report.get("status") != "passed_bounded_3x64_full_r_closed"
+        or report.get("status")
+        != "passed_bounded_21red_1nosignal_x64_full_r_closed"
         or report.get("camp_head") != head
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
         or report.get("r0_source_root_sha256") != source_seal["root_sha256"]
@@ -105,9 +113,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("full_r_authorized") is not False
         or report.get("fresh_b2_opened") is not False
         or not isinstance(results, list)
-        or len(results) != 3
+        or len(results) != 22
         or not isinstance(chains, list)
         or len(chains) != 21
+        or not isinstance(no_signal_chains, list)
+        or len(no_signal_chains) != 1
     ):
         raise ValueError("R0 red K8 preflight authority drifted")
     scales = np.asarray(selector.get("scales"), dtype=np.float64)
@@ -124,6 +134,12 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise ValueError("R0 selector contract is invalid")
     chain_by_id = {str(chain["scenario_id"]): validate_signal_chain(chain) for chain in chains}
+    chain_by_id.update(
+        {
+            str(chain["scenario_id"]): validate_no_signal_chain(chain)
+            for chain in no_signal_chains
+        }
+    )
     reviewed = []
     for result in results:
         scenario_id = str(result.get("scenario_id"))
@@ -148,6 +164,14 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             raw = np.asarray(row.get("raw_atom_matrix"), dtype=np.float64)
             source_valid = np.asarray(row.get("source_valid_mask"), dtype=bool)
             physical = np.asarray(row.get("physical_feasible_mask"), dtype=bool)
+            atom_source_valid = np.asarray(
+                row.get("atom_source_valid_mask"), dtype=np.bool_
+            )
+            atom_applicable = np.asarray(
+                row.get("atom_applicable_mask"), dtype=np.bool_
+            )
+            candidates = np.asarray(row.get("candidate_tensor"), dtype=np.float32)
+            default = np.asarray(row.get("default_output"), dtype=np.float32)
             if (
                 row.get("tick_index") != tick_index
                 or row.get("fingerprint_sha256") != canonical_json_sha256(payload)
@@ -158,13 +182,35 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 or np.any(raw < 0.0)
                 or np.any(physical & ~source_valid)
                 or not source_valid.any()
+                or atom_source_valid.shape != (8, 14)
+                or atom_applicable.shape != (8, 14)
+                or np.any(atom_applicable & ~atom_source_valid)
+                or candidates.ndim != 3
+                or candidates.shape[0] != 8
+                or default.shape != candidates[0].shape
             ):
                 raise ValueError("R0 fingerprint/mask/raw atom contract drifted")
+            candidate_rows = [
+                hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
+                for value in candidates
+            ]
+            candidate_tensor_sha = hashlib.sha256(
+                np.ascontiguousarray(candidates).tobytes()
+            ).hexdigest()
+            default_sha = hashlib.sha256(
+                np.ascontiguousarray(default).tobytes()
+            ).hexdigest()
             normalized = np.clip(raw / scales.reshape(1, 14), 0.0, 10.0)
             scores = normalized @ weights
             expected = int(np.argmin(np.where(source_valid, scores, np.inf)))
             signal_receipt = row.get("runtime_signal_receipt")
-            validate_runtime_signal_receipt(signal_receipt, chain)
+            if result.get("family") == "red_light_phase_timing":
+                validate_runtime_signal_receipt(signal_receipt, chain)
+            else:
+                validate_runtime_no_signal_receipt(signal_receipt, chain)
+            causal_signal = row.get("causal_signal_atom_input")
+            validate_causal_signal_atom_input(causal_signal, chain, signal_receipt)
+            context = row.get("complete_context")
             if (
                 row.get("selected_index") != expected
                 or not np.array_equal(
@@ -174,10 +220,19 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 or row.get("candidate0_sha256") != row.get("default_output_sha256")
                 or row.get("candidate0_sha256")
                 != row.get("candidate_row_sha256", [None])[0]
+                or row.get("candidate_row_sha256") != candidate_rows
+                or row.get("candidate_tensor_sha256") != candidate_tensor_sha
+                or row.get("default_output_sha256") != default_sha
+                or not np.array_equal(default, candidates[0])
+                or row.get("selected_trajectory_sha256")
+                != candidate_rows[expected]
                 or row.get("runtime_signal_receipt_sha256")
                 != canonical_json_sha256(signal_receipt)
                 or row.get("source_chain_sha256") != chain["source_chain_sha256"]
                 or row.get("semantic_clone_sha256") != chain["semantic_clone_sha256"]
+                or row.get("causal_signal_atom_input_sha256")
+                != canonical_json_sha256(causal_signal)
+                or row.get("context_sha256") != canonical_json_sha256(context)
             ):
                 raise ValueError("R0 independent score/index/signal binding mismatch")
             selected.append(expected)
@@ -194,11 +249,16 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 "fingerprint_root_sha256": result["tick_fingerprint_root_sha256"],
             }
         )
-    if sorted(row["tier"] for row in reviewed) != ["borderline", "easy", "high_risk"]:
-        raise ValueError("R0 review does not cover one identity per red tier")
+    if (
+        sum(result.get("family") == "red_light_phase_timing" for result in results)
+        != 21
+        or sum(result.get("family") != "red_light_phase_timing" for result in results)
+        != 1
+    ):
+        raise ValueError("R0.1 review denominator is not 21 red plus one non-signal")
     return {
         "schema_version": SCHEMA_VERSION,
-        "status": "passed_independent_3x64_review_full_r_closed",
+        "status": "passed_independent_21red_1nosignal_x64_review_full_r_closed",
         "review_head": head,
         "fixed_dp_head": FIXED_DP_HEAD,
         "reviewed_artifact": str(args.preflight_artifact),
@@ -210,6 +270,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "probes": reviewed,
         "independent_scalar_clip_affine_argmin": True,
         "runtime_signal_receipts_independently_bound": True,
+        "actual_k8_default_context_hashes_independently_recomputed": True,
         "candidate0_operational_default_alias": True,
         "full_r_authorized": False,
         "full_r_started": False,

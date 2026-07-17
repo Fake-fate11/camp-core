@@ -3104,6 +3104,25 @@ class CAMPSelector:
             )
         if candidates.shape[1] < 2:
             raise ValueError("Each candidate must contain at least two timesteps.")
+        if (
+            self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10)
+            and candidates.shape[0] != 8
+        ):
+            raise ValueError("DP v10 14D selection requires fixed K=8 candidates.")
+        if (
+            self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10)
+            and candidate_source_valid_mask is None
+        ):
+            raise ValueError(
+                "DP v10 14D selection requires explicit candidate_source_valid_mask."
+            )
+        if (
+            self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10)
+            and candidate_progress is None
+        ):
+            raise ValueError(
+                "DP v10 14D selection requires explicit route-projected candidate_progress."
+            )
 
         obstacles = None
         if candidate_obstacles is not None:
@@ -3137,7 +3156,7 @@ class CAMPSelector:
                 raise ValueError(
                     "candidate_source_valid_mask must contain strict booleans."
                 )
-            source_valid_mask = raw_source_valid.reshape(-1)
+            source_valid_mask = raw_source_valid.copy()
             if source_valid_mask.shape != (candidates.shape[0],):
                 raise ValueError(
                     "candidate_source_valid_mask must match candidate count, "
@@ -3251,6 +3270,10 @@ class CAMPSelector:
                 infeasibility_reasons[index] = tuple(
                     dict.fromkeys((*infeasibility_reasons[index], "source_invalid"))
                 )
+            if np.any(feasible_mask & ~source_valid_mask):
+                raise ValueError(
+                    "physical feasible mask must be a subset of source-valid mask."
+                )
         if self.num_atoms in (
             len(DP_CAMP_ATOM_NAMES),
             len(DP_CAMP_ATOM_NAMES_V8),
@@ -3258,6 +3281,10 @@ class CAMPSelector:
             len(DP_CAMP_ATOM_NAMES_V10),
         ):
             if progress is None:
+                if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10):
+                    raise ValueError(
+                        "DP v10 14D selection requires explicit route-projected candidate_progress."
+                    )
                 progress = np.linalg.norm(
                     np.diff(candidates[:, :, :2], axis=1),
                     axis=-1,

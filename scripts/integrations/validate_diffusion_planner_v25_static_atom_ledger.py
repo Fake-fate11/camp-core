@@ -50,11 +50,11 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_validation_v3"
-LEDGER_SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v3"
-FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v3"
+SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_validation_v4"
+LEDGER_SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v4"
+FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v4"
 ATOM_NAMES = tuple(DP_CAMP_ATOM_NAMES_V10)
-PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v3.json"
+PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v4.json"
 REQUIRED_ROW_FIELDS = (
         "index",
         "name",
@@ -223,6 +223,8 @@ def _independent_numeric_recompute(fixture: Mapping[str, Any]) -> dict[str, Any]
     weights = fixture.get("weights")
     source_valid = fixture.get("source_valid_mask")
     physical = fixture.get("physical_feasible_mask")
+    atom_source = np.asarray(fixture.get("atom_source_valid_mask"))
+    atom_applicable = np.asarray(fixture.get("atom_applicable_mask"))
     candidate_tensors = fixture.get("candidate_tensors")
     if (
         not isinstance(raw, list)
@@ -239,6 +241,11 @@ def _independent_numeric_recompute(fixture: Mapping[str, Any]) -> dict[str, Any]
         or any(type(value) is not bool for value in source_valid + physical)
         or not isinstance(candidate_tensors, list)
         or len(candidate_tensors) != 8
+        or atom_source.dtype != np.bool_
+        or atom_applicable.dtype != np.bool_
+        or atom_source.shape != (8, 14)
+        or atom_applicable.shape != (8, 14)
+        or np.any(atom_applicable & ~atom_source)
     ):
         raise ValueError("numeric fixture shape or masks are invalid")
     numbers = [float(value) for row in raw for value in row]
@@ -285,6 +292,31 @@ def _independent_numeric_recompute(fixture: Mapping[str, Any]) -> dict[str, Any]
     stored_scores = np.asarray(fixture.get("production_scores"), dtype=np.float64)
     if stored_normalized.shape != (8, 14) or stored_scores.shape != (8,):
         raise ValueError("stored production numeric evidence shape drifted")
+    lane = fixture.get("asymmetric_lane_fixture", {})
+    offsets = np.asarray(lane.get("signed_offset_m"), dtype=np.float64)
+    left = np.asarray(lane.get("left_width_m"), dtype=np.float64)
+    right = np.asarray(lane.get("right_width_m"), dtype=np.float64)
+    lane_expected = float(lane.get("dt_s", float("nan"))) * np.sum(
+        np.where(
+            offsets >= 0.0,
+            np.maximum(offsets - left, 0.0),
+            np.maximum(-offsets - right, 0.0),
+        )
+        ** 2,
+        axis=1,
+    )
+    clearance = fixture.get("candidate_specific_obb_clearance_fixture", {})
+    surfaces = np.asarray(
+        clearance.get("minimum_obb_surface_clearance_m"), dtype=np.float64
+    )
+    clearance_expected = float(clearance.get("dt_s", float("nan"))) * np.sum(
+        np.maximum(
+            float(clearance.get("threshold_m", float("nan"))) - surfaces,
+            0.0,
+        )
+        ** 2,
+        axis=1,
+    )
     checks = {
         "normalized_exact": bool(
             np.allclose(
@@ -337,6 +369,21 @@ def _independent_numeric_recompute(fixture: Mapping[str, Any]) -> dict[str, Any]
         and source_valid[4] is True
         and source_valid[5] is True
         and math.isclose(scores[4], scores[5], rel_tol=0.0, abs_tol=1e-12),
+        "atom_source_applicability_masks_exact": not np.any(
+            atom_applicable & ~atom_source
+        ),
+        "asymmetric_lane_formula_recomputed": np.allclose(
+            lane_expected,
+            np.asarray(lane.get("expected_cost"), dtype=np.float64),
+            rtol=0.0,
+            atol=1e-12,
+        ),
+        "candidate_specific_obb_clearance_recomputed": np.allclose(
+            clearance_expected,
+            np.asarray(clearance.get("expected_cost"), dtype=np.float64),
+            rtol=0.0,
+            atol=1e-12,
+        ),
     }
     if not all(checks.values()):
         raise ValueError(
@@ -513,7 +560,7 @@ def validate_ledger(
         or not isinstance(authority.get("ultra_decision_root_sha256"), str)
         or not isinstance(rows, list)
         or len(rows) != 14
-        or plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v3"
+        or plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v4"
         or plan.get("required_row_fields") != list(REQUIRED_ROW_FIELDS)
         or not isinstance(warning_contract, Mapping)
     ):
@@ -526,7 +573,7 @@ def validate_ledger(
     )
     decision = _load_json(decision_artifact / "decision.json")
     if (
-        decision.get("status") != "A1_R0_only_released"
+        decision.get("status") != "A1_1_R0_1_only_released"
         or decision.get("progress_reference")
         != "source_valid_candidate_set_reference"
         or decision.get("full_r_authorized") is not False

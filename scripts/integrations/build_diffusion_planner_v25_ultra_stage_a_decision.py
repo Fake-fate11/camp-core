@@ -34,7 +34,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_ultra_stage_a_decision_v1"
+SCHEMA_VERSION = "camp_dp_v25_ultra_stage_a11_r01_decision_v2"
 A0_ROOT = "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
 SUPERSEDED_LEDGER_ROOT = (
     "05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2"
@@ -42,6 +42,15 @@ SUPERSEDED_LEDGER_ROOT = (
 SUPERSEDED_VALIDATION_ROOT = (
     "e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72"
 )
+SUPERSEDED_A1_R0_ROOTS = [
+    "b75898b2d9263abf157ebd72b8d03e445ceeb23168a06d8065ae0b959aa3340d",
+    "f8ecaf1a9235753245cad736cef4172e8a553143a0eff45bf179add2b4ecdac5",
+    "947d4b00fe39222e8be581e3d681959ed153f6410c7c065adb5b992c9de89d58",
+    "69f02664fa96fe9689b60f6432e0c910b9a18bb6ffd1a88f569c10670178d3be",
+    "c8b8b926bd63a0a8185d7ea3f422e7b94bc0c40921560e6576ac9e4b0ca786e9",
+    "209fc00b6aeb90d887f9cc2871fefdcd619d0b1086d6ffb3ee3c0ac39911f11d",
+    "e948eb17e3561a93c803ec8485d725d47e341b129a794bcf1c2c6e9593cef946",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -66,7 +75,7 @@ def main() -> None:
         raise ValueError("CAMP tracked worktree is dirty")
     decision = {
         "schema_version": SCHEMA_VERSION,
-        "status": "A1_R0_only_released",
+        "status": "A1_1_R0_1_only_released",
         "decision_date": "2026-07-17",
         "source_thread_id": "019f6eee-8fc2-75f3-843c-75562f610b13",
         "corrected_source_head": head,
@@ -79,15 +88,16 @@ def main() -> None:
         "superseded_diagnostic_roots": [
             SUPERSEDED_LEDGER_ROOT,
             SUPERSEDED_VALIDATION_ROOT,
+            *SUPERSEDED_A1_R0_ROOTS,
         ],
         "progress_reference": "source_valid_candidate_set_reference",
         "progress_formula": "r=max(progress[j] where source_valid[j]); progress_shortfall[k]=max(r-progress[k],0)",
         "selection_eligibility": "source_valid",
         "empty_source_valid": "fail_closed",
         "candidate0_or_all_k_fallback_allowed": False,
-        "a1_authorized": True,
-        "r0_source_authority_preflight_authorized": True,
-        "bounded_red_3x64_authorized_after_source_pass": True,
+        "a1_1_authorized": True,
+        "r0_1_source_authority_preflight_authorized": True,
+        "bounded_21red_1nosignal_x64_authorized_after_source_pass": True,
         "full_r_authorized": False,
         "monitor_authorized": False,
         "training_authorized": False,

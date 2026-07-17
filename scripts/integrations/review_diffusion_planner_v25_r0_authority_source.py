@@ -30,6 +30,7 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     build_semantic_clone_payload,
     canonical_json_sha256,
+    validate_no_signal_chain,
     validate_signal_chain,
 )
 from scripts.integrations.review_diffusion_planner_v25_stage_a0_authority import (  # noqa: E402
@@ -57,8 +58,8 @@ from scripts.integrations.preflight_diffusion_planner_v25_r0_authority_source im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r0_authority_source_review_v1"
-SOURCE_SCHEMA_VERSION = "camp_dp_v25_r0_authority_source_preflight_v1"
+SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_review_v2"
+SOURCE_SCHEMA_VERSION = "camp_dp_v25_r01_authority_source_preflight_v2"
 
 
 def _native_bool_checks(checks: Mapping[str, Any]) -> dict[str, bool]:
@@ -87,10 +88,10 @@ def _project(
     route_ids: list[int],
     controlled: set[int],
     stop: np.ndarray,
-) -> tuple[float, float, float]:
+) -> tuple[float, float, float, np.ndarray]:
     point = stop.mean(axis=0)
     offset = 0.0
-    best: tuple[float, float] | None = None
+    best: tuple[float, float, np.ndarray] | None = None
     for lanelet_id in route_ids:
         line = np.asarray(builder._cache[lanelet_id].raw_centerline, dtype=np.float64)
         local = 0.0
@@ -102,14 +103,15 @@ def _project(
             )
             if lanelet_id in controlled:
                 distance = float(np.linalg.norm(point - (start + fraction * vector)))
-                candidate = (distance, offset + local + fraction * length)
-                if best is None or candidate < best:
+                tangent = vector / length if length > 1e-12 else np.zeros(2)
+                candidate = (distance, offset + local + fraction * length, tangent)
+                if best is None or candidate[:2] < best[:2]:
                     best = candidate
             local += length
         offset += local
     if best is None:
         raise ValueError("review found no controlled route projection")
-    return best[0], best[1], offset
+    return best[0], best[1], offset, best[2]
 
 
 def _independent_chain_checks(
@@ -135,7 +137,9 @@ def _independent_chain_checks(
         raise ValueError("review found no stop line")
     stop = np.asarray([(point.x, point.y) for point in stop_line], dtype=np.float64)
     controlled = sorted(set(int(value) for value in item["lanelets"]))
-    distance, arc, length = _project(builder, route_ids, set(controlled), stop)
+    distance, arc, length, tangent = _project(
+        builder, route_ids, set(controlled), stop
+    )
     semantic = build_semantic_clone_payload(
         case,
         route_polyline_world=_route_geometry(builder, route_ids),
@@ -167,6 +171,12 @@ def _independent_chain_checks(
         )
         and np.isclose(validated["route_arc_m"], arc, rtol=0.0, atol=1e-9)
         and np.isclose(validated["route_length_m"], length, rtol=0.0, atol=1e-9),
+        "route_tangent_exact": np.allclose(
+            np.asarray(validated["route_tangent_world"], dtype=np.float64),
+            tangent,
+            rtol=0.0,
+            atol=1e-9,
+        ),
         "geometry_sha_exact": validated["route_geometry_sha256"] == geometry_sha,
         "semantic_clone_exact": validated["semantic_clone_payload"] == semantic
         and validated["semantic_clone_sha256"] == canonical_json_sha256(semantic),
@@ -197,9 +207,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("R0 source run.exit is not zero")
     report = _load_json(args.source_artifact / "report.json")
     chain_payload = _load_json(args.source_artifact / "red_signal_chains.json")
+    no_signal_payload = _load_json(args.source_artifact / "no_signal_chains.json")
     bounded = _load_json(args.source_artifact / "bounded_red_cases.json")
     config_payload = _load_json(args.source_artifact / "config_receipts.json")
     chains = chain_payload.get("chains")
+    no_signal_chains = no_signal_payload.get("chains")
     receipts = config_payload.get("receipts")
     input_roots: dict[str, str] = {}
     for label in ("ultra_decision", "a0", "a1_ledger", "a1_validation"):
@@ -231,7 +243,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("s01_review_root_sha256") != PASSED_REVIEW_ROOT
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or input_roots.get("a0") != A0_ROOT
-        or decision.get("status") != "A1_R0_only_released"
+        or decision.get("status") != "A1_1_R0_1_only_released"
         or decision.get("full_r_authorized") is not False
         or a0_report.get("status") != "passed"
         or ledger.get("status")
@@ -246,7 +258,13 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or not isinstance(chains, list)
         or len(chains) != 21
         or not isinstance(receipts, list)
-        or len(receipts) != 3
+        or len(receipts) != 22
+        or not isinstance(no_signal_chains, list)
+        or len(no_signal_chains) != 1
+        or report.get("distinct_source_map_count") != 4
+        or report.get("physical_signature_count") != 9
+        or report.get("stop_line_geometry_sha256_count") != 5
+        or report.get("validated_identity_chain_receipt_count") != 21
         or report.get("config_receipts_root_sha256")
         != canonical_json_sha256(receipts)
     ):
@@ -288,9 +306,10 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     selected_ids = [case.get("scenario_id") for case in selected] if isinstance(selected, list) else []
     if (
         not isinstance(selected, list)
-        or len(selected) != 3
-        or collections.Counter(str(case.get("tier")) for case in selected)
-        != {"easy": 1, "borderline": 1, "high_risk": 1}
+        or len(selected) != 22
+        or collections.Counter(str(case.get("family")) for case in selected).get(
+            "red_light_phase_timing"
+        ) != 21
         or [case.get("scenario_id") for case in selected]
         != report.get("selected_bounded_probe_scenario_ids")
         or [receipt.get("scenario_id") for receipt in receipts] != selected_ids
@@ -302,6 +321,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 if chain["scenario_id"] == case.get("scenario_id")
             )
             for case in selected
+            if case.get("family") == "red_light_phase_timing"
         )
         or any(
             receipt.get("config_sha256") != _canonical_sha256(receipt.get("config"))
@@ -312,7 +332,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             or receipt.get("semantic_clone_sha256")
             != case.get("canonical_semantic_clone_sha256")
             or receipt.get("source_chain_sha256")
-            != case.get("red_signal_authority", {}).get("source_chain_sha256")
+            != (
+                case.get("red_signal_authority")
+                or case.get("no_signal_authority")
+                or {}
+            ).get("source_chain_sha256")
             or receipt.get("config", {}).get("controlled_scenario") != case
             or receipt.get("config", {}).get("fixed_dp", {}).get("head")
             != FIXED_DP_HEAD
@@ -324,6 +348,32 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         )
     ):
         raise ValueError("R0 bounded case/config authority drifted")
+    no_signal = validate_no_signal_chain(no_signal_chains[0])
+    no_signal_case = next(
+        case for case in selected if case.get("family") != "red_light_phase_timing"
+    )
+    if (
+        no_signal.get("scenario_id") != no_signal_case.get("scenario_id")
+        or no_signal_case.get("no_signal_authority") != no_signal
+    ):
+        raise ValueError("R0 no-signal authority binding drifted")
+    map_path = Path(str(no_signal_case["source_map_path"]))
+    require_source_preserving_lanelet2_regulatory_adapter(map_path)
+    sys.modules.pop("autoware_lanelet2_extension_python.projection", None)
+    sys.modules.pop("autoware_lanelet2_extension_python", None)
+    install_lanelet2_projection_fallback(map_path)
+    from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
+
+    no_signal_builder = LaneletSceneBuilder(str(map_path))
+    observed_regulatory_ids = sorted(
+        {
+            int(reg.id)
+            for lanelet_id in no_signal["route_lanelet_ids"]
+            for reg in no_signal_builder._ll_by_id[int(lanelet_id)].trafficLights()
+        }
+    )
+    if observed_regulatory_ids:
+        raise ValueError("R0 independent no-signal scan found a signal rule")
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "passed_independent_source_review_full_r_closed",
@@ -340,6 +390,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         ),
         "independent_chain_checks": reviewed,
         "bounded_probe_identity_count": len(selected),
+        "reviewed_non_signal_identity_count": 1,
+        "independent_no_signal_regulatory_scan": True,
         "full_r_authorized": False,
         "full_r_started": False,
         "monitor_started": False,

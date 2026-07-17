@@ -54,12 +54,34 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v3"
-FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v3"
+SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v4"
+FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v4"
 SOURCE_STATE_ENUM = ("available", "not_applicable", "unavailable", "invalid")
 ATOM_NAMES = tuple(DP_CAMP_ATOM_NAMES_V10)
 PAPER_9D = tuple(CAMP_ATOM_NAMES)
-PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v3.json"
+PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v4.json"
+A0_REQUIRED_FIELDS = {
+    "schema_version", "status", "stage", "stage_a0_code_head",
+    "released_s01_source_head", "released_s01_final_baseline_head",
+    "fixed_dp_head", "strict_inventory", "probe_authority", "rejected_roots",
+    "failed_preflight_role", "existing_3x64_model_rerun", "gpu_work_started",
+    "stage_a_authorized", "r_authorized", "training_authorized",
+    "calibration_authorized", "scene_runtime_authorized", "fresh_b2_opened",
+    "outcome_fields_consumed",
+}
+DECISION_REQUIRED_FIELDS = {
+    "schema_version", "status", "decision_date", "source_thread_id",
+    "corrected_source_head", "fixed_dp_head", "s01_preflight_root_sha256",
+    "s01_review_root_sha256", "a0_root_sha256", "formal_root_sha256",
+    "rejected_roots", "superseded_diagnostic_roots", "progress_reference",
+    "progress_formula", "selection_eligibility", "empty_source_valid",
+    "candidate0_or_all_k_fallback_allowed", "a1_1_authorized",
+    "r0_1_source_authority_preflight_authorized",
+    "bounded_21red_1nosignal_x64_authorized_after_source_pass",
+    "full_r_authorized", "monitor_authorized", "training_authorized",
+    "calibration_authorized", "scene_runtime_authorized", "v2i_authorized",
+    "fresh_b2_opened", "outcome_fields_consumed",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -98,6 +120,59 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _write_json(path: Path, payload: Any) -> None:
     Path(path).write_bytes(_canonical_bytes(payload))
+
+
+def validate_a11_authority_payloads(
+    a0_report: Mapping[str, Any],
+    decision: Mapping[str, Any],
+    *,
+    a0_root_sha256: str,
+    current_head: str,
+) -> None:
+    if (
+        set(a0_report) != A0_REQUIRED_FIELDS
+        or a0_report.get("schema_version") != A0_SCHEMA_VERSION
+        or a0_report.get("status") != "passed"
+        or a0_report.get("fixed_dp_head") != FIXED_DP_HEAD
+        or a0_report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or a0_report.get("stage_a_authorized") is not True
+        or any(
+            a0_report.get(key) is not False
+            for key in (
+                "r_authorized", "training_authorized", "calibration_authorized",
+                "scene_runtime_authorized", "fresh_b2_opened",
+            )
+        )
+        or a0_report.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("A0 authority exact field/value contract drifted")
+    if (
+        set(decision) != DECISION_REQUIRED_FIELDS
+        or decision.get("schema_version")
+        != "camp_dp_v25_ultra_stage_a11_r01_decision_v2"
+        or decision.get("status") != "A1_1_R0_1_only_released"
+        or decision.get("corrected_source_head") != current_head
+        or decision.get("fixed_dp_head") != FIXED_DP_HEAD
+        or decision.get("a0_root_sha256") != a0_root_sha256
+        or decision.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or decision.get("progress_reference")
+        != "source_valid_candidate_set_reference"
+        or decision.get("a1_1_authorized") is not True
+        or decision.get("r0_1_source_authority_preflight_authorized") is not True
+        or decision.get(
+            "bounded_21red_1nosignal_x64_authorized_after_source_pass"
+        ) is not True
+        or any(
+            decision.get(key) is not False
+            for key in (
+                "full_r_authorized", "monitor_authorized", "training_authorized",
+                "calibration_authorized", "scene_runtime_authorized", "v2i_authorized",
+                "fresh_b2_opened",
+            )
+        )
+        or decision.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("Ultra A1.1/R0.1 decision exact field/value contract drifted")
 
 
 def _source_policy(name: str) -> dict[str, str]:
@@ -299,6 +374,28 @@ def _numeric_fixture(scales: np.ndarray) -> dict[str, Any]:
             ).hexdigest()
         )
     progress = np.array([5.0, 10.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0])
+    atom_source_valid = np.ones((8, 14), dtype=np.bool_)
+    atom_applicable = np.ones((8, 14), dtype=np.bool_)
+    atom_applicable[:, 10] = False
+    atom_applicable[:, 12] = False
+    lane_offsets = np.array([[1.5, -1.5, 0.25], [-2.0, 2.0, 0.0]])
+    left_widths = np.array([[1.0, 1.0, 1.0], [0.75, 0.75, 0.75]])
+    right_widths = np.array([[2.0, 2.0, 2.0], [1.25, 1.25, 1.25]])
+    lane_expected = 0.1 * np.sum(
+        np.where(
+            lane_offsets >= 0.0,
+            np.maximum(lane_offsets - left_widths, 0.0),
+            np.maximum(-lane_offsets - right_widths, 0.0),
+        )
+        ** 2,
+        axis=1,
+    )
+    obb_surface_clearance = np.array(
+        [[4.0, 2.0, 0.5, 3.0], [1.0, 1.5, 2.5, 5.0]], dtype=np.float64
+    )
+    clearance_expected = 0.1 * np.sum(
+        np.maximum(3.0 - obb_surface_clearance, 0.0) ** 2, axis=1
+    )
 
     def reference_fixture(mask: np.ndarray) -> dict[str, Any]:
         if not mask.any():
@@ -317,6 +414,8 @@ def _numeric_fixture(scales: np.ndarray) -> dict[str, Any]:
         "weights": weights.tolist(),
         "source_valid_mask": source_valid.tolist(),
         "physical_feasible_mask": physical_feasible.tolist(),
+        "atom_source_valid_mask": atom_source_valid.tolist(),
+        "atom_applicable_mask": atom_applicable.tolist(),
         "production_normalized_atoms": normalized.tolist(),
         "production_scores": scores.tolist(),
         "production_selected_index": selected,
@@ -325,6 +424,19 @@ def _numeric_fixture(scales: np.ndarray) -> dict[str, Any]:
         "candidate_tensors": candidate_tensors,
         "candidate_atom_binding_sha256": candidate_atom_binding_sha256,
         "paper_9d_prefix": atoms[:, :9].tolist(),
+        "asymmetric_lane_fixture": {
+            "dt_s": 0.1,
+            "signed_offset_m": lane_offsets.tolist(),
+            "left_width_m": left_widths.tolist(),
+            "right_width_m": right_widths.tolist(),
+            "expected_cost": lane_expected.tolist(),
+        },
+        "candidate_specific_obb_clearance_fixture": {
+            "dt_s": 0.1,
+            "threshold_m": 3.0,
+            "minimum_obb_surface_clearance_m": obb_surface_clearance.tolist(),
+            "expected_cost": clearance_expected.tolist(),
+        },
         "progress_reference_adversarial": {
             "candidate_progress_m": progress.tolist(),
             "mixed_source_valid_mask": [True, True, True, False, True, False, False, True],
@@ -410,8 +522,9 @@ def _training_scale_freeze() -> dict[str, Any]:
 def _dag_contract() -> dict[str, Any]:
     return {
         "S0_to_A": "Ultra S0.1 PASS plus A0 strict-inventory supplement PASS",
-        "A_exit": "14 rows complete; independent semantics/numeric validation PASS; progress reference awaits Ultra decision",
-        "R_entry": "separate Ultra release binding S0.1, A0, ledger, validation, progress decision, formal source, corrected HEAD",
+        "A_exit": "14 rows complete; independent semantics/numeric validation PASS; source-valid progress reference frozen",
+        "R0_1_entry": "A1.1 PASS plus sealed Ultra A1.1/R0.1 decision; full R remains closed",
+        "R_entry": "Ultra first releases only a sealed 1500-config preflight; independent review and a distinct Ultra execute release are then mandatory",
         "R_exit": "1500x64 sequential corpus sealed and independently reviewed; red scientific coverage passes; then stop",
         "B_entry": "R sealed+reviewed and Ultra-released; train-only empirical audit only",
         "C_entry": "B PASS and Ultra release; outcome-blind seven-family single-axis perturbations",
@@ -420,7 +533,8 @@ def _dag_contract() -> dict[str, Any]:
         "D_exit": "jerk/speed/lane-clearance/red/lateral findings classified by remediation class and combined review sealed",
         "E1_entry": "C and D combined review PASS plus Ultra release",
         "training_calibration_fresh": "E1 -> T/E2 -> Q -> one-shot F -> E3; each Ultra-gated",
-        "current_authority": "A only; R/B/C/D/E/T/Q/F remain closed",
+        "outcome_red_10m_heuristic_gate": "must be replaced or independently certified before calibration or Fresh B2 pre-open",
+        "current_authority": "A1.1/R0.1 bounded only; full R/B/C/D/E/T/Q/F remain closed",
     }
 
 
@@ -440,27 +554,31 @@ def build_ledger(
         label="V25 Stage A0 supplement",
     )
     a0_report = _load_json(a0_artifact / "report.json")
-    if (
-        a0_report.get("schema_version") != A0_SCHEMA_VERSION
-        or a0_report.get("status") != "passed"
-        or a0_report.get("fresh_b2_opened") is not False
-        or a0_report.get("outcome_fields_consumed") != []
-    ):
-        raise ValueError("A0 authority is not a passed closed-boundary supplement")
     decision_seal = verify_complete_seal(
         ultra_decision_artifact,
         ultra_decision_root_sha256,
         label="V25 Ultra Stage-A decision",
     )
     decision = _load_json(ultra_decision_artifact / "decision.json")
-    if (
-        decision.get("schema_version") != "camp_dp_v25_ultra_stage_a_decision_v1"
-        or decision.get("status") != "A1_R0_only_released"
-        or decision.get("progress_reference") != "source_valid_candidate_set_reference"
-        or decision.get("full_r_authorized") is not False
-        or decision.get("fresh_b2_opened") is not False
-    ):
-        raise ValueError("Ultra Stage-A decision authority is invalid")
+    validate_a11_authority_payloads(
+        a0_report,
+        decision,
+        a0_root_sha256=a0_seal["root_sha256"],
+        current_head=current_head,
+    )
+    if (a0_artifact / "run.exit").read_text(encoding="ascii") != "0\n" or (
+        ultra_decision_artifact / "run.exit"
+    ).read_text(encoding="ascii") != "0\n":
+        raise ValueError("A0/Ultra authority run.exit is not zero")
+    if (a0_artifact / "HEADS").read_text(encoding="ascii").splitlines() != [
+        f"camp_head={a0_report['stage_a0_code_head']}",
+        f"fixed_dp_head={FIXED_DP_HEAD}",
+    ] or (ultra_decision_artifact / "HEADS").read_text(
+        encoding="ascii"
+    ).splitlines() != [
+        f"camp_head={current_head}", f"fixed_dp_head={FIXED_DP_HEAD}"
+    ]:
+        raise ValueError("A0/Ultra authority HEADS binding drifted")
     scale_payload = _load_json(CORRECTED_GENERATION_SCALES)
     scales = scale_payload.get("scales")
     if (
@@ -476,7 +594,7 @@ def build_ledger(
     scale_sha256 = _file_sha256(CORRECTED_GENERATION_SCALES)
     plan = _load_json(PLAN)
     if (
-        plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v3"
+        plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v4"
         or not isinstance(plan.get("warning_contract"), Mapping)
     ):
         raise ValueError("Stage A1 plan schema drifted")
@@ -537,10 +655,22 @@ def build_ledger(
                 "stop-line geometry",
                 "route-intersection arc mapping",
                 "same-tick current phase",
+                "world-to-ego transform bound to stop-line/source-chain/runtime-receipt SHA",
             ],
             "no_signal_legal_zero_distinct_from_missing_source": True,
             "phase_remaining_no_v2i": "unavailable/source-masked and never read from frozen tier/future schedule",
             "v2i": "separate future gate requiring per-tick timestamps/freshness/wrong-id/phase/replay/future/stale tests",
+            "outcome_evaluator_10m_nearest_line_heuristic": "calibration/Fresh B2 pre-open hard gate; not accepted as regulatory authority",
+        },
+        "passive_latency_instrumentation": {
+            "semantic_change": False,
+            "stages_ms": [
+                "dp_default_forward", "extra_k8_generation", "atom_materialization",
+                "causal_context", "static_selector", "tracker", "total_tick",
+            ],
+            "statistics": ["mean", "median", "p95", "p99", "max"],
+            "clock": "monotonic perf_counter_ns around existing sequential stages",
+            "microbatch_cache_sharding_enabled": False,
         },
         "r_red_scientific_coverage_freeze": {
             "formal_executable_identity_count": 21,
