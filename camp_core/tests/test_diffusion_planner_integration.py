@@ -290,6 +290,60 @@ def test_no_ros_projection_fallback_installs_utm_factory(
     assert isinstance(MGRSProjector(None), _Projector)
 
 
+def test_no_ros_projection_fallback_refreshes_for_each_source_map(
+    tmp_path, monkeypatch
+) -> None:
+    first = tmp_path / "first.osm"
+    second = tmp_path / "second.osm"
+    first.write_text(
+        '<osm><node id="1" lat="35.0" lon="139.0"/></osm>', encoding="utf-8"
+    )
+    second.write_text(
+        '<osm><node id="1" lat="36.0" lon="140.0"/></osm>', encoding="utf-8"
+    )
+    origins = []
+
+    class _Origin:
+        def __init__(self, lat, lon) -> None:
+            self.value = (lat, lon)
+
+    class _Projector:
+        def __init__(self, origin) -> None:
+            self.origin = origin.value
+
+    def _utm_projector(origin, *_args):
+        origins.append(origin.value)
+        return _Projector(origin)
+
+    fake_lanelet2 = types.SimpleNamespace(
+        io=types.SimpleNamespace(Origin=_Origin),
+        projection=types.SimpleNamespace(UtmProjector=_utm_projector),
+    )
+    monkeypatch.delitem(
+        sys.modules, "autoware_lanelet2_extension_python", raising=False
+    )
+    monkeypatch.delitem(
+        sys.modules,
+        "autoware_lanelet2_extension_python.projection",
+        raising=False,
+    )
+    monkeypatch.setitem(sys.modules, "lanelet2", fake_lanelet2)
+
+    assert install_lanelet2_projection_fallback(first)
+    from autoware_lanelet2_extension_python.projection import (
+        MGRSProjector as first_factory,
+    )
+
+    assert first_factory(None).origin == (35.0, 139.0)
+    assert install_lanelet2_projection_fallback(second)
+    from autoware_lanelet2_extension_python.projection import (
+        MGRSProjector as second_factory,
+    )
+
+    assert second_factory(None).origin == (36.0, 140.0)
+    assert origins == [(35.0, 139.0), (36.0, 140.0)]
+
+
 def test_sanitize_lanelet2_map_removes_only_unsupported_relations(tmp_path) -> None:
     source = tmp_path / "source.osm"
     destination = tmp_path / "sanitized.osm"

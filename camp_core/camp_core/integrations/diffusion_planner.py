@@ -167,12 +167,28 @@ def install_lanelet2_projection_fallback(map_path: Union[str, Path]) -> bool:
     is unavailable, install a process-local compatibility module whose factory
     returns a standard Lanelet2 UTM projector centered on the map.
     """
+    source = Path(map_path)
+    source_sha256 = hashlib.sha256(source.read_bytes()).hexdigest()
     try:
         from autoware_lanelet2_extension_python.projection import MGRSProjector  # noqa: F401
-
-        return False
     except ImportError:
         pass
+    else:
+        projection_module = sys.modules.get(
+            "autoware_lanelet2_extension_python.projection"
+        )
+        fallback_sha256 = getattr(
+            projection_module, "__camp_fallback_map_sha256__", None
+        )
+        if fallback_sha256 is None:
+            return False
+        if fallback_sha256 == source_sha256:
+            return False
+        # The compatibility projector is map-origin-specific. Reinstall it
+        # when a sequential corpus switches source maps; never evict a real
+        # Autoware extension (which has no CAMP fallback marker).
+        sys.modules.pop("autoware_lanelet2_extension_python.projection", None)
+        sys.modules.pop("autoware_lanelet2_extension_python", None)
 
     try:
         import lanelet2
@@ -185,13 +201,13 @@ def install_lanelet2_projection_fallback(map_path: Union[str, Path]) -> bool:
     node = next(
         (
             element
-            for _, element in ET.iterparse(str(map_path), events=("start",))
+            for _, element in ET.iterparse(str(source), events=("start",))
             if element.tag == "node"
         ),
         None,
     )
     if node is None or "lat" not in node.attrib or "lon" not in node.attrib:
-        raise ValueError(f"Lanelet2 map {map_path} has no georeferenced node.")
+        raise ValueError(f"Lanelet2 map {source} has no georeferenced node.")
 
     origin = lanelet2.io.Origin(
         float(node.attrib["lat"]),
@@ -209,7 +225,10 @@ def install_lanelet2_projection_fallback(map_path: Union[str, Path]) -> bool:
         return projector
 
     projection.MGRSProjector = mgrs_projector
+    projection.__camp_fallback_map_sha256__ = source_sha256
+    projection.__camp_fallback_map_path__ = str(source.resolve())
     package.projection = projection
+    package.__camp_projection_fallback__ = True
     sys.modules["autoware_lanelet2_extension_python"] = package
     sys.modules["autoware_lanelet2_extension_python.projection"] = projection
     return True
