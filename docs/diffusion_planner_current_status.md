@@ -12,29 +12,38 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-Startup reconciliation is complete. Local `main`, origin/GitHub, and AutoDL
-CAMP are aligned at `3f25b697eb99b55e79388c90147b1fc3d18423ef`; fixed DP is
-tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no V24/V25
-long task was active; and `48,674,500,608` bytes remained free. V24 is frozen
-as Legacy Benchmark A with final decision `honest_no_claim`; its holdout state
-remains open-count one and rerun-forbidden. V25 next performs the outcome-blind
-14D atom and causal-context audit/freeze. No V25 training, calibration,
-scenario-corpus generation, Fresh Benchmark B open, claim, promotion,
-deployment, or online activation has occurred.
+Phase 2 passed and sealed a train-only scientific audit of all 14 approved
+atoms across 67,796 snapshots and 542,368 fixed-DP candidate rows. All atoms
+remain in the 14D arm; the first nine form the explicit paper-consistent 9D
+ablation. Four high-redundancy pairs were disclosed rather than silently
+removed. The 26-feature causal context schema and 53-dimensional complement
+lift are frozen, but the V24 snapshots contain no raw context and their only
+available source-valid fraction is constant. Scene-conditioned utility must
+therefore pass a phase 3 outcome-blind live-request capability pilot before
+training. Fixed DP remains clean; V24 holdout and Fresh Benchmark B stayed
+closed. No training, calibration, claim, promotion, deployment, or online
+activation occurred.
 
-current_v25_status=v25_startup_v24_reconciliation_complete
-current_v25_startup_base_head=3f25b697eb99b55e79388c90147b1fc3d18423ef
+current_v25_status=v25_atom_context_audit_freeze_passed_phase3_context_capability_required
+current_v25_source_head=fe356ef7a441dd75c1d524105117e01fb6665223
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_atom_context_audit_20260717T114320CST
+current_v25_artifact_root_sha256=5135bebe8a78942fb91ec72957db5e0386b15f99bcf4e8bca35be2a98d00241c
+current_v25_atom_schema=dp_camp_v10_14d
+current_v25_paper_subset=camp_legacy_v1_9d
+current_v25_context_schema=camp_dp_v25_causal_context_raw_v1
+current_v25_context_raw_feature_count=26
+current_v25_phi_dimension=53
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
 v24_holdout_open_count=1
 v24_holdout_rerun_authorized=false
-local_origin_github_aligned=true
-autodl_camp_aligned=true
-autodl_dp_clean=true
+current_v25_v24_holdout_read=false
+current_v25_fresh_benchmark_b_opened=false
+local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48674500608
-current_v25_phase=1_startup_v24_reconciliation
-next_work_target=v25_atom_context_audit_and_freeze
+observed_autodl_free_bytes=48673611776
+current_v25_phase=2_atom_context_audit_and_freeze
+next_work_target=v25_scene_conditioned_implementation_and_context_capability_pilot
 
 ## Current V24 Status
 

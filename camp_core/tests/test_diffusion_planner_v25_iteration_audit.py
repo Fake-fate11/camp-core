@@ -13,19 +13,26 @@ V24_PAIRED_CONFIG = (
 )
 
 POINTER = (
-    "current_v25_status=v25_startup_v24_reconciliation_complete",
-    "current_v25_startup_base_head=3f25b697eb99b55e79388c90147b1fc3d18423ef",
+    "current_v25_status=v25_atom_context_audit_freeze_passed_phase3_context_capability_required",
+    "current_v25_source_head=fe356ef7a441dd75c1d524105117e01fb6665223",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_atom_context_audit_20260717T114320CST",
+    "current_v25_artifact_root_sha256=5135bebe8a78942fb91ec72957db5e0386b15f99bcf4e8bca35be2a98d00241c",
+    "current_v25_atom_schema=dp_camp_v10_14d",
+    "current_v25_paper_subset=camp_legacy_v1_9d",
+    "current_v25_context_schema=camp_dp_v25_causal_context_raw_v1",
+    "current_v25_context_raw_feature_count=26",
+    "current_v25_phi_dimension=53",
     "v24_legacy_benchmark_status=frozen_read_only_honest_no_claim",
     "v24_holdout_open_count=1",
     "v24_holdout_rerun_authorized=false",
-    "local_origin_github_aligned=true",
-    "autodl_camp_aligned=true",
-    "autodl_dp_clean=true",
+    "current_v25_v24_holdout_read=false",
+    "current_v25_fresh_benchmark_b_opened=false",
+    "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=48674500608",
-    "current_v25_phase=1_startup_v24_reconciliation",
-    "next_work_target=v25_atom_context_audit_and_freeze",
+    "observed_autodl_free_bytes=48673611776",
+    "current_v25_phase=2_atom_context_audit_and_freeze",
+    "next_work_target=v25_scene_conditioned_implementation_and_context_capability_pilot",
 )
 
 
@@ -68,5 +75,22 @@ def test_v25_startup_record_bounds_legacy_evidence_and_baseline_language() -> No
         "candidate 0 is the DP operational default",
         "not native-ranked Top-1",
         "must not tune V25 atoms, weights, thresholds, margins, or sample composition",
+    ):
+        assert phrase in text
+
+
+def test_v25_phase2_atom_context_audit_is_sealed_and_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Phase 2: Atom and Causal-Context Audit/Freeze",
+        "67,796 snapshots and 542,368 candidate rows",
+        "4 high-redundancy pairs",
+        "candidate 0 DP operational-default reference",
+        "native ranking is not claimed",
+        "26 raw features",
+        "53-dimensional complement-lift",
+        "candidate_source_valid_fraction was exactly 1.0",
+        "phase 3 outcome-blind capability pilot",
+        "5135bebe8a78942fb91ec72957db5e0386b15f99bcf4e8bca35be2a98d00241c",
     ):
         assert phrase in text
