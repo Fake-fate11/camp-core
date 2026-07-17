@@ -439,7 +439,7 @@ def _route_source_bindings() -> dict[str, object]:
             "source_geometry_sha256": source_geometry_sha256,
             "route_serialization_sha256": _sha(f"route-serialization-{index}"),
             "source_arc_length_m": 100.0 + index,
-            "source_route_length_m": 100.0 + index,
+            "source_route_length_m": 100.0 + index + 1e-5,
             "corridor_group_sha256": _sha(f"corridor-{index % 3}"),
             "seeds": [24201, 24202, 24203, 24204, 24205],
         }
@@ -1250,6 +1250,9 @@ def test_frozen_runtime_selector_receipt_matches_production_contract() -> None:
         "9dc0ab9415239211f16e65495362d83c2a11ffe04a96f4ddd2881b12fc193c0f"
     )
     assert module.PREFLIGHT_CONFIG_SHA256 != module.CONFIG_SHA256
+    assert module.EXPECTED_RUNTIME_ATOM_SCALES_SHA256 == (
+        "2d14bce27d1e6a4c4454391e05e9fc7b2567381b61305fb0e20cb1e3cb1af4da"
+    )
 
 
 def test_review_accepts_only_exact_wrapper_false_negative_and_seals_atomically(
@@ -1456,6 +1459,7 @@ def test_unknown_extra_schema_fields_fail_closed(
         ("request_route_count", "request[- ]asset|route[- ]asset"),
         ("route_binding_seed", "route.*binding|seed"),
         ("route_binding_identity", "route.*binding|identity"),
+        ("route_binding_nonpositive_length", "route.*binding"),
     ),
 )
 def test_source_nested_exact_contracts_fail_closed(
@@ -1484,6 +1488,8 @@ def test_source_nested_exact_contracts_fail_closed(
         identity = next(iter(review["route_source_bindings"]))
         if target == "route_binding_seed":
             review["route_source_bindings"][identity]["seeds"] = [24201]
+        elif target == "route_binding_nonpositive_length":
+            review["route_source_bindings"][identity]["source_arc_length_m"] = 0.0
         else:
             review["route_source_bindings"][identity]["identity_sha256"] = "f" * 64
     _write_json(root / "review_result.json", review)

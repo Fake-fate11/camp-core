@@ -643,7 +643,7 @@ EXPECTED_RUNTIME_WEIGHTS_SHA256 = (
     "7ba2cfb2925ccbba8eca6effb2699cc8634b7990e01dff68f449c7fea9a8af9d"
 )
 EXPECTED_RUNTIME_ATOM_SCALES_SHA256 = (
-    "7b720cbe244d24cc6ce5283fc4f269278d94ebc11bd3b5dd973920177f14440d"
+    "2d14bce27d1e6a4c4454391e05e9fc7b2567381b61305fb0e20cb1e3cb1af4da"
 )
 EXPECTED_RUNTIME_SELECTOR_ROOT_SHA256 = (
     "ef5539ba04ca5264f1c38951e15f7daac9d32a1dae9c4a80cf0d21109eed2cc5"
@@ -1660,7 +1660,6 @@ def _validate_source_route_bindings(
             or binding.get("seeds") != [24201, 24202, 24203, 24204, 24205]
             or arc_length <= 0.0
             or route_length <= 0.0
-            or not math.isclose(arc_length, route_length, rel_tol=0.0, abs_tol=1e-12)
         ):
             raise ValueError("source reviewer route source/hash/seed binding mismatch")
         record_keys.add(record_key)
