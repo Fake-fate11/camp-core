@@ -77,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--probe-template", type=Path, required=True)
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     return parser.parse_args()
 
 
