@@ -784,8 +784,134 @@ calibration=false, and Fresh=false. The next gate is Ultra's read-only S0.1
 review; no full worker or replacement monitor may start before a separate
 release.
 
-current_v25_status=v25_s01_correction_preflight_passed_ultra_read_only_review_required
-current_v25_source_head=e6ba79a229ea3cc8e3a69d776ea1913cff8e3279
+## Stage A: Static 14D Atom Ledger and Independent Validation
+
+Ultra's 2026-07-17 S0.1 decision released only bounded Stage A, with R and all
+later stages still closed. The implementation source range is
+`f40b615206eaa4aacce10849bc5719110c9a5b91` through
+`e07da58f6f589487cf5e41bcf347ec6e18c589c3`; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+### A0 authority hardening
+
+The shared V25 seal verifier now requires a nonempty UTF-8 manifest, lowercase
+SHA256 values, safe POSIX relative paths, unique entries, exact recursive file
+inventory, regular files/directories, and no symlinks or special nodes. TDD
+covers unlisted files, traversal, duplicates, empty manifests, symlinks, and
+overflowing finite simplex inputs. Generic `CAMPSelector` static and learned
+fallback weights now use one strict finite/nonnegative/finite-positive-total
+normalizer; NaN, Inf, negatives, zero mass, and finite-element sum overflow
+fail closed instead of `nan_to_num`, truncation, or uniform repair. The native
+fixed-R sequential path and fixed candidates were not changed.
+
+The first A0 invocation is immutable diagnostic failure evidence:
+
+`/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_f40b6152_20260717T192912CST`
+/
+`025dcd686ee44a681b14cc3ad8b5e64e885316b0f334d89096fda19d6cd8b810`.
+
+It stopped with `run.exit=1` because the new exact validator correctly rejected
+an incorrectly transcribed historical formal-source CAMP HEAD. No ledger or
+model work started. The constant was corrected to the sealed formal receipt
+`ff02838780c7b2fa7fc557680e43d85967ee843e` and covered by regression TDD.
+
+The passed A0 supplement is:
+
+`/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_01073398_20260717T193038CST`
+/
+`b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41`.
+
+It independently rehashed exact inventories for the S0.1 failed preflight,
+passed preflight, passed review, and formal source: `2/23/3/10` manifest files,
+respectively, with no unsafe, duplicate, missing, extra, symlink, special, or
+hash-mismatched entry. It also proved that the two S0.1 configs are precisely
+formal identity0 lead-brake/easy and formal red-light/easy, field-equal in
+scenario/family/tier/route/seed and sharing the frozen template, generation
+scales, and weights. The existing 3x64 model probes were not rerun.
+
+### Immutable ledger and independent math receipt
+
+The 14-row immutable semantics ledger and minimal raw numeric sidecar are:
+
+`/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_01073398_20260717T193052CST`
+/
+`05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2`.
+
+It binds S0.1 source `e6ba79a2...`, final S0.1 release baseline `000d4308...`,
+the A0 root, formal/preflight/review roots, fixed DP, and rejected partial-corpus
+root `a2f69cdc...`. Every row fixes order, 9D membership, formula/unit/dt,
+finite/nonnegative/raw bounds, generation scale provenance and SHA, clip,
+four-state source policy, invalid/mask behavior, monotonic domain, K8 and
+route/lane/neighbor/signal/candidate0 dependencies, forbidden sources, and
+zero/positive/distinguishing fixtures. The paper subset is exactly canonical
+14D indices `0:9`; no atom was silently deleted.
+
+The first validator root
+`00fdceb44380d5f6aa18af3fdc4a0c122f302f36845db7ea137cd44feb7fe4e8`
+is retained but superseded because one JSON check was truthy string-valued
+rather than exact boolean. Numeric and scientific results did not change. The
+final exact-boolean independent validation is:
+
+`/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_e07da58f_20260717T193156CST`
+/
+`e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72`.
+
+The validator used explicit scalar `raw/scale`, `[0,10]` clipping, affine sums,
+eligible argmin and lowest-index tie-breaking; it did not import producer score
+results. It exactly matched all 8x14 normalized values and eight scores, the
+selected index, 9D prefix, source/physical masks, and eight distinct candidate
+SHAs. Independent algebra also proved `jerk_full=jerk_early+jerk_late` and the
+ordered `0/0.5/1.0 m/s` speed-margin increments. Results are 8 PASS, 6 WARN,
+0 FAIL:
+
+- PASS: `jerk_early`, `jerk_late`, `jerk_full`, `rms_acceleration`,
+  `speed_limit_margin_1_0`, `clearance`,
+  `planned_lateral_acceleration_cost`, `dp_prior_jerk_excess_cost`;
+- WARN: `speed_limit_margin_0_0`, `speed_limit_margin_0_5`, `lane_deviation`
+  because their current generation scales are legacy `1e-6` floors;
+  `planned_red_light_cost` and `red_stopping_margin_cost` because continuous
+  support is sparse/scale-sensitive; and `progress_shortfall` because Ultra
+  must choose its reference policy.
+
+The 192-tick S0 artifact stores atom and normalized-atom hashes, not per-atom
+raw values. Therefore Stage A honestly records per-atom zero/positive/saturation
+as unavailable rather than inferring them. The only available S0 diagnostic is
+the aggregate above-clip count `839 + 839 + 1536 = 3214 / 21504`. The three
+`1e-6` generation scales and red-stopping `4.952895923795447e-4` are explicitly
+not final training scales. Before R statistics, Stage B's estimator is frozen
+to source-valid/applicable, source-independent semantic-block-weighted positive
+raw support, q95, at least 20 unique blocks and 128 positive candidate rows;
+the red binary alternative is `1(raw>0)` with scale 1.0 and cannot silently
+replace the continuous atom.
+
+### Pending progress decision and R coverage gate
+
+The sidecar evaluates both progress references on mixed masks, all-K-high-risk,
+and empty-reference fixtures. Both prohibit candidate0/all-K fallback and fail
+closed when their reference set is empty. Stage A recommends
+`source_valid_candidate_set_reference` because it remains defined on an
+all-K-physically-bad but source-valid set; this is a recommendation, not a
+freeze, and requires Ultra decision before R.
+
+Formal red inventory is 21 executable identities: easy/borderline/high-risk
+`6/10/5`, 21 route families, four source maps, and one corridor group. R's
+outcome-blind scientific minimum is frozen to completed mapped-current-signal
+coverage `4/7/4` by tier and at least three source maps. All failures remain in
+the denominator, but 21/21 retained capability failures now make the artifact
+`scientifically_ineligible` and block B/training even though 21 is below the
+separate retained-failure cap 32.
+
+AutoDL passed 41 focused Stage-A tests and 40 selector/fallback integration
+tests; pycompile, JSON parsing, and diff checks passed. CAMP local/origin/GitHub/
+AutoDL source aligned at `e07da58f6f589487cf5e41bcf347ec6e18c589c3` before
+this documentation record, fixed DP was clean, worker/GPU counts were zero,
+the lock was free, and disk free was 48,495,505,408 bytes. R, a 1500 worker or
+monitor, B/C/D, Scene runtime, training, calibration, Fresh B2, promotion, and
+activation remain closed. The next gate is Ultra read-only Stage-A review and
+the progress-reference decision.
+
+current_v25_status=v25_stage_a_passed_with_warnings_ultra_review_and_progress_decision_required
+current_v25_source_head=e07da58f6f589487cf5e41bcf347ec6e18c589c3
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
 current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
@@ -807,6 +933,24 @@ current_v25_correction_preflight_candidate_immutability=true
 current_v25_correction_preflight_candidate0_operational_default_alias=true
 current_v25_s01_remote_focused_test_count=65
 current_v25_s01_remote_pointer_test_count=10
+current_v25_stage_a0_failed_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_f40b6152_20260717T192912CST
+current_v25_stage_a0_failed_artifact_root_sha256=025dcd686ee44a681b14cc3ad8b5e64e885316b0f334d89096fda19d6cd8b810
+current_v25_stage_a0_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_01073398_20260717T193038CST
+current_v25_stage_a0_artifact_root_sha256=b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41
+current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_01073398_20260717T193052CST
+current_v25_atom_ledger_artifact_root_sha256=05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2
+current_v25_atom_ledger_superseded_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_01073398_20260717T193052CST
+current_v25_atom_ledger_superseded_validation_artifact_root_sha256=00fdceb44380d5f6aa18af3fdc4a0c122f302f36845db7ea137cd44feb7fe4e8
+current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_e07da58f_20260717T193156CST
+current_v25_atom_ledger_validation_artifact_root_sha256=e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72
+current_v25_stage_a_atom_pass_count=8
+current_v25_stage_a_atom_warn_count=6
+current_v25_stage_a_atom_fail_count=0
+current_v25_stage_a_progress_reference_recommendation=source_valid_candidate_set_reference
+current_v25_stage_a_progress_reference_frozen=false
+current_v25_stage_a_s01_per_atom_raw_statistics_available=false
+current_v25_stage_a_remote_focused_test_count=41
+current_v25_stage_a_remote_selector_test_count=40
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
@@ -839,7 +983,7 @@ current_v25_fresh_b_independent_corridor_ceiling=3
 current_v25_fresh_b_v1_status=superseded_before_opening
 current_v25_fresh_b2_opened=false
 current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json
-current_v25_stage_a_executed=false
+current_v25_stage_a_executed=true
 current_v25_corrected_full_corpus_started=false
 current_v25_old_monitor_status=deleted
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
@@ -849,6 +993,6 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48497549312
-current_v25_phase=S0_1_correction_preflight_decision_package
-next_work_target=ultra_read_only_S0_1_review_required_before_stage_A_or_R
+observed_autodl_free_bytes=48495505408
+current_v25_phase=A_static_atom_ledger_decision_package
+next_work_target=ultra_read_only_stage_A_review_and_progress_reference_decision_before_R

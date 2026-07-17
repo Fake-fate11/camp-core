@@ -12,34 +12,45 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-The stopped 1,500-identity attempt remains the current rejected corpus
-authority: 122 attempted, 121 complete, one failed, 7,748 snapshots, four
-illegal partial snapshots, and 1,121 all-K-high-risk snapshots. Its bytes and
-running progress state are unchanged; the separate diagnostic seal and review
-remain training/calibration/evaluation-ineligible.
+The stopped 1,500-identity attempt remains the rejected corpus authority: 122
+attempted, 121 complete, one failed, 7,748 snapshots, four illegal partial
+snapshots, and 1,121 all-K-high-risk snapshots. It remains
+training/calibration/evaluation-ineligible and appears in every new artifact's
+`rejected_roots`; no stopped bytes or historical V24/Fresh evidence changed.
 
-Ultra released only the narrow S0.1 correction. It is implemented at source
-HEAD `e6ba79a229ea3cc8e3a69d776ea1913cff8e3279`: learned dedicated fallback now
-rejects nonfinite/nonpositive scales, nonfinite weights and atom inputs, and
-uses the shared 14D canonical clip; scenario capability retention is typed,
-formally allowlisted and capped; all other runtime exceptions fail closed.
-The bounded reviewer and future full-corpus executor now bind exact source,
-fixed-DP, formal/template/scale/config/seed/rejected-root/schema/run-exit
-authority. Per-tick fingerprints retain and independently check DP default and
-candidate0 identity as one operational-default alias, not a second forward.
+Ultra accepted S0.1 and released only bounded Stage A. A0 first unified the
+recursive seal verifier and proved exact nonempty manifests, safe paths, no
+duplicates, exact recursive inventory, regular nodes, and no symlinks over the
+failed S0.1 preflight, passed preflight, passed review, and formal source roots.
+It also bound the two probe configs to the exact formal identity0 and
+red-light/easy cases and their shared template/scales/weights. The first A0
+invocation failed closed on an incorrectly transcribed historical formal CAMP
+HEAD; that immutable failed receipt is retained. The corrected A0 supplement
+passed at root `b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41`.
 
-The first S0.1 invocation failed closed before model execution because the
-operator supplied the wrong same-named template; its immutable `run.exit=1`
-artifact is retained below. The corrected bounded sequential-K8 preflight then
-passed all 12 checks over three 64-tick probes, and strengthened review passed
-all 28 checks. AutoDL passed 65 focused S0.1 tests plus 10 final pointer tests. No full
-corpus, Stage A ledger execution, Scene runtime, training, calibration, Fresh
-B2, promotion, or activation started. Worker count is zero, GPU is idle, and
-the execution lock is free. S0.1 now waits for Ultra's read-only decision; A,
-R, and every later DAG stage remain unauthorized until separately released.
+The immutable 14-row semantics ledger and raw 8x14 numeric sidecar then sealed
+at root `05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2`.
+The independent validator did not import producer score results: it explicitly
+recomputed every clip, affine score, eligible argmin/tie, 9D prefix, and the
+source-valid/physical-feasible progress adversarial cases. Its final root is
+`e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72`:
+8 atoms PASS, 6 WARN, 0 FAIL. WARN means generation-scale/support or pending
+progress-reference evidence, not silent atom removal. Ultra must choose the
+progress reference before R; the package recommends source-valid because it
+remains defined for all-K-high-risk source-valid sets, while both options still
+fail closed on an empty reference set.
 
-current_v25_status=v25_s01_correction_preflight_passed_ultra_read_only_review_required
-current_v25_source_head=e6ba79a229ea3cc8e3a69d776ea1913cff8e3279
+The formal signal census is 21 executable red identities (easy/borderline/high
+`6/10/5`) over four source maps. R is now pre-registered to require completed
+mapped-current-signal coverage of at least `4/7/4` by tier and at least three
+source maps; therefore 21/21 retained capability failures cannot scientifically
+pass despite the separate cap of 32. AutoDL passed 41 focused Stage-A tests and
+40 selector/fallback integration tests. No model/GPU task, full corpus, Scene
+runtime, training, calibration, Fresh B2, promotion, or activation started.
+Worker count is zero, GPU is idle, the lock is free, and Fresh remains false.
+
+current_v25_status=v25_stage_a_passed_with_warnings_ultra_review_and_progress_decision_required
+current_v25_source_head=e07da58f6f589487cf5e41bcf347ec6e18c589c3
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
 current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
@@ -61,6 +72,24 @@ current_v25_correction_preflight_candidate_immutability=true
 current_v25_correction_preflight_candidate0_operational_default_alias=true
 current_v25_s01_remote_focused_test_count=65
 current_v25_s01_remote_pointer_test_count=10
+current_v25_stage_a0_failed_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_f40b6152_20260717T192912CST
+current_v25_stage_a0_failed_artifact_root_sha256=025dcd686ee44a681b14cc3ad8b5e64e885316b0f334d89096fda19d6cd8b810
+current_v25_stage_a0_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_01073398_20260717T193038CST
+current_v25_stage_a0_artifact_root_sha256=b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41
+current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_01073398_20260717T193052CST
+current_v25_atom_ledger_artifact_root_sha256=05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2
+current_v25_atom_ledger_superseded_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_01073398_20260717T193052CST
+current_v25_atom_ledger_superseded_validation_artifact_root_sha256=00fdceb44380d5f6aa18af3fdc4a0c122f302f36845db7ea137cd44feb7fe4e8
+current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_e07da58f_20260717T193156CST
+current_v25_atom_ledger_validation_artifact_root_sha256=e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72
+current_v25_stage_a_atom_pass_count=8
+current_v25_stage_a_atom_warn_count=6
+current_v25_stage_a_atom_fail_count=0
+current_v25_stage_a_progress_reference_recommendation=source_valid_candidate_set_reference
+current_v25_stage_a_progress_reference_frozen=false
+current_v25_stage_a_s01_per_atom_raw_statistics_available=false
+current_v25_stage_a_remote_focused_test_count=41
+current_v25_stage_a_remote_selector_test_count=40
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
@@ -93,7 +122,7 @@ current_v25_fresh_b_independent_corridor_ceiling=3
 current_v25_fresh_b_v1_status=superseded_before_opening
 current_v25_fresh_b2_opened=false
 current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json
-current_v25_stage_a_executed=false
+current_v25_stage_a_executed=true
 current_v25_corrected_full_corpus_started=false
 current_v25_old_monitor_status=deleted
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
@@ -103,9 +132,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48497549312
-current_v25_phase=S0_1_correction_preflight_decision_package
-next_work_target=ultra_read_only_S0_1_review_required_before_stage_A_or_R
+observed_autodl_free_bytes=48495505408
+current_v25_phase=A_static_atom_ledger_decision_package
+next_work_target=ultra_read_only_stage_A_review_and_progress_reference_decision_before_R
 
 ## Current V24 Status
 

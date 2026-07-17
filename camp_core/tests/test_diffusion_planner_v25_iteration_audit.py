@@ -13,8 +13,8 @@ V24_PAIRED_CONFIG = (
 )
 
 POINTER = (
-    "current_v25_status=v25_s01_correction_preflight_passed_ultra_read_only_review_required",
-    "current_v25_source_head=e6ba79a229ea3cc8e3a69d776ea1913cff8e3279",
+    "current_v25_status=v25_stage_a_passed_with_warnings_ultra_review_and_progress_decision_required",
+    "current_v25_source_head=e07da58f6f589487cf5e41bcf347ec6e18c589c3",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST",
     "current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
@@ -36,6 +36,24 @@ POINTER = (
     "current_v25_correction_preflight_candidate0_operational_default_alias=true",
     "current_v25_s01_remote_focused_test_count=65",
     "current_v25_s01_remote_pointer_test_count=10",
+    "current_v25_stage_a0_failed_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_f40b6152_20260717T192912CST",
+    "current_v25_stage_a0_failed_artifact_root_sha256=025dcd686ee44a681b14cc3ad8b5e64e885316b0f334d89096fda19d6cd8b810",
+    "current_v25_stage_a0_artifact=/root/autodl-tmp/camp_dp_v25_stage_a0_authority_supplement_01073398_20260717T193038CST",
+    "current_v25_stage_a0_artifact_root_sha256=b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41",
+    "current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_01073398_20260717T193052CST",
+    "current_v25_atom_ledger_artifact_root_sha256=05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2",
+    "current_v25_atom_ledger_superseded_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_01073398_20260717T193052CST",
+    "current_v25_atom_ledger_superseded_validation_artifact_root_sha256=00fdceb44380d5f6aa18af3fdc4a0c122f302f36845db7ea137cd44feb7fe4e8",
+    "current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_e07da58f_20260717T193156CST",
+    "current_v25_atom_ledger_validation_artifact_root_sha256=e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72",
+    "current_v25_stage_a_atom_pass_count=8",
+    "current_v25_stage_a_atom_warn_count=6",
+    "current_v25_stage_a_atom_fail_count=0",
+    "current_v25_stage_a_progress_reference_recommendation=source_valid_candidate_set_reference",
+    "current_v25_stage_a_progress_reference_frozen=false",
+    "current_v25_stage_a_s01_per_atom_raw_statistics_available=false",
+    "current_v25_stage_a_remote_focused_test_count=41",
+    "current_v25_stage_a_remote_selector_test_count=40",
     "current_v25_atom_schema=dp_camp_v10_14d",
     "current_v25_paper_subset=camp_legacy_v1_9d",
     "current_v25_context_schema=camp_dp_v25_causal_context_raw_v2",
@@ -68,7 +86,7 @@ POINTER = (
     "current_v25_fresh_b_v1_status=superseded_before_opening",
     "current_v25_fresh_b2_opened=false",
     "current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json",
-    "current_v25_stage_a_executed=false",
+    "current_v25_stage_a_executed=true",
     "current_v25_corrected_full_corpus_started=false",
     "current_v25_old_monitor_status=deleted",
     "v24_legacy_benchmark_status=frozen_read_only_honest_no_claim",
@@ -78,9 +96,9 @@ POINTER = (
     "current_v25_fresh_benchmark_b_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=48497549312",
-    "current_v25_phase=S0_1_correction_preflight_decision_package",
-    "next_work_target=ultra_read_only_S0_1_review_required_before_stage_A_or_R",
+    "observed_autodl_free_bytes=48495505408",
+    "current_v25_phase=A_static_atom_ledger_decision_package",
+    "next_work_target=ultra_read_only_stage_A_review_and_progress_reference_decision_before_R",
 )
 
 
@@ -222,6 +240,23 @@ def test_v25_s01_authority_correction_is_sealed_and_waits_for_ultra() -> None:
         "c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a",
         "bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451",
         "facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d",
-        "ultra_read_only_S0_1_review_required_before_stage_A_or_R",
+        "The next gate is Ultra's read-only S0.1",
+    ):
+        assert phrase in text
+
+
+def test_v25_stage_a_ledger_is_sealed_independent_and_stops_before_r() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Stage A: Static 14D Atom Ledger and Independent Validation",
+        "8 PASS, 6 WARN, 0 FAIL",
+        "did not import producer score results",
+        "jerk_full=jerk_early+jerk_late",
+        "source_valid_candidate_set_reference",
+        "21/21 retained capability failures",
+        "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41",
+        "05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2",
+        "e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72",
+        "ultra_read_only_stage_A_review_and_progress_reference_decision_before_R",
     ):
         assert phrase in text
