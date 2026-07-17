@@ -484,7 +484,32 @@ free global lock, zero related processes, clean CAMP/DP, and the 10 GiB disk
 floor. The builder/output must not be rerun; only independent package review
 TDD/static preflight is authorized next.
 
-current_v24_status=v24_evidence_package_and_preregistered_claim_decision_execution_complete_launch_wrapper_false_negative_independent_review_pending
+The evidence/claim independent-review implementation and synthetic TDD are now
+frozen at source HEAD `cb013b56eacd5db8df53d5f22bbb3446481fa276`.
+Local joint verification passed `250` tests with two Windows-only POSIX skips;
+AutoDL Python 3.9 passed all `252` tests. Final independent adversarial review
+found zero P1/P2. The reviewer fixes the production source/evidence/launch
+paths and roots, exact schemas and SHA chains, full reviewed-metrics equality,
+the 14D selector and route/request bindings, holdout-once state, code/test Git
+blobs, current authority, fixed DP, global lock/process guards, and the
+non-degradable 10 GiB floor. All path components are checked before access and
+publication is deterministic atomic no-clobber.
+
+The synthetic-only AutoDL preflight opened no real artifact and sealed exactly
+16 payloads at
+`/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_cb013b56_20260717T093654CST`,
+rooted at
+`6d0cc6c69c9dfc22ea66b3a80894d89f89b35f446578c89fbb0bd11417068411`.
+Its receipt records `real_artifacts_unopened=true`, empty consumed roots, and
+all reviewer/evaluator/runner/model/simulator/holdout operations false. A
+separate read-only check reverified the seal, free lock, clean CAMP/DP heads,
+and `48,677,253,120` free bytes. AB/BA remains `60/60` with independent resets;
+post-divergence cross-arm tensors remain intentionally non-comparable and
+latency remains descriptive-only. Only the one read-only independent-review
+execution is authorized next; no builder, paired arm, or holdout rerun is
+allowed.
+
+current_v24_status=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight_passed
 current_v24_artifact_source_head=f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a
 current_v24_final_synced_head=pending_current_docs_commit_not_source_drift
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
@@ -496,19 +521,24 @@ current_v24_launch_status=sealed_wrapper_validation_false_negative_builder_exit_
 current_v24_reviewer_artifact=/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST
 current_v24_reviewer_artifact_root_sha256=43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf
 current_v24_reviewer_source_head=aff69dfcae3d3dcde79b9c46912493767f9208f2
+current_v24_independent_review_source_head=cb013b56eacd5db8df53d5f22bbb3446481fa276
+current_v24_independent_review_script_sha256=5471aa7cb8ed50eccf2cc59696c204098a812f26f9c5c6737c0977a756a269f4
+current_v24_independent_review_test_sha256=e58206d80cd39f413f99310b8f33572dc4eb06a4ac575a428b707cc6835dbbdc
+current_v24_independent_review_static_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_cb013b56_20260717T093654CST
+current_v24_independent_review_static_artifact_root_sha256=6d0cc6c69c9dfc22ea66b3a80894d89f89b35f446578c89fbb0bd11417068411
 current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json
 current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633
 current_v24_holdout_open_count=1
 current_v24_holdout_rerun_authorized=false
 source_a_status=source_ineligible_missing_authorized_build_prerequisites
 source_a_terminal=true
-source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_independent_review_pending
+source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_independent_review_tdd_static_preflight_passed
 source_b_terminal=false
 authorized_source_count=2
 source_terminal_count=1
 global_stop_authorized=false
 global_stop_reason=none
-next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight
+next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_execution_only
 
 ## Current V23 Status
 
