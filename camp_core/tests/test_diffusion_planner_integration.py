@@ -2883,7 +2883,7 @@ def test_dedicated_fallback_model_is_used_only_for_all_infeasible_branch() -> No
     )
 
 
-def test_dedicated_fallback_model_14d_uses_canonical_clip() -> None:
+def test_source_valid_14d_all_physical_bad_uses_canonical_clip_without_fallback() -> None:
     context = DriverAtomContext(dt=0.1, lane_centerline=None, speed_limit=50.0)
     x = np.linspace(0.0, 7.0, 8)
     candidates = np.stack(
@@ -2907,6 +2907,7 @@ def test_dedicated_fallback_model_14d_uses_canonical_clip() -> None:
         candidate_planned_red_light_cost=np.zeros(8),
         candidate_red_stopping_margin_cost=np.zeros(8),
         candidate_dp_prior_jerk_excess_cost=dp_prior,
+        candidate_source_valid_mask=np.ones(8, dtype=bool),
         external_feasible_mask=np.zeros(8, dtype=bool),
         apply_context_feasibility=False,
     )
@@ -2915,7 +2916,7 @@ def test_dedicated_fallback_model_14d_uses_canonical_clip() -> None:
         canonical_normalize_atoms,
     )
 
-    assert result.used_fallback
+    assert not result.used_fallback
     np.testing.assert_array_equal(
         result.selection_normalized_atoms,
         canonical_normalize_atoms(result.atoms, fallback_scales),
@@ -2994,6 +2995,7 @@ def test_dedicated_fallback_14d_atom_inputs_fail_closed(
             candidate_planned_red_light_cost=red_light,
             candidate_red_stopping_margin_cost=np.zeros(8),
             candidate_dp_prior_jerk_excess_cost=np.zeros(8),
+            candidate_source_valid_mask=np.ones(8, dtype=bool),
             external_feasible_mask=np.zeros(8, dtype=bool),
             apply_context_feasibility=False,
         )
