@@ -2709,8 +2709,8 @@ def test_dp_v10_selector_appends_dp_prior_jerk_excess_atom() -> None:
     x = np.linspace(0.5, 4.0, 8)
     candidates = np.stack(
         [
-            np.column_stack([x, np.zeros_like(x)]),
-            np.column_stack([x, np.full_like(x, 0.1)]),
+            np.column_stack([x, np.full_like(x, 0.1 * index)])
+            for index in range(8)
         ]
     )
     weights = np.zeros(len(DP_CAMP_ATOM_NAMES_V10))
@@ -2724,14 +2724,17 @@ def test_dp_v10_selector_appends_dp_prior_jerk_excess_atom() -> None:
     result = selector.select(
         candidates,
         context,
-        candidate_progress=np.array([10.0, 10.0]),
-        candidate_planned_red_light_cost=np.array([0.0, 0.0]),
-        candidate_red_stopping_margin_cost=np.array([0.0, 0.0]),
-        candidate_dp_prior_jerk_excess_cost=np.array([0.0, 3.0]),
+        candidate_progress=np.full(8, 10.0),
+        candidate_planned_red_light_cost=np.zeros(8),
+        candidate_red_stopping_margin_cost=np.zeros(8),
+        candidate_dp_prior_jerk_excess_cost=np.arange(8, dtype=np.float64) * 3.0,
+        candidate_source_valid_mask=np.ones(8, dtype=bool),
     )
 
-    assert result.atoms.shape == (2, len(DP_CAMP_ATOM_NAMES_V10))
-    np.testing.assert_allclose(result.atoms[:, -1], np.array([0.0, 3.0]))
+    assert result.atoms.shape == (8, len(DP_CAMP_ATOM_NAMES_V10))
+    np.testing.assert_allclose(
+        result.atoms[:, -1], np.arange(8, dtype=np.float64) * 3.0
+    )
     assert result.selected_index == 0
 
 
@@ -2745,8 +2748,8 @@ def test_dp_v10_selector_rejects_invalid_dp_prior_jerk_excess_atom() -> None:
     x = np.linspace(0.5, 4.0, 8)
     candidates = np.stack(
         [
-            np.column_stack([x, np.zeros_like(x)]),
-            np.column_stack([x, np.full_like(x, 0.1)]),
+            np.column_stack([x, np.full_like(x, 0.1 * index)])
+            for index in range(8)
         ]
     )
     selector = CAMPSelector(
@@ -2759,10 +2762,13 @@ def test_dp_v10_selector_rejects_invalid_dp_prior_jerk_excess_atom() -> None:
         selector.select(
             candidates,
             context,
-            candidate_progress=np.array([10.0, 10.0]),
-            candidate_planned_red_light_cost=np.array([0.0, 0.0]),
-            candidate_red_stopping_margin_cost=np.array([0.0, 0.0]),
-            candidate_dp_prior_jerk_excess_cost=np.array([0.0, np.nan]),
+            candidate_progress=np.full(8, 10.0),
+            candidate_planned_red_light_cost=np.zeros(8),
+            candidate_red_stopping_margin_cost=np.zeros(8),
+            candidate_dp_prior_jerk_excess_cost=np.array(
+                [0.0, np.nan, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            ),
+            candidate_source_valid_mask=np.ones(8, dtype=bool),
         )
 
 
