@@ -1209,3 +1209,168 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=48487464960
 current_v25_phase=A1_R0_bounded_decision_package
 next_work_target=ultra_read_only_A1_R0_review_before_full_R
+
+## Stage A1.1/R0.1: Stop-Line Authority, Cross-Map Correctness, and Full Bounded Coverage
+
+Ultra's A1/R0 read-only decision blocked full R and released only the bounded
+A1.1/R0.1 correction. The released implementation range ends at artifact
+source HEAD `de1a21ee2a96a48e3f2e854156538bda5177b477`; fixed DP stayed clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. No DP code, configuration,
+checkpoint, weights, K=8 candidate tensors, trajectories, or request semantics
+were changed.
+
+### A1.1 semantics and authority
+
+The authorized red-stopping atom now consumes only the uniquely certified
+stop-line geometry transformed into the current ego frame. Its causal input is
+bound to the TrafficLightRegulatoryElement, physical lights/bulbs, controlled
+lanelet, stop-line geometry SHA, route-arc relation, source-chain SHA, same-tick
+phase receipt, and semantic-clone SHA. Wrong/multiple/missing stop lines,
+wrong chain/phase, stale/replayed/future inputs, and route-arc mismatches fail
+closed. Nearby uncertified lines cannot affect the atom.
+
+The ledger and production formulas are exact for asymmetric left/right lane
+widths and candidate-specific OBB surface clearance
+`dt*sum(max(3m-clearance,0)^2)`. Snapshot schema v3 stores strict `[8,14]`
+atom-source-valid and applicability masks separately from the candidate-level
+physical-feasible mask. Source-valid eligibility remains frozen, empty
+source-valid sets fail closed, and all-K-physically-bad rows remain in the
+denominator. Generic 14D selection requires K=8, an explicit strict bool source
+mask, and finite nonnegative route-projected progress; legacy behavior is
+isolated.
+
+The v4 ledger plan contains the full S0->A->R->B->C/D->E1->T/E2->Q->F/E3 DAG,
+including separate C and D entry/exit/Ultra-release contracts. An initial
+validator attempt correctly failed closed because the producer emitted the
+older compact C/D representation; failed root
+`4d51394f8f4f61680fb65bd82062096fbaa72149862c4a6289f7f46927402b20`
+was preserved. The final producer and independent validator bind an identical
+exact DAG without importing producer status or score summaries.
+
+Final immutable A1.1 roots:
+
+- decision: `/root/autodl-tmp/camp_dp_v25_ultra_stage_a11_r01_decision_de1a21ee_20260717T223757CST`
+  / `d98929000c09cbe1f3bcdc7f57290091e0be31e67726f4920d201bc98292897e`;
+- 14-row ledger: `/root/autodl-tmp/camp_dp_v25_static_atom_ledger_a11_de1a21ee_20260717T223757CST`
+  / `836d5468fd05cdbd837037352d14cd20fb21a6b653ece41272bb85b30c42ad82`;
+- independent validation: `/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a11_de1a21ee_20260717T223757CST`
+  / `a37fd179db35ab51b4ca08c99e669c3b62ecb5804a3679fafd9b35450d618352`.
+
+The atom result remains 9 PASS, 5 WARN, 0 FAIL. WARN denotes generation-scale
+or future sealed-train support limits, never silent atom deletion. Static14D
+and Scene14D still mean all 14 approved atoms; 9D remains an ablation only.
+Generation scales and canonical `[0,10]` clipping are unchanged. The
+red-outcome evaluator's legacy 10 m nearest-line heuristic remains an explicit
+calibration/Fresh-B2 hard gate. Passive latency instrumentation is planned, but
+no micro-batch/cache/sharding optimization was mixed into this correctness run.
+
+The earlier A1/R0 roots `f8ecaf1a...`, `947d4b00...`, `69f02664...`,
+`c8b8b926...`, `209fc00b...`, and `e948eb17...`, plus intermediate roots from
+the 1bfb/24c/546 correction HEADs, are preserved as superseded diagnostic
+evidence. None can authorize full-config preflight or full R.
+
+### R0.1 source census and physical independence
+
+The source-only qualification validated all 21 formal red identities and one
+source-qualified non-signal identity. Physical independence is reported as four
+source-map files, nine SE(2)-invariant source/ID-independent physical signatures,
+five stop-line geometry SHAs, and 21 validated identity-chain receipts; 21 is
+not claimed as 21 independent intersections. Each signature is computed from
+certified controlled centerline and stop-line geometry in the stop-midpoint
+route-tangent/normal frame and excludes source path/family,
+map/route/scenario/split/seed IDs, actor order, and outcomes/future fields.
+
+The first R0.1 census incorrectly counted 21 full-route hashes as physical
+signatures and failed closed at root
+`b491a1fd8c82fd7165bf08763cc1e12f9a1bfe5e89cb7e2b6e8133a2f0958d87`.
+That root is diagnostic only. The corrected source artifact and independent
+review recompute the nine physical signatures from source maps:
+
+- source: `/root/autodl-tmp/camp_dp_v25_r01_authority_source_de1a21ee_20260717T223757CST`
+  / `e099837be509085fd761244ca676d387ee4debfe0214cf22057b631ba4dff1fa`;
+- review: `/root/autodl-tmp/camp_dp_v25_r01_authority_source_review_de1a21ee_20260717T223757CST`
+  / `e28c5851d15a0d313afe2f577c13ed9207686fa0a724d1738514675aae0fbb1e`.
+
+Both artifacts are sealed with strict exact inventory and `run.exit=0`. The
+stopped 122-attempt partial corpus root
+`a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481`
+remains in rejected roots and is still training/calibration/evaluation
+ineligible.
+
+### 21-red plus one non-signal sequential-K8 preflight
+
+The first 21+1 run exposed a CAMP integration correctness defect and failed
+closed at root
+`652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06`.
+A process-local no-ROS Lanelet2 projector retained the previous source-map
+origin. For scenario `9b295d94...`, the certified route start
+`[40.6621, 24.2647]` was therefore replayed as the prior map's
+`[9.57165, -21.68125]`, causing step-0 `goal_passed`. The integration now marks
+its fallback projector with the source-map SHA and refreshes it only when that
+SHA changes; a real Autoware extension is never evicted. A two-map SE(2)/origin
+regression test prevents recurrence. The failed artifact was not spliced,
+relabelled, or used by the retry.
+
+The corrected run restarted from identity 0 and completed all 21 red identities
+plus one non-signal identity for exactly 64 ticks each: 22 identities and 1,408
+ticks. Its independent reviewer consumed saved actual K8 tensors, full context,
+strict masks, and signal/stop-line bindings, then independently recomputed
+candidate/default/selected/context hashes, canonical clip/affine scores,
+source-valid eligible argmin and tie break, candidate0 operational-default
+identity, selected trajectory hash, and before/after immutability:
+
+- producer: `/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_de1a21ee_20260717T223934CST`
+  / `a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c`;
+- independent review: `/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_review_de1a21ee_20260717T225227CST`
+  / `81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b`.
+
+All seven final roots passed strict inventory verification with `run.exit=0`.
+Focused local verification reached `90 passed, 2 skipped, 126 deselected` plus
+the 67-test V25 suite; AutoDL reached 68 focused V25 tests plus 23 targeted
+integration tests. Pycompile, JSON, pointer/audit tests, and `git diff --check`
+are required again at the release commit.
+
+At the decision-package state, worker and GPU counts are zero, the corpus lock
+is free, disk free is 48,252,592,128 bytes, and Fresh outcome files are zero.
+Fresh B v1 remains superseded-before-opening; Fresh B2, training, calibration,
+Scene runtime, V2I, full-config preflight, and full R are unopened/unstarted.
+Two-level release is implemented but unused: Ultra may release only the sealed
+1,500-config preflight; after its independent review, a separate Ultra execute
+release bound to both roots is mandatory. The present stop target is Ultra's
+read-only A1.1/R0.1 review before even the full-config preflight release.
+
+current_v25_status=v25_a11_r01_bounded_pass_ultra_read_only_review_required
+current_v25_source_head=de1a21ee2a96a48e3f2e854156538bda5177b477
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_de1a21ee_20260717T223934CST
+current_v25_artifact_root_sha256=a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_review_de1a21ee_20260717T225227CST
+current_v25_review_artifact_root_sha256=81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b
+current_v25_ultra_stage_a_decision_artifact_root_sha256=d98929000c09cbe1f3bcdc7f57290091e0be31e67726f4920d201bc98292897e
+current_v25_atom_ledger_artifact_root_sha256=836d5468fd05cdbd837037352d14cd20fb21a6b653ece41272bb85b30c42ad82
+current_v25_atom_ledger_validation_artifact_root_sha256=a37fd179db35ab51b4ca08c99e669c3b62ecb5804a3679fafd9b35450d618352
+current_v25_r0_authority_source_artifact_root_sha256=e099837be509085fd761244ca676d387ee4debfe0214cf22057b631ba4dff1fa
+current_v25_r0_authority_source_review_artifact_root_sha256=e28c5851d15a0d313afe2f577c13ed9207686fa0a724d1738514675aae0fbb1e
+current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
+current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v4.json
+current_v25_r0_source_identity_count=21
+current_v25_r0_source_map_count=4
+current_v25_r0_physical_signature_count=9
+current_v25_r0_stop_line_geometry_sha256_count=5
+current_v25_r0_probe_identity_count=22
+current_v25_r0_probe_tick_count=1408
+current_v25_r0_non_signal_identity_count=1
+current_v25_full_config_preflight_started=false
+current_v25_corrected_full_corpus_started=false
+current_v25_full_r_authorized=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_b2_opened=false
+current_v25_fresh_outcome_opened=false
+observed_autodl_free_bytes=48252592128
+current_v25_phase=A1_1_R0_1_bounded_decision_package
+next_work_target=ultra_read_only_A1_1_R0_1_review_before_full_config_preflight_release
