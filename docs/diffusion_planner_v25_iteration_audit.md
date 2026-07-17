@@ -531,8 +531,8 @@ an exactly-14-row immutable semantics ledger plus a separate validation
 receipt, keeps 9D as canonical 14D indices 0:9, and rejects the stopped partial
 root. No sealed-corpus statistics or Stage A artifact was created.
 
-AutoDL at the final correction source HEAD passed the focused selector/native/
-context/corpus/master/pointer suite (`56 passed`). Four bounded preflight
+AutoDL at the recorded S0 gate passed the focused selector/native/context/
+corpus/master/pointer suite (`57 passed`). Four bounded preflight
 attempts remain immutable failure accounting:
 
 - device-contract rejection before model execution:
