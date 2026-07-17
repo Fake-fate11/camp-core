@@ -579,6 +579,14 @@ def test_full_corpus_executor_preflight_authority_is_fail_closed(
         "outcome_fields_consumed": [],
         "config_receipts": receipts,
         "rejected_roots": [corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        "r0_review_artifact": "/sealed/r0-review",
+        "r0_review_root_sha256": "1" * 64,
+        "r0_source_artifact": "/sealed/r0-source",
+        "r0_source_root_sha256": "2" * 64,
+        "ultra_full_r_release_artifact": "/sealed/ultra-full-r-release",
+        "ultra_full_r_release_root_sha256": "3" * 64,
+        "semantic_authority_root_sha256": "4" * 64,
+        "semantic_authority_identity_count": corpus.EXPECTED_EXECUTABLE_IDENTITIES,
     }
     corpus._write_json(artifact / "report.json", report)
     corpus._write_json(artifact / "source_receipt.json", report)
@@ -590,10 +598,24 @@ def test_full_corpus_executor_preflight_authority_is_fail_closed(
     (artifact / "run.exit").write_text("0\n", encoding="ascii")
     corpus._seal(artifact)
 
+    expected_authority = {
+        key: report[key]
+        for key in (
+            "r0_review_artifact",
+            "r0_review_root_sha256",
+            "r0_source_artifact",
+            "r0_source_root_sha256",
+            "ultra_full_r_release_artifact",
+            "ultra_full_r_release_root_sha256",
+            "semantic_authority_root_sha256",
+            "semantic_authority_identity_count",
+        )
+    }
     verified = corpus._verify_preflight(
         artifact,
         head,
         expected_config_root_sha256=corpus._canonical_sha256(receipts),
+        expected_authority=expected_authority,
     )
     assert verified["root_sha256"]
 
@@ -606,6 +628,7 @@ def test_full_corpus_executor_preflight_authority_is_fail_closed(
             artifact,
             head,
             expected_config_root_sha256=corpus._canonical_sha256(receipts),
+            expected_authority=expected_authority,
         )
 
 

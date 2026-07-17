@@ -2464,6 +2464,8 @@ class CAMPSelectionResult:
     used_fallback: bool
     timings_ms: dict[str, float]
     diagnostic_payloads: Optional[dict[str, Any]] = None
+    source_valid_mask: Optional[np.ndarray] = None
+    physical_feasible_mask: Optional[np.ndarray] = None
 
 
 def summarize_selection_records(
@@ -3072,6 +3074,7 @@ class CAMPSelector:
         candidate_planned_red_light_cost: Optional[np.ndarray] = None,
         candidate_red_stopping_margin_cost: Optional[np.ndarray] = None,
         candidate_dp_prior_jerk_excess_cost: Optional[np.ndarray] = None,
+        candidate_source_valid_mask: Optional[np.ndarray] = None,
         external_feasible_mask: Optional[np.ndarray] = None,
         external_infeasibility_reasons: Optional[Sequence[Sequence[str]]] = None,
         apply_context_feasibility: bool = True,
@@ -3126,6 +3129,19 @@ class CAMPSelector:
                 raise ValueError(
                     "external_feasible_mask must match candidate count, "
                     f"got {external_mask.shape}, expected ({candidates.shape[0]},)."
+                )
+        source_valid_mask = np.ones(candidates.shape[0], dtype=bool)
+        if candidate_source_valid_mask is not None:
+            raw_source_valid = np.asarray(candidate_source_valid_mask)
+            if raw_source_valid.dtype != np.bool_:
+                raise ValueError(
+                    "candidate_source_valid_mask must contain strict booleans."
+                )
+            source_valid_mask = raw_source_valid.reshape(-1)
+            if source_valid_mask.shape != (candidates.shape[0],):
+                raise ValueError(
+                    "candidate_source_valid_mask must match candidate count, "
+                    f"got {source_valid_mask.shape}, expected ({candidates.shape[0]},)."
                 )
         external_reasons = external_infeasibility_reasons
         if external_reasons is not None and len(external_reasons) != candidates.shape[0]:
@@ -3228,6 +3244,13 @@ class CAMPSelector:
 
         atoms_arr = np.asarray(atoms, dtype=np.float64)
         feasible_mask = np.asarray(feasible, dtype=bool)
+        if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10):
+            invalid_source = ~source_valid_mask
+            feasible_mask &= source_valid_mask
+            for index in np.flatnonzero(invalid_source):
+                infeasibility_reasons[index] = tuple(
+                    dict.fromkeys((*infeasibility_reasons[index], "source_invalid"))
+                )
         if self.num_atoms in (
             len(DP_CAMP_ATOM_NAMES),
             len(DP_CAMP_ATOM_NAMES_V8),
@@ -3243,12 +3266,21 @@ class CAMPSelector:
                 raise ValueError(
                     "candidate_progress must contain finite nonnegative values."
                 )
-            reference_progress = float(
-                np.max(progress[feasible_mask])
-                if feasible_mask.any()
-                else np.max(progress)
-            )
-            progress_shortfall = np.maximum(reference_progress - progress, 0.0)
+            if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10):
+                from camp_core.integrations.diffusion_planner_causal_atoms import (
+                    source_valid_progress_shortfall,
+                )
+
+                reference_progress, progress_shortfall = (
+                    source_valid_progress_shortfall(progress, source_valid_mask)
+                )
+            else:
+                reference_progress = float(
+                    np.max(progress[feasible_mask])
+                    if feasible_mask.any()
+                    else np.max(progress)
+                )
+                progress_shortfall = np.maximum(reference_progress - progress, 0.0)
             extra_atoms = [progress_shortfall.reshape(-1, 1)]
             if self.num_atoms in (
                 len(DP_CAMP_ATOM_NAMES_V8),
@@ -3396,7 +3428,15 @@ class CAMPSelector:
 
         weights = self.weights_for(scene_embedding, raw_context=raw_context)
         scores = normalized @ weights
-        used_fallback = not feasible_mask.any()
+        eligibility_mask = (
+            source_valid_mask if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10)
+            else feasible_mask
+        )
+        if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10) and not eligibility_mask.any():
+            raise ValueError(
+                "source_valid candidate set is empty; candidate0/all-K fallback is forbidden"
+            )
+        used_fallback = not eligibility_mask.any()
         selection_weights = weights
         selection_normalized = normalized
         if used_fallback:
@@ -3438,7 +3478,7 @@ class CAMPSelector:
                 selection_scores = normalized @ selection_weights
         else:
             selection_scores = scores.copy()
-            selection_scores[~feasible_mask] = np.inf
+            selection_scores[~eligibility_mask] = np.inf
 
         selected_index = int(np.argmin(selection_scores))
         select_done = time.perf_counter()
@@ -3477,6 +3517,8 @@ class CAMPSelector:
             atoms=atoms_arr,
             normalized_atoms=normalized,
             feasible_mask=feasible_mask,
+            source_valid_mask=source_valid_mask,
+            physical_feasible_mask=feasible_mask,
             infeasibility_reasons=tuple(infeasibility_reasons),
             scores=scores,
             weights=weights,

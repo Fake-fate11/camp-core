@@ -420,7 +420,10 @@ def _run_probe(
 ) -> dict[str, Any]:
     snapshots: list[Mapping[str, Any]] = []
     contexts: list[Mapping[str, Any]] = []
-    adapter = V25ControlledSceneAdapter(case)
+    adapter = V25ControlledSceneAdapter(
+        case,
+        red_signal_authority=case.get("red_signal_authority"),
+    )
     receipt = runner(
         route=config["routes"][0],
         arm="camp",

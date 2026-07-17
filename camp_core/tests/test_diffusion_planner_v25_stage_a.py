@@ -174,7 +174,7 @@ def test_stage_a_numeric_fixture_is_independently_recomputed() -> None:
     progress = validator._validate_progress_fixture(fixture)
     assert all(numeric["checks"].values())
     assert all(progress["checks"].values())
-    assert numeric["independent_selected_index"] == 0
+    assert numeric["independent_selected_index"] == 4
 
 
 def test_stage_a_independent_algebra_covers_jerk_partition_and_speed_thresholds() -> None:

@@ -1,0 +1,368 @@
+#!/usr/bin/env python3
+"""Build the bounded V25 R0 authority and 21-red source qualification artifact."""
+
+from __future__ import annotations
+
+import argparse
+import collections
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import sys
+from typing import Any, Mapping
+
+import numpy as np
+
+
+ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = ROOT / "camp_core"
+for _path in (ROOT, PACKAGE_ROOT):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
+
+from camp_core.integrations.diffusion_planner import (  # noqa: E402
+    install_lanelet2_projection_fallback,
+    require_source_preserving_lanelet2_regulatory_adapter,
+)
+from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
+    seal_artifact,
+    verify_complete_seal,
+)
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    SIGNAL_CHAIN_SCHEMA_VERSION,
+    build_semantic_clone_payload,
+    canonical_json_sha256,
+    validate_signal_chain,
+)
+from scripts.integrations.review_diffusion_planner_v25_stage_a0_authority import (  # noqa: E402
+    PASSED_PREFLIGHT_ROOT,
+    PASSED_REVIEW_ROOT,
+)
+from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # noqa: E402
+    FIXED_DP_HEAD,
+    verify_config_assets,
+)
+from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase import (  # noqa: E402
+    _file_sha256,
+    _load_json,
+    _materialize_routes,
+    _write_json,
+)
+from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus import (  # noqa: E402
+    EXPECTED_TEMPLATE_SHA256,
+    FORMAL_ROOT_SHA256,
+    MINIMUM_FREE_BYTES,
+    SUPERSEDED_PARTIAL_CORPUS_ROOT,
+    _canonical_sha256,
+    _git_head,
+    _load_formal_plan,
+    _tracked_dirty,
+    build_controlled_train_config,
+)
+
+
+SCHEMA_VERSION = "camp_dp_v25_r0_authority_source_preflight_v1"
+A0_ROOT = "b8664cd074bf48ded82017950616c851a3f3ca6afdd6fbe0ba0e705359e8ff41"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dp-repo", type=Path, required=True)
+    parser.add_argument("--probe-template", type=Path, required=True)
+    parser.add_argument("--ultra-decision-artifact", type=Path, required=True)
+    parser.add_argument("--ultra-decision-root-sha256", required=True)
+    parser.add_argument("--a0-artifact", type=Path, required=True)
+    parser.add_argument("--a0-root-sha256", required=True)
+    parser.add_argument("--a1-ledger-artifact", type=Path, required=True)
+    parser.add_argument("--a1-ledger-root-sha256", required=True)
+    parser.add_argument("--a1-validation-artifact", type=Path, required=True)
+    parser.add_argument("--a1-validation-root-sha256", required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    return parser.parse_args()
+
+
+def _route_polyline(builder: Any, route_ids: list[int]) -> np.ndarray:
+    pieces = []
+    for lanelet_id in route_ids:
+        if lanelet_id not in builder._cache:
+            raise ValueError("formal route lanelet is absent from map cache")
+        values = np.asarray(builder._cache[lanelet_id].raw_centerline, dtype=np.float64)
+        pieces.append(values if not pieces else values[1:])
+    result = np.concatenate(pieces, axis=0)
+    if result.ndim != 2 or result.shape[1] != 2 or len(result) < 2:
+        raise ValueError("formal route geometry is invalid")
+    return result
+
+
+def _project_stop_to_controlled_route(
+    builder: Any,
+    route_ids: list[int],
+    controlled_ids: list[int],
+    stop_points: np.ndarray,
+) -> tuple[float, float, float]:
+    midpoint = np.asarray(stop_points, dtype=np.float64).mean(axis=0)
+    route_offset = 0.0
+    best: tuple[float, float] | None = None
+    total = 0.0
+    for lanelet_id in route_ids:
+        line = np.asarray(builder._cache[lanelet_id].raw_centerline, dtype=np.float64)
+        local_offset = 0.0
+        for start, end in zip(line[:-1], line[1:], strict=True):
+            vector = end - start
+            length = float(np.linalg.norm(vector))
+            fraction = (
+                0.0
+                if length <= 1e-12
+                else float(np.clip(((midpoint - start) @ vector) / (length * length), 0.0, 1.0))
+            )
+            if lanelet_id in controlled_ids:
+                projected = start + fraction * vector
+                distance = float(np.linalg.norm(midpoint - projected))
+                candidate = (distance, route_offset + local_offset + fraction * length)
+                if best is None or candidate < best:
+                    best = candidate
+            local_offset += length
+        route_offset += local_offset
+        total += local_offset
+    if best is None:
+        raise ValueError("stop line has no controlled route lanelet projection")
+    return best[0], best[1], total
+
+
+def _extract_chain(case: Mapping[str, Any], builder: Any) -> dict[str, Any]:
+    route_ids = [int(value) for value in case["route_spec"]["lanelet_ids"]]
+    regs: dict[int, dict[str, Any]] = {}
+    for lanelet_id in route_ids:
+        lanelet = builder._ll_by_id.get(lanelet_id)
+        if lanelet is None:
+            raise ValueError("formal route lanelet is missing")
+        for reg in lanelet.trafficLights():
+            entry = regs.setdefault(int(reg.id), {"reg": reg, "lanelet_ids": []})
+            entry["lanelet_ids"].append(lanelet_id)
+    if len(regs) != 1:
+        raise ValueError("red route must map to exactly one TrafficLightRegulatoryElement")
+    reg_id, entry = next(iter(regs.items()))
+    reg = entry["reg"]
+    params = reg.parameters
+    physical = sorted(int(value.id) for value in params["refers"]) if "refers" in params else []
+    bulbs = sorted(int(value.id) for value in params["light_bulbs"]) if "light_bulbs" in params else []
+    stop = reg.stopLine
+    if stop is None:
+        raise ValueError("red route TrafficLightRegulatoryElement has no stop line")
+    stop_points = np.asarray([(point.x, point.y) for point in stop], dtype=np.float64)
+    controlled = sorted(set(int(value) for value in entry["lanelet_ids"]))
+    distance, route_arc, route_length = _project_stop_to_controlled_route(
+        builder, route_ids, controlled, stop_points
+    )
+    route_polyline = _route_polyline(builder, route_ids)
+    semantic = build_semantic_clone_payload(
+        case,
+        route_polyline_world=route_polyline,
+        stop_line_world=stop_points,
+    )
+    geometry_payload = {
+        "route_polyline_local_m": semantic["route_polyline_local_m"],
+        "stop_line_local_m": semantic["stop_line_local_m"],
+    }
+    chain: dict[str, Any] = {
+        "schema_version": SIGNAL_CHAIN_SCHEMA_VERSION,
+        "scenario_id": str(case["scenario_id"]),
+        "route_identity_sha256": str(case["route_identity_sha256"]),
+        "source_map_sha256": str(case["source_map_sha256"]),
+        "regulatory_element_ids": [reg_id],
+        "physical_light_ids": physical,
+        "bulb_ids": bulbs,
+        "controlled_lanelet_ids": controlled,
+        "route_lanelet_ids": route_ids,
+        "route_geometry_sha256": canonical_json_sha256(geometry_payload),
+        "stop_line_id": int(stop.id),
+        "stop_line_geometry_m": stop_points.tolist(),
+        "stop_line_geometry_sha256": canonical_json_sha256(stop_points.tolist()),
+        "stop_line_route_distance_m": distance,
+        "route_arc_m": route_arc,
+        "route_length_m": route_length,
+        "expected_current_phase": str(case["signal"]["phase"]),
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": canonical_json_sha256(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = canonical_json_sha256(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    return validate_signal_chain(chain)
+
+
+def _verify_input_artifacts(args: argparse.Namespace) -> dict[str, str]:
+    bindings: dict[str, str] = {}
+    for label, path, root in (
+        ("ultra_decision", args.ultra_decision_artifact, args.ultra_decision_root_sha256),
+        ("a0", args.a0_artifact, args.a0_root_sha256),
+        ("a1_ledger", args.a1_ledger_artifact, args.a1_ledger_root_sha256),
+        ("a1_validation", args.a1_validation_artifact, args.a1_validation_root_sha256),
+    ):
+        bindings[f"{label}_artifact"] = str(path)
+        bindings[f"{label}_root_sha256"] = verify_complete_seal(
+            path, root, label=label
+        )["root_sha256"]
+        if (path / "run.exit").read_text(encoding="ascii") != "0\n":
+            raise ValueError(f"{label} run.exit is not zero")
+    decision = _load_json(args.ultra_decision_artifact / "decision.json")
+    validation = _load_json(args.a1_validation_artifact / "report.json")
+    if (
+        bindings["a0_root_sha256"] != A0_ROOT
+        or decision.get("status") != "A1_R0_only_released"
+        or decision.get("full_r_authorized") is not False
+        or validation.get("status")
+        != "passed_with_warnings_progress_source_valid_frozen"
+        or validation.get("progress_reference")
+        != "source_valid_candidate_set_reference"
+        or validation.get("fail_count") != 0
+    ):
+        raise ValueError("R0 input authority is invalid")
+    return bindings
+
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    if shutil.disk_usage(args.output_dir.parent).free < MINIMUM_FREE_BYTES:
+        raise RuntimeError("free disk is below the 10 GiB floor")
+    head = _git_head(ROOT)
+    if _tracked_dirty(ROOT):
+        raise ValueError("CAMP tracked worktree is dirty")
+    if _git_head(args.dp_repo) != FIXED_DP_HEAD or _tracked_dirty(args.dp_repo):
+        raise ValueError("fixed DP drifted or is dirty")
+    for path in (args.dp_repo, args.dp_repo / "diffusion_planner"):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    if _file_sha256(args.probe_template) != EXPECTED_TEMPLATE_SHA256:
+        raise ValueError("probe template SHA drifted")
+    inputs = _verify_input_artifacts(args)
+    plan, formal_root = _load_formal_plan()
+    red_cases = [
+        case
+        for case in plan["train"]
+        if case.get("runner_eligible") is True
+        and case.get("family") == "red_light_phase_timing"
+    ]
+    if len(red_cases) != 21:
+        raise ValueError("formal executable red denominator is not 21")
+    builders: dict[str, Any] = {}
+    chains = []
+    for case in sorted(red_cases, key=lambda item: str(item["scenario_id"])):
+        map_path = str(case["source_map_path"])
+        if map_path not in builders:
+            from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
+
+            path = Path(map_path)
+            require_source_preserving_lanelet2_regulatory_adapter(path)
+            sys.modules.pop("autoware_lanelet2_extension_python.projection", None)
+            sys.modules.pop("autoware_lanelet2_extension_python", None)
+            install_lanelet2_projection_fallback(path)
+            builders[map_path] = LaneletSceneBuilder(map_path)
+        chains.append(_extract_chain(case, builders[map_path]))
+    chain_by_id = {chain["scenario_id"]: chain for chain in chains}
+    selected = []
+    for tier in ("easy", "borderline", "high_risk"):
+        case = min(
+            (item for item in red_cases if item.get("tier") == tier),
+            key=lambda item: str(item["scenario_id"]),
+        )
+        enriched = json.loads(json.dumps(case))
+        chain = chain_by_id[str(case["scenario_id"])]
+        enriched["red_signal_authority"] = chain
+        enriched["canonical_semantic_clone_sha256"] = chain[
+            "semantic_clone_sha256"
+        ]
+        selected.append(enriched)
+    route_assets = _materialize_routes(selected, args.output_dir / "routes", args.dp_repo)
+    template = _load_json(args.probe_template)
+    config_receipts = []
+    for case in selected:
+        config = build_controlled_train_config(
+            template, case, route_assets[str(case["route_identity_sha256"])]
+        )
+        verify_config_assets(config)
+        config_receipts.append(
+            {
+                "scenario_id": case["scenario_id"],
+                "tier": case["tier"],
+                "semantic_clone_sha256": case["canonical_semantic_clone_sha256"],
+                "source_chain_sha256": case["red_signal_authority"]["source_chain_sha256"],
+                "config_sha256": _canonical_sha256(config),
+                "config": config,
+            }
+        )
+    tier_counts = collections.Counter(str(case["tier"]) for case in red_cases)
+    report = {
+        "schema_version": SCHEMA_VERSION,
+        "status": "passed_source_only_full_r_closed",
+        "camp_head": head,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "formal_root_sha256": formal_root,
+        "s01_preflight_root_sha256": PASSED_PREFLIGHT_ROOT,
+        "s01_review_root_sha256": PASSED_REVIEW_ROOT,
+        **inputs,
+        "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        "formal_executable_red_identity_count": len(red_cases),
+        "red_by_tier": dict(tier_counts),
+        "distinct_source_map_count": len({chain["source_map_sha256"] for chain in chains}),
+        "unique_regulatory_chain_count": len(chains),
+        "all_source_chains_valid": True,
+        "selected_bounded_probe_identity_count": len(selected),
+        "selected_bounded_probe_scenario_ids": [case["scenario_id"] for case in selected],
+        "config_receipts_root_sha256": canonical_json_sha256(config_receipts),
+        "source_only": True,
+        "model_loaded": False,
+        "candidate_generation_started": False,
+        "full_r_authorized": False,
+        "full_r_started": False,
+        "monitor_started": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "scene_runtime_connected": False,
+        "v2i_enabled": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    _write_json(args.output_dir / "red_signal_chains.json", {"chains": chains})
+    _write_json(args.output_dir / "bounded_red_cases.json", {"cases": selected})
+    _write_json(args.output_dir / "config_receipts.json", {"receipts": config_receipts})
+    return report
+
+
+def main() -> None:
+    args = parse_args()
+    if args.output_dir.exists():
+        raise FileExistsError(args.output_dir)
+    args.output_dir.mkdir(parents=True)
+    try:
+        report = run(args)
+        _write_json(args.output_dir / "report.json", report)
+        (args.output_dir / "HEADS").write_text(
+            f"camp_head={report['camp_head']}\nfixed_dp_head={FIXED_DP_HEAD}\n",
+            encoding="ascii",
+        )
+        (args.output_dir / "COMMAND").write_text(" ".join(sys.argv) + "\n", encoding="utf-8")
+        (args.output_dir / "run.exit").write_text("0\n", encoding="ascii")
+        root = seal_artifact(args.output_dir, label="V25 R0 authority/source preflight")
+        print(json.dumps({"status": report["status"], "root_sha256": root}, sort_keys=True))
+    except BaseException as exc:
+        _write_json(
+            args.output_dir / "failure.json",
+            {
+                "schema_version": SCHEMA_VERSION,
+                "status": "failed",
+                "failure_type": type(exc).__name__,
+                "failure_reason": str(exc),
+                "full_r_started": False,
+                "fresh_b2_opened": False,
+                "outcome_fields_consumed": [],
+            },
+        )
+        (args.output_dir / "run.exit").write_text("1\n", encoding="ascii")
+        seal_artifact(args.output_dir, label="V25 failed R0 authority/source preflight")
+        raise
+
+
+if __name__ == "__main__":
+    main()

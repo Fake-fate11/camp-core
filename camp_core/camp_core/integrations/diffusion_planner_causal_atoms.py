@@ -283,11 +283,11 @@ CANONICAL_ATOM_CONTRACTS = (
     _contract(
         "progress_shortfall",
         "m",
-        "max(max_progress_over_feasible_K - route_progress_k, 0)",
+        "max(max_progress_over_source_valid_K - route_progress_k, 0)",
         (
             "fixed DP candidate set K=8",
             "ordered current route centerline",
-            "current-tick feasibility mask",
+            "current-tick source_valid mask",
         ),
         "requires a decision-time topology route and all K candidates",
         "planned candidate set only; no observed or GT future",
@@ -358,6 +358,31 @@ CANONICAL_ATOM_CONTRACTS = (
         ),
     ),
 )
+
+
+def source_valid_progress_shortfall(
+    progress: np.ndarray,
+    source_valid_mask: np.ndarray,
+) -> tuple[float, np.ndarray]:
+    """Return the frozen V25 source-valid progress reference and costs.
+
+    The source-valid set is both the reference and selection eligibility set.
+    An empty set is a contract violation; candidate0 and all-K fallback are
+    deliberately forbidden.
+    """
+    values = np.asarray(progress, dtype=np.float64).reshape(-1)
+    raw_source_valid = np.asarray(source_valid_mask)
+    if raw_source_valid.dtype != np.bool_:
+        raise ValueError("source_valid_mask must contain strict booleans")
+    source_valid = raw_source_valid.reshape(-1)
+    if values.size < 1 or source_valid.shape != values.shape:
+        raise ValueError("progress and source_valid_mask must have one matching K dimension")
+    if not np.all(np.isfinite(values)) or np.any(values < 0.0):
+        raise ValueError("candidate progress must be finite and nonnegative")
+    if not source_valid.any():
+        raise ValueError("source_valid candidate set is empty; fallback is forbidden")
+    reference = float(np.max(values[source_valid]))
+    return reference, np.maximum(reference - values, 0.0)
 
 
 _SCHEMAS = {
@@ -825,8 +850,14 @@ def materialize_canonical_14d(
         axis=1,
     )
     progress = np.asarray(projection["route_progress"], dtype=np.float64)
-    progress_reference = float(np.max(progress[eligibility]))
-    progress_shortfall = np.maximum(progress_reference - progress, 0.0)
+    if eligibility_policy == V22_SOURCE_VALID_ELIGIBILITY:
+        progress_reference, progress_shortfall = source_valid_progress_shortfall(
+            progress,
+            source_valid,
+        )
+    else:
+        progress_reference = float(np.max(progress[eligibility]))
+        progress_shortfall = np.maximum(progress_reference - progress, 0.0)
     lateral_acceleration = compute_lateral_comfort_shadow_costs(
         trajectories, float(dt)
     )[0]

@@ -17,8 +17,10 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as runner
 from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus import (
     CORPUS_STEPS,
+    CORRECTED_GENERATION_SCALES,
     EXPECTED_SEED,
     SNAPSHOT_SCHEMA_VERSION,
+    _file_sha256,
     build_controlled_train_config,
     combine_snapshot_context,
 )
@@ -163,8 +165,10 @@ def _context() -> dict:
 
 
 def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
+    case = _case()
+    case["canonical_semantic_clone_sha256"] = "f" * 64
     payload = combine_snapshot_context(
-        snapshot=_snapshot(), context=_context(), case=_case(), tick_index=7
+        snapshot=_snapshot(), context=_context(), case=case, tick_index=7
     )
 
     assert payload["schema_version"] == SNAPSHOT_SCHEMA_VERSION
@@ -178,6 +182,11 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
         "operational_default_alias_from_same_forward"
     )
     assert payload["sidecar"]["candidate0_independent_second_forward"] is False
+    assert payload["feature_payload"]["physical_applicability_mask"] == [True] * 8
+    assert payload["sidecar"]["canonical_semantic_clone_sha256"] == "f" * 64
+    assert payload["sidecar"]["generation_behavior_scale_sha256"] == _file_sha256(
+        CORRECTED_GENERATION_SCALES
+    )
     assert "collision" not in json.dumps(payload, sort_keys=True).lower()
 
 

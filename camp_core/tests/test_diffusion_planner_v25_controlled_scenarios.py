@@ -18,6 +18,12 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     build_controlled_scenario_plan,
     build_final_controlled_corpus_plan,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    SIGNAL_CHAIN_SCHEMA_VERSION,
+    build_semantic_clone_payload,
+    canonical_json_sha256,
+    validate_runtime_signal_receipt,
+)
 
 
 def _route(index: int, family: str, *, traffic_light: bool = False) -> dict:
@@ -203,6 +209,7 @@ def _scene(*, signal: bool = False):
         past_trajectory=trajectory,
         past_velocities=np.zeros((31, 2), dtype=np.float32),
         route_lanes=route_lanes,
+        route_lanelet_ids=[1, 2],
     )
     scene = SimpleNamespace(
         agents=[ego],
@@ -211,6 +218,45 @@ def _scene(*, signal: bool = False):
         map_data=SimpleNamespace(lanes=map_lanes),
     )
     return scene
+
+
+def _signal_authority(case: dict) -> dict:
+    route = np.column_stack((np.linspace(0.0, 100.0, 101), np.zeros(101)))
+    stop = np.asarray([[20.0, -2.0], [20.0, 2.0]], dtype=np.float64)
+    semantic = build_semantic_clone_payload(
+        case, route_polyline_world=route, stop_line_world=stop
+    )
+    chain = {
+        "schema_version": SIGNAL_CHAIN_SCHEMA_VERSION,
+        "scenario_id": case["scenario_id"],
+        "route_identity_sha256": case["route_identity_sha256"],
+        "source_map_sha256": case["source_map_sha256"],
+        "regulatory_element_ids": [100],
+        "physical_light_ids": [101],
+        "bulb_ids": [102],
+        "controlled_lanelet_ids": [1],
+        "route_lanelet_ids": [1, 2],
+        "route_geometry_sha256": canonical_json_sha256(
+            {
+                "route_polyline_local_m": semantic["route_polyline_local_m"],
+                "stop_line_local_m": semantic["stop_line_local_m"],
+            }
+        ),
+        "stop_line_id": 103,
+        "stop_line_geometry_m": stop.tolist(),
+        "stop_line_geometry_sha256": canonical_json_sha256(stop.tolist()),
+        "stop_line_route_distance_m": 0.0,
+        "route_arc_m": 20.0,
+        "route_length_m": 100.0,
+        "expected_current_phase": case["signal"]["phase"],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": canonical_json_sha256(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = canonical_json_sha256(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    return chain
 
 
 def test_scene_adapter_injects_scripted_actor_without_candidate_or_outcome_inputs():
@@ -251,13 +297,19 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
         seeds=[25991],
     )
     scene = _scene(signal=True)
-    receipt = V25ControlledSceneAdapter(case)(scene, 0)
+    chain = _signal_authority(case)
+    adapter = V25ControlledSceneAdapter(case, red_signal_authority=chain)
+    adapter.bind_map_lanelet_ids([1, 3, 4, 5])
+    receipt = adapter(scene, 0)
 
     assert receipt["signal"]["applied"] is True
     assert receipt["signal"]["source_row_count"] == 2
     assert np.all(scene.ego_agent.route_lanes[0, :, 10] == 1.0)
     assert np.all(scene.map_data.lanes[0, :, 10] == 1.0)
     assert np.all(scene.map_data.lanes[1:, :, 12] == 1.0)
+    validate_runtime_signal_receipt(
+        receipt["signal"]["source_receipt"], chain
+    )
 
 
 def test_scene_adapter_raises_typed_capability_failure_for_missing_signal_source():

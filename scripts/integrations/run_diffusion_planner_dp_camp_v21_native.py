@@ -2703,6 +2703,14 @@ def build_native_arm_runner(
         def after_tracker(receipt: dict[str, Any], scene: Any) -> None:
             _capture_post_safety(receipt, scene, builder, route_ids, replay)
 
+        runtime_scene_adapter = scene_adapter
+        if scene_adapter is not None and hasattr(
+            scene_adapter, "bind_map_lanelet_ids"
+        ):
+            def runtime_scene_adapter(scene: Any, tick_index: int) -> Mapping[str, Any]:
+                scene_adapter.bind_map_lanelet_ids(builder._last_map_data_ids)
+                return scene_adapter(scene, tick_index)
+
         selector_scale_contract = None
         if arm == "camp":
             scales, selector_scale_contract = _load_frozen_selector_scales(
@@ -2739,7 +2747,7 @@ def build_native_arm_runner(
                 decision_sample_every_ticks=int(
                     protocol.get("sample_every_ticks", 5)
                 ),
-                scene_adapter=scene_adapter,
+                scene_adapter=runtime_scene_adapter,
                 v25_context_sink=v25_context_sink,
                 v25_v2i_signal_timing=None,
             )
@@ -2758,7 +2766,7 @@ def build_native_arm_runner(
                 route_sha256=str(route["sha256"]),
                 pre_safety=pre_safety,
                 operational_mode="dp_candidate0",
-                scene_adapter=scene_adapter,
+                scene_adapter=runtime_scene_adapter,
                 v25_context_sink=v25_context_sink,
                 v25_v2i_signal_timing=None,
             )
@@ -2768,7 +2776,7 @@ def build_native_arm_runner(
                 state=state,
                 dump_step_npz=context["tensor_converter"].dump_step_npz,
                 pre_safety=pre_safety,
-                scene_adapter=scene_adapter,
+                scene_adapter=runtime_scene_adapter,
             )
 
         output_dir = Path(output_dir)

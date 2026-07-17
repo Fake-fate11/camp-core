@@ -54,17 +54,20 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v2"
-FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v2"
+SCHEMA_VERSION = "camp_dp_v25_static_atom_ledger_v3"
+FIXTURE_SCHEMA_VERSION = "camp_dp_v25_static_atom_numeric_fixture_v3"
 SOURCE_STATE_ENUM = ("available", "not_applicable", "unavailable", "invalid")
 ATOM_NAMES = tuple(DP_CAMP_ATOM_NAMES_V10)
 PAPER_9D = tuple(CAMP_ATOM_NAMES)
+PLAN = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_ledger_plan_v3.json"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--a0-artifact", type=Path, required=True)
     parser.add_argument("--a0-root-sha256", required=True)
+    parser.add_argument("--ultra-decision-artifact", type=Path, required=True)
+    parser.add_argument("--ultra-decision-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser.parse_args()
 
@@ -185,19 +188,24 @@ def _monotonicity(name: str) -> str:
     return "nondecreasing in the declared nonnegative kinematic norm/energy with all other inputs fixed"
 
 
-def _atom_rows(scales: list[float], scale_sha256: str) -> list[dict[str, Any]]:
+def _atom_rows(
+    scales: list[float],
+    scale_sha256: str,
+    warning_contract: Mapping[str, Any],
+) -> list[dict[str, Any]]:
     contracts = {contract.name: contract for contract in CANONICAL_ATOM_CONTRACTS}
     if tuple(contracts) != ATOM_NAMES:
         raise ValueError("canonical atom contract order drifted")
     rows = []
-    warnings = {
-        "speed_limit_margin_0_0": "generation scale is a 1e-6 legacy floor; not a train-only empirical scale",
-        "speed_limit_margin_0_5": "generation scale is a 1e-6 legacy floor; not a train-only empirical scale",
-        "lane_deviation": "generation scale is a 1e-6 legacy floor; not a train-only empirical scale",
-        "progress_shortfall": "reference-set semantics await Ultra choice after adversarial fixtures",
-        "planned_red_light_cost": "continuous support is sparse; scale 1.0 is a generation-only semantic floor",
-        "red_stopping_margin_cost": "legacy generation scale 4.952895923795447e-4 is support-sensitive and is not a final training scale",
-    }
+    if (
+        not isinstance(warning_contract, Mapping)
+        or any(name not in ATOM_NAMES for name in warning_contract)
+        or any(
+            not isinstance(value, str) or not value
+            for value in warning_contract.values()
+        )
+    ):
+        raise ValueError("Stage A warning contract is invalid")
     for index, name in enumerate(ATOM_NAMES):
         contract = contracts[name]
         formula = contract.formula
@@ -240,7 +248,10 @@ def _atom_rows(scales: list[float], scale_sha256: str) -> list[dict[str, Any]]:
             "invalid_policy": "fail closed; invalid is never converted to zero or uniform fallback",
             "mask_policy": "unavailable is source-masked; not_applicable may be zero only where this row explicitly allows it",
             "monotonicity_domain": _monotonicity(name),
-            "dependencies": _dependencies(name),
+            **{
+                f"{key}_dependency": value
+                for key, value in _dependencies(name).items()
+            },
             "forbidden_sources": [
                 "closed-loop outcome",
                 "GT/observed future",
@@ -249,44 +260,45 @@ def _atom_rows(scales: list[float], scale_sha256: str) -> list[dict[str, Any]]:
                 "private DP latent",
                 "future signal schedule",
             ],
-            "legal_zero_fixture": f"numeric_fixture.raw_atoms[0][{index}]==0",
-            "legal_positive_fixture": f"numeric_fixture.raw_atoms[1][{index}]>0",
+            "legal_zero_fixture": f"numeric_fixture.raw_atoms[3][{index}]==0",
+            "legal_positive_fixture": f"numeric_fixture.raw_atoms[0][{index}]>0",
             "candidate_distinguishing_fixture": f"numeric_fixture column {index} has at least two distinct K8 values",
-            "status": "WARN" if name in warnings else "PASS",
-            "warning": warnings.get(name),
+            "status": "WARN" if name in warning_contract else "PASS",
+            "warning": warning_contract.get(name),
         }
         rows.append(row)
     return rows
 
 
 def _numeric_fixture(scales: np.ndarray) -> dict[str, Any]:
-    normalized_pattern = np.zeros((8, 14), dtype=np.float64)
-    for candidate in range(8):
-        for atom in range(14):
-            if candidate == 0:
-                normalized_pattern[candidate, atom] = 0.0
-            elif candidate == 7:
-                normalized_pattern[candidate, atom] = 12.0 + 0.1 * atom
-            else:
-                normalized_pattern[candidate, atom] = (
-                    0.25 * candidate + 0.05 * (atom % 5)
-                )
+    normalized_pattern = np.asarray(
+        [[value] * 14 for value in (5.0, 4.0, 3.0, 0.0, 1.0, 1.0, 2.0, 12.0)],
+        dtype=np.float64,
+    )
     atoms = normalized_pattern * scales.reshape(1, -1)
     weights = np.arange(1.0, 15.0, dtype=np.float64)
     weights /= weights.sum()
     normalized, scores = canonical_score_atoms(atoms, scales, weights)
     source_valid = np.array([True, True, True, False, True, True, False, True])
-    physical_feasible = np.array([True, False, True, False, True, False, False, True])
+    physical_feasible = np.array([True, False, True, False, False, False, False, False])
     eligible_scores = np.where(source_valid, scores, np.inf)
     selected = int(np.argmin(eligible_scores))
     candidate_sha256 = []
+    candidate_tensors = []
+    candidate_atom_binding_sha256 = []
     for index in range(8):
         candidate = np.zeros((80, 4), dtype=np.float32)
         candidate[:, 0] = np.linspace(0.0, 20.0 + index, 80, dtype=np.float32)
         candidate[:, 1] = np.float32(index * 0.1)
         candidate[:, 2] = 1.0
+        candidate_tensors.append(candidate.tolist())
         candidate_sha256.append(hashlib.sha256(candidate.tobytes()).hexdigest())
-    progress = np.array([10.0, 9.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0])
+        candidate_atom_binding_sha256.append(
+            hashlib.sha256(
+                candidate.tobytes() + _canonical_bytes(atoms[index].tolist())
+            ).hexdigest()
+        )
+    progress = np.array([5.0, 10.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0])
 
     def reference_fixture(mask: np.ndarray) -> dict[str, Any]:
         if not mask.any():
@@ -310,16 +322,18 @@ def _numeric_fixture(scales: np.ndarray) -> dict[str, Any]:
         "production_selected_index": selected,
         "tie_break": "lowest eligible candidate index",
         "candidate_sha256": candidate_sha256,
+        "candidate_tensors": candidate_tensors,
+        "candidate_atom_binding_sha256": candidate_atom_binding_sha256,
         "paper_9d_prefix": atoms[:, :9].tolist(),
         "progress_reference_adversarial": {
             "candidate_progress_m": progress.tolist(),
-            "mixed_source_valid_mask": [True, False, True, True, False, False, False, False],
-            "mixed_physical_feasible_mask": [False, True, True, False, False, False, False, False],
+            "mixed_source_valid_mask": [True, True, True, False, True, False, False, True],
+            "mixed_physical_feasible_mask": [True, False, True, False, False, False, False, False],
             "source_valid_option": reference_fixture(
-                np.array([True, False, True, True, False, False, False, False])
+                np.array([True, True, True, False, True, False, False, True])
             ),
             "physical_feasible_option": reference_fixture(
-                np.array([False, True, True, False, False, False, False, False])
+                np.array([True, False, True, False, False, False, False, False])
             ),
             "all_k_high_risk": {
                 "source_valid_mask": [True] * 8,
@@ -389,24 +403,7 @@ def _training_scale_freeze() -> dict[str, Any]:
         "block_weighting": "equal total mass per source-independent semantic block, then equal route identity, seed, tick, and eligible candidate mass within each parent",
         "generation_floor_is_training_estimate": False,
         "calibration_may_refit_scale": False,
-        "semantic_clone_hash": {
-            "algorithm": "sha256 canonical JSON",
-            "include": [
-                "map geometry SHA independent of source/export path",
-                "corridor geometry signature",
-                "route geometry/turn signature",
-                "scenario family and semantic variant",
-                "outcome-blind parameter values",
-                "causal source mode",
-            ],
-            "exclude": [
-                "source family/repository",
-                "map/route/scenario/split/seed IDs",
-                "artifact path/ordinal",
-                "outcome/Fresh membership",
-            ],
-            "deduplication": "geometry/semantic clones share one block even when exported by different sources",
-        },
+        "semantic_clone_hash": _load_json(PLAN)["semantic_clone_contract"],
     }
 
 
@@ -427,7 +424,13 @@ def _dag_contract() -> dict[str, Any]:
     }
 
 
-def build_ledger(*, a0_artifact: Path, a0_root_sha256: str) -> tuple[dict[str, Any], dict[str, Any]]:
+def build_ledger(
+    *,
+    a0_artifact: Path,
+    a0_root_sha256: str,
+    ultra_decision_artifact: Path,
+    ultra_decision_root_sha256: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     current_head = _git_head(ROOT)
     if _tracked_dirty(ROOT):
         raise ValueError("CAMP tracked worktree is dirty")
@@ -444,6 +447,20 @@ def build_ledger(*, a0_artifact: Path, a0_root_sha256: str) -> tuple[dict[str, A
         or a0_report.get("outcome_fields_consumed") != []
     ):
         raise ValueError("A0 authority is not a passed closed-boundary supplement")
+    decision_seal = verify_complete_seal(
+        ultra_decision_artifact,
+        ultra_decision_root_sha256,
+        label="V25 Ultra Stage-A decision",
+    )
+    decision = _load_json(ultra_decision_artifact / "decision.json")
+    if (
+        decision.get("schema_version") != "camp_dp_v25_ultra_stage_a_decision_v1"
+        or decision.get("status") != "A1_R0_only_released"
+        or decision.get("progress_reference") != "source_valid_candidate_set_reference"
+        or decision.get("full_r_authorized") is not False
+        or decision.get("fresh_b2_opened") is not False
+    ):
+        raise ValueError("Ultra Stage-A decision authority is invalid")
     scale_payload = _load_json(CORRECTED_GENERATION_SCALES)
     scales = scale_payload.get("scales")
     if (
@@ -457,33 +474,27 @@ def build_ledger(*, a0_artifact: Path, a0_root_sha256: str) -> tuple[dict[str, A
     ):
         raise ValueError("generation behavior scale contract drifted")
     scale_sha256 = _file_sha256(CORRECTED_GENERATION_SCALES)
-    rows = _atom_rows(scales, scale_sha256)
+    plan = _load_json(PLAN)
+    if (
+        plan.get("schema_version") != "camp_dp_v25_atom_ledger_plan_v3"
+        or not isinstance(plan.get("warning_contract"), Mapping)
+    ):
+        raise ValueError("Stage A1 plan schema drifted")
+    rows = _atom_rows(scales, scale_sha256, plan["warning_contract"])
+    if plan.get("required_row_fields") != list(rows[0]):
+        raise ValueError("Stage A1 flat row-field schema drifted")
     ordered_contract = {
         "schema_version": SCHEMA_VERSION,
         "atom_schema": "dp_camp_v10_14d",
         "ordered_atom_names": list(ATOM_NAMES),
         "paper_9d_indices": list(range(9)),
-        "rows": [
-            {
-                key: row[key]
-                for key in (
-                    "index",
-                    "name",
-                    "formula",
-                    "unit",
-                    "dt_contract",
-                    "source_state_policy",
-                    "generation_behavior_scale",
-                    "normalized_clip",
-                )
-            }
-            for row in rows
-        ],
+        "required_row_fields": plan["required_row_fields"],
+        "rows": rows,
     }
     fixture = _numeric_fixture(np.asarray(scales, dtype=np.float64))
     ledger = {
         "schema_version": SCHEMA_VERSION,
-        "status": "passed_with_warnings_and_ultra_progress_decision_pending",
+        "status": "passed_with_warnings_progress_source_valid_frozen",
         "stage": "A_static_atom_semantics",
         "authority": {
             "s01_source_head": S01_SOURCE_HEAD,
@@ -495,6 +506,10 @@ def build_ledger(*, a0_artifact: Path, a0_root_sha256: str) -> tuple[dict[str, A
             "formal_source_root_sha256": FORMAL_ROOT_SHA256,
             "a0_artifact": str(a0_artifact),
             "a0_root_sha256": a0_seal["root_sha256"],
+            "ultra_decision_artifact": str(ultra_decision_artifact),
+            "ultra_decision_root_sha256": decision_seal["root_sha256"],
+            "plan_path": str(PLAN),
+            "plan_sha256": _file_sha256(PLAN),
             "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
         },
         "atom_schema": "dp_camp_v10_14d",
@@ -504,14 +519,12 @@ def build_ledger(*, a0_artifact: Path, a0_root_sha256: str) -> tuple[dict[str, A
         "ordered_schema_formula_payload": ordered_contract,
         "atoms": rows,
         "progress_shortfall_decision": {
-            "status": "Ultra_decision_required_before_R",
-            "options": [
-                "source_valid_candidate_set_reference",
-                "physical_feasible_candidate_set_reference",
-            ],
-            "recommendation": "source_valid_candidate_set_reference",
-            "rationale": "it remains defined for all source-valid fixed candidates including all-K-high-risk sets, while physical-feasible can have no reference exactly where relative safety selection remains needed; both options still fail closed when their own reference set is empty",
-            "not_frozen": True,
+            "status": "frozen_by_Ultra",
+            "reference": "source_valid_candidate_set_reference",
+            "formula": "r=max(progress[j] where source_valid[j]); progress_shortfall[k]=max(r-progress[k],0)",
+            "selection_eligibility": "source_valid",
+            "empty_source_valid": "fail_closed",
+            "not_frozen": False,
             "candidate0_or_all_k_fallback_allowed": False,
         },
         "generation_scale_diagnostic": _scale_diagnostic(scales),
@@ -539,7 +552,7 @@ def build_ledger(*, a0_artifact: Path, a0_root_sha256: str) -> tuple[dict[str, A
             "retained_failures_remain_in_denominator": True,
             "failure_disposition": "artifact scientifically_ineligible; B/training blocked even if count is below capability cap 32",
         },
-        "dag_contract": _dag_contract(),
+        "dag_contract": plan["dag"],
         "stage_boundaries": {
             "r_authorized": False,
             "full_corpus_started": False,
@@ -562,6 +575,8 @@ def main() -> None:
         ledger, fixture = build_ledger(
             a0_artifact=args.a0_artifact,
             a0_root_sha256=args.a0_root_sha256,
+            ultra_decision_artifact=args.ultra_decision_artifact,
+            ultra_decision_root_sha256=args.ultra_decision_root_sha256,
         )
         _write_json(args.output_dir / "atom_ledger.json", ledger)
         _write_json(args.output_dir / "numeric_fixture.json", fixture)

@@ -29,6 +29,18 @@ from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
     CONTEXT_SCHEMA_VERSION,
     RAW_FEATURE_NAMES,
 )
+from camp_core.integrations.diffusion_planner import (  # noqa: E402
+    install_lanelet2_projection_fallback,
+    require_source_preserving_lanelet2_regulatory_adapter,
+)
+from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
+    verify_complete_seal,
+)
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    build_semantic_clone_payload,
+    canonical_json_sha256,
+    validate_signal_chain,
+)
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
     RetainedScenarioCapabilityFailure,
     SCENARIO_FAMILIES,
@@ -361,6 +373,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
     parser.add_argument("--preflight-artifact", type=Path)
+    parser.add_argument("--r0-review-artifact", type=Path)
+    parser.add_argument("--r0-review-root-sha256")
+    parser.add_argument("--r0-source-artifact", type=Path)
+    parser.add_argument("--r0-source-root-sha256")
+    parser.add_argument("--ultra-full-r-release-artifact", type=Path)
+    parser.add_argument("--ultra-full-r-release-root-sha256")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--preflight", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -424,10 +442,39 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         raise RuntimeError("free disk is below the 10 GiB floor")
 
     plan, formal_receipt = _load_formal_plan()
+    full_r_authority = _verify_full_r_authority(
+        r0_review_artifact=args.r0_review_artifact,
+        r0_review_root_sha256=args.r0_review_root_sha256,
+        r0_source_artifact=args.r0_source_artifact,
+        r0_source_root_sha256=args.r0_source_root_sha256,
+        ultra_release_artifact=args.ultra_full_r_release_artifact,
+        ultra_release_root_sha256=args.ultra_full_r_release_root_sha256,
+        camp_head=camp_head,
+    )
     if _file_sha256(args.probe_template) != EXPECTED_TEMPLATE_SHA256:
         raise ValueError("probe template SHA256 mismatch")
     template = _load_json(args.probe_template)
     cases = [case for case in plan["train"] if case["runner_eligible"]]
+    cases = _attach_semantic_clone_authority(
+        cases,
+        dp_repo=args.dp_repo,
+        r0_source_artifact=Path(full_r_authority["r0_source_artifact"]),
+    )
+    semantic_authority_receipts = [
+        {
+            "scenario_id": str(case["scenario_id"]),
+            "semantic_clone_sha256": str(
+                case["canonical_semantic_clone_sha256"]
+            ),
+            "source_chain_sha256": (
+                str(case["red_signal_authority"]["source_chain_sha256"])
+                if case.get("family") == "red_light_phase_timing"
+                else None
+            ),
+        }
+        for case in cases
+    ]
+    semantic_authority_root = _canonical_sha256(semantic_authority_receipts)
     route_assets = _materialize_routes(
         cases, args.output_dir / "routes", args.dp_repo
     )
@@ -452,6 +499,18 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "train_lock": str(TRAIN_LOCK),
         "minimum_free_bytes": MINIMUM_FREE_BYTES,
         "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        "r0_review_artifact": full_r_authority["r0_review_artifact"],
+        "r0_review_root_sha256": full_r_authority["r0_review_root_sha256"],
+        "r0_source_artifact": full_r_authority["r0_source_artifact"],
+        "r0_source_root_sha256": full_r_authority["r0_source_root_sha256"],
+        "ultra_full_r_release_artifact": full_r_authority[
+            "ultra_release_artifact"
+        ],
+        "ultra_full_r_release_root_sha256": full_r_authority[
+            "ultra_release_root_sha256"
+        ],
+        "semantic_authority_root_sha256": semantic_authority_root,
+        "semantic_authority_identity_count": len(semantic_authority_receipts),
         "terminal_lock_scope": "execution_through_progress_report_run_exit_and_seal",
         "free_bytes_at_start": shutil.disk_usage(args.output_dir.parent).free,
         "fresh_b_opened": False,
@@ -480,6 +539,24 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         args.preflight_artifact,
         camp_head,
         expected_config_root_sha256=_canonical_sha256(expected_config_receipts),
+        expected_authority={
+            "r0_review_artifact": full_r_authority["r0_review_artifact"],
+            "r0_review_root_sha256": full_r_authority[
+                "r0_review_root_sha256"
+            ],
+            "r0_source_artifact": full_r_authority["r0_source_artifact"],
+            "r0_source_root_sha256": full_r_authority[
+                "r0_source_root_sha256"
+            ],
+            "ultra_full_r_release_artifact": full_r_authority[
+                "ultra_release_artifact"
+            ],
+            "ultra_full_r_release_root_sha256": full_r_authority[
+                "ultra_release_root_sha256"
+            ],
+            "semantic_authority_root_sha256": semantic_authority_root,
+            "semantic_authority_identity_count": len(cases),
+        },
     )
     common = {
         **common,
@@ -498,6 +575,98 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         device=args.device,
         output_dir=args.output_dir,
     )
+
+
+def _verify_full_r_authority(
+    *,
+    r0_review_artifact: Path | None,
+    r0_review_root_sha256: str | None,
+    r0_source_artifact: Path | None,
+    r0_source_root_sha256: str | None,
+    ultra_release_artifact: Path | None,
+    ultra_release_root_sha256: str | None,
+    camp_head: str,
+) -> dict[str, str]:
+    if (
+        r0_review_artifact is None
+        or r0_review_root_sha256 is None
+        or r0_source_artifact is None
+        or r0_source_root_sha256 is None
+        or ultra_release_artifact is None
+        or ultra_release_root_sha256 is None
+    ):
+        raise ValueError(
+            "full R requires sealed R0 independent review and Ultra full-R release"
+        )
+    review_seal = verify_complete_seal(
+        r0_review_artifact,
+        r0_review_root_sha256,
+        label="V25 R0 independent review",
+    )
+    source_seal = verify_complete_seal(
+        r0_source_artifact,
+        r0_source_root_sha256,
+        label="V25 R0 source authority",
+    )
+    release_seal = verify_complete_seal(
+        ultra_release_artifact,
+        ultra_release_root_sha256,
+        label="V25 Ultra full-R release",
+    )
+    review = _load_json(r0_review_artifact / "report.json")
+    source = _load_json(r0_source_artifact / "report.json")
+    release = _load_json(ultra_release_artifact / "decision.json")
+    if (
+        (r0_review_artifact / "run.exit").read_text(encoding="ascii") != "0\n"
+        or (r0_source_artifact / "run.exit").read_text(encoding="ascii")
+        != "0\n"
+        or (ultra_release_artifact / "run.exit").read_text(encoding="ascii")
+        != "0\n"
+        or review.get("status")
+        != "passed_independent_3x64_review_full_r_closed"
+        or review.get("full_r_authorized") is not False
+        or source.get("status") != "passed_source_only_full_r_closed"
+        or review.get("r0_source_root_sha256") != source_seal["root_sha256"]
+        or review.get("fresh_b2_opened") is not False
+        or release.get("schema_version")
+        != "camp_dp_v25_ultra_full_r_release_v1"
+        or release.get("status") != "full_R_released"
+        or release.get("full_r_authorized") is not True
+        or release.get("corrected_source_head") != camp_head
+        or release.get("fixed_dp_head") != FIXED_DP_HEAD
+        or release.get("r0_review_root_sha256") != review_seal["root_sha256"]
+        or release.get("r0_preflight_root_sha256")
+        != review.get("reviewed_root_sha256")
+        or release.get("r0_source_root_sha256")
+        != source_seal["root_sha256"]
+        or release.get("r0_source_review_root_sha256")
+        != review.get("r0_source_review_root_sha256")
+        or release.get("s01_preflight_root_sha256")
+        != source.get("s01_preflight_root_sha256")
+        or release.get("s01_review_root_sha256")
+        != source.get("s01_review_root_sha256")
+        or release.get("a0_root_sha256") != source.get("a0_root_sha256")
+        or release.get("ultra_stage_a_decision_root_sha256")
+        != source.get("ultra_decision_root_sha256")
+        or release.get("a1_ledger_root_sha256")
+        != source.get("a1_ledger_root_sha256")
+        or release.get("a1_validation_root_sha256")
+        != source.get("a1_validation_root_sha256")
+        or release.get("formal_root_sha256")
+        != source.get("formal_root_sha256")
+        or release.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or release.get("fresh_b2_opened") is not False
+        or release.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("full R authority chain is invalid")
+    return {
+        "r0_review_artifact": str(r0_review_artifact),
+        "r0_review_root_sha256": review_seal["root_sha256"],
+        "r0_source_artifact": str(r0_source_artifact),
+        "r0_source_root_sha256": source_seal["root_sha256"],
+        "ultra_release_artifact": str(ultra_release_artifact),
+        "ultra_release_root_sha256": release_seal["root_sha256"],
+    }
 
 
 def build_controlled_train_config(
@@ -577,6 +746,113 @@ def build_controlled_train_config(
     config["controlled_scenario"] = json.loads(json.dumps(case))
     validate_v25_controlled_train_config(config)
     return config
+
+
+def _route_polyline_from_builder(
+    builder: Any, route_lanelet_ids: list[int]
+) -> np.ndarray:
+    pieces: list[np.ndarray] = []
+    for lanelet_id in route_lanelet_ids:
+        cached = builder._cache.get(lanelet_id)
+        if cached is None:
+            raise ValueError("formal route lanelet is absent from map cache")
+        values = np.asarray(cached.raw_centerline, dtype=np.float64)
+        if (
+            values.ndim != 2
+            or values.shape[1] != 2
+            or len(values) < 2
+            or not np.isfinite(values).all()
+        ):
+            raise ValueError("formal route lanelet geometry is invalid")
+        pieces.append(values if not pieces else values[1:])
+    if not pieces:
+        raise ValueError("formal route has no lanelets")
+    polyline = np.concatenate(pieces, axis=0)
+    if len(polyline) < 2:
+        raise ValueError("formal route geometry has fewer than two points")
+    return polyline
+
+
+def _attach_semantic_clone_authority(
+    cases: list[Mapping[str, Any]],
+    *,
+    dp_repo: Path,
+    r0_source_artifact: Path,
+) -> list[dict[str, Any]]:
+    """Bind every R identity to an ID/source-independent semantic hash."""
+    chain_payload = _load_json(r0_source_artifact / "red_signal_chains.json")
+    raw_chains = chain_payload.get("chains")
+    if not isinstance(raw_chains, list) or len(raw_chains) != 21:
+        raise ValueError("R0 red signal-chain denominator is not exactly 21")
+    chains = {
+        str(chain["scenario_id"]): validate_signal_chain(chain)
+        for chain in raw_chains
+    }
+    if len(chains) != len(raw_chains):
+        raise ValueError("R0 red signal-chain scenario IDs are not unique")
+
+    for path in (dp_repo, dp_repo / "diffusion_planner"):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
+
+    builders: dict[str, Any] = {}
+    enriched: list[dict[str, Any]] = []
+    seen_red: set[str] = set()
+    for raw_case in cases:
+        case = json.loads(json.dumps(raw_case))
+        map_path = str(case["source_map_path"])
+        if map_path not in builders:
+            source_path = Path(map_path)
+            require_source_preserving_lanelet2_regulatory_adapter(source_path)
+            sys.modules.pop(
+                "autoware_lanelet2_extension_python.projection", None
+            )
+            sys.modules.pop("autoware_lanelet2_extension_python", None)
+            install_lanelet2_projection_fallback(source_path)
+            builders[map_path] = LaneletSceneBuilder(map_path)
+        route_ids = [int(value) for value in case["route_spec"]["lanelet_ids"]]
+        route_polyline = _route_polyline_from_builder(
+            builders[map_path], route_ids
+        )
+        scenario_id = str(case["scenario_id"])
+        chain = chains.get(scenario_id)
+        if case.get("family") == "red_light_phase_timing":
+            if chain is None:
+                raise ValueError("formal red identity lacks R0 signal authority")
+            if (
+                chain["route_identity_sha256"]
+                != case["route_identity_sha256"]
+                or chain["source_map_sha256"] != case["source_map_sha256"]
+                or chain["route_lanelet_ids"] != route_ids
+            ):
+                raise ValueError("R0 red signal authority does not match formal case")
+            semantic = build_semantic_clone_payload(
+                case,
+                route_polyline_world=route_polyline,
+                stop_line_world=np.asarray(
+                    chain["stop_line_geometry_m"], dtype=np.float64
+                ),
+            )
+            if canonical_json_sha256(semantic) != chain["semantic_clone_sha256"]:
+                raise ValueError("red semantic clone hash does not match R0 source")
+            case["red_signal_authority"] = chain
+            seen_red.add(scenario_id)
+        else:
+            if chain is not None:
+                raise ValueError("non-red identity unexpectedly has red authority")
+            semantic = build_semantic_clone_payload(
+                case,
+                route_polyline_world=route_polyline,
+                stop_line_world=None,
+            )
+        case["canonical_semantic_clone_sha256"] = canonical_json_sha256(
+            semantic
+        )
+        enriched.append(case)
+    if seen_red != set(chains):
+        raise ValueError("R0 red signal authority has missing or extra identities")
+    return enriched
 
 
 def _load_formal_plan() -> tuple[dict[str, Any], str]:
@@ -706,6 +982,14 @@ def _config_authority_receipt(config: Mapping[str, Any]) -> dict[str, Any]:
         "family": str(controlled["family"]),
         "tier": str(controlled["tier"]),
         "route_identity_sha256": str(controlled["route_identity_sha256"]),
+        "canonical_semantic_clone_sha256": str(
+            controlled["canonical_semantic_clone_sha256"]
+        ),
+        "red_signal_source_chain_sha256": (
+            str(controlled["red_signal_authority"]["source_chain_sha256"])
+            if controlled["family"] == "red_light_phase_timing"
+            else None
+        ),
         "map_sha256": str(config["map"]["sha256"]),
         "route_sha256": str(route["sha256"]),
         "fixed_dp_head": str(fixed_dp["head"]),
@@ -744,6 +1028,7 @@ def _verify_preflight(
     camp_head: str,
     *,
     expected_config_root_sha256: str,
+    expected_authority: Mapping[str, Any],
 ) -> dict[str, Any]:
     root = _verify_seal(path)
     report = _load_json(path / "report.json")
@@ -777,6 +1062,14 @@ def _verify_preflight(
         "outcome_fields_consumed",
         "config_receipts",
         "rejected_roots",
+        "r0_review_artifact",
+        "r0_review_root_sha256",
+        "r0_source_artifact",
+        "r0_source_root_sha256",
+        "ultra_full_r_release_artifact",
+        "ultra_full_r_release_root_sha256",
+        "semantic_authority_root_sha256",
+        "semantic_authority_identity_count",
     }
     if (
         not required_keys.issubset(report)
@@ -832,6 +1125,30 @@ def _verify_preflight(
         or report.get("fresh_b_opened") is not False
         or report.get("outcome_fields_consumed") != []
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or any(report.get(key) != value for key, value in expected_authority.items())
+        or not all(
+            isinstance(report.get(key), str) and report.get(key)
+            for key in (
+                "r0_review_artifact",
+                "r0_source_artifact",
+                "ultra_full_r_release_artifact",
+            )
+        )
+        or not all(
+            _is_sha256(report.get(key))
+            for key in (
+                "r0_review_root_sha256",
+                "r0_source_root_sha256",
+                "ultra_full_r_release_root_sha256",
+                "semantic_authority_root_sha256",
+            )
+        )
+        or report.get("corpus_steps") != CORPUS_STEPS
+        or report.get("snapshot_capacity")
+        != EXPECTED_EXECUTABLE_IDENTITIES * CORPUS_STEPS
+        or report.get("training_executed") is not False
+        or report.get("calibration_executed") is not False
+        or report.get("fresh_b_opened") is not False
         or source_receipt != report
         or run_exit != "0\n"
         or not command
@@ -879,7 +1196,10 @@ def _execute(
                     config = build_controlled_train_config(
                         template, case, route_assets[identity]
                     )
-                    adapter = V25ControlledSceneAdapter(case)
+                    adapter = V25ControlledSceneAdapter(
+                        case,
+                        red_signal_authority=case.get("red_signal_authority"),
+                    )
                     snapshots: list[Mapping[str, Any]] = []
                     contexts: list[Mapping[str, Any]] = []
                     case_started = time.perf_counter()
@@ -929,10 +1249,13 @@ def _execute(
                     if disposition == "complete":
                         for tick_index in range(CORPUS_STEPS):
                             payloads.append(combine_snapshot_context(
-                            snapshot=snapshots[tick_index],
-                            context=contexts[tick_index],
-                            case=case,
-                            tick_index=tick_index,
+                                snapshot=snapshots[tick_index],
+                                context=contexts[tick_index],
+                                case=case,
+                                tick_index=tick_index,
+                                controlled_scene_receipt=adapter.receipts[
+                                    tick_index
+                                ],
                             ))
                     paired_count = len(payloads)
                     for tick_index, payload in enumerate(payloads):
@@ -1078,6 +1401,7 @@ def combine_snapshot_context(
     context: Mapping[str, Any],
     case: Mapping[str, Any],
     tick_index: int,
+    controlled_scene_receipt: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if snapshot.get("schema_version") != "v22_native_decision_snapshot_v1":
         raise ValueError("native snapshot schema mismatch")
@@ -1174,11 +1498,33 @@ def combine_snapshot_context(
         or case.get("split") != "train"
     ):
         raise ValueError("controlled snapshot immutability/outcome boundary failed")
+    semantic_clone_sha256 = case.get("canonical_semantic_clone_sha256")
+    if semantic_clone_sha256 is not None and not _is_sha256(
+        semantic_clone_sha256
+    ):
+        raise ValueError("controlled semantic clone SHA is invalid")
+    controlled_signal_receipt = None
+    if case.get("family") == "red_light_phase_timing":
+        if controlled_scene_receipt is not None:
+            chain = validate_signal_chain(case.get("red_signal_authority", {}))
+            signal = controlled_scene_receipt.get("signal")
+            if not isinstance(signal, Mapping):
+                raise ValueError("controlled red tick lacks signal receipt")
+            from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+                validate_runtime_signal_receipt,
+            )
+
+            controlled_signal_receipt = validate_runtime_signal_receipt(
+                signal.get("source_receipt", {}), chain
+            )
+        elif semantic_clone_sha256 is not None:
+            raise ValueError("controlled red snapshot lacks same-tick source receipt")
     return {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "feature_payload": {
             "atom_matrix": atoms.tolist(),
             "source_valid_mask": list(valid),
+            "physical_applicability_mask": list(physical),
             "candidate_row_sha256": list(rows),
             "raw_context": {name: float(raw[name]) for name in RAW_FEATURE_NAMES},
             "context_source_complete": {
@@ -1220,6 +1566,11 @@ def combine_snapshot_context(
             ),
             "context_schema_version": CONTEXT_SCHEMA_VERSION,
             "context_source_receipt": dict(source_receipt),
+            "generation_behavior_scale_sha256": _file_sha256(
+                CORRECTED_GENERATION_SCALES
+            ),
+            "canonical_semantic_clone_sha256": semantic_clone_sha256,
+            "controlled_signal_source_receipt": controlled_signal_receipt,
             "offline_label_provenance": "pending_train_only_causal_label",
             "outcome_fields_consumed": [],
             "fresh_b_opened": False,
