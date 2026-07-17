@@ -140,16 +140,22 @@ def main() -> None:
 def _preflight(plan, template: Mapping[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     route_assets = _materialize_routes(plan.pilot, args.output_dir / "routes", args.dp_repo)
     configs = []
+    shared_assets = None
     for case in plan.pilot:
         config = _build_config(template, case, route_assets[case["route_identity_sha256"]])
         validate_v25_controlled_capability_config(config)
-        verified = verify_config_assets(config)
+        if shared_assets is None:
+            verify_config_assets(config)
+            shared_assets = _shared_asset_contract(config)
+        elif _shared_asset_contract(config) != shared_assets:
+            raise ValueError("shared fixed-DP or selector assets changed across pilot cases")
+        _verify_case_assets(config)
         configs.append(
             {
                 "scenario_id": case["scenario_id"],
                 "route_identity_sha256": case["route_identity_sha256"],
                 "config_sha256": _canonical_sha256(config),
-                "verified_asset_count": len(verified),
+                "verified_case_asset_count": 2,
             }
         )
     _write_json(args.output_dir / "pilot_config_receipts.json", {"receipts": configs})
@@ -201,9 +207,15 @@ def _execute_pilot(plan, template: Mapping[str, Any], args: argparse.Namespace) 
         _build_config(template, case, route_assets[case["route_identity_sha256"]])
         for case in plan.pilot
     ]
+    shared_assets = None
     for config in configs:
         validate_v25_controlled_capability_config(config)
-        verify_config_assets(config)
+        if shared_assets is None:
+            verify_config_assets(config)
+            shared_assets = _shared_asset_contract(config)
+        elif _shared_asset_contract(config) != shared_assets:
+            raise ValueError("shared fixed-DP or selector assets changed across pilot cases")
+        _verify_case_assets(config)
     runner = build_native_arm_runner(configs[0], device=args.device)
     results = []
     progress_path = args.output_dir / "progress.json"
@@ -526,6 +538,23 @@ def _build_config(
     }
     config["controlled_scenario"] = copy.deepcopy(case)
     return config
+
+
+def _shared_asset_contract(config: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "fixed_dp": copy.deepcopy(config["fixed_dp"]),
+        "selector": copy.deepcopy(config["selector"]),
+    }
+
+
+def _verify_case_assets(config: Mapping[str, Any]) -> None:
+    for name, asset in (
+        ("map", config["map"]),
+        ("route", config["routes"][0]),
+    ):
+        path = Path(str(asset["path"]))
+        if not path.is_file() or _file_sha256(path) != asset["sha256"]:
+            raise ValueError(f"v25 controlled {name} asset SHA256 mismatch")
 
 
 def _official_source_audit(repo: Path) -> dict[str, Any]:
