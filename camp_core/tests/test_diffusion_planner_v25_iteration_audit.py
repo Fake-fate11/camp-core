@@ -129,26 +129,28 @@ LEGACY_POINTER = (
 )
 
 POINTER = (
-    "current_v25_status=v25_a14_r04_bounded_pass_ultra_review_required",
-    "current_v25_source_head=70c04b45e5c9416a14f099e1cc87f70c0d3f6936",
+    "current_v25_status=v25_a15_r05_bounded_pass_ultra_review_required",
+    "current_v25_source_head=1e1c32c71be4a0672652f8574f7cd62002a3c2b4",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r04_red21_nonsignal1_sequential_k8_70c04b45_20260718T042453CST",
-    "current_v25_artifact_root_sha256=1afd6ccfe1dda380be1b3d912515cb112e8c315e1cf9a9a1e45bbbe069666106",
-    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r04_red21_nonsignal1_sequential_k8_review_70c04b45_20260718T042453CST",
-    "current_v25_review_artifact_root_sha256=55ff4688dc4926348e26b8e9e161f4203c816eb8829dea974396f4f0aaa32b88",
-    "current_v25_ultra_stage_a_decision_artifact_root_sha256=baaf879f1eac5579a1029c2eb046dc125d8c82e7677f904b2b41dd8bfcd00947",
-    "current_v25_atom_ledger_artifact_root_sha256=5d7ff800eb79a9d8cd1b6b91af0d9fb239d654c9661a65e3bdda83d69046d214",
-    "current_v25_atom_ledger_validation_artifact_root_sha256=ac557c902d9aa5069059e20072e3853f85a9c9f6a69f3b3d350d936bd0e1ab93",
-    "current_v25_r0_authority_source_artifact_root_sha256=1f2b042887bb9499f4af4b2c8cfff1000d0229988cde98cea91a8e7be54c9414",
-    "current_v25_r0_authority_source_review_artifact_root_sha256=9055042f5503e7b1e23067691d516e1933557dac7c3b5baf99bce893ea393069",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_1e1c32c7_20260718T051807CST",
+    "current_v25_artifact_root_sha256=694ddcde9bd5972c4fb95eeb45da7f46663bb3a6acb87ca5b4cc18abbf97b79c",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053800CST",
+    "current_v25_review_artifact_root_sha256=7dc54a3d9baa3d818284ffdcb3ed1192c0805d93ea7019c6975c86cba20fe47f",
+    "current_v25_r05_failed_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053400CST",
+    "current_v25_r05_failed_review_artifact_root_sha256=d3cf28b2f62814b89e9b6debace6e3f87a14d5a3b9c38eabd92a50e059b1cab5",
+    "current_v25_ultra_stage_a_decision_artifact_root_sha256=0f48f22861721258be945ae42fb10d3fec7f90992addb386c535a1b8001b3e5a",
+    "current_v25_atom_ledger_artifact_root_sha256=5e762a14b53c6c81f6bb3bfa67c6aeeb7fa5fe603bb95fa0776d75035cb8311c",
+    "current_v25_atom_ledger_validation_artifact_root_sha256=641fadb24926cb7e6fc49c98d66f6a0a9528f41856b0417aae9e6fb9a80fa469",
+    "current_v25_r0_authority_source_artifact_root_sha256=372dd7a9d248e9a70b00c188b87053c33e2333533639d618461b17e21aa06632",
+    "current_v25_r0_authority_source_review_artifact_root_sha256=6d74c0739a042c16af2eb4bc3a50888ddbc3291a659572096dcbe9bc1c42bcb5",
     "current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
     "current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06",
-    "current_v25_seven_root_bindings_sha256=6fc039adb7aa21bed58a8ca6aa97dae944332566b37b471be015a4a7a933e066",
+    "current_v25_seven_root_bindings_sha256=4c3410f5c4f123e08e63a18cef10c366911fef7f454f74dbc2532d20db3dd396",
     "current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3",
     "current_v25_canonical_json_byte_spec=camp_dp_v25_canonical_json_utf8_lf_v1",
-    "current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v4",
-    "current_v25_snapshot_schema=camp_dp_v25_controlled_training_snapshot_v4",
-    "current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v5.json",
+    "current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v5",
+    "current_v25_snapshot_schema=camp_dp_v25_controlled_train_snapshot_v5",
+    "current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v6.json",
     "current_v25_r0_source_identity_count=21",
     "current_v25_r0_source_map_count=4",
     "current_v25_r0_physical_signature_count=9",
@@ -156,9 +158,11 @@ POINTER = (
     "current_v25_r0_probe_identity_count=22",
     "current_v25_r0_probe_tick_count=1408",
     "current_v25_r0_non_signal_identity_count=1",
+    "current_v25_full_config_preflight_release_created=false",
     "current_v25_full_config_preflight_started=false",
     "current_v25_corrected_full_corpus_started=false",
     "current_v25_full_r_authorized=false",
+    "current_v25_monitor_started=false",
     "current_v25_worker_count=0",
     "current_v25_gpu_compute_count=0",
     "current_v25_lock_state=free",
@@ -166,9 +170,9 @@ POINTER = (
     "current_v25_calibration_started=false",
     "current_v25_fresh_b2_opened=false",
     "current_v25_fresh_outcome_opened=false",
-    "observed_autodl_free_bytes=47200604160",
-    "current_v25_phase=A1_4_R0_4_bounded_decision_package",
-    "next_work_target=ultra_read_only_A1_4_R0_4_review_before_full_config_preflight_release",
+    "observed_autodl_free_bytes=46990168064",
+    "current_v25_phase=A1_5_R0_5_bounded_decision_package",
+    "next_work_target=ultra_read_only_A1_5_R0_5_review_before_full_config_preflight_release",
 )
 
 
@@ -420,5 +424,26 @@ def test_v25_a14_r04_type_exact_authority_and_snapshot_schema_are_bounded() -> N
         "all `134` V25 tests",
         "Full-config preflight remains blocked",
         "ultra_read_only_A1_4_R0_4_review_before_full_config_preflight_release",
+    ):
+        assert phrase in text
+
+
+def test_v25_a15_r05_nested_control_and_corpus_schema_are_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Stage A1.5/R0.5 Nested-Control, Corpus-Schema, and Release-Authority Correction",
+        "all five `a11_validation.contract_checks` keys",
+        "snake_case, camelCase, and hyphenated spellings",
+        "Actual receipts, independently rebuilt receipts, and the reported root",
+        "exact 26-feature raw-context/source-completeness keys",
+        "native 64-hex strings",
+        "Critical-manifest raw keys",
+        "0f48f22861721258be945ae42fb10d3fec7f90992addb386c535a1b8001b3e5a",
+        "694ddcde9bd5972c4fb95eeb45da7f46663bb3a6acb87ca5b4cc18abbf97b79c",
+        "7dc54a3d9baa3d818284ffdcb3ed1192c0805d93ea7019c6975c86cba20fe47f",
+        "4c3410f5c4f123e08e63a18cef10c366911fef7f454f74dbc2532d20db3dd396",
+        "all 139 V25 tests",
+        "No full-config release nonce or output",
+        "ultra_read_only_A1_5_R0_5_review_before_full_config_preflight_release",
     ):
         assert phrase in text
