@@ -13,19 +13,28 @@ V24_PAIRED_CONFIG = (
 )
 
 POINTER = (
-    "current_v25_status=v25_scene_conditioned_capability_passed_phase4_controlled_scenario_authorized",
-    "current_v25_source_head=d052f597254761c59ab55b53d858c1230e22a0dc",
+    "current_v25_status=v25_controlled_protocol_and_source_split_frozen_phase5_training_calibration_authorized",
+    "current_v25_source_head=ff02838780c7b2fa7fc557680e43d85967ee843e",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_context_capability_pilot_d052f597_20260717T130229CST",
-    "current_v25_artifact_root_sha256=d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_20260717T140842CST",
+    "current_v25_artifact_root_sha256=c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531",
     "current_v25_atom_schema=dp_camp_v10_14d",
     "current_v25_paper_subset=camp_legacy_v1_9d",
     "current_v25_context_schema=camp_dp_v25_causal_context_raw_v1",
     "current_v25_context_raw_feature_count=26",
     "current_v25_phi_dimension=53",
     "current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection",
-    "current_v25_capability_case_count=35",
-    "current_v25_capability_check_count=29",
+    "current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4",
+    "current_v25_controlled_pilot_case_count=147",
+    "current_v25_controlled_pilot_passed_count=85",
+    "current_v25_controlled_pilot_retained_failure_count=62",
+    "current_v25_controlled_train_executable_identity_count=1500",
+    "current_v25_controlled_train_source_ineligible_retained_count=153",
+    "current_v25_combined_train_snapshot_capacity_at_64_ticks=163796",
+    "current_v25_fresh_b_identity_count=120",
+    "current_v25_fresh_b_paired_run_count=600",
+    "current_v25_fresh_b_independent_route_ceiling=24",
+    "current_v25_fresh_b_independent_corridor_ceiling=3",
     "v24_legacy_benchmark_status=frozen_read_only_honest_no_claim",
     "v24_holdout_open_count=1",
     "v24_holdout_rerun_authorized=false",
@@ -33,9 +42,9 @@ POINTER = (
     "current_v25_fresh_benchmark_b_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=48672620544",
-    "current_v25_phase=3_scene_conditioned_implementation_and_capability_pilot",
-    "next_work_target=v25_controlled_scenario_source_audit_grammar_and_coverage_pilot",
+    "observed_autodl_free_bytes=48616669184",
+    "current_v25_phase=4_controlled_scenario_corpus_and_split",
+    "next_work_target=v25_controlled_train_corpus_training_and_calibration",
 )
 
 
@@ -111,5 +120,23 @@ def test_v25_phase3_scene_conditioned_capability_is_sealed_and_bounded() -> None
         "d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08",
         "not a trained or calibrated model",
         "does not establish scene-conditioned utility or safety improvement",
+    ):
+        assert phrase in text
+
+
+def test_v25_phase4_controlled_protocol_is_sealed_and_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Phase 4: Controlled Scenario Corpus and Split Freeze",
+        "All 147 attempts were retained: 85 passed and 62 remained failed",
+        "61 routes without a complete positive speed-limit source",
+        "all 401 inventory routes",
+        "1,500 executable controlled-train identities",
+        "153 source-ineligible retained train records",
+        "163,796-snapshot training capacity",
+        "exactly 600 three-arm paired runs",
+        "only 24 independent routes across three corridor groups",
+        "Fresh B has no legal mapped-signal source",
+        "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531",
     ):
         assert phrase in text

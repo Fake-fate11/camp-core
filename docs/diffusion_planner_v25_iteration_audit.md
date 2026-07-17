@@ -316,19 +316,110 @@ IV source, freeze an outcome-blind deterministic scenario grammar/split, and
 run its bounded coverage pilot; model training remains closed until that corpus
 gate passes.
 
-current_v25_status=v25_scene_conditioned_capability_passed_phase4_controlled_scenario_authorized
-current_v25_source_head=d052f597254761c59ab55b53d858c1230e22a0dc
+## Phase 4: Controlled Scenario Corpus and Split Freeze
+
+The official-source audit is pinned to TIER IV `scenario_simulator_v2` commit
+`e22f01093fa6516c0552549ada302270329c59a4`. It checked the maintained speed,
+lane-change, explicit-route, pedestrian-trajectory, and traffic-signal action
+examples. The official implementation does not provide a usable
+`RandomRouteAction`/random route strategy for this contract. V25 therefore
+uses explicit Lanelet2 routes and a deterministic native-runner materializer
+with semantically corresponding current-state actor and signal schedules. It
+does not change DP code, configuration, weights, checkpoints, requests, any
+candidate tensor, or a selected trajectory.
+
+The frozen grammar has easy, borderline, and high-risk parameter tiers for all
+seven preregistered families: lead-vehicle hard brake; cut-in/merge;
+pedestrian/cyclist crossing including occlusion; unprotected turn/oncoming
+conflict; red-light phase timing; blocked lane/static obstacle; and narrow
+encounter. Every case fixes explicit route placement, headway/TTC, speed,
+deceleration, trigger time, signal phase where available, and seed namespace
+before outcomes. Scripted actors are exogenous and excluded from DP control;
+signal schedules may only overwrite rows already mapped as traffic signals.
+The adapter consumes no candidate, selected trajectory, future, outcome, or
+identity feature.
+
+The preflight artifact
+`/root/autodl-tmp/camp_dp_v25_controlled_scenario_preflight_f1bb82a9_20260717T134646CST`
+has root SHA256
+`9d4fb0216a448e69c09ecd0549db96cb046d00b713c23fb5428d5c976f714cac`
+and passed 39 focused remote tests plus all 147 frozen-config validations. The
+first pilot artifact is retained for failure accounting: a tick-level record
+was initially passed to a run-level validator, so 85 otherwise executed cases
+were conservatively recorded as failures. Commit
+`e250b19da010117a3416fd3b0f9eb63e55548bf3` corrected only that validation
+scope; it did not replace, redraw, or select cases using an outcome.
+
+The authoritative corrected pilot is
+`/root/autodl-tmp/camp_dp_v25_controlled_scenario_coverage_pilot_retry_e250b19d_20260717T135338CST`
+with root SHA256
+`7d5205e9a7efc1276d3f8334d9c80f6f66d7b49bef7ff4482af6f15eadb7ef24`.
+All 147 attempts were retained: 85 passed and 62 remained failed. The source-
+only review reproduced 61 routes without a complete positive speed-limit
+source and one red-light route that produced no executed tracker tick, with
+zero mismatch against the runtime failures. Lead hard brake, cut-in/merge, and
+pedestrian/cyclist crossing passed 21/21 each; narrow encounter passed 11/21;
+red-light timing passed 10/21; unprotected/oncoming passed 1/21; blocked/static
+obstacle passed 0/21. Every passing tick preserved the fixed K=8 tensor byte-
+for-byte. Registered neighbor-distance monotonic variation was observed for
+lead, cut-in, crossing, and narrow cases, and red phase ordering varied as
+specified. The other families remain explicitly source/capability limited; no
+outcome was used to discard or replace them.
+
+The authoritative formal source/split freeze is
+`/root/autodl-tmp/camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_20260717T140842CST`
+with independently recomputed root SHA256
+`c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531`.
+It audited all 401 inventory routes from source. The train inventory contains
+375 routes, 222 with complete positive speed limits and 32 with mapped traffic
+lights. Calibration contains 2 speed-complete routes and no mapped traffic
+light. Fresh B contains 24 speed-complete routes and no mapped traffic light.
+
+The frozen plan contains 1,500 executable controlled-train identities and 153
+source-ineligible retained train records. At 64 ticks its controlled capacity
+is 96,000 causal snapshots; adding the sealed V24 67,796 snapshots gives a
+163,796-snapshot training capacity. Calibration has 36 executable identities
+and six retained source-ineligible red-light records. Fresh B remains unopened
+at 120 executable identities and five frozen seeds, for exactly 600 three-arm
+paired runs. Its real inventory ceiling is only 24 independent routes across
+three corridor groups. Scenario identities and repeated seeds increase run
+coverage but are not represented as new routes or corridors. Fresh B has no
+legal mapped-signal source, so it contains no fabricated red-light cases; the
+21 executable red-light training identities and the pilot evidence remain the
+bounded signal evidence.
+
+All split rows are outcome-blind and carry their source eligibility and
+retention role. No holdout outcome, future, model score, CAMP/DP result, or
+closed-loop metric entered route selection, family/tier construction, failure
+retention, or split assignment. V24 holdout was not read, Fresh B was not
+opened, and fixed DP is clean at the frozen commit. Phase 5 may execute only
+the frozen controlled-train identities, append them to the sealed V24 train
+corpus, train the four preregistered static/scene-conditioned 9D/14D selectors,
+and use calibration only for the allowed scale, threshold, and noninferiority
+freeze. Fresh B remains closed until that gate passes.
+
+current_v25_status=v25_controlled_protocol_and_source_split_frozen_phase5_training_calibration_authorized
+current_v25_source_head=ff02838780c7b2fa7fc557680e43d85967ee843e
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_context_capability_pilot_d052f597_20260717T130229CST
-current_v25_artifact_root_sha256=d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_20260717T140842CST
+current_v25_artifact_root_sha256=c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v1
 current_v25_context_raw_feature_count=26
 current_v25_phi_dimension=53
 current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
-current_v25_capability_case_count=35
-current_v25_capability_check_count=29
+current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
+current_v25_controlled_pilot_case_count=147
+current_v25_controlled_pilot_passed_count=85
+current_v25_controlled_pilot_retained_failure_count=62
+current_v25_controlled_train_executable_identity_count=1500
+current_v25_controlled_train_source_ineligible_retained_count=153
+current_v25_combined_train_snapshot_capacity_at_64_ticks=163796
+current_v25_fresh_b_identity_count=120
+current_v25_fresh_b_paired_run_count=600
+current_v25_fresh_b_independent_route_ceiling=24
+current_v25_fresh_b_independent_corridor_ceiling=3
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
 v24_holdout_open_count=1
 v24_holdout_rerun_authorized=false
@@ -336,6 +427,6 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48672620544
-current_v25_phase=3_scene_conditioned_implementation_and_capability_pilot
-next_work_target=v25_controlled_scenario_source_audit_grammar_and_coverage_pilot
+observed_autodl_free_bytes=48616669184
+current_v25_phase=4_controlled_scenario_corpus_and_split
+next_work_target=v25_controlled_train_corpus_training_and_calibration

@@ -12,31 +12,45 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below must match it exactly.
 
-Phase 3 implemented the frozen 26D current-request context, 53D complement
-lift, universal column-simplex linear head, train-only causal Bradley--Terry
-warmup, and strict CLARABEL finite-candidate CVaR/L2 master. A 35-case
-outcome-blind capability pilot made every raw feature vary and passed all 29
-registered source, finite, monotonic, simplex, affine-score, and candidate-
-immutability checks. This authorizes the phase-4 official-source audit,
-outcome-blind controlled-scenario grammar/split, and bounded coverage pilot.
-The probe Theta/scaler are not trained assets and establish no utility or
-safety result. Fixed DP remains clean; V24 holdout and Fresh Benchmark B stayed
+Phase 4 froze the official-source-informed, outcome-blind controlled-scenario
+protocol. The corrected 147-case coverage pilot retained all attempts: 85
+passed and 62 remained source failures (61 missing positive route speed-limit
+source and one route with no executed tracker tick). The formal source audit
+covered all 401 inventory routes and froze 1,500 executable controlled-train
+identities plus 153 retained source-ineligible records, 36 executable
+calibration identities plus 6 retained source-ineligible red-light records,
+and 120 unopened Fresh Benchmark B identities at five seeds (600 paired runs).
+Together with the frozen 67,796 V24 train snapshots, the 64-tick capacity is
+163,796 snapshots. The real Fresh B ceiling is only 24 routes and 3 corridors;
+there is no mapped traffic-light source in that inventory, so red-light cases
+are not fabricated there. This authorizes frozen controlled-train execution,
+the four preregistered static/scene-conditioned 9D/14D trainings, and
+calibration. Fixed DP remains clean; V24 holdout and Fresh B outcomes stayed
 closed. No training, calibration, closed-loop evaluation, claim, promotion,
 deployment, or online activation occurred.
 
-current_v25_status=v25_scene_conditioned_capability_passed_phase4_controlled_scenario_authorized
-current_v25_source_head=d052f597254761c59ab55b53d858c1230e22a0dc
+current_v25_status=v25_controlled_protocol_and_source_split_frozen_phase5_training_calibration_authorized
+current_v25_source_head=ff02838780c7b2fa7fc557680e43d85967ee843e
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_context_capability_pilot_d052f597_20260717T130229CST
-current_v25_artifact_root_sha256=d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_20260717T140842CST
+current_v25_artifact_root_sha256=c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v1
 current_v25_context_raw_feature_count=26
 current_v25_phi_dimension=53
 current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
-current_v25_capability_case_count=35
-current_v25_capability_check_count=29
+current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
+current_v25_controlled_pilot_case_count=147
+current_v25_controlled_pilot_passed_count=85
+current_v25_controlled_pilot_retained_failure_count=62
+current_v25_controlled_train_executable_identity_count=1500
+current_v25_controlled_train_source_ineligible_retained_count=153
+current_v25_combined_train_snapshot_capacity_at_64_ticks=163796
+current_v25_fresh_b_identity_count=120
+current_v25_fresh_b_paired_run_count=600
+current_v25_fresh_b_independent_route_ceiling=24
+current_v25_fresh_b_independent_corridor_ceiling=3
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
 v24_holdout_open_count=1
 v24_holdout_rerun_authorized=false
@@ -44,9 +58,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48672620544
-current_v25_phase=3_scene_conditioned_implementation_and_capability_pilot
-next_work_target=v25_controlled_scenario_source_audit_grammar_and_coverage_pilot
+observed_autodl_free_bytes=48616669184
+current_v25_phase=4_controlled_scenario_corpus_and_split
+next_work_target=v25_controlled_train_corpus_training_and_calibration
 
 ## Current V24 Status
 
