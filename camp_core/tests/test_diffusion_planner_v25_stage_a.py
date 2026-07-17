@@ -186,6 +186,11 @@ def test_stage_a_independent_algebra_covers_jerk_partition_and_speed_thresholds(
     }
 
 
+def test_stage_a_validator_contract_checks_are_strict_booleans() -> None:
+    source = Path(validator.__file__).read_text(encoding="utf-8")
+    assert 'and bool(scale.get("red_binary_alternative"))' in source
+
+
 def test_all_21_red_capability_failures_are_scientifically_ineligible() -> None:
     reason = ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value
     rows = [

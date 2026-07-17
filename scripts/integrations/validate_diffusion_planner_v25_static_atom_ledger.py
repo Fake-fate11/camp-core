@@ -426,7 +426,7 @@ def validate_ledger(
             and scale.get("quantile") == 0.95
             and scale.get("generation_floor_is_training_estimate") is False
             and "source-independent" in str(scale.get("block_weighting"))
-            and scale.get("red_binary_alternative")
+            and bool(scale.get("red_binary_alternative"))
         ),
         "red_coverage_fail_closed": (
             isinstance(red, Mapping)
