@@ -95,7 +95,7 @@ def _project(
     for lanelet_id in route_ids:
         line = np.asarray(builder._cache[lanelet_id].raw_centerline, dtype=np.float64)
         local = 0.0
-        for start, end in zip(line[:-1], line[1:], strict=True):
+        for start, end in zip(line[:-1], line[1:]):
             vector = end - start
             length = float(np.linalg.norm(vector))
             fraction = 0.0 if length <= 1e-12 else float(
@@ -344,7 +344,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             != 64
             or receipt.get("config", {}).get("protocol", {}).get("fresh_b_opened")
             is not False
-            for case, receipt in zip(selected, receipts, strict=True)
+            for case, receipt in zip(selected, receipts)
         )
     ):
         raise ValueError("R0 bounded case/config authority drifted")

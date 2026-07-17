@@ -595,6 +595,8 @@ class NativeCampPredictBatch:
                     ),
                     v2i_signal_timing=self.v25_v2i_signal_timing,
                 )
+                if len(context_record.source_complete) != len(RAW_FEATURE_NAMES):
+                    raise ValueError("V25 context source-complete dimension drifted")
                 context_payload = {
                     "schema_version": CONTEXT_SCHEMA_VERSION,
                     "raw_context": context_record.as_dict(),
@@ -603,7 +605,6 @@ class NativeCampPredictBatch:
                         for name, value in zip(
                             RAW_FEATURE_NAMES,
                             context_record.source_complete,
-                            strict=True,
                         )
                     },
                     "source_receipt": dict(context_record.source_receipt),

@@ -127,7 +127,7 @@ def _run_case(
     fingerprints = []
     for tick_index, (tick, snapshot, context, controlled) in enumerate(
         zip(
-            receipt["ticks"], snapshots, contexts, adapter.receipts, strict=True
+            receipt["ticks"], snapshots, contexts, adapter.receipts
         )
     ):
         combined = combine_snapshot_context(

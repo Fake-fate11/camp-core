@@ -57,9 +57,11 @@ class V25ContextRecord:
     source_receipt: Mapping[str, Any]
 
     def as_dict(self) -> dict[str, float]:
+        if np.asarray(self.raw).shape != (RAW_FEATURE_COUNT,):
+            raise ValueError("V25 raw context dimension drifted")
         return {
             name: float(value)
-            for name, value in zip(RAW_FEATURE_NAMES, self.raw, strict=True)
+            for name, value in zip(RAW_FEATURE_NAMES, self.raw)
         }
 
 

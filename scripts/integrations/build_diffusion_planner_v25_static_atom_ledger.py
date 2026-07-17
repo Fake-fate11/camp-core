@@ -466,7 +466,9 @@ def _numeric_fixture(scales: np.ndarray) -> dict[str, Any]:
 
 def _scale_diagnostic(scales: list[float]) -> dict[str, Any]:
     rows = []
-    for index, (name, scale) in enumerate(zip(ATOM_NAMES, scales, strict=True)):
+    if len(scales) != len(ATOM_NAMES):
+        raise ValueError("generation scale denominator drifted")
+    for index, (name, scale) in enumerate(zip(ATOM_NAMES, scales)):
         rows.append(
             {
                 "index": index,

@@ -110,7 +110,7 @@ def _project_stop_to_controlled_route(
     for lanelet_id in route_ids:
         line = np.asarray(builder._cache[lanelet_id].raw_centerline, dtype=np.float64)
         local_offset = 0.0
-        for start, end in zip(line[:-1], line[1:], strict=True):
+        for start, end in zip(line[:-1], line[1:]):
             vector = end - start
             length = float(np.linalg.norm(vector))
             fraction = (
