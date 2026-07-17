@@ -216,6 +216,12 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
     case["no_signal_authority"] = chain
     case["canonical_semantic_clone_sha256"] = chain["semantic_clone_sha256"]
     snapshot = _snapshot()
+    for row in snapshot["feature_payload"]["atom_matrix"]:
+        row[10] = 0.0
+        row[12] = 0.0
+    for row in snapshot["feature_payload"]["atom_applicable_mask"]:
+        row[10] = False
+        row[12] = False
     snapshot["sidecar"]["causal_signal_atom_input"] = (
         build_no_signal_causal_atom_input(chain, receipt)
     )

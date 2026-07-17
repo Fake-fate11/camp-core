@@ -5,6 +5,7 @@ import copy
 from contextlib import contextmanager
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -19,6 +20,7 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
 )
+from camp_core.integrations.diffusion_planner_artifact_seal import seal_artifact
 from camp_core.integrations.diffusion_planner_v25_context import (
     CONTEXT_SCHEMA_VERSION,
     RAW_FEATURE_NAMES,
@@ -28,11 +30,20 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     RetainedScenarioCapabilityFailure,
     ScenarioCapabilityReason,
 )
+from camp_core.integrations.diffusion_planner_v25_full_r_authority import (
+    EXPECTED_ROOT_STATUSES,
+    build_critical_implementation_manifest,
+    consume_one_shot_nonce,
+    verify_dual_head_contract,
+    verify_seven_root_chain,
+)
+from camp_core.integrations import diffusion_planner_v25_full_r_authority as full_r_authority
 from scripts.integrations.run_diffusion_planner_dp_camp_v19_worker import (
     select_camp_candidate,
 )
 from scripts.integrations import (
     preflight_diffusion_planner_v25_ultra_correction as preflight,
+    review_diffusion_planner_v25_full_config_preflight as full_config_reviewer,
     review_diffusion_planner_v25_ultra_correction_preflight as reviewer,
     run_diffusion_planner_v25_controlled_training_corpus as corpus,
 )
@@ -528,7 +539,7 @@ def test_s01_reviewer_recomputes_fingerprints_and_candidate0_alias() -> None:
     assert result["default_candidate0_evidence_recomputed"] is False
 
 
-def test_full_corpus_executor_preflight_authority_is_fail_closed(
+def test_minimal_self_signed_1500_preflight_is_rejected_as_incomplete(
     tmp_path: Path,
 ) -> None:
     artifact = tmp_path / "full_preflight"
@@ -614,29 +625,24 @@ def test_full_corpus_executor_preflight_authority_is_fail_closed(
             "semantic_authority_identity_count",
         )
     }
-    verified = corpus._verify_preflight(
-        artifact,
-        head,
-        expected_config_root_sha256=corpus._canonical_sha256(receipts),
-        expected_authority=expected_authority,
-    )
-    assert verified["root_sha256"]
-
-    report["snapshot_capacity"] -= 1
-    corpus._write_json(artifact / "report.json", report)
-    corpus._write_json(artifact / "source_receipt.json", report)
-    corpus._seal(artifact)
     with pytest.raises(ValueError, match="authority is invalid"):
         corpus._verify_preflight(
             artifact,
             head,
             expected_config_root_sha256=corpus._canonical_sha256(receipts),
             expected_authority=expected_authority,
+            implementation_source_head=head,
+            critical_implementation_manifest=build_critical_implementation_manifest(
+                Path(__file__).resolve().parents[2]
+            ),
         )
+    with pytest.raises(ValueError, match="report contract drifted"):
+        full_config_reviewer.review(artifact, corpus._verify_seal(artifact))
 
 
-def test_execute_lock_remains_held_through_report_exit_and_seal(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+@pytest.mark.parametrize("mode", ["preflight", "execute"])
+def test_full_r_preflight_and_execute_lock_cover_output_report_exit_and_seal(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, mode: str
 ) -> None:
     events: list[str] = []
     held = False
@@ -644,6 +650,7 @@ def test_execute_lock_remains_held_through_report_exit_and_seal(
     @contextmanager
     def fake_lock(_path: Path):
         nonlocal held
+        assert not output.exists()
         held = True
         events.append("lock_enter")
         try:
@@ -652,15 +659,15 @@ def test_execute_lock_remains_held_through_report_exit_and_seal(
             events.append("lock_exit")
             held = False
 
-    output = tmp_path / "evidence"
+    output = tmp_path / mode
     args = argparse.Namespace(
         probe_template=tmp_path / "probe.json",
         dp_repo=tmp_path / "dp",
         output_dir=output,
         device="cpu",
-        preflight_artifact=tmp_path / "preflight",
-        preflight=False,
-        execute=True,
+        preflight_artifact=(None if mode == "preflight" else tmp_path / "preflight"),
+        preflight=mode == "preflight",
+        execute=mode == "execute",
     )
     monkeypatch.setattr(corpus, "parse_args", lambda: args)
     monkeypatch.setattr(corpus, "_exclusive_lock", fake_lock)
@@ -689,6 +696,201 @@ def test_execute_lock_remains_held_through_report_exit_and_seal(
     monkeypatch.setattr(corpus, "_seal", fake_seal)
     corpus.main()
     assert events == ["lock_enter", "run", "report", "seal", "lock_exit"]
+
+
+def test_release_nonce_is_exact_output_bound_and_one_shot(tmp_path: Path) -> None:
+    output = tmp_path / "authorized"
+    nonce = "a" * 64
+    marker = consume_one_shot_nonce(
+        ledger_dir=tmp_path / "nonce-ledger",
+        gate="preflight",
+        nonce=nonce,
+        authorized_output_dir=str(output),
+        requested_output_dir=output,
+    )
+    assert marker.is_file()
+    with pytest.raises(ValueError, match="already consumed"):
+        consume_one_shot_nonce(
+            ledger_dir=tmp_path / "nonce-ledger",
+            gate="preflight",
+            nonce=nonce,
+            authorized_output_dir=str(output),
+            requested_output_dir=output,
+        )
+    with pytest.raises(ValueError, match="different exact output"):
+        consume_one_shot_nonce(
+            ledger_dir=tmp_path / "nonce-ledger-2",
+            gate="preflight",
+            nonce="b" * 64,
+            authorized_output_dir=str(output),
+            requested_output_dir=tmp_path / "replayed-elsewhere",
+        )
+
+
+def test_dual_head_contract_allows_only_pointer_docs_and_binds_manifest() -> None:
+    repo = Path(__file__).resolve().parents[2]
+    head = corpus._git_head(repo)
+    manifest = build_critical_implementation_manifest(repo)
+    result = verify_dual_head_contract(
+        repo=repo,
+        implementation_source_head=head,
+        current_pointer_head=head,
+        implementation_manifest=manifest,
+    )
+    assert result["pointer_only_changed_paths"] == []
+    drifted = dict(manifest)
+    drifted[next(iter(drifted))] = "0" * 64
+    with pytest.raises(ValueError, match="manifest drifted"):
+        verify_dual_head_contract(
+            repo=repo,
+            implementation_source_head=head,
+            current_pointer_head=head,
+            implementation_manifest=drifted,
+        )
+
+
+def test_dual_head_contract_accepts_docs_only_and_rejects_code_diff(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    manifest = {"runner.py": "a" * 64}
+    monkeypatch.setattr(
+        full_r_authority,
+        "build_critical_implementation_manifest",
+        lambda _repo: dict(manifest),
+    )
+    monkeypatch.setattr(
+        full_r_authority.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout=(
+                "docs/diffusion_planner_current_status.md\n"
+                "docs/diffusion_planner_v25_iteration_audit.md\n"
+                "camp_core/tests/test_diffusion_planner_v25_iteration_audit.py\n"
+            )
+        ),
+    )
+    accepted = verify_dual_head_contract(
+        repo=tmp_path,
+        implementation_source_head="1" * 40,
+        current_pointer_head="2" * 40,
+        implementation_manifest=manifest,
+    )
+    assert len(accepted["pointer_only_changed_paths"]) == 3
+    monkeypatch.setattr(
+        full_r_authority.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout="scripts/integrations/runner.py\n"
+        ),
+    )
+    with pytest.raises(ValueError, match="allowlist"):
+        verify_dual_head_contract(
+            repo=tmp_path,
+            implementation_source_head="1" * 40,
+            current_pointer_head="2" * 40,
+            implementation_manifest=manifest,
+        )
+
+
+def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
+    tmp_path: Path,
+) -> None:
+    head = "e" * 40
+    fixed = corpus.FIXED_DP_HEAD
+
+    def make(role: str, report: dict[str, object], report_file: str = "report.json"):
+        artifact = tmp_path / role
+        artifact.mkdir()
+        report.update(status=EXPECTED_ROOT_STATUSES[role], camp_head=head)
+        (artifact / report_file).write_text(
+            json.dumps(report, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        (artifact / "HEADS").write_text(
+            f"camp_head={head}\nfixed_dp_head={fixed}\n", encoding="ascii"
+        )
+        (artifact / "run.exit").write_text("0\n", encoding="ascii")
+        root = seal_artifact(artifact, label=role)
+        return artifact, root, report_file
+
+    decision = make(
+        "a11_decision",
+        {
+            "corrected_source_head": head,
+            "rejected_roots": [corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        },
+        "decision.json",
+    )
+    ledger = make(
+        "a11_ledger",
+        {"authority": {"ultra_decision_root_sha256": decision[1]}},
+    )
+    validation = make(
+        "a11_validation", {"reviewed_root_sha256": ledger[1]}
+    )
+    source = make(
+        "r01_source",
+        {
+            "ultra_decision_root_sha256": decision[1],
+            "a1_ledger_root_sha256": ledger[1],
+            "a1_validation_root_sha256": validation[1],
+        },
+    )
+    source_review = make(
+        "r01_source_review", {"reviewed_root_sha256": source[1]}
+    )
+    bounded = make(
+        "r01_bounded",
+        {
+            "r0_source_root_sha256": source[1],
+            "r0_review_root_sha256": source_review[1],
+        },
+    )
+    bounded_review = make(
+        "r01_bounded_review",
+        {
+            "reviewed_root_sha256": bounded[1],
+            "r0_source_root_sha256": source[1],
+            "r0_source_review_root_sha256": source_review[1],
+        },
+    )
+    rows = {
+        role: {"path": str(value[0]), "root_sha256": value[1], "report_file": value[2]}
+        for role, value in {
+            "a11_decision": decision,
+            "a11_ledger": ledger,
+            "a11_validation": validation,
+            "r01_source": source,
+            "r01_source_review": source_review,
+            "r01_bounded": bounded,
+            "r01_bounded_review": bounded_review,
+        }.items()
+    }
+    verified = verify_seven_root_chain(
+        bindings=rows,
+        implementation_source_head=head,
+        fixed_dp_head=fixed,
+        rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+    )
+    assert set(verified) == set(rows)
+
+    deleted = dict(rows)
+    deleted.pop("a11_validation")
+    with pytest.raises(ValueError, match="exact seven"):
+        verify_seven_root_chain(
+            bindings=deleted,
+            implementation_source_head=head,
+            fixed_dp_head=fixed,
+            rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+        )
+    substituted = copy.deepcopy(rows)
+    substituted["r01_source"]["root_sha256"] = source_review[1]
+    with pytest.raises(ValueError):
+        verify_seven_root_chain(
+            bindings=substituted,
+            implementation_source_head=head,
+            fixed_dp_head=fixed,
+            rejected_root_sha256=corpus.SUPERSEDED_PARTIAL_CORPUS_ROOT,
+        )
 
 
 def test_atom_ledger_is_only_a_versioned_s0_path_plan() -> None:

@@ -8,7 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -22,6 +22,10 @@ for _path in (ROOT, PACKAGE_ROOT):
 from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
     seal_artifact,
     verify_complete_seal,
+)
+from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    compute_authorized_red_stopping_margin_costs,
+    validate_fixed_k8_candidate_tensor,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     canonical_json_sha256,
@@ -45,8 +49,107 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v2"
-SOURCE_SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v2"
+SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_review_v3"
+SOURCE_SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v3"
+
+
+def _strict_json_bool_array(
+    value: Any, shape: tuple[int, ...], *, label: str
+) -> np.ndarray:
+    """Parse a JSON boolean tensor without accepting numeric/string coercion."""
+    if not isinstance(value, list):
+        raise ValueError(f"{label} must be a JSON list")
+
+    def flatten(node: Any, depth: int) -> list[bool]:
+        if depth == len(shape):
+            if type(node) is not bool:
+                raise ValueError(f"{label} elements must be native booleans")
+            return [node]
+        if not isinstance(node, list) or len(node) != shape[depth]:
+            raise ValueError(f"{label} shape drifted")
+        result: list[bool] = []
+        for child in node:
+            result.extend(flatten(child, depth + 1))
+        return result
+
+    return np.asarray(flatten(value, 0), dtype=np.bool_).reshape(shape)
+
+
+def _independently_validate_tick_atoms(
+    row: Mapping[str, Any],
+    *,
+    chain: Mapping[str, Any],
+    signal_receipt: Mapping[str, Any],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    raw = np.asarray(row.get("raw_atom_matrix"), dtype=np.float64)
+    source_valid = _strict_json_bool_array(
+        row.get("source_valid_mask"), (8,), label="source_valid_mask"
+    )
+    physical = _strict_json_bool_array(
+        row.get("physical_feasible_mask"),
+        (8,),
+        label="physical_feasible_mask",
+    )
+    atom_source_valid = _strict_json_bool_array(
+        row.get("atom_source_valid_mask"),
+        (8, 14),
+        label="atom_source_valid_mask",
+    )
+    atom_applicable = _strict_json_bool_array(
+        row.get("atom_applicable_mask"),
+        (8, 14),
+        label="atom_applicable_mask",
+    )
+    candidates = validate_fixed_k8_candidate_tensor(
+        np.asarray(row.get("candidate_tensor"), dtype=np.float32)
+    )
+    if (
+        raw.shape != (8, 14)
+        or not np.isfinite(raw).all()
+        or np.any(raw < 0.0)
+        or not source_valid.any()
+        or np.any(physical & ~source_valid)
+        or np.any(atom_applicable & ~atom_source_valid)
+        or not np.array_equal(source_valid, atom_source_valid.all(axis=1))
+    ):
+        raise ValueError("R0 fingerprint/mask/raw atom contract drifted")
+    causal_signal = row.get("causal_signal_atom_input")
+    validated_signal = validate_causal_signal_atom_input(
+        causal_signal, chain, signal_receipt
+    )
+    signal_applicable = validated_signal["current_phase"] == "red"
+    signal_columns = np.asarray([10, 12])
+    if (
+        row.get("current_phase") != validated_signal["current_phase"]
+        or not np.array_equal(
+            atom_applicable[:, signal_columns],
+            np.full((8, 2), signal_applicable, dtype=np.bool_),
+        )
+        or (
+            not signal_applicable
+            and not np.array_equal(raw[:, signal_columns], np.zeros((8, 2)))
+        )
+        or row.get("all_k_high_risk") is not bool(not physical.any())
+    ):
+        raise ValueError("R0 signal applicability or all-K evidence drifted")
+    dt_s = row.get("dt_s")
+    if isinstance(dt_s, bool) or not isinstance(dt_s, (int, float)) or float(dt_s) != 0.1:
+        raise ValueError("R0 atom timestep drifted")
+    expected_red_stopping = compute_authorized_red_stopping_margin_costs(
+        candidates, validated_signal, float(dt_s)
+    )
+    if not np.allclose(
+        raw[:, 12], expected_red_stopping, rtol=0.0, atol=1e-12
+    ):
+        raise ValueError("R0 red-stopping atom does not match certified causal input")
+    return (
+        raw,
+        source_valid,
+        physical,
+        atom_source_valid,
+        atom_applicable,
+        candidates,
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -161,32 +264,25 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             payload = {
                 key: value for key, value in row.items() if key != "fingerprint_sha256"
             }
-            raw = np.asarray(row.get("raw_atom_matrix"), dtype=np.float64)
-            source_valid = np.asarray(row.get("source_valid_mask"), dtype=bool)
-            physical = np.asarray(row.get("physical_feasible_mask"), dtype=bool)
-            atom_source_valid = np.asarray(
-                row.get("atom_source_valid_mask"), dtype=np.bool_
+            signal_receipt = row.get("runtime_signal_receipt")
+            if result.get("family") == "red_light_phase_timing":
+                validate_runtime_signal_receipt(signal_receipt, chain)
+            else:
+                validate_runtime_no_signal_receipt(signal_receipt, chain)
+            (
+                raw,
+                source_valid,
+                physical,
+                atom_source_valid,
+                atom_applicable,
+                candidates,
+            ) = _independently_validate_tick_atoms(
+                row, chain=chain, signal_receipt=signal_receipt
             )
-            atom_applicable = np.asarray(
-                row.get("atom_applicable_mask"), dtype=np.bool_
-            )
-            candidates = np.asarray(row.get("candidate_tensor"), dtype=np.float32)
             default = np.asarray(row.get("default_output"), dtype=np.float32)
             if (
                 row.get("tick_index") != tick_index
                 or row.get("fingerprint_sha256") != canonical_json_sha256(payload)
-                or raw.shape != (8, 14)
-                or source_valid.shape != (8,)
-                or physical.shape != (8,)
-                or not np.isfinite(raw).all()
-                or np.any(raw < 0.0)
-                or np.any(physical & ~source_valid)
-                or not source_valid.any()
-                or atom_source_valid.shape != (8, 14)
-                or atom_applicable.shape != (8, 14)
-                or np.any(atom_applicable & ~atom_source_valid)
-                or candidates.ndim != 3
-                or candidates.shape[0] != 8
                 or default.shape != candidates[0].shape
             ):
                 raise ValueError("R0 fingerprint/mask/raw atom contract drifted")
@@ -203,13 +299,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             normalized = np.clip(raw / scales.reshape(1, 14), 0.0, 10.0)
             scores = normalized @ weights
             expected = int(np.argmin(np.where(source_valid, scores, np.inf)))
-            signal_receipt = row.get("runtime_signal_receipt")
-            if result.get("family") == "red_light_phase_timing":
-                validate_runtime_signal_receipt(signal_receipt, chain)
-            else:
-                validate_runtime_no_signal_receipt(signal_receipt, chain)
             causal_signal = row.get("causal_signal_atom_input")
-            validate_causal_signal_atom_input(causal_signal, chain, signal_receipt)
             context = row.get("complete_context")
             if (
                 row.get("selected_index") != expected

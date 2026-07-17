@@ -10,7 +10,7 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 
-SEMANTIC_PAYLOAD_SCHEMA_VERSION = "camp_dp_v25_semantic_clone_payload_v2"
+SEMANTIC_PAYLOAD_SCHEMA_VERSION = "camp_dp_v25_semantic_clone_payload_v3"
 SIGNAL_CHAIN_SCHEMA_VERSION = "camp_dp_v25_red_signal_source_chain_v2"
 NO_SIGNAL_CHAIN_SCHEMA_VERSION = "camp_dp_v25_no_signal_source_chain_v1"
 RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION = (
@@ -217,9 +217,10 @@ def build_semantic_clone_payload(
         item: dict[str, Any] = {
             "agent_type": str(actor["agent_type"]),
             "initial_xy_local_m": local(actor["initial_xy"]),
-            "initial_heading_local_rad": round(
-                math.atan2(float(heading_local[1]), float(heading_local[0])), 6
-            ),
+            # Keep the direction on S1 instead of serializing atan2.  A scalar
+            # angle has two encodings at the +/-pi branch cut and therefore
+            # cannot be a canonical SE(2)-invariant semantic-clone field.
+            "initial_heading_local_unit": _round_clean(heading_local).tolist(),
             "route_tangent_local": _round_clean(tangent @ rotation).tolist(),
             "route_normal_local": _round_clean(actor_normal @ rotation).tolist(),
         }

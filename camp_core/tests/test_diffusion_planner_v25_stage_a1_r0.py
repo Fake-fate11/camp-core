@@ -259,6 +259,7 @@ def test_full_r_executor_cannot_self_authorize_without_ultra_chain() -> None:
             execute_release_root_sha256=None,
             camp_head="a" * 40,
             mode="preflight",
+            output_dir=Path("/sealed/not-created"),
         )
 
 

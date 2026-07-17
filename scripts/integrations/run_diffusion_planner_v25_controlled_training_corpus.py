@@ -36,6 +36,19 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
     verify_complete_seal,
 )
+from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    compute_authorized_red_stopping_margin_costs,
+    validate_fixed_k8_candidate_tensor,
+)
+from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
+    EXECUTE_RELEASE_SCHEMA_VERSION,
+    PREFLIGHT_RELEASE_SCHEMA_VERSION,
+    ROOT_ROLES,
+    build_critical_implementation_manifest,
+    consume_one_shot_nonce,
+    verify_dual_head_contract,
+    verify_seven_root_chain,
+)
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     NO_SIGNAL_CHAIN_SCHEMA_VERSION,
     build_semantic_clone_payload,
@@ -89,6 +102,9 @@ EXPECTED_SEED = 25001
 CORPUS_STEPS = 64
 MINIMUM_FREE_BYTES = 10 * 1024**3
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
+RELEASE_NONCE_LEDGER = Path(
+    "/root/autodl-tmp/.camp_dp_v25_controlled_train_release_nonces"
+)
 SUPERSEDED_PARTIAL_CORPUS_ROOT = (
     "a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481"
 )
@@ -396,15 +412,14 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    if args.output_dir.exists():
-        raise FileExistsError(f"output already exists: {args.output_dir}")
-    args.output_dir.mkdir(parents=True)
-    lock_scope = (
-        _exclusive_lock(TRAIN_LOCK) if args.execute else nullcontext()
-    )
-    with lock_scope:
+    # Preflight and execute share the same lock.  It is acquired before the
+    # output directory exists and remains held through report/run.exit/seal.
+    with _exclusive_lock(TRAIN_LOCK):
+        if args.output_dir.exists():
+            raise FileExistsError(f"output already exists: {args.output_dir}")
         try:
             report = _run(args)
+            args.output_dir.mkdir(parents=True, exist_ok=True)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_text("0\n", encoding="ascii")
             root_sha = _seal(args.output_dir)
@@ -424,6 +439,7 @@ def main() -> None:
                 )
             )
         except BaseException as exc:
+            args.output_dir.mkdir(parents=True, exist_ok=True)
             _write_json(
                 args.output_dir / "failure.json",
                 {
@@ -471,6 +487,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         ),
         camp_head=camp_head,
         mode="preflight" if args.preflight else "execute",
+        output_dir=args.output_dir,
     )
     if _file_sha256(args.probe_template) != EXPECTED_TEMPLATE_SHA256:
         raise ValueError("probe template SHA256 mismatch")
@@ -499,13 +516,33 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         for case in cases
     ]
     semantic_authority_root = _canonical_sha256(semantic_authority_receipts)
+    semantic_authority_chains = [
+        dict(case.get("red_signal_authority") or case["no_signal_authority"])
+        for case in cases
+    ]
+    semantic_chain_root = _canonical_sha256(semantic_authority_chains)
+    args.output_dir.mkdir(parents=True)
+    _write_json(
+        args.output_dir / "semantic_authority_chains.json",
+        {
+            "schema_version": "camp_dp_v25_full_r_semantic_authority_chains_v1",
+            "identity_count": len(semantic_authority_chains),
+            "chains_root_sha256": semantic_chain_root,
+            "chains": semantic_authority_chains,
+        },
+    )
     route_assets = _materialize_routes(
         cases, args.output_dir / "routes", args.dp_repo
     )
     common = {
         "schema_version": SCHEMA_VERSION,
         "camp_head": camp_head,
-        "released_camp_source_head": camp_head,
+        "implementation_source_head": full_r_authority[
+            "implementation_source_head"
+        ],
+        "released_camp_source_head": full_r_authority[
+            "implementation_source_head"
+        ],
         "current_repo_head_at_run": camp_head,
         "fixed_dp_head": FIXED_DP_HEAD,
         "formal_artifact": str(FORMAL_ARTIFACT),
@@ -527,6 +564,15 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "r0_review_root_sha256": full_r_authority["r0_review_root_sha256"],
         "r0_source_artifact": full_r_authority["r0_source_artifact"],
         "r0_source_root_sha256": full_r_authority["r0_source_root_sha256"],
+        "seven_root_bindings": full_r_authority["seven_root_bindings"],
+        "seven_root_bindings_sha256": full_r_authority[
+            "seven_root_bindings_sha256"
+        ],
+        "release_run_nonce": full_r_authority["release_run_nonce"],
+        "authorized_output_dir": full_r_authority["authorized_output_dir"],
+        "critical_implementation_manifest": full_r_authority[
+            "critical_implementation_manifest"
+        ],
         "ultra_full_config_preflight_release_artifact": full_r_authority[
             "preflight_release_artifact"
         ],
@@ -535,7 +581,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         ],
         "semantic_authority_root_sha256": semantic_authority_root,
         "semantic_authority_identity_count": len(semantic_authority_receipts),
-        "terminal_lock_scope": "execution_through_progress_report_run_exit_and_seal",
+        "semantic_authority_chains_root_sha256": semantic_chain_root,
+        "terminal_lock_scope": (
+            "preflight_or_execution_from_before_output_creation_through_"
+            "progress_report_run_exit_and_seal"
+        ),
         "free_bytes_at_start": shutil.disk_usage(args.output_dir.parent).free,
         "fresh_b_opened": False,
         "outcome_fields_consumed": [],
@@ -558,7 +608,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             }
         )
     (args.output_dir / "HEADS").write_text(
-        f"camp_source_head={camp_head}\nfixed_dp_head={FIXED_DP_HEAD}\n",
+        (
+            f"camp_source_head={full_r_authority['implementation_source_head']}\n"
+            f"camp_pointer_head={camp_head}\n"
+            f"fixed_dp_head={FIXED_DP_HEAD}\n"
+        ),
         encoding="ascii",
     )
     (args.output_dir / "COMMAND").write_text(
@@ -597,7 +651,23 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             ],
             "semantic_authority_root_sha256": semantic_authority_root,
             "semantic_authority_identity_count": len(cases),
+            "semantic_authority_chains_root_sha256": semantic_chain_root,
+            "seven_root_bindings": full_r_authority["seven_root_bindings"],
+            "seven_root_bindings_sha256": full_r_authority[
+                "seven_root_bindings_sha256"
+            ],
+            "release_run_nonce": full_r_authority["release_run_nonce"],
+            "authorized_output_dir": full_r_authority["authorized_output_dir"],
+            "critical_implementation_manifest": full_r_authority[
+                "critical_implementation_manifest"
+            ],
         },
+        implementation_source_head=str(
+            full_r_authority["implementation_source_head"]
+        ),
+        critical_implementation_manifest=full_r_authority[
+            "critical_implementation_manifest"
+        ],
     )
     common = {
         **common,
@@ -633,7 +703,8 @@ def _verify_full_r_authority(
     execute_release_root_sha256: str | None,
     camp_head: str,
     mode: str,
-) -> dict[str, str | None]:
+    output_dir: Path,
+) -> dict[str, Any]:
     if (
         r0_review_artifact is None
         or r0_review_root_sha256 is None
@@ -646,65 +717,87 @@ def _verify_full_r_authority(
         raise ValueError(
             "full R config preflight requires sealed R0 review and Ultra preflight release"
         )
-    review_seal = verify_complete_seal(
-        r0_review_artifact,
-        r0_review_root_sha256,
-        label="V25 R0 independent review",
-    )
-    source_seal = verify_complete_seal(
-        r0_source_artifact,
-        r0_source_root_sha256,
-        label="V25 R0 source authority",
-    )
     preflight_release_seal = verify_complete_seal(
         preflight_release_artifact,
         preflight_release_root_sha256,
         label="V25 Ultra full-config-preflight release",
     )
-    review = _load_json(r0_review_artifact / "report.json")
-    source = _load_json(r0_source_artifact / "report.json")
     preflight_release = _load_json(preflight_release_artifact / "decision.json")
     required_preflight_release_fields = {
         "schema_version",
         "status",
-        "corrected_source_head",
+        "implementation_source_head",
+        "pointer_head_at_release",
         "fixed_dp_head",
-        "r0_review_root_sha256",
-        "r0_source_root_sha256",
+        "root_artifacts",
+        "rejected_roots",
+        "critical_implementation_manifest",
+        "run_nonce",
+        "authorized_output_dir",
         "full_config_preflight_authorized",
         "full_r_execute_authorized",
         "fresh_b2_opened",
         "outcome_fields_consumed",
     }
     if (
-        (r0_review_artifact / "run.exit").read_text(encoding="ascii") != "0\n"
-        or (r0_source_artifact / "run.exit").read_text(encoding="ascii")
+        (preflight_release_artifact / "run.exit").read_text(encoding="ascii")
         != "0\n"
-        or (preflight_release_artifact / "run.exit").read_text(encoding="ascii")
-        != "0\n"
-        or review.get("status")
-        != "passed_independent_21red_1nosignal_x64_review_full_r_closed"
-        or review.get("full_r_authorized") is not False
-        or source.get("status") != "passed_source_only_full_r_closed"
-        or review.get("r0_source_root_sha256") != source_seal["root_sha256"]
-        or review.get("fresh_b2_opened") is not False
         or set(preflight_release) != required_preflight_release_fields
         or preflight_release.get("schema_version")
-        != "camp_dp_v25_ultra_full_config_preflight_release_v1"
+        != PREFLIGHT_RELEASE_SCHEMA_VERSION
         or preflight_release.get("status") != "full_config_preflight_released"
         or preflight_release.get("full_config_preflight_authorized") is not True
         or preflight_release.get("full_r_execute_authorized") is not False
-        or preflight_release.get("corrected_source_head") != camp_head
         or preflight_release.get("fixed_dp_head") != FIXED_DP_HEAD
-        or preflight_release.get("r0_review_root_sha256")
-        != review_seal["root_sha256"]
-        or preflight_release.get("r0_source_root_sha256")
-        != source_seal["root_sha256"]
+        or preflight_release.get("rejected_roots")
+        != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or preflight_release.get("fresh_b2_opened") is not False
         or preflight_release.get("outcome_fields_consumed") != []
     ):
         raise ValueError("full R config-preflight authority chain is invalid")
-    authority: dict[str, str | None] = {
+    implementation_source_head = str(
+        preflight_release["implementation_source_head"]
+    )
+    manifest = preflight_release["critical_implementation_manifest"]
+    if not isinstance(manifest, Mapping):
+        raise ValueError("critical implementation manifest is invalid")
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=implementation_source_head,
+        current_pointer_head=str(preflight_release["pointer_head_at_release"]),
+        implementation_manifest=manifest,
+    )
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=implementation_source_head,
+        current_pointer_head=camp_head,
+        implementation_manifest=manifest,
+    )
+    root_bindings = preflight_release["root_artifacts"]
+    if not isinstance(root_bindings, Mapping):
+        raise ValueError("seven-root release bindings are invalid")
+    verified_roots = verify_seven_root_chain(
+        bindings=root_bindings,
+        implementation_source_head=implementation_source_head,
+        fixed_dp_head=FIXED_DP_HEAD,
+        rejected_root_sha256=SUPERSEDED_PARTIAL_CORPUS_ROOT,
+    )
+    source_binding = root_bindings["r01_source"]
+    review_binding = root_bindings["r01_bounded_review"]
+    if (
+        Path(str(source_binding["path"])).resolve() != r0_source_artifact.resolve()
+        or source_binding["root_sha256"] != r0_source_root_sha256
+        or Path(str(review_binding["path"])).resolve() != r0_review_artifact.resolve()
+        or review_binding["root_sha256"] != r0_review_root_sha256
+    ):
+        raise ValueError("CLI R0 roots do not match the seven-root release")
+    source_seal = {
+        "root_sha256": verified_roots["r01_source"]["root_sha256"]
+    }
+    review_seal = {
+        "root_sha256": verified_roots["r01_bounded_review"]["root_sha256"]
+    }
+    authority: dict[str, Any] = {
         "r0_review_artifact": str(r0_review_artifact),
         "r0_review_root_sha256": review_seal["root_sha256"],
         "r0_source_artifact": str(r0_source_artifact),
@@ -715,6 +808,19 @@ def _verify_full_r_authority(
         "preflight_review_root_sha256": None,
         "execute_release_artifact": None,
         "execute_release_root_sha256": None,
+        "implementation_source_head": implementation_source_head,
+        "seven_root_bindings": {
+            role: {
+                "path": str(root_bindings[role]["path"]),
+                "root_sha256": str(root_bindings[role]["root_sha256"]),
+                "report_file": str(root_bindings[role]["report_file"]),
+            }
+            for role in ROOT_ROLES
+        },
+        "seven_root_bindings_sha256": _canonical_sha256(root_bindings),
+        "release_run_nonce": str(preflight_release["run_nonce"]),
+        "authorized_output_dir": str(preflight_release["authorized_output_dir"]),
+        "critical_implementation_manifest": dict(manifest),
     }
     if mode == "preflight":
         if any(
@@ -728,6 +834,13 @@ def _verify_full_r_authority(
             )
         ):
             raise ValueError("full-config preflight cannot consume execute authority")
+        consume_one_shot_nonce(
+            ledger_dir=RELEASE_NONCE_LEDGER,
+            gate="preflight",
+            nonce=str(preflight_release["run_nonce"]),
+            authorized_output_dir=str(preflight_release["authorized_output_dir"]),
+            requested_output_dir=output_dir,
+        )
         return authority
     if (
         preflight_artifact is None
@@ -757,10 +870,14 @@ def _verify_full_r_authority(
     required_execute_fields = {
         "schema_version",
         "status",
-        "corrected_source_head",
+        "implementation_source_head",
+        "pointer_head_at_release",
         "fixed_dp_head",
-        "r0_review_root_sha256",
-        "r0_source_root_sha256",
+        "root_artifacts",
+        "rejected_roots",
+        "critical_implementation_manifest",
+        "run_nonce",
+        "authorized_output_dir",
         "preflight_release_root_sha256",
         "full_config_preflight_root_sha256",
         "full_config_preflight_review_root_sha256",
@@ -781,14 +898,15 @@ def _verify_full_r_authority(
         or preflight_review.get("identity_count") != 1500
         or set(execute_release) != required_execute_fields
         or execute_release.get("schema_version")
-        != "camp_dp_v25_ultra_full_r_execute_release_v1"
+        != EXECUTE_RELEASE_SCHEMA_VERSION
         or execute_release.get("status") != "full_R_execute_released"
-        or execute_release.get("corrected_source_head") != camp_head
+        or execute_release.get("implementation_source_head")
+        != implementation_source_head
+        or execute_release.get("root_artifacts") != root_bindings
+        or execute_release.get("rejected_roots")
+        != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
+        or execute_release.get("critical_implementation_manifest") != manifest
         or execute_release.get("fixed_dp_head") != FIXED_DP_HEAD
-        or execute_release.get("r0_review_root_sha256")
-        != review_seal["root_sha256"]
-        or execute_release.get("r0_source_root_sha256")
-        != source_seal["root_sha256"]
         or execute_release.get("preflight_release_root_sha256")
         != preflight_release_seal["root_sha256"]
         or execute_release.get("full_config_preflight_root_sha256")
@@ -800,12 +918,27 @@ def _verify_full_r_authority(
         or execute_release.get("outcome_fields_consumed") != []
     ):
         raise ValueError("full R execute authority chain is invalid")
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=implementation_source_head,
+        current_pointer_head=str(execute_release["pointer_head_at_release"]),
+        implementation_manifest=manifest,
+    )
+    consume_one_shot_nonce(
+        ledger_dir=RELEASE_NONCE_LEDGER,
+        gate="execute",
+        nonce=str(execute_release["run_nonce"]),
+        authorized_output_dir=str(execute_release["authorized_output_dir"]),
+        requested_output_dir=output_dir,
+    )
     authority.update(
         {
             "preflight_review_artifact": str(preflight_review_artifact),
             "preflight_review_root_sha256": preflight_review_seal["root_sha256"],
             "execute_release_artifact": str(execute_release_artifact),
             "execute_release_root_sha256": execute_release_seal["root_sha256"],
+            "release_run_nonce": str(execute_release["run_nonce"]),
+            "authorized_output_dir": str(execute_release["authorized_output_dir"]),
         }
     )
     return authority
@@ -1095,6 +1228,8 @@ def _preflight(
             }
         )
     config_root = _canonical_sha256(receipts)
+    plan, _formal_root = _load_formal_plan()
+    retained_ineligible = _retained_ineligible_authority_receipts(plan)
     return {
         **dict(common),
         "static_weights": dict(shared["selector"]["weights"]),
@@ -1103,6 +1238,10 @@ def _preflight(
         "status": "passed",
         "validated_identity_count": len(receipts),
         "source_ineligible_retained_identity_count": EXPECTED_RETAINED_INELIGIBLE,
+        "retained_ineligible_receipts": retained_ineligible,
+        "retained_ineligible_receipts_root_sha256": _canonical_sha256(
+            retained_ineligible
+        ),
         "formal_train_manifest_identity_count": (
             len(receipts) + EXPECTED_RETAINED_INELIGIBLE
         ),
@@ -1121,6 +1260,30 @@ def _preflight(
         "claim_authorized": False,
         "config_receipts": receipts,
     }
+
+
+def _retained_ineligible_authority_receipts(
+    plan: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    receipts = []
+    for case in plan["train"]:
+        if case.get("runner_eligible") is not False:
+            continue
+        receipts.append(
+            {
+                "scenario_id": str(case["scenario_id"]),
+                "family": str(case["family"]),
+                "tier": str(case["tier"]),
+                "route_identity_sha256": str(case["route_identity_sha256"]),
+                "source_map_sha256": str(case["source_map_sha256"]),
+                "source_requirements": list(case["source_requirements"]),
+                "source_availability": dict(case["source_availability"]),
+                "retention_role": str(case["retention_role"]),
+            }
+        )
+    if len(receipts) != EXPECTED_RETAINED_INELIGIBLE:
+        raise ValueError("retained source-ineligible denominator drifted")
+    return receipts
 
 
 def _config_authority_receipts(
@@ -1207,6 +1370,8 @@ def _verify_preflight(
     *,
     expected_config_root_sha256: str,
     expected_authority: Mapping[str, Any],
+    implementation_source_head: str,
+    critical_implementation_manifest: Mapping[str, Any],
 ) -> dict[str, Any]:
     root = _verify_seal(path)
     report = _load_json(path / "report.json")
@@ -1220,6 +1385,7 @@ def _verify_preflight(
         "status",
         "mode",
         "camp_head",
+        "implementation_source_head",
         "released_camp_source_head",
         "current_repo_head_at_run",
         "fixed_dp_head",
@@ -1233,9 +1399,22 @@ def _verify_preflight(
         "seed",
         "corpus_steps",
         "snapshot_capacity",
+        "train_lock",
+        "minimum_free_bytes",
         "validated_identity_count",
+        "source_ineligible_retained_identity_count",
+        "retained_ineligible_receipts",
+        "retained_ineligible_receipts_root_sha256",
+        "formal_train_manifest_identity_count",
+        "unique_route_count",
+        "family_counts",
+        "tier_counts",
+        "model_loaded",
+        "candidate_generation_started",
+        "simulator_started",
         "training_executed",
         "calibration_executed",
+        "claim_authorized",
         "fresh_b_opened",
         "outcome_fields_consumed",
         "config_receipts",
@@ -1248,15 +1427,25 @@ def _verify_preflight(
         "ultra_full_config_preflight_release_root_sha256",
         "semantic_authority_root_sha256",
         "semantic_authority_identity_count",
+        "semantic_authority_chains_root_sha256",
+        "seven_root_bindings",
+        "seven_root_bindings_sha256",
+        "release_run_nonce",
+        "authorized_output_dir",
+        "critical_implementation_manifest",
+        "terminal_lock_scope",
+        "free_bytes_at_start",
     }
     if (
-        not required_keys.issubset(report)
+        set(report) != required_keys
         or report.get("status") != "passed"
         or report.get("mode") != "preflight"
         or report.get("schema_version") != SCHEMA_VERSION
-        or report.get("camp_head") != camp_head
-        or report.get("released_camp_source_head") != camp_head
-        or report.get("current_repo_head_at_run") != camp_head
+        or report.get("implementation_source_head")
+        != implementation_source_head
+        or report.get("released_camp_source_head")
+        != implementation_source_head
+        or report.get("camp_head") != report.get("current_repo_head_at_run")
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
         or report.get("formal_artifact") != str(FORMAL_ARTIFACT)
         or report.get("formal_root_sha256") != FORMAL_ROOT_SHA256
@@ -1298,8 +1487,18 @@ def _verify_preflight(
         or report.get("snapshot_capacity")
         != EXPECTED_EXECUTABLE_IDENTITIES * CORPUS_STEPS
         or report.get("validated_identity_count") != EXPECTED_EXECUTABLE_IDENTITIES
+        or report.get("source_ineligible_retained_identity_count")
+        != EXPECTED_RETAINED_INELIGIBLE
+        or report.get("formal_train_manifest_identity_count")
+        != EXPECTED_EXECUTABLE_IDENTITIES + EXPECTED_RETAINED_INELIGIBLE
+        or report.get("retained_ineligible_receipts_root_sha256")
+        != _canonical_sha256(report.get("retained_ineligible_receipts"))
+        or report.get("model_loaded") is not False
+        or report.get("candidate_generation_started") is not False
+        or report.get("simulator_started") is not False
         or report.get("training_executed") is not False
         or report.get("calibration_executed") is not False
+        or report.get("claim_authorized") is not False
         or report.get("fresh_b_opened") is not False
         or report.get("outcome_fields_consumed") != []
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
@@ -1331,9 +1530,25 @@ def _verify_preflight(
         or run_exit != "0\n"
         or not command
         or heads
-        != [f"camp_source_head={camp_head}", f"fixed_dp_head={FIXED_DP_HEAD}"]
+        != [
+            f"camp_source_head={implementation_source_head}",
+            f"camp_pointer_head={report.get('camp_head')}",
+            f"fixed_dp_head={FIXED_DP_HEAD}",
+        ]
     ):
         raise ValueError("controlled train preflight authority is invalid")
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=implementation_source_head,
+        current_pointer_head=str(report["camp_head"]),
+        implementation_manifest=critical_implementation_manifest,
+    )
+    verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=implementation_source_head,
+        current_pointer_head=camp_head,
+        implementation_manifest=critical_implementation_manifest,
+    )
     return {"path": str(path), "root_sha256": root}
 
 
@@ -1598,7 +1813,9 @@ def combine_snapshot_context(
     ):
         raise ValueError("controlled snapshot/context payload is malformed")
     atoms = np.asarray(features.get("atom_matrix"), dtype=np.float64)
-    candidate_tensor = np.asarray(features.get("candidate_tensor"), dtype=np.float32)
+    candidate_tensor = validate_fixed_k8_candidate_tensor(
+        np.asarray(features.get("candidate_tensor"), dtype=np.float32)
+    )
     default_output = np.asarray(features.get("default_output"), dtype=np.float32)
     valid = features.get("source_valid_mask")
     atom_source_valid = np.asarray(features.get("atom_source_valid_mask"))
@@ -1622,6 +1839,10 @@ def combine_snapshot_context(
         or atom_applicable.dtype != np.bool_
         or atom_source_valid.shape != (8, 14)
         or atom_applicable.shape != (8, 14)
+        or np.any(atom_applicable & ~atom_source_valid)
+        or not np.array_equal(
+            np.asarray(valid, dtype=np.bool_), atom_source_valid.all(axis=1)
+        )
     ):
         raise ValueError("controlled snapshot atoms/masks are invalid")
     candidate_rows = [
@@ -1672,6 +1893,10 @@ def combine_snapshot_context(
         or len(sidecar_source_valid) != 8
         or any(not isinstance(value, bool) for value in sidecar_source_valid)
         or sidecar_source_valid != valid
+        or np.any(
+            np.asarray(physical, dtype=np.bool_)
+            & ~np.asarray(valid, dtype=np.bool_)
+        )
         or isinstance(selected_index, bool)
         or not isinstance(selected_index, int)
         or selected_index < 0
@@ -1749,6 +1974,31 @@ def combine_snapshot_context(
         validate_causal_signal_atom_input(
             causal_signal_atom_input, chain, controlled_signal_receipt
         )
+    if semantic_clone_sha256 is not None:
+        validated_causal_signal = validate_causal_signal_atom_input(
+            causal_signal_atom_input, chain, controlled_signal_receipt
+        )
+        signal_applicable = validated_causal_signal["current_phase"] == "red"
+        signal_columns = np.asarray([10, 12])
+        if (
+            not np.array_equal(
+                atom_applicable[:, signal_columns],
+                np.full((8, 2), signal_applicable, dtype=np.bool_),
+            )
+            or (
+                not signal_applicable
+                and not np.array_equal(atoms[:, signal_columns], np.zeros((8, 2)))
+            )
+            or not np.allclose(
+                atoms[:, 12],
+                compute_authorized_red_stopping_margin_costs(
+                    candidate_tensor, validated_causal_signal, 0.1
+                ),
+                rtol=0.0,
+                atol=1e-12,
+            )
+        ):
+            raise ValueError("controlled signal atom source/applicability binding failed")
     return {
         "schema_version": SNAPSHOT_SCHEMA_VERSION,
         "feature_payload": {
@@ -1767,6 +2017,7 @@ def combine_snapshot_context(
         },
         "sidecar": {
             "tick_index": int(tick_index),
+            "dt_s": 0.1,
             "scenario_id": str(case["scenario_id"]),
             "family": str(case["family"]),
             "tier": str(case["tier"]),

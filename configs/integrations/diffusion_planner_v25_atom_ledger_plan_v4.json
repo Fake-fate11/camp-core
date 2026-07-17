@@ -39,7 +39,7 @@
   },
   "semantic_clone_contract": {
     "algorithm": "sha256 canonical compact sorted-key JSON",
-    "payload_schema": "camp_dp_v25_semantic_clone_payload_v2",
+    "payload_schema": "camp_dp_v25_semantic_clone_payload_v3",
     "frame": "SE(2)-invariant route-local tangent/normal frame",
     "include": [
       "route-local geometry and stop-line geometry when applicable",

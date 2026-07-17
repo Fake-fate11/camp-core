@@ -27,6 +27,7 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 )
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
     canonical_score_atoms,
+    validate_fixed_k8_candidate_tensor,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
     V25ControlledSceneAdapter,
@@ -61,7 +62,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v2"
+SCHEMA_VERSION = "camp_dp_v25_r01_21red_1nosignal_sequential_k8_preflight_v3"
 
 
 def parse_args() -> argparse.Namespace:
@@ -144,28 +145,39 @@ def _run_case(
             validate_runtime_no_signal_receipt(signal_receipt, chain)
         atoms = np.asarray(snapshot["feature_payload"]["atom_matrix"], dtype=np.float64)
         source_valid = np.asarray(
-            snapshot["feature_payload"]["source_valid_mask"], dtype=bool
+            snapshot["feature_payload"]["source_valid_mask"]
         )
-        physical = np.asarray(
-            snapshot["sidecar"]["physical_feasible_mask"], dtype=bool
-        )
+        physical = np.asarray(snapshot["sidecar"]["physical_feasible_mask"])
         atom_source_valid = np.asarray(
-            snapshot["feature_payload"]["atom_source_valid_mask"], dtype=np.bool_
+            snapshot["feature_payload"]["atom_source_valid_mask"]
         )
         atom_applicable = np.asarray(
-            snapshot["feature_payload"]["atom_applicable_mask"], dtype=np.bool_
+            snapshot["feature_payload"]["atom_applicable_mask"]
+        )
+        candidates = validate_fixed_k8_candidate_tensor(
+            np.asarray(
+                snapshot["feature_payload"]["candidate_tensor"],
+                dtype=np.float32,
+            )
         )
         causal_signal = snapshot["sidecar"]["causal_signal_atom_input"]
         validate_causal_signal_atom_input(causal_signal)
         if (
             atoms.shape != (8, 14)
             or source_valid.shape != (8,)
+            or source_valid.dtype != np.bool_
             or physical.shape != (8,)
+            or physical.dtype != np.bool_
             or np.any(physical & ~source_valid)
             or not source_valid.any()
             or atom_source_valid.shape != (8, 14)
+            or atom_source_valid.dtype != np.bool_
             or atom_applicable.shape != (8, 14)
+            or atom_applicable.dtype != np.bool_
             or np.any(atom_applicable & ~atom_source_valid)
+            or not np.array_equal(
+                source_valid, atom_source_valid.all(axis=1)
+            )
         ):
             raise ValueError("R0 bounded red masks/atoms violate source-valid contract")
         normalized, scores = canonical_score_atoms(atoms, scales, weights)
@@ -192,7 +204,7 @@ def _run_case(
         payload = {
             "tick_index": tick_index,
             "candidate_tensor_sha256": tick["candidate_tensor_sha256_before"],
-            "candidate_tensor": snapshot["feature_payload"]["candidate_tensor"],
+            "candidate_tensor": candidates.tolist(),
             "candidate_row_sha256": list(tick["candidate_row_sha256"]),
             "candidate0_sha256": tick["candidate_row_sha256"][0],
             "default_output_sha256": tick["default_output_sha256"],
@@ -220,6 +232,7 @@ def _run_case(
             "causal_signal_atom_input": causal_signal,
             "causal_signal_atom_input_sha256": canonical_json_sha256(causal_signal),
             "current_phase": signal_receipt["current_phase"],
+            "dt_s": 0.1,
             "context_sha256": canonical_json_sha256(context),
             "complete_context": context,
             "combined_snapshot_sha256": canonical_json_sha256(combined),

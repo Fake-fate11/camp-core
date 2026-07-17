@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 from enum import Enum
+import math
 from types import SimpleNamespace
 
 import numpy as np
@@ -92,6 +94,51 @@ def _inventory() -> tuple[list[dict], list[dict]]:
             )
             index += 1
     return routes, split
+
+
+def test_formal_unprotected_turn_pi_heading_has_se2_stable_semantic_hash() -> None:
+    route = _route(0, "map_family_d7f16a17d3eb")
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family="unprotected_turn_oncoming_conflict",
+        tier="borderline",
+        variant=0,
+        seeds=[25001],
+    )
+    assert any(
+        math.isclose(abs(float(actor["initial_heading_rad"])), math.pi)
+        for actor in case["actors"]
+    )
+    centerline = np.asarray(route["centerline_samples_m"], dtype=np.float64)
+    baseline = build_semantic_clone_payload(
+        case, route_polyline_world=centerline, stop_line_world=None
+    )
+    assert all(
+        "initial_heading_local_unit" in actor for actor in baseline["actors"]
+    )
+    angle = math.pi
+    rotation = np.asarray([[-1.0, 0.0], [0.0, -1.0]])
+    translation = np.asarray([55.0, -12.0])
+    transformed_case = copy.deepcopy(case)
+    for actor in transformed_case["actors"]:
+        actor["initial_xy"] = (
+            np.asarray(actor["initial_xy"]) @ rotation.T + translation
+        ).tolist()
+        actor["route_tangent"] = (
+            np.asarray(actor["route_tangent"]) @ rotation.T
+        ).tolist()
+        actor["route_normal"] = (
+            np.asarray(actor["route_normal"]) @ rotation.T
+        ).tolist()
+        actor["initial_heading_rad"] = float(actor["initial_heading_rad"] + angle)
+    transformed = build_semantic_clone_payload(
+        transformed_case,
+        route_polyline_world=centerline @ rotation.T + translation,
+        stop_line_world=None,
+    )
+    assert canonical_json_sha256(transformed) == canonical_json_sha256(baseline)
 
 
 def test_controlled_plan_freezes_coverage_capacity_and_honest_inventory_ceiling():
