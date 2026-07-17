@@ -18,38 +18,49 @@ illegal partial snapshots, and 1,121 all-K-high-risk snapshots. Its bytes and
 running progress state are unchanged; the separate diagnostic seal and review
 remain training/calibration/evaluation-ineligible.
 
-S0 correction is now implemented at source HEAD
-`676e8960338eaf00f8867691c0eb2fa7bff34a8c`. Native, training, and audit paths
-share strict finite/nonnegative handling and `clip(a/s,0,10)`; context-v2 masks
-phase remaining in the no-V2I main method; candidate, heading-envelope,
-snapshot, 64-tick, terminal, lock-through-seal, and partial-artifact contracts
-fail closed. Fixed DP candidate values are never normalized or modified.
+Ultra released only the narrow S0.1 correction. It is implemented at source
+HEAD `e6ba79a229ea3cc8e3a69d776ea1913cff8e3279`: learned dedicated fallback now
+rejects nonfinite/nonpositive scales, nonfinite weights and atom inputs, and
+uses the shared 14D canonical clip; scenario capability retention is typed,
+formally allowlisted and capped; all other runtime exceptions fail closed.
+The bounded reviewer and future full-corpus executor now bind exact source,
+fixed-DP, formal/template/scale/config/seed/rejected-root/schema/run-exit
+authority. Per-tick fingerprints retain and independently check DP default and
+candidate0 identity as one operational-default alias, not a second forward.
 
-The bounded sequential-K8 preflight passed all 12 registered checks over three
-64-tick probes (identity0 twice plus red-light/easy), and its independent
-review passed all 18 checks. The two identity0 runs have the same 64-tick
-fingerprint root and selected-sequence SHA. No full corpus, Stage A ledger,
-training, calibration, Fresh B2, promotion, or activation started. The old
-heartbeat remains deleted; GPU is idle and the execution lock is free. S0 now
-waits for Ultra's read-only decision. A, R, and every later DAG stage remain
-unauthorized until separately released.
+The first S0.1 invocation failed closed before model execution because the
+operator supplied the wrong same-named template; its immutable `run.exit=1`
+artifact is retained below. The corrected bounded sequential-K8 preflight then
+passed all 12 checks over three 64-tick probes, and strengthened review passed
+all 28 checks. AutoDL passed 65 focused S0.1 tests plus 9 pointer tests. No full
+corpus, Stage A ledger execution, Scene runtime, training, calibration, Fresh
+B2, promotion, or activation started. Worker count is zero, GPU is idle, and
+the execution lock is free. S0.1 now waits for Ultra's read-only decision; A,
+R, and every later DAG stage remain unauthorized until separately released.
 
-current_v25_status=v25_s0_correction_preflight_passed_ultra_read_only_review_required
-current_v25_source_head=676e8960338eaf00f8867691c0eb2fa7bff34a8c
+current_v25_status=v25_s01_correction_preflight_passed_ultra_read_only_review_required
+current_v25_source_head=e6ba79a229ea3cc8e3a69d776ea1913cff8e3279
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
 current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
 current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST
 current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009
-current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_676e8960_20260717T170655CST
-current_v25_correction_preflight_artifact_root_sha256=d76a772ff15497a13e72538382a99e1027fb9ef53561270523bdc8975afc4fa9
-current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_review_676e8960_20260717T170900CST
-current_v25_correction_preflight_review_artifact_root_sha256=2465fa31b52891ab9130a47bc6f77d1191a83be807eb8b7f2c31c8c8ef1f3138
+current_v25_s01_failed_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST
+current_v25_s01_failed_preflight_artifact_root_sha256=c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a
+current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_retry_e6ba79a2_20260717T184256CST
+current_v25_correction_preflight_artifact_root_sha256=bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451
+current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_review_e6ba79a2_20260717T184530CST
+current_v25_correction_preflight_review_artifact_root_sha256=facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d
 current_v25_correction_preflight_probe_count=3
 current_v25_correction_preflight_tick_count=192
+current_v25_correction_preflight_check_count=12
+current_v25_correction_preflight_review_check_count=28
 current_v25_correction_preflight_identity0_deterministic=true
 current_v25_correction_preflight_native_canonical_equal=true
 current_v25_correction_preflight_candidate_immutability=true
+current_v25_correction_preflight_candidate0_operational_default_alias=true
+current_v25_s01_remote_focused_test_count=65
+current_v25_s01_remote_pointer_test_count=9
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
@@ -92,9 +103,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48499146752
-current_v25_phase=S0_correction_preflight_decision_package
-next_work_target=ultra_read_only_review_required_before_stage_A_or_R
+observed_autodl_free_bytes=48497549312
+current_v25_phase=S0_1_correction_preflight_decision_package
+next_work_target=ultra_read_only_S0_1_review_required_before_stage_A_or_R
 
 ## Current V24 Status
 

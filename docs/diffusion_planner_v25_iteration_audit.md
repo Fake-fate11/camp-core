@@ -669,3 +669,185 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=48499146752
 current_v25_phase=S0_correction_preflight_decision_package
 next_work_target=ultra_read_only_review_required_before_stage_A_or_R
+
+## Phase 5 S0.1: Fail-Closed Authority Correction
+
+Ultra's 2026-07-17 17:30 CST decision released only S0.1 and kept Stage A and
+R closed. The correction source is CAMP HEAD
+`e6ba79a229ea3cc8e3a69d776ea1913cff8e3279`; fixed DP remains clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`. No DP code, config, weights,
+checkpoint, request semantics, candidate tensor, trajectory, K=8 cardinality,
+or 64-tick protocol changed.
+
+The eight S0.1 findings map to bounded corrections as follows:
+
+1. The all-infeasible learned dedicated fallback no longer references the
+   undefined `positive_inf`. Dedicated fallback scales must be finite and
+   strictly positive; weights and all 14D atom inputs must be finite and
+   nonnegative. The 14D path calls the shared
+   `canonical_normalize_atoms`, so normalization is exactly
+   `z=clip(a/s,0,10)`. The pre-existing generic 9D fallback test and new 14D,
+   zero/negative/NaN/Inf scale, weight, progress, and red-atom variants pass.
+2. The bounded reviewer requires exact nonempty report/probe check keys. It
+   binds the released CAMP source to the live clean review HEAD, fixed DP,
+   formal and template roots, generation scales, static weights, full config
+   receipts/root, seed, rejected root, context/schema versions, `HEADS`,
+   `COMMAND`, and `run.exit`. Every fingerprint and selection root is
+   recomputed over exactly 64 ticks per probe; empty checks cannot pass.
+3. The future full-corpus executor preflight now applies the same authority
+   contract and independently reconstructs all 1,500 path-independent config
+   authority receipts. It additionally requires `corpus_steps=64`, capacity
+   96,000, exact unique identities, and explicit no-training/no-calibration/
+   no-Fresh flags. An incomplete or different-HEAD preflight is rejected.
+4. Scenario capability failure is a typed enum/exception raised only for the
+   preregistered mapped-current-signal-source capability. Retention requires a
+   structured receipt that exactly matches formal identity, family, and reason;
+   the red-light contract is capped at 32 retained identities. Zero complete
+   identities, an exceeded cap, a spoofed string/class, a partial identity, or
+   any other exception cannot produce a passed corpus.
+5. Combined training snapshots and bounded fingerprints retain
+   `default_output_sha256`, `candidate0_sha256`, and the full identity receipt.
+   Review independently checks them against candidate row 0 and records that
+   candidate0 is the operational-default alias from the same forward, not an
+   independent second forward or native-ranked Top-1.
+6. The main context path remains no-V2I: phase remaining is zero, unavailable,
+   and source-masked. S0.1 does not bless the existing generic receipt as a
+   production provider. The later V2I hard gate requires a per-tick provider
+   bound to TrafficLightRegulatoryElement, physical light, controlled lanelet,
+   stop line, route arc, current phase, source/decision timestamps and
+   freshness, with wrong-id, phase-mismatch, replay, future, and stale tests.
+7. Native selection at this gate is Static14D only. Scene14D runtime remains
+   disconnected. Its later C gate must build approved phi before selection,
+   load sealed train-only q05/q95 and column-simplex Theta, record Theta/phi/w
+   hashes, and use no runtime projection.
+8. The versioned Stage A plan now freezes the exact 14-name order, canonical
+   9D prefix, 14-row field contract, four-state source enum, ordered
+   schema/formula hash, outcome-blind semantic-block hash/dedup contract,
+   train-only block-weighted positive-support scale estimator, complete DAG,
+   signal/V2I gate, candidate0 semantics, and progress-reference adversarial
+   decision. This is still a plan only; no ledger or sealed-corpus statistics
+   were executed.
+
+Local validation used Python 3.12: the five focused S0.1 files passed 50 tests
+with one local cvxpy-dependent skip, the dedicated fallback selection passed
+14 tests, pointer/audit passed 9 tests, pycompile passed, JSON parsing passed,
+and `git diff --check` passed. On AutoDL, the same focused files passed all 51
+tests, the generic/dedicated fallback selection passed all 14 tests, and the 9
+pointer tests passed: 65 focused correctness tests plus 9 pointer tests.
+
+The first new invocation is immutable failure accounting:
+
+`/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST`
+
+It has root SHA256
+`c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a`
+and `run.exit=1`. It failed before model execution because the operator supplied
+the repository's same-named template whose SHA did not match the frozen
+template root. It was not edited or promoted. GPU remained unused.
+
+The corrected bounded sequential-K8 no-V2I preflight is:
+
+`/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_retry_e6ba79a2_20260717T184256CST`
+
+with root SHA256
+`bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451`
+and `run.exit=0`. It passed all 12 checks over the same three probes and 192
+ticks. The two identity0 repeats share selected-sequence SHA
+`53240671aa0a6f66d11298c8e227bb2a269067d103bbc9b82ed49a5cdb3a2dbd`
+and the new, candidate0-complete fingerprint root
+`e830f9e6764520d8bc9911a6416caa8a62fbceb5bc07c13d8b683a1b395850b9`.
+The red-light/easy selected-sequence SHA remains
+`7d124de90255b68511550187e6c6a78cbca8347b4736fd79edf4469484dc90ec`
+and its fingerprint root is
+`a64f078791ba7014338e232ba7b94142e266896d9049dc98e5500f11b57f8409`.
+The probes again materially exercised 839, 839, and 1,536 raw values above ten
+times scale. Wall time was 95.12 seconds.
+
+The strengthened independent review is:
+
+`/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_review_e6ba79a2_20260717T184530CST`
+
+with root SHA256
+`facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d`
+and `run.exit=0`. It passed all 28 checks, including every authority binding,
+both config roots, all 192 per-tick fingerprints, selected sequences, and the
+operational-default/candidate0 alias evidence.
+
+After review, CAMP source/GitHub/AutoDL were clean and aligned at the released
+S0.1 source HEAD, fixed DP was clean, worker count was zero, flock was free,
+GPU had no compute process, and free disk was 48,497,549,312 bytes. The stopped
+partial corpus remains the current rejected training artifact and is listed in
+all new `rejected_roots`. Fresh B v1 remains superseded before opening; Fresh
+B2 remains unopened. Stage A=false, R=false, Scene runtime=false, training=false,
+calibration=false, and Fresh=false. The next gate is Ultra's read-only S0.1
+review; no full worker or replacement monitor may start before a separate
+release.
+
+current_v25_status=v25_s01_correction_preflight_passed_ultra_read_only_review_required
+current_v25_source_head=e6ba79a229ea3cc8e3a69d776ea1913cff8e3279
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
+current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST
+current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009
+current_v25_s01_failed_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST
+current_v25_s01_failed_preflight_artifact_root_sha256=c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a
+current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_retry_e6ba79a2_20260717T184256CST
+current_v25_correction_preflight_artifact_root_sha256=bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451
+current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_review_e6ba79a2_20260717T184530CST
+current_v25_correction_preflight_review_artifact_root_sha256=facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d
+current_v25_correction_preflight_probe_count=3
+current_v25_correction_preflight_tick_count=192
+current_v25_correction_preflight_check_count=12
+current_v25_correction_preflight_review_check_count=28
+current_v25_correction_preflight_identity0_deterministic=true
+current_v25_correction_preflight_native_canonical_equal=true
+current_v25_correction_preflight_candidate_immutability=true
+current_v25_correction_preflight_candidate0_operational_default_alias=true
+current_v25_s01_remote_focused_test_count=65
+current_v25_s01_remote_pointer_test_count=9
+current_v25_atom_schema=dp_camp_v10_14d
+current_v25_paper_subset=camp_legacy_v1_9d
+current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
+current_v25_context_raw_feature_count=26
+current_v25_phi_dimension=53
+current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
+current_v25_normalization_contract=z_clip_raw_atom_over_scale_0_10
+current_v25_heading_norm_envelope_min=0.5
+current_v25_heading_norm_envelope_max=1.5
+current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
+current_v25_controlled_pilot_case_count=147
+current_v25_controlled_pilot_passed_count=85
+current_v25_controlled_pilot_retained_failure_count=62
+current_v25_controlled_train_executable_identity_count=1500
+current_v25_controlled_train_source_ineligible_retained_count=153
+current_v25_combined_train_snapshot_capacity_at_64_ticks=163796
+current_v25_stopped_train_attempted_identity_count=122
+current_v25_stopped_train_complete_identity_count=121
+current_v25_stopped_train_failed_identity_count=1
+current_v25_stopped_train_snapshot_count=7748
+current_v25_stopped_train_illegal_partial_snapshot_count=4
+current_v25_stopped_train_all_k_high_risk_snapshot_count=1121
+current_v25_stopped_train_training_eligible=false
+current_v25_stopped_train_calibration_eligible=false
+current_v25_stopped_train_evaluation_eligible=false
+current_v25_fresh_b_identity_count=120
+current_v25_fresh_b_paired_run_count=600
+current_v25_fresh_b_independent_route_ceiling=24
+current_v25_fresh_b_independent_corridor_ceiling=3
+current_v25_fresh_b_v1_status=superseded_before_opening
+current_v25_fresh_b2_opened=false
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json
+current_v25_stage_a_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_old_monitor_status=deleted
+v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
+v24_holdout_open_count=1
+v24_holdout_rerun_authorized=false
+current_v25_v24_holdout_read=false
+current_v25_fresh_benchmark_b_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=48497549312
+current_v25_phase=S0_1_correction_preflight_decision_package
+next_work_target=ultra_read_only_S0_1_review_required_before_stage_A_or_R

@@ -13,22 +13,29 @@ V24_PAIRED_CONFIG = (
 )
 
 POINTER = (
-    "current_v25_status=v25_s0_correction_preflight_passed_ultra_read_only_review_required",
-    "current_v25_source_head=676e8960338eaf00f8867691c0eb2fa7bff34a8c",
+    "current_v25_status=v25_s01_correction_preflight_passed_ultra_read_only_review_required",
+    "current_v25_source_head=e6ba79a229ea3cc8e3a69d776ea1913cff8e3279",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
     "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST",
     "current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
     "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST",
     "current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009",
-    "current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_676e8960_20260717T170655CST",
-    "current_v25_correction_preflight_artifact_root_sha256=d76a772ff15497a13e72538382a99e1027fb9ef53561270523bdc8975afc4fa9",
-    "current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_ultra_correction_preflight_review_676e8960_20260717T170900CST",
-    "current_v25_correction_preflight_review_artifact_root_sha256=2465fa31b52891ab9130a47bc6f77d1191a83be807eb8b7f2c31c8c8ef1f3138",
+    "current_v25_s01_failed_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST",
+    "current_v25_s01_failed_preflight_artifact_root_sha256=c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a",
+    "current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_retry_e6ba79a2_20260717T184256CST",
+    "current_v25_correction_preflight_artifact_root_sha256=bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451",
+    "current_v25_correction_preflight_review_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_review_e6ba79a2_20260717T184530CST",
+    "current_v25_correction_preflight_review_artifact_root_sha256=facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d",
     "current_v25_correction_preflight_probe_count=3",
     "current_v25_correction_preflight_tick_count=192",
+    "current_v25_correction_preflight_check_count=12",
+    "current_v25_correction_preflight_review_check_count=28",
     "current_v25_correction_preflight_identity0_deterministic=true",
     "current_v25_correction_preflight_native_canonical_equal=true",
     "current_v25_correction_preflight_candidate_immutability=true",
+    "current_v25_correction_preflight_candidate0_operational_default_alias=true",
+    "current_v25_s01_remote_focused_test_count=65",
+    "current_v25_s01_remote_pointer_test_count=9",
     "current_v25_atom_schema=dp_camp_v10_14d",
     "current_v25_paper_subset=camp_legacy_v1_9d",
     "current_v25_context_schema=camp_dp_v25_causal_context_raw_v2",
@@ -71,9 +78,9 @@ POINTER = (
     "current_v25_fresh_benchmark_b_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=48499146752",
-    "current_v25_phase=S0_correction_preflight_decision_package",
-    "next_work_target=ultra_read_only_review_required_before_stage_A_or_R",
+    "observed_autodl_free_bytes=48497549312",
+    "current_v25_phase=S0_1_correction_preflight_decision_package",
+    "next_work_target=ultra_read_only_S0_1_review_required_before_stage_A_or_R",
 )
 
 
@@ -199,5 +206,22 @@ def test_v25_s0_correction_preflight_is_sealed_and_waits_for_ultra() -> None:
         "2465fa31b52891ab9130a47bc6f77d1191a83be807eb8b7f2c31c8c8ef1f3138",
         "configs/integrations/diffusion_planner_v25_atom_ledger_plan_v2.json",
         "ultra_read_only_review_required_before_stage_A_or_R",
+    ):
+        assert phrase in text
+
+
+def test_v25_s01_authority_correction_is_sealed_and_waits_for_ultra() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Phase 5 S0.1: Fail-Closed Authority Correction",
+        "undefined `positive_inf`",
+        "passed all 28 checks",
+        "65 focused correctness tests plus 9 pointer tests",
+        "candidate0 is the operational-default alias from the same forward",
+        "Stage A=false, R=false",
+        "c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a",
+        "bba8f0581efa688a4a85f193eed966f38501ac96de4883c493ab81caa1760451",
+        "facfe0a1f4458e52ea2235197e7a2949537a1021c0d6fa69d5cf0018732f392d",
+        "ultra_read_only_S0_1_review_required_before_stage_A_or_R",
     ):
         assert phrase in text
