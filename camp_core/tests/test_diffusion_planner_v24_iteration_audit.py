@@ -20,7 +20,7 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_independent_review_passed_honest_no_claim",
+    "current_v24_status=v24_closed_honest_no_claim",
     "current_v24_artifact_source_head=f65ce1cbd31cee02f8f3b38f76149b8f4e79e376",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
@@ -49,13 +49,13 @@ POINTER = (
     "current_v24_holdout_rerun_authorized=false",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_evidence_claim_independent_review_passed_honest_no_claim",
-    "source_b_terminal=false",
+    "source_b_status=paired_holdout_and_evidence_chain_complete_honest_no_claim_record_only_closeout_complete",
+    "source_b_terminal=true",
     "authorized_source_count=2",
-    "source_terminal_count=1",
-    "global_stop_authorized=false",
-    "global_stop_reason=none",
-    "next_work_target=v24_honest_no_claim_record_only_closeout_tdd_static_preflight",
+    "source_terminal_count=2",
+    "global_stop_authorized=true",
+    "global_stop_reason=v24_full_closeout_complete_honest_no_claim_user_directed_minimal_record_only",
+    "next_work_target=no_further_action_v24_honest_no_claim_closeout_complete",
 )
 
 
