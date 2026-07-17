@@ -11,6 +11,7 @@ import numpy as np
 
 SCHEMA_VERSION = "camp_dp_v25_controlled_scenario_case_v1"
 PLAN_SCHEMA_VERSION = "camp_dp_v25_controlled_scenario_plan_v1"
+FINAL_PLAN_SCHEMA_VERSION = "camp_dp_v25_controlled_corpus_final_plan_v1"
 SCENARIO_FAMILIES = (
     "lead_vehicle_hard_brake",
     "cut_in_merge",
@@ -205,6 +206,141 @@ def build_controlled_scenario_plan(
         fresh_b=tuple(fresh_b),
         summary=summary,
     )
+
+
+def build_final_controlled_corpus_plan(
+    retained_routes: Sequence[Mapping[str, Any]],
+    split_records: Sequence[Mapping[str, Any]],
+    source_availability: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Freeze formal corpora after the outcome-blind coverage/source audit.
+
+    The pilot schedule is not rewritten. Formal executable identities use only
+    routes whose current Lanelet2 source supplies the positive speed-limit
+    contract required by canonical 14D materialization. Every excluded route
+    remains in the manifest as an explicit source-ineligible record.
+    """
+    corridor_by_record = {
+        str(record["record_key"]): str(record["corridor_group_sha256"])
+        for record in split_records
+    }
+    split_by_family = {
+        "map_family_d7f16a17d3eb": "train",
+        "map_family_f62e06cd1303": "calibration",
+        "map_family_828a913c2f9a": "fresh_b",
+    }
+    routes_by_split: dict[str, list[Mapping[str, Any]]] = {
+        "train": [],
+        "calibration": [],
+        "fresh_b": [],
+    }
+    for route in sorted(retained_routes, key=lambda item: str(item["record_key"])):
+        key = str(route["record_key"])
+        if key not in source_availability or key not in corridor_by_record:
+            raise ValueError("formal source availability does not cover every route")
+        routes_by_split[split_by_family[str(route["map_family_id"])]].append(route)
+
+    executable_train_routes = [
+        route
+        for route in routes_by_split["train"]
+        if bool(source_availability[str(route["record_key"])]["speed_limit_complete"])
+    ]
+    if not executable_train_routes:
+        raise ValueError("no controlled train route has complete speed-limit source")
+    train: list[dict[str, Any]] = []
+    for index in range(1500):
+        route = executable_train_routes[index % len(executable_train_routes)]
+        family_index = index % len(SCENARIO_FAMILIES)
+        family = SCENARIO_FAMILIES[family_index]
+        availability = source_availability[str(route["record_key"])]
+        while family == "red_light_phase_timing" and not availability[
+            "mapped_traffic_light"
+        ]:
+            family_index = (family_index + 1) % len(SCENARIO_FAMILIES)
+            family = SCENARIO_FAMILIES[family_index]
+        case = build_controlled_scenario_case(
+            route=route,
+            corridor_group_sha256=corridor_by_record[str(route["record_key"])],
+            split="train",
+            family=family,
+            tier=RISK_TIERS[(index // len(executable_train_routes)) % len(RISK_TIERS)],
+            variant=index,
+            seeds=TRAIN_SEEDS,
+        )
+        train.append(_attach_source_availability(case, availability))
+    train.extend(
+        _retained_source_ineligible_cases(
+            routes_by_split["train"],
+            source_availability,
+            corridor_by_record,
+            split="train",
+            seeds=TRAIN_SEEDS,
+        )
+    )
+
+    calibration: list[dict[str, Any]] = []
+    for route in routes_by_split["calibration"]:
+        availability = source_availability[str(route["record_key"])]
+        for family in SCENARIO_FAMILIES:
+            for tier_index, tier in enumerate(RISK_TIERS):
+                case = build_controlled_scenario_case(
+                    route=route,
+                    corridor_group_sha256=corridor_by_record[
+                        str(route["record_key"])
+                    ],
+                    split="calibration",
+                    family=family,
+                    tier=tier,
+                    variant=tier_index,
+                    seeds=CALIBRATION_SEEDS,
+                )
+                calibration.append(_attach_source_availability(case, availability))
+
+    executable_fresh_routes = [
+        route
+        for route in routes_by_split["fresh_b"]
+        if bool(source_availability[str(route["record_key"])]["speed_limit_complete"])
+    ]
+    if not executable_fresh_routes:
+        raise ValueError("Fresh B has no route with complete speed-limit source")
+    fresh_families = tuple(
+        family for family in SCENARIO_FAMILIES if family != "red_light_phase_timing"
+    )
+    fresh_b: list[dict[str, Any]] = []
+    for index in range(120):
+        route = executable_fresh_routes[index % len(executable_fresh_routes)]
+        availability = source_availability[str(route["record_key"])]
+        case = build_controlled_scenario_case(
+            route=route,
+            corridor_group_sha256=corridor_by_record[str(route["record_key"])],
+            split="fresh_b",
+            family=fresh_families[index % len(fresh_families)],
+            tier=RISK_TIERS[(index // len(executable_fresh_routes)) % len(RISK_TIERS)],
+            variant=index,
+            seeds=FRESH_B_SEEDS,
+        )
+        fresh_b.append(_attach_source_availability(case, availability))
+    fresh_b.extend(
+        _retained_source_ineligible_cases(
+            routes_by_split["fresh_b"],
+            source_availability,
+            corridor_by_record,
+            split="fresh_b",
+            seeds=FRESH_B_SEEDS,
+        )
+    )
+
+    collections = {"train": train, "calibration": calibration, "fresh_b": fresh_b}
+    summary = _final_plan_summary(collections, routes_by_split, source_availability)
+    _validate_final_plan(collections, summary)
+    return {
+        "schema_version": FINAL_PLAN_SCHEMA_VERSION,
+        **collections,
+        "summary": summary,
+        "outcome_blind": True,
+        "outcome_fields_consumed": [],
+        "fresh_b_outcome_opened": False,
+    }
 
 
 def build_controlled_scenario_case(
@@ -771,6 +907,159 @@ def _validate_plan(
             for right in ordered[index + 1 :]:
                 if values[left] & values[right]:
                     raise ValueError(f"{name} overlap between {left} and {right}")
+
+
+def _attach_source_availability(
+    case: Mapping[str, Any], availability: Mapping[str, Any]
+) -> dict[str, Any]:
+    result = dict(case)
+    result["source_availability"] = dict(availability)
+    result["runner_eligible"] = bool(
+        result["runner_eligible"] and availability["speed_limit_complete"]
+    )
+    result["retention_role"] = (
+        "executable" if result["runner_eligible"] else "source_ineligible_retained"
+    )
+    return result
+
+
+def _retained_source_ineligible_cases(
+    routes: Sequence[Mapping[str, Any]],
+    source_availability: Mapping[str, Mapping[str, Any]],
+    corridor_by_record: Mapping[str, str],
+    *,
+    split: str,
+    seeds: Sequence[int],
+) -> list[dict[str, Any]]:
+    retained = []
+    for index, route in enumerate(routes):
+        key = str(route["record_key"])
+        availability = source_availability[key]
+        if availability["speed_limit_complete"]:
+            continue
+        case = build_controlled_scenario_case(
+            route=route,
+            corridor_group_sha256=corridor_by_record[key],
+            split=split,
+            family="blocked_lane_static_obstacle",
+            tier="borderline",
+            variant=100_000 + index,
+            seeds=seeds,
+        )
+        retained.append(_attach_source_availability(case, availability))
+    return retained
+
+
+def _final_plan_summary(
+    collections: Mapping[str, Sequence[Mapping[str, Any]]],
+    routes_by_split: Mapping[str, Sequence[Mapping[str, Any]]],
+    source_availability: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    counts = {}
+    for split, cases in collections.items():
+        executable = [case for case in cases if case["runner_eligible"]]
+        counts[split] = {
+            "manifest_identity_count": len(cases),
+            "executable_identity_count": len(executable),
+            "source_ineligible_identity_count": len(cases) - len(executable),
+            "inventory_route_count": len(routes_by_split[split]),
+            "executable_route_count": len({case["record_key"] for case in executable}),
+            "inventory_corridor_count": len(
+                {case["corridor_group_sha256"] for case in cases}
+            ),
+            "executable_corridor_count": len(
+                {case["corridor_group_sha256"] for case in executable}
+            ),
+            "scenario_seed_run_count": sum(len(case["seeds"]) for case in executable),
+            "family_counts": {
+                family: sum(case["family"] == family for case in executable)
+                for family in SCENARIO_FAMILIES
+            },
+            "tier_counts": {
+                tier: sum(case["tier"] == tier for case in executable)
+                for tier in RISK_TIERS
+            },
+        }
+    return {
+        "split_counts": counts,
+        "route_source_counts": {
+            split: {
+                "total": len(routes),
+                "speed_limit_complete": sum(
+                    bool(source_availability[str(route["record_key"])][
+                        "speed_limit_complete"
+                    ])
+                    for route in routes
+                ),
+                "mapped_traffic_light": sum(
+                    bool(source_availability[str(route["record_key"])][
+                        "mapped_traffic_light"
+                    ])
+                    for route in routes
+                ),
+            }
+            for split, routes in routes_by_split.items()
+        },
+        "v24_reused_train_snapshot_count": 67_796,
+        "controlled_train_snapshot_capacity_at_64_ticks": (
+            counts["train"]["executable_identity_count"] * 64
+        ),
+        "combined_train_snapshot_capacity_at_64_ticks": (
+            67_796 + counts["train"]["executable_identity_count"] * 64
+        ),
+        "fresh_b_paired_run_count": counts["fresh_b"]["scenario_seed_run_count"],
+        "fresh_b_independent_route_ceiling": counts["fresh_b"][
+            "executable_route_count"
+        ],
+        "fresh_b_independent_corridor_ceiling": counts["fresh_b"][
+            "executable_corridor_count"
+        ],
+        "independence_disclosure": (
+            "Scenario identities and five paired seeds increase controlled-run "
+            "coverage but are not counted as additional independent routes or corridors."
+        ),
+        "outcome_blind": True,
+        "outcome_fields_consumed": [],
+        "fresh_b_outcome_opened": False,
+    }
+
+
+def _validate_final_plan(
+    collections: Mapping[str, Sequence[Mapping[str, Any]]], summary: Mapping[str, Any]
+) -> None:
+    counts = summary["split_counts"]
+    if counts["train"]["executable_identity_count"] != 1500:
+        raise ValueError("formal controlled train must freeze 1500 executable identities")
+    if summary["combined_train_snapshot_capacity_at_64_ticks"] < 150_000:
+        raise ValueError("formal combined train capacity is below 150k snapshots")
+    if counts["fresh_b"]["executable_identity_count"] != 120:
+        raise ValueError("Fresh B must freeze 120 executable scenario identities")
+    if summary["fresh_b_paired_run_count"] != 600:
+        raise ValueError("Fresh B must freeze 600 executable paired runs")
+    for split, cases in collections.items():
+        for case in cases:
+            if case["split"] != split:
+                raise ValueError("formal controlled split label mismatch")
+            if case["runner_eligible"] and case["retention_role"] != "executable":
+                raise ValueError("formal executable retention role mismatch")
+            if not case["runner_eligible"] and case["retention_role"] != (
+                "source_ineligible_retained"
+            ):
+                raise ValueError("formal source-ineligible route was not retained")
+    route_sets = {
+        split: {case["record_key"] for case in cases} for split, cases in collections.items()
+    }
+    seed_sets = {
+        split: {seed for case in cases for seed in case["seeds"]}
+        for split, cases in collections.items()
+    }
+    ordered = list(collections)
+    for index, left in enumerate(ordered):
+        for right in ordered[index + 1 :]:
+            if route_sets[left] & route_sets[right]:
+                raise ValueError("formal controlled route overlap")
+            if seed_sets[left] & seed_sets[right]:
+                raise ValueError("formal controlled seed overlap")
 
 
 def _canonical_sha256(payload: Mapping[str, Any]) -> str:

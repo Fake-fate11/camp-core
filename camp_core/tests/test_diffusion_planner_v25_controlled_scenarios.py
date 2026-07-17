@@ -13,6 +13,7 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     V25ControlledSceneAdapter,
     build_controlled_scenario_case,
     build_controlled_scenario_plan,
+    build_final_controlled_corpus_plan,
 )
 
 
@@ -108,6 +109,43 @@ def test_controlled_plan_freezes_coverage_capacity_and_honest_inventory_ceiling(
     assert {case["family"] for case in unavailable_calibration} == {
         "red_light_phase_timing"
     }
+
+
+def test_final_plan_uses_source_complete_routes_and_retains_ineligible_inventory():
+    routes, split = _inventory()
+    availability = {}
+    train_seen = 0
+    fresh_seen = 0
+    for route in routes:
+        family = route["map_family_id"]
+        if family == "map_family_d7f16a17d3eb":
+            complete = train_seen < 300
+            train_seen += 1
+        elif family == "map_family_f62e06cd1303":
+            complete = True
+        else:
+            complete = fresh_seen < 20
+            fresh_seen += 1
+        availability[route["record_key"]] = {
+            "speed_limit_complete": complete,
+            "mapped_traffic_light": bool(route["source_stratum"]["traffic_light"]),
+        }
+
+    plan = build_final_controlled_corpus_plan(routes, split, availability)
+
+    summary = plan["summary"]
+    assert summary["split_counts"]["train"]["executable_identity_count"] == 1500
+    assert summary["split_counts"]["train"]["source_ineligible_identity_count"] == 75
+    assert summary["split_counts"]["fresh_b"]["executable_identity_count"] == 120
+    assert summary["split_counts"]["fresh_b"]["source_ineligible_identity_count"] == 4
+    assert summary["fresh_b_paired_run_count"] == 600
+    assert summary["fresh_b_independent_route_ceiling"] == 20
+    assert summary["combined_train_snapshot_capacity_at_64_ticks"] >= 150_000
+    assert all(
+        case["retention_role"] == "source_ineligible_retained"
+        for case in plan["train"]
+        if not case["runner_eligible"]
+    )
 
 
 class AgentType(Enum):

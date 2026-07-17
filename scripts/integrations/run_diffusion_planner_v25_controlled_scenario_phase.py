@@ -34,6 +34,7 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import ( 
     SCENARIO_FAMILIES,
     V25ControlledSceneAdapter,
     build_controlled_scenario_plan,
+    build_final_controlled_corpus_plan,
 )
 from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # noqa: E402
     FIXED_DP_HEAD,
@@ -67,9 +68,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--pilot-artifact", type=Path)
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--preflight", action="store_true")
     mode.add_argument("--execute-pilot", action="store_true")
+    mode.add_argument("--freeze-formal", action="store_true")
     return parser.parse_args()
 
 
@@ -107,7 +110,11 @@ def main() -> None:
     }
     _write_json(args.output_dir / "source_receipt.json", source_receipt)
 
-    if args.preflight:
+    if args.freeze_formal:
+        if args.pilot_artifact is None:
+            raise ValueError("--freeze-formal requires --pilot-artifact")
+        report = _freeze_formal(plan, args)
+    elif args.preflight:
         report = _preflight(plan, template, args)
     else:
         report = _execute_pilot(plan, template, args)
@@ -135,6 +142,164 @@ def main() -> None:
             sort_keys=True,
         )
     )
+
+
+def _freeze_formal(plan, args: argparse.Namespace) -> dict[str, Any]:
+    availability = _audit_formal_route_sources(plan, args.dp_repo)
+    census = _load_json(args.route_census)
+    split = _load_json(args.split_manifest)
+    final_plan = build_final_controlled_corpus_plan(
+        census["retained_routes"], split["records"], availability
+    )
+    _write_json(args.output_dir / "formal_source_availability.json", availability)
+    _write_json(args.output_dir / "controlled_corpus_final_plan.json", final_plan)
+    pilot_review = _review_pilot_source_failures(args.pilot_artifact, plan, availability)
+    _write_json(args.output_dir / "pilot_source_failure_review.json", pilot_review)
+    checks = {
+        "all_401_routes_source_audited": len(availability) == 401,
+        "pilot_speed_failures_reproduced_source_only": pilot_review[
+            "speed_failure_mismatch_count"
+        ]
+        == 0,
+        "pilot_passes_have_speed_source": pilot_review[
+            "passed_speed_source_mismatch_count"
+        ]
+        == 0,
+        "formal_train_1500_executable": final_plan["summary"]["split_counts"][
+            "train"
+        ]["executable_identity_count"]
+        == 1500,
+        "combined_train_capacity_at_least_150k": final_plan["summary"][
+            "combined_train_snapshot_capacity_at_64_ticks"
+        ]
+        >= 150_000,
+        "fresh_b_120_identities": final_plan["summary"]["split_counts"][
+            "fresh_b"
+        ]["executable_identity_count"]
+        == 120,
+        "fresh_b_600_paired_runs": final_plan["summary"][
+            "fresh_b_paired_run_count"
+        ]
+        == 600,
+        "fresh_b_unopened": True,
+        "outcome_fields_unused": True,
+        "fixed_dp_unmodified": _git_head(args.dp_repo) == FIXED_DP_HEAD,
+    }
+    if not all(checks.values()):
+        raise RuntimeError("formal controlled corpus freeze failed")
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "mode": "freeze_formal",
+        "status": "passed",
+        "checks": checks,
+        "source_summary": final_plan["summary"],
+        "pilot_review": pilot_review,
+        "model_loaded": False,
+        "candidate_generation_started": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "fresh_b_opened": False,
+        "outcome_fields_consumed": [],
+        "claim_authorized": False,
+    }
+
+
+def _audit_formal_route_sources(plan, dp_repo: Path) -> dict[str, dict[str, Any]]:
+    for path in (dp_repo, dp_repo / "diffusion_planner"):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
+
+    unique_cases = {}
+    for case in (*plan.train, *plan.calibration, *plan.fresh_b):
+        unique_cases.setdefault(str(case["record_key"]), case)
+    builders = {}
+    result = {}
+    for record_key, case in sorted(unique_cases.items()):
+        map_path = str(case["source_map_path"])
+        if map_path not in builders:
+            builders[map_path] = LaneletSceneBuilder(map_path)
+        builder = builders[map_path]
+        lanelet_ids = [int(value) for value in case["route_spec"]["lanelet_ids"]]
+        route_lanes, speed_limits, has_speed_limit = builder._route_to_33dim(
+            lanelet_ids
+        )
+        active = np.any(np.abs(route_lanes[:, :, :2]) > 1e-8, axis=(1, 2))
+        limits = np.asarray(speed_limits, dtype=np.float64).reshape(-1)
+        has_limits = np.asarray(has_speed_limit, dtype=bool).reshape(-1)
+        complete = bool(
+            np.any(active)
+            and np.all(has_limits[active])
+            and np.all(np.isfinite(limits[active]))
+            and np.all(limits[active] > 0.0)
+        )
+        traffic_groups = builder.get_traffic_light_groups()
+        result[record_key] = {
+            "record_key": record_key,
+            "map_family_id": str(case["map_family_id"]),
+            "source_map_path": map_path,
+            "source_map_sha256": str(case["source_map_sha256"]),
+            "route_lanelet_count": len(lanelet_ids),
+            "active_route_slot_count": int(np.sum(active)),
+            "positive_speed_limit_slot_count": int(
+                np.sum(active & has_limits & np.isfinite(limits) & (limits > 0.0))
+            ),
+            "speed_limit_complete": complete,
+            "mapped_traffic_light": any(
+                lanelet_id in traffic_groups for lanelet_id in lanelet_ids
+            ),
+            "source_only": True,
+            "model_loaded": False,
+            "candidate_generation_started": False,
+            "outcome_fields_consumed": [],
+        }
+    if len(result) != 401:
+        raise ValueError("source audit did not cover the sealed 401-route inventory")
+    return result
+
+
+def _review_pilot_source_failures(
+    pilot_artifact: Path,
+    plan,
+    availability: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    pilot_root_sha256 = _verify_seal(pilot_artifact)
+    payload = _load_json(pilot_artifact / "pilot_results.json")
+    cases = {str(case["scenario_id"]): case for case in plan.pilot}
+    speed_failure_count = 0
+    speed_failure_mismatches = []
+    passed_count = 0
+    passed_mismatches = []
+    tracker_failure_count = 0
+    for result in payload["results"]:
+        scenario_id = str(result["scenario_id"])
+        case = cases[scenario_id]
+        source = availability[str(case["record_key"])]
+        reason = result.get("failure_reason")
+        if reason == "route slot 0 requires a positive speed limit":
+            speed_failure_count += 1
+            if source["speed_limit_complete"]:
+                speed_failure_mismatches.append(scenario_id)
+        elif result.get("status") == "passed":
+            passed_count += 1
+            if not source["speed_limit_complete"]:
+                passed_mismatches.append(scenario_id)
+        elif reason == "native replay produced no executed tracker tick":
+            tracker_failure_count += 1
+    return {
+        "schema_version": "camp_dp_v25_pilot_source_failure_review_v1",
+        "pilot_artifact": str(pilot_artifact),
+        "pilot_root_sha256": pilot_root_sha256,
+        "passed_count": passed_count,
+        "speed_failure_count": speed_failure_count,
+        "tracker_failure_count": tracker_failure_count,
+        "speed_failure_mismatch_count": len(speed_failure_mismatches),
+        "passed_speed_source_mismatch_count": len(passed_mismatches),
+        "speed_failure_mismatch_scenario_ids": speed_failure_mismatches,
+        "passed_speed_source_mismatch_scenario_ids": passed_mismatches,
+        "outcome_fields_consumed": [],
+        "fresh_b_opened": False,
+    }
 
 
 def _preflight(plan, template: Mapping[str, Any], args: argparse.Namespace) -> dict[str, Any]:
@@ -648,6 +813,20 @@ def _seal(root: Path) -> str:
     ) as handle:
         handle.write(f"{root_sha}  SHA256SUMS\n")
     return root_sha
+
+
+def _verify_seal(root: Path) -> str:
+    sums = root / "SHA256SUMS"
+    for line in sums.read_text(encoding="utf-8").splitlines():
+        digest, relative = line.split("  ", 1)
+        if _file_sha256(root / relative) != digest:
+            raise ValueError(f"artifact SHA256 mismatch: {relative}")
+    root_digest, relative = (root / "ROOT_SHA256SUMS").read_text(
+        encoding="ascii"
+    ).strip().split("  ", 1)
+    if relative != "SHA256SUMS" or _file_sha256(sums) != root_digest:
+        raise ValueError("artifact root SHA256 mismatch")
+    return root_digest
 
 
 if __name__ == "__main__":
