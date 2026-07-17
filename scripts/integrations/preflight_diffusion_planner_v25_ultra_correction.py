@@ -523,7 +523,7 @@ def _contract_fixtures(
             "canonical_selected_index": int(np.argmin(canonical_scores)),
             "native_selected_index": int(native["selected_index"]),
             "candidate0_normalized_first_atom": float(normalized[0, 0]),
-            "passed": (
+            "passed": bool(
                 int(np.argmin((atoms / fixture_scales) @ fixture_weights)) == 1
                 and int(np.argmin(canonical_scores)) == 0
                 and int(native["selected_index"]) == 0
