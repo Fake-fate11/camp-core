@@ -6,6 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
+
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    CANONICAL_NORMALIZED_ATOM_CLIP,
+)
 import cvxpy as cp
 import torch
 import torch.nn as nn
@@ -485,6 +489,10 @@ def _validate_v25_problem(
         raise ValueError("normalized_atoms must have nonempty shape [N,K,R].")
     if not np.all(np.isfinite(atoms)) or np.any(atoms < 0.0):
         raise ValueError("normalized_atoms must be finite nonnegative costs.")
+    if np.any(atoms > CANONICAL_NORMALIZED_ATOM_CLIP + 1e-12):
+        raise ValueError(
+            "normalized_atoms exceed the shared canonical clip contract."
+        )
     validate_phi(phi_values)
     if phi_values.ndim != 2 or phi_values.shape[0] != atoms.shape[0]:
         raise ValueError("phi must have one row per training record.")

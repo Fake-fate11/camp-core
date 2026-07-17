@@ -2777,7 +2777,8 @@ class CAMPSelector:
             raise ValueError("atom_scales must not be empty.")
         if not np.all(np.isfinite(self.atom_scales)):
             raise ValueError("atom_scales must contain only finite values.")
-        self.atom_scales = np.maximum(self.atom_scales, 1e-6)
+        if np.any(self.atom_scales <= 0.0):
+            raise ValueError("atom_scales must be strictly positive.")
         self.num_atoms = int(self.atom_scales.size)
 
         if mode not in {"static", "linear", "context_simplex"}:
@@ -3340,14 +3341,24 @@ class CAMPSelector:
                 "dp_prior_jerk_excess_cost, "
                 f"got {self.num_atoms}."
             )
-        normalized = atoms_arr / self.atom_scales.reshape(1, -1)
-        positive_inf = self.atom_clip if self.atom_clip > 0 else np.finfo(np.float64).max
-        normalized = np.nan_to_num(
-            normalized, nan=0.0, posinf=positive_inf, neginf=0.0
-        )
-        normalized = np.maximum(normalized, 0.0)
-        if self.atom_clip > 0:
-            normalized = np.clip(normalized, 0.0, self.atom_clip)
+        if not np.all(np.isfinite(atoms_arr)) or np.any(atoms_arr < 0.0):
+            raise ValueError("CAMP atoms must be finite nonnegative costs.")
+        if self.num_atoms == 14:
+            from camp_core.integrations.diffusion_planner_causal_atoms import (
+                CANONICAL_NORMALIZED_ATOM_CLIP,
+                canonical_normalize_atoms,
+            )
+
+            if self.atom_clip != CANONICAL_NORMALIZED_ATOM_CLIP:
+                raise ValueError("14D CAMP atom clip drifted from the canonical contract.")
+            normalized = canonical_normalize_atoms(atoms_arr, self.atom_scales)
+        else:
+            normalized = atoms_arr / self.atom_scales.reshape(1, -1)
+            if not np.all(np.isfinite(normalized)):
+                raise ValueError("normalized CAMP atoms must be finite.")
+            normalized = np.maximum(normalized, 0.0)
+            if self.atom_clip > 0:
+                normalized = np.clip(normalized, 0.0, self.atom_clip)
 
         weights = self.weights_for(scene_embedding, raw_context=raw_context)
         scores = normalized @ weights

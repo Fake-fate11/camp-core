@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from camp_core.integrations.diffusion_planner_v25_context import RAW_FEATURE_NAMES
+from camp_core.integrations.diffusion_planner_v25_context import (
+    CONTEXT_SCHEMA_VERSION,
+    RAW_FEATURE_NAMES,
+)
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     build_controlled_scenario_case,
 )
@@ -78,13 +81,17 @@ def test_controlled_train_config_is_exactly_64_tick_train_only() -> None:
 
     runner.validate_v25_controlled_train_config(config)
     runner._validate_native_config(config)
-    assert config["schema_version"] == "camp_dp_v25_controlled_train_v1"
+    assert config["schema_version"] == "camp_dp_v25_controlled_train_v2"
     assert config["spawn_config"]["max_steps"] == CORPUS_STEPS
     assert config["seeds"]["scenario"] == EXPECTED_SEED
     assert config["protocol"]["sample_every_ticks"] == 1
     assert config["protocol"]["training_data_generation_authorized"] is True
     assert config["protocol"]["selector_training_execution_authorized"] is False
     assert config["protocol"]["fresh_b_opened"] is False
+    assert config["protocol"]["context_mode"] == "no_v2i"
+    assert config["selector"]["normalization_contract"].endswith(
+        "scale,0,10)"
+    )
 
 
 def test_controlled_train_config_rejects_split_seed_or_outcome_drift() -> None:
@@ -117,19 +124,33 @@ def _snapshot() -> dict:
             "candidate_tensor_sha256_before": "a" * 64,
             "candidate_tensor_sha256_after": "a" * 64,
             "candidate0_sha256": rows[0],
+            "normalized_atom_matrix_sha256": "d" * 64,
+            "selected_index": 0,
+            "score_contract": "score_k=clip(a_k/s,0,10)^T w",
+            "tie_break_contract": "lowest_eligible_candidate_index",
+            "scores": [0.0] * 8,
             "causal_input_sha256": "b" * 64,
             "physical_feasible_mask": [True] * 8,
+            "source_valid_mask": [True] * 8,
             "all_k_high_risk": False,
         },
     }
 
 
 def _context() -> dict:
+    raw = {name: float(index) for index, name in enumerate(RAW_FEATURE_NAMES)}
+    raw["traffic_signal_phase_remaining_s"] = 0.0
+    complete = {name: True for name in RAW_FEATURE_NAMES}
+    complete["traffic_signal_phase_remaining_s"] = False
     return {
-        "raw_context": {
-            name: float(index) for index, name in enumerate(RAW_FEATURE_NAMES)
+        "schema_version": CONTEXT_SCHEMA_VERSION,
+        "raw_context": raw,
+        "source_complete": complete,
+        "source_receipt": {
+            "mode": "no_v2i",
+            "phase_remaining_available": False,
+            "regulatory_signal_mapped": True,
         },
-        "source_complete": {name: True for name in RAW_FEATURE_NAMES},
     }
 
 

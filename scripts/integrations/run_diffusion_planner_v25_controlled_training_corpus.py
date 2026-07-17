@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import collections
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 import hashlib
 import json
 import os
@@ -26,6 +26,7 @@ for _path in (ROOT, PACKAGE_ROOT):
         sys.path.insert(0, str(_path))
 
 from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
+    CONTEXT_SCHEMA_VERSION,
     RAW_FEATURE_NAMES,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
@@ -50,8 +51,8 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v1"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v1"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v2"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v2"
 FORMAL_ARTIFACT = Path(
     "/root/autodl-tmp/"
     "camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_"
@@ -69,6 +70,104 @@ EXPECTED_SEED = 25001
 CORPUS_STEPS = 64
 MINIMUM_FREE_BYTES = 10 * 1024**3
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
+SUPERSEDED_PARTIAL_CORPUS_ROOT = (
+    "a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481"
+)
+CORRECTED_GENERATION_SCALES = (
+    ROOT
+    / "configs"
+    / "integrations"
+    / "diffusion_planner_v25_atom_scales_correction_v2.json"
+)
+
+
+class ArtifactContractViolation(RuntimeError):
+    """A non-retainable scientific or artifact invariant failed."""
+
+
+def validate_identity_terminal(
+    *,
+    status: str,
+    receipt_tick_count: int,
+    snapshot_count: int,
+    context_count: int,
+    failure_type: str | None,
+    failure_reason: str | None,
+) -> str:
+    counts = (receipt_tick_count, snapshot_count, context_count)
+    if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in counts):
+        raise ArtifactContractViolation("identity counts must be nonnegative integers")
+    if status == "complete":
+        if counts != (CORPUS_STEPS, CORPUS_STEPS, CORPUS_STEPS):
+            raise ArtifactContractViolation(
+                "a complete identity must contain exactly 64 receipt, snapshot, "
+                "and context ticks"
+            )
+        if failure_type is not None or failure_reason is not None:
+            raise ArtifactContractViolation("complete identity carries failure metadata")
+        return "complete"
+    if status != "failed":
+        raise ArtifactContractViolation("identity status is neither complete nor failed")
+    if any(counts):
+        raise ArtifactContractViolation(
+            "partial snapshots are forbidden and make the artifact ineligible"
+        )
+    if (
+        failure_type == "RetainedScenarioCapabilityFailure"
+        and isinstance(failure_reason, str)
+        and failure_reason.startswith("preregistered_scenario_capability:")
+    ):
+        return "retained_capability_failure"
+    raise ArtifactContractViolation(
+        "only an explicit preregistered scenario-capability failure may be retained"
+    )
+
+
+def validate_terminal_acceptance(
+    results: list[Mapping[str, Any]],
+    *,
+    snapshot_index_count: int,
+    expected_identity_count: int = EXPECTED_EXECUTABLE_IDENTITIES,
+) -> dict[str, int]:
+    if len(results) != expected_identity_count:
+        raise ArtifactContractViolation(
+            "terminal identity denominator is incomplete"
+        )
+    complete = 0
+    retained_capability = 0
+    for row in results:
+        status = str(row.get("status"))
+        snapshot_count = row.get("snapshot_count")
+        if status == "complete":
+            if snapshot_count != CORPUS_STEPS:
+                raise ArtifactContractViolation(
+                    "terminal complete identity does not contain exactly 64 ticks"
+                )
+            complete += 1
+        elif (
+            status == "failed"
+            and snapshot_count == 0
+            and row.get("failure_type") == "RetainedScenarioCapabilityFailure"
+            and isinstance(row.get("failure_reason"), str)
+            and str(row["failure_reason"]).startswith(
+                "preregistered_scenario_capability:"
+            )
+        ):
+            retained_capability += 1
+        else:
+            raise ArtifactContractViolation(
+                "terminal results contain an illegal failure or partial identity"
+            )
+    expected_snapshots = complete * CORPUS_STEPS
+    if snapshot_index_count != expected_snapshots:
+        raise ArtifactContractViolation(
+            "terminal snapshot index does not match complete identities"
+        )
+    return {
+        "complete_identity_count": complete,
+        "retained_capability_failure_count": retained_capability,
+        "training_snapshot_count": expected_snapshots,
+    }
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,41 +188,46 @@ def main() -> None:
     if args.output_dir.exists():
         raise FileExistsError(f"output already exists: {args.output_dir}")
     args.output_dir.mkdir(parents=True)
-    try:
-        report = _run(args)
-        _write_json(args.output_dir / "report.json", report)
-        (args.output_dir / "run.exit").write_text("0\n", encoding="ascii")
-        root_sha = _seal(args.output_dir)
-        print(
-            json.dumps(
-                {
-                    "status": report["status"],
-                    "mode": report["mode"],
-                    "output_dir": str(args.output_dir),
-                    "root_sha256": root_sha,
-                    "attempted_identity_count": report.get(
-                        "attempted_identity_count", 0
-                    ),
-                    "snapshot_count": report.get("snapshot_count", 0),
-                },
-                sort_keys=True,
+    lock_scope = (
+        _exclusive_lock(TRAIN_LOCK) if args.execute else nullcontext()
+    )
+    with lock_scope:
+        try:
+            report = _run(args)
+            _write_json(args.output_dir / "report.json", report)
+            (args.output_dir / "run.exit").write_text("0\n", encoding="ascii")
+            root_sha = _seal(args.output_dir)
+            print(
+                json.dumps(
+                    {
+                        "status": report["status"],
+                        "mode": report["mode"],
+                        "output_dir": str(args.output_dir),
+                        "root_sha256": root_sha,
+                        "attempted_identity_count": report.get(
+                            "attempted_identity_count", 0
+                        ),
+                        "snapshot_count": report.get("snapshot_count", 0),
+                    },
+                    sort_keys=True,
+                )
             )
-        )
-    except BaseException as exc:
-        _write_json(
-            args.output_dir / "failure.json",
-            {
-                "schema_version": SCHEMA_VERSION,
-                "status": "failed",
-                "failure_type": type(exc).__name__,
-                "failure_reason": str(exc),
-                "fresh_b_opened": False,
-                "outcome_fields_consumed": [],
-            },
-        )
-        (args.output_dir / "run.exit").write_text("1\n", encoding="ascii")
-        _seal(args.output_dir)
-        raise
+        except BaseException as exc:
+            _write_json(
+                args.output_dir / "failure.json",
+                {
+                    "schema_version": SCHEMA_VERSION,
+                    "status": "failed",
+                    "failure_type": type(exc).__name__,
+                    "failure_reason": str(exc),
+                    "fresh_b_opened": False,
+                    "outcome_fields_consumed": [],
+                    "seal_passed": False,
+                },
+            )
+            (args.output_dir / "run.exit").write_text("1\n", encoding="ascii")
+            _seal(args.output_dir)
+            raise
 
 
 def _run(args: argparse.Namespace) -> dict[str, Any]:
@@ -153,6 +257,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         "probe_template_sha256": EXPECTED_TEMPLATE_SHA256,
         "train_lock": str(TRAIN_LOCK),
         "minimum_free_bytes": MINIMUM_FREE_BYTES,
+        "rejected_roots": [SUPERSEDED_PARTIAL_CORPUS_ROOT],
+        "terminal_lock_scope": "execution_through_progress_report_run_exit_and_seal",
         "free_bytes_at_start": shutil.disk_usage(args.output_dir.parent).free,
         "fresh_b_opened": False,
         "outcome_fields_consumed": [],
@@ -195,7 +301,7 @@ def build_controlled_train_config(
     seed_values = case.get("seeds")
     if seed_values != [EXPECTED_SEED]:
         raise ValueError("controlled train case seed drifted")
-    config["schema_version"] = "camp_dp_v25_controlled_train_v1"
+    config["schema_version"] = "camp_dp_v25_controlled_train_v2"
     config["map"] = {
         "path": str(case["source_map_path"]),
         "sha256": str(case["source_map_sha256"]),
@@ -215,6 +321,19 @@ def build_controlled_train_config(
     }
     config["selector"]["role"] = (
         "v25_controlled_train_fixed_static_behavior_policy"
+    )
+    config["selector"]["atom_scales"] = {
+        "path": str(CORRECTED_GENERATION_SCALES),
+        "sha256": _file_sha256(CORRECTED_GENERATION_SCALES),
+    }
+    config["selector"]["normalization_contract"] = (
+        "z=clip(raw_atom/generation_behavior_scale,0,10)"
+    )
+    config["selector"]["tie_break_contract"] = (
+        "lowest_eligible_candidate_index"
+    )
+    config["selector"]["atom_scale_contract"] = (
+        "camp_dp_v25_generation_behavior_atom_scales_v2"
     )
     config["spawn_config"].update(
         {
@@ -243,6 +362,8 @@ def build_controlled_train_config(
         "holdout_access_authorized": False,
         "fresh_b_opened": False,
         "outcomes_used_for_selection": False,
+        "context_schema_version": CONTEXT_SCHEMA_VERSION,
+        "context_mode": "no_v2i",
     }
     config["controlled_scenario"] = json.loads(json.dumps(case))
     validate_v25_controlled_train_config(config)
@@ -380,7 +501,9 @@ def _execute(
     results: list[dict[str, Any]] = []
     snapshot_count = 0
     started = time.perf_counter()
-    with _exclusive_lock(TRAIN_LOCK):
+    # main() owns TRAIN_LOCK across execution, terminal progress/report,
+    # run.exit, and seal. Keep this structural scope for the nested streams.
+    with nullcontext():
         with results_path.open("w", encoding="utf-8", newline="\n") as result_file:
             with index_path.open("w", encoding="utf-8", newline="\n") as index_file:
                 for ordinal, case in enumerate(cases):
@@ -397,6 +520,7 @@ def _execute(
                     status = "complete"
                     failure_type = None
                     failure_reason = None
+                    receipt_tick_count = 0
                     try:
                         receipt = runner(
                             route=config["routes"][0],
@@ -410,11 +534,11 @@ def _execute(
                             scene_adapter=adapter,
                             v25_context_sink=contexts.append,
                         )
-                        tick_count = len(receipt.get("ticks", []))
+                        receipt_tick_count = len(receipt.get("ticks", []))
                         validate_native_arm_receipt(
                             receipt,
                             "camp",
-                            expected_ticks=tick_count,
+                            expected_ticks=receipt_tick_count,
                             require_summary=False,
                             expected_selection_policy="v22_source_valid",
                             expected_safety_schema="safety_cost_native_v22",
@@ -423,21 +547,25 @@ def _execute(
                         status = "failed"
                         failure_type = type(exc).__name__
                         failure_reason = str(exc)
-                    if len(snapshots) != len(contexts):
-                        status = "failed"
-                        failure_type = "SnapshotContextCountMismatch"
-                        failure_reason = (
-                            f"snapshot/context counts differ: {len(snapshots)}/"
-                            f"{len(contexts)}"
-                        )
-                    paired_count = min(len(snapshots), len(contexts))
-                    for tick_index in range(paired_count):
-                        payload = combine_snapshot_context(
+                    disposition = validate_identity_terminal(
+                        status=status,
+                        receipt_tick_count=receipt_tick_count,
+                        snapshot_count=len(snapshots),
+                        context_count=len(contexts),
+                        failure_type=failure_type,
+                        failure_reason=failure_reason,
+                    )
+                    payloads = []
+                    if disposition == "complete":
+                        for tick_index in range(CORPUS_STEPS):
+                            payloads.append(combine_snapshot_context(
                             snapshot=snapshots[tick_index],
                             context=contexts[tick_index],
                             case=case,
                             tick_index=tick_index,
-                        )
+                            ))
+                    paired_count = len(payloads)
+                    for tick_index, payload in enumerate(payloads):
                         data = _canonical_json_bytes(payload) + b"\n"
                         digest = hashlib.sha256(data).hexdigest()
                         relative = Path("snapshots") / f"{digest}.json"
@@ -495,8 +623,10 @@ def _execute(
                             "fresh_b_opened": False,
                         },
                     )
-    if len(results) != EXPECTED_EXECUTABLE_IDENTITIES or snapshot_count == 0:
-        raise RuntimeError("controlled train execution denominator is incomplete")
+    terminal = validate_terminal_acceptance(
+        results,
+        snapshot_index_count=snapshot_count,
+    )
     family_counts = collections.Counter(row["family"] for row in results)
     family_snapshots = collections.Counter()
     for row in results:
@@ -529,8 +659,11 @@ def _execute(
         "formal_train_manifest_identity_count": (
             len(results) + EXPECTED_RETAINED_INELIGIBLE
         ),
-        "complete_identity_count": sum(r["status"] == "complete" for r in results),
+        "complete_identity_count": terminal["complete_identity_count"],
         "failed_identity_count": sum(r["status"] == "failed" for r in results),
+        "retained_capability_failure_count": terminal[
+            "retained_capability_failure_count"
+        ],
         "retained_identity_count": len(results),
         "snapshot_count": snapshot_count,
         "snapshot_capacity": len(cases) * CORPUS_STEPS,
@@ -565,7 +698,14 @@ def combine_snapshot_context(
     sidecar = snapshot.get("sidecar")
     raw = context.get("raw_context")
     source_complete = context.get("source_complete")
-    if not all(isinstance(value, Mapping) for value in (features, sidecar, raw, source_complete)):
+    source_receipt = context.get("source_receipt")
+    if (
+        context.get("schema_version") != CONTEXT_SCHEMA_VERSION
+        or not all(
+            isinstance(value, Mapping)
+            for value in (features, sidecar, raw, source_complete, source_receipt)
+        )
+    ):
         raise ValueError("controlled snapshot/context payload is malformed")
     atoms = np.asarray(features.get("atom_matrix"), dtype=np.float64)
     valid = features.get("source_valid_mask")
@@ -589,6 +729,45 @@ def combine_snapshot_context(
         not isinstance(source_complete[name], bool) for name in RAW_FEATURE_NAMES
     ):
         raise ValueError("controlled raw context is nonfinite or has invalid sources")
+    timing_name = "traffic_signal_phase_remaining_s"
+    if (
+        float(raw[timing_name]) != 0.0
+        or source_complete[timing_name] is not False
+        or source_receipt.get("mode") != "no_v2i"
+        or source_receipt.get("phase_remaining_available") is not False
+    ):
+        raise ValueError("controlled no-V2I context exposed future signal timing")
+    physical = sidecar.get("physical_feasible_mask")
+    sidecar_source_valid = sidecar.get("source_valid_mask")
+    selected_index = sidecar.get("selected_index")
+    scores = np.asarray(sidecar.get("scores"), dtype=np.float64)
+    if (
+        not isinstance(physical, list)
+        or len(physical) != 8
+        or any(not isinstance(value, bool) for value in physical)
+        or not isinstance(sidecar_source_valid, list)
+        or len(sidecar_source_valid) != 8
+        or any(not isinstance(value, bool) for value in sidecar_source_valid)
+        or sidecar_source_valid != valid
+        or isinstance(selected_index, bool)
+        or not isinstance(selected_index, int)
+        or selected_index < 0
+        or selected_index >= 8
+        or scores.shape != (8,)
+        or not np.isfinite(scores).all()
+        or sidecar.get("score_contract")
+        != "score_k=clip(a_k/s,0,10)^T w"
+        or sidecar.get("tie_break_contract")
+        != "lowest_eligible_candidate_index"
+        or selected_index
+        != int(
+            np.argmin(
+                np.where(np.asarray(valid, dtype=bool), scores, np.inf)
+            )
+        )
+        or not _is_sha256(sidecar.get("normalized_atom_matrix_sha256"))
+    ):
+        raise ValueError("controlled selector score/mask invariant failed")
     if (
         sidecar.get("candidate_tensor_sha256_before")
         != sidecar.get("candidate_tensor_sha256_after")
@@ -626,8 +805,17 @@ def combine_snapshot_context(
                 sidecar["candidate_tensor_sha256_after"]
             ),
             "causal_input_sha256": str(sidecar["causal_input_sha256"]),
-            "physical_feasible_mask": list(sidecar["physical_feasible_mask"]),
+            "physical_feasible_mask": list(physical),
+            "source_valid_mask": list(sidecar_source_valid),
             "all_k_high_risk": bool(sidecar["all_k_high_risk"]),
+            "selected_index": int(selected_index),
+            "score_contract": str(sidecar["score_contract"]),
+            "tie_break_contract": str(sidecar["tie_break_contract"]),
+            "normalized_atom_matrix_sha256": str(
+                sidecar["normalized_atom_matrix_sha256"]
+            ),
+            "context_schema_version": CONTEXT_SCHEMA_VERSION,
+            "context_source_receipt": dict(source_receipt),
             "offline_label_provenance": "pending_train_only_causal_label",
             "outcome_fields_consumed": [],
             "fresh_b_opened": False,

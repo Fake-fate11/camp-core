@@ -248,7 +248,7 @@ class NativeCampPredictBatch:
         decision_sample_every_ticks: int = 5,
         scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
         v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
-        v25_signal_phase_remaining_s: float | None = None,
+        v25_v2i_signal_timing: Mapping[str, Any] | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -292,7 +292,7 @@ class NativeCampPredictBatch:
         self.decision_sample_every_ticks = decision_sample_every_ticks
         self.scene_adapter = scene_adapter
         self.v25_context_sink = v25_context_sink
-        self.v25_signal_phase_remaining_s = v25_signal_phase_remaining_s
+        self.v25_v2i_signal_timing = v25_v2i_signal_timing
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.weights is None
@@ -561,6 +561,7 @@ class NativeCampPredictBatch:
             receipt.update(selector_diagnostics)
             if self.v25_context_sink is not None:
                 from camp_core.integrations.diffusion_planner_v25_context import (
+                    CONTEXT_SCHEMA_VERSION,
                     RAW_FEATURE_NAMES,
                     build_v25_raw_context,
                 )
@@ -571,9 +572,10 @@ class NativeCampPredictBatch:
                     source_valid_mask=np.asarray(
                         receipt["source_valid_mask"], dtype=bool
                     ),
-                    signal_phase_remaining_s=self.v25_signal_phase_remaining_s,
+                    v2i_signal_timing=self.v25_v2i_signal_timing,
                 )
                 context_payload = {
+                    "schema_version": CONTEXT_SCHEMA_VERSION,
                     "raw_context": context_record.as_dict(),
                     "source_complete": {
                         name: bool(value)
@@ -583,6 +585,7 @@ class NativeCampPredictBatch:
                             strict=True,
                         )
                     },
+                    "source_receipt": dict(context_record.source_receipt),
                 }
                 receipt["v25_context"] = context_payload
                 self.v25_context_sink(context_payload)
@@ -619,6 +622,9 @@ class NativeCampPredictBatch:
                     "selected_index": selected_index,
                     "selected_trajectory_sha256": array_sha256(selected),
                     "score_contract": str(selection["score_contract"]),
+                    "tie_break_contract": str(
+                        selection["tie_break_contract"]
+                    ),
                     "eligibility_mask_name": str(
                         selection["eligibility_mask_name"]
                     ),
@@ -655,6 +661,10 @@ class NativeCampPredictBatch:
                 receipt["scores"] = np.asarray(
                     selection["scores"], dtype=np.float64
                 ).tolist()
+            if selection.get("normalized_atoms") is not None:
+                receipt["normalized_atom_matrix_sha256"] = array_sha256(
+                    np.asarray(selection["normalized_atoms"], dtype=np.float64)
+                )
             if (
                 self.decision_sink is not None
                 and tick_index % self.decision_sample_every_ticks == 0
@@ -693,11 +703,23 @@ class NativeCampPredictBatch:
                         "candidate_tensor_sha256_after": str(
                             receipt["candidate_tensor_sha256_after"]
                         ),
+                        "normalized_atom_matrix_sha256": str(
+                            receipt["normalized_atom_matrix_sha256"]
+                        ),
+                        "selected_index": int(receipt["selected_index"]),
+                        "score_contract": str(receipt["score_contract"]),
+                        "tie_break_contract": str(
+                            selection["tie_break_contract"]
+                        ),
+                        "scores": list(receipt["scores"]),
                         "causal_input_sha256": str(
                             boundary.receipt["input_sha256"]
                         ),
                         "physical_feasible_mask": list(
                             receipt["physical_feasible_mask"]
+                        ),
+                        "source_valid_mask": list(
+                            receipt["source_valid_mask"]
                         ),
                         "all_k_high_risk": bool(receipt["all_k_high_risk"]),
                         "offline_label_provenance": (
@@ -1345,7 +1367,7 @@ def validate_v25_controlled_capability_config(
 
 def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
     """Validate a frozen outcome-blind controlled-train corpus run."""
-    if config.get("schema_version") != "camp_dp_v25_controlled_train_v1":
+    if config.get("schema_version") != "camp_dp_v25_controlled_train_v2":
         raise ValueError("v25 controlled train schema mismatch")
     controlled = _mapping(config, "controlled_scenario")
     from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
@@ -1374,7 +1396,16 @@ def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
     }:
         raise ValueError("v25 controlled train seed namespace mismatch")
     selector = _mapping(config, "selector")
-    if selector.get("role") != "v25_controlled_train_fixed_static_behavior_policy":
+    if (
+        selector.get("role")
+        != "v25_controlled_train_fixed_static_behavior_policy"
+        or selector.get("normalization_contract")
+        != "z=clip(raw_atom/generation_behavior_scale,0,10)"
+        or selector.get("tie_break_contract")
+        != "lowest_eligible_candidate_index"
+        or selector.get("atom_scale_contract")
+        != "camp_dp_v25_generation_behavior_atom_scales_v2"
+    ):
         raise ValueError("v25 controlled train behavior-policy role mismatch")
     spawn = _mapping(config, "spawn_config")
     if (
@@ -1404,6 +1435,8 @@ def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
         "holdout_access_authorized": False,
         "fresh_b_opened": False,
         "outcomes_used_for_selection": False,
+        "context_schema_version": "camp_dp_v25_causal_context_raw_v2",
+        "context_mode": "no_v2i",
     }
     if protocol != expected_protocol:
         raise ValueError("v25 controlled train protocol mismatch")
@@ -1442,7 +1475,7 @@ def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
 
 
 def _validate_native_config(config: Mapping[str, Any]) -> None:
-    if config.get("schema_version") == "camp_dp_v25_controlled_train_v1":
+    if config.get("schema_version") == "camp_dp_v25_controlled_train_v2":
         validate_v25_controlled_train_config(config)
         return
     if config.get("schema_version") == "camp_dp_v25_controlled_capability_v1":
@@ -1730,7 +1763,15 @@ def verify_config_assets(config: Mapping[str, Any]) -> dict[str, str]:
             raise ValueError(f"asset SHA256 mismatch: {path}")
         verified[str(path)] = digest
     selector = _mapping(config, "selector")
-    _load_frozen_selector_scales(Path(str(selector["atom_scales"]["path"])))
+    scales, _scale_contract = _load_frozen_selector_scales(
+        Path(str(selector["atom_scales"]["path"]))
+    )
+    if config.get("schema_version") == "camp_dp_v25_controlled_train_v2":
+        from camp_core.integrations.diffusion_planner_causal_atoms import (
+            validate_v25_atom_scales,
+        )
+
+        validate_v25_atom_scales(scales)
     _load_frozen_selector_weights(Path(str(selector["weights"]["path"])))
     selector_sums = Path(str(selector["root"])) / "SHA256SUMS"
     selector_root = _file_sha256(selector_sums)
@@ -2160,6 +2201,7 @@ def _validate_arm_receipt(
                 "candidate_tensor_sha256_before",
                 "candidate_tensor_sha256_after",
                 "atom_matrix_sha256",
+                "normalized_atom_matrix_sha256",
                 "selected_trajectory_sha256",
             ):
                 value = tick.get(name)
@@ -2204,7 +2246,10 @@ def _validate_arm_receipt(
                 scores = np.asarray(tick.get("scores"), dtype=np.float64)
                 row_sha256 = tick.get("candidate_row_sha256")
                 if (
-                    tick.get("score_contract") != "score_k(w)=a_k^T w"
+                    tick.get("score_contract")
+                    != "score_k=clip(a_k/s,0,10)^T w"
+                    or tick.get("tie_break_contract")
+                    != "lowest_eligible_candidate_index"
                     or tick.get("eligibility_mask_name") != expected_mask_name
                     or scores.shape != (8,)
                     or not np.isfinite(scores).all()
@@ -2614,7 +2659,7 @@ def build_native_arm_runner(
             "camp_dp_v25_controlled_capability_v1",
         }:
             allowed_steps = {1}
-        elif config.get("schema_version") == "camp_dp_v25_controlled_train_v1":
+        elif config.get("schema_version") == "camp_dp_v25_controlled_train_v2":
             allowed_steps = {int(protocol["corpus_steps"])}
         elif config.get("schema_version") in {
             "camp_dp_v22_native_corpus_run_v1",
@@ -2663,6 +2708,12 @@ def build_native_arm_runner(
             scales, selector_scale_contract = _load_frozen_selector_scales(
                 Path(str(config["selector"]["atom_scales"]["path"]))
             )
+            if config.get("schema_version") == "camp_dp_v25_controlled_train_v2":
+                from camp_core.integrations.diffusion_planner_causal_atoms import (
+                    validate_v25_atom_scales,
+                )
+
+                scales = validate_v25_atom_scales(scales)
             weights = _load_frozen_selector_weights(
                 Path(str(config["selector"]["weights"]["path"]))
             )
@@ -2690,11 +2741,7 @@ def build_native_arm_runner(
                 ),
                 scene_adapter=scene_adapter,
                 v25_context_sink=v25_context_sink,
-                v25_signal_phase_remaining_s=(
-                    float(config["controlled_scenario"]["signal"]["phase_remaining_s"])
-                    if v25_context_sink is not None
-                    else None
-                ),
+                v25_v2i_signal_timing=None,
             )
         elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
             replacement = NativeCampPredictBatch(
@@ -2713,11 +2760,7 @@ def build_native_arm_runner(
                 operational_mode="dp_candidate0",
                 scene_adapter=scene_adapter,
                 v25_context_sink=v25_context_sink,
-                v25_signal_phase_remaining_s=(
-                    float(config["controlled_scenario"]["signal"]["phase_remaining_s"])
-                    if v25_context_sink is not None
-                    else None
-                ),
+                v25_v2i_signal_timing=None,
             )
         else:
             replacement = NativeDpObserveBatch(
@@ -3096,6 +3139,7 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             {
                 "selection_policy": str(receipt["selection_policy"]),
                 "score_contract": str(receipt["score_contract"]),
+                "tie_break_contract": str(receipt["tie_break_contract"]),
                 "eligibility_mask_name": str(receipt["eligibility_mask_name"]),
                 "selected_index": int(receipt["selected_index"]),
                 "default_candidate0_identity": dict(
@@ -3105,6 +3149,7 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
         )
         for name in (
             "atom_matrix_sha256",
+            "normalized_atom_matrix_sha256",
             "candidate0_operational_default",
             "post_divergence_cross_arm_tensor_identity_required",
             "npc_operational_outputs_unchanged",

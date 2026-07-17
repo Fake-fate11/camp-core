@@ -27,6 +27,10 @@ for path in (ROOT, PACKAGE_ROOT):
         sys.path.append(path_str)
 
 from camp_core.mapping_heads.linear_head import LinearMappingHead
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    CANONICAL_NORMALIZED_ATOM_CLIP,
+    canonical_normalize_atoms,
+)
 from camp_core.outer_master.benders_master import BendersCut
 from camp_core.outer_master.parametric_cvxpy_master import (
     ParametricCVXPYMaster,
@@ -35,7 +39,7 @@ from camp_core.outer_master.parametric_cvxpy_master import (
 
 
 DEFAULT_MASTER_BATCH_SIZE = 500
-ATOM_CLIP = 10.0
+ATOM_CLIP = CANONICAL_NORMALIZED_ATOM_CLIP
 
 
 def parse_args() -> argparse.Namespace:
@@ -94,7 +98,10 @@ def load_atom_scales(scale_path: Optional[str], num_atoms: int, device: torch.de
     if scale_path and os.path.exists(scale_path):
         print(f"Loading Atom Scales from {scale_path}", flush=True)
         with open(scale_path, "r", encoding="utf-8") as f:
-            scales = np.asarray(json.load(f), dtype=np.float32)
+            payload = json.load(f)
+        if isinstance(payload, dict):
+            payload = payload.get("scales")
+        scales = np.asarray(payload, dtype=np.float32)
         if scales.ndim != 1 or scales.shape[0] < num_atoms:
             raise ValueError(f"Expected at least {num_atoms} atom scales, got shape {scales.shape}")
         scales = scales[:num_atoms]
@@ -102,8 +109,8 @@ def load_atom_scales(scale_path: Optional[str], num_atoms: int, device: torch.de
         print(f"Warning: Scale file {scale_path} not found. Using identity scales.", flush=True)
         scales = np.ones(num_atoms, dtype=np.float32)
 
-    scales = np.nan_to_num(scales, nan=1.0, posinf=1.0, neginf=1.0)
-    scales = np.maximum(scales, 1e-6)
+    if not np.isfinite(scales).all() or np.any(scales <= 0.0):
+        raise ValueError("Atom scales must be finite and strictly positive.")
     print(f"Loaded Atom Scales: {scales}", flush=True)
     return torch.tensor(scales, dtype=torch.float32, device=device)
 
@@ -170,16 +177,38 @@ def load_cached_tensors(
             raise ValueError(f"Scenario {idx} gt_atoms dim {gt_atoms.shape[0]} != scales dim {len(scales_np)}")
 
         if args.cache_atoms_normalized:
-            atoms_norm = atoms
-            gt_norm = gt_atoms
+            atoms_norm = atoms.astype(np.float64, copy=False)
+            gt_norm = gt_atoms.astype(np.float64, copy=False)
+            if (
+                not np.isfinite(atoms_norm).all()
+                or not np.isfinite(gt_norm).all()
+                or np.any(atoms_norm < 0.0)
+                or np.any(gt_norm < 0.0)
+                or np.any(atoms_norm > ATOM_CLIP)
+                or np.any(gt_norm > ATOM_CLIP)
+            ):
+                raise ValueError(
+                    f"Scenario {idx} normalized atoms violate the finite [0,10] contract"
+                )
+        elif len(scales_np) == 14:
+            atoms_norm = canonical_normalize_atoms(atoms, scales_np)
+            gt_norm = canonical_normalize_atoms(
+                gt_atoms.reshape(1, 14), scales_np
+            ).reshape(14)
         else:
-            atoms_norm = atoms / scales_np.reshape(1, -1)
-            gt_norm = gt_atoms / scales_np
-
-        atoms_norm = np.nan_to_num(atoms_norm, nan=0.0, posinf=ATOM_CLIP, neginf=0.0)
-        gt_norm = np.nan_to_num(gt_norm, nan=0.0, posinf=ATOM_CLIP, neginf=0.0)
-        atoms_norm = np.clip(atoms_norm, a_min=0.0, a_max=ATOM_CLIP)
-        gt_norm = np.clip(gt_norm, a_min=0.0, a_max=ATOM_CLIP)
+            if (
+                not np.isfinite(atoms).all()
+                or not np.isfinite(gt_atoms).all()
+                or np.any(atoms < 0.0)
+                or np.any(gt_atoms < 0.0)
+            ):
+                raise ValueError(
+                    f"Scenario {idx} raw atoms must be finite nonnegative costs"
+                )
+            atoms_norm = np.clip(
+                atoms / scales_np.reshape(1, -1), 0.0, ATOM_CLIP
+            )
+            gt_norm = np.clip(gt_atoms / scales_np, 0.0, ATOM_CLIP)
 
         if "feas_mask" in sample:
             feas_mask = as_numpy(sample["feas_mask"]).astype(bool).reshape(-1)

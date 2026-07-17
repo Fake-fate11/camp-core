@@ -37,6 +37,95 @@ V22_SOURCE_VALID_ELIGIBILITY = "v22_source_valid"
 _ELIGIBILITY_POLICIES = frozenset(
     {V21_PHYSICAL_ELIGIBILITY, V22_SOURCE_VALID_ELIGIBILITY}
 )
+CANONICAL_NORMALIZED_ATOM_CLIP = 10.0
+V25_PLANNED_RED_LIGHT_SCALE_FLOOR = 1.0
+FIXED_K8_HEADING_UNIT_ATOL = 5e-4
+
+
+def validate_fixed_k8_candidate_tensor(candidates: np.ndarray) -> np.ndarray:
+    """Fail closed on the immutable fixed-DP K=8 trajectory contract."""
+    trajectories = np.asarray(candidates)
+    if trajectories.shape != (8, 80, 4) or trajectories.dtype != np.float32:
+        raise ValueError("candidates must be float32 [8,80,4]")
+    if not np.isfinite(trajectories).all():
+        raise ValueError("candidates must be finite")
+    heading_norm = np.linalg.norm(
+        trajectories[..., 2:4].astype(np.float64), axis=2
+    )
+    if not np.allclose(
+        heading_norm,
+        1.0,
+        rtol=0.0,
+        atol=FIXED_K8_HEADING_UNIT_ATOL,
+    ):
+        raise ValueError("candidate headings must be finite unit vectors")
+    return trajectories
+
+
+def canonical_normalize_atoms(
+    atom_matrix: np.ndarray, atom_scales: np.ndarray
+) -> np.ndarray:
+    """Apply the sole V25 raw-atom normalization used online and offline."""
+    atoms = np.asarray(atom_matrix, dtype=np.float64)
+    scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
+    if atoms.ndim not in {2, 3} or atoms.shape[-1] != 14:
+        raise ValueError("canonical atom matrix must have final dimension 14")
+    if not np.isfinite(atoms).all() or np.any(atoms < 0.0):
+        raise ValueError("canonical atom matrix must be finite and nonnegative")
+    if (
+        scales.shape != (14,)
+        or not np.isfinite(scales).all()
+        or np.any(scales <= 0.0)
+    ):
+        raise ValueError("atom scales must be finite positive [14]")
+    normalized = atoms / scales
+    if not np.isfinite(normalized).all():
+        raise ValueError("normalized canonical atoms must be finite")
+    return np.clip(
+        normalized,
+        0.0,
+        CANONICAL_NORMALIZED_ATOM_CLIP,
+    )
+
+
+def canonical_score_atoms(
+    atom_matrix: np.ndarray,
+    atom_scales: np.ndarray,
+    weights: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return shared canonical normalized atoms and affine candidate scores."""
+    coefficients = np.asarray(weights, dtype=np.float64).reshape(-1)
+    if (
+        coefficients.shape != (14,)
+        or not np.isfinite(coefficients).all()
+        or np.any(coefficients < 0.0)
+        or not np.isclose(
+            coefficients.sum(), 1.0, rtol=0.0, atol=1e-8
+        )
+    ):
+        raise ValueError("weights must be a finite nonnegative simplex [14]")
+    normalized = canonical_normalize_atoms(atom_matrix, atom_scales)
+    scores = normalized @ coefficients
+    if not np.isfinite(scores).all():
+        raise ValueError("canonical candidate scores must be finite")
+    return normalized, scores
+
+
+def validate_v25_atom_scales(atom_scales: np.ndarray) -> np.ndarray:
+    """Validate V25 generation scales without silently accepting zero support."""
+    scales = np.asarray(atom_scales, dtype=np.float64).reshape(-1)
+    if (
+        scales.shape != (14,)
+        or not np.isfinite(scales).all()
+        or np.any(scales <= 0.0)
+    ):
+        raise ValueError("V25 atom scales must be finite positive [14]")
+    if scales[10] < V25_PLANNED_RED_LIGHT_SCALE_FLOOR:
+        raise ValueError(
+            "planned_red_light_cost scale is below its non-degenerate "
+            f"semantic floor {V25_PLANNED_RED_LIGHT_SCALE_FLOOR:g}"
+        )
+    return scales.copy()
 
 
 @dataclass(frozen=True)

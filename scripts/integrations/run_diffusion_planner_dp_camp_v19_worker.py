@@ -13,7 +13,9 @@ import numpy as np
 
 from camp_core.integrations.diffusion_planner_causal_atoms import (
     CANDIDATE_LOCAL_EXACT_SPEED,
+    canonical_score_atoms,
     project_candidates_to_route,
+    validate_fixed_k8_candidate_tensor,
 )
 
 from camp_core.integrations.diffusion_planner_v19_nuplan_bridge import (
@@ -329,11 +331,7 @@ def select_camp_candidate(
     weights: np.ndarray,
     eligibility_mask_name: str = "physical_feasible_mask",
 ) -> dict[str, object]:
-    trajectories = np.asarray(candidates)
-    if trajectories.shape != (8, 80, 4) or trajectories.dtype != np.float32:
-        raise ValueError("candidates must be float32 [8,80,4]")
-    if not np.isfinite(trajectories).all():
-        raise ValueError("candidates must be finite")
+    trajectories = validate_fixed_k8_candidate_tensor(candidates)
     scales = np.asarray(atom_scales, dtype=np.float64)
     coefficients = np.asarray(weights, dtype=np.float64)
     if (
@@ -380,7 +378,8 @@ def select_camp_candidate(
         "source_valid_mask": source_valid.copy(),
         "all_k_high_risk": bool(source_valid.all() and not physical.any()),
         "eligibility_mask_name": eligibility_mask_name,
-        "score_contract": "score_k(w)=a_k^T w",
+        "score_contract": "score_k=clip(a_k/s,0,10)^T w",
+        "tie_break_contract": "lowest_eligible_candidate_index",
         "native_ranked_top1": False,
     }
     if not bool(materialized.get("canonical_eligible")) or not eligible.any():
@@ -398,9 +397,7 @@ def select_camp_candidate(
         }
 
     atoms = np.asarray(materialized["atom_matrix"], dtype=np.float64)
-    if atoms.shape != (8, 14) or not np.isfinite(atoms).all():
-        raise ValueError("canonical atom matrix must be finite [8,14]")
-    scores = (atoms / scales[None, :]) @ coefficients
+    normalized, scores = canonical_score_atoms(atoms, scales, coefficients)
     masked_scores = np.where(eligible, scores, np.inf)
     selected = int(np.argmin(masked_scores))
     after = array_sha256(trajectories)
@@ -410,6 +407,7 @@ def select_camp_candidate(
         **common,
         "candidate_sha256_after": after,
         "status": "ok",
+        "normalized_atoms": normalized,
         "scores": scores,
         "selected_index": selected,
         "selected_trajectory": trajectories[selected].copy(),

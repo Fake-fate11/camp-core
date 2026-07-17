@@ -1,0 +1,30 @@
+{
+  "schema_version": "camp_dp_v25_atom_ledger_path_plan_v2",
+  "stage": "A_not_executed_s0_path_plan_only",
+  "atom_count": 14,
+  "wire_schema": "dp_camp_v10_14d",
+  "paper_subset_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  "ledger_schema_version_planned": "camp_dp_v25_static_atom_ledger_v2",
+  "validation_schema_version_planned": "camp_dp_v25_static_atom_ledger_validation_v2",
+  "ledger_artifact_template": "/root/autodl-tmp/camp_dp_v25_static_atom_ledger_v2_{HEAD}_{CST}",
+  "validation_artifact_template": "/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_{HEAD}_{CST}",
+  "required_inputs": [
+    "formal controlled split/source root c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531",
+    "fixed DP 7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    "S0 correction packet and independent review roots"
+  ],
+  "rejected_roots": [
+    "a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481"
+  ],
+  "layering": {
+    "ledger": "immutable semantics only; no empirical corpus statistics",
+    "validation_receipt": "adversarial static fixtures and source/formula/clip/mask checks"
+  },
+  "progress_reference_ultra_decision_pending": [
+    "source_valid_candidate_set_reference",
+    "physical_feasible_candidate_set_reference"
+  ],
+  "execution_authorized": false,
+  "sealed_corpus_statistics_authorized": false,
+  "fresh_outcomes_consumed": false
+}

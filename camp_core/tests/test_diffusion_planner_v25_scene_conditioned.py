@@ -83,7 +83,14 @@ def test_raw_context_is_exact_finite_current_request_contract() -> None:
         causal_input=causal,
         candidates=candidates,
         source_valid_mask=np.array([True] * 7 + [False]),
-        signal_phase_remaining_s=4.5,
+        v2i_signal_timing={
+            "source_id": "unit-test-v2i",
+            "phase_remaining_s": 4.5,
+            "decision_timestamp_s": 10.0,
+            "source_timestamp_s": 9.9,
+            "maximum_age_s": 0.5,
+            "valid": True,
+        },
     )
 
     assert record.raw.shape == (RAW_FEATURE_COUNT,)

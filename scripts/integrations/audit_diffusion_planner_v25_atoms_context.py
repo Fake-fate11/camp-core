@@ -18,6 +18,8 @@ from camp_core.integrations.diffusion_planner import (
 )
 from camp_core.integrations.diffusion_planner_causal_atoms import (
     CANONICAL_ATOM_CONTRACTS,
+    CANONICAL_NORMALIZED_ATOM_CLIP,
+    canonical_normalize_atoms,
 )
 
 
@@ -301,7 +303,9 @@ def compute_atom_audit(
     epsilon = float(audit_contract["candidate_variation_epsilon"])
     zero_epsilon = float(audit_contract["zero_epsilon"])
     clip = float(labels["normalized_atom_clip"])
-    normalized = np.clip(matrix / scale.reshape(1, 1, 14), 0.0, clip)
+    if clip != CANONICAL_NORMALIZED_ATOM_CLIP:
+        raise ValueError("v25 atom audit clip drifted from the shared contract")
+    normalized = canonical_normalize_atoms(matrix, scale)
     flat_valid = valid.reshape(-1)
     flat_cost = label_cost.reshape(-1)[flat_valid]
     flat_normalized = normalized.reshape(-1, 14)[flat_valid]

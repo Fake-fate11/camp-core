@@ -93,7 +93,14 @@ def main() -> None:
             causal_input=causal,
             candidates=candidates,
             source_valid_mask=source_valid,
-            signal_phase_remaining_s=knobs.phase_remaining_s,
+            v2i_signal_timing={
+                "source_id": "phase3-capability-pilot-v2i",
+                "phase_remaining_s": knobs.phase_remaining_s,
+                "decision_timestamp_s": 10.0,
+                "source_timestamp_s": 9.9,
+                "maximum_age_s": 0.5,
+                "valid": True,
+            },
         )
         after = _array_sha256(candidates)
         immutable &= before == after

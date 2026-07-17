@@ -13,7 +13,8 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 )
 
 
-CONTEXT_SCHEMA_VERSION = "camp_dp_v25_causal_context_raw_v1"
+CONTEXT_SCHEMA_VERSION = "camp_dp_v25_causal_context_raw_v2"
+LEGACY_CONTEXT_SCHEMA_VERSION = "camp_dp_v25_causal_context_raw_v1"
 PHI_SCHEMA_VERSION = "camp_dp_v25_complement_lift_phi_v1"
 RAW_FEATURE_NAMES = (
     "ego_speed_mps",
@@ -53,6 +54,7 @@ NO_NEIGHBOR_TTC_S = 30.0
 class V25ContextRecord:
     raw: np.ndarray
     source_complete: tuple[bool, ...]
+    source_receipt: Mapping[str, Any]
 
     def as_dict(self) -> dict[str, float]:
         return {
@@ -94,15 +96,17 @@ def build_v25_raw_context(
     causal_input: Mapping[str, Any],
     candidates: np.ndarray,
     source_valid_mask: np.ndarray,
-    signal_phase_remaining_s: float | None = None,
+    v2i_signal_timing: Mapping[str, Any] | None = None,
 ) -> V25ContextRecord:
     """Build the frozen V25 context from current request/state and fixed K=8.
 
     The boundary deliberately accepts no identifiers, outcome fields, GT future,
     selected-candidate state, or private Diffusion Planner latent. Missing signal
-    timing is represented by zero and marked incomplete; no-signal distance is
-    censored at the visible route length. Empty-neighbor distance/TTC use fixed
-    causal sentinels so every feature stays finite.
+    timing is represented by zero and marked incomplete in the no-V2I main
+    method. A separate V2I mode requires a current-time source/timestamp/
+    freshness receipt; frozen scenario schedules are never accepted. No-signal
+    distance is censored at the visible route length. Empty-neighbor
+    distance/TTC use fixed causal sentinels so every feature stays finite.
     """
     errors = validate_causal_dp_input(causal_input)
     if errors:
@@ -141,12 +145,10 @@ def build_v25_raw_context(
         raise ValueError("V25 context requires a current positive route speed limit.")
 
     phase, signal_distance, phase_known = _route_signal_context(route_rows, route_arc)
-    timing_known = (
-        signal_phase_remaining_s is not None
-        and np.isfinite(signal_phase_remaining_s)
-        and float(signal_phase_remaining_s) >= 0.0
+    phase_remaining, timing_known, timing_receipt = _v2i_timing_context(
+        v2i_signal_timing,
+        regulatory_signal_mapped=phase_known,
     )
-    phase_remaining = float(signal_phase_remaining_s) if timing_known else 0.0
 
     neighbor_values, neighbor_complete = _neighbor_context(
         causal_input["neighbor_agents_past"], ego_speed
@@ -204,7 +206,74 @@ def build_v25_raw_context(
     )
     if len(complete) != RAW_FEATURE_COUNT:
         raise AssertionError("internal V25 source-completeness dimension mismatch")
-    return V25ContextRecord(raw=raw, source_complete=tuple(bool(x) for x in complete))
+    return V25ContextRecord(
+        raw=raw,
+        source_complete=tuple(bool(x) for x in complete),
+        source_receipt=timing_receipt,
+    )
+
+
+def _v2i_timing_context(
+    payload: Mapping[str, Any] | None,
+    *,
+    regulatory_signal_mapped: bool,
+) -> tuple[float, bool, Mapping[str, Any]]:
+    if payload is None:
+        return 0.0, False, {
+            "mode": "no_v2i",
+            "phase_remaining_available": False,
+            "regulatory_signal_mapped": bool(regulatory_signal_mapped),
+        }
+    required = {
+        "source_id",
+        "phase_remaining_s",
+        "decision_timestamp_s",
+        "source_timestamp_s",
+        "maximum_age_s",
+        "valid",
+    }
+    if set(payload) != required:
+        raise ValueError("V2I timing receipt fields do not match context-v2")
+    source_id = payload["source_id"]
+    if not isinstance(source_id, str) or not source_id.strip():
+        raise ValueError("V2I timing source_id must be a nonempty receipt string")
+    if payload["valid"] is not True:
+        raise ValueError("V2I timing receipt is invalid")
+    values = np.asarray(
+        [
+            payload["phase_remaining_s"],
+            payload["decision_timestamp_s"],
+            payload["source_timestamp_s"],
+            payload["maximum_age_s"],
+        ],
+        dtype=np.float64,
+    )
+    if not np.isfinite(values).all():
+        raise ValueError("V2I timing receipt must be finite")
+    phase_remaining, decision_timestamp, source_timestamp, maximum_age = (
+        float(value) for value in values
+    )
+    if phase_remaining < 0.0 or maximum_age <= 0.0:
+        raise ValueError("V2I phase remaining and maximum age are invalid")
+    if source_timestamp > decision_timestamp:
+        raise ValueError("V2I source timestamp cannot be in the future")
+    age = decision_timestamp - source_timestamp
+    if age > maximum_age:
+        raise ValueError("V2I timing receipt is stale")
+    if not regulatory_signal_mapped:
+        raise ValueError("V2I timing requires a mapped current regulatory signal")
+    return phase_remaining, True, {
+        "mode": "v2i_current_time",
+        "source_id": source_id,
+        "decision_timestamp_s": decision_timestamp,
+        "source_timestamp_s": source_timestamp,
+        "age_s": age,
+        "maximum_age_s": maximum_age,
+        "fresh": True,
+        "valid": True,
+        "phase_remaining_available": True,
+        "regulatory_signal_mapped": True,
+    }
 
 
 def fit_train_context_scaler(

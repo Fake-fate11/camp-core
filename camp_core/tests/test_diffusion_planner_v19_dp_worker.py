@@ -26,7 +26,17 @@ def _worker():
 
 def _fake_infer(latent: np.ndarray) -> np.ndarray:
     assert latent.shape == (321, 81, 4)
-    return latent[:, 1:].astype(np.float32, copy=True)
+    result = latent[:, 1:].astype(np.float32, copy=True)
+    heading = result[..., 2].copy()
+    result[..., 2] = np.cos(heading)
+    result[..., 3] = np.sin(heading)
+    return result
+
+
+def _valid_candidate_tensor() -> np.ndarray:
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates[..., 2] = 1.0
+    return candidates
 
 
 def _request(
@@ -128,10 +138,10 @@ def test_default_equivalence_fails_closed_on_any_drift() -> None:
 
 def test_selector_is_affine_simplex_feasible_only_and_nonmutating() -> None:
     module = _worker()
-    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates = _valid_candidate_tensor()
     candidates[:, :, 0] = np.arange(8, dtype=np.float32)[:, None]
     atoms = np.full((8, 14), 10.0, dtype=np.float64)
-    atoms[0, 0] = -100.0
+    atoms[0, 0] = 0.0
     atoms[3, 0] = 1.0
     atoms[5, 0] = 2.0
     feasible = np.zeros(8, dtype=bool)
@@ -159,13 +169,14 @@ def test_selector_is_affine_simplex_feasible_only_and_nonmutating() -> None:
     assert np.array_equal(result["selected_trajectory"], candidates[3])
     assert np.array_equal(candidates, before)
     assert result["candidate_sha256_before"] == result["candidate_sha256_after"]
-    assert result["score_contract"] == "score_k(w)=a_k^T w"
+    assert result["score_contract"] == "score_k=clip(a_k/s,0,10)^T w"
+    assert result["tie_break_contract"] == "lowest_eligible_candidate_index"
     assert result["native_ranked_top1"] is False
 
 
 def test_selector_rejects_non_simplex_and_all_k_fails_closed() -> None:
     module = _worker()
-    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates = _valid_candidate_tensor()
     materialized = {
         "canonical_eligible": False,
         "exclusion_reason": "all_candidates_physically_infeasible",
@@ -201,7 +212,7 @@ def test_selector_rejects_non_simplex_and_all_k_fails_closed() -> None:
 
 def test_v22_selector_scores_all_source_valid_candidates_when_all_high_risk() -> None:
     module = _worker()
-    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates = _valid_candidate_tensor()
     candidates[:, :, 0] = np.arange(8, dtype=np.float32)[:, None]
     atoms = np.ones((8, 14), dtype=np.float64)
     atoms[6, 0] = 0.0
