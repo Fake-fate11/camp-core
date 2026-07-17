@@ -3,8 +3,38 @@
 Last verified: 2026-07-17, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
-new writes is `docs/diffusion_planner_v24_iteration_audit.md`. V23 and earlier
+new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
 audits are historical evidence and remain frozen.
+
+## Current V25 Status
+
+Reader contract: this named section is the only V25 pointer source in this
+file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
+current-gate authority, and the tuple below must match it exactly.
+
+Startup reconciliation is complete. Local `main`, origin/GitHub, and AutoDL
+CAMP are aligned at `3f25b697eb99b55e79388c90147b1fc3d18423ef`; fixed DP is
+tracked-clean at `7a1d33da277a1992ec474b5383a0c963c72e04e4`; no V24/V25
+long task was active; and `48,674,500,608` bytes remained free. V24 is frozen
+as Legacy Benchmark A with final decision `honest_no_claim`; its holdout state
+remains open-count one and rerun-forbidden. V25 next performs the outcome-blind
+14D atom and causal-context audit/freeze. No V25 training, calibration,
+scenario-corpus generation, Fresh Benchmark B open, claim, promotion,
+deployment, or online activation has occurred.
+
+current_v25_status=v25_startup_v24_reconciliation_complete
+current_v25_startup_base_head=3f25b697eb99b55e79388c90147b1fc3d18423ef
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
+v24_holdout_open_count=1
+v24_holdout_rerun_authorized=false
+local_origin_github_aligned=true
+autodl_camp_aligned=true
+autodl_dp_clean=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=48674500608
+current_v25_phase=1_startup_v24_reconciliation
+next_work_target=v25_atom_context_audit_and_freeze
 
 ## Current V24 Status
 
