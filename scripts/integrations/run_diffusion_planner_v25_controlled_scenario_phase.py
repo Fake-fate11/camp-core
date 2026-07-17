@@ -240,6 +240,7 @@ def _execute_pilot(plan, template: Mapping[str, Any], args: argparse.Namespace) 
                 receipt,
                 "camp",
                 expected_ticks=1,
+                require_summary=False,
                 expected_selection_policy="v22_source_valid",
                 expected_safety_schema="safety_cost_native_v22",
             )
