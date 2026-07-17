@@ -223,6 +223,10 @@ def _audit_formal_route_sources(plan, dp_repo: Path) -> dict[str, dict[str, Any]
         map_path = str(case["source_map_path"])
         if map_path not in builders:
             require_source_preserving_lanelet2_regulatory_adapter(Path(map_path))
+            sys.modules.pop(
+                "autoware_lanelet2_extension_python.projection", None
+            )
+            sys.modules.pop("autoware_lanelet2_extension_python", None)
             install_lanelet2_projection_fallback(Path(map_path))
             builders[map_path] = LaneletSceneBuilder(map_path)
         builder = builders[map_path]
