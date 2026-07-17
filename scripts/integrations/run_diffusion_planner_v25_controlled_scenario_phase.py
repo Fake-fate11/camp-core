@@ -571,21 +571,14 @@ def _official_source_audit(repo: Path) -> dict[str, Any]:
             "sha256": hashlib.sha256(data).hexdigest(),
             "byte_count": len(data),
         }
-    random_route = subprocess.run(
-        ["git", "-C", str(repo), "grep", "-n", "RandomRouteAction", OFFICIAL_COMMIT],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
     return {
         "schema_version": "camp_dp_v25_official_scenario_source_audit_v1",
         "repository": "tier4/scenario_simulator_v2",
         "commit": OFFICIAL_COMMIT,
         "anchors": anchors,
-        "random_route_action_reference_count": len(
-            [line for line in random_route.stdout.splitlines() if line.strip()]
-        ),
         "route_policy": "explicit_lanelet2_route_only_no_random_route_action",
+        "full_tree_grep_performed": False,
+        "support_table_reviewed_separately": True,
         "official_runtime_available": shutil.which("ros2") is not None,
         "native_semantic_equivalent_runner": (
             "fixed_dp_scenario_generation_with_camp_side_deterministic_exogenous_adapter"
