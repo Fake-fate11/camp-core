@@ -853,6 +853,8 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
             payload["superseded_diagnostic_roots"] = sorted(A12_SUPERSEDED_ROOTS)
         elif role in {"a11_validation", "r01_source_review", "r01_bounded_review"}:
             payload["review_head"] = head
+            if role == "a11_validation":
+                payload["contract_checks"] = {"r_and_fresh_closed": True}
         else:
             payload["camp_head"] = head
         (artifact / report_file).write_text(
@@ -1089,6 +1091,13 @@ def test_seven_root_machine_chain_rejects_role_deletion_and_substitution(
             "nested_stage_bool_to_int",
             lambda value: value["stage_boundaries"].__setitem__(
                 "training_executed", 0
+            ),
+        ),
+        mutated_role(
+            "a11_validation",
+            "unregistered_validation_gate",
+            lambda value: value["contract_checks"].__setitem__(
+                "full_r_authorized", False
             ),
         ),
     ]

@@ -45,6 +45,13 @@ A12_SUPERSEDED_ROOTS = frozenset(
         "7d6308d5f3b36a3ec3925ffe1a3ef929f5e45940429e117b8fe52837a4e2f332",
         "50ae46bb76f76e07bac6a91405e30cade7bdfd715cf417a6e7d5931cdaaa3878",
         "c07e1c4cd63db8aaa21118925e7a78bbb2b6c1687ecbaf4939047057863979b1",
+        "b92026ff87523e6d2be1fb583d99052eec628e1b8a39a18d4167d580be0f739f",
+        "a692d57ee7d08b6cf563472e6cc98ec16a1f06babecd5da47bed715e3eba6cb9",
+        "cd67c79c543dd9baad64e8042d103a91cd00ffd6b6877a42e9c718b6021e75a2",
+        "bd460b74bf8b7040c719caf4b1d8226bc7d8f79b54c185c1a7efa6330d05871d",
+        "4ec520d710a329a0ed728067d0251b744f03a24aa71c1d6e0d4ac7dfab2c0350",
+        "de278472be78e6f6ebec087e36cdf87115047cfab0850213891054499165c105",
+        "71a2be88ab93a8cc6406e20dac8f7eee90717456240fc4e44befb9965343c2a6",
     }
 )
 CANONICAL_JSON_BYTE_SPEC_VERSION = "camp_dp_v25_canonical_json_utf8_lf_v1"
@@ -451,6 +458,7 @@ _ALLOWED_NESTED_CONTROL_PATHS = frozenset(
             "red_signal_contract",
             "outcome_evaluator_10m_nearest_line_heuristic",
         ),
+        ("a11_validation", "contract_checks", "r_and_fresh_closed"),
     }
 )
 _CONTROL_SUFFIXES = (
