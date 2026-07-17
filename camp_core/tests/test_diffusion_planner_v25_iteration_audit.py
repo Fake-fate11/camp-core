@@ -13,16 +13,19 @@ V24_PAIRED_CONFIG = (
 )
 
 POINTER = (
-    "current_v25_status=v25_atom_context_audit_freeze_passed_phase3_context_capability_required",
-    "current_v25_source_head=fe356ef7a441dd75c1d524105117e01fb6665223",
+    "current_v25_status=v25_scene_conditioned_capability_passed_phase4_controlled_scenario_authorized",
+    "current_v25_source_head=d052f597254761c59ab55b53d858c1230e22a0dc",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_atom_context_audit_20260717T114320CST",
-    "current_v25_artifact_root_sha256=5135bebe8a78942fb91ec72957db5e0386b15f99bcf4e8bca35be2a98d00241c",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_context_capability_pilot_d052f597_20260717T130229CST",
+    "current_v25_artifact_root_sha256=d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08",
     "current_v25_atom_schema=dp_camp_v10_14d",
     "current_v25_paper_subset=camp_legacy_v1_9d",
     "current_v25_context_schema=camp_dp_v25_causal_context_raw_v1",
     "current_v25_context_raw_feature_count=26",
     "current_v25_phi_dimension=53",
+    "current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection",
+    "current_v25_capability_case_count=35",
+    "current_v25_capability_check_count=29",
     "v24_legacy_benchmark_status=frozen_read_only_honest_no_claim",
     "v24_holdout_open_count=1",
     "v24_holdout_rerun_authorized=false",
@@ -30,9 +33,9 @@ POINTER = (
     "current_v25_fresh_benchmark_b_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=48673611776",
-    "current_v25_phase=2_atom_context_audit_and_freeze",
-    "next_work_target=v25_scene_conditioned_implementation_and_context_capability_pilot",
+    "observed_autodl_free_bytes=48672620544",
+    "current_v25_phase=3_scene_conditioned_implementation_and_capability_pilot",
+    "next_work_target=v25_controlled_scenario_source_audit_grammar_and_coverage_pilot",
 )
 
 
@@ -92,5 +95,21 @@ def test_v25_phase2_atom_context_audit_is_sealed_and_bounded() -> None:
         "candidate_source_valid_fraction was exactly 1.0",
         "phase 3 outcome-blind capability pilot",
         "5135bebe8a78942fb91ec72957db5e0386b15f99bcf4e8bca35be2a98d00241c",
+    ):
+        assert phrase in text
+
+
+def test_v25_phase3_scene_conditioned_capability_is_sealed_and_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Phase 3: Scene-Conditioned CAMP and Capability Pilot",
+        "35 outcome-blind current-request cases",
+        "all 26 raw features varied",
+        "every column of Theta is a nonnegative simplex",
+        "strict CLARABEL",
+        "17 passed",
+        "d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08",
+        "not a trained or calibrated model",
+        "does not establish scene-conditioned utility or safety improvement",
     ):
         assert phrase in text

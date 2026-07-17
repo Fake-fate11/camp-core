@@ -253,16 +253,82 @@ phase 3 outcome-blind capability pilot must prove source completeness,
 variation, finite behavior, monotonicity, and request-only construction before
 scene-conditioned training is authorized.
 
-current_v25_status=v25_atom_context_audit_freeze_passed_phase3_context_capability_required
-current_v25_source_head=fe356ef7a441dd75c1d524105117e01fb6665223
+## Phase 3: Scene-Conditioned CAMP and Capability Pilot
+
+Phase 3 implemented the frozen causal-context path without changing Diffusion
+Planner, any candidate tensor, or any trajectory. Commit
+`d052f597254761c59ab55b53d858c1230e22a0dc` adds a strict
+`context_simplex` selector alongside the unchanged legacy `static` and
+`linear` modes. The online map is exactly `w(x)=Theta*phi(x)`: there is no
+bias, softmax, neural adapter, private DP latent, or runtime projection. The
+53-dimensional complement lift is nonnegative and sums to one, and every
+column of Theta is a nonnegative simplex. Thus every admissible current-tick
+context produces weights on the approved active atoms that are nonnegative and
+sum to one, while each fixed-candidate score remains `a_k^T*w(x)`.
+
+The raw materializer consumes only the exact fixed-DP causal input schema, the
+current fixed K=8 candidate tensor, the current signal-schedule remainder, and
+the current source-valid mask. Ego lateral acceleration is the causal
+`speed*yaw_rate` value. Route curvature, widths, limits, and signal route
+distance come from current route geometry/rules. Neighbor distance, TTC,
+closing speed, and lateral gap come from current neighbor history; an empty
+neighbor set uses fixed finite 100 m / 30 s sentinels. Candidate consensus,
+endpoint dispersion, route-progress dispersion, and source-valid fraction are
+computed before selection. Missing signal timing maps to zero but is explicitly
+marked source-incomplete; phase-3 controlled requests supplied it, so every
+registered source was complete. No identity-like input is accepted.
+
+The paper-consistent finite-candidate master was specialized to the frozen
+lift. A deterministic convex Bradley--Terry warmup uses only train-split causal
+oracle pair preferences and column-simplex projected-gradient steps with
+backtracking; it does not use GT futures, closed-loop outcomes, or holdout.
+The authoritative master then optimizes CVaR plus L2 terms with per-column
+simplex constraints and exact finite-candidate cuts. It requires strict
+CLARABEL `OPTIMAL`, has no solver fallback, and checks the true restricted-
+master gap against `1e-6` for at most 20 cut iterations. The warmup is only an
+initialization/convex anchor; it is not a neural shortcut and does not replace
+the master.
+
+AutoDL used Python 3.12, CVXPY 1.6.7, Torch 2.8.0, and CLARABEL. The focused
+suite, including legacy linear-checkpoint compatibility and the phase-2/pointer
+contracts, finished `17 passed`. The fixed DP worktree remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The authoritative capability artifact is:
+
+`/root/autodl-tmp/camp_dp_v25_context_capability_pilot_d052f597_20260717T130229CST`
+
+with root SHA256
+`d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08`.
+A separate manifest recomputation matched. Its 35 outcome-blind
+current-request cases passed all 29 registered checks: all 26 raw features
+varied, all registered one-at-a-time monotonic checks passed, every source was
+complete, raw/phi/weight values were finite, every phi/weight row was a
+simplex, context weights varied, affine score mixing held to `1e-12`, and all
+candidate tensors were byte-identical before/after materialization.
+
+The artifact's q05/q95 scaler and deterministic Theta are capability probes,
+not a trained or calibrated model. This phase does not establish
+scene-conditioned utility or safety improvement. It did not read V24 holdout,
+open Fresh Benchmark B, train, calibrate, evaluate closed-loop outcomes,
+promote, deploy, or activate anything. Phase 4 may now audit the official TIER
+IV source, freeze an outcome-blind deterministic scenario grammar/split, and
+run its bounded coverage pilot; model training remains closed until that corpus
+gate passes.
+
+current_v25_status=v25_scene_conditioned_capability_passed_phase4_controlled_scenario_authorized
+current_v25_source_head=d052f597254761c59ab55b53d858c1230e22a0dc
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_atom_context_audit_20260717T114320CST
-current_v25_artifact_root_sha256=5135bebe8a78942fb91ec72957db5e0386b15f99bcf4e8bca35be2a98d00241c
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_context_capability_pilot_d052f597_20260717T130229CST
+current_v25_artifact_root_sha256=d2b88b7f6d91b9b7465a37d8bb00c1b46e8ef1a5fd1bef30e97be712caafbf08
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v1
 current_v25_context_raw_feature_count=26
 current_v25_phi_dimension=53
+current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
+current_v25_capability_case_count=35
+current_v25_capability_check_count=29
 v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
 v24_holdout_open_count=1
 v24_holdout_rerun_authorized=false
@@ -270,6 +336,6 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=48673611776
-current_v25_phase=2_atom_context_audit_and_freeze
-next_work_target=v25_scene_conditioned_implementation_and_context_capability_pilot
+observed_autodl_free_bytes=48672620544
+current_v25_phase=3_scene_conditioned_implementation_and_capability_pilot
+next_work_target=v25_controlled_scenario_source_audit_grammar_and_coverage_pilot
