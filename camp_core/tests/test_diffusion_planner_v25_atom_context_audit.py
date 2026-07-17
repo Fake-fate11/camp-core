@@ -7,6 +7,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    CANONICAL_ATOM_CONTRACTS,
+)
 from scripts.integrations.audit_diffusion_planner_v25_atoms_context import (
     EXPECTED_ATOMS,
     compute_atom_audit,
@@ -51,6 +54,25 @@ def test_v25_context_freeze_rejects_identity_and_outcome_features() -> None:
         config["causal_context_contract"]["raw_features"][0]["name"] = forbidden
         with pytest.raises(ValueError, match="forbidden"):
             validate_config(config)
+
+
+def test_candidate0_contract_uses_operational_default_not_native_rank_language() -> None:
+    contract = next(
+        item
+        for item in CANONICAL_ATOM_CONTRACTS
+        if item.name == "dp_prior_jerk_excess_cost"
+    )
+    text = " ".join(
+        (
+            *contract.inputs,
+            contract.decision_time_availability,
+            contract.nuscenes_availability,
+            contract.candidate_index_dependency,
+        )
+    )
+    assert "operational-default" in text
+    assert "native-ranked Top-1 is not claimed" in text
+    assert "DP Top-1 semantic" not in text
 
 
 def test_v25_atom_audit_reports_variation_redundancy_and_train_label_alignment() -> None:

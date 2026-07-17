@@ -241,13 +241,23 @@ CANONICAL_ATOM_CONTRACTS = (
         "dp_prior_jerk_excess_cost",
         "m/s^3",
         "max(mean_jerk_norm_k - mean_jerk_norm_candidate0, 0)",
-        ("fixed DP candidate_xy[K,80,2]", "candidate 0 DP Top-1 semantic", "dt=0.1 s"),
-        "available only after candidate 0 is verified as deterministic DP Top-1",
+        (
+            "fixed DP candidate_xy[K,80,2]",
+            "candidate 0 DP operational-default reference",
+            "dt=0.1 s",
+        ),
+        (
+            "available only after candidate 0 is verified byte-identical to the "
+            "DP operational default; native ranking is not claimed"
+        ),
         "planned candidate horizon only; no observed or GT future",
-        "available_after_candidate0_top1_semantic_verification",
+        "available_after_candidate0_operational_default_verification",
         "camp_core/tests/test_diffusion_planner_integration.py::"
         "test_dp_prior_comfort_excess_costs_anchor_deterministic_candidate",
-        candidate_index_dependency="candidate 0 is the fixed DP-prior reference",
+        candidate_index_dependency=(
+            "candidate 0 is the fixed DP operational-default reference; "
+            "native-ranked Top-1 is not claimed"
+        ),
     ),
 )
 
