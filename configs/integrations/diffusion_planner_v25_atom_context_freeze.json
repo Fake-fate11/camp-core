@@ -33,6 +33,7 @@
     "complete_route_seed_count": 1054,
     "failed_route_seed_count": 821,
     "snapshot_count": 67796,
+    "snapshot_schema_version": "v22_native_decision_snapshot_v1",
     "candidate_k": 8,
     "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
     "v24_audit_sha256": "cd9a33655e1919182f33256dd07d3bd7a6bdbe7fd8aab1107199859ccf39f228",

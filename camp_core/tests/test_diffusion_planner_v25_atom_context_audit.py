@@ -34,6 +34,9 @@ def test_v25_atom_context_freeze_is_exact_and_causal() -> None:
     assert tuple(atoms["atom_names"]) == EXPECTED_ATOMS
     assert atoms["paper_consistent_9d_subset_indices"] == list(range(9))
     assert atoms["dp_extension_indices"] == list(range(9, 14))
+    assert config["corpus_contract"]["snapshot_schema_version"] == (
+        "v22_native_decision_snapshot_v1"
+    )
     assert context["phi_dimension"] == 53
     assert context["theta_constraint"] == (
         "every_theta_column_nonnegative_simplex"

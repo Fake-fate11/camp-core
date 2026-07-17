@@ -167,6 +167,8 @@ def validate_config(config: Mapping[str, Any]) -> dict[str, Any]:
         or corpus.get("split") != "train"
         or corpus.get("candidate_k") != 8
         or corpus.get("snapshot_count") != 67796
+        or corpus.get("snapshot_schema_version")
+        != "v22_native_decision_snapshot_v1"
         or not isinstance(labels, Mapping)
         or labels.get("actual_closed_loop_outcome") is not False
         or labels.get("future_outcome_fields_read") is not False
@@ -517,7 +519,7 @@ def _load_inputs(config: Mapping[str, Any]) -> dict[str, Any]:
         feature = snapshot.get("feature_payload")
         sidecar = snapshot.get("sidecar")
         if (
-            snapshot.get("schema_version") != "camp_dp_v24_native_train_snapshot_v1"
+            snapshot.get("schema_version") != corpus["snapshot_schema_version"]
             or not isinstance(feature, Mapping)
             or not isinstance(sidecar, Mapping)
             or sidecar.get("split") != "train"
