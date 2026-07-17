@@ -129,20 +129,22 @@ LEGACY_POINTER = (
 )
 
 POINTER = (
-    "current_v25_status=v25_a11_r01_bounded_pass_ultra_read_only_review_required",
-    "current_v25_source_head=de1a21ee2a96a48e3f2e854156538bda5177b477",
+    "current_v25_status=v25_a11_r01_semantic_v3_bounded_pass_ultra_review_required",
+    "current_v25_source_head=cc5eb0a7d16d2041b0ee26ad7127a9340dce0c1d",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_de1a21ee_20260717T223934CST",
-    "current_v25_artifact_root_sha256=a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c",
-    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_review_de1a21ee_20260717T225227CST",
-    "current_v25_review_artifact_root_sha256=81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b",
-    "current_v25_ultra_stage_a_decision_artifact_root_sha256=d98929000c09cbe1f3bcdc7f57290091e0be31e67726f4920d201bc98292897e",
-    "current_v25_atom_ledger_artifact_root_sha256=836d5468fd05cdbd837037352d14cd20fb21a6b653ece41272bb85b30c42ad82",
-    "current_v25_atom_ledger_validation_artifact_root_sha256=a37fd179db35ab51b4ca08c99e669c3b62ecb5804a3679fafd9b35450d618352",
-    "current_v25_r0_authority_source_artifact_root_sha256=e099837be509085fd761244ca676d387ee4debfe0214cf22057b631ba4dff1fa",
-    "current_v25_r0_authority_source_review_artifact_root_sha256=e28c5851d15a0d313afe2f577c13ed9207686fa0a724d1738514675aae0fbb1e",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_cc5eb0a7_20260717T234441CST",
+    "current_v25_artifact_root_sha256=b7dc7fe00d21af71caba172eac9edf5500fb967e7379b712024600c62b9e5458",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r01_red21_nonsignal1_sequential_k8_review_cc5eb0a7_20260717T234441CST",
+    "current_v25_review_artifact_root_sha256=6eee9f157d1668ad37120b3a9542f1e5b5661f9077b0fb15cdb5e4a4b43f35d2",
+    "current_v25_ultra_stage_a_decision_artifact_root_sha256=010f644cc106cb63b479845fa67b59985575df14d9583d7f9164816ac885e73c",
+    "current_v25_atom_ledger_artifact_root_sha256=9a7d0b663b5946eb4180f707198e3372d9f20a85dd6eea70ba035ce276a362e5",
+    "current_v25_atom_ledger_validation_artifact_root_sha256=85cd4513721e5c8546934aedb34a39fcdb4c99a1318cd2c1fa1fc722acb893bc",
+    "current_v25_r0_authority_source_artifact_root_sha256=ae728cd3781fce5f01afae0bd3411d051e2b657e52b7044de10f3d5b4a8d5b8a",
+    "current_v25_r0_authority_source_review_artifact_root_sha256=485e00fcf063f745d415c34e1d762cac62deca84abf027cfa48d8e830cb6ec52",
     "current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
     "current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06",
+    "current_v25_seven_root_bindings_sha256=0c84450c216032686d667209b781cc9b39e68554fd5868eac0aaf0ef725e37ff",
+    "current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3",
     "current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v4.json",
     "current_v25_r0_source_identity_count=21",
     "current_v25_r0_source_map_count=4",
@@ -161,9 +163,9 @@ POINTER = (
     "current_v25_calibration_started=false",
     "current_v25_fresh_b2_opened=false",
     "current_v25_fresh_outcome_opened=false",
-    "observed_autodl_free_bytes=48252592128",
-    "current_v25_phase=A1_1_R0_1_bounded_decision_package",
-    "next_work_target=ultra_read_only_A1_1_R0_1_review_before_full_config_preflight_release",
+    "observed_autodl_free_bytes=48042119168",
+    "current_v25_phase=A1_1_R0_1_semantic_v3_bounded_decision_package",
+    "next_work_target=ultra_read_only_A1_1_R0_1_semantic_v3_review_before_full_config_preflight_release",
 )
 
 
@@ -358,5 +360,22 @@ def test_v25_stage_a11_r01_is_sealed_independent_and_stops_before_full_config() 
         "a520f86c2930fb3c2535efb730bf2e2a1b33db11c77f50535926f1971dbcf07c",
         "81a0c1acf7f5c5b76315659b7c917fb641013db20b5a130c27e2402a6560fb6b",
         "ultra_read_only_A1_1_R0_1_review_before_full_config_preflight_release",
+    ):
+        assert phrase in text
+
+
+def test_v25_semantic_v3_and_full_r_authority_correction_is_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Stage A1.1/R0.1 Semantic-v3 and Full-R Authority Correction",
+        "93 of the 201 audited rotations mismatched",
+        "route-local heading unit vector",
+        "raw atom column 12",
+        "unique nonce and exact output directory",
+        "deliberately minimal self-signed 1,500-ID artifact is rejected",
+        "0c84450c216032686d667209b781cc9b39e68554fd5868eac0aaf0ef725e37ff",
+        "b7dc7fe00d21af71caba172eac9edf5500fb967e7379b712024600c62b9e5458",
+        "6eee9f157d1668ad37120b3a9542f1e5b5661f9077b0fb15cdb5e4a4b43f35d2",
+        "full-config preflight remains blocked until an explicit separate release",
     ):
         assert phrase in text
