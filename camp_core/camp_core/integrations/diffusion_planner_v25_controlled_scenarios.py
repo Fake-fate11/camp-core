@@ -523,14 +523,27 @@ class V25ControlledSceneAdapter:
             if red_signal_authority is None
             else validate_signal_chain(red_signal_authority)
         )
+        self._route_lanelet_ids: tuple[int, ...] = ()
         self._map_lanelet_ids: tuple[int, ...] = ()
         self.receipts: list[dict[str, Any]] = []
 
-    def bind_map_lanelet_ids(self, lanelet_ids: Sequence[int]) -> None:
-        values = tuple(int(value) for value in lanelet_ids)
-        if not values or len(set(values)) != len(values):
-            raise ValueError("runtime map lanelet IDs are empty or ambiguous")
-        self._map_lanelet_ids = values
+    def bind_runtime_lanelet_ids(
+        self,
+        *,
+        route_lanelet_ids: Sequence[int],
+        map_lanelet_ids: Sequence[int],
+    ) -> None:
+        route = tuple(int(value) for value in route_lanelet_ids)
+        mapped = tuple(int(value) for value in map_lanelet_ids)
+        if (
+            not route
+            or not mapped
+            or len(set(route)) != len(route)
+            or len(set(mapped)) != len(mapped)
+        ):
+            raise ValueError("runtime route/map lanelet IDs are empty or ambiguous")
+        self._route_lanelet_ids = route
+        self._map_lanelet_ids = mapped
 
     def __call__(self, scene: Any, tick_index: int) -> Mapping[str, Any]:
         if isinstance(tick_index, bool) or not isinstance(tick_index, int) or tick_index < 0:
@@ -635,10 +648,13 @@ class V25ControlledSceneAdapter:
         applied_map_lanelet_ids: list[int] = []
         ego = scene.ego_agent
         if ego is not None and ego.route_lanes is not None:
-            route_ids = tuple(int(value) for value in (ego.route_lanelet_ids or ()))
-            if len(route_ids) < len(ego.route_lanes):
-                raise ValueError("runtime route lanelet IDs do not cover route tensor")
-            for row_index, lanelet_id in enumerate(route_ids[: len(ego.route_lanes)]):
+            route_ids = self._route_lanelet_ids
+            if not route_ids or len(route_ids) > len(ego.route_lanes):
+                raise ValueError("runtime route lanelet ID/tensor alignment is unavailable")
+            padded = np.asarray(ego.route_lanes[len(route_ids) :])
+            if padded.size and np.any(np.abs(padded) > 0.0):
+                raise ValueError("runtime route tensor has unmapped nonzero rows")
+            for row_index, lanelet_id in enumerate(route_ids):
                 if lanelet_id not in controlled:
                     continue
                 values = ego.route_lanes[row_index]

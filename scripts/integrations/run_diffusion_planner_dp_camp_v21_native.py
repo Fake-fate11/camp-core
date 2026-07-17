@@ -2705,10 +2705,23 @@ def build_native_arm_runner(
 
         runtime_scene_adapter = scene_adapter
         if scene_adapter is not None and hasattr(
-            scene_adapter, "bind_map_lanelet_ids"
+            scene_adapter, "bind_runtime_lanelet_ids"
         ):
             def runtime_scene_adapter(scene: Any, tick_index: int) -> Mapping[str, Any]:
-                scene_adapter.bind_map_lanelet_ids(builder._last_map_data_ids)
+                forward_route_ids = builder.select_route_segment_indices(
+                    route_ids,
+                    scene.ego_agent.current_position,
+                    max_segments=25,
+                ) or route_ids[:25]
+                forward_route_ids = [
+                    lanelet_id
+                    for lanelet_id in forward_route_ids
+                    if lanelet_id in builder._cache
+                ][:25]
+                scene_adapter.bind_runtime_lanelet_ids(
+                    route_lanelet_ids=forward_route_ids,
+                    map_lanelet_ids=builder._last_map_data_ids,
+                )
                 return scene_adapter(scene, tick_index)
 
         selector_scale_contract = None

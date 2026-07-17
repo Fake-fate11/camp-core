@@ -299,7 +299,9 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
     scene = _scene(signal=True)
     chain = _signal_authority(case)
     adapter = V25ControlledSceneAdapter(case, red_signal_authority=chain)
-    adapter.bind_map_lanelet_ids([1, 3, 4, 5])
+    adapter.bind_runtime_lanelet_ids(
+        route_lanelet_ids=[1, 2], map_lanelet_ids=[1, 3, 4, 5]
+    )
     receipt = adapter(scene, 0)
 
     assert receipt["signal"]["applied"] is True
@@ -310,6 +312,28 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
     validate_runtime_signal_receipt(
         receipt["signal"]["source_receipt"], chain
     )
+
+
+def test_scene_adapter_rejects_unmapped_nonzero_padded_route_row():
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="pilot_development",
+        family="red_light_phase_timing",
+        tier="high_risk",
+        variant=0,
+        seeds=[25991],
+    )
+    scene = _scene(signal=True)
+    adapter = V25ControlledSceneAdapter(
+        case, red_signal_authority=_signal_authority(case)
+    )
+    adapter.bind_runtime_lanelet_ids(
+        route_lanelet_ids=[1], map_lanelet_ids=[1, 3, 4, 5]
+    )
+    with pytest.raises(ValueError, match="unmapped nonzero rows"):
+        adapter(scene, 0)
 
 
 def test_scene_adapter_raises_typed_capability_failure_for_missing_signal_source():
