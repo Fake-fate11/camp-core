@@ -209,6 +209,10 @@ def _audit_formal_route_sources(plan, dp_repo: Path) -> dict[str, dict[str, Any]
         if str(path) not in sys.path:
             sys.path.insert(0, str(path))
     from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
+    from camp_core.integrations.diffusion_planner import (
+        install_lanelet2_projection_fallback,
+        require_source_preserving_lanelet2_regulatory_adapter,
+    )
 
     unique_cases = {}
     for case in (*plan.train, *plan.calibration, *plan.fresh_b):
@@ -218,6 +222,8 @@ def _audit_formal_route_sources(plan, dp_repo: Path) -> dict[str, dict[str, Any]
     for record_key, case in sorted(unique_cases.items()):
         map_path = str(case["source_map_path"])
         if map_path not in builders:
+            require_source_preserving_lanelet2_regulatory_adapter(Path(map_path))
+            install_lanelet2_projection_fallback(Path(map_path))
             builders[map_path] = LaneletSceneBuilder(map_path)
         builder = builders[map_path]
         lanelet_ids = [int(value) for value in case["route_spec"]["lanelet_ids"]]
