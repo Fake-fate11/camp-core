@@ -24,45 +24,39 @@ S0.1 and A0 valid. It froze `source_valid_candidate_set_reference`: selection
 eligibility is the source-valid set, progress reference is the maximum progress
 inside that set, and an empty set fails closed without candidate0/all-K fallback.
 
-Ultra then blocked full-config preflight first on the semantic-clone v2
-`+pi/-pi` branch cut and again after the semantic-v3 bounded package exposed a
-canonical-JSON byte mismatch, a Linux self-lock, and insufficiently independent
-review paths. All prior seven-root chains, including the `cc5eb0a7...` chain,
-remain immutable superseded diagnostic evidence. A1.2/R0.2 binds implementation
-source HEAD `ed7152fd4a0af39949aefc36e21fb003cbcf3ed2`, freezes canonical JSON as
-UTF-8/sorted/compact/no-NaN plus one trailing LF, removes the inner preflight
-lock probe, and preserves semantic-v3 route-local heading vectors and all 14
-approved atoms. The complete Stage-A DAG, source-valid progress reference,
-generation-only scales, and calibration/Fresh red-outcome hard gate remain
-explicit; Stage B and later remain closed.
+Ultra then blocked full-config preflight through A1.2/R0.2 on bounded
+correctness and reviewer-independence findings. Every earlier seven-root chain
+remains immutable superseded diagnostic evidence. A1.3/R0.3 binds implementation
+source HEAD `6efa44ed576363b842396b94587ab800493e276f`: the real snapshot writer now
+uses the single canonical UTF-8/sorted/compact/no-NaN byte serializer with
+exactly one trailing LF, and the corpus reviewer independently checks raw bytes,
+content-addressed names, and hashes. The exact-value seven-root verifier rejects
+incorrect gate flags, missing fixed-DP authority, conflicting formal roots, and
+all role/cross-root substitutions. The future full-config reviewer independently
+anchors the sole formal/template/DP universe, including 1,653 train rows, 1,500
+executable rows, 153 retained-ineligible rows, and sealed seed 25001.
 
-R0.2 passed source-only qualification again for all 21 red identities plus one
-source-qualified non-signal identity. The red census contains four source-map
+R0.3 passed source-only qualification for all 21 red identities plus one
+source-qualified non-signal identity. The census still contains four source-map
 files, nine SE(2)-invariant source/ID-independent physical signatures, five
-stop-line geometry SHAs, and 21 validated identity-chain receipts. The final
-bounded no-V2I sequential-K8 preflight ran all 22 identities for exactly 64
-ticks each (1,408 ticks), and the strengthened independent review recomputed actual K8,
-candidate0/default/selected hashes, clip/affine/source-valid argmin, strict
-native-bool atom/context masks, immutability, signal/stop-line bindings, the
-complete K8 heading contract, and red-stopping atom column 12 directly from the
-saved K8 tensor plus certified causal stop-line input, without importing the
-production red-cost helper. The future full-config reviewer now independently
-reconstructs formal route serialization, map/source chains, semantic-v3 payloads
-and all ordered receipt roots; numeric strings, re-signed v2/wrong-route chains,
-partial-source all-K misclassification, self-signed incomplete universes, HEAD
-conflicts, and nonce replay fail closed. The sealed formal plan uses seed 25001;
-the verifier therefore freezes 25001 and rejects 20260716 rather than overriding
-the sealed authority. Full-config preflight, full R, training, calibration,
-Scene/V2I, and Fresh remain unauthorized. Worker/GPU counts are zero, the lock
-is free, disk free is 47,831,265,280 bytes, and Fresh/outcome remains false.
+stop-line geometry SHAs, and 21 validated identity-chain receipts. The new
+bounded no-V2I sequential-K8 artifact restarted at identity0 and ran all 22
+identities for exactly 64 ticks each (1,408 ticks); independent review passed the
+semantic-v3, red atom, canonical writer, source-valid/all-K, K8/candidate0,
+immutability, and exact authority contracts. Local evidence is 108 passed with
+two platform skips plus two fixed-K8 fixture tests; AutoDL passed 115 V25 tests,
+all 150 integration tests, 16 focused fallback tests, and the real Linux flock
+test. Full-config preflight, full R, training, calibration, Scene/V2I, and Fresh
+remain unauthorized. Worker/GPU counts are zero, the lock is free, disk free is
+47,620,890,624 bytes, and Fresh/outcome remains false.
 
-current_v25_status=v25_a12_r02_bounded_pass_ultra_review_required
-current_v25_source_head=ed7152fd4a0af39949aefc36e21fb003cbcf3ed2
+current_v25_status=v25_a13_r03_bounded_pass_ultra_review_required
+current_v25_source_head=6efa44ed576363b842396b94587ab800493e276f
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_ed7152fd_20260718T022201CST
-current_v25_artifact_root_sha256=1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_review_ed7152fd_20260718T022201CST
-current_v25_review_artifact_root_sha256=27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r03_red21_nonsignal1_sequential_k8_6efa44ed_20260718T032112CST
+current_v25_artifact_root_sha256=50ae46bb76f76e07bac6a91405e30cade7bdfd715cf417a6e7d5931cdaaa3878
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r03_red21_nonsignal1_sequential_k8_review_6efa44ed_20260718T032112CST
+current_v25_review_artifact_root_sha256=c07e1c4cd63db8aaa21118925e7a78bbb2b6c1687ecbaf4939047057863979b1
 current_v25_s01_failed_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_e6ba79a2_20260717T184132CST
 current_v25_s01_failed_preflight_artifact_root_sha256=c4b0143ac60cfe67f47e5617517d72e24c18ec9007d84021e34901ed3e0c873a
 current_v25_correction_preflight_artifact=/root/autodl-tmp/camp_dp_v25_s01_correction_preflight_retry_e6ba79a2_20260717T184256CST
@@ -87,21 +81,21 @@ current_v25_stage_a_superseded_ledger_artifact=/root/autodl-tmp/camp_dp_v25_stat
 current_v25_stage_a_superseded_ledger_artifact_root_sha256=05449b7a8913559575347763aa95f25b4a9e5e9f58b5dc6106251a9e1b4c7fa2
 current_v25_stage_a_superseded_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_v2_e07da58f_20260717T193156CST
 current_v25_stage_a_superseded_validation_artifact_root_sha256=e07bfcbd879d992b1a9ad61d467a7970bcc19b120303e457e244899bb0316a72
-current_v25_ultra_stage_a_decision_artifact=/root/autodl-tmp/camp_dp_v25_ultra_stage_a12_r02_decision_ed7152fd_20260718T022109CST
-current_v25_ultra_stage_a_decision_artifact_root_sha256=9735a52763e7ef61f516c65445d4f02057cf0fb0beda443354b07e6d69cbe54e
-current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_a12_ed7152fd_20260718T022109CST
-current_v25_atom_ledger_artifact_root_sha256=76b21380fb66ffb2d90f6bd9adbccf887ea34458caf3383226ea8d17f6a1a833
-current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a12_ed7152fd_20260718T022109CST
-current_v25_atom_ledger_validation_artifact_root_sha256=6e5847cf600048948e778330dd7aad3d7ea8aeb44f0e7e1070a83782114e87dd
-current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_r02_authority_source_ed7152fd_20260718T022109CST
-current_v25_r0_authority_source_artifact_root_sha256=b705b826324a449eab87af36a1dd9325f3f773ebe6a3b14f8b437dc45478e7c8
-current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_r02_authority_source_review_ed7152fd_20260718T022109CST
-current_v25_r0_authority_source_review_artifact_root_sha256=04d28ed769625f3db23ba2e9646384014817d4bb58196efae358ee2230677682
-current_v25_r0_bounded_k8_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_ed7152fd_20260718T022201CST
-current_v25_r0_bounded_k8_artifact_root_sha256=1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd
-current_v25_r0_bounded_k8_review_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_review_ed7152fd_20260718T022201CST
-current_v25_r0_bounded_k8_review_artifact_root_sha256=27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa
-current_v25_seven_root_bindings_sha256=5772e347bf82c3a13a1b3399acfafe86c8063abeaf8b6a284802d628e98d758f
+current_v25_ultra_stage_a_decision_artifact=/root/autodl-tmp/camp_dp_v25_ultra_stage_a13_r03_decision_6efa44ed_20260718T032112CST
+current_v25_ultra_stage_a_decision_artifact_root_sha256=1b2dd591e342fdfa0d88f05a2d2537bc8f51292d71502a22e701147cee15488c
+current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_a13_6efa44ed_20260718T032112CST
+current_v25_atom_ledger_artifact_root_sha256=02529652c60e5843c2bb5568222291e5e3b5884fc218ab2e3cd0884810620ae4
+current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a13_6efa44ed_20260718T032112CST
+current_v25_atom_ledger_validation_artifact_root_sha256=e2f7f484bdbb18d9eac7963cc7737cc6f39fc6427deb39e07a62060a9ecdc2a0
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_r03_authority_source_6efa44ed_20260718T032112CST
+current_v25_r0_authority_source_artifact_root_sha256=c7375c3539727abf7b5a726b437bcb643de96fcbf2911b966bfa5e13f20881f8
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_r03_authority_source_review_6efa44ed_20260718T032112CST
+current_v25_r0_authority_source_review_artifact_root_sha256=7d6308d5f3b36a3ec3925ffe1a3ef929f5e45940429e117b8fe52837a4e2f332
+current_v25_r0_bounded_k8_artifact=/root/autodl-tmp/camp_dp_v25_r03_red21_nonsignal1_sequential_k8_6efa44ed_20260718T032112CST
+current_v25_r0_bounded_k8_artifact_root_sha256=50ae46bb76f76e07bac6a91405e30cade7bdfd715cf417a6e7d5931cdaaa3878
+current_v25_r0_bounded_k8_review_artifact=/root/autodl-tmp/camp_dp_v25_r03_red21_nonsignal1_sequential_k8_review_6efa44ed_20260718T032112CST
+current_v25_r0_bounded_k8_review_artifact_root_sha256=c07e1c4cd63db8aaa21118925e7a78bbb2b6c1687ecbaf4939047057863979b1
+current_v25_seven_root_bindings_sha256=4c9a4a666506195aef0ff556858a1fda942cf094c9824abdde827e47e83cc9f5
 current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3
 current_v25_canonical_json_byte_spec=camp_dp_v25_canonical_json_utf8_lf_v1
 current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v4
@@ -119,9 +113,9 @@ current_v25_stage_a_atom_fail_count=0
 current_v25_stage_a_progress_reference=source_valid_candidate_set_reference
 current_v25_stage_a_progress_reference_frozen=true
 current_v25_stage_a_s01_per_atom_raw_statistics_available=false
-current_v25_a1_r0_local_test_result=105_passed_2_skipped_plus_33_passed_plus_14_pointer_passed
-current_v25_a1_r0_remote_test_result=107_passed_plus_16_fallback_passed
-current_v25_real_flock_test_result=1_passed_6_deselected
+current_v25_a1_r0_local_test_result=108_passed_2_skipped_plus_2_k8_fixture_passed
+current_v25_a1_r0_remote_test_result=115_v25_passed_plus_150_integration_passed_plus_16_fallback_passed
+current_v25_real_flock_test_result=1_passed
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
 current_v25_context_schema=camp_dp_v25_causal_context_raw_v2
@@ -182,9 +176,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=47831265280
-current_v25_phase=A1_2_R0_2_bounded_decision_package
-next_work_target=ultra_read_only_A1_2_R0_2_review_before_full_config_preflight_release
+observed_autodl_free_bytes=47620890624
+current_v25_phase=A1_3_R0_3_bounded_decision_package
+next_work_target=ultra_read_only_A1_3_R0_3_review_before_full_config_preflight_release
 
 ## Current V24 Status
 

@@ -129,21 +129,21 @@ LEGACY_POINTER = (
 )
 
 POINTER = (
-    "current_v25_status=v25_a12_r02_bounded_pass_ultra_review_required",
-    "current_v25_source_head=ed7152fd4a0af39949aefc36e21fb003cbcf3ed2",
+    "current_v25_status=v25_a13_r03_bounded_pass_ultra_review_required",
+    "current_v25_source_head=6efa44ed576363b842396b94587ab800493e276f",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_ed7152fd_20260718T022201CST",
-    "current_v25_artifact_root_sha256=1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd",
-    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_review_ed7152fd_20260718T022201CST",
-    "current_v25_review_artifact_root_sha256=27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa",
-    "current_v25_ultra_stage_a_decision_artifact_root_sha256=9735a52763e7ef61f516c65445d4f02057cf0fb0beda443354b07e6d69cbe54e",
-    "current_v25_atom_ledger_artifact_root_sha256=76b21380fb66ffb2d90f6bd9adbccf887ea34458caf3383226ea8d17f6a1a833",
-    "current_v25_atom_ledger_validation_artifact_root_sha256=6e5847cf600048948e778330dd7aad3d7ea8aeb44f0e7e1070a83782114e87dd",
-    "current_v25_r0_authority_source_artifact_root_sha256=b705b826324a449eab87af36a1dd9325f3f773ebe6a3b14f8b437dc45478e7c8",
-    "current_v25_r0_authority_source_review_artifact_root_sha256=04d28ed769625f3db23ba2e9646384014817d4bb58196efae358ee2230677682",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r03_red21_nonsignal1_sequential_k8_6efa44ed_20260718T032112CST",
+    "current_v25_artifact_root_sha256=50ae46bb76f76e07bac6a91405e30cade7bdfd715cf417a6e7d5931cdaaa3878",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r03_red21_nonsignal1_sequential_k8_review_6efa44ed_20260718T032112CST",
+    "current_v25_review_artifact_root_sha256=c07e1c4cd63db8aaa21118925e7a78bbb2b6c1687ecbaf4939047057863979b1",
+    "current_v25_ultra_stage_a_decision_artifact_root_sha256=1b2dd591e342fdfa0d88f05a2d2537bc8f51292d71502a22e701147cee15488c",
+    "current_v25_atom_ledger_artifact_root_sha256=02529652c60e5843c2bb5568222291e5e3b5884fc218ab2e3cd0884810620ae4",
+    "current_v25_atom_ledger_validation_artifact_root_sha256=e2f7f484bdbb18d9eac7963cc7737cc6f39fc6427deb39e07a62060a9ecdc2a0",
+    "current_v25_r0_authority_source_artifact_root_sha256=c7375c3539727abf7b5a726b437bcb643de96fcbf2911b966bfa5e13f20881f8",
+    "current_v25_r0_authority_source_review_artifact_root_sha256=7d6308d5f3b36a3ec3925ffe1a3ef929f5e45940429e117b8fe52837a4e2f332",
     "current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
     "current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06",
-    "current_v25_seven_root_bindings_sha256=5772e347bf82c3a13a1b3399acfafe86c8063abeaf8b6a284802d628e98d758f",
+    "current_v25_seven_root_bindings_sha256=4c9a4a666506195aef0ff556858a1fda942cf094c9824abdde827e47e83cc9f5",
     "current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3",
     "current_v25_canonical_json_byte_spec=camp_dp_v25_canonical_json_utf8_lf_v1",
     "current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v4",
@@ -166,9 +166,9 @@ POINTER = (
     "current_v25_calibration_started=false",
     "current_v25_fresh_b2_opened=false",
     "current_v25_fresh_outcome_opened=false",
-    "observed_autodl_free_bytes=47831265280",
-    "current_v25_phase=A1_2_R0_2_bounded_decision_package",
-    "next_work_target=ultra_read_only_A1_2_R0_2_review_before_full_config_preflight_release",
+    "observed_autodl_free_bytes=47620890624",
+    "current_v25_phase=A1_3_R0_3_bounded_decision_package",
+    "next_work_target=ultra_read_only_A1_3_R0_3_review_before_full_config_preflight_release",
 )
 
 
@@ -380,5 +380,25 @@ def test_v25_semantic_v3_and_full_r_authority_correction_is_bounded() -> None:
         "b7dc7fe00d21af71caba172eac9edf5500fb967e7379b712024600c62b9e5458",
         "6eee9f157d1668ad37120b3a9542f1e5b5661f9077b0fb15cdb5e4a4b43f35d2",
         "full-config preflight remains blocked until an explicit separate release",
+    ):
+        assert phrase in text
+
+
+def test_v25_a13_r03_canonical_writer_and_exact_authority_are_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Stage A1.3/R0.3 Canonical Snapshot and Exact Authority Correction",
+        "real snapshot writer",
+        "exactly one trailing LF",
+        "one-identity, 64-tick write/read/index/seal regression",
+        "1,653 train rows: 1,500 executable plus 153 retained-ineligible",
+        "seed 25001",
+        "1b2dd591e342fdfa0d88f05a2d2537bc8f51292d71502a22e701147cee15488c",
+        "50ae46bb76f76e07bac6a91405e30cade7bdfd715cf417a6e7d5931cdaaa3878",
+        "c07e1c4cd63db8aaa21118925e7a78bbb2b6c1687ecbaf4939047057863979b1",
+        "4c9a4a666506195aef0ff556858a1fda942cf094c9824abdde827e47e83cc9f5",
+        "all 150 integration tests",
+        "full-config preflight remains blocked until an explicit separate Ultra release",
+        "ultra_read_only_A1_3_R0_3_review_before_full_config_preflight_release",
     ):
         assert phrase in text
