@@ -1508,3 +1508,132 @@ current_v25_fresh_outcome_opened=false
 observed_autodl_free_bytes=48042119168
 current_v25_phase=A1_1_R0_1_semantic_v3_bounded_decision_package
 next_work_target=ultra_read_only_A1_1_R0_1_semantic_v3_review_before_full_config_preflight_release
+
+## Stage A1.2/R0.2 Canonical-Byte, Lock, and Independent-Authority Correction
+
+Ultra did not release the 1,500-config preflight after reviewing the semantic-v3
+package. The `cc5eb0a7...` seven-root chain remains immutable but is superseded
+diagnostic evidence: producer canonical JSON omitted a final LF while the
+reviewer included one; the outer corpus lock would reject its own second-FD
+free probe on Linux; and several reviewer paths still accepted self-consistent
+but scientifically false route/source or numeric payloads. No 1,500-config
+preflight, full-R worker, monitor, training, calibration, Scene/V2I runtime, or
+Fresh outcome existed, so no full-corpus or holdout evidence was contaminated.
+
+Implementation source HEAD
+`ed7152fd4a0af39949aefc36e21fb003cbcf3ed2` freezes canonical JSON bytes as
+UTF-8, sorted keys, preserved Unicode, compact separators, `allow_nan=False`,
+and exactly one trailing LF. The golden vector `{"a":1}\n` hashes to
+`e346432021b04179518d9614f3560ccd71354a4ee101ddcb893d6959a9d6301c`.
+Producer and independent reviewer round trips cover config, semantic,
+retained-ineligible, and seven-root namespaces; missing/extra/mutated bytes fail.
+The bounded preflight now relies only on the outer lock held before output-dir
+creation through report, `run.exit`, and seal. A real AutoDL `flock` test proved
+the owning path continues, a second process is rejected, and exception/terminal
+exit releases the lock.
+
+The full-config reviewer independently reopens the formal case, real route
+pickle, source map, lanelets, certified stop line, template, generation scales,
+static weights, DP checkpoint/args, and seven prerequisite roots. It rebuilds
+route serialization, route-local semantic-v3 payloads, signal/no-signal chains,
+and ordered executable/retained roots without the producer canonical helper.
+Re-signed v2 payloads, wrong ego speed/actor/route/stop line, numeric strings or
+booleans, nonfinite/ragged arrays, HEAD/cross-link/status/schema conflicts,
+incomplete self-signed universes, and nonce replay fail closed. The bounded red
+reviewer implements its own scalar red-stopping oracle from the saved K8 tensor,
+certified stop-line midpoint/tangent, `dt=0.1`, and frozen constants; monkeypatching
+the production helper cannot make the reviewer pass. `all_k_high_risk` is exactly
+`source_valid.all() and not physical_feasible.any()`; partial-source/no-physical
+rows are source-ineligible rather than all-K-high-risk.
+
+The sealed formal plan is authoritative for seed 25001. A control-plane phrase
+mentioned 20260716, but the live sealed formal artifact contains 25001 for every
+executable case; A1.2 therefore verifies 25001 and treats 20260716 as a mutation
+that must fail instead of overriding the sealed input. Fixed DP remains
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, K=8 sequential candidate semantics,
+candidate0 operational-default alias, no-V2I, source-valid progress, all 14 atoms,
+and `[0,10]` canonical clipping are unchanged.
+
+### A1.2/R0.2 replacement seven-root bounded package
+
+All seven new roots are immutable, `run.exit=0`, recursively strict-inventory
+verified, cross-linked to the same implementation HEAD, and include rejected
+partial root `a2f69cd...`. The previous `010f644c...`, `9a7d0b66...`,
+`85cd4513...`, `ae728cd3...`, `485e00fc...`, `b7dc7fe0...`, and `6eee9f15...`
+roots were not deleted or rewritten and are listed by the new decision as
+superseded diagnostic evidence.
+
+- A1.2 decision: `/root/autodl-tmp/camp_dp_v25_ultra_stage_a12_r02_decision_ed7152fd_20260718T022109CST`
+  / `9735a52763e7ef61f516c65445d4f02057cf0fb0beda443354b07e6d69cbe54e`;
+- 14-row ledger: `/root/autodl-tmp/camp_dp_v25_static_atom_ledger_a12_ed7152fd_20260718T022109CST`
+  / `76b21380fb66ffb2d90f6bd9adbccf887ea34458caf3383226ea8d17f6a1a833`;
+- independent ledger validation: `/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a12_ed7152fd_20260718T022109CST`
+  / `6e5847cf600048948e778330dd7aad3d7ea8aeb44f0e7e1070a83782114e87dd`;
+- 21-red plus one no-signal source authority: `/root/autodl-tmp/camp_dp_v25_r02_authority_source_ed7152fd_20260718T022109CST`
+  / `b705b826324a449eab87af36a1dd9325f3f773ebe6a3b14f8b437dc45478e7c8`;
+- independent source review: `/root/autodl-tmp/camp_dp_v25_r02_authority_source_review_ed7152fd_20260718T022109CST`
+  / `04d28ed769625f3db23ba2e9646384014817d4bb58196efae358ee2230677682`;
+- 22x64 sequential-K8 producer: `/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_ed7152fd_20260718T022201CST`
+  / `1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd`;
+- independent bounded review: `/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_review_ed7152fd_20260718T022201CST`
+  / `27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa`.
+
+The exact seven-root binding hashes to
+`5772e347bf82c3a13a1b3399acfafe86c8063abeaf8b6a284802d628e98d758f`.
+The new bounded run restarted from identity0 and completed 22 identities and
+1,408 ticks. Source authority still reports four source-map files, nine physical
+signatures, five stop-line geometry SHAs, and 21 validated identity chains; 21
+is not claimed as 21 independent intersections. Atom validation remains 9 PASS,
+5 WARN, 0 FAIL, preserving the complete approved 14D schema.
+
+Local focused evidence was 105 passed/2 platform skips, 33 additional fallback
+tests passed, and all 14 pointer/audit tests passed. The combined local suite
+that imports Torch still aborts at the known Windows Torch DLL boundary and is
+not counted as scientific evidence. AutoDL passed all 107 focused tests, all 16
+targeted fallback tests, and the dedicated real-flock probe. Pycompile and
+`git diff --check` passed. At final sampling CAMP local/origin/GitHub/AutoDL
+shared implementation HEAD `ed7152fd...`; DP was fixed/clean, worker and GPU
+counts were zero, the lock was free, free disk was 47,831,265,280 bytes, and
+Fresh/outcome remained unopened. This bounded PASS is not a full-config
+preflight release. The next gate is Ultra read-only A1.2/R0.2 review.
+
+current_v25_status=v25_a12_r02_bounded_pass_ultra_review_required
+current_v25_source_head=ed7152fd4a0af39949aefc36e21fb003cbcf3ed2
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_ed7152fd_20260718T022201CST
+current_v25_artifact_root_sha256=1e84bf5bf35fa0dfea601b4e304b863cfabd0a5d3b1b8ee74e2cb7115c1f60cd
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_r02_red21_nonsignal1_sequential_k8_review_ed7152fd_20260718T022201CST
+current_v25_review_artifact_root_sha256=27086204937a9501979bfcdb943be31f7e2be45d60bb7710508633e2af39bcfa
+current_v25_ultra_stage_a_decision_artifact_root_sha256=9735a52763e7ef61f516c65445d4f02057cf0fb0beda443354b07e6d69cbe54e
+current_v25_atom_ledger_artifact_root_sha256=76b21380fb66ffb2d90f6bd9adbccf887ea34458caf3383226ea8d17f6a1a833
+current_v25_atom_ledger_validation_artifact_root_sha256=6e5847cf600048948e778330dd7aad3d7ea8aeb44f0e7e1070a83782114e87dd
+current_v25_r0_authority_source_artifact_root_sha256=b705b826324a449eab87af36a1dd9325f3f773ebe6a3b14f8b437dc45478e7c8
+current_v25_r0_authority_source_review_artifact_root_sha256=04d28ed769625f3db23ba2e9646384014817d4bb58196efae358ee2230677682
+current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
+current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06
+current_v25_seven_root_bindings_sha256=5772e347bf82c3a13a1b3399acfafe86c8063abeaf8b6a284802d628e98d758f
+current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3
+current_v25_canonical_json_byte_spec=camp_dp_v25_canonical_json_utf8_lf_v1
+current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v4
+current_v25_snapshot_schema=camp_dp_v25_controlled_training_snapshot_v4
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v4.json
+current_v25_r0_source_identity_count=21
+current_v25_r0_source_map_count=4
+current_v25_r0_physical_signature_count=9
+current_v25_r0_stop_line_geometry_sha256_count=5
+current_v25_r0_probe_identity_count=22
+current_v25_r0_probe_tick_count=1408
+current_v25_r0_non_signal_identity_count=1
+current_v25_full_config_preflight_started=false
+current_v25_corrected_full_corpus_started=false
+current_v25_full_r_authorized=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_b2_opened=false
+current_v25_fresh_outcome_opened=false
+observed_autodl_free_bytes=47831265280
+current_v25_phase=A1_2_R0_2_bounded_decision_package
+next_work_target=ultra_read_only_A1_2_R0_2_review_before_full_config_preflight_release
