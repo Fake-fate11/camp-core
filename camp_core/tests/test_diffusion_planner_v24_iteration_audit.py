@@ -20,12 +20,14 @@ BRANCH_A_PLAN = (
 )
 
 POINTER = (
-    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_independent_review_tdd_static_preflight_passed",
-    "current_v24_artifact_source_head=f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a",
+    "current_v24_status=v24_evidence_package_and_preregistered_claim_decision_independent_review_passed_honest_no_claim",
+    "current_v24_artifact_source_head=f65ce1cbd31cee02f8f3b38f76149b8f4e79e376",
     "current_v24_final_synced_head=pending_current_docs_commit_not_source_drift",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
-    "current_v24_artifact_root_sha256=044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808",
+    "current_v24_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_claim_decision_independent_review_f65ce1cbd31cee02f8f3b38f76149b8f4e79e376_044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808",
+    "current_v24_artifact_root_sha256=6203712edf374433ab948781da72c30a399e1cb77e332b15beb7e4f97e883895",
+    "current_v24_evidence_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
+    "current_v24_evidence_artifact_root_sha256=044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808",
     "current_v24_launch_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf_launch",
     "current_v24_launch_artifact_root_sha256=8a7ee77bea252de0ac84a6531408a8f82b071ba144eee42c924531042e90c3af",
     "current_v24_launch_status=sealed_wrapper_validation_false_negative_builder_exit_0",
@@ -37,19 +39,23 @@ POINTER = (
     "current_v24_independent_review_test_sha256=db528107d6b7afa9d25bd181f4c8d1ad40c892b22b52faba63207d08a1a596ad",
     "current_v24_independent_review_static_artifact=/root/autodl-tmp/camp_dp_v24_evidence_claim_independent_review_static_preflight_661a97d0_20260717T103350CST",
     "current_v24_independent_review_static_artifact_root_sha256=11425e0f9dcf30a3da8a726ab35edee27bf4273135b5e58906bb309c979bc235",
+    "current_v24_independent_review_artifact=/root/autodl-tmp/camp_dp_v24_evidence_package_claim_decision_independent_review_f65ce1cbd31cee02f8f3b38f76149b8f4e79e376_044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808",
+    "current_v24_independent_review_artifact_root_sha256=6203712edf374433ab948781da72c30a399e1cb77e332b15beb7e4f97e883895",
+    "current_v24_independent_review_decision=honest_no_claim",
+    "current_v24_independent_review_failed_gates=clustered_ci95_upper_below_zero",
     "current_v24_holdout_state=/root/autodl-tmp/camp_dp_v24_paired_holdout_once_state.json",
     "current_v24_holdout_state_sha256=f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633",
     "current_v24_holdout_open_count=1",
     "current_v24_holdout_rerun_authorized=false",
     "source_a_status=source_ineligible_missing_authorized_build_prerequisites",
     "source_a_terminal=true",
-    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_independent_review_tdd_static_preflight_passed",
+    "source_b_status=paired_holdout_main_once_execution_complete_open_count_1_rerun_forbidden_independent_result_review_passed_evidence_claim_execution_complete_honest_no_claim_launch_wrapper_false_negative_evidence_claim_independent_review_passed_honest_no_claim",
     "source_b_terminal=false",
     "authorized_source_count=2",
     "source_terminal_count=1",
     "global_stop_authorized=false",
     "global_stop_reason=none",
-    "next_work_target=v24_evidence_package_and_preregistered_claim_decision_independent_review_execution_only",
+    "next_work_target=v24_honest_no_claim_record_only_closeout_tdd_static_preflight",
 )
 
 
@@ -406,6 +412,24 @@ def test_v24_evidence_reviewer_comprehensive_production_contract_is_sealed() -> 
         "`11425e0f9dcf30a3da8a726ab35edee27bf4273135b5e58906bb309c979bc235`",
         "zero P1/P2/P3",
         "v24_evidence_package_and_preregistered_claim_decision_independent_review_execution_only",
+    ):
+        assert phrase in text
+
+
+def test_v24_evidence_claim_independent_review_execution_is_sealed() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Gate 62: Evidence/Claim Independent Review Execution",
+        "passed all `20 / 20` checks",
+        "`6203712edf374433ab948781da72c30a399e1cb77e332b15beb7e4f97e883895`",
+        "`launch_wrapper_validation_false_negative`",
+        "The independent decision is `honest_no_claim`",
+        "`clustered_ci95_upper_below_zero`",
+        "`[-0.06380208333333333, 0.01953125]`",
+        "Better/tie/worse remains `4 / 113 / 3`",
+        "Latency remains descriptive-only",
+        "implementation-independent verifier then rehashed all eight payloads",
+        "v24_honest_no_claim_record_only_closeout_tdd_static_preflight",
     ):
         assert phrase in text
 
