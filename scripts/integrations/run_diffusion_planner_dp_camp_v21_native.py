@@ -246,6 +246,9 @@ class NativeCampPredictBatch:
         operational_mode: str = "camp_selector",
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
         decision_sample_every_ticks: int = 5,
+        scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
+        v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
+        v25_signal_phase_remaining_s: float | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -287,6 +290,9 @@ class NativeCampPredictBatch:
             raise ValueError("decision sample cadence must be a positive integer")
         self.decision_sink = decision_sink
         self.decision_sample_every_ticks = decision_sample_every_ticks
+        self.scene_adapter = scene_adapter
+        self.v25_context_sink = v25_context_sink
+        self.v25_signal_phase_remaining_s = v25_signal_phase_remaining_s
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.weights is None
@@ -324,6 +330,10 @@ class NativeCampPredictBatch:
         }
         self.state.receipts.append(receipt)
         try:
+            if self.scene_adapter is not None:
+                receipt["controlled_scene"] = dict(
+                    self.scene_adapter(scene, tick_index)
+                )
             if not agent_ids:
                 raise ValueError("CAMP hook requires the ego agent")
             if len(agent_ids) != len(set(agent_ids)):
@@ -549,6 +559,33 @@ class NativeCampPredictBatch:
                 ),
             }
             receipt.update(selector_diagnostics)
+            if self.v25_context_sink is not None:
+                from camp_core.integrations.diffusion_planner_v25_context import (
+                    RAW_FEATURE_NAMES,
+                    build_v25_raw_context,
+                )
+
+                context_record = build_v25_raw_context(
+                    causal_input=causal_input,
+                    candidates=candidate_tensor,
+                    source_valid_mask=np.asarray(
+                        receipt["source_valid_mask"], dtype=bool
+                    ),
+                    signal_phase_remaining_s=self.v25_signal_phase_remaining_s,
+                )
+                context_payload = {
+                    "raw_context": context_record.as_dict(),
+                    "source_complete": {
+                        name: bool(value)
+                        for name, value in zip(
+                            RAW_FEATURE_NAMES,
+                            context_record.source_complete,
+                            strict=True,
+                        )
+                    },
+                }
+                receipt["v25_context"] = context_payload
+                self.v25_context_sink(context_payload)
             if selection.get("status") != "ok":
                 reason = str(selection.get("failure_reason") or "selector_failed")
                 raise RuntimeError(
@@ -691,12 +728,14 @@ class NativeDpObserveBatch:
         state: NativeHookState,
         dump_step_npz: Callable[..., Mapping[str, Any]],
         pre_safety: Callable[[dict[str, Any], Any], None] | None = None,
+        scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
     ) -> None:
         verify_predict_batch_signature(original_predict_batch)
         self.original_predict_batch = original_predict_batch
         self.state = state
         self.dump_step_npz = dump_step_npz
         self.pre_safety = pre_safety
+        self.scene_adapter = scene_adapter
 
     def __call__(
         self,
@@ -721,6 +760,10 @@ class NativeDpObserveBatch:
         self.state.tick_index += 1
         self.state.receipts.append(receipt)
         try:
+            if self.scene_adapter is not None:
+                receipt["controlled_scene"] = dict(
+                    self.scene_adapter(scene, int(receipt["tick_index"]))
+                )
             raw = self.dump_step_npz(
                 scene,
                 map_cache,
@@ -1201,7 +1244,109 @@ def validate_v24_single_record_source_probe_config(
         raise ValueError("v24 single-record source-probe protocol mismatch")
 
 
+def validate_v25_controlled_capability_config(
+    config: Mapping[str, Any],
+) -> None:
+    if config.get("schema_version") != "camp_dp_v25_controlled_capability_v1":
+        raise ValueError("v25 controlled capability schema mismatch")
+    fixed_dp = _mapping(config, "fixed_dp")
+    if fixed_dp.get("head") != FIXED_DP_HEAD:
+        raise ValueError("fixed DP HEAD mismatch")
+    if fixed_dp.get("native_source_sha256") != NATIVE_SOURCE_SHA256:
+        raise ValueError("fixed DP native source hashes mismatch")
+    _asset_entry(fixed_dp, "checkpoint")
+    _asset_entry(fixed_dp, "args_json")
+
+    selector = _mapping(config, "selector")
+    _asset_entry(selector, "atom_scales")
+    _asset_entry(selector, "weights")
+    if (
+        selector.get("root_sha256")
+        != "afec0dd1e555aaf97adc43f7fa92dce86fa155489ce7fa73fdf339df0c9c35d7"
+        or selector.get("score_contract") != "score_k(w)=a_k^T w"
+        or selector.get("nonnegative_simplex") is not True
+        or selector.get("candidate_k") != 8
+        or selector.get("selection_policy") != V22_SOURCE_VALID_SELECTION
+        or selector.get("role") != "v25_controlled_capability_probe_only"
+    ):
+        raise ValueError("v25 controlled capability selector contract mismatch")
+    _asset_entry(config, "map")
+
+    routes = config.get("routes")
+    if not isinstance(routes, list) or len(routes) != 1:
+        raise ValueError("v25 controlled capability requires exactly one route")
+    route = _asset_entry_value(routes[0], "route")
+    if not _is_sha256(route.get("name")):
+        raise ValueError("v25 controlled capability route name must be SHA256")
+
+    controlled = _mapping(config, "controlled_scenario")
+    from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
+        validate_controlled_scenario_case,
+    )
+
+    validate_controlled_scenario_case(controlled)
+    if controlled.get("split") != "pilot_development":
+        raise ValueError("v25 controlled capability may use only pilot development")
+    if controlled.get("runner_eligible") is not True:
+        raise ValueError("v25 controlled capability scenario is source-ineligible")
+
+    seeds = _mapping(config, "seeds")
+    if seeds != {
+        "scenario": 25991,
+        "candidate": 25991,
+        "bootstrap": 25991,
+        "formal_forbidden": [11, 12, 13, 24001, 24002, 24003, 24004, 24005],
+    }:
+        raise ValueError("v25 controlled capability seed namespace mismatch")
+
+    spawn = _mapping(config, "spawn_config")
+    if set(spawn) != SPAWN_CONFIG_FIELDS:
+        raise ValueError("SpawnConfig fields do not exactly match native source")
+    critical = {
+        "seed": 25991,
+        "max_steps": 1,
+        "advance_mode": "mpc",
+        "mpc_horizon_steps": 20,
+        "mpc_n_knots": 5,
+        "sequential_inference": False,
+        "sg_smooth_enabled": False,
+        "dump_npz_dir": None,
+        "reward_config_path": None,
+        "enable_traffic_lights": True,
+        "map_refresh_steps": 5,
+        "max_active_npcs": 0,
+        "spawn_probability": 0.0,
+        "static_npc_count": 0,
+        "parked_vehicles_yaml": None,
+    }
+    if any(spawn.get(name) != value for name, value in critical.items()):
+        raise ValueError("critical v25 controlled SpawnConfig value mismatch")
+
+    protocol = _mapping(config, "protocol")
+    expected_protocol = {
+        "arm_order": ["camp"],
+        "route_order": [route["name"]],
+        "capability_route": route["name"],
+        "capability_steps": 1,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "safety_schema": "safety_cost_native_v22",
+        "route_role": "v25_controlled_outcome_blind_coverage_pilot",
+        "candidate_k": 8,
+        "claim_authorized": False,
+        "training_authorized": False,
+        "calibration_authorized": False,
+        "holdout_access_authorized": False,
+        "formal_seeds_authorized": False,
+        "outcomes_used_for_selection": False,
+    }
+    if protocol != expected_protocol:
+        raise ValueError("v25 controlled capability protocol mismatch")
+
+
 def _validate_native_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") == "camp_dp_v25_controlled_capability_v1":
+        validate_v25_controlled_capability_config(config)
+        return
     if config.get("schema_version") == "camp_dp_v24_single_record_source_probe_v1":
         validate_v24_single_record_source_probe_config(config)
         return
@@ -2357,11 +2502,16 @@ def build_native_arm_runner(
         output_dir: Path,
         max_steps: int,
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
+        scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
+        v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
         protocol = _mapping(config, "protocol")
-        if config.get("schema_version") == "camp_dp_v24_single_record_source_probe_v1":
+        if config.get("schema_version") in {
+            "camp_dp_v24_single_record_source_probe_v1",
+            "camp_dp_v25_controlled_capability_v1",
+        }:
             allowed_steps = {1}
         elif config.get("schema_version") in {
             "camp_dp_v22_native_corpus_run_v1",
@@ -2435,6 +2585,13 @@ def build_native_arm_runner(
                 decision_sample_every_ticks=int(
                     protocol.get("sample_every_ticks", 5)
                 ),
+                scene_adapter=scene_adapter,
+                v25_context_sink=v25_context_sink,
+                v25_signal_phase_remaining_s=(
+                    float(config["controlled_scenario"]["signal"]["phase_remaining_s"])
+                    if v25_context_sink is not None
+                    else None
+                ),
             )
         elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
             replacement = NativeCampPredictBatch(
@@ -2451,6 +2608,13 @@ def build_native_arm_runner(
                 route_sha256=str(route["sha256"]),
                 pre_safety=pre_safety,
                 operational_mode="dp_candidate0",
+                scene_adapter=scene_adapter,
+                v25_context_sink=v25_context_sink,
+                v25_signal_phase_remaining_s=(
+                    float(config["controlled_scenario"]["signal"]["phase_remaining_s"])
+                    if v25_context_sink is not None
+                    else None
+                ),
             )
         else:
             replacement = NativeDpObserveBatch(
@@ -2458,6 +2622,7 @@ def build_native_arm_runner(
                 state=state,
                 dump_step_npz=context["tensor_converter"].dump_step_npz,
                 pre_safety=pre_safety,
+                scene_adapter=scene_adapter,
             )
 
         output_dir = Path(output_dir)

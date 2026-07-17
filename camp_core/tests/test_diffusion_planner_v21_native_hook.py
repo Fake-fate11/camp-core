@@ -168,6 +168,7 @@ def _hook(
     selection_policy: str | None = None,
     decision_sink=None,
     decision_sample_every_ticks: int = 5,
+    scene_adapter=None,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -192,8 +193,38 @@ def _hook(
     if decision_sink is not None:
         kwargs["decision_sink"] = decision_sink
         kwargs["decision_sample_every_ticks"] = decision_sample_every_ticks
+    if scene_adapter is not None:
+        kwargs["scene_adapter"] = scene_adapter
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
+
+
+def test_v25_scene_adapter_runs_before_fixed_k8_input_materialization() -> None:
+    module = _runner()
+    model = _FakeModel()
+    calls = []
+
+    def scene_adapter(scene, tick_index):
+        scene.controlled_marker = "injected"
+        calls.append(tick_index)
+        return {"tick_index": tick_index, "injected": True}
+
+    hook, state = _hook(module, model, scene_adapter=scene_adapter)
+    scene = _Scene()
+    hook(
+        model,
+        SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+        scene,
+        ["ego"],
+        "cpu",
+    )
+
+    assert calls == [0]
+    assert scene.controlled_marker == "injected"
+    assert state.receipts[-1]["controlled_scene"] == {
+        "tick_index": 0,
+        "injected": True,
+    }
 
 
 def test_v24_dp_candidate0_mode_generates_immutable_k8_and_returns_default() -> None:
