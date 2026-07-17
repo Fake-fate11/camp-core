@@ -13,14 +13,16 @@ V24_PAIRED_CONFIG = (
 )
 
 POINTER = (
-    "current_v25_status=v25_controlled_protocol_and_source_split_frozen_phase5_training_calibration_authorized",
-    "current_v25_source_head=ff02838780c7b2fa7fc557680e43d85967ee843e",
+    "current_v25_status=v25_controlled_train_worker_stopped_superseded_ineligible_ultra_correction_gate",
+    "current_v25_source_head=491716fc63da8f73ef95c6daa01fa0e0722f19b3",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_20260717T140842CST",
-    "current_v25_artifact_root_sha256=c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST",
+    "current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST",
+    "current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009",
     "current_v25_atom_schema=dp_camp_v10_14d",
     "current_v25_paper_subset=camp_legacy_v1_9d",
-    "current_v25_context_schema=camp_dp_v25_causal_context_raw_v1",
+    "current_v25_context_schema=camp_dp_v25_causal_context_raw_v1_ineligible_pending_v2",
     "current_v25_context_raw_feature_count=26",
     "current_v25_phi_dimension=53",
     "current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection",
@@ -31,10 +33,21 @@ POINTER = (
     "current_v25_controlled_train_executable_identity_count=1500",
     "current_v25_controlled_train_source_ineligible_retained_count=153",
     "current_v25_combined_train_snapshot_capacity_at_64_ticks=163796",
+    "current_v25_stopped_train_attempted_identity_count=122",
+    "current_v25_stopped_train_complete_identity_count=121",
+    "current_v25_stopped_train_failed_identity_count=1",
+    "current_v25_stopped_train_snapshot_count=7748",
+    "current_v25_stopped_train_illegal_partial_snapshot_count=4",
+    "current_v25_stopped_train_all_k_high_risk_snapshot_count=1121",
+    "current_v25_stopped_train_training_eligible=false",
+    "current_v25_stopped_train_calibration_eligible=false",
+    "current_v25_stopped_train_evaluation_eligible=false",
     "current_v25_fresh_b_identity_count=120",
     "current_v25_fresh_b_paired_run_count=600",
     "current_v25_fresh_b_independent_route_ceiling=24",
     "current_v25_fresh_b_independent_corridor_ceiling=3",
+    "current_v25_fresh_b_v1_status=superseded_before_opening",
+    "current_v25_fresh_b2_opened=false",
     "v24_legacy_benchmark_status=frozen_read_only_honest_no_claim",
     "v24_holdout_open_count=1",
     "v24_holdout_rerun_authorized=false",
@@ -42,9 +55,9 @@ POINTER = (
     "current_v25_fresh_benchmark_b_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=48616669184",
-    "current_v25_phase=4_controlled_scenario_corpus_and_split",
-    "next_work_target=v25_controlled_train_corpus_training_and_calibration",
+    "observed_autodl_free_bytes=48542638080",
+    "current_v25_phase=5_ultra_scientific_contract_correction_gate",
+    "next_work_target=v25_ultra_correction_contract_tdd_and_bounded_preflight_only",
 )
 
 
@@ -138,5 +151,21 @@ def test_v25_phase4_controlled_protocol_is_sealed_and_bounded() -> None:
         "only 24 independent routes across three corridor groups",
         "Fresh B has no legal mapped-signal source",
         "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531",
+    ):
+        assert phrase in text
+
+
+def test_v25_ultra_correction_gate_stops_and_quarantines_invalid_corpus() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Phase 5: Ultra Scientific-Contract Correction Gate",
+        "122 attempted identities, 121 complete identities, one failed identity",
+        "7,748 snapshots",
+        "four illegal partial snapshots",
+        "1,121 all-K-high-risk snapshots",
+        "clip(a/s, 0, 10)",
+        "superseded before opening",
+        "a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
+        "f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009",
     ):
         assert phrase in text

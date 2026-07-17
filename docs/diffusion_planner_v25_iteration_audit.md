@@ -430,3 +430,93 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=48616669184
 current_v25_phase=4_controlled_scenario_corpus_and_split
 next_work_target=v25_controlled_train_corpus_training_and_calibration
+
+## Phase 5: Ultra Scientific-Contract Correction Gate
+
+The first controlled-train execution was stopped fail-closed with `SIGTERM`
+after live source review confirmed that mechanical health did not imply a
+scientifically valid corpus. The native selector divided raw atoms by scales
+but omitted the canonical `clip(a/s, 0, 10)` operation used by the frozen atom
+audit. A read-only diagnostic over 5,828 snapshots found 452 selected-index
+disagreements (7.76%); the red-light easy subset disagreed on 13 of 64
+snapshots. Because those selections already affected closed-loop state, the
+artifact cannot be repaired by offline rescoring or by appending a corrected
+suffix.
+
+The same execution passed `phase_remaining_s` from the frozen scenario tier
+and future signal schedule into the 26D context as source-complete. That source
+is forbidden in the no-V2I main method. The future timing must be zero and
+source-masked in context-v2; a separate V2I mode may use only current-time
+visible timing with source and freshness receipts. The runner also downgraded
+a candidate-heading unit-vector invariant failure and retained four illegal
+partial snapshots instead of failing the artifact.
+
+PID `151787` exited after `SIGTERM`; no child or GPU compute process remained,
+the exclusive lock was free, and Fresh B was still unopened. The untouched
+source artifact ended at 122 attempted identities, 121 complete identities,
+one failed identity, and 7,748 snapshots. Its original `progress.json` remains
+`running` and no `run.exit` was fabricated. It is superseded and ineligible
+for training, calibration, evaluation, V24 merging, or claims.
+
+The separate sealed diagnostic evidence is
+`/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST`
+with root SHA256
+`a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481`.
+It byte-indexes the unchanged source and launch trees, retains the invariant
+failure and all 1,121 all-K-high-risk snapshots, and records zero candidate
+immutability failures. The independent review
+`/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST`
+passed 9/9 checks with root SHA256
+`f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009`.
+
+Fresh Benchmark B v1 is superseded before opening; its frozen manifest remains
+unchanged. Fresh B2 is not opened or constructed at this gate. Training,
+calibration, scale fitting, model fitting, and any replacement 1,500-identity
+execution remain prohibited. Only TDD correction and a bounded sequential-K8
+preflight are authorized before an Ultra read-only correction-gate review.
+
+current_v25_status=v25_controlled_train_worker_stopped_superseded_ineligible_ultra_correction_gate
+current_v25_source_head=491716fc63da8f73ef95c6daa01fa0e0722f19b3
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_491716fc_20260717T154959CST
+current_v25_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_controlled_train_corpus_superseded_ineligible_review_491716fc_20260717T154959CST
+current_v25_review_artifact_root_sha256=f73004a10c48d65bfb410dcddf4f618f303c5c6bea4b61cee26e6e450cda9009
+current_v25_atom_schema=dp_camp_v10_14d
+current_v25_paper_subset=camp_legacy_v1_9d
+current_v25_context_schema=camp_dp_v25_causal_context_raw_v1_ineligible_pending_v2
+current_v25_context_raw_feature_count=26
+current_v25_phi_dimension=53
+current_v25_scene_conditioned_mode=context_simplex_column_simplex_no_softmax_no_runtime_projection
+current_v25_official_scenario_source_head=e22f01093fa6516c0552549ada302270329c59a4
+current_v25_controlled_pilot_case_count=147
+current_v25_controlled_pilot_passed_count=85
+current_v25_controlled_pilot_retained_failure_count=62
+current_v25_controlled_train_executable_identity_count=1500
+current_v25_controlled_train_source_ineligible_retained_count=153
+current_v25_combined_train_snapshot_capacity_at_64_ticks=163796
+current_v25_stopped_train_attempted_identity_count=122
+current_v25_stopped_train_complete_identity_count=121
+current_v25_stopped_train_failed_identity_count=1
+current_v25_stopped_train_snapshot_count=7748
+current_v25_stopped_train_illegal_partial_snapshot_count=4
+current_v25_stopped_train_all_k_high_risk_snapshot_count=1121
+current_v25_stopped_train_training_eligible=false
+current_v25_stopped_train_calibration_eligible=false
+current_v25_stopped_train_evaluation_eligible=false
+current_v25_fresh_b_identity_count=120
+current_v25_fresh_b_paired_run_count=600
+current_v25_fresh_b_independent_route_ceiling=24
+current_v25_fresh_b_independent_corridor_ceiling=3
+current_v25_fresh_b_v1_status=superseded_before_opening
+current_v25_fresh_b2_opened=false
+v24_legacy_benchmark_status=frozen_read_only_honest_no_claim
+v24_holdout_open_count=1
+v24_holdout_rerun_authorized=false
+current_v25_v24_holdout_read=false
+current_v25_fresh_benchmark_b_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=48542638080
+current_v25_phase=5_ultra_scientific_contract_correction_gate
+next_work_target=v25_ultra_correction_contract_tdd_and_bounded_preflight_only
