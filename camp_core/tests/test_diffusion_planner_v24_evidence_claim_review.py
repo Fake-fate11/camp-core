@@ -583,7 +583,7 @@ def _source_review_artifact(root: Path) -> tuple[str, dict[str, object]]:
         "camp_head": SOURCE_REVIEW_HEAD,
         "execution_source_head": EXECUTION_HEAD,
         "preflight_camp_head": PREFLIGHT_HEAD,
-        "preflight_config_sha256": CONFIG_SHA,
+        "preflight_config_sha256": module.PREFLIGHT_CONFIG_SHA256,
         "pilot_review_camp_head": PILOT_REVIEW_HEAD,
         "pilot_execution_source_head": PILOT_EXECUTION_HEAD,
         "fixed_dp_head": module.FIXED_DP_HEAD,
@@ -1243,6 +1243,13 @@ def test_frozen_runtime_selector_receipt_matches_production_contract() -> None:
         "atom_scales.json",
         "weights.npy",
     ]
+    assert module.PREFLIGHT_CONFIG_SHA256 == (
+        "e38293de6bcc2519772380ff22d05e86cb391d18bb770c5c50c5c409800885ef"
+    )
+    assert module.CONFIG_SHA256 == (
+        "9dc0ab9415239211f16e65495362d83c2a11ffe04a96f4ddd2881b12fc193c0f"
+    )
+    assert module.PREFLIGHT_CONFIG_SHA256 != module.CONFIG_SHA256
 
 
 def test_review_accepts_only_exact_wrapper_false_negative_and_seals_atomically(

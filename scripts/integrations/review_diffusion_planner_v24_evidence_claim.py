@@ -25,6 +25,9 @@ PREFLIGHT_CAMP_HEAD = "ca54fa2c921440a7ae44961ee410bdab67d5fe19"
 PILOT_REVIEW_CAMP_HEAD = "e7d78689eb853a3d3a97651a689683294d2396a0"
 PILOT_EXECUTION_SOURCE_HEAD = "3ac4b0096c0ed25181c5f90dcc3957e852fd13fb"
 CONFIG_SHA256 = "9dc0ab9415239211f16e65495362d83c2a11ffe04a96f4ddd2881b12fc193c0f"
+PREFLIGHT_CONFIG_SHA256 = (
+    "e38293de6bcc2519772380ff22d05e86cb391d18bb770c5c50c5c409800885ef"
+)
 EVALUATOR_SHA256 = "c2285006bb820f9e2db6d6f54987f9b8b44447e95fe682c2649002f3342e5fc1"
 HOLDOUT_STATE_SHA256 = "f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633"
 EXPECTED_SOURCE_REVIEW_ROOT_SHA256 = (
@@ -1497,7 +1500,7 @@ def _validate_source_holdout_state(
         or state.get("preflight_root_sha256") != preflight.get("root_sha256")
         or state.get("output_dir") != execution.get("root")
         or review.get("holdout_open_count") != state.get("holdout_open_count")
-        or review.get("preflight_config_sha256") != CONFIG_SHA256
+        or review.get("preflight_config_sha256") != PREFLIGHT_CONFIG_SHA256
     ):
         raise ValueError("source reviewer holdout-state/root binding mismatch")
 
@@ -1703,7 +1706,7 @@ def _validate_source_frozen_metric_contract(
         != [runtime_weights[index] for index in active_indices]
         or [index for index, value in enumerate(runtime_weights) if value > 1e-6]
         != active_indices
-        or review.get("preflight_config_sha256") != CONFIG_SHA256
+        or review.get("preflight_config_sha256") != PREFLIGHT_CONFIG_SHA256
     ):
         raise ValueError(
             "source reviewer runtime weights are not bound to frozen training risk/config"
