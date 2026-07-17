@@ -407,8 +407,10 @@ def _source_roots() -> dict[str, object]:
     roots["runtime_selector"].update(
         {
             "root_sha256": module.EXPECTED_RUNTIME_SELECTOR_ROOT_SHA256,
-            "file_count": 2,
-            "manifest_paths": ["atom_scales.json", "weights.npy"],
+            "file_count": len(module.EXPECTED_RUNTIME_SELECTOR_MANIFEST_PATHS),
+            "manifest_paths": list(
+                module.EXPECTED_RUNTIME_SELECTOR_MANIFEST_PATHS
+            ),
         }
     )
     return roots
@@ -1230,6 +1232,17 @@ def _kwargs(environment: dict[str, object]) -> dict[str, object]:
         "minimum_free_bytes": module.MINIMUM_FREE_BYTES,
         "command": ["synthetic-review"],
     }
+
+
+def test_frozen_runtime_selector_receipt_matches_production_contract() -> None:
+    assert module.EXPECTED_RUNTIME_SELECTOR_ROOT_SHA256 == (
+        "ef5539ba04ca5264f1c38951e15f7daac9d32a1dae9c4a80cf0d21109eed2cc5"
+    )
+    assert module.EXPECTED_RUNTIME_SELECTOR_MANIFEST_PATHS == [
+        "adapter_receipt.json",
+        "atom_scales.json",
+        "weights.npy",
+    ]
 
 
 def test_review_accepts_only_exact_wrapper_false_negative_and_seals_atomically(

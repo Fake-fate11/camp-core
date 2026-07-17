@@ -643,8 +643,13 @@ EXPECTED_RUNTIME_ATOM_SCALES_SHA256 = (
     "7b720cbe244d24cc6ce5283fc4f269278d94ebc11bd3b5dd973920177f14440d"
 )
 EXPECTED_RUNTIME_SELECTOR_ROOT_SHA256 = (
-    "94ea5ccaefa40eafdc99c8a4fae51f5e48f504f4fee69cd27ca3e18458d89f9a"
+    "ef5539ba04ca5264f1c38951e15f7daac9d32a1dae9c4a80cf0d21109eed2cc5"
 )
+EXPECTED_RUNTIME_SELECTOR_MANIFEST_PATHS = [
+    "adapter_receipt.json",
+    "atom_scales.json",
+    "weights.npy",
+]
 EXPECTED_TRAINING_ROOT_SHA256 = (
     "91ddd978d383d66488215e2fc8135dee37f4e3d40efb7f801389b40d6fb2c175"
 )
@@ -1463,9 +1468,10 @@ def _validate_source_root_inventory(
         != EXPECTED_TRAINING_REVIEW_ROOT_SHA256
         or _mapping(roots, "runtime_selector").get("root_sha256")
         != EXPECTED_RUNTIME_SELECTOR_ROOT_SHA256
-        or _mapping(roots, "runtime_selector").get("file_count") != 2
+        or _mapping(roots, "runtime_selector").get("file_count")
+        != len(EXPECTED_RUNTIME_SELECTOR_MANIFEST_PATHS)
         or _mapping(roots, "runtime_selector").get("manifest_paths")
-        != ["atom_scales.json", "weights.npy"]
+        != EXPECTED_RUNTIME_SELECTOR_MANIFEST_PATHS
     ):
         raise ValueError("source reviewer training/runtime root binding mismatch")
     return roots
