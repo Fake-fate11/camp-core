@@ -36,6 +36,7 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 from scripts.integrations import run_diffusion_planner_v25_a163_bounded_execution as runner
 from scripts.integrations import review_diffusion_planner_v25_a163_bounded_execution as post_reviewer
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as native_runner
+from scripts.integrations import create_diffusion_planner_v25_a163_bounded_release as release_creator
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -313,6 +314,108 @@ def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
         "EXPECTED_PROBE_TEMPLATE_SHA256",
         hashlib.sha256((tmp_path / "template.json").read_bytes()).hexdigest(),
     )
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (b'{"a":1,"a":2}\n', "strict UTF-8 JSON"),
+        (b'{"a":NaN}\n', "strict UTF-8 JSON"),
+        (b'{"a":"\xff"}\n', "strict UTF-8 JSON"),
+        (b'[1,2,3]\n', "exact object"),
+    ],
+)
+def test_frozen_legacy_probe_loader_rejects_invalid_json_contract(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    raw: bytes,
+    expected: str,
+) -> None:
+    probe = (tmp_path / "legacy-probe.json").resolve()
+    probe.write_bytes(raw)
+    monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", probe)
+    monkeypatch.setattr(
+        authority, "EXPECTED_PROBE_TEMPLATE_SHA256", hashlib.sha256(raw).hexdigest()
+    )
+    with pytest.raises(ValueError, match=expected):
+        authority._load_frozen_legacy_probe_template(probe)
+
+
+def test_frozen_legacy_probe_loader_rejects_alternate_path_or_sha(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    raw = b'{"a":1}\n'
+    probe = (tmp_path / "legacy-probe.json").resolve()
+    alternate = (tmp_path / "alternate.json").resolve()
+    probe.write_bytes(raw)
+    alternate.write_bytes(raw)
+    monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", probe)
+    monkeypatch.setattr(
+        authority, "EXPECTED_PROBE_TEMPLATE_SHA256", hashlib.sha256(raw).hexdigest()
+    )
+    with pytest.raises(ValueError, match="canonical path"):
+        authority._load_frozen_legacy_probe_template(alternate)
+    monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE_SHA256", "0" * 64)
+    with pytest.raises(ValueError, match="bytes drifted"):
+        authority._load_frozen_legacy_probe_template(probe)
+
+
+@pytest.mark.skipif(
+    not authority.EXPECTED_DP_REPO.is_dir()
+    or not authority.EXPECTED_PROBE_TEMPLATE.is_file(),
+    reason="canonical fixed-DP and legacy probe assets are available only on AutoDL",
+)
+def test_real_create_entry_accepts_exact_precanonical_legacy_probe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    monkeypatch.setattr(authority, "verify_dual_head_contract", lambda **kwargs: {})
+    monkeypatch.setattr(
+        authority,
+        "verify_four_root_chain",
+        lambda **kwargs: {"verified": {}, "plan": _plan()},
+    )
+    release = (tmp_path / "sealed-release").resolve()
+    authorized_output = (tmp_path / "authorized-output").resolve()
+    argv = [
+        "--implementation-source-head",
+        head,
+        "--pointer-head-at-release",
+        head,
+        "--run-nonce",
+        "7" * 64,
+        "--authorized-output-dir",
+        str(authorized_output),
+        "--dp-repo",
+        str(authority.EXPECTED_DP_REPO),
+        "--probe-template",
+        str(authority.EXPECTED_PROBE_TEMPLATE),
+    ]
+    for role in authority.ROOT_ROLES:
+        argv.extend(
+            [
+                f"--{role.replace('_', '-')}-artifact",
+                str((tmp_path / role).resolve()),
+                f"--{role.replace('_', '-')}-root-sha256",
+                "8" * 64,
+            ]
+        )
+    argv.extend(["--output-dir", str(release)])
+    monkeypatch.setattr(sys, "argv", [str(release_creator.__file__), *argv])
+    release_creator.main(argv)
+    emitted = json.loads(capsys.readouterr().out)
+    seal = verify_complete_seal(release, emitted["artifact_root_sha256"])
+    assert seal["manifest_paths"] == authority.RELEASE_PAYLOADS
+    decision = json.loads((release / "decision.json").read_text(encoding="utf-8"))
+    assert decision["probe_template"] == str(authority.EXPECTED_PROBE_TEMPLATE)
+    assert decision["probe_template_sha256"] == authority.EXPECTED_PROBE_TEMPLATE_SHA256
+    assert not authority.NONCE_LEDGER.exists()
 
 
 def test_bounded_plan_rejects_denominator_order_and_full_r_drift() -> None:

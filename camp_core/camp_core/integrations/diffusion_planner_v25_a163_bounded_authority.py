@@ -186,6 +186,31 @@ def _load_object(path: Path) -> dict[str, Any]:
     return value
 
 
+def _load_frozen_legacy_probe_template(path: Path) -> dict[str, Any]:
+    """Strictly parse the one frozen pre-canonical probe-template asset."""
+
+    template_path = _require_exact_path(
+        path, EXPECTED_PROBE_TEMPLATE, label="legacy probe template"
+    )
+    if (
+        not template_path.is_file()
+        or _file_sha256(template_path) != EXPECTED_PROBE_TEMPLATE_SHA256
+    ):
+        raise ValueError("legacy probe template bytes drifted")
+    data = template_path.read_bytes()
+    try:
+        value = json.loads(
+            data.decode("utf-8", errors="strict"),
+            object_pairs_hook=_strict_object_pairs,
+            parse_constant=_reject_json_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError("legacy probe template is not strict UTF-8 JSON") from exc
+    if type(value) is not dict:
+        raise ValueError("legacy probe template is not an exact object")
+    return value
+
+
 def _validate_diagnostic_command(path: Path) -> None:
     data = path.read_bytes()
     try:
@@ -257,7 +282,7 @@ def verify_frozen_execution_assets(
     ):
         raise ValueError("bounded frozen repository/template authority drifted")
 
-    template = _load_object(template_path)
+    template = _load_frozen_legacy_probe_template(template_path)
     fixed = template.get("fixed_dp")
     selector = template.get("selector")
     if (
