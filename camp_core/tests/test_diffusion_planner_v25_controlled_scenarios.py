@@ -270,6 +270,16 @@ def _scene(*, signal: bool = False):
     return scene
 
 
+class _MapTensorCache:
+    def __init__(self, scene) -> None:
+        self._all_lanes = np.asarray(scene.map_data.lanes, dtype=np.float32).copy()
+
+    def sync_tl_state(self, map_data) -> None:
+        self._all_lanes[:, :, 8:13] = np.asarray(
+            map_data.lanes[:, :, 8:13], dtype=np.float32
+        )
+
+
 def _signal_authority(case: dict) -> dict:
     route = np.column_stack((np.linspace(0.0, 100.0, 101), np.zeros(101)))
     stop = np.asarray([[20.0, -2.0], [20.0, 2.0]], dtype=np.float64)
@@ -410,6 +420,72 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
         map_tensor=scene.map_data.lanes,
         map_lanelet_ids=[1, 3, 4, 5],
     )
+
+
+def test_controlled_override_syncs_fixed_dp_model_cache_before_tensorization():
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family="red_light_phase_timing",
+        tier="high_risk",
+        variant=0,
+        seeds=[25001],
+    )
+    scene = _scene(signal=True)
+    cache = _MapTensorCache(scene)
+    chain = _signal_authority(case)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
+    adapter = V25ControlledSceneAdapter(case, mapped_signal_authority=chain)
+    adapter.bind_runtime_lanelet_ids(
+        route_lanelet_ids=[1, 2], map_lanelet_ids=[1, 3, 4, 5]
+    )
+
+    adapter(scene, 0)
+    assert np.all(cache._all_lanes[0, :, 8] == 1.0)
+    assert np.all(scene.map_data.lanes[0, :, 10] == 1.0)
+    receipt = adapter.sync_model_input_map_cache(scene, cache, 0)
+
+    assert np.all(cache._all_lanes[0, :, 10] == 1.0)
+    assert receipt["cache_matches_scene_after"] is True
+    assert receipt["sync_applied_before_tensor_conversion"] is True
+    assert receipt["observe_cache_unchanged"] is False
+    assert adapter.receipts[-1]["model_input_cache"] == receipt
+
+
+def test_observe_mode_model_cache_and_request_tensors_remain_byte_identical():
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family="cut_in_merge",
+        tier="easy",
+        variant=0,
+        seeds=[25001],
+    )
+    scene = _scene(signal=True)
+    cache = _MapTensorCache(scene)
+    route_before = scene.ego_agent.route_lanes.tobytes()
+    map_before = scene.map_data.lanes.tobytes()
+    cache_before = cache._all_lanes.tobytes()
+    chain = _signal_authority(case)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
+    adapter = V25ControlledSceneAdapter(case, mapped_signal_authority=chain)
+    adapter.bind_runtime_lanelet_ids(
+        route_lanelet_ids=[1, 2], map_lanelet_ids=[1, 3, 4, 5]
+    )
+
+    adapter(scene, 0)
+    receipt = adapter.sync_model_input_map_cache(scene, cache, 0)
+
+    assert scene.ego_agent.route_lanes.tobytes() == route_before
+    assert scene.map_data.lanes.tobytes() == map_before
+    assert cache._all_lanes.tobytes() == cache_before
+    assert receipt["observe_cache_unchanged"] is True
 
 
 def test_scene_adapter_rejects_unmapped_nonzero_padded_route_row():

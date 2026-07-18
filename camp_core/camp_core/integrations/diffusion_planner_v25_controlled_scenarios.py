@@ -26,6 +26,9 @@ from camp_core.integrations.diffusion_planner_v25_route_signal_authority import 
 SCHEMA_VERSION = "camp_dp_v25_controlled_scenario_case_v1"
 PLAN_SCHEMA_VERSION = "camp_dp_v25_controlled_scenario_plan_v1"
 FINAL_PLAN_SCHEMA_VERSION = "camp_dp_v25_controlled_corpus_final_plan_v1"
+MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION = (
+    "camp_dp_v25_model_input_signal_cache_receipt_v1"
+)
 SCENARIO_FAMILIES = (
     "lead_vehicle_hard_brake",
     "cut_in_merge",
@@ -681,6 +684,104 @@ class V25ControlledSceneAdapter:
             ego_position_world_m=np.asarray(ego.current_position, dtype=np.float64),
             ego_heading_rad=float(ego.current_heading),
         )
+
+    def sync_model_input_map_cache(
+        self, scene: Any, map_cache: Any, tick_index: int
+    ) -> Mapping[str, Any]:
+        """Synchronize same-tick signal state into the DP model's map cache.
+
+        ``MapTensorCache`` owns a float32 copy of ``scene.map_data.lanes``.
+        Controlled overrides happen after the replay-level cache sync, so this
+        method is deliberately called by the native hook after ``__call__`` and
+        before any tensor conversion or DP forward.
+        """
+        if (
+            isinstance(tick_index, bool)
+            or not isinstance(tick_index, int)
+            or tick_index < 0
+            or not self.receipts
+            or self.receipts[-1].get("tick_index") != tick_index
+        ):
+            raise ValueError("model-input cache sync lacks a same-tick adapter receipt")
+        if scene.map_data is None or scene.map_data.lanes is None:
+            raise ValueError("model-input cache sync lacks live map lanes")
+        if map_cache is None or not callable(getattr(map_cache, "sync_tl_state", None)):
+            raise ValueError("model-input cache sync requires the fixed-DP MapTensorCache")
+        cached = getattr(map_cache, "_all_lanes", None)
+        if not isinstance(cached, np.ndarray):
+            raise ValueError("model-input cache lanes are unavailable")
+        scene_lanes = np.asarray(scene.map_data.lanes)
+        route_lanes = np.asarray(scene.ego_agent.route_lanes)
+        if (
+            scene_lanes.shape != cached.shape
+            or scene_lanes.ndim != 3
+            or scene_lanes.shape[-1] < 13
+            or route_lanes.ndim != 3
+            or route_lanes.shape[-1] < 13
+            or not np.isfinite(scene_lanes).all()
+            or not np.isfinite(cached).all()
+            or not np.isfinite(route_lanes).all()
+        ):
+            raise ValueError("model-input signal tensors are malformed or nonfinite")
+        signal = self.receipts[-1].get("signal")
+        if not isinstance(signal, Mapping) or not isinstance(
+            signal.get("source_receipt"), Mapping
+        ):
+            raise ValueError("model-input cache sync lacks signal source receipt")
+        source_receipt = signal["source_receipt"]
+        source_class = str(self.case.get("signal_source_class"))
+        phase_mode = self.case.get("phase_authority_mode")
+        if source_class == "mapped_signal":
+            if phase_mode not in {
+                "controlled_same_tick_override",
+                "observe_same_tick_request",
+            } or source_receipt.get("phase_authority_mode") != phase_mode:
+                raise ValueError("model-input cache sync phase authority drifted")
+        elif source_class == "no_signal":
+            if phase_mode is not None:
+                raise ValueError("no-signal model-input cache mode must be null")
+        else:
+            raise ValueError("model-input cache sync source class drifted")
+
+        scene_tl = np.ascontiguousarray(scene_lanes[:, :, 8:13], dtype=np.float32)
+        cache_before = np.ascontiguousarray(cached[:, :, 8:13], dtype=np.float32)
+        if phase_mode != "controlled_same_tick_override" and not np.array_equal(
+            cache_before, scene_tl
+        ):
+            raise ValueError("observed/no-signal cache differs before model-input sync")
+        map_cache.sync_tl_state(scene.map_data)
+        cache_after = np.ascontiguousarray(
+            np.asarray(map_cache._all_lanes)[:, :, 8:13], dtype=np.float32
+        )
+        if not np.array_equal(cache_after, scene_tl):
+            raise ValueError("fixed-DP model cache did not consume same-tick signal state")
+        observe_unchanged = np.array_equal(cache_before, cache_after)
+        if phase_mode == "observe_same_tick_request" and not observe_unchanged:
+            raise ValueError("observed model-input cache was mutated")
+
+        def array_sha256(value: np.ndarray) -> str:
+            return hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
+
+        cache_receipt = {
+            "schema_version": MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
+            "scenario_id": str(self.case["scenario_id"]),
+            "tick_index": tick_index,
+            "signal_source_class": source_class,
+            "phase_authority_mode": phase_mode,
+            "scene_map_tl_sha256": array_sha256(scene_tl),
+            "model_cache_tl_sha256_before": array_sha256(cache_before),
+            "model_cache_tl_sha256_after": array_sha256(cache_after),
+            "model_route_lanes_tl_sha256": array_sha256(
+                np.ascontiguousarray(route_lanes[:, :, 8:13], dtype=np.float32)
+            ),
+            "cache_matches_scene_after": True,
+            "observe_cache_unchanged": observe_unchanged,
+            "sync_applied_before_tensor_conversion": True,
+            "future_schedule_consumed": False,
+            "phase_remaining_available": False,
+        }
+        self.receipts[-1]["model_input_cache"] = cache_receipt
+        return cache_receipt
 
     def _current_signal_tensors(self, scene: Any) -> tuple[np.ndarray, np.ndarray]:
         ego = scene.ego_agent

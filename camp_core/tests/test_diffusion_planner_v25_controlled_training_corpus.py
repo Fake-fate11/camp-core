@@ -13,6 +13,7 @@ from camp_core.integrations.diffusion_planner_v25_context import (
     RAW_FEATURE_NAMES,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
+    MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
     build_controlled_scenario_case,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
@@ -232,6 +233,8 @@ def _combine_no_signal(snapshot: dict, *, tick_index: int = 0) -> dict:
             "canonical_semantic_clone_sha256": chain["semantic_clone_sha256"],
             "signal_source_class": "no_signal",
             "phase_authority_mode": None,
+            "route_signal_source_artifact_root_sha256": "6" * 64,
+            "route_signal_source_row_sha256": "7" * 64,
         }
     )
     for row in snapshot["feature_payload"]["atom_matrix"]:
@@ -248,8 +251,33 @@ def _combine_no_signal(snapshot: dict, *, tick_index: int = 0) -> dict:
         context=_context(),
         case=case,
         tick_index=tick_index,
-        controlled_scene_receipt={"signal": {"source_receipt": receipt}},
+        controlled_scene_receipt={
+            "signal": {"source_receipt": receipt},
+            "model_input_cache": _model_input_cache_receipt(
+                case, tick_index=tick_index
+            ),
+        },
     )
+
+
+def _model_input_cache_receipt(case: dict, *, tick_index: int) -> dict:
+    digest = "8" * 64
+    return {
+        "schema_version": MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
+        "scenario_id": case["scenario_id"],
+        "tick_index": tick_index,
+        "signal_source_class": case["signal_source_class"],
+        "phase_authority_mode": case["phase_authority_mode"],
+        "scene_map_tl_sha256": digest,
+        "model_cache_tl_sha256_before": digest,
+        "model_cache_tl_sha256_after": digest,
+        "model_route_lanes_tl_sha256": "9" * 64,
+        "cache_matches_scene_after": True,
+        "observe_cache_unchanged": True,
+        "sync_applied_before_tensor_conversion": True,
+        "future_schedule_consumed": False,
+        "phase_remaining_available": False,
+    }
 
 
 def _context() -> dict:
@@ -276,6 +304,8 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
     case["canonical_semantic_clone_sha256"] = chain["semantic_clone_sha256"]
     case["signal_source_class"] = "no_signal"
     case["phase_authority_mode"] = None
+    case["route_signal_source_artifact_root_sha256"] = "6" * 64
+    case["route_signal_source_row_sha256"] = "7" * 64
     snapshot = _snapshot()
     for row in snapshot["feature_payload"]["atom_matrix"]:
         row[10] = 0.0
@@ -291,7 +321,10 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
         context=_context(),
         case=case,
         tick_index=7,
-        controlled_scene_receipt={"signal": {"source_receipt": receipt}},
+        controlled_scene_receipt={
+            "signal": {"source_receipt": receipt},
+            "model_input_cache": _model_input_cache_receipt(case, tick_index=7),
+        },
     )
 
     assert payload["schema_version"] == SNAPSHOT_SCHEMA_VERSION

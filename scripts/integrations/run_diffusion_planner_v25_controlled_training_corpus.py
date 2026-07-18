@@ -65,6 +65,7 @@ from camp_core.integrations.diffusion_planner_v25_route_signal_authority import 
     validate_mapped_signal_runtime_receipt,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
+    MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
     RetainedScenarioCapabilityFailure,
     SCENARIO_FAMILIES,
     ScenarioCapabilityReason,
@@ -88,8 +89,8 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v6"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v6"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v7"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v7"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
     "camp_dp_v25_full_r_semantic_authority_chains_v3"
 )
@@ -530,6 +531,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         expected_camp_source_head=str(
             full_r_authority["implementation_source_head"]
         ),
+        r0_source_root_sha256=str(full_r_authority["r0_source_root_sha256"]),
     )
     semantic_authority_receipts = [
         {
@@ -1179,6 +1181,7 @@ def _attach_semantic_clone_authority(
     dp_repo: Path,
     r0_source_artifact: Path,
     expected_camp_source_head: str,
+    r0_source_root_sha256: str,
 ) -> list[dict[str, Any]]:
     """Bind every R identity to sealed route-level source authority, not family."""
     source_payload = _load_json(
@@ -1302,6 +1305,8 @@ def _attach_semantic_clone_authority(
         else:
             raise ValueError("route-level source class is invalid")
         case["signal_source_class"] = source_class
+        case["route_signal_source_artifact_root_sha256"] = r0_source_root_sha256
+        case["route_signal_source_row_sha256"] = _canonical_sha256(row)
         case["canonical_semantic_clone_sha256"] = canonical_json_sha256(
             semantic
         )
@@ -2292,6 +2297,7 @@ def combine_snapshot_context(
         raise ValueError("controlled semantic clone SHA is invalid")
     controlled_signal_receipt = None
     controlled_signal_tensor_evidence = None
+    controlled_model_input_cache_receipt = None
     source_class = case.get("signal_source_class")
     if source_class == "mapped_signal":
         chain = validate_mapped_signal_chain(case.get("mapped_signal_authority", {}))
@@ -2357,6 +2363,73 @@ def combine_snapshot_context(
         )
     else:
         raise ValueError("controlled snapshot route-level source class is invalid")
+    if controlled_scene_receipt is None or not isinstance(
+        controlled_scene_receipt.get("model_input_cache"), Mapping
+    ):
+        raise ValueError("controlled snapshot lacks same-tick model-input cache receipt")
+    controlled_model_input_cache_receipt = dict(
+        controlled_scene_receipt["model_input_cache"]
+    )
+    cache_fields = {
+        "schema_version",
+        "scenario_id",
+        "tick_index",
+        "signal_source_class",
+        "phase_authority_mode",
+        "scene_map_tl_sha256",
+        "model_cache_tl_sha256_before",
+        "model_cache_tl_sha256_after",
+        "model_route_lanes_tl_sha256",
+        "cache_matches_scene_after",
+        "observe_cache_unchanged",
+        "sync_applied_before_tensor_conversion",
+        "future_schedule_consumed",
+        "phase_remaining_available",
+    }
+    if (
+        set(controlled_model_input_cache_receipt) != cache_fields
+        or controlled_model_input_cache_receipt.get("schema_version")
+        != MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION
+        or controlled_model_input_cache_receipt.get("scenario_id")
+        != case.get("scenario_id")
+        or controlled_model_input_cache_receipt.get("tick_index") != tick_index
+        or controlled_model_input_cache_receipt.get("signal_source_class")
+        != source_class
+        or controlled_model_input_cache_receipt.get("phase_authority_mode")
+        != case.get("phase_authority_mode")
+        or any(
+            not _is_sha256(controlled_model_input_cache_receipt.get(field))
+            for field in (
+                "scene_map_tl_sha256",
+                "model_cache_tl_sha256_before",
+                "model_cache_tl_sha256_after",
+                "model_route_lanes_tl_sha256",
+            )
+        )
+        or controlled_model_input_cache_receipt.get("cache_matches_scene_after")
+        is not True
+        or controlled_model_input_cache_receipt.get(
+            "sync_applied_before_tensor_conversion"
+        )
+        is not True
+        or controlled_model_input_cache_receipt.get("future_schedule_consumed")
+        is not False
+        or controlled_model_input_cache_receipt.get("phase_remaining_available")
+        is not False
+        or (
+            case.get("phase_authority_mode")
+            != "controlled_same_tick_override"
+            and controlled_model_input_cache_receipt.get("observe_cache_unchanged")
+            is not True
+        )
+        or controlled_model_input_cache_receipt.get("model_cache_tl_sha256_after")
+        != controlled_model_input_cache_receipt.get("scene_map_tl_sha256")
+    ):
+        raise ValueError("controlled model-input cache receipt contract drifted")
+    source_artifact_root = case.get("route_signal_source_artifact_root_sha256")
+    source_row_sha256 = case.get("route_signal_source_row_sha256")
+    if not _is_sha256(source_artifact_root) or not _is_sha256(source_row_sha256):
+        raise ValueError("controlled route-source row binding is unavailable")
     if semantic_clone_sha256 is not None:
         signal_applicable = validated_causal_signal["current_phase"] == "red"
         signal_columns = np.asarray([10, 12])
@@ -2405,6 +2478,7 @@ def combine_snapshot_context(
             "route_identity_sha256": str(case["route_identity_sha256"]),
             "corridor_group_sha256": str(case["corridor_group_sha256"]),
             "map_family_id": str(case["map_family_id"]),
+            "source_map_sha256": str(case["source_map_sha256"]),
             "seed": EXPECTED_SEED,
             "candidate_tensor_sha256_before": str(
                 sidecar["candidate_tensor_sha256_before"]
@@ -2438,10 +2512,15 @@ def combine_snapshot_context(
                 CORRECTED_GENERATION_SCALES
             ),
             "canonical_semantic_clone_sha256": semantic_clone_sha256,
+            "route_signal_source_artifact_root_sha256": source_artifact_root,
+            "route_signal_source_row_sha256": source_row_sha256,
             "signal_source_class": source_class,
             "phase_authority_mode": case.get("phase_authority_mode"),
             "controlled_signal_source_receipt": controlled_signal_receipt,
             "controlled_signal_tensor_evidence": controlled_signal_tensor_evidence,
+            "controlled_model_input_cache_receipt": (
+                controlled_model_input_cache_receipt
+            ),
             "causal_signal_atom_input": causal_signal_atom_input,
             "offline_label_provenance": "pending_train_only_causal_label",
             "outcome_fields_consumed": [],

@@ -588,6 +588,7 @@ CRITICAL_IMPLEMENTATION_PATHS = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_route_signal_authority.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_controlled_scenarios.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_full_r_authority.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_a162_bounded_execution.py",
     "scripts/integrations/run_diffusion_planner_dp_camp_v21_native.py",
     "scripts/integrations/run_diffusion_planner_v25_controlled_training_corpus.py",
     "scripts/integrations/preflight_diffusion_planner_v25_r0_red_k8.py",
@@ -596,6 +597,8 @@ CRITICAL_IMPLEMENTATION_PATHS = (
     "scripts/integrations/review_diffusion_planner_v25_controlled_training_corpus.py",
     "scripts/integrations/preflight_diffusion_planner_v25_a16_r06_route_signal_source.py",
     "scripts/integrations/review_diffusion_planner_v25_a16_r06_route_signal_source.py",
+    "scripts/integrations/preflight_diffusion_planner_v25_a162_bounded_execution.py",
+    "scripts/integrations/review_diffusion_planner_v25_a162_bounded_execution.py",
     "configs/integrations/diffusion_planner_v25_atom_scales_correction_v2.json",
     "configs/integrations/diffusion_planner_v25_atom_ledger_plan_v6.json",
 )

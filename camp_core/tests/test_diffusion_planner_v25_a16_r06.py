@@ -21,6 +21,9 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     SEMANTIC_PAYLOAD_SCHEMA_VERSION,
     canonical_json_sha256,
 )
+from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
+    MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
+)
 
 
 def _semantic(mode: str, phase: str | None) -> dict:
@@ -393,6 +396,24 @@ def _snapshot_signal_sidecar(phase: str = "green", tick_index: int = 7) -> dict:
         "controlled_signal_source_receipt": receipt,
         "controlled_signal_tensor_evidence": evidence,
         "causal_signal_atom_input": causal,
+        "scenario_id": chain["scenario_id"],
+        "tick_index": tick_index,
+        "controlled_model_input_cache_receipt": {
+            "schema_version": MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
+            "scenario_id": chain["scenario_id"],
+            "tick_index": tick_index,
+            "signal_source_class": "mapped_signal",
+            "phase_authority_mode": "observe_same_tick_request",
+            "scene_map_tl_sha256": "1" * 64,
+            "model_cache_tl_sha256_before": "1" * 64,
+            "model_cache_tl_sha256_after": "1" * 64,
+            "model_route_lanes_tl_sha256": "2" * 64,
+            "cache_matches_scene_after": True,
+            "observe_cache_unchanged": True,
+            "sync_applied_before_tensor_conversion": True,
+            "future_schedule_consumed": False,
+            "phase_remaining_available": False,
+        },
     }
 
 
@@ -438,3 +459,69 @@ def test_snapshot_reviewer_rejects_timestamp_and_phase_evidence_drift(
         evidence["current_phase"] = "yellow"
     with pytest.raises(ValueError):
         corpus_reviewer._validate_context_and_signal_receipts(sidecar)
+
+
+@pytest.mark.parametrize("mutation", ["duplicate_lanelet", "one_plus_epsilon"])
+def test_snapshot_reviewer_rejects_lanelet_alias_and_strict_one_hot_drift(
+    mutation: str,
+) -> None:
+    sidecar = _snapshot_signal_sidecar("green", 7)
+    evidence = sidecar["controlled_signal_tensor_evidence"]
+    receipt = sidecar["controlled_signal_source_receipt"]
+    if mutation == "duplicate_lanelet":
+        duplicate = copy.deepcopy(evidence["route_signal_rows"][0])
+        evidence["route_signal_rows"].append(duplicate)
+        receipt["observed_route_lanelet_ids"].append(
+            receipt["observed_route_lanelet_ids"][0]
+        )
+    else:
+        evidence["route_signal_rows"][0]["signal_channels_8_12"][0][0] = (
+            1.0 + 2.0e-8
+        )
+    with pytest.raises(ValueError):
+        corpus_reviewer._validate_context_and_signal_receipts(sidecar)
+
+
+def test_snapshot_route_source_row_binding_rejects_cross_identity_receipt_swap() -> None:
+    sidecar = _snapshot_signal_sidecar("green", 7)
+    sidecar.update(
+        {
+            "family": "lead_vehicle_hard_brake",
+            "tier": "easy",
+            "seed": 25001,
+            "source_map_sha256": "3" * 64,
+            "route_identity_sha256": "2" * 64,
+            "route_signal_source_artifact_root_sha256": "4" * 64,
+        }
+    )
+    chain = _chain()
+    row = {
+        "scenario_id": "1" * 64,
+        "formal_case_sha256": "5" * 64,
+        "runner_eligible": True,
+        "retention_role": "executable",
+        "family": "lead_vehicle_hard_brake",
+        "tier": "easy",
+        "seed": 25001,
+        "source_map_sha256": "3" * 64,
+        "route_identity_sha256": "2" * 64,
+        "actual_mapped_signal": True,
+        "id_free_tensor_layout": {},
+        "source_class": "mapped_signal",
+        "phase_authority_mode": "observe_same_tick_request",
+        "source_chain": chain,
+        "runtime_receipt": {},
+        "tensor_evidence": {},
+    }
+    sidecar["route_signal_source_row_sha256"] = corpus_reviewer._oracle_sha256(row)
+    rows = {row["scenario_id"]: row}
+    corpus_reviewer._validate_route_source_row_binding(
+        sidecar, source_rows=rows, source_root_sha256="4" * 64
+    )
+
+    swapped = copy.deepcopy(sidecar)
+    swapped["controlled_signal_source_receipt"]["scenario_id"] = "6" * 64
+    with pytest.raises(ValueError, match="swapped"):
+        corpus_reviewer._validate_route_source_row_binding(
+            swapped, source_rows=rows, source_root_sha256="4" * 64
+        )

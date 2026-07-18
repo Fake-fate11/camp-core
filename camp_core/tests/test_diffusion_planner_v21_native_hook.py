@@ -148,7 +148,11 @@ def _materialize(**kwargs):
     return {
         "canonical_eligible": True,
         "atom_matrix": atom_matrix,
+        "source_valid_mask": np.ones(8, dtype=bool),
+        "atom_source_valid_mask": np.ones((8, 14), dtype=bool),
+        "atom_applicable_mask": np.ones((8, 14), dtype=bool),
         "physical_feasible_mask": np.ones(8, dtype=bool),
+        "all_k_high_risk": False,
         "candidate_reasons": tuple(() for _ in range(8)),
         "signal_mask": np.ones(8, dtype=bool),
         "route_speed_source_eligible_mask": np.ones(8, dtype=bool),
@@ -173,11 +177,13 @@ def _hook(
     decision_sink=None,
     decision_sample_every_ticks: int = 5,
     scene_adapter=None,
+    scene_adapter_model_input_sync=None,
+    to_model_tensors=_to_model_tensors,
 ):
     state = module.NativeHookState()
     kwargs = {
         "state": state,
-        "to_model_tensors": _to_model_tensors,
+        "to_model_tensors": to_model_tensors,
         "dump_step_npz": _dump_step_npz,
         "materialize": materialize,
         "select_candidate": _select,
@@ -194,11 +200,21 @@ def _hook(
     }
     if selection_policy is not None:
         kwargs["selection_policy"] = selection_policy
+        if selection_policy == "v22_source_valid":
+            kwargs["causal_signal_atom_input_provider"] = (
+                lambda scene, tick_index: {
+                    "scene": scene,
+                    "tick_index": tick_index,
+                    "source_valid": True,
+                }
+            )
     if decision_sink is not None:
         kwargs["decision_sink"] = decision_sink
         kwargs["decision_sample_every_ticks"] = decision_sample_every_ticks
     if scene_adapter is not None:
         kwargs["scene_adapter"] = scene_adapter
+    if scene_adapter_model_input_sync is not None:
+        kwargs["scene_adapter_model_input_sync"] = scene_adapter_model_input_sync
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
 
@@ -229,6 +245,84 @@ def test_v25_scene_adapter_runs_before_fixed_k8_input_materialization() -> None:
         "tick_index": 0,
         "injected": True,
     }
+
+
+def test_v25_same_tick_cache_sync_precedes_model_tensor_materialization_and_is_deterministic() -> None:
+    module = _runner()
+
+    class Cache:
+        def __init__(self):
+            self._all_lanes = np.zeros((1, 20, 33), dtype=np.float32)
+            self._all_lanes[:, :, 8] = 1.0
+
+        def sync_tl_state(self, map_data):
+            self._all_lanes[:, :, 8:13] = map_data.lanes[:, :, 8:13]
+
+    class Adapter:
+        def __call__(self, scene, tick_index):
+            scene.map_data.lanes[:, :, 8:13] = 0.0
+            scene.map_data.lanes[:, :, 10] = 1.0
+            scene.ego_agent.route_lanes[:, :, 8:13] = 0.0
+            scene.ego_agent.route_lanes[:, :, 10] = 1.0
+            return {"tick_index": tick_index, "signal": "red"}
+
+        def sync_model_input_map_cache(self, scene, cache, tick_index):
+            assert tick_index == 0
+            cache.sync_tl_state(scene.map_data)
+            return {"tick_index": tick_index, "cache_matches_scene_after": True}
+
+    def tensors(scene, agent_id, model_args, device, map_cache=None, inference_delay=0):
+        assert np.all(map_cache._all_lanes[:, :, 10] == 1.0)
+        assert np.all(scene.ego_agent.route_lanes[:, :, 10] == 1.0)
+        result = _to_model_tensors(
+            scene,
+            agent_id,
+            model_args,
+            device,
+            map_cache=map_cache,
+            inference_delay=inference_delay,
+        )
+        result["marker"][:] = map_cache._all_lanes[0, 0, 10]
+        return result
+
+    def run_once():
+        scene = _Scene()
+        scene.map_data = SimpleNamespace(
+            lanes=np.pad(
+                np.ones((1, 20, 1), dtype=np.float32), ((0, 0), (0, 0), (8, 24))
+            )
+        )
+        scene.ego_agent.route_lanes = scene.map_data.lanes.copy()
+        cache = Cache()
+        adapter = Adapter()
+        model = _FakeModel()
+        hook, state = _hook(
+            module,
+            model,
+            scene_adapter=adapter,
+            scene_adapter_model_input_sync=adapter.sync_model_input_map_cache,
+            to_model_tensors=tensors,
+        )
+        hook(
+            model,
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            scene,
+            ["ego"],
+            "cpu",
+            map_cache=cache,
+        )
+        return state.receipts[-1]
+
+    first = run_once()
+    second = run_once()
+    assert first["controlled_scene"]["model_input_cache"] == {
+        "tick_index": 0,
+        "cache_matches_scene_after": True,
+    }
+    assert first["default_output_sha256"] == second["default_output_sha256"]
+    assert first["candidate_tensor_sha256_before"] == second[
+        "candidate_tensor_sha256_before"
+    ]
 
 
 def test_v24_dp_candidate0_mode_generates_immutable_k8_and_returns_default() -> None:
@@ -424,7 +518,11 @@ def test_v22_decision_sink_samples_every_five_ticks_after_immutability() -> None
         assert set(snapshot["feature_payload"]) == {
             "atom_matrix",
             "source_valid_mask",
+            "atom_source_valid_mask",
+            "atom_applicable_mask",
             "candidate_row_sha256",
+            "candidate_tensor",
+            "default_output",
         }
         assert np.asarray(snapshot["feature_payload"]["atom_matrix"]).shape == (8, 14)
         assert snapshot["feature_payload"]["source_valid_mask"] == [True] * 8

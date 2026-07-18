@@ -247,6 +247,10 @@ class NativeCampPredictBatch:
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
         decision_sample_every_ticks: int = 5,
         scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
+        scene_adapter_model_input_sync: Callable[
+            [Any, Any, int], Mapping[str, Any]
+        ]
+        | None = None,
         v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
         v25_v2i_signal_timing: Mapping[str, Any] | None = None,
         causal_signal_atom_input_provider: Callable[
@@ -295,6 +299,7 @@ class NativeCampPredictBatch:
         self.decision_sink = decision_sink
         self.decision_sample_every_ticks = decision_sample_every_ticks
         self.scene_adapter = scene_adapter
+        self.scene_adapter_model_input_sync = scene_adapter_model_input_sync
         self.v25_context_sink = v25_context_sink
         self.v25_v2i_signal_timing = v25_v2i_signal_timing
         self.causal_signal_atom_input_provider = causal_signal_atom_input_provider
@@ -342,6 +347,12 @@ class NativeCampPredictBatch:
             if self.scene_adapter is not None:
                 receipt["controlled_scene"] = dict(
                     self.scene_adapter(scene, tick_index)
+                )
+            if self.scene_adapter_model_input_sync is not None:
+                if "controlled_scene" not in receipt:
+                    raise ValueError("model-input cache sync requires a scene adapter")
+                receipt["controlled_scene"]["model_input_cache"] = dict(
+                    self.scene_adapter_model_input_sync(scene, map_cache, tick_index)
                 )
             if not agent_ids:
                 raise ValueError("CAMP hook requires the ego agent")
@@ -792,6 +803,10 @@ class NativeDpObserveBatch:
         dump_step_npz: Callable[..., Mapping[str, Any]],
         pre_safety: Callable[[dict[str, Any], Any], None] | None = None,
         scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
+        scene_adapter_model_input_sync: Callable[
+            [Any, Any, int], Mapping[str, Any]
+        ]
+        | None = None,
     ) -> None:
         verify_predict_batch_signature(original_predict_batch)
         self.original_predict_batch = original_predict_batch
@@ -799,6 +814,7 @@ class NativeDpObserveBatch:
         self.dump_step_npz = dump_step_npz
         self.pre_safety = pre_safety
         self.scene_adapter = scene_adapter
+        self.scene_adapter_model_input_sync = scene_adapter_model_input_sync
 
     def __call__(
         self,
@@ -826,6 +842,14 @@ class NativeDpObserveBatch:
             if self.scene_adapter is not None:
                 receipt["controlled_scene"] = dict(
                     self.scene_adapter(scene, int(receipt["tick_index"]))
+                )
+            if self.scene_adapter_model_input_sync is not None:
+                if "controlled_scene" not in receipt:
+                    raise ValueError("model-input cache sync requires a scene adapter")
+                receipt["controlled_scene"]["model_input_cache"] = dict(
+                    self.scene_adapter_model_input_sync(
+                        scene, map_cache, int(receipt["tick_index"])
+                    )
                 )
             raw = self.dump_step_npz(
                 scene,
@@ -2802,6 +2826,12 @@ def build_native_arm_runner(
                     protocol.get("sample_every_ticks", 5)
                 ),
                 scene_adapter=runtime_scene_adapter,
+                scene_adapter_model_input_sync=(
+                    scene_adapter.sync_model_input_map_cache
+                    if scene_adapter is not None
+                    and hasattr(scene_adapter, "sync_model_input_map_cache")
+                    else None
+                ),
                 v25_context_sink=v25_context_sink,
                 v25_v2i_signal_timing=None,
                 causal_signal_atom_input_provider=(
@@ -2827,6 +2857,12 @@ def build_native_arm_runner(
                 pre_safety=pre_safety,
                 operational_mode="dp_candidate0",
                 scene_adapter=runtime_scene_adapter,
+                scene_adapter_model_input_sync=(
+                    scene_adapter.sync_model_input_map_cache
+                    if scene_adapter is not None
+                    and hasattr(scene_adapter, "sync_model_input_map_cache")
+                    else None
+                ),
                 v25_context_sink=v25_context_sink,
                 v25_v2i_signal_timing=None,
             )
@@ -2837,6 +2873,12 @@ def build_native_arm_runner(
                 dump_step_npz=context["tensor_converter"].dump_step_npz,
                 pre_safety=pre_safety,
                 scene_adapter=runtime_scene_adapter,
+                scene_adapter_model_input_sync=(
+                    scene_adapter.sync_model_input_map_cache
+                    if scene_adapter is not None
+                    and hasattr(scene_adapter, "sync_model_input_map_cache")
+                    else None
+                ),
             )
 
         output_dir = Path(output_dir)

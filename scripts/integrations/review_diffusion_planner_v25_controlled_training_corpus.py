@@ -45,6 +45,9 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
 from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (  # noqa: E402
     MAPPED_SIGNAL_RUNTIME_RECEIPT_SCHEMA_VERSION,
 )
+from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
+    MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION,
+)
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
     validate_fixed_k8_candidate_tensor,
 )
@@ -53,7 +56,7 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v3"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v4"
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -104,14 +107,56 @@ SIDECAR_FIELDS = frozenset(
         "context_source_receipt",
         "generation_behavior_scale_sha256",
         "canonical_semantic_clone_sha256",
+        "source_map_sha256",
+        "route_signal_source_artifact_root_sha256",
+        "route_signal_source_row_sha256",
         "signal_source_class",
         "phase_authority_mode",
         "controlled_signal_source_receipt",
         "controlled_signal_tensor_evidence",
+        "controlled_model_input_cache_receipt",
         "causal_signal_atom_input",
         "offline_label_provenance",
         "outcome_fields_consumed",
         "fresh_b_opened",
+    }
+)
+MODEL_INPUT_CACHE_RECEIPT_FIELDS = frozenset(
+    {
+        "schema_version",
+        "scenario_id",
+        "tick_index",
+        "signal_source_class",
+        "phase_authority_mode",
+        "scene_map_tl_sha256",
+        "model_cache_tl_sha256_before",
+        "model_cache_tl_sha256_after",
+        "model_route_lanes_tl_sha256",
+        "cache_matches_scene_after",
+        "observe_cache_unchanged",
+        "sync_applied_before_tensor_conversion",
+        "future_schedule_consumed",
+        "phase_remaining_available",
+    }
+)
+ROUTE_SOURCE_ROW_FIELDS = frozenset(
+    {
+        "scenario_id",
+        "formal_case_sha256",
+        "runner_eligible",
+        "retention_role",
+        "family",
+        "tier",
+        "seed",
+        "source_map_sha256",
+        "route_identity_sha256",
+        "actual_mapped_signal",
+        "id_free_tensor_layout",
+        "source_class",
+        "phase_authority_mode",
+        "source_chain",
+        "runtime_receipt",
+        "tensor_evidence",
     }
 )
 DEFAULT_CANDIDATE0_IDENTITY_FIELDS = frozenset(
@@ -530,6 +575,16 @@ def _reject_forbidden_nested_fields(value: Any, path: tuple[str, ...] = ()) -> N
                     and key != "offline_label_provenance"
                 )
             )
+            if (
+                key == "future_schedule_consumed"
+                and child is False
+                and path
+                in {
+                    ("sidecar", "controlled_signal_tensor_evidence"),
+                    ("sidecar", "controlled_model_input_cache_receipt"),
+                }
+            ):
+                forbidden = False
             if forbidden:
                 raise ValueError(
                     "snapshot contains forbidden field: " + ".".join((*path, key))
@@ -622,7 +677,11 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
             "observed_map_lanelet_ids",
         ):
             values = receipt.get(field)
-            if type(values) is not list or any(type(value) is not int for value in values):
+            if (
+                type(values) is not list
+                or any(type(value) is not int for value in values)
+                or len(values) != len(set(values))
+            ):
                 raise ValueError(f"runtime receipt {field} must be native int list")
         _native_finite_number(receipt.get("route_arc_m"), "runtime receipt route_arc_m")
         if receipt.get("current_phase") not in {"green", "yellow", "red"}:
@@ -664,9 +723,13 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
                     raise ValueError(f"{label} signal row has no active source")
                 row_phases: set[str] = set()
                 for phase, column in {"green": 0, "yellow": 1, "red": 2}.items():
-                    matches = np.isclose(values[active, column], 1.0, atol=1e-8)
+                    matches = np.isclose(
+                        values[active, column], 1.0, rtol=0.0, atol=1e-8
+                    )
                     other = np.delete(values[active], column, axis=1)
-                    matches &= np.all(np.isclose(other, 0.0, atol=1e-8), axis=1)
+                    matches &= np.all(
+                        np.isclose(other, 0.0, rtol=0.0, atol=1e-8), axis=1
+                    )
                     if np.any(matches):
                         row_phases.add(phase)
                     if not np.all(matches) and np.any(matches):
@@ -675,6 +738,8 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
                     raise ValueError(f"{label} signal row is missing/multihot/unknown")
                 ids.append(row["lanelet_id"])
                 phases.update(row_phases)
+            if len(ids) != len(set(ids)):
+                raise ValueError(f"{label} signal row lanelet IDs are duplicated")
             return ids, phases
 
         route_ids, route_phases = validate_rows(evidence["route_signal_rows"], "route")
@@ -712,7 +777,11 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
             "traffic_light_regulatory_element_ids",
         ):
             values = receipt.get(field)
-            if type(values) is not list or any(type(value) is not int for value in values):
+            if (
+                type(values) is not list
+                or any(type(value) is not int for value in values)
+                or len(values) != len(set(values))
+            ):
                 raise ValueError(f"runtime no-signal {field} must be native int list")
         _native_bool(receipt.get("applicable"), "runtime no-signal applicable")
         if receipt.get("current_phase") != "none":
@@ -775,6 +844,40 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
             if causal.get(field) is not None:
                 raise ValueError(f"causal no-signal {field} must be null")
     validate_causal_signal_atom_input(causal)
+
+    cache = sidecar.get("controlled_model_input_cache_receipt")
+    if type(cache) is not dict or set(cache) != MODEL_INPUT_CACHE_RECEIPT_FIELDS:
+        raise ValueError("model-input signal cache receipt exact schema drifted")
+    if (
+        cache.get("schema_version")
+        != MODEL_INPUT_SIGNAL_CACHE_RECEIPT_SCHEMA_VERSION
+        or cache.get("scenario_id") != sidecar.get("scenario_id")
+        or type(cache.get("tick_index")) is not int
+        or cache.get("tick_index") != sidecar.get("tick_index")
+        or cache.get("signal_source_class") != source_class
+        or cache.get("phase_authority_mode") != phase_mode
+        or any(
+            not _is_sha256(cache.get(field))
+            for field in (
+                "scene_map_tl_sha256",
+                "model_cache_tl_sha256_before",
+                "model_cache_tl_sha256_after",
+                "model_route_lanes_tl_sha256",
+            )
+        )
+        or cache.get("model_cache_tl_sha256_after")
+        != cache.get("scene_map_tl_sha256")
+        or cache.get("cache_matches_scene_after") is not True
+        or type(cache.get("observe_cache_unchanged")) is not bool
+        or cache.get("sync_applied_before_tensor_conversion") is not True
+        or cache.get("future_schedule_consumed") is not False
+        or cache.get("phase_remaining_available") is not False
+        or (
+            phase_mode != "controlled_same_tick_override"
+            and cache.get("observe_cache_unchanged") is not True
+        )
+    ):
+        raise ValueError("model-input signal cache receipt value contract drifted")
 
 
 def _validate_snapshot_index_row(row: Any) -> None:
@@ -877,6 +980,9 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
         "selected_trajectory_sha256",
         "normalized_atom_matrix_sha256",
         "generation_behavior_scale_sha256",
+        "source_map_sha256",
+        "route_signal_source_artifact_root_sha256",
+        "route_signal_source_row_sha256",
     ):
         if not _is_sha256(sidecar.get(field)):
             raise ValueError(f"sidecar {field} must be a SHA256 string")
@@ -1019,7 +1125,139 @@ def _read_verified_content_addressed_snapshot(
     return payload
 
 
-def review(corpus: Path, expected_root: str) -> dict[str, Any]:
+def _open_route_source_authority(
+    *,
+    source_artifact: Path,
+    source_root_sha256: str,
+    source_review_artifact: Path,
+    source_review_root_sha256: str,
+) -> dict[str, Mapping[str, Any]]:
+    source_seal = verify_complete_seal(
+        source_artifact, source_root_sha256, label="V25 route source census"
+    )
+    review_seal = verify_complete_seal(
+        source_review_artifact,
+        source_review_root_sha256,
+        label="V25 route source census review",
+    )
+    if source_seal["manifest_paths"] != sorted(
+        {
+            "COMMAND",
+            "HEADS",
+            "formal_route_source_contract_supplement.json",
+            "report.json",
+            "route_signal_source_receipts.json",
+            "run.exit",
+        }
+    ) or review_seal["manifest_paths"] != sorted(
+        {"COMMAND", "HEADS", "report.json", "run.exit"}
+    ):
+        raise ValueError("route source census/review inventory drifted")
+    if (source_artifact / "run.exit").read_bytes() != b"0\n" or (
+        source_review_artifact / "run.exit"
+    ).read_bytes() != b"0\n":
+        raise ValueError("route source census/review did not exit zero")
+    source_report = _json(source_artifact / "report.json")
+    review_report = _json(source_review_artifact / "report.json")
+    payload = _json(source_artifact / "route_signal_source_receipts.json")
+    rows = payload.get("cases")
+    if (
+        source_report.get("status")
+        != "passed_source_only_route_signal_authority_census"
+        or review_report.get("status")
+        != "passed_independent_route_signal_source_review"
+        or Path(str(review_report.get("reviewed_artifact"))).resolve()
+        != source_artifact.resolve()
+        or review_report.get("reviewed_root_sha256") != source_root_sha256
+        or payload.get("source_failures") != []
+        or type(rows) is not list
+        or len(rows) != EXPECTED_EXECUTABLE_IDENTITIES + 153
+        or any(type(row) is not dict or set(row) != ROUTE_SOURCE_ROW_FIELDS for row in rows)
+    ):
+        raise ValueError("route source census/review authority drifted")
+    by_id = {row["scenario_id"]: row for row in rows}
+    if len(by_id) != len(rows) or any(not _is_sha256(key) for key in by_id):
+        raise ValueError("route source census identities are duplicated or invalid")
+    return by_id
+
+
+def _validate_route_source_row_binding(
+    sidecar: Mapping[str, Any],
+    *,
+    source_rows: Mapping[str, Mapping[str, Any]],
+    source_root_sha256: str,
+) -> None:
+    scenario_id = sidecar.get("scenario_id")
+    row = source_rows.get(scenario_id)
+    if row is None or row.get("runner_eligible") is not True:
+        raise ValueError("snapshot lacks sealed executable route-source row")
+    if (
+        sidecar.get("route_signal_source_artifact_root_sha256")
+        != source_root_sha256
+        or sidecar.get("route_signal_source_row_sha256") != _oracle_sha256(row)
+        or sidecar.get("family") != row.get("family")
+        or sidecar.get("tier") != row.get("tier")
+        or sidecar.get("seed") != row.get("seed")
+        or sidecar.get("source_map_sha256") != row.get("source_map_sha256")
+        or sidecar.get("route_identity_sha256") != row.get("route_identity_sha256")
+        or sidecar.get("signal_source_class") != row.get("source_class")
+        or sidecar.get("phase_authority_mode") != row.get("phase_authority_mode")
+    ):
+        raise ValueError("snapshot route-source row identity binding drifted")
+    chain = row.get("source_chain")
+    receipt = sidecar.get("controlled_signal_source_receipt")
+    causal = sidecar.get("causal_signal_atom_input")
+    cache = sidecar.get("controlled_model_input_cache_receipt")
+    if type(chain) is not dict or type(receipt) is not dict or type(causal) is not dict:
+        raise ValueError("snapshot route-source chain binding is malformed")
+    if (
+        cache.get("scenario_id") != scenario_id
+        or receipt.get("scenario_id") != scenario_id
+        or receipt.get("source_chain_sha256") != chain.get("source_chain_sha256")
+        or causal.get("source_chain_sha256") != chain.get("source_chain_sha256")
+        or receipt.get("route_geometry_sha256") != chain.get("route_geometry_sha256")
+        or causal.get("route_geometry_sha256") != chain.get("route_geometry_sha256")
+    ):
+        raise ValueError("snapshot runtime receipt was swapped across source identities")
+    if row.get("source_class") == "mapped_signal":
+        regulatory_ids = chain.get("regulatory_element_ids")
+        if (
+            type(regulatory_ids) is not list
+            or len(regulatory_ids) != 1
+            or receipt.get("regulatory_element_id") != regulatory_ids[0]
+            or receipt.get("physical_light_ids") != chain.get("physical_light_ids")
+            or receipt.get("bulb_ids") != chain.get("bulb_ids")
+            or receipt.get("controlled_lanelet_ids")
+            != chain.get("controlled_lanelet_ids")
+            or receipt.get("stop_line_id") != chain.get("stop_line_id")
+            or receipt.get("stop_line_geometry_sha256")
+            != chain.get("stop_line_geometry_sha256")
+            or causal.get("stop_line_geometry_sha256")
+            != chain.get("stop_line_geometry_sha256")
+            or causal.get("regulatory_element_id") != regulatory_ids[0]
+            or causal.get("stop_line_id") != chain.get("stop_line_id")
+        ):
+            raise ValueError("snapshot mapped source-chain binding drifted")
+    elif row.get("source_class") == "no_signal":
+        if (
+            receipt.get("route_lanelet_ids") != chain.get("route_lanelet_ids")
+            or receipt.get("traffic_light_regulatory_element_ids") != []
+            or chain.get("traffic_light_regulatory_element_ids") != []
+        ):
+            raise ValueError("snapshot no-signal source-chain binding drifted")
+    else:
+        raise ValueError("snapshot route-source class drifted")
+
+
+def review(
+    corpus: Path,
+    expected_root: str,
+    *,
+    route_source_artifact: Path,
+    route_source_root_sha256: str,
+    route_source_review_artifact: Path,
+    route_source_review_root_sha256: str,
+) -> dict[str, Any]:
     head = _git_head(ROOT)
     if _tracked_dirty(ROOT):
         raise ValueError("CAMP tracked worktree is dirty")
@@ -1028,6 +1266,12 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
     progress = _json(corpus / "progress.json")
     results = _jsonl(corpus / "results.jsonl")
     index = _jsonl(corpus / "snapshot_index.jsonl")
+    source_rows = _open_route_source_authority(
+        source_artifact=route_source_artifact,
+        source_root_sha256=route_source_root_sha256,
+        source_review_artifact=route_source_review_artifact,
+        source_review_root_sha256=route_source_review_root_sha256,
+    )
     _validate_terminal_schemas(report, progress, results)
     verify_dual_head_contract(
         repo=ROOT,
@@ -1130,6 +1374,11 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         _validate_snapshot_field_schema(snapshot)
         features = snapshot["feature_payload"]
         sidecar = snapshot["sidecar"]
+        _validate_route_source_row_binding(
+            sidecar,
+            source_rows=source_rows,
+            source_root_sha256=route_source_root_sha256,
+        )
         source = np.asarray(features["atom_source_valid_mask"], dtype=np.bool_)
         applicable = np.asarray(features["atom_applicable_mask"], dtype=np.bool_)
         physical = features.get("physical_feasible_mask")
@@ -1203,6 +1452,10 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
         "fixed_dp_head": FIXED_DP_HEAD,
         "reviewed_artifact": str(corpus),
         "reviewed_root_sha256": seal["root_sha256"],
+        "route_source_artifact": str(route_source_artifact),
+        "route_source_root_sha256": route_source_root_sha256,
+        "route_source_review_artifact": str(route_source_review_artifact),
+        "route_source_review_root_sha256": route_source_review_root_sha256,
         "identity_denominator": len(results),
         "complete_identity_count": sum(row["status"] == "complete" for row in results),
         "typed_retained_failure_count": sum(row["status"] == "failed" for row in results),
@@ -1218,12 +1471,23 @@ def main() -> None:
     parser.add_argument("--corpus-artifact", type=Path, required=True)
     parser.add_argument("--corpus-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--route-source-artifact", type=Path, required=True)
+    parser.add_argument("--route-source-root-sha256", required=True)
+    parser.add_argument("--route-source-review-artifact", type=Path, required=True)
+    parser.add_argument("--route-source-review-root-sha256", required=True)
     args = parser.parse_args()
     if args.output_dir.exists():
         raise FileExistsError(args.output_dir)
     args.output_dir.mkdir(parents=True)
     try:
-        report = review(args.corpus_artifact, args.corpus_root_sha256)
+        report = review(
+            args.corpus_artifact,
+            args.corpus_root_sha256,
+            route_source_artifact=args.route_source_artifact,
+            route_source_root_sha256=args.route_source_root_sha256,
+            route_source_review_artifact=args.route_source_review_artifact,
+            route_source_review_root_sha256=args.route_source_review_root_sha256,
+        )
         _write(args.output_dir / "report.json", report)
         (args.output_dir / "HEADS").write_text(
             f"camp_head={report['review_head']}\nfixed_dp_head={FIXED_DP_HEAD}\n",
