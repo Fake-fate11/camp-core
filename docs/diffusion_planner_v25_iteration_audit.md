@@ -3702,9 +3702,10 @@ implementation commit exactly. AutoDL then performed a normal GitHub fetch and
 ff-only merge to the same commit; fixed DP remained clean at
 `7a1d33da277a1992ec474b5383a0c963c72e04e4`.
 
-One consolidated local scope passed 191 tests with four platform/source-fixture
-skips. The matching AutoDL Python 3.12 scope passed all 195 tests, including the
+The frozen focused regression scope passed 226 local tests with four platform/
+source-fixture skips. AutoDL Python 3.12 passed all 230 tests, including the
 real fixed-source history fixture and the new branching-predecessor comparison.
+Native-hook and pointer subsets ran serially after their authority inputs existed.
 The relevant implementation/test files passed `py_compile`; local and remote
 `git diff --check` and tracked-clean checks passed. Tests ran serially, all
 commands ended naturally before this gate, and no polling monitor, taskkill, or
@@ -3764,8 +3765,8 @@ current_v25_a1611_release_schema=camp_dp_v25_ultra_a1610_bounded_execute_release
 current_v25_a1611_device=cuda
 current_v25_a1611_four_root_bindings_sha256=a9979c8e90a06f48cc58c2b12359b2f9e1c70506da5a900cdffd20119fef229b
 current_v25_a1611_four_roots_machine_authority_eligible=false
-current_v25_a1611_local_targeted_test_result=191_passed_4_skipped
-current_v25_a1611_autodl_targeted_test_result=195_passed
+current_v25_a1611_local_targeted_test_result=226_passed_4_skipped
+current_v25_a1611_autodl_targeted_test_result=230_passed
 current_v25_a1611_bounded_release_created=false
 current_v25_a1611_bounded_nonce_created=false
 current_v25_a1611_bounded_k8_executed=false

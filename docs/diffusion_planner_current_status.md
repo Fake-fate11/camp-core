@@ -424,9 +424,10 @@ float32, source, fixed-DP, K8, trajectory, or denominator contract changed.
 Implementation source HEAD `bcbb27ec5babccacdf009787d886aabfd9f4babe`
 was pushed normally to GitHub, and a fresh `git ls-remote` returned that exact
 HEAD. AutoDL then fetched GitHub and advanced ff-only to the same HEAD. The
-consolidated local regression passed 191 tests with four platform/source skips;
-the AutoDL batch passed all 195 tests, including the real fixed-source and
-branching-predecessor RNG regressions. All commands ended naturally and no
+frozen focused regression scope passed 226 tests with four platform/source
+skips; AutoDL passed all 230 tests, including the real fixed-source and
+branching-predecessor RNG regressions. The native-hook and pointer subsets ran
+serially after their authority inputs existed. All commands ended naturally and no
 concurrent local test batch, polling monitor, or XHigh process cleanup was used.
 
 Under the same implementation HEAD, the source census, source review, bounded
@@ -664,8 +665,8 @@ current_v25_a1611_release_schema=camp_dp_v25_ultra_a1610_bounded_execute_release
 current_v25_a1611_device=cuda
 current_v25_a1611_four_root_bindings_sha256=a9979c8e90a06f48cc58c2b12359b2f9e1c70506da5a900cdffd20119fef229b
 current_v25_a1611_four_roots_machine_authority_eligible=false
-current_v25_a1611_local_targeted_test_result=191_passed_4_skipped
-current_v25_a1611_autodl_targeted_test_result=195_passed
+current_v25_a1611_local_targeted_test_result=226_passed_4_skipped
+current_v25_a1611_autodl_targeted_test_result=230_passed
 current_v25_a1611_bounded_release_created=false
 current_v25_a1611_bounded_nonce_created=false
 current_v25_a1611_bounded_k8_executed=false
