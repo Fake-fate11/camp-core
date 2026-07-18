@@ -449,6 +449,6 @@ def test_v25_a15_r05_nested_control_and_corpus_schema_are_bounded() -> None:
         "4c3410f5c4f123e08e63a18cef10c366911fef7f454f74dbc2532d20db3dd396",
         "all 139 V25 tests",
         "No full-config release nonce or output",
-        "ultra_read_only_A1_5_R0_5_review_before_full_config_preflight_release",
+        "The next gate is Ultra read-only A1.5/R0.5 review",
     ):
         assert phrase in text
