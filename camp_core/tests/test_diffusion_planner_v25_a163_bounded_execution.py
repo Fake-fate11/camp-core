@@ -5,7 +5,10 @@ import copy
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -414,6 +417,24 @@ def test_failure_path_is_sealed_and_releases_lock(
         )
     assert (output / "run.exit").read_bytes() == b"1\n"
     assert verify_complete_seal(output)["file_count"] == 2
+
+
+@pytest.mark.skipif(os.name != "posix", reason="Linux flock integration")
+def test_bounded_runner_exclusive_lock_rejects_second_process_and_releases(
+    tmp_path: Path,
+) -> None:
+    lock_path = tmp_path / "bounded.lock"
+    probe = (
+        "import fcntl,sys; "
+        "p=open(sys.argv[1],'a+'); "
+        "\ntry: fcntl.flock(p.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)"
+        "\nexcept BlockingIOError: raise SystemExit(23)"
+    )
+    with runner._exclusive_lock(lock_path):
+        blocked = subprocess.run([sys.executable, "-c", probe, str(lock_path)])
+        assert blocked.returncode == 23
+    released = subprocess.run([sys.executable, "-c", probe, str(lock_path)])
+    assert released.returncode == 0
 
 
 def test_post_run_reviewer_does_not_import_producer_evidence_helper() -> None:
