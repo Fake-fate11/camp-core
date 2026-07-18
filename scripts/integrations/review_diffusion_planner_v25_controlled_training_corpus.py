@@ -37,6 +37,14 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
     RAW_FEATURE_NAMES,
 )
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_review import (  # noqa: E402
+    expected_shard_manifest_paths,
+    independently_materialize_causal_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_snapshot_review import (  # noqa: E402
+    SNAPSHOT_SUFFIX,
+    independently_read_snapshot,
+)
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
     RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
@@ -56,7 +64,7 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v5"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v6"
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -914,7 +922,9 @@ def _validate_snapshot_index_row(row: Any) -> None:
         raise ValueError("snapshot index sha256 must be a SHA256 string")
 
 
-def _validate_snapshot_field_schema(snapshot: Any) -> None:
+def _validate_snapshot_field_schema(
+    snapshot: Any, *, artifact_root: Path
+) -> set[str]:
     if type(snapshot) is not dict or set(snapshot) != SNAPSHOT_FIELDS:
         raise ValueError("snapshot top-level exact field set drifted")
     features = snapshot.get("feature_payload")
@@ -967,7 +977,11 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
         raise ValueError(
             "context_source_complete must exactly match boolean RAW_FEATURE_NAMES"
         )
-    causal = features.get("causal_evidence")
+    causal_reference = features.get("causal_evidence")
+    causal, referenced_shards = independently_materialize_causal_evidence(
+        artifact_root=artifact_root,
+        reference=causal_reference,
+    )
     causal_fields = {
         "schema_version", "ego_current_state", "ego_shape", "neighbor_agents_past",
         "neighbor_valid_mask", "candidate_neighbor_predictions", "static_objects",
@@ -1179,23 +1193,9 @@ def _read_verified_content_addressed_snapshot(
         )
     ):
         raise ValueError("snapshot index SHA256 is invalid")
-    data = path.read_bytes()
-    if not data.endswith(b"\n") or data.endswith(b"\n\n"):
-        raise ValueError("snapshot bytes do not end in exactly one LF")
-    try:
-        payload = json.loads(data.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ValueError("snapshot bytes are not canonical UTF-8 JSON") from exc
+    payload = independently_read_snapshot(path, expected_sha256)
     if not isinstance(payload, dict):
         raise ValueError("snapshot payload is not an object")
-    canonical = _oracle_canonical_snapshot_bytes(payload)
-    digest = hashlib.sha256(canonical).hexdigest()
-    if (
-        data != canonical
-        or digest != expected_sha256
-        or path.name != f"{expected_sha256}.json"
-    ):
-        raise ValueError("snapshot canonical bytes/content address drifted")
     return payload
 
 
@@ -1321,6 +1321,7 @@ def _validate_route_source_row_binding(
             raise ValueError("snapshot no-signal source-chain binding drifted")
     else:
         raise ValueError("snapshot route-source class drifted")
+    return referenced_shards
 
 
 def review(
@@ -1428,6 +1429,7 @@ def review(
     ):
         raise ValueError("corpus snapshot denominator is inconsistent")
     seen_ticks: set[tuple[str, int]] = set()
+    referenced_causal_shards: set[str] = set()
     for row in index:
         _validate_snapshot_index_row(row)
         key = (row["scenario_id"], row["tick_index"])
@@ -1440,12 +1442,15 @@ def review(
             or not isinstance(relative, str)
             or not relative.startswith("snapshots/")
             or ".." in Path(relative).parts
+            or relative != f"snapshots/{row.get('sha256')}{SNAPSHOT_SUFFIX}"
         ):
             raise ValueError("snapshot index authority is invalid")
         path = corpus / relative
         digest = row.get("sha256")
         snapshot = _read_verified_content_addressed_snapshot(path, digest)
-        _validate_snapshot_field_schema(snapshot)
+        referenced_causal_shards.update(
+            _validate_snapshot_field_schema(snapshot, artifact_root=corpus)
+        )
         features = snapshot["feature_payload"]
         sidecar = snapshot["sidecar"]
         _validate_route_source_row_binding(
@@ -1519,6 +1524,8 @@ def review(
             keys = {key[1] for key in seen_ticks if key[0] == row["scenario_id"]}
             if keys != set(range(CORPUS_STEPS)):
                 raise ValueError("complete identity has missing or duplicate tick index")
+    if expected_shard_manifest_paths(seal["manifest_paths"]) != referenced_causal_shards:
+        raise ValueError("corpus causal-evidence shard inventory is not exact")
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "passed_independent_full_corpus_review",

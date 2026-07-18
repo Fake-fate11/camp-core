@@ -5,6 +5,7 @@ import copy
 import hashlib
 import io
 import json
+import lzma
 import os
 from pathlib import Path
 import random
@@ -35,6 +36,15 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
     canonical_sha256,
     validate_bounded_plan,
     verify_bounded_release,
+)
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (
+    ARRAY_CONTRACT,
+    LOGICAL_SCHEMA_VERSION,
+    externalize_causal_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_snapshot_store import (
+    SNAPSHOT_SUFFIX,
+    encode_snapshot,
 )
 from scripts.integrations import run_diffusion_planner_v25_a163_bounded_execution as runner
 from scripts.integrations import review_diffusion_planner_v25_a163_bounded_execution as post_reviewer
@@ -923,7 +933,19 @@ def test_bounded_snapshot_index_carries_repeat_occurrence(tmp_path: Path) -> Non
     output.mkdir()
     stream = io.StringIO()
     run = _plan()["runs"][-1]
-    payload = {"schema_version": "old", "feature_payload": {}, "sidecar": {}}
+    payload = {
+        "schema_version": "old",
+        "feature_payload": {
+            "causal_evidence": {
+                "schema_version": LOGICAL_SCHEMA_VERSION,
+                **{
+                    name: np.zeros(shape, dtype=dtype).tolist()
+                    for name, (shape, dtype) in ARRAY_CONTRACT.items()
+                },
+            }
+        },
+        "sidecar": {},
+    }
     row = runner._write_snapshot(
         output_dir=output,
         index_file=stream,
@@ -1942,7 +1964,9 @@ def test_post_reviewer_independent_context_rejects_safety_speed_contradiction() 
         )
 
 
-def test_post_reviewer_causal_evidence_rejects_predecision_speed_contradiction() -> None:
+def test_post_reviewer_causal_evidence_rejects_predecision_speed_contradiction(
+    tmp_path: Path,
+) -> None:
     ego = np.zeros(10, dtype=np.float32)
     ego[4] = 999.0
     route = np.zeros((25, 20, 33), dtype=np.float32)
@@ -1978,7 +2002,15 @@ def test_post_reviewer_causal_evidence_rejects_predecision_speed_contradiction()
     }
     with pytest.raises(ValueError, match="raw causal evidence"):
         post_reviewer._validate_causal_evidence(
-            feature={"causal_evidence": raw}, sidecar=sidecar, native_tick=native
+            artifact_root=tmp_path,
+            feature={
+                "causal_evidence": externalize_causal_evidence(
+                    output_dir=tmp_path, causal_evidence=raw
+                )
+            },
+            sidecar=sidecar,
+            native_tick=native,
+            referenced_shards=set(),
         )
 
 
@@ -3778,6 +3810,15 @@ def test_canonical_jsonl_rejects_pretty_double_lf_and_duplicate_key(
 def test_every_execution_authority_file_executes_exactly_one_byte_policy(
     tmp_path: Path,
 ) -> None:
+    snapshot_data = encode_snapshot({"value": 1})
+    snapshot_sha = hashlib.sha256(snapshot_data).hexdigest()
+    shard_data = lzma.compress(
+        b"deterministic-array-shard",
+        format=lzma.FORMAT_XZ,
+        check=lzma.CHECK_SHA256,
+        preset=6,
+    )
+    shard_sha = hashlib.sha256(shard_data).hexdigest()
     examples = {
         "COMMAND",
         "HEADS",
@@ -3789,7 +3830,8 @@ def test_every_execution_authority_file_executes_exactly_one_byte_policy(
         "snapshot_index.jsonl",
         "run_evidence.jsonl",
         f"routes/{'a' * 64}.pkl",
-        f"snapshots/{'b' * 64}.json",
+        f"snapshots/{snapshot_sha}{SNAPSHOT_SUFFIX}",
+        f"causal_evidence_shards/{shard_sha}.bin.xz",
         f"causal_scene_materializations/{'c' * 64}.npz",
         "native_runs/run_000_identity0_first_case/bounded_native_receipt.json",
         "native_runs/run_000_identity0_first_case/trajectory_log.json",
@@ -3819,6 +3861,10 @@ def test_every_execution_authority_file_executes_exactly_one_byte_policy(
         elif relative.endswith(".npz"):
             with path.open("wb") as handle:
                 np.savez_compressed(handle, value=np.asarray([1], dtype=np.int64))
+        elif relative.endswith(".bin.xz"):
+            path.write_bytes(shard_data)
+        elif relative.endswith(SNAPSHOT_SUFFIX):
+            path.write_bytes(snapshot_data)
         elif relative.endswith(".pkl"):
             path.write_bytes(b"fixed-dp-route")
         else:

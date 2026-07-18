@@ -13,6 +13,9 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (
     CRITICAL_IMPLEMENTATION_PATHS,
 )
 from camp_core.integrations.diffusion_planner_v25_context import RAW_FEATURE_NAMES
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (
+    externalize_causal_evidence,
+)
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
     RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
@@ -291,14 +294,27 @@ def test_full_config_integer_and_boolean_authority_rejects_numeric_subtypes() ->
     assert not full_config_reviewer._strict_json_equal([25001.0], [25001])
 
 
-def test_snapshot_and_index_schema_reject_extra_future_delete_and_type_drift() -> None:
-    snapshot = _snapshot()
-    corpus_reviewer._validate_snapshot_field_schema(snapshot)
+def _externalized_snapshot(snapshot: dict, artifact_root: Path) -> dict:
+    value = copy.deepcopy(snapshot)
+    value["feature_payload"]["causal_evidence"] = externalize_causal_evidence(
+        output_dir=artifact_root,
+        causal_evidence=value["feature_payload"]["causal_evidence"],
+    )
+    return value
+
+
+def test_snapshot_and_index_schema_reject_extra_future_delete_and_type_drift(
+    tmp_path: Path,
+) -> None:
+    snapshot = _externalized_snapshot(_snapshot(), tmp_path)
+    corpus_reviewer._validate_snapshot_field_schema(
+        snapshot, artifact_root=tmp_path
+    )
     corpus_reviewer._validate_snapshot_index_row(
         {
             "scenario_id": "a" * 64,
             "tick_index": 0,
-            "relative_path": "snapshots/" + "b" * 64 + ".json",
+            "relative_path": "snapshots/" + "b" * 64 + ".json.xz",
             "sha256": "b" * 64,
         }
     )
@@ -333,13 +349,15 @@ def test_snapshot_and_index_schema_reject_extra_future_delete_and_type_drift() -
 
     for changed in mutations:
         with pytest.raises(ValueError):
-            corpus_reviewer._validate_snapshot_field_schema(changed)
+            corpus_reviewer._validate_snapshot_field_schema(
+                changed, artifact_root=tmp_path
+            )
 
     for field, value in (("tick_index", 0.0), ("scenario_id", 1)):
         row = {
             "scenario_id": "a" * 64,
             "tick_index": 0,
-            "relative_path": "snapshots/" + "b" * 64 + ".json",
+            "relative_path": "snapshots/" + "b" * 64 + ".json.xz",
             "sha256": "b" * 64,
         }
         row[field] = value
@@ -461,8 +479,10 @@ def test_release_nonce_output_and_manifest_are_native_exact(tmp_path: Path) -> N
             )
 
 
-def test_snapshot_rejects_context_ids_receipt_leaks_numeric_types_and_relations() -> None:
-    base = _snapshot()
+def test_snapshot_rejects_context_ids_receipt_leaks_numeric_types_and_relations(
+    tmp_path: Path,
+) -> None:
+    base = _externalized_snapshot(_snapshot(), tmp_path)
     mutations = []
     for field in ("route_id", "map_id", "scenario_id", "split_id", "parameter_block_id"):
         changed = copy.deepcopy(base)
@@ -497,7 +517,9 @@ def test_snapshot_rejects_context_ids_receipt_leaks_numeric_types_and_relations(
     mutations.append(signal_applicability)
     for changed in mutations:
         with pytest.raises(ValueError):
-            corpus_reviewer._validate_snapshot_field_schema(changed)
+            corpus_reviewer._validate_snapshot_field_schema(
+                changed, artifact_root=tmp_path
+            )
 
 
 def _terminal_fixture() -> tuple[dict[str, object], dict[str, object], list[dict[str, object]]]:

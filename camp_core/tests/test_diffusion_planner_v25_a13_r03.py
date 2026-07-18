@@ -5,11 +5,16 @@ import json
 from pathlib import Path
 import pickle
 
+import numpy as np
 import pytest
 
 from camp_core.integrations.diffusion_planner_artifact_seal import (
     seal_artifact,
     verify_complete_seal,
+)
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (
+    ARRAY_CONTRACT,
+    LOGICAL_SCHEMA_VERSION,
 )
 from scripts.integrations import (
     review_diffusion_planner_v25_controlled_training_corpus as corpus_reviewer,
@@ -27,9 +32,19 @@ def test_real_snapshot_writer_one_identity_roundtrip_index_and_seal(
     rows = []
     with (artifact / "snapshot_index.jsonl").open("w", encoding="utf-8") as index:
         for tick in range(corpus.CORPUS_STEPS):
+            causal = {
+                "schema_version": LOGICAL_SCHEMA_VERSION,
+                **{
+                    name: np.zeros(shape, dtype=dtype).tolist()
+                    for name, (shape, dtype) in ARRAY_CONTRACT.items()
+                },
+            }
             payload = {
                 "schema_version": corpus.SNAPSHOT_SCHEMA_VERSION,
-                "feature_payload": {"tick_value": float(tick)},
+                "feature_payload": {
+                    "tick_value": float(tick),
+                    "causal_evidence": causal,
+                },
                 "sidecar": {
                     "scenario_id": scenario_id,
                     "tick_index": tick,
@@ -76,18 +91,17 @@ def test_real_snapshot_writer_one_identity_roundtrip_index_and_seal(
     for row in index_rows:
         path = artifact / row["relative_path"]
         raw = path.read_bytes()
-        assert raw.endswith(b"\n") and not raw.endswith(b"\n\n")
         payload = corpus_reviewer._read_verified_content_addressed_snapshot(
             path, row["sha256"]
         )
-        assert hashlib.sha256(raw).hexdigest() == corpus._canonical_sha256(payload)
-        assert path.name == f"{row['sha256']}.json"
+        assert hashlib.sha256(raw).hexdigest() == row["sha256"]
+        assert path.name == f"{row['sha256']}.json.xz"
+        assert payload["feature_payload"]["causal_evidence"]["logical_sha256"]
 
     first = index_rows[0]
     path = artifact / first["relative_path"]
-    double_lf = path.read_bytes() + b"\n"
-    path.write_bytes(double_lf)
-    with pytest.raises(ValueError, match="exactly one LF"):
+    path.write_bytes(path.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="content-address"):
         corpus_reviewer._read_verified_content_addressed_snapshot(
             path, first["sha256"]
         )

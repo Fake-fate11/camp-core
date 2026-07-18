@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import importlib
 import json
+import lzma
 import math
 from pathlib import Path
 import pickle
@@ -37,11 +38,19 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
     verify_bounded_release,
 )
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_review import (  # noqa: E402
+    expected_shard_manifest_paths,
+    independently_materialize_causal_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_snapshot_review import (  # noqa: E402
+    SNAPSHOT_SUFFIX,
+    independently_read_snapshot,
+)
 
 
-SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_review_v8"
+SCHEMA_VERSION = "camp_dp_v25_a17_bounded_execution_review_v9"
 EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_snapshot_v6"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_snapshot_v7"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -158,7 +167,11 @@ EXECUTION_FILE_BYTE_POLICIES = (
         "canonical-jsonl-each-row-single-lf-v1",
     ),
     (r"routes/[0-9a-f]{64}\.pkl", "fixed-dp-route-pickle-v1"),
-    (r"snapshots/[0-9a-f]{64}\.json", "canonical-content-address-json-v1"),
+    (r"snapshots/[0-9a-f]{64}\.json\.xz", "canonical-content-address-json-xz-v1"),
+    (
+        r"causal_evidence_shards/[0-9a-f]{64}\.bin\.xz",
+        "deterministic-causal-evidence-array-shard-v1",
+    ),
     (
         r"causal_scene_materializations/[0-9a-f]{64}\.npz",
         "strict-causal-scene-materialization-npz-v1",
@@ -712,6 +725,24 @@ def _validate_execution_policy_file(
         "canonical-content-address-json-v1",
     }:
         _load(path, canonical=True)
+    elif policy == "canonical-content-address-json-xz-v1":
+        digest = path.name[: -len(SNAPSHOT_SUFFIX)]
+        independently_read_snapshot(path, digest)
+    elif policy == "deterministic-causal-evidence-array-shard-v1":
+        suffix = ".bin.xz"
+        digest = path.name[: -len(suffix)]
+        data = path.read_bytes()
+        if (
+            not path.name.endswith(suffix)
+            or not _is_sha256(digest)
+            or hashlib.sha256(data).hexdigest() != digest
+        ):
+            raise ValueError("bounded causal shard content address drifted")
+        try:
+            if not lzma.decompress(data, format=lzma.FORMAT_XZ):
+                raise ValueError("bounded causal shard is empty")
+        except lzma.LZMAError as exc:
+            raise ValueError("bounded causal shard XZ stream is invalid") from exc
     elif policy == "canonical-jsonl-each-row-single-lf-v1":
         _jsonl(path)
     elif policy == "fixed-dp-route-pickle-v1":
@@ -939,9 +970,18 @@ def _validate_scene_materialization_hash_sequence(
 
 
 def _validate_causal_evidence(
-    *, feature: Mapping[str, Any], sidecar: Mapping[str, Any], native_tick: Mapping[str, Any]
+    *,
+    artifact_root: Path,
+    feature: Mapping[str, Any],
+    sidecar: Mapping[str, Any],
+    native_tick: Mapping[str, Any],
+    referenced_shards: set[str],
 ) -> dict[str, np.ndarray]:
-    raw = feature.get("causal_evidence")
+    raw, references = independently_materialize_causal_evidence(
+        artifact_root=artifact_root,
+        reference=feature.get("causal_evidence"),
+    )
+    referenced_shards.update(references)
     if (
         type(raw) is not dict
         or set(raw) != CAUSAL_EVIDENCE_FIELDS
@@ -2926,7 +2966,13 @@ def _review_tick(
     scales: np.ndarray,
     weights: np.ndarray,
     scale_sha256: str,
+    artifact_root: Path | None = None,
+    referenced_shards: set[str] | None = None,
 ) -> dict[str, Any]:
+    if referenced_shards is None:
+        referenced_shards = set()
+    if artifact_root is None:
+        artifact_root = Path(".")
     if (
         type(payload) is not dict
         or set(payload) != SNAPSHOT_FIELDS
@@ -3045,7 +3091,11 @@ def _review_tick(
     _validate_context(feature=feature, sidecar=sidecar, receipt=receipt)
     _validate_cache(sidecar=sidecar, source_row=source_row, tick_index=tick_index)
     evidence = _validate_causal_evidence(
-        feature=feature, sidecar=sidecar, native_tick=native_tick
+        artifact_root=artifact_root,
+        feature=feature,
+        sidecar=sidecar,
+        native_tick=native_tick,
+        referenced_shards=referenced_shards,
     )
     _validate_scene_materialization_snapshot_binding(
         evidence=evidence, scene_materialization=scene_materialization
@@ -3177,6 +3227,7 @@ def _review_run(
     scales: np.ndarray,
     weights: np.ndarray,
     scale_sha256: str,
+    referenced_shards: set[str],
 ) -> dict[str, Any]:
     ordinal = run["run_ordinal"]
     native_dir = (
@@ -3246,16 +3297,11 @@ def _review_run(
             or index_row["tick_index"] != tick_index
             or type(index_row.get("relative_path")) is not str
             or index_row["relative_path"]
-            != f"snapshots/{index_row.get('sha256')}.json"
+            != f"snapshots/{index_row.get('sha256')}{SNAPSHOT_SUFFIX}"
         ):
             raise ValueError("bounded snapshot index schema/order drifted")
         path = artifact / index_row["relative_path"]
-        data = path.read_bytes()
-        if hashlib.sha256(data).hexdigest() != index_row["sha256"]:
-            raise ValueError("bounded snapshot content-address hash drifted")
-        payload = _parse_strict_json_bytes(data, label=str(path))
-        if data != _canonical_bytes(payload):
-            raise ValueError("bounded snapshot bytes are not canonical")
+        payload = independently_read_snapshot(path, index_row["sha256"])
         tick_oracles.append(
             _review_tick(
                 payload=payload,
@@ -3268,6 +3314,8 @@ def _review_run(
                 scales=scales,
                 weights=weights,
                 scale_sha256=scale_sha256,
+                artifact_root=artifact,
+                referenced_shards=referenced_shards,
             )
         )
     trajectory = []
@@ -3590,6 +3638,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     ):
         raise ValueError("bounded results/evidence/index denominator drifted")
     rebuilt = []
+    referenced_causal_shards: set[str] = set()
     for run, result in zip(plan["runs"], results):
         source_row = _validate_source_row(rows_by_id[str(run["scenario_id"])])
         if (
@@ -3621,8 +3670,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 scales=scales,
                 weights=weights,
                 scale_sha256=scale_sha256,
+                referenced_shards=referenced_causal_shards,
             )
         )
+    if expected_shard_manifest_paths(seal["manifest_paths"]) != referenced_causal_shards:
+        raise ValueError("bounded causal-evidence shard inventory is not exact")
     if _canonical_bytes(rebuilt) != _canonical_bytes(evidence):
         raise ValueError("bounded producer run evidence differs from independent rebuild")
     expected_terminal = _independent_terminal(

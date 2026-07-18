@@ -47,13 +47,20 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
     V25ControlledSceneAdapter,
 )
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (  # noqa: E402
+    externalize_causal_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_snapshot_store import (  # noqa: E402
+    SNAPSHOT_SUFFIX,
+    encode_snapshot,
+)
 from scripts.integrations import (  # noqa: E402
     run_diffusion_planner_v25_controlled_training_corpus as corpus,
 )
 
 
 SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_snapshot_v6"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_snapshot_v7"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
@@ -1314,21 +1321,19 @@ def _write_snapshot(
     sidecar = payload.get("sidecar")
     if type(sidecar) is not dict:
         raise ValueError("bounded snapshot sidecar is missing")
+    feature = payload.get("feature_payload")
+    if type(feature) is not dict:
+        raise ValueError("bounded snapshot feature payload is missing")
     payload["schema_version"] = SNAPSHOT_SCHEMA_VERSION
     sidecar["run_ordinal"] = run["run_ordinal"]
     sidecar["occurrence"] = run["occurrence"]
-    data = (
-        json.dumps(
-            payload,
-            sort_keys=True,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            allow_nan=False,
-        )
-        + "\n"
-    ).encode("utf-8")
+    feature["causal_evidence"] = externalize_causal_evidence(
+        output_dir=output_dir,
+        causal_evidence=feature.get("causal_evidence"),
+    )
+    data = encode_snapshot(payload)
     digest = hashlib.sha256(data).hexdigest()
-    relative = Path("snapshots") / f"{digest}.json"
+    relative = Path("snapshots") / f"{digest}{SNAPSHOT_SUFFIX}"
     target = output_dir / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and target.read_bytes() != data:

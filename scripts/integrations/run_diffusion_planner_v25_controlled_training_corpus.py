@@ -40,6 +40,13 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E40
     compute_authorized_red_stopping_margin_costs,
     validate_fixed_k8_candidate_tensor,
 )
+from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (  # noqa: E402
+    externalize_causal_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_snapshot_store import (  # noqa: E402
+    SNAPSHOT_SUFFIX,
+    encode_snapshot,
+)
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
     CANONICAL_JSON_BYTE_SPEC_VERSION,
     EXECUTE_RELEASE_SCHEMA_VERSION,
@@ -90,7 +97,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 
 
 SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v7"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v8"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v9"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
     "camp_dp_v25_full_r_semantic_authority_chains_v3"
 )
@@ -2682,11 +2689,17 @@ def _write_content_addressed_snapshot(
         or tick_index < 0
     ):
         raise ValueError("snapshot tick_index must be a nonnegative integer")
-    data = _canonical_json_bytes(payload)
-    if not data.endswith(b"\n") or data.endswith(b"\n\n"):
-        raise ValueError("V25 canonical snapshot bytes must end in exactly one LF")
+    if type(payload) is not dict or type(payload.get("feature_payload")) is not dict:
+        raise ValueError("snapshot payload must contain a feature mapping")
+    feature = payload["feature_payload"]
+    causal_evidence = feature.get("causal_evidence")
+    feature["causal_evidence"] = externalize_causal_evidence(
+        output_dir=output_dir,
+        causal_evidence=causal_evidence,
+    )
+    data = encode_snapshot(payload)
     digest = hashlib.sha256(data).hexdigest()
-    relative = Path("snapshots") / f"{digest}.json"
+    relative = Path("snapshots") / f"{digest}{SNAPSHOT_SUFFIX}"
     target = output_dir / relative
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and target.read_bytes() != data:
