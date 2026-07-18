@@ -275,6 +275,10 @@ class NativeCampPredictBatch:
             [int, Mapping[str, Any]], None
         ]
         | None = None,
+        causal_input_receipt_sink: Callable[
+            [int, Mapping[str, Any]], None
+        ]
+        | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -322,6 +326,7 @@ class NativeCampPredictBatch:
         self.v25_v2i_signal_timing = v25_v2i_signal_timing
         self.causal_signal_atom_input_provider = causal_signal_atom_input_provider
         self.causal_input_sink = causal_input_sink
+        self.causal_input_receipt_sink = causal_input_receipt_sink
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.weights is None
@@ -414,6 +419,23 @@ class NativeCampPredictBatch:
                 source_observed_frames=_source_observed_frames(scene),
             )
             receipt["causal_input"] = boundary.receipt
+            if self.causal_input_receipt_sink is not None:
+                # Diagnostic-only metadata is emitted from the exact same
+                # boundary as the full causal materialization.  JSON roundtrip
+                # makes the callback copy independent from the native receipt
+                # retained by this hook without exposing array preimages twice.
+                self.causal_input_receipt_sink(
+                    tick_index,
+                    json.loads(
+                        json.dumps(
+                            boundary.receipt,
+                            sort_keys=True,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                            allow_nan=False,
+                        )
+                    ),
+                )
             if self.causal_input_sink is not None:
                 self.causal_input_sink(
                     tick_index,
@@ -2810,6 +2832,10 @@ def build_native_arm_runner(
             [int, Mapping[str, Any]], None
         ]
         | None = None,
+        causal_input_receipt_sink: Callable[
+            [int, Mapping[str, Any]], None
+        ]
+        | None = None,
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
@@ -2936,6 +2962,7 @@ def build_native_arm_runner(
                     else None
                 ),
                 causal_input_sink=causal_input_sink,
+                causal_input_receipt_sink=causal_input_receipt_sink,
             )
         elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
             replacement = NativeCampPredictBatch(

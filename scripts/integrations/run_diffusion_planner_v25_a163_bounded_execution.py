@@ -99,6 +99,37 @@ SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION = (
 SCENE_MATERIALIZATION_EVIDENCE_FIELDS = {
     "schema_version", "relative_path", "sha256", "tick_count", "arrays",
 }
+PREPROJECTION_EVIDENCE_SCHEMA_VERSION = (
+    "camp_dp_v25_a17_preprojection_digest_evidence_v1"
+)
+PREPROJECTION_EVIDENCE_FIELDS = {
+    "schema_version", "run_ordinal", "occurrence", "native_tick_indices",
+    "native_causal_receipts", "native_input_sha256_sequence",
+    "materialization_sha256_sequence", "materialization_evidence",
+    "mismatch_indices", "first_mismatch",
+    "accepted_as_scientific_evidence", "full_r_execute_authorized",
+    "training_executed", "calibration_executed", "fresh_b2_opened",
+    "outcome_fields_consumed",
+}
+PREPROJECTION_NATIVE_TICK_FIELDS = {
+    "tick_index", "input_sha256", "arrays", "padding",
+}
+PREPROJECTION_PADDING_FIELDS = {
+    "source_observed_frames", "observed_frames", "padded_frames",
+    "truncated_frames", "padding_policy",
+}
+PREPROJECTION_FIRST_MISMATCH_FIELDS = {
+    "tick_index", "native_input_sha256", "materialization_sha256",
+    "first_different_array",
+}
+PREPROJECTION_ARRAY_DIFFERENCE_FIELDS = {
+    "name", "native", "materialization",
+}
+CAUSAL_RECEIPT_FIELDS = {
+    "source_observed_frames", "observed_frames", "padded_frames",
+    "truncated_frames", "padding_policy", "arrays", "input_sha256",
+}
+CAUSAL_ARRAY_RECEIPT_FIELDS = {"shape", "dtype", "sha256"}
 SCENE_MATERIALIZATION_ARRAY_SCHEMA = {
     "ego_agent_past": ((31, 3), "float32"),
     "ego_current_state": ((10,), "float32"),
@@ -138,19 +169,21 @@ def _git(repo: Path, *args: str) -> str:
     ).stdout.strip()
 
 
+def _canonical_json_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
 def _write_json(path: Path, value: Any) -> None:
-    path.write_bytes(
-        (
-            json.dumps(
-                value,
-                sort_keys=True,
-                ensure_ascii=False,
-                separators=(",", ":"),
-                allow_nan=False,
-            )
-            + "\n"
-        ).encode("utf-8")
-    )
+    path.write_bytes(_canonical_json_bytes(value))
 
 
 def _write_json_atomic(path: Path, value: Any) -> None:
@@ -292,6 +325,462 @@ def _load_native_json(path: Path) -> Any:
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise ValueError(f"bounded native JSON is not strict: {path}") from exc
+
+
+def _load_canonical_json(path: Path) -> Any:
+    raw = path.read_bytes()
+    try:
+        value = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_strict_object_pairs,
+            parse_constant=lambda token: (_ for _ in ()).throw(
+                ValueError(f"nonfinite canonical JSON constant is forbidden: {token}")
+            ),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"bounded canonical JSON is not strict: {path}") from exc
+    if raw != _canonical_json_bytes(value):
+        raise ValueError(f"bounded canonical JSON bytes drifted: {path}")
+    return value
+
+
+def _require_plain_int(value: Any, *, label: str, minimum: int = 0) -> int:
+    if type(value) is not int or value < minimum:
+        raise ValueError(f"{label} must be a native integer >= {minimum}")
+    return value
+
+
+def _require_sha256(value: Any, *, label: str) -> str:
+    if type(value) is not str or re.fullmatch(r"[0-9a-f]{64}", value) is None:
+        raise ValueError(f"{label} must be a lowercase SHA256 digest")
+    return value
+
+
+def _validated_causal_receipt_metadata(
+    value: Mapping[str, Any], *, tick_index: int
+) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != CAUSAL_RECEIPT_FIELDS:
+        raise ValueError(
+            f"bounded native causal receipt schema drifted at tick {tick_index}"
+        )
+    source_frames = _require_plain_int(
+        value.get("source_observed_frames"),
+        label="native causal source_observed_frames",
+        minimum=1,
+    )
+    observed = _require_plain_int(
+        value.get("observed_frames"), label="native causal observed_frames"
+    )
+    padded = _require_plain_int(
+        value.get("padded_frames"), label="native causal padded_frames"
+    )
+    truncated = _require_plain_int(
+        value.get("truncated_frames"), label="native causal truncated_frames"
+    )
+    if (
+        observed != min(source_frames, 31)
+        or padded != 31 - observed
+        or truncated != max(source_frames - 31, 0)
+        or value.get("padding_policy") != "native_zero_left_pad_to_31_v1"
+    ):
+        raise ValueError(
+            f"bounded native causal padding contract drifted at tick {tick_index}"
+        )
+    arrays = value.get("arrays")
+    if type(arrays) is not dict or set(arrays) != set(
+        SCENE_MATERIALIZATION_ARRAY_SCHEMA
+    ):
+        raise ValueError(
+            f"bounded native causal array key set drifted at tick {tick_index}"
+        )
+    normalized_arrays: dict[str, dict[str, Any]] = {}
+    for name, (shape, dtype_name) in SCENE_MATERIALIZATION_ARRAY_SCHEMA.items():
+        receipt = arrays.get(name)
+        if (
+            type(receipt) is not dict
+            or set(receipt) != CAUSAL_ARRAY_RECEIPT_FIELDS
+            or receipt.get("shape") != list(shape)
+            or receipt.get("dtype") != np.dtype(dtype_name).str
+        ):
+            raise ValueError(
+                f"bounded native causal array metadata drifted for {name} "
+                f"at tick {tick_index}"
+            )
+        normalized_arrays[name] = {
+            "shape": list(shape),
+            "dtype": np.dtype(dtype_name).str,
+            "sha256": _require_sha256(
+                receipt.get("sha256"),
+                label=f"native causal {name} bytes SHA256",
+            ),
+        }
+    return {
+        "source_observed_frames": source_frames,
+        "observed_frames": observed,
+        "padded_frames": padded,
+        "truncated_frames": truncated,
+        "padding_policy": "native_zero_left_pad_to_31_v1",
+        "arrays": normalized_arrays,
+        "input_sha256": _require_sha256(
+            value.get("input_sha256"), label="native causal input SHA256"
+        ),
+    }
+
+
+def _validated_scene_materialization_reference(
+    value: Mapping[str, Any], *, output_dir: Path
+) -> tuple[dict[str, Any], list[str], list[dict[str, dict[str, Any]]]]:
+    if (
+        type(value) is not dict
+        or set(value) != SCENE_MATERIALIZATION_EVIDENCE_FIELDS
+        or value.get("schema_version")
+        != SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION
+        or value.get("tick_count") != TICKS_PER_RUN
+        or type(value.get("tick_count")) is not int
+    ):
+        raise ValueError("bounded scene materialization reference schema drifted")
+    digest = _require_sha256(
+        value.get("sha256"), label="scene materialization NPZ SHA256"
+    )
+    relative = value.get("relative_path")
+    expected_relative = f"causal_scene_materializations/{digest}.npz"
+    if type(relative) is not str or relative != expected_relative:
+        raise ValueError("bounded scene materialization reference path drifted")
+    arrays = value.get("arrays")
+    if type(arrays) is not dict or set(arrays) != set(
+        SCENE_MATERIALIZATION_ARRAY_SCHEMA
+    ):
+        raise ValueError("bounded scene materialization reference arrays drifted")
+    normalized_arrays: dict[str, dict[str, Any]] = {}
+    for name, (shape, dtype_name) in SCENE_MATERIALIZATION_ARRAY_SCHEMA.items():
+        receipt = arrays.get(name)
+        expected_shape = [TICKS_PER_RUN, *shape]
+        if (
+            type(receipt) is not dict
+            or set(receipt) != CAUSAL_ARRAY_RECEIPT_FIELDS
+            or receipt.get("shape") != expected_shape
+            or receipt.get("dtype") != np.dtype(dtype_name).str
+        ):
+            raise ValueError(
+                f"bounded scene materialization reference metadata drifted for {name}"
+            )
+        normalized_arrays[name] = {
+            "shape": expected_shape,
+            "dtype": np.dtype(dtype_name).str,
+            "sha256": _require_sha256(
+                receipt.get("sha256"),
+                label=f"scene materialization {name} stack SHA256",
+            ),
+        }
+    path = output_dir / relative
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("bounded scene materialization NPZ is unavailable")
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != digest:
+        raise ValueError("bounded scene materialization NPZ digest drifted")
+    try:
+        with np.load(path, allow_pickle=False) as archive:
+            if set(archive.files) != set(SCENE_MATERIALIZATION_ARRAY_SCHEMA):
+                raise ValueError("bounded scene materialization NPZ key set drifted")
+            stacked = {
+                name: np.array(archive[name], copy=True)
+                for name in SCENE_MATERIALIZATION_ARRAY_SCHEMA
+            }
+    except (OSError, ValueError) as exc:
+        raise ValueError("bounded scene materialization NPZ is invalid") from exc
+    for name, (shape, dtype_name) in SCENE_MATERIALIZATION_ARRAY_SCHEMA.items():
+        array = stacked[name]
+        if (
+            array.shape != (TICKS_PER_RUN, *shape)
+            or array.dtype != np.dtype(dtype_name)
+            or not np.isfinite(array).all()
+            or hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest()
+            != normalized_arrays[name]["sha256"]
+        ):
+            raise ValueError(
+                f"bounded scene materialization NPZ array drifted for {name}"
+            )
+    tick_hashes: list[str] = []
+    tick_arrays: list[dict[str, dict[str, Any]]] = []
+    for tick_index in range(TICKS_PER_RUN):
+        row = {name: stacked[name][tick_index] for name in stacked}
+        tick_hashes.append(_deterministic_array_mapping_sha256(row))
+        tick_arrays.append(
+            {
+                name: {
+                    "shape": list(row[name].shape),
+                    "dtype": row[name].dtype.str,
+                    "sha256": hashlib.sha256(
+                        np.ascontiguousarray(row[name]).tobytes()
+                    ).hexdigest(),
+                }
+                for name in sorted(row)
+            }
+        )
+    normalized = {
+        "schema_version": SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION,
+        "relative_path": relative,
+        "sha256": digest,
+        "tick_count": TICKS_PER_RUN,
+        "arrays": normalized_arrays,
+    }
+    return normalized, tick_hashes, tick_arrays
+
+
+def _first_array_difference(
+    native_arrays: Mapping[str, Any], materialization_arrays: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    for name in sorted(SCENE_MATERIALIZATION_ARRAY_SCHEMA):
+        if native_arrays[name] != materialization_arrays[name]:
+            return {
+                "name": name,
+                "native": dict(native_arrays[name]),
+                "materialization": dict(materialization_arrays[name]),
+            }
+    return None
+
+
+def _expected_preprojection_mismatch(
+    *,
+    native_receipts: list[Mapping[str, Any]],
+    materialization_hashes: list[str],
+    materialization_arrays: list[Mapping[str, Any]],
+) -> tuple[list[int], dict[str, Any] | None]:
+    mismatches: list[int] = []
+    first: dict[str, Any] | None = None
+    for tick_index in range(TICKS_PER_RUN):
+        native = native_receipts[tick_index]
+        different_array = _first_array_difference(
+            native["arrays"], materialization_arrays[tick_index]
+        )
+        if (
+            native["input_sha256"] != materialization_hashes[tick_index]
+            or different_array is not None
+        ):
+            mismatches.append(tick_index)
+            if first is None:
+                first = {
+                    "tick_index": tick_index,
+                    "native_input_sha256": native["input_sha256"],
+                    "materialization_sha256": materialization_hashes[tick_index],
+                    "first_different_array": different_array,
+                }
+    return mismatches, first
+
+
+def _validate_preprojection_digest_evidence(
+    value: Mapping[str, Any], *, output_dir: Path
+) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != PREPROJECTION_EVIDENCE_FIELDS:
+        raise ValueError("bounded preprojection evidence exact schema drifted")
+    if value.get("schema_version") != PREPROJECTION_EVIDENCE_SCHEMA_VERSION:
+        raise ValueError("bounded preprojection evidence version drifted")
+    run_ordinal = _require_plain_int(
+        value.get("run_ordinal"), label="preprojection run ordinal"
+    )
+    occurrence = value.get("occurrence")
+    if (
+        type(occurrence) is not str
+        or re.fullmatch(r"[a-z0-9_]+", occurrence) is None
+    ):
+        raise ValueError("bounded preprojection occurrence drifted")
+    tick_indices = value.get("native_tick_indices")
+    if (
+        type(tick_indices) is not list
+        or any(type(item) is not int for item in tick_indices)
+        or tick_indices != list(range(TICKS_PER_RUN))
+    ):
+        raise ValueError("bounded preprojection native tick order drifted")
+    receipts = value.get("native_causal_receipts")
+    if type(receipts) is not list or len(receipts) != TICKS_PER_RUN:
+        raise ValueError("bounded preprojection native receipt count drifted")
+    normalized_receipts: list[dict[str, Any]] = []
+    for tick_index, record in enumerate(receipts):
+        if (
+            type(record) is not dict
+            or set(record) != PREPROJECTION_NATIVE_TICK_FIELDS
+            or record.get("tick_index") != tick_index
+            or type(record.get("tick_index")) is not int
+            or type(record.get("padding")) is not dict
+            or set(record["padding"]) != PREPROJECTION_PADDING_FIELDS
+        ):
+            raise ValueError(
+                f"bounded preprojection native tick schema drifted at {tick_index}"
+            )
+        flat = {
+            **record["padding"],
+            "arrays": record.get("arrays"),
+            "input_sha256": record.get("input_sha256"),
+        }
+        validated = _validated_causal_receipt_metadata(flat, tick_index=tick_index)
+        normalized_receipts.append(validated)
+    native_sequence = value.get("native_input_sha256_sequence")
+    if (
+        type(native_sequence) is not list
+        or len(native_sequence) != TICKS_PER_RUN
+        or any(type(item) is not str for item in native_sequence)
+        or native_sequence
+        != [receipt["input_sha256"] for receipt in normalized_receipts]
+    ):
+        raise ValueError("bounded preprojection native SHA sequence drifted")
+    reference, materialization_hashes, materialization_arrays = (
+        _validated_scene_materialization_reference(
+            value.get("materialization_evidence"), output_dir=output_dir
+        )
+    )
+    if value.get("materialization_sha256_sequence") != materialization_hashes:
+        raise ValueError("bounded preprojection materialization SHA sequence drifted")
+    mismatches, first = _expected_preprojection_mismatch(
+        native_receipts=normalized_receipts,
+        materialization_hashes=materialization_hashes,
+        materialization_arrays=materialization_arrays,
+    )
+    if (
+        value.get("mismatch_indices") != mismatches
+        or value.get("first_mismatch") != first
+    ):
+        raise ValueError("bounded preprojection mismatch localization drifted")
+    if first is not None:
+        if set(first) != PREPROJECTION_FIRST_MISMATCH_FIELDS:
+            raise ValueError("bounded preprojection first mismatch schema drifted")
+        different = first["first_different_array"]
+        if different is not None and (
+            type(different) is not dict
+            or set(different) != PREPROJECTION_ARRAY_DIFFERENCE_FIELDS
+        ):
+            raise ValueError("bounded preprojection array difference schema drifted")
+    expected_gates = {
+        "accepted_as_scientific_evidence": False,
+        "full_r_execute_authorized": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    for name, expected in expected_gates.items():
+        if type(value.get(name)) is not type(expected) or value.get(name) != expected:
+            raise ValueError(f"bounded preprojection gate drifted: {name}")
+    return {
+        "schema_version": PREPROJECTION_EVIDENCE_SCHEMA_VERSION,
+        "run_ordinal": run_ordinal,
+        "occurrence": occurrence,
+        "native_tick_indices": list(range(TICKS_PER_RUN)),
+        "native_causal_receipts": [
+            {
+                "tick_index": tick_index,
+                "input_sha256": receipt["input_sha256"],
+                "arrays": receipt["arrays"],
+                "padding": {
+                    name: receipt[name]
+                    for name in PREPROJECTION_PADDING_FIELDS
+                },
+            }
+            for tick_index, receipt in enumerate(normalized_receipts)
+        ],
+        "native_input_sha256_sequence": list(native_sequence),
+        "materialization_sha256_sequence": materialization_hashes,
+        "materialization_evidence": reference,
+        "mismatch_indices": mismatches,
+        "first_mismatch": first,
+        **expected_gates,
+    }
+
+
+def _write_preprojection_digest_evidence(
+    *,
+    output_dir: Path,
+    run: Mapping[str, Any],
+    native_receipts: list[Mapping[str, Any]],
+    materialization_hashes: list[str],
+    materialization_evidence: Mapping[str, Any],
+) -> tuple[Path, dict[str, Any]]:
+    if len(native_receipts) != TICKS_PER_RUN:
+        raise ValueError("bounded preprojection native receipt count must be 64")
+    normalized = [
+        _validated_causal_receipt_metadata(value, tick_index=tick_index)
+        for tick_index, value in enumerate(native_receipts)
+    ]
+    reference, reopened_hashes, materialization_arrays = (
+        _validated_scene_materialization_reference(
+            materialization_evidence, output_dir=output_dir
+        )
+    )
+    if materialization_hashes != reopened_hashes:
+        raise ValueError("bounded preprojection producer/reopened hashes drifted")
+    mismatches, first = _expected_preprojection_mismatch(
+        native_receipts=normalized,
+        materialization_hashes=reopened_hashes,
+        materialization_arrays=materialization_arrays,
+    )
+    run_ordinal = _require_plain_int(
+        run.get("run_ordinal"), label="preprojection run ordinal"
+    )
+    occurrence = run.get("occurrence")
+    if (
+        type(occurrence) is not str
+        or re.fullmatch(r"[a-z0-9_]+", occurrence) is None
+    ):
+        raise ValueError("bounded preprojection run occurrence is invalid")
+    value = {
+        "schema_version": PREPROJECTION_EVIDENCE_SCHEMA_VERSION,
+        "run_ordinal": run_ordinal,
+        "occurrence": occurrence,
+        "native_tick_indices": list(range(TICKS_PER_RUN)),
+        "native_causal_receipts": [
+            {
+                "tick_index": tick_index,
+                "input_sha256": receipt["input_sha256"],
+                "arrays": receipt["arrays"],
+                "padding": {
+                    name: receipt[name]
+                    for name in PREPROJECTION_PADDING_FIELDS
+                },
+            }
+            for tick_index, receipt in enumerate(normalized)
+        ],
+        "native_input_sha256_sequence": [
+            receipt["input_sha256"] for receipt in normalized
+        ],
+        "materialization_sha256_sequence": reopened_hashes,
+        "materialization_evidence": reference,
+        "mismatch_indices": mismatches,
+        "first_mismatch": first,
+        "accepted_as_scientific_evidence": False,
+        "full_r_execute_authorized": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    directory = output_dir / "preprojection_evidence"
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"run_{run_ordinal:03d}_{occurrence}.json"
+    if path.exists():
+        raise FileExistsError(path)
+    _write_json_atomic(path, value)
+    reopened = _load_canonical_json(path)
+    validated = _validate_preprojection_digest_evidence(
+        reopened, output_dir=output_dir
+    )
+    if reopened != validated:
+        raise ValueError("bounded preprojection canonical projection drifted")
+    return path, validated
+
+
+def _require_preprojection_digest_equality(value: Mapping[str, Any]) -> None:
+    mismatches = value.get("mismatch_indices")
+    if type(mismatches) is not list:
+        raise ValueError("bounded preprojection mismatch indices are unavailable")
+    if mismatches:
+        first = mismatches[0]
+        raise ValueError(f"bounded preprojection digest mismatch at tick {first}")
+
+
+def _discard_equal_preprojection_evidence(path: Path) -> None:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("bounded equal preprojection evidence is unavailable")
+    path.unlink()
+    path.parent.rmdir()
 
 
 def _initial_world_state_payload(trajectory_row: Mapping[str, Any]) -> dict[str, Any]:
@@ -890,6 +1379,7 @@ def _execute(
             snapshots: list[Mapping[str, Any]] = []
             contexts: list[Mapping[str, Any]] = []
             scene_materializations: list[Mapping[str, Any]] = []
+            native_causal_receipts: list[Mapping[str, Any]] = []
 
             def capture_causal_input(
                 tick_index: int, value: Mapping[str, Any]
@@ -902,6 +1392,22 @@ def _execute(
                         "bounded scene materialization sink tick order drifted"
                     )
                 scene_materializations.append(value)
+
+            def capture_causal_receipt(
+                tick_index: int, value: Mapping[str, Any]
+            ) -> None:
+                if (
+                    type(tick_index) is not int
+                    or tick_index != len(native_causal_receipts)
+                ):
+                    raise ValueError(
+                        "bounded native causal receipt sink tick order drifted"
+                    )
+                native_causal_receipts.append(
+                    _validated_causal_receipt_metadata(
+                        value, tick_index=tick_index
+                    )
+                )
             native_dir = (
                 args.output_dir
                 / "native_runs"
@@ -920,6 +1426,7 @@ def _execute(
                 scene_adapter=adapter,
                 v25_context_sink=contexts.append,
                 causal_input_sink=capture_causal_input,
+                causal_input_receipt_sink=capture_causal_receipt,
             )
             if (
                 type(receipt) is not dict
@@ -928,6 +1435,7 @@ def _execute(
                 or len(contexts) != TICKS_PER_RUN
                 or len(adapter.receipts) != TICKS_PER_RUN
                 or len(scene_materializations) != TICKS_PER_RUN
+                or len(native_causal_receipts) != TICKS_PER_RUN
             ):
                 raise RuntimeError("bounded run was partial or lacked exact tick evidence")
             corpus.validate_native_arm_receipt(
@@ -959,6 +1467,22 @@ def _execute(
                 rows=scene_materializations,
                 )
             )
+            preprojection_path, preprojection = (
+                _write_preprojection_digest_evidence(
+                    output_dir=args.output_dir,
+                    run=run,
+                    native_receipts=native_causal_receipts,
+                    materialization_hashes=scene_materialization_hashes,
+                    materialization_evidence=scene_reference,
+                )
+            )
+            # Equality is decided only from the canonical evidence that was
+            # atomically persisted and strictly reopened above.  Mismatch keeps
+            # that file for the fail-closed seal; equality removes the
+            # diagnostic-only file so the established success inventory and
+            # scientific receipt remain byte-semantically unchanged.
+            _require_preprojection_digest_equality(preprojection)
+            _discard_equal_preprojection_evidence(preprojection_path)
             receipt = _project_bounded_scientific_receipt(
                 receipt,
                 scene_materialization_hashes=scene_materialization_hashes,

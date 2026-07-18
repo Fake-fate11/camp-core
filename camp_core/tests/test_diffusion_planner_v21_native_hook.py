@@ -180,6 +180,7 @@ def _hook(
     scene_adapter_model_input_sync=None,
     to_model_tensors=_to_model_tensors,
     causal_input_sink=None,
+    causal_input_receipt_sink=None,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -218,6 +219,8 @@ def _hook(
         kwargs["scene_adapter_model_input_sync"] = scene_adapter_model_input_sync
     if causal_input_sink is not None:
         kwargs["causal_input_sink"] = causal_input_sink
+    if causal_input_receipt_sink is not None:
+        kwargs["causal_input_receipt_sink"] = causal_input_receipt_sink
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
 
@@ -252,6 +255,46 @@ def test_v25_sink_captures_scene_materialization_not_batched_forward_input() -> 
     for name, (shape, dtype_name) in CAUSAL_DP_INPUT_SCHEMA.items():
         assert arrays[name].shape == shape
         assert arrays[name].dtype == np.dtype(dtype_name)
+
+
+def test_v25_diagnostic_receipt_sink_is_same_tick_and_strictly_copied() -> None:
+    module = _runner()
+    model = _FakeModel()
+    materializations = []
+    receipts = []
+
+    def capture_receipt(tick_index, receipt):
+        receipts.append((tick_index, receipt))
+        receipt["input_sha256"] = "f" * 64
+        receipt["arrays"]["goal_pose"]["sha256"] = "e" * 64
+
+    hook, state = _hook(
+        module,
+        model,
+        causal_input_sink=lambda tick, arrays: materializations.append(
+            (tick, arrays)
+        ),
+        causal_input_receipt_sink=capture_receipt,
+    )
+    hook(
+        model,
+        SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+        _Scene(),
+        ["ego"],
+        "cpu",
+    )
+
+    assert [item[0] for item in materializations] == [0]
+    assert [item[0] for item in receipts] == [0]
+    native = state.receipts[0]["causal_input"]
+    assert native["input_sha256"] != "f" * 64
+    assert native["arrays"]["goal_pose"]["sha256"] != "e" * 64
+    assert set(native["arrays"]) == set(CAUSAL_DP_INPUT_SCHEMA)
+    assert "causal_input_sink" in module.NativeCampPredictBatch.__init__.__code__.co_varnames
+    assert (
+        "causal_input_receipt_sink"
+        in module.NativeCampPredictBatch.__init__.__code__.co_varnames
+    )
 
 
 def test_v25_scene_adapter_runs_before_fixed_k8_input_materialization() -> None:

@@ -3039,6 +3039,51 @@ def _scene_materialization_rows() -> list[dict[str, np.ndarray]]:
     return rows
 
 
+def _native_causal_receipts(
+    rows: list[dict[str, np.ndarray]],
+) -> list[dict[str, object]]:
+    receipts: list[dict[str, object]] = []
+    for row in rows:
+        receipts.append(
+            {
+                "source_observed_frames": 31,
+                "observed_frames": 31,
+                "padded_frames": 0,
+                "truncated_frames": 0,
+                "padding_policy": "native_zero_left_pad_to_31_v1",
+                "arrays": {
+                    name: {
+                        "shape": list(value.shape),
+                        "dtype": value.dtype.str,
+                        "sha256": hashlib.sha256(
+                            np.ascontiguousarray(value).tobytes()
+                        ).hexdigest(),
+                    }
+                    for name, value in sorted(row.items())
+                },
+                "input_sha256": runner._deterministic_array_mapping_sha256(row),
+            }
+        )
+    return receipts
+
+
+def _write_preprojection_fixture(
+    tmp_path: Path,
+) -> tuple[
+    list[dict[str, np.ndarray]],
+    list[dict[str, object]],
+    dict[str, object],
+    list[str],
+]:
+    rows = _scene_materialization_rows()
+    reference, hashes = runner._write_scene_materialization_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        rows=rows,
+    )
+    return rows, _native_causal_receipts(rows), reference, hashes
+
+
 def test_scene_materialization_sink_retains_all_16_exact_arrays() -> None:
     module = native_runner
     captured: list[tuple[int, dict[str, np.ndarray]]] = []
@@ -3055,6 +3100,183 @@ def test_scene_materialization_sink_retains_all_16_exact_arrays() -> None:
         assert captured[0][1][name].shape == shape
         assert captured[0][1][name].dtype == np.dtype(dtype_name)
     assert "causal_input_sink" in module.NativeCampPredictBatch.__init__.__code__.co_varnames
+    assert (
+        "causal_input_receipt_sink"
+        in module.NativeCampPredictBatch.__init__.__code__.co_varnames
+    )
+
+
+@pytest.mark.parametrize("tick_index", [0, 63])
+def test_preprojection_digest_mismatch_is_persisted_before_fail_closed(
+    tmp_path: Path, tick_index: int
+) -> None:
+    _, receipts, reference, hashes = _write_preprojection_fixture(tmp_path)
+    receipts[tick_index]["input_sha256"] = "f" * 64
+    path, evidence = runner._write_preprojection_digest_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        native_receipts=receipts,
+        materialization_hashes=hashes,
+        materialization_evidence=reference,
+    )
+    assert path.is_file()
+    assert path.read_bytes().endswith(b"\n")
+    assert not path.read_bytes().endswith(b"\n\n")
+    assert evidence["mismatch_indices"] == [tick_index]
+    assert evidence["first_mismatch"]["tick_index"] == tick_index
+    assert evidence["first_mismatch"]["native_input_sha256"] == "f" * 64
+    assert evidence["accepted_as_scientific_evidence"] is False
+    with pytest.raises(
+        ValueError, match=rf"preprojection digest mismatch at tick {tick_index}"
+    ):
+        runner._require_preprojection_digest_equality(evidence)
+    root = seal_artifact(tmp_path, label="A1.7 mismatch failure fixture")
+    seal = verify_complete_seal(tmp_path, root, label="A1.7 mismatch failure fixture")
+    assert path.relative_to(tmp_path).as_posix() in seal["manifest_paths"]
+
+
+def test_preprojection_constant_tick_offset_is_localized_from_tick_zero(
+    tmp_path: Path,
+) -> None:
+    _, receipts, reference, hashes = _write_preprojection_fixture(tmp_path)
+    shifted = receipts[1:] + receipts[:1]
+    path, evidence = runner._write_preprojection_digest_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        native_receipts=shifted,
+        materialization_hashes=hashes,
+        materialization_evidence=reference,
+    )
+    assert path.is_file()
+    assert evidence["mismatch_indices"] == list(range(64))
+    assert evidence["first_mismatch"]["tick_index"] == 0
+    assert evidence["first_mismatch"]["first_different_array"]["name"] == (
+        "ego_current_state"
+    )
+    with pytest.raises(ValueError, match="mismatch at tick 0"):
+        runner._require_preprojection_digest_equality(evidence)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra", "dtype", "shape"])
+def test_preprojection_native_array_schema_mutations_fail_closed(
+    tmp_path: Path, mutation: str
+) -> None:
+    _, receipts, reference, hashes = _write_preprojection_fixture(tmp_path)
+    arrays = receipts[0]["arrays"]
+    if mutation == "missing":
+        arrays.pop("goal_pose")
+    elif mutation == "extra":
+        arrays["future_outcome"] = {
+            "shape": [1], "dtype": "<f4", "sha256": "a" * 64,
+        }
+    elif mutation == "dtype":
+        arrays["goal_pose"]["dtype"] = "<f8"
+    else:
+        arrays["goal_pose"]["shape"] = [2]
+    with pytest.raises(ValueError, match="native causal array"):
+        runner._write_preprojection_digest_evidence(
+            output_dir=tmp_path,
+            run={"run_ordinal": 0, "occurrence": "identity0_first"},
+            native_receipts=receipts,
+            materialization_hashes=hashes,
+            materialization_evidence=reference,
+        )
+
+
+def test_preprojection_per_array_sha_mutation_is_localized(
+    tmp_path: Path,
+) -> None:
+    _, receipts, reference, hashes = _write_preprojection_fixture(tmp_path)
+    receipts[12]["arrays"]["goal_pose"]["sha256"] = "d" * 64
+    path, evidence = runner._write_preprojection_digest_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        native_receipts=receipts,
+        materialization_hashes=hashes,
+        materialization_evidence=reference,
+    )
+    assert path.is_file()
+    assert evidence["mismatch_indices"] == [12]
+    difference = evidence["first_mismatch"]["first_different_array"]
+    assert difference["name"] == "goal_pose"
+    assert difference["native"]["sha256"] == "d" * 64
+    with pytest.raises(ValueError, match="mismatch at tick 12"):
+        runner._require_preprojection_digest_equality(evidence)
+
+
+def test_preprojection_equal_roundtrip_preserves_projected_receipt_semantics(
+    tmp_path: Path,
+) -> None:
+    _, receipts, reference, hashes = _write_preprojection_fixture(tmp_path)
+    native_dir = (tmp_path / "native").resolve()
+    bounded = _exact_native_receipt_fixture()
+    _write_native_logs(native_dir, bounded)
+    legacy = copy.deepcopy(bounded)
+    legacy["schema_version"] = "v21_native_arm_receipt_v1"
+    legacy.pop("causal_scene_materialization_evidence")
+    legacy["initial_input_sha256"] = hashes[0]
+    legacy["initial_state_sha256"] = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + hashes[0]).encode("ascii")
+    ).hexdigest()
+    legacy.pop("initial_world_state_sha256")
+    for tick_index, tick in enumerate(legacy["ticks"]):
+        tick["input_sha256"] = hashes[tick_index]
+        tick.pop("scene_materialization_sha256", None)
+    expected = runner._project_bounded_scientific_receipt(
+        copy.deepcopy(legacy),
+        scene_materialization_hashes=hashes,
+        scene_materialization_evidence=reference,
+        native_dir=native_dir,
+    )
+    path, evidence = runner._write_preprojection_digest_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        native_receipts=receipts,
+        materialization_hashes=hashes,
+        materialization_evidence=reference,
+    )
+    assert evidence["mismatch_indices"] == []
+    assert evidence["first_mismatch"] is None
+    runner._require_preprojection_digest_equality(evidence)
+    runner._discard_equal_preprojection_evidence(path)
+    assert not path.exists()
+    actual = runner._project_bounded_scientific_receipt(
+        copy.deepcopy(legacy),
+        scene_materialization_hashes=hashes,
+        scene_materialization_evidence=reference,
+        native_dir=native_dir,
+    )
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["top_future", "nested_outcome", "nonfinite", "type_smuggling"],
+)
+def test_preprojection_unknown_leakage_nonfinite_and_types_fail_closed(
+    tmp_path: Path, mutation: str
+) -> None:
+    _, receipts, reference, hashes = _write_preprojection_fixture(tmp_path)
+    _, evidence = runner._write_preprojection_digest_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        native_receipts=receipts,
+        materialization_hashes=hashes,
+        materialization_evidence=reference,
+    )
+    mutated = copy.deepcopy(evidence)
+    if mutation == "top_future":
+        mutated["future_schedule"] = []
+    elif mutation == "nested_outcome":
+        mutated["native_causal_receipts"][0]["outcome"] = False
+    elif mutation == "nonfinite":
+        mutated["run_ordinal"] = float("nan")
+    else:
+        mutated["run_ordinal"] = False
+    with pytest.raises(ValueError, match="preprojection"):
+        runner._validate_preprojection_digest_evidence(
+            mutated, output_dir=tmp_path
+        )
 
 
 def test_scene_materialization_shard_roundtrip_and_independent_hashes(
