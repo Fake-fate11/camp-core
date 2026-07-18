@@ -119,6 +119,24 @@ EXPECTED_SEED = 25001
 MINIMUM_FREE_BYTES = 10 * 1024**3
 BOUNDED_COVERAGE_SCHEMA_VERSION = "camp_dp_v25_bounded_coverage_design_v1"
 BOUNDED_COVERAGE_MAX_IDENTITIES = 320
+EXPECTED_SOURCE_CHECK_FIELDS = frozenset(
+    {
+        "all_1653_formal_train_identities_accounted",
+        "all_1500_executable_source_qualified",
+        "all_153_retained_preserved",
+        "executable_146_mapped_signal",
+        "executable_1354_no_signal",
+        "mapped_21_controlled_same_tick_override",
+        "mapped_125_observe_same_tick_request",
+        "source_failures_empty",
+        "future_schedule_not_consumed",
+        "phase_remaining_unavailable",
+        "no_model_simulator_candidate_dp_forward",
+        "training_calibration_scene_v2i_fresh_outcome_closed",
+        "bounded_coverage_design_within_320_identity_cap",
+        "bounded_coverage_design_k8_not_executed",
+    }
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -961,20 +979,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "gpu_compute_process_count",
         "free_bytes_before",
     }
-    expected_check_fields = {
-        "all_1653_formal_train_identities_accounted",
-        "all_1500_executable_source_qualified",
-        "all_153_retained_preserved",
-        "executable_146_mapped_signal",
-        "executable_1354_no_signal",
-        "mapped_21_controlled_same_tick_override",
-        "mapped_125_observe_same_tick_request",
-        "source_failures_empty",
-        "future_schedule_not_consumed",
-        "phase_remaining_unavailable",
-        "no_model_simulator_candidate_dp_forward",
-        "training_calibration_scene_v2i_fresh_outcome_closed",
-    }
+    expected_check_fields = EXPECTED_SOURCE_CHECK_FIELDS
     expected_count_fields = {
         "formal_train_identity_count",
         "executable_identity_count",

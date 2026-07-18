@@ -33,6 +33,27 @@ def _sealed(tmp_path: Path, names: frozenset[str]) -> tuple[Path, str]:
     return root, seal_artifact(root, label="A1.6.1 inventory fixture")
 
 
+def test_reviewer_freezes_every_producer_source_check() -> None:
+    assert reviewer.EXPECTED_SOURCE_CHECK_FIELDS == frozenset(
+        {
+            "all_1653_formal_train_identities_accounted",
+            "all_1500_executable_source_qualified",
+            "all_153_retained_preserved",
+            "executable_146_mapped_signal",
+            "executable_1354_no_signal",
+            "mapped_21_controlled_same_tick_override",
+            "mapped_125_observe_same_tick_request",
+            "source_failures_empty",
+            "future_schedule_not_consumed",
+            "phase_remaining_unavailable",
+            "no_model_simulator_candidate_dp_forward",
+            "training_calibration_scene_v2i_fresh_outcome_closed",
+            "bounded_coverage_design_within_320_identity_cap",
+            "bounded_coverage_design_k8_not_executed",
+        }
+    )
+
+
 @pytest.mark.parametrize(
     "expected",
     [reviewer.SOURCE_PAYLOAD_PATHS, reviewer.REVIEW_PAYLOAD_PATHS],
