@@ -462,7 +462,7 @@ def test_v25_a16_r06_source_census_and_independent_review_are_bounded() -> None:
     for phrase in (
         "## Stage A1.6/R0.6 Route-Level Signal-Authority Source-Only Correction",
         "53b07e309c03d8d0a491121b4b135f80fccbbc3d",
-        "all 164 V25 tests",
+        "all 165 V25 tests",
         "c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db",
         "0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e",
         "all 1,653 formal train identities",

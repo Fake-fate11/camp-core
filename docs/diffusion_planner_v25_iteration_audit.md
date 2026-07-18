@@ -2050,7 +2050,7 @@ state. The remote CAMP checkout was then synchronized ff-only to source HEAD
 `53b07e309c03d8d0a491121b4b135f80fccbbc3d`. The first complete V25 test run
 found one stale historical A1.5 pointer assertion; commit `53b07e309...` corrected
 only that assertion to the historical prose still present in this audit. AutoDL
-py_compile and all 164 V25 tests then passed.
+py_compile and all 165 V25 tests then passed.
 
 The source-only census is sealed at
 `/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_source_census_53b07e30_20260718T104858CST`

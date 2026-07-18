@@ -64,7 +64,7 @@ reverified the instance, clean CAMP and fixed-DP worktrees, formal plan, consume
 release and marker, failed preflight, all seven A1.5 parent roots, empty worker
 and GPU state, the corpus lock, disk floor, and unopened Fresh/outcome state.
 CAMP was then synchronized ff-only to source HEAD
-`53b07e309c03d8d0a491121b4b135f80fccbbc3d`. AutoDL py_compile and all 164 V25
+`53b07e309c03d8d0a491121b4b135f80fccbbc3d`. AutoDL py_compile and all 165 V25
 tests passed.
 
 The A1.6 source-only census and its independent reviewer are now sealed. They
@@ -165,7 +165,7 @@ current_v25_stage_a_progress_reference=source_valid_candidate_set_reference
 current_v25_stage_a_progress_reference_frozen=true
 current_v25_stage_a_s01_per_atom_raw_statistics_available=false
 current_v25_a1_r0_local_test_result=132_v25_non_torch_passed_2_skipped
-current_v25_a1_r0_remote_test_result=164_v25_passed_after_A1_6_source_authority_sync
+current_v25_a1_r0_remote_test_result=165_v25_passed_after_A1_6_source_authority_sync
 current_v25_real_flock_test_result=1_passed
 current_v25_atom_schema=dp_camp_v10_14d
 current_v25_paper_subset=camp_legacy_v1_9d
