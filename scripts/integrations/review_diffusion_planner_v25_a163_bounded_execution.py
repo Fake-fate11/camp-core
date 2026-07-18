@@ -10,6 +10,7 @@ import json
 import math
 from pathlib import Path
 import pickle
+import random
 import re
 import subprocess
 import sys
@@ -1548,8 +1549,18 @@ def _independent_fixed_dp_initial_speed(
     heading: float,
     init_speed: float,
     start_lanelet: int,
+    explicit_route_ids: list[int],
 ) -> float:
     """Reproduce the pinned replay generate-history/velocity chain locally."""
+
+    if (
+        type(explicit_route_ids) is not list
+        or not explicit_route_ids
+        or any(type(value) is not int for value in explicit_route_ids)
+    ):
+        raise ValueError(
+            "independent history requires explicit route lanelets before RNG seeding"
+        )
 
     n_steps = 31
     dt = 0.1
@@ -1560,9 +1571,14 @@ def _independent_fixed_dp_initial_speed(
         history[:, 1] = snapped_xy[1]
         history[:, 2] = heading
     else:
-        bw_pts, _ = builder._build_backward_polyline(
-            start_lanelet, snapped_xy, heading, n_steps, init_speed, dt
-        )
+        python_random_state = random.getstate()
+        try:
+            random.seed(EXPECTED_SEED)
+            bw_pts, _ = builder._build_backward_polyline(
+                start_lanelet, snapped_xy, heading, n_steps, init_speed, dt
+            )
+        finally:
+            random.setstate(python_random_state)
         bw_pts = np.asarray(bw_pts)
         if (
             bw_pts.ndim != 2
@@ -1694,6 +1710,7 @@ def _independent_initial_world_state(
         heading=heading,
         init_speed=init_speed,
         start_lanelet=start_lanelet,
+        explicit_route_ids=list(route_ids),
     )
     return {
         "schema_version": INITIAL_WORLD_STATE_SCHEMA_VERSION,

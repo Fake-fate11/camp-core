@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import random
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -2473,13 +2474,16 @@ def test_initial_world_speed_matches_real_fixed_dp_generate_history_source() -> 
     )
     init_speed = float(spawn["ego_init_speed"])
     rng_state = np.random.get_state()
+    python_random_state = random.getstate()
     try:
         np.random.seed(25001)
+        random.seed(25001)
         history, _ = builder.generate_history(
             snapped_xy, float(start_pose[2]), init_speed, start_lanelet
         )
     finally:
         np.random.set_state(rng_state)
+        random.setstate(python_random_state)
     history[-1, 2] = float(start_pose[2])
     velocities = np.zeros((history.shape[0], 2), dtype=np.float32)
     for index in range(1, history.shape[0]):
@@ -2490,6 +2494,86 @@ def test_initial_world_speed_matches_real_fixed_dp_generate_history_source() -> 
     assert state["heading_rad"] == float(start_pose[2])
     assert state["speed_mps"] == expected_speed
     assert state["speed_mps"] != init_speed
+
+
+@pytest.mark.skipif(
+    not post_reviewer.EXPECTED_DP_REPO.is_dir()
+    or not post_reviewer.EXPECTED_FORMAL_ARTIFACT.is_dir()
+    or not post_reviewer.EXPECTED_PROBE_TEMPLATE.is_file(),
+    reason="canonical fixed-DP source fixture is available only on AutoDL",
+)
+def test_branching_predecessor_history_is_rng_isolated_and_matches_real_builder() -> None:
+    formal = json.loads(
+        (
+            post_reviewer.EXPECTED_FORMAL_ARTIFACT
+            / "controlled_corpus_final_plan.json"
+        ).read_text(encoding="utf-8")
+    )
+    template = json.loads(
+        post_reviewer.EXPECTED_PROBE_TEMPLATE.read_text(encoding="utf-8")
+    )
+    branching = None
+    for formal_case in formal["train"]:
+        spec = formal_case["route_spec"]
+        route_ids = spec["lanelet_ids"]
+        assert route_ids and all(type(value) is int for value in route_ids)
+        state = post_reviewer._independent_initial_world_state(
+            formal_case=formal_case,
+            template=template,
+            dp_repo=post_reviewer.EXPECTED_DP_REPO,
+        )
+        builder = post_reviewer._INITIAL_STATE_BUILDERS[
+            str(Path(formal_case["source_map_path"]))
+        ]
+        start_pose = np.asarray(spec["start_pose"], dtype=np.float32)
+        start_lanelet = builder.snap_to_nearest_ll(
+            start_pose[:2], candidate_ids=list(route_ids)
+        ) or route_ids[0]
+        predecessors = list(
+            builder._routing_graph.previous(builder._ll_by_id[start_lanelet])
+        )
+        if len(predecessors) >= 2:
+            branching = (formal_case, state, builder, start_pose, start_lanelet)
+            break
+    assert branching is not None, "formal corpus has no branching-predecessor start"
+    formal_case, first_state, builder, start_pose, start_lanelet = branching
+
+    random.seed(998877)
+    for _ in range(17):
+        random.random()
+    disturbed_state = random.getstate()
+    repeated_state = post_reviewer._independent_initial_world_state(
+        formal_case=formal_case,
+        template=template,
+        dp_repo=post_reviewer.EXPECTED_DP_REPO,
+    )
+    assert random.getstate() == disturbed_state
+    assert repeated_state == first_state
+
+    centerline = np.asarray(builder._cache[start_lanelet].raw_centerline)
+    closest = int(np.argmin(np.linalg.norm(centerline - start_pose[:2], axis=1)))
+    snapped_xy = centerline[closest].astype(np.float32)
+    spawn = post_reviewer._independent_spawn_config_payload(
+        template=template, formal_case=formal_case
+    )
+    init_speed = float(spawn["ego_init_speed"])
+    numpy_state = np.random.get_state()
+    python_state = random.getstate()
+    try:
+        np.random.seed(25001)
+        random.seed(25001)
+        history, _ = builder.generate_history(
+            snapped_xy, float(start_pose[2]), init_speed, start_lanelet
+        )
+    finally:
+        np.random.set_state(numpy_state)
+        random.setstate(python_state)
+    history[-1, 2] = float(start_pose[2])
+    velocities = np.zeros((history.shape[0], 2), dtype=np.float32)
+    for index in range(1, history.shape[0]):
+        velocities[index] = (history[index, :2] - history[index - 1, :2]) / 0.1
+    velocities[0] = velocities[1]
+    assert repeated_state["speed_mps"] == float(np.linalg.norm(velocities[-1]))
 
 
 def test_native_terminal_logs_bind_pre_and_post_tracker_timing(
