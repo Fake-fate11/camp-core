@@ -433,13 +433,14 @@ def test_real_create_entry_accepts_exact_precanonical_legacy_probe(
     bindings, _ = _four_root_chain(tmp_path, source_head=head)
     release = (tmp_path / "sealed-release").resolve()
     authorized_output = (tmp_path / "authorized-output").resolve()
+    run_nonce = "7" * 64
     argv = [
         "--implementation-source-head",
         head,
         "--pointer-head-at-release",
         head,
         "--run-nonce",
-        "7" * 64,
+        run_nonce,
         "--authorized-output-dir",
         str(authorized_output),
         "--dp-repo",
@@ -466,7 +467,10 @@ def test_real_create_entry_accepts_exact_precanonical_legacy_probe(
     decision = json.loads((release / "decision.json").read_text(encoding="utf-8"))
     assert decision["probe_template"] == str(authority.EXPECTED_PROBE_TEMPLATE)
     assert decision["probe_template_sha256"] == authority.EXPECTED_PROBE_TEMPLATE_SHA256
-    assert not authority.NONCE_LEDGER.exists()
+    nonce_marker = authority.NONCE_LEDGER / (
+        f"v25_{authority.RELEASE_GATE}_{run_nonce}.consumed.json"
+    )
+    assert not nonce_marker.exists()
 
 
 def test_bounded_plan_rejects_denominator_order_and_full_r_drift() -> None:
