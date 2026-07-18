@@ -698,6 +698,11 @@ def _patch_post_tick_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(
         post_reviewer,
+        "_validate_causal_input_snapshot_binding",
+        lambda **kwargs: None,
+    )
+    monkeypatch.setattr(
+        post_reviewer,
         "_independent_route_projection",
         lambda *args, **kwargs: {"source": np.ones(8, dtype=np.bool_)},
     )
@@ -730,6 +735,7 @@ def test_post_reviewer_accepts_nonempty_all_k_physically_bad_source_set(
         source_row=source_row,
         source_root_sha256="8" * 64,
         native_tick=native,
+        causal_input={},
         scales=scales,
         weights=weights,
         scale_sha256="7" * 64,
@@ -753,6 +759,7 @@ def test_post_reviewer_rejects_self_reported_all_physical_true() -> None:
                 source_row=source_row,
                 source_root_sha256="8" * 64,
                 native_tick=native,
+                causal_input={},
                 scales=scales,
                 weights=weights,
                 scale_sha256="7" * 64,
@@ -780,6 +787,7 @@ def test_post_reviewer_rejects_self_consistent_planned_red_col10_mutation() -> N
                 source_row=source_row,
                 source_root_sha256="8" * 64,
                 native_tick=native,
+                causal_input={},
                 scales=scales,
                 weights=weights,
                 scale_sha256="7" * 64,
@@ -848,6 +856,7 @@ def test_post_reviewer_mask_and_fixed_k8_mutations_fail_closed(
             source_row=source_row,
             source_root_sha256=source_root,
             native_tick=native,
+            causal_input={},
             scales=scales,
             weights=weights,
             scale_sha256="7" * 64,
@@ -877,6 +886,7 @@ def test_post_reviewer_rejects_self_reported_route_speed_ineligible_candidate(
             source_row=source_row,
             source_root_sha256="8" * 64,
             native_tick=native,
+            causal_input={},
             scales=scales,
             weights=weights,
             scale_sha256="7" * 64,
@@ -1946,13 +1956,60 @@ def _exact_native_receipt_fixture() -> dict:
         "runtime_annotation_compatibility": (
             post_reviewer.EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY
         ),
+        "causal_input_evidence": {
+            "schema_version": post_reviewer.CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION,
+            "relative_path": f"causal_inputs/{'a' * 64}.npz",
+            "sha256": "a" * 64,
+            "tick_count": 64,
+            "arrays": {
+                name: {
+                    "dtype": np.dtype(dtype_name).str,
+                    "shape": [64, *shape],
+                    "sha256": "b" * 64,
+                }
+                for name, (shape, dtype_name) in (
+                    post_reviewer.CAUSAL_INPUT_ARRAY_SCHEMA.items()
+                )
+            },
+        },
     }
 
 
 def test_native_header_result_every_leaf_is_covered_by_exact_contract() -> None:
     receipt = _exact_native_receipt_fixture()
-    expected = copy.deepcopy(receipt)
-    expected.pop("ticks")
+    expected = {
+        "schema_version": "v21_native_arm_receipt_v1",
+        "status": "ok",
+        "route_name": "1" * 64,
+        "route_sha256": "2" * 64,
+        "logical_map_sha256": "3" * 64,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "checkpoint_sha256": post_reviewer.EXPECTED_FIXED_DP_CHECKPOINT["sha256"],
+        "args_sha256": post_reviewer.EXPECTED_FIXED_DP_ARGS["sha256"],
+        "arm": "camp",
+        "scenario_seed": 25001,
+        "spawn_config_sha256": "4" * 64,
+        "initial_state_sha256": hashlib.sha256(
+            ("v21_native_scene_context_v1\0" + "0" * 64).encode("ascii")
+        ).hexdigest(),
+        "initial_input_sha256": "0" * 64,
+        "native_result": {
+            "final_step": 63,
+            "goal_reached": False,
+            "reason": "max_steps",
+            "n_npc_spawned": 0,
+            "trajectory_log_path": "/root/run/trajectory_log.json",
+            "clearance_log_path": "/root/run/clearance_log.json",
+        },
+        "claim_authorized": False,
+        "selector_scale_contract": copy.deepcopy(
+            post_reviewer.EXPECTED_SELECTOR_SCALE_CONTRACT
+        ),
+        "runtime_annotation_compatibility": (
+            post_reviewer.EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY
+        ),
+        "causal_input_evidence": copy.deepcopy(receipt["causal_input_evidence"]),
+    }
     assert set(receipt) == post_reviewer.NATIVE_RECEIPT_FIELDS
     assert set(expected) == post_reviewer.NATIVE_HEADER_RESULT_FIELDS
     post_reviewer._validate_native_header_result_exact(
@@ -2043,6 +2100,23 @@ def _write_native_logs(native_dir: Path, receipt: dict) -> None:
     )
 
 
+def _native_log_authority_fixture() -> tuple[dict, dict, dict]:
+    return (
+        {
+            "route_spec": {"goal_pose": [100.0, 0.0, 0.0]},
+            "parameters": {"ego_speed_mps": 8.0},
+        },
+        {
+            "spawn_config": {
+                "ego_wheelbase": 2.79,
+                "ego_length": 4.9,
+                "ego_width": 1.9,
+            }
+        },
+        {"source_class": "no_signal", "source_chain": {}},
+    )
+
+
 def test_native_terminal_logs_bind_every_tick_and_exact_paths(tmp_path: Path) -> None:
     receipt = _exact_native_receipt_fixture()
     native_dir = (tmp_path / "run").resolve()
@@ -2053,15 +2127,24 @@ def test_native_terminal_logs_bind_every_tick_and_exact_paths(tmp_path: Path) ->
         native_dir / "clearance_log.json"
     )
     _write_native_logs(native_dir, receipt)
+    formal_case, template, source_row = _native_log_authority_fixture()
     post_reviewer._validate_native_log_files(
-        native_dir=native_dir, receipt=receipt
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        template=template,
+        source_row=source_row,
     )
     trajectory = json.loads((native_dir / "trajectory_log.json").read_text())
     trajectory[0]["speed"] += 1.0
     (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
     with pytest.raises(ValueError, match="trajectory log/tick"):
         post_reviewer._validate_native_log_files(
-            native_dir=native_dir, receipt=receipt
+            native_dir=native_dir,
+            receipt=receipt,
+            formal_case=formal_case,
+            template=template,
+            source_row=source_row,
         )
 
 
@@ -2084,12 +2167,20 @@ def test_producer_native_header_terminal_contract_is_exact(tmp_path: Path) -> No
         native_dir / "clearance_log.json"
     )
     runner._validate_success_native_receipt(
-        receipt, config=config, route=route, native_dir=native_dir
+        receipt,
+        config=config,
+        route=route,
+        native_dir=native_dir,
+        causal_input_hashes=["0" * 64] * 64,
     )
     receipt["route_sha256"] = "9" * 64
     with pytest.raises(ValueError, match="producer header"):
         runner._validate_success_native_receipt(
-            receipt, config=config, route=route, native_dir=native_dir
+            receipt,
+            config=config,
+            route=route,
+            native_dir=native_dir,
+            causal_input_hashes=["0" * 64] * 64,
         )
 
 
@@ -2204,3 +2295,377 @@ def test_new_runtime_paths_are_in_critical_manifest() -> None:
         "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py",
     }
     assert required.issubset(set(authority.CRITICAL_IMPLEMENTATION_PATHS))
+
+
+def _causal_input_rows() -> list[dict[str, np.ndarray]]:
+    rows: list[dict[str, np.ndarray]] = []
+    for tick_index in range(64):
+        row = {
+            name: np.zeros(shape, dtype=np.dtype(dtype_name))
+            for name, (shape, dtype_name) in (
+                post_reviewer.CAUSAL_INPUT_ARRAY_SCHEMA.items()
+            )
+        }
+        row["version"] = np.asarray(1, dtype=np.int64)
+        row["ego_current_state"][0] = np.float32(tick_index)
+        row["ego_current_state"][4] = np.float32(1.0)
+        row["ego_shape"][:] = np.asarray([2.79, 4.9, 1.9], dtype=np.float32)
+        row["goal_pose"][:] = np.asarray([100.0 - tick_index, 0.0, 0.0], dtype=np.float32)
+        row["route_lanes_has_speed_limit"][:] = True
+        row["route_lanes_speed_limit"][:] = np.float32(10.0)
+        rows.append(row)
+    return rows
+
+
+def test_causal_input_sink_retains_all_16_exact_arrays() -> None:
+    module = native_runner
+    captured: list[tuple[int, dict[str, np.ndarray]]] = []
+    original = _causal_input_rows()[0]
+    sink = lambda index, arrays: captured.append((index, dict(arrays)))
+    sink(0, original)
+    assert captured[0][0] == 0
+    assert set(captured[0][1]) == set(post_reviewer.CAUSAL_INPUT_ARRAY_SCHEMA)
+    for name, (shape, dtype_name) in post_reviewer.CAUSAL_INPUT_ARRAY_SCHEMA.items():
+        assert captured[0][1][name].shape == shape
+        assert captured[0][1][name].dtype == np.dtype(dtype_name)
+    assert "causal_input_sink" in module.NativeCampPredictBatch.__init__.__code__.co_varnames
+
+
+def test_causal_input_content_addressed_shard_roundtrip_and_independent_hashes(
+    tmp_path: Path,
+) -> None:
+    rows = _causal_input_rows()
+    reference, producer_hashes = runner._write_causal_input_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        rows=rows,
+    )
+    receipt = _exact_native_receipt_fixture()
+    receipt["causal_input_evidence"] = reference
+    for index, digest in enumerate(producer_hashes):
+        receipt["ticks"][index]["input_sha256"] = digest
+    receipt["initial_input_sha256"] = producer_hashes[0]
+    receipt["initial_state_sha256"] = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + producer_hashes[0]).encode("ascii")
+    ).hexdigest()
+    loaded, reviewer_hashes = post_reviewer._load_causal_input_evidence(
+        artifact=tmp_path, receipt=receipt
+    )
+    assert reviewer_hashes == producer_hashes
+    assert len(loaded) == 64
+    np.testing.assert_array_equal(loaded[37]["goal_pose"], rows[37]["goal_pose"])
+    post_reviewer._validate_causal_input_hash_sequence(
+        receipt=receipt, hashes=reviewer_hashes
+    )
+
+
+def test_coordinated_input_hash_sidecar_initial_state_mutation_cannot_replace_preimage(
+    tmp_path: Path,
+) -> None:
+    rows = _causal_input_rows()
+    reference, hashes = runner._write_causal_input_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        rows=rows,
+    )
+    receipt = _exact_native_receipt_fixture()
+    receipt["causal_input_evidence"] = reference
+    for index, digest in enumerate(hashes):
+        receipt["ticks"][index]["input_sha256"] = digest
+    receipt["initial_input_sha256"] = hashes[0]
+    receipt["initial_state_sha256"] = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + hashes[0]).encode("ascii")
+    ).hexdigest()
+    coordinated_fake = "f" * 64
+    receipt["ticks"][0]["input_sha256"] = coordinated_fake
+    receipt["initial_input_sha256"] = coordinated_fake
+    receipt["initial_state_sha256"] = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + coordinated_fake).encode("ascii")
+    ).hexdigest()
+    sidecar = {"causal_input_sha256": coordinated_fake}
+    assert sidecar["causal_input_sha256"] == receipt["ticks"][0]["input_sha256"]
+    with pytest.raises(ValueError, match="preimage/hash sequence"):
+        post_reviewer._validate_causal_input_hash_sequence(
+            receipt=receipt, hashes=hashes
+        )
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra", "dtype", "shape"])
+def test_causal_input_shard_schema_mutations_fail_closed(
+    tmp_path: Path, mutation: str
+) -> None:
+    rows = _causal_input_rows()
+    reference, _ = runner._write_causal_input_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        rows=rows,
+    )
+    receipt = _exact_native_receipt_fixture()
+    original = tmp_path / reference["relative_path"]
+    with np.load(original, allow_pickle=False) as loaded:
+        arrays = {name: np.array(loaded[name], copy=True) for name in loaded.files}
+    if mutation == "missing":
+        arrays.pop("goal_pose")
+    elif mutation == "extra":
+        arrays["future_outcome"] = np.zeros((64, 1), dtype=np.float32)
+    elif mutation == "dtype":
+        arrays["goal_pose"] = arrays["goal_pose"].astype(np.float64)
+    else:
+        arrays["goal_pose"] = arrays["goal_pose"][:, :2]
+    changed = tmp_path / "changed.npz"
+    with changed.open("wb") as handle:
+        np.savez_compressed(handle, **arrays)
+    digest = hashlib.sha256(changed.read_bytes()).hexdigest()
+    target = tmp_path / "causal_inputs" / f"{digest}.npz"
+    changed.replace(target)
+    mutated_reference = copy.deepcopy(reference)
+    mutated_reference["relative_path"] = f"causal_inputs/{digest}.npz"
+    mutated_reference["sha256"] = digest
+    if mutation == "missing":
+        mutated_reference["arrays"].pop("goal_pose")
+    elif mutation == "extra":
+        mutated_reference["arrays"]["future_outcome"] = {
+            "dtype": np.dtype(np.float32).str,
+            "shape": [64, 1],
+            "sha256": post_reviewer._array_sha(arrays["future_outcome"]),
+        }
+    else:
+        mutated_reference["arrays"]["goal_pose"] = {
+            "dtype": arrays["goal_pose"].dtype.str,
+            "shape": list(arrays["goal_pose"].shape),
+            "sha256": post_reviewer._array_sha(arrays["goal_pose"]),
+        }
+    receipt["causal_input_evidence"] = mutated_reference
+    with pytest.raises(ValueError, match="causal input"):
+        post_reviewer._load_causal_input_evidence(
+            artifact=tmp_path, receipt=receipt
+        )
+
+
+def test_causal_input_cross_run_swap_fails_snapshot_binding() -> None:
+    first = _causal_input_rows()[0]
+    second = {name: value.copy() for name, value in first.items()}
+    second["ego_current_state"][4] = np.float32(99.0)
+    evidence = {
+        name: first[name]
+        for name in (
+            "ego_current_state", "ego_shape", "neighbor_agents_past",
+            "static_objects", "route_lanes", "route_lanes_speed_limit",
+            "route_lanes_has_speed_limit",
+        )
+    }
+    with pytest.raises(ValueError, match="preimage binding"):
+        post_reviewer._validate_causal_input_snapshot_binding(
+            evidence=evidence, causal_input=second
+        )
+
+
+def test_causal_input_byte_mutation_with_resigned_reference_still_fails_binding(
+    tmp_path: Path,
+) -> None:
+    rows = _causal_input_rows()
+    reference, _ = runner._write_causal_input_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 0, "occurrence": "identity0_first"},
+        rows=rows,
+    )
+    original = tmp_path / reference["relative_path"]
+    with np.load(original, allow_pickle=False) as loaded:
+        arrays = {name: np.array(loaded[name], copy=True) for name in loaded.files}
+    arrays["ego_current_state"][0, 4] = np.float32(77.0)
+    changed = tmp_path / "changed-byte.npz"
+    with changed.open("wb") as handle:
+        np.savez_compressed(handle, **arrays)
+    digest = hashlib.sha256(changed.read_bytes()).hexdigest()
+    target = tmp_path / "causal_inputs" / f"{digest}.npz"
+    changed.replace(target)
+    resigned = copy.deepcopy(reference)
+    resigned["relative_path"] = f"causal_inputs/{digest}.npz"
+    resigned["sha256"] = digest
+    resigned["arrays"]["ego_current_state"] = {
+        "dtype": arrays["ego_current_state"].dtype.str,
+        "shape": list(arrays["ego_current_state"].shape),
+        "sha256": post_reviewer._array_sha(arrays["ego_current_state"]),
+    }
+    receipt = _exact_native_receipt_fixture()
+    receipt["causal_input_evidence"] = resigned
+    loaded_rows, _ = post_reviewer._load_causal_input_evidence(
+        artifact=tmp_path, receipt=receipt
+    )
+    snapshot_evidence = {
+        name: rows[0][name]
+        for name in (
+            "ego_current_state", "ego_shape", "neighbor_agents_past",
+            "static_objects", "route_lanes", "route_lanes_speed_limit",
+            "route_lanes_has_speed_limit",
+        )
+    }
+    with pytest.raises(ValueError, match="preimage binding"):
+        post_reviewer._validate_causal_input_snapshot_binding(
+            evidence=snapshot_evidence, causal_input=loaded_rows[0]
+        )
+
+
+def test_goal_oracle_rejects_coordinated_goal_distance_forgery(tmp_path: Path) -> None:
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / "run").resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(
+        native_dir / "trajectory_log.json"
+    )
+    receipt["native_result"]["clearance_log_path"] = str(
+        native_dir / "clearance_log.json"
+    )
+    _write_native_logs(native_dir, receipt)
+    trajectory = json.loads((native_dir / "trajectory_log.json").read_text())
+    trajectory[-1]["goal_d"] = 0.0
+    (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
+    formal_case, template, source_row = _native_log_authority_fixture()
+    with pytest.raises(ValueError, match="trajectory log/tick"):
+        post_reviewer._validate_native_log_files(
+            native_dir=native_dir,
+            receipt=receipt,
+            formal_case=formal_case,
+            template=template,
+            source_row=source_row,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mode", "goal_x", "positions", "expected_reason"),
+    [
+        ("reached", 100.0, {63: 100.0}, "goal_reached"),
+        ("passed", 50.0, {62: 30.0, 63: 80.0}, "goal_passed"),
+    ],
+)
+def test_goal_oracle_derives_terminal_reason_from_formal_goal_and_trajectory(
+    tmp_path: Path,
+    mode: str,
+    goal_x: float,
+    positions: dict[int, float],
+    expected_reason: str,
+) -> None:
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / mode).resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(native_dir / "trajectory_log.json")
+    receipt["native_result"]["clearance_log_path"] = str(native_dir / "clearance_log.json")
+    for index, x in positions.items():
+        receipt["ticks"][index]["safety"]["position_xy"] = [x, 0.0]
+    _write_native_logs(native_dir, receipt)
+    formal_case, template, source_row = _native_log_authority_fixture()
+    formal_case["route_spec"]["goal_pose"] = [goal_x, 0.0, 0.0]
+    trajectory_path = native_dir / "trajectory_log.json"
+    trajectory = json.loads(trajectory_path.read_text())
+    for row in trajectory:
+        row["goal_d"] = abs(float(row["x"]) - goal_x)
+    trajectory_path.write_text(json.dumps(trajectory))
+    derived = post_reviewer._validate_native_log_files(
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        template=template,
+        source_row=source_row,
+    )
+    assert derived["final_step"] == 63
+    assert derived["goal_reached"] is True
+    assert derived["reason"] == expected_reason
+
+
+@pytest.mark.parametrize("target", ["red_stop_lines", "clearance_extra", "negative_distance", "bad_id"])
+def test_native_nested_log_leakage_and_type_mutations_fail_closed(
+    tmp_path: Path, target: str
+) -> None:
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / target).resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(native_dir / "trajectory_log.json")
+    receipt["native_result"]["clearance_log_path"] = str(native_dir / "clearance_log.json")
+    _write_native_logs(native_dir, receipt)
+    formal_case, template, source_row = _native_log_authority_fixture()
+    if target == "red_stop_lines":
+        receipt["ticks"][0]["safety"]["red_stop_lines"] = [{"futureOutcome": True}]
+    else:
+        clearance = json.loads((native_dir / "clearance_log.json").read_text())
+        if target == "clearance_extra":
+            clearance["records"][0]["futureOutcome"] = True
+        elif target == "negative_distance":
+            clearance["records"][0]["rb_dist"] = -1.0
+        else:
+            clearance["records"][0]["stopped_dist"] = 1.0
+            clearance["records"][0]["stopped_id"] = 7
+        (native_dir / "clearance_log.json").write_text(json.dumps(clearance))
+    with pytest.raises(ValueError):
+        post_reviewer._validate_native_log_files(
+            native_dir=native_dir,
+            receipt=receipt,
+            formal_case=formal_case,
+            template=template,
+            source_row=source_row,
+        )
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b'{"a":1, "b":2}\n',
+        b'{"a":1}\n\n',
+        b'{"a":1,"a":2}\n',
+        b'{"a":NaN}\n',
+    ],
+)
+def test_strict_canonical_json_rejects_noncanonical_double_lf_duplicate_and_nan(
+    tmp_path: Path, raw: bytes
+) -> None:
+    path = tmp_path / "authority.json"
+    path.write_bytes(raw)
+    with pytest.raises(ValueError):
+        post_reviewer._load(path, canonical=True)
+
+
+def test_resealed_duplicate_key_json_still_fails_strict_loader(tmp_path: Path) -> None:
+    artifact = tmp_path / "resealed"
+    artifact.mkdir()
+    payload = artifact / "report.json"
+    payload.write_bytes(b'{"status":"passed","status":"failed"}\n')
+    seal_artifact(artifact, label="duplicate-key mutation")
+    verify_complete_seal(artifact)
+    with pytest.raises(ValueError, match="strict JSON"):
+        post_reviewer._load(payload, canonical=True)
+
+
+def test_canonical_jsonl_rejects_pretty_double_lf_and_duplicate_key(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "rows.jsonl"
+    for raw in (
+        b'{"a": 1}\n',
+        b'{"a":1}\n\n',
+        b'{"a":1,"a":2}\n',
+    ):
+        path.write_bytes(raw)
+        with pytest.raises(ValueError):
+            post_reviewer._jsonl(path)
+
+
+def test_every_execution_authority_file_has_exactly_one_byte_policy() -> None:
+    examples = {
+        "COMMAND",
+        "HEADS",
+        "run.exit",
+        "report.json",
+        "source_receipt.json",
+        "progress.json",
+        "results.jsonl",
+        "snapshot_index.jsonl",
+        "run_evidence.jsonl",
+        f"routes/{'a' * 64}.pkl",
+        f"snapshots/{'b' * 64}.json",
+        f"causal_inputs/{'c' * 64}.npz",
+        "native_runs/run_000_identity0_first_case/bounded_native_receipt.json",
+        "native_runs/run_000_identity0_first_case/trajectory_log.json",
+        "native_runs/run_000_identity0_first_case/clearance_log.json",
+        "native_runs/run_000_identity0_first_case/native.stdout.txt",
+        "native_runs/run_000_identity0_first_case/native.stderr.txt",
+    }
+    policies = post_reviewer._validate_execution_manifest_policies(sorted(examples))
+    assert set(policies) == examples
+    with pytest.raises(ValueError, match="no unique byte/schema policy"):
+        post_reviewer._execution_file_byte_policy("native_runs/run/spawn_config.json")

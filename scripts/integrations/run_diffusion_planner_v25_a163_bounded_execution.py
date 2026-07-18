@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.7 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.8 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ import subprocess
 import sys
 import time
 from typing import Any, Iterator, Mapping
+
+import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -48,8 +50,8 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a167_bounded_execution_v5"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a167_bounded_snapshot_v3"
+SCHEMA_VERSION = "camp_dp_v25_a168_bounded_execution_v6"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a168_bounded_snapshot_v4"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
@@ -89,6 +91,31 @@ NATIVE_RECEIPT_FIELDS = {
     "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
     "initial_input_sha256", "ticks", "native_result", "claim_authorized",
     "selector_scale_contract", "runtime_annotation_compatibility",
+    "causal_input_evidence",
+}
+CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION = (
+    "camp_dp_v25_a168_causal_input_evidence_v1"
+)
+CAUSAL_INPUT_EVIDENCE_FIELDS = {
+    "schema_version", "relative_path", "sha256", "tick_count", "arrays",
+}
+CAUSAL_INPUT_ARRAY_SCHEMA = {
+    "ego_agent_past": ((31, 3), "float32"),
+    "ego_current_state": ((10,), "float32"),
+    "ego_shape": ((3,), "float32"),
+    "goal_pose": ((3,), "float32"),
+    "lanes": ((140, 20, 33), "float32"),
+    "lanes_has_speed_limit": ((140, 1), "bool"),
+    "lanes_speed_limit": ((140, 1), "float32"),
+    "line_strings": ((60, 20, 4), "float32"),
+    "neighbor_agents_past": ((32, 31, 11), "float32"),
+    "polygons": ((10, 40, 3), "float32"),
+    "route_lanes": ((25, 20, 33), "float32"),
+    "route_lanes_has_speed_limit": ((25, 1), "bool"),
+    "route_lanes_speed_limit": ((25, 1), "float32"),
+    "static_objects": ((5, 10), "float32"),
+    "turn_indicators": ((31,), "int32"),
+    "version": ((), "int64"),
 }
 EXPECTED_SELECTOR_SCALE_CONTRACT = {
     "declared_atom_schema_version": "dp_camp_v10_14d",
@@ -129,6 +156,119 @@ def _write_json_atomic(path: Path, value: Any) -> None:
     temporary = path.with_name(path.name + ".tmp")
     _write_json(temporary, value)
     temporary.replace(path)
+
+
+def _write_jsonl_row(handle: Any, value: Any) -> None:
+    handle.write(
+        (
+            json.dumps(
+                value,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        )
+    )
+
+
+def _deterministic_array_mapping_sha256(data: Mapping[str, Any]) -> str:
+    """Producer-side mirror of the fixed-DP causal-input byte contract."""
+
+    digest = hashlib.sha256()
+    for key in sorted(data):
+        if type(key) is not str:
+            raise ValueError("causal input array mapping keys must be strings")
+        array = np.ascontiguousarray(np.asarray(data[key]))
+        if array.dtype.hasobject:
+            raise ValueError(f"causal input object dtype is forbidden for {key}")
+        digest.update(key.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(array.dtype.str.encode("ascii"))
+        digest.update(b"\0")
+        digest.update(
+            json.dumps(list(array.shape), separators=(",", ":")).encode("ascii")
+        )
+        digest.update(b"\0")
+        digest.update(array.tobytes())
+    return digest.hexdigest()
+
+
+def _validated_causal_input(
+    value: Mapping[str, Any], *, tick_index: int
+) -> dict[str, np.ndarray]:
+    if type(value) is not dict or set(value) != set(CAUSAL_INPUT_ARRAY_SCHEMA):
+        raise ValueError("bounded causal input exact array set drifted")
+    result: dict[str, np.ndarray] = {}
+    for name, (shape, dtype_name) in CAUSAL_INPUT_ARRAY_SCHEMA.items():
+        array = np.asarray(value[name])
+        expected_dtype = np.dtype(dtype_name)
+        if array.shape != shape or array.dtype != expected_dtype:
+            raise ValueError(
+                f"bounded causal input {name} dtype/shape drifted at tick {tick_index}"
+            )
+        if not np.isfinite(array).all():
+            raise ValueError(
+                f"bounded causal input {name} is nonfinite at tick {tick_index}"
+            )
+        result[name] = np.array(array, copy=True, order="C")
+    return result
+
+
+def _write_causal_input_evidence(
+    *, output_dir: Path, run: Mapping[str, Any], rows: list[Mapping[str, Any]]
+) -> tuple[dict[str, Any], list[str]]:
+    if len(rows) != TICKS_PER_RUN:
+        raise ValueError("bounded causal input evidence must contain exactly 64 ticks")
+    validated = [
+        _validated_causal_input(row, tick_index=index)
+        for index, row in enumerate(rows)
+    ]
+    stacked = {
+        name: np.stack([row[name] for row in validated], axis=0)
+        for name in sorted(CAUSAL_INPUT_ARRAY_SCHEMA)
+    }
+    evidence_dir = output_dir / "causal_inputs"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    temporary = evidence_dir / (
+        f"run_{int(run['run_ordinal']):03d}_{run['occurrence']}.tmp.npz"
+    )
+    with temporary.open("wb") as handle:
+        np.savez_compressed(handle, **stacked)
+        handle.flush()
+    data = temporary.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    target = evidence_dir / f"{digest}.npz"
+    if target.exists():
+        if target.is_symlink() or target.read_bytes() != data:
+            raise ValueError("bounded causal input content-address collision")
+        temporary.unlink()
+    else:
+        temporary.replace(target)
+    hashes = [
+        _deterministic_array_mapping_sha256(row) for row in validated
+    ]
+    arrays = {
+        name: {
+            "dtype": array.dtype.str,
+            "shape": list(array.shape),
+            "sha256": hashlib.sha256(
+                np.ascontiguousarray(array).tobytes()
+            ).hexdigest(),
+        }
+        for name, array in stacked.items()
+    }
+    return (
+        {
+            "schema_version": CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION,
+            "relative_path": target.relative_to(output_dir).as_posix(),
+            "sha256": digest,
+            "tick_count": TICKS_PER_RUN,
+            "arrays": arrays,
+        },
+        hashes,
+    )
 
 
 @contextmanager
@@ -231,6 +371,7 @@ def _validate_success_native_receipt(
     config: Mapping[str, Any] | None = None,
     route: Mapping[str, Any] | None = None,
     native_dir: Path | None = None,
+    causal_input_hashes: list[str] | None = None,
 ) -> None:
     if type(native_receipt) is not dict or set(native_receipt) != NATIVE_RECEIPT_FIELDS:
         raise ValueError("bounded native receipt exact field set drifted")
@@ -256,7 +397,22 @@ def _validate_success_native_receipt(
         raise ValueError("bounded native tick denominator is invalid")
     for index, tick in enumerate(ticks):
         _validate_public_success_tick(tick, tick_index=index)
-    initial_input = ticks[0].get("input_sha256")
+    if (
+        type(causal_input_hashes) is not list
+        or len(causal_input_hashes) != TICKS_PER_RUN
+        or any(
+            type(value) is not str
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+            for value in causal_input_hashes
+        )
+        or any(
+            ticks[index].get("input_sha256") != causal_input_hashes[index]
+            for index in range(TICKS_PER_RUN)
+        )
+    ):
+        raise ValueError("bounded native causal input preimage/hash binding drifted")
+    initial_input = causal_input_hashes[0]
     expected_initial_state = hashlib.sha256(
         ("v21_native_scene_context_v1\0" + str(initial_input)).encode("ascii")
     ).hexdigest()
@@ -278,6 +434,35 @@ def _validate_success_native_receipt(
         or native_receipt["initial_state_sha256"] != expected_initial_state
     ):
         raise ValueError("bounded native initial input/state binding drifted")
+    evidence = native_receipt.get("causal_input_evidence")
+    if (
+        type(evidence) is not dict
+        or set(evidence) != CAUSAL_INPUT_EVIDENCE_FIELDS
+        or evidence.get("schema_version")
+        != CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION
+        or type(evidence.get("relative_path")) is not str
+        or not re.fullmatch(r"causal_inputs/[0-9a-f]{64}\.npz", evidence["relative_path"])
+        or type(evidence.get("sha256")) is not str
+        or evidence["relative_path"] != f"causal_inputs/{evidence['sha256']}.npz"
+        or type(evidence.get("tick_count")) is not int
+        or evidence["tick_count"] != TICKS_PER_RUN
+        or type(evidence.get("arrays")) is not dict
+        or set(evidence["arrays"]) != set(CAUSAL_INPUT_ARRAY_SCHEMA)
+    ):
+        raise ValueError("bounded native causal input evidence receipt drifted")
+    for name, (shape, dtype_name) in CAUSAL_INPUT_ARRAY_SCHEMA.items():
+        metadata = evidence["arrays"].get(name)
+        if (
+            type(metadata) is not dict
+            or set(metadata) != {"dtype", "shape", "sha256"}
+            or metadata.get("dtype") != np.dtype(dtype_name).str
+            or metadata.get("shape") != [TICKS_PER_RUN, *shape]
+            or type(metadata.get("sha256")) is not str
+            or not re.fullmatch(r"[0-9a-f]{64}", metadata["sha256"])
+        ):
+            raise ValueError(
+                f"bounded native causal input evidence metadata drifted for {name}"
+            )
     native_result = native_receipt.get("native_result")
     if (
         type(native_result) is not dict
@@ -396,14 +581,20 @@ def _reject_native_forbidden_fields(value: Any, *, path: str = "native") -> None
             _reject_native_forbidden_fields(item, path=f"{path}[{index}]")
 
 
-def _derive_native_failure_class(native_receipt: Mapping[str, Any]) -> str:
+def _derive_native_failure_class(
+    native_receipt: Mapping[str, Any],
+    *,
+    causal_input_hashes: list[str] | None = None,
+) -> str:
     """Derive completion from persisted native evidence, never caller input."""
 
     if type(native_receipt) is not dict:
         return "native_receipt_malformed"
     try:
         _reject_native_forbidden_fields(native_receipt)
-        _validate_success_native_receipt(native_receipt)
+        _validate_success_native_receipt(
+            native_receipt, causal_input_hashes=causal_input_hashes
+        )
     except ValueError:
         return "native_evidence_schema_invalid"
     return "none"
@@ -531,7 +722,7 @@ def _write_snapshot(
         "relative_path": relative.as_posix(),
         "sha256": digest,
     }
-    index_file.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
+    _write_jsonl_row(index_file, row)
     return row
 
 
@@ -579,6 +770,14 @@ def _execute(
             )
             snapshots: list[Mapping[str, Any]] = []
             contexts: list[Mapping[str, Any]] = []
+            causal_inputs: list[Mapping[str, Any]] = []
+
+            def capture_causal_input(
+                tick_index: int, value: Mapping[str, Any]
+            ) -> None:
+                if type(tick_index) is not int or tick_index != len(causal_inputs):
+                    raise ValueError("bounded causal input sink tick order drifted")
+                causal_inputs.append(value)
             native_dir = (
                 args.output_dir
                 / "native_runs"
@@ -596,6 +795,7 @@ def _execute(
                 decision_sink=snapshots.append,
                 scene_adapter=adapter,
                 v25_context_sink=contexts.append,
+                causal_input_sink=capture_causal_input,
             )
             if (
                 type(receipt) is not dict
@@ -603,6 +803,7 @@ def _execute(
                 or len(snapshots) != TICKS_PER_RUN
                 or len(contexts) != TICKS_PER_RUN
                 or len(adapter.receipts) != TICKS_PER_RUN
+                or len(causal_inputs) != TICKS_PER_RUN
             ):
                 raise RuntimeError("bounded run was partial or lacked exact tick evidence")
             corpus.validate_native_arm_receipt(
@@ -613,19 +814,36 @@ def _execute(
                 expected_selection_policy="v22_source_valid",
                 expected_safety_schema="safety_cost_native_v22",
             )
+            # Fixed DP writes a broad diagnostic SpawnConfig JSON that is not
+            # part of the bounded scientific receipt.  Do not seal arbitrary
+            # JSON: the exact spawn authority is independently reconstructed
+            # from the formal case/template instead.
+            native_spawn_config = native_dir / "spawn_config.json"
+            if native_spawn_config.is_symlink() or not native_spawn_config.is_file():
+                raise RuntimeError("bounded native SpawnConfig diagnostic is unavailable")
+            native_spawn_config.unlink()
             receipt = dict(receipt)
             for derived_summary in ("safety", "secondary", "latency"):
                 if type(receipt.pop(derived_summary, None)) is not dict:
                     raise RuntimeError(
                         f"bounded native {derived_summary} summary was unavailable"
                     )
+            causal_reference, causal_input_hashes = _write_causal_input_evidence(
+                output_dir=args.output_dir,
+                run=run,
+                rows=causal_inputs,
+            )
+            receipt["causal_input_evidence"] = causal_reference
             _validate_success_native_receipt(
                 receipt,
                 config=config,
                 route=config["routes"][0],
                 native_dir=native_dir,
+                causal_input_hashes=causal_input_hashes,
             )
-            failure_class = _derive_native_failure_class(receipt)
+            failure_class = _derive_native_failure_class(
+                receipt, causal_input_hashes=causal_input_hashes
+            )
             if failure_class != "none":
                 raise RuntimeError(
                     f"bounded native run failed closed: {failure_class}"
@@ -674,10 +892,8 @@ def _execute(
             }
             results.append(result)
             evidence_rows.append(evidence)
-            result_file.write(json.dumps(result, sort_keys=True, allow_nan=False) + "\n")
-            evidence_file.write(
-                json.dumps(evidence, sort_keys=True, allow_nan=False) + "\n"
-            )
+            _write_jsonl_row(result_file, result)
+            _write_jsonl_row(evidence_file, evidence)
             result_file.flush()
             evidence_file.flush()
             index_file.flush()
@@ -860,7 +1076,7 @@ def main(argv: list[str] | None = None) -> None:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.7 bounded execution")
+            root = seal_artifact(args.output_dir, label="V25 A1.6.8 bounded execution")
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
             if getattr(args, "authority_consumed", False) is not True:
@@ -879,7 +1095,7 @@ def main(argv: list[str] | None = None) -> None:
                 },
             )
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.7 bounded execution")
+            seal_artifact(args.output_dir, label="failed V25 A1.6.8 bounded execution")
             raise
 
 

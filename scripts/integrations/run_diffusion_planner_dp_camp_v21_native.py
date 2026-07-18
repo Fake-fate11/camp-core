@@ -271,6 +271,10 @@ class NativeCampPredictBatch:
             [Any, int], Mapping[str, Any]
         ]
         | None = None,
+        causal_input_sink: Callable[
+            [int, Mapping[str, Any]], None
+        ]
+        | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -317,6 +321,7 @@ class NativeCampPredictBatch:
         self.v25_context_sink = v25_context_sink
         self.v25_v2i_signal_timing = v25_v2i_signal_timing
         self.causal_signal_atom_input_provider = causal_signal_atom_input_provider
+        self.causal_input_sink = causal_input_sink
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.weights is None
@@ -406,6 +411,14 @@ class NativeCampPredictBatch:
                 source_observed_frames=_source_observed_frames(scene),
             )
             receipt["causal_input"] = boundary.receipt
+            if self.causal_input_sink is not None:
+                self.causal_input_sink(
+                    tick_index,
+                    {
+                        key: np.array(value, copy=True, order="C")
+                        for key, value in boundary.causal_input.items()
+                    },
+                )
             if self.pre_safety is not None:
                 self.pre_safety(receipt, scene)
             receipt["latency_ms"]["input_materialization"] = _elapsed_ms(
@@ -2790,6 +2803,10 @@ def build_native_arm_runner(
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
         scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
         v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
+        causal_input_sink: Callable[
+            [int, Mapping[str, Any]], None
+        ]
+        | None = None,
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
@@ -2915,6 +2932,7 @@ def build_native_arm_runner(
                     and hasattr(scene_adapter, "causal_signal_atom_input")
                     else None
                 ),
+                causal_input_sink=causal_input_sink,
             )
         elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
             replacement = NativeCampPredictBatch(

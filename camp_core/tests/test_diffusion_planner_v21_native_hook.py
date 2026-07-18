@@ -179,6 +179,7 @@ def _hook(
     scene_adapter=None,
     scene_adapter_model_input_sync=None,
     to_model_tensors=_to_model_tensors,
+    causal_input_sink=None,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -215,8 +216,41 @@ def _hook(
         kwargs["scene_adapter"] = scene_adapter
     if scene_adapter_model_input_sync is not None:
         kwargs["scene_adapter_model_input_sync"] = scene_adapter_model_input_sync
+    if causal_input_sink is not None:
+        kwargs["causal_input_sink"] = causal_input_sink
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
+
+
+def test_v25_causal_input_sink_receives_complete_preimage_before_forward() -> None:
+    module = _runner()
+    captured = []
+
+    class OrderedModel(_FakeModel):
+        def __call__(self, data):
+            assert captured, "causal input preimage must be captured before DP forward"
+            return super().__call__(data)
+
+    model = OrderedModel()
+    hook, _ = _hook(
+        module,
+        model,
+        causal_input_sink=lambda tick, arrays: captured.append((tick, arrays)),
+    )
+    hook(
+        model,
+        SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+        _Scene(),
+        ["ego"],
+        "cpu",
+    )
+    assert len(captured) == 1
+    tick, arrays = captured[0]
+    assert tick == 0
+    assert set(arrays) == set(CAUSAL_DP_INPUT_SCHEMA)
+    for name, (shape, dtype_name) in CAUSAL_DP_INPUT_SCHEMA.items():
+        assert arrays[name].shape == shape
+        assert arrays[name].dtype == np.dtype(dtype_name)
 
 
 def test_v25_scene_adapter_runs_before_fixed_k8_input_materialization() -> None:
@@ -521,9 +555,10 @@ def test_v22_decision_sink_samples_every_five_ticks_after_immutability() -> None
             "atom_source_valid_mask",
             "atom_applicable_mask",
             "candidate_row_sha256",
-            "candidate_tensor",
-            "default_output",
-        }
+                "candidate_tensor",
+                "default_output",
+                "causal_evidence",
+            }
         assert np.asarray(snapshot["feature_payload"]["atom_matrix"]).shape == (8, 14)
         assert snapshot["feature_payload"]["source_valid_mask"] == [True] * 8
         assert len(snapshot["feature_payload"]["candidate_row_sha256"]) == 8

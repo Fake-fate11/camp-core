@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.7 bounded K8 execution."""
+"""Independently review a sealed A1.6.8 bounded K8 execution."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ import re
 import subprocess
 import sys
 from typing import Any, Mapping
+import zipfile
 
 import numpy as np
 
@@ -33,9 +34,9 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a167_bounded_execution_review_v5"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a167_bounded_execution_v5"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a167_bounded_snapshot_v3"
+SCHEMA_VERSION = "camp_dp_v25_a168_bounded_execution_review_v6"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a168_bounded_execution_v6"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a168_bounded_snapshot_v4"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -43,8 +44,8 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-RELEASE_GATE = "a167_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a167_bounded_execute_nonces")
+RELEASE_GATE = "a168_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a168_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
 EXPECTED_FORMAL_ROOT_SHA256 = "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
@@ -112,6 +113,60 @@ EXPECTED_DP_NATIVE_SOURCE_SHA256 = {
     "scenario_generation/tensor_converter.py": "af0a087dcfa910e5f0ad4732c5d1ebabb2fe5c41d2d61a4aa7aaf0f4351d36a7",
     "scenario_generation/traffic_light.py": "5a1659fe753102c514528c0bd93c261124bdf8de11bbc00ba5b941c151956af4",
 }
+GOAL_TOLERANCE_M = 2.0
+GOAL_PASS_WINDOW_M = 25.0
+EXPECTED_CLEARANCE_MAX_RANGE_M = 100.0
+CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION = (
+    "camp_dp_v25_a168_causal_input_evidence_v1"
+)
+CAUSAL_INPUT_EVIDENCE_FIELDS = {
+    "schema_version", "relative_path", "sha256", "tick_count", "arrays",
+}
+# Frozen locally rather than imported from the producer/hash implementation.
+CAUSAL_INPUT_ARRAY_SCHEMA = {
+    "ego_agent_past": ((31, 3), "float32"),
+    "ego_current_state": ((10,), "float32"),
+    "ego_shape": ((3,), "float32"),
+    "goal_pose": ((3,), "float32"),
+    "lanes": ((140, 20, 33), "float32"),
+    "lanes_has_speed_limit": ((140, 1), "bool"),
+    "lanes_speed_limit": ((140, 1), "float32"),
+    "line_strings": ((60, 20, 4), "float32"),
+    "neighbor_agents_past": ((32, 31, 11), "float32"),
+    "polygons": ((10, 40, 3), "float32"),
+    "route_lanes": ((25, 20, 33), "float32"),
+    "route_lanes_has_speed_limit": ((25, 1), "bool"),
+    "route_lanes_speed_limit": ((25, 1), "float32"),
+    "static_objects": ((5, 10), "float32"),
+    "turn_indicators": ((31,), "int32"),
+    "version": ((), "int64"),
+}
+EXECUTION_FILE_BYTE_POLICIES = (
+    (r"(?:COMMAND|HEADS|run\.exit)", "exact-control-text-v1"),
+    (
+        r"(?:report|source_receipt|progress)\.json",
+        "canonical-json-utf8-sort-compact-single-lf-v1",
+    ),
+    (
+        r"(?:results|snapshot_index|run_evidence)\.jsonl",
+        "canonical-jsonl-each-row-single-lf-v1",
+    ),
+    (r"routes/[0-9a-f]{64}\.pkl", "fixed-dp-route-pickle-v1"),
+    (r"snapshots/[0-9a-f]{64}\.json", "canonical-content-address-json-v1"),
+    (r"causal_inputs/[0-9a-f]{64}\.npz", "strict-causal-input-npz-v1"),
+    (
+        r"native_runs/[^/]+/bounded_native_receipt\.json",
+        "canonical-json-utf8-sort-compact-single-lf-v1",
+    ),
+    (
+        r"native_runs/[^/]+/(?:trajectory_log|clearance_log)\.json",
+        "fixed-dp-strict-json-exact-schema-v1",
+    ),
+    (
+        r"native_runs/[^/]+/native\.(?:stdout|stderr)\.txt",
+        "diagnostic-utf8-text-nonauthoritative-v1",
+    ),
+)
 RAW_CONTEXT_NAMES = (
     "ego_speed_mps",
     "ego_longitudinal_acceleration_mps2",
@@ -457,6 +512,7 @@ NATIVE_RECEIPT_FIELDS = {
     "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
     "initial_input_sha256", "ticks", "native_result", "claim_authorized",
     "selector_scale_contract", "runtime_annotation_compatibility",
+    "causal_input_evidence",
 }
 NATIVE_HEADER_RESULT_FIELDS = NATIVE_RECEIPT_FIELDS - {"ticks"}
 EXPECTED_SELECTOR_SCALE_CONTRACT = {
@@ -516,8 +572,40 @@ def _sha(value: Any) -> str:
     return hashlib.sha256(_canonical_bytes(value)).hexdigest()
 
 
-def _load(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"nonfinite JSON constant is forbidden: {value}")
+
+
+def _strict_object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key is forbidden: {key}")
+        result[key] = value
+    return result
+
+
+def _parse_strict_json_bytes(data: bytes, *, label: str) -> Any:
+    try:
+        text = data.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{label} is not strict UTF-8 JSON") from exc
+    try:
+        return json.loads(
+            text,
+            object_pairs_hook=_strict_object_pairs,
+            parse_constant=_reject_json_constant,
+        )
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"{label} is not strict JSON") from exc
+
+
+def _load(path: Path, *, canonical: bool = False) -> Any:
+    data = path.read_bytes()
+    value = _parse_strict_json_bytes(data, label=str(path))
+    if canonical and data != _canonical_bytes(value):
+        raise ValueError(f"{path} violates canonical JSON bytes/single-LF")
+    return value
 
 
 def _write(path: Path, value: Any) -> None:
@@ -525,7 +613,39 @@ def _write(path: Path, value: Any) -> None:
 
 
 def _jsonl(path: Path) -> list[Any]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    data = path.read_bytes()
+    if not data or not data.endswith(b"\n") or data.endswith(b"\n\n"):
+        raise ValueError(f"{path} violates canonical JSONL framing")
+    rows: list[Any] = []
+    for index, line in enumerate(data.splitlines(keepends=True)):
+        if not line.endswith(b"\n") or line == b"\n":
+            raise ValueError(f"{path} JSONL row {index} framing drifted")
+        value = _parse_strict_json_bytes(
+            line, label=f"{path} JSONL row {index}"
+        )
+        if line != _canonical_bytes(value):
+            raise ValueError(f"{path} JSONL row {index} is noncanonical")
+        rows.append(value)
+    return rows
+
+
+def _execution_file_byte_policy(relative_path: str) -> str:
+    matches = [
+        policy
+        for pattern, policy in EXECUTION_FILE_BYTE_POLICIES
+        if re.fullmatch(pattern, relative_path)
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            f"bounded execution file has no unique byte/schema policy: {relative_path}"
+        )
+    return matches[0]
+
+
+def _validate_execution_manifest_policies(paths: list[str]) -> dict[str, str]:
+    if type(paths) is not list or not paths:
+        raise ValueError("bounded execution manifest paths are unavailable")
+    return {path: _execution_file_byte_policy(path) for path in paths}
 
 
 def _native_numeric_array(value: Any, shape: tuple[int, ...], *, label: str) -> np.ndarray:
@@ -568,6 +688,144 @@ def _strict_bool_array(value: Any, shape: tuple[int, ...], *, label: str) -> np.
 
 def _array_sha(value: np.ndarray) -> str:
     return hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
+
+
+def _independent_array_mapping_sha256(data: Mapping[str, np.ndarray]) -> str:
+    """Local oracle for fixed-DP deterministic_array_mapping_sha256."""
+
+    digest = hashlib.sha256()
+    for key in sorted(data):
+        if type(key) is not str:
+            raise ValueError("independent causal input has a non-string key")
+        array = np.ascontiguousarray(np.asarray(data[key]))
+        if array.dtype.hasobject:
+            raise ValueError(f"independent causal input object dtype: {key}")
+        digest.update(key.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(array.dtype.str.encode("ascii"))
+        digest.update(b"\0")
+        digest.update(
+            json.dumps(list(array.shape), separators=(",", ":")).encode("ascii")
+        )
+        digest.update(b"\0")
+        digest.update(array.tobytes())
+    return digest.hexdigest()
+
+
+def _load_causal_input_evidence(
+    *, artifact: Path, receipt: Mapping[str, Any]
+) -> tuple[list[dict[str, np.ndarray]], list[str]]:
+    reference = receipt.get("causal_input_evidence")
+    if (
+        type(reference) is not dict
+        or set(reference) != CAUSAL_INPUT_EVIDENCE_FIELDS
+        or reference.get("schema_version")
+        != CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION
+        or type(reference.get("relative_path")) is not str
+        or type(reference.get("sha256")) is not str
+        or not re.fullmatch(r"[0-9a-f]{64}", reference["sha256"])
+        or reference["relative_path"]
+        != f"causal_inputs/{reference['sha256']}.npz"
+        or type(reference.get("tick_count")) is not int
+        or reference["tick_count"] != 64
+        or type(reference.get("arrays")) is not dict
+        or set(reference["arrays"]) != set(CAUSAL_INPUT_ARRAY_SCHEMA)
+    ):
+        raise ValueError("bounded causal input evidence reference drifted")
+    path = artifact / reference["relative_path"]
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or path.resolve().parent != (artifact / "causal_inputs").resolve()
+        or hashlib.sha256(path.read_bytes()).hexdigest() != reference["sha256"]
+    ):
+        raise ValueError("bounded causal input evidence file/root drifted")
+    expected_members = {f"{name}.npy" for name in CAUSAL_INPUT_ARRAY_SCHEMA}
+    try:
+        with zipfile.ZipFile(path, "r") as archive:
+            members = archive.namelist()
+            if len(members) != len(set(members)) or set(members) != expected_members:
+                raise ValueError("bounded causal input NPZ member set drifted")
+            if any(
+                info.is_dir()
+                or info.filename.startswith(("/", "\\"))
+                or ".." in Path(info.filename).parts
+                for info in archive.infolist()
+            ):
+                raise ValueError("bounded causal input NPZ member path drifted")
+        arrays: dict[str, np.ndarray] = {}
+        with np.load(path, allow_pickle=False) as shard:
+            if set(shard.files) != set(CAUSAL_INPUT_ARRAY_SCHEMA):
+                raise ValueError("bounded causal input shard key set drifted")
+            for name, (shape, dtype_name) in CAUSAL_INPUT_ARRAY_SCHEMA.items():
+                array = np.asarray(shard[name])
+                expected_shape = (64, *shape)
+                expected_dtype = np.dtype(dtype_name)
+                metadata = reference["arrays"].get(name)
+                if (
+                    array.shape != expected_shape
+                    or array.dtype != expected_dtype
+                    or not np.isfinite(array).all()
+                    or type(metadata) is not dict
+                    or set(metadata) != {"dtype", "shape", "sha256"}
+                    or metadata.get("dtype") != array.dtype.str
+                    or metadata.get("shape") != list(array.shape)
+                    or metadata.get("sha256") != _array_sha(array)
+                ):
+                    raise ValueError(
+                        f"bounded causal input shard metadata drifted for {name}"
+                    )
+                arrays[name] = np.array(array, copy=True, order="C")
+    except (OSError, ValueError, zipfile.BadZipFile) as exc:
+        if isinstance(exc, ValueError) and str(exc).startswith("bounded causal"):
+            raise
+        raise ValueError("bounded causal input evidence archive is invalid") from exc
+    rows = [
+        {name: arrays[name][tick_index].copy() for name in arrays}
+        for tick_index in range(64)
+    ]
+    hashes = [_independent_array_mapping_sha256(row) for row in rows]
+    return rows, hashes
+
+
+def _validate_causal_input_snapshot_binding(
+    *, evidence: Mapping[str, np.ndarray], causal_input: Mapping[str, np.ndarray]
+) -> None:
+    for name in (
+        "ego_current_state",
+        "ego_shape",
+        "neighbor_agents_past",
+        "static_objects",
+        "route_lanes",
+        "route_lanes_speed_limit",
+        "route_lanes_has_speed_limit",
+    ):
+        if not np.array_equal(evidence[name], causal_input[name]):
+            raise ValueError(
+                f"bounded causal input/snapshot preimage binding drifted for {name}"
+            )
+
+
+def _validate_causal_input_hash_sequence(
+    *, receipt: Mapping[str, Any], hashes: list[str]
+) -> None:
+    ticks = receipt.get("ticks")
+    if (
+        type(ticks) is not list
+        or len(ticks) != 64
+        or type(hashes) is not list
+        or len(hashes) != 64
+        or any(
+            ticks[index].get("input_sha256") != hashes[index]
+            for index in range(64)
+        )
+        or receipt.get("initial_input_sha256") != hashes[0]
+        or receipt.get("initial_state_sha256")
+        != hashlib.sha256(
+            ("v21_native_scene_context_v1\0" + hashes[0]).encode("ascii")
+        ).hexdigest()
+    ):
+        raise ValueError("bounded native causal input preimage/hash sequence drifted")
 
 
 def _validate_causal_evidence(
@@ -1039,7 +1297,7 @@ def _independent_formal_cases() -> dict[str, dict[str, Any]]:
     seal = verify_complete_seal(
         EXPECTED_FORMAL_ARTIFACT,
         EXPECTED_FORMAL_ROOT_SHA256,
-        label="V25 A1.6.7 independent formal authority",
+        label="V25 A1.6.8 independent formal authority",
     )
     if seal["root_sha256"] != EXPECTED_FORMAL_ROOT_SHA256:
         raise ValueError("independent formal root drifted")
@@ -1074,9 +1332,9 @@ def _independent_formal_cases() -> dict[str, dict[str, Any]]:
     return by_id
 
 
-def _independent_spawn_config_sha256(
+def _independent_spawn_config_payload(
     *, template: Mapping[str, Any], formal_case: Mapping[str, Any]
-) -> str:
+) -> dict[str, Any]:
     spawn = template.get("spawn_config") if type(template) is dict else None
     parameters = formal_case.get("parameters") if type(formal_case) is dict else None
     if type(spawn) is not dict or type(parameters) is not dict:
@@ -1095,6 +1353,15 @@ def _independent_spawn_config_sha256(
             "parked_vehicles_yaml": None,
             "ego_init_speed": ego_speed,
         }
+    )
+    return payload
+
+
+def _independent_spawn_config_sha256(
+    *, template: Mapping[str, Any], formal_case: Mapping[str, Any]
+) -> str:
+    payload = _independent_spawn_config_payload(
+        template=template, formal_case=formal_case
     )
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -1165,7 +1432,9 @@ def _independent_route_sha256(
 
 
 def _expected_native_header_result(
-    *, artifact: Path, native_dir: Path, receipt: Mapping[str, Any],
+    *, artifact: Path, native_dir: Path, initial_input_sha256: str,
+    causal_input_evidence: Mapping[str, Any],
+    derived_native_result: Mapping[str, Any],
     formal_case: Mapping[str, Any], source_row: Mapping[str, Any],
     template: Mapping[str, Any], dp_repo: Path,
 ) -> dict[str, Any]:
@@ -1182,14 +1451,10 @@ def _expected_native_header_result(
     _route_path, route_sha = _independent_route_sha256(
         artifact=artifact, formal_case=formal_case, dp_repo=dp_repo
     )
-    ticks = receipt.get("ticks")
-    if type(ticks) is not list or len(ticks) != 64:
-        raise ValueError("bounded native ticks unavailable for initial state binding")
-    initial_input = ticks[0].get("input_sha256")
-    if not _is_sha256(initial_input):
+    if not _is_sha256(initial_input_sha256):
         raise ValueError("bounded native initial input SHA drifted")
     initial_state = hashlib.sha256(
-        ("v21_native_scene_context_v1\0" + initial_input).encode("ascii")
+        ("v21_native_scene_context_v1\0" + initial_input_sha256).encode("ascii")
     ).hexdigest()
     return {
         "schema_version": "v21_native_arm_receipt_v1",
@@ -1206,22 +1471,45 @@ def _expected_native_header_result(
             template=template, formal_case=formal_case
         ),
         "initial_state_sha256": initial_state,
-        "initial_input_sha256": initial_input,
-        "native_result": {
-            "final_step": 63,
-            "goal_reached": False,
-            "reason": "max_steps",
-            "n_npc_spawned": 0,
-            "trajectory_log_path": str(native_dir / "trajectory_log.json"),
-            "clearance_log_path": str(native_dir / "clearance_log.json"),
-        },
+        "initial_input_sha256": initial_input_sha256,
+        "native_result": dict(derived_native_result),
         "claim_authorized": False,
         "selector_scale_contract": EXPECTED_SELECTOR_SCALE_CONTRACT,
         "runtime_annotation_compatibility": EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY,
+        "causal_input_evidence": dict(causal_input_evidence),
     }
 
 
-def _validate_native_log_files(*, native_dir: Path, receipt: Mapping[str, Any]) -> None:
+def _validate_native_red_stop_lines(
+    *, safety: Mapping[str, Any], source_row: Mapping[str, Any]
+) -> None:
+    raw = safety.get("red_stop_lines")
+    if type(raw) is not list:
+        raise ValueError("bounded native red stop-line schema drifted")
+    if not safety.get("red_light_at_interval_start"):
+        if raw != []:
+            raise ValueError("bounded native non-red tick retained stop lines")
+        return
+    if source_row.get("source_class") != "mapped_signal":
+        raise ValueError("bounded native red tick lacks mapped source authority")
+    chain = source_row.get("source_chain")
+    certified = chain.get("stop_line_geometry_m") if type(chain) is dict else None
+    if type(certified) is not list or len(certified) < 2:
+        raise ValueError("bounded native red tick lacks certified stop line")
+    expected = np.asarray([certified[0], certified[-1]], dtype=np.float64)
+    actual = _native_numeric_array(raw, (1, 2, 2), label="native red stop lines")
+    if not np.allclose(actual[0], expected, rtol=0.0, atol=1e-6):
+        raise ValueError("bounded native red stop line is not the certified source")
+
+
+def _validate_native_log_files(
+    *,
+    native_dir: Path,
+    receipt: Mapping[str, Any],
+    formal_case: Mapping[str, Any],
+    template: Mapping[str, Any],
+    source_row: Mapping[str, Any],
+) -> dict[str, Any]:
     ticks = receipt["ticks"]
     trajectory_path = native_dir / "trajectory_log.json"
     clearance_path = native_dir / "clearance_log.json"
@@ -1230,17 +1518,39 @@ def _validate_native_log_files(*, native_dir: Path, receipt: Mapping[str, Any]) 
         or not trajectory_path.is_file() or not clearance_path.is_file()
     ):
         raise ValueError("bounded native terminal log files are unavailable")
-    trajectory = _load(trajectory_path)
-    clearance = _load(clearance_path)
+    trajectory = _load(trajectory_path, canonical=False)
+    clearance = _load(clearance_path, canonical=False)
     if type(trajectory) is not list or len(trajectory) != 64:
         raise ValueError("bounded native trajectory log denominator drifted")
+    route_spec = formal_case.get("route_spec")
+    goal_pose = _native_numeric_array(
+        route_spec.get("goal_pose") if type(route_spec) is dict else None,
+        (3,),
+        label="formal goal pose",
+    )
+    min_goal_distance = float("inf")
+    derived_reason = "max_steps"
+    derived_goal_reached = False
+    derived_final_step = 63
     for index, (row, tick) in enumerate(zip(trajectory, ticks)):
         safety = tick["safety"]
+        position = np.asarray(safety["position_xy"], dtype=np.float64)
+        heading = _native_number(
+            safety.get("ego_heading_rad"), label="native ego heading"
+        )
+        goal_distance = float(np.linalg.norm(position - goal_pose[:2]))
+        min_goal_distance = min(min_goal_distance, goal_distance)
         if (
             type(row) is not dict
             or set(row) != {"step", "x", "y", "heading", "speed", "goal_d"}
             or type(row.get("step")) is not int or row["step"] != index
-            or _native_number(row.get("goal_d"), label="trajectory goal distance") < 0.0
+            or type(row.get("goal_d")) is not float
+            or not math.isclose(
+                _native_number(row["goal_d"], label="trajectory goal distance"),
+                goal_distance,
+                rel_tol=0.0,
+                abs_tol=1e-9,
+            )
             or not np.allclose(
                 [row.get("x"), row.get("y"), row.get("heading"), row.get("speed")],
                 [safety["position_xy"][0], safety["position_xy"][1],
@@ -1249,15 +1559,44 @@ def _validate_native_log_files(*, native_dir: Path, receipt: Mapping[str, Any]) 
             )
         ):
             raise ValueError("bounded native trajectory log/tick binding drifted")
+        _validate_native_red_stop_lines(safety=safety, source_row=source_row)
+        reason_at_tick: str | None = None
+        if goal_distance <= GOAL_TOLERANCE_M:
+            reason_at_tick = "goal_reached"
+        else:
+            forward = np.asarray([math.cos(heading), math.sin(heading)])
+            if (
+                float(np.dot(goal_pose[:2] - position, forward)) < 0.0
+                and min_goal_distance <= GOAL_PASS_WINDOW_M
+            ):
+                reason_at_tick = "goal_passed"
+        if reason_at_tick is not None:
+            if index != 63:
+                raise ValueError(
+                    "bounded native trajectory continued after derived goal termination"
+                )
+            derived_reason = reason_at_tick
+            derived_goal_reached = True
+            derived_final_step = index
     records = clearance.get("records") if type(clearance) is dict else None
+    spawn = _independent_spawn_config_payload(
+        template=template, formal_case=formal_case
+    )
+    expected_ego_shape = [
+        _native_number(spawn.get(name), label=f"spawn {name}")
+        for name in ("ego_wheelbase", "ego_length", "ego_width")
+    ]
     if (
         type(clearance) is not dict
         or set(clearance) != {"ego_shape", "max_range_m", "png_dir", "records"}
         or type(clearance.get("ego_shape")) is not list
         or len(clearance["ego_shape"]) != 3
-        or any(_native_number(v, label="clearance ego shape") <= 0.0
-               for v in clearance["ego_shape"])
-        or _native_number(clearance.get("max_range_m"), label="clearance range") <= 0.0
+        or any(type(value) is not float for value in clearance["ego_shape"])
+        or not np.allclose(
+            clearance["ego_shape"], expected_ego_shape, rtol=0.0, atol=1e-12
+        )
+        or type(clearance.get("max_range_m")) is not float
+        or clearance["max_range_m"] != EXPECTED_CLEARANCE_MAX_RANGE_M
         or clearance.get("png_dir") != str(native_dir)
         or type(records) is not list or len(records) != 64
     ):
@@ -1279,7 +1618,29 @@ def _validate_native_log_files(*, native_dir: Path, receipt: Mapping[str, Any]) 
             raise ValueError("bounded native clearance log/tick binding drifted")
         for field in ("rb_dist", "stopped_dist", "moving_dist"):
             if row[field] is not None:
-                _native_number(row[field], label=f"clearance {field}")
+                if (
+                    type(row[field]) is not float
+                    or _native_number(row[field], label=f"clearance {field}") < 0.0
+                ):
+                    raise ValueError("bounded native clearance distance drifted")
+        for distance_field, id_field in (
+            ("stopped_dist", "stopped_id"),
+            ("moving_dist", "moving_id"),
+        ):
+            identifier = row[id_field]
+            if row[distance_field] is None:
+                if identifier is not None:
+                    raise ValueError("bounded native clearance ID/source drifted")
+            elif type(identifier) is not str or not identifier:
+                raise ValueError("bounded native clearance ID/source drifted")
+    return {
+        "final_step": derived_final_step,
+        "goal_reached": derived_goal_reached,
+        "reason": derived_reason,
+        "n_npc_spawned": 0,
+        "trajectory_log_path": str(trajectory_path),
+        "clearance_log_path": str(clearance_path),
+    }
 
 
 def _strict_int_list(value: Any, *, label: str, nonempty: bool = False) -> list[int]:
@@ -2063,10 +2424,6 @@ def _validate_native_static_contract(receipt: Mapping[str, Any]) -> None:
         raise ValueError("bounded native tick denominator drifted")
     for index, tick in enumerate(ticks):
         _validate_public_success_tick(tick, tick_index=index)
-    initial_input = ticks[0].get("input_sha256")
-    expected_initial_state = hashlib.sha256(
-        ("v21_native_scene_context_v1\0" + str(initial_input)).encode("ascii")
-    ).hexdigest()
     sha_fields = (
         "route_name",
         "route_sha256",
@@ -2093,8 +2450,6 @@ def _validate_native_static_contract(receipt: Mapping[str, Any]) -> None:
         or receipt.get("runtime_annotation_compatibility")
         != EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY
         or any(not _is_sha256(receipt.get(name)) for name in sha_fields)
-        or receipt.get("initial_input_sha256") != initial_input
-        or receipt.get("initial_state_sha256") != expected_initial_state
     ):
         raise ValueError("bounded native static header contract drifted")
     native_result = receipt.get("native_result")
@@ -2110,13 +2465,9 @@ def _validate_native_static_contract(receipt: Mapping[str, Any]) -> None:
             "clearance_log_path",
         }
         or type(native_result.get("final_step")) is not int
-        or native_result.get("final_step") != 63
         or type(native_result.get("goal_reached")) is not bool
-        or native_result.get("goal_reached") is not False
         or type(native_result.get("reason")) is not str
-        or native_result.get("reason") != "max_steps"
         or type(native_result.get("n_npc_spawned")) is not int
-        or native_result.get("n_npc_spawned") != 0
         or type(native_result.get("trajectory_log_path")) is not str
         or type(native_result.get("clearance_log_path")) is not str
     ):
@@ -2243,6 +2594,7 @@ def _review_tick(
     source_row: Mapping[str, Any],
     source_root_sha256: str,
     native_tick: Mapping[str, Any],
+    causal_input: Mapping[str, np.ndarray],
     scales: np.ndarray,
     weights: np.ndarray,
     scale_sha256: str,
@@ -2366,6 +2718,9 @@ def _review_tick(
     _validate_cache(sidecar=sidecar, source_row=source_row, tick_index=tick_index)
     evidence = _validate_causal_evidence(
         feature=feature, sidecar=sidecar, native_tick=native_tick
+    )
+    _validate_causal_input_snapshot_binding(
+        evidence=evidence, causal_input=causal_input
     )
     projection = _independent_route_projection(
         candidate,
@@ -2501,25 +2856,39 @@ def _review_run(
         / "native_runs"
         / f"run_{ordinal:03d}_{run['occurrence']}_{run['scenario_id']}"
     )
-    receipt = _load(native_dir / "bounded_native_receipt.json")
+    receipt = _load(
+        native_dir / "bounded_native_receipt.json", canonical=True
+    )
     _validate_native_static_contract(receipt)
+    causal_inputs, causal_input_hashes = _load_causal_input_evidence(
+        artifact=artifact, receipt=receipt
+    )
+    _validate_causal_input_hash_sequence(
+        receipt=receipt, hashes=causal_input_hashes
+    )
+    ticks = receipt["ticks"]
+    derived_native_result = _validate_native_log_files(
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        template=template,
+        source_row=source_row,
+    )
     expected_native = _expected_native_header_result(
         artifact=artifact,
         native_dir=native_dir,
-        receipt=receipt,
+        initial_input_sha256=causal_input_hashes[0],
+        causal_input_evidence=receipt["causal_input_evidence"],
+        derived_native_result=derived_native_result,
         formal_case=formal_case,
         source_row=source_row,
         template=template,
         dp_repo=dp_repo,
     )
     _validate_native_header_result_exact(receipt=receipt, expected=expected_native)
-    _validate_native_log_files(native_dir=native_dir, receipt=receipt)
     failure_class = _derive_native_failure_class(receipt)
     if failure_class != "none":
         raise ValueError(f"bounded native failure evidence: {failure_class}")
-    ticks = receipt.get("ticks") if type(receipt) is dict else None
-    if type(ticks) is not list or len(ticks) != 64:
-        raise ValueError("bounded native receipt tick denominator drifted")
     selected_rows = [row for row in index_rows if row.get("run_ordinal") == ordinal]
     if len(selected_rows) != 64:
         raise ValueError("bounded run snapshot denominator drifted")
@@ -2551,7 +2920,7 @@ def _review_run(
         data = path.read_bytes()
         if hashlib.sha256(data).hexdigest() != index_row["sha256"]:
             raise ValueError("bounded snapshot content-address hash drifted")
-        payload = json.loads(data)
+        payload = _parse_strict_json_bytes(data, label=str(path))
         if data != _canonical_bytes(payload):
             raise ValueError("bounded snapshot bytes are not canonical")
         tick_oracles.append(
@@ -2562,6 +2931,7 @@ def _review_run(
                 source_row=source_row,
                 source_root_sha256=source_root_sha256,
                 native_tick=ticks[tick_index],
+                causal_input=causal_inputs[tick_index],
                 scales=scales,
                 weights=weights,
                 scale_sha256=scale_sha256,
@@ -2759,18 +3129,41 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.7 bounded execution",
+        label="V25 A1.6.8 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
+    file_policies = _validate_execution_manifest_policies(seal["manifest_paths"])
     if any(
         token in path.lower()
         for path in seal["manifest_paths"]
         for token in ("outcome", "fresh", "holdout")
     ):
         raise ValueError("bounded execution inventory contains a forbidden path")
-    report = _load(args.execution_artifact / "report.json")
-    source_receipt = _load(args.execution_artifact / "source_receipt.json")
+    report = _load(args.execution_artifact / "report.json", canonical=True)
+    source_receipt = _load(
+        args.execution_artifact / "source_receipt.json", canonical=True
+    )
+    progress = _load(args.execution_artifact / "progress.json", canonical=True)
+    if (
+        type(progress) is not dict
+        or set(progress)
+        != {
+            "schema_version", "status", "completed_runs", "total_runs",
+            "snapshot_count", "fresh_b2_opened", "outcome_fields_consumed",
+        }
+        or progress.get("schema_version") != EXECUTION_SCHEMA_VERSION
+        or progress.get("status") != "complete"
+        or type(progress.get("completed_runs")) is not int
+        or progress["completed_runs"] != EXPECTED_RUNS
+        or type(progress.get("total_runs")) is not int
+        or progress["total_runs"] != EXPECTED_RUNS
+        or type(progress.get("snapshot_count")) is not int
+        or progress["snapshot_count"] != EXPECTED_TICKS
+        or progress.get("fresh_b2_opened") is not False
+        or progress.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("bounded execution progress authority drifted")
     authority = verify_bounded_release(
         repo=ROOT,
         release_artifact=args.release_artifact,
@@ -2797,7 +3190,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     formal_cases = _independent_formal_cases()
     template = _load(args.probe_template)
     marker = NONCE_LEDGER / f"v25_{RELEASE_GATE}_{decision['run_nonce']}.consumed.json"
-    marker_payload = _load(marker)
+    marker_payload = _load(marker, canonical=True)
     if (
         marker.is_symlink()
         or set(marker_payload) != {"gate", "nonce", "authorized_output_dir"}
@@ -2930,6 +3323,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
         "run_count": EXPECTED_RUNS,
         "snapshot_count": EXPECTED_TICKS,
+        "execution_file_policy_count": len(file_policies),
+        "execution_file_policies_sha256": _sha(file_policies),
         "identity0_repeat_comparison": comparison,
         "retained_capability_failure_count": 0,
         "mapped_runtime_source_failure_count": 0,
@@ -2967,7 +3362,7 @@ def main(argv: list[str] | None = None) -> None:
             " ".join(sys.argv) + "\n", encoding="utf-8"
         )
         (args.output_dir / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(args.output_dir, label="V25 A1.6.7 bounded review")
+        root = seal_artifact(args.output_dir, label="V25 A1.6.8 bounded review")
         print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
     except Exception as exc:
         _write(
@@ -2983,7 +3378,7 @@ def main(argv: list[str] | None = None) -> None:
             },
         )
         (args.output_dir / "run.exit").write_bytes(b"1\n")
-        seal_artifact(args.output_dir, label="failed V25 A1.6.7 bounded review")
+        seal_artifact(args.output_dir, label="failed V25 A1.6.8 bounded review")
         raise
 
 
