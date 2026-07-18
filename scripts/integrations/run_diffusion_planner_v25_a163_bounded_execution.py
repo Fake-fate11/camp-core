@@ -222,7 +222,13 @@ def _deterministic_array_mapping_sha256(data: Mapping[str, Any]) -> str:
     for key in sorted(data):
         if type(key) is not str:
             raise ValueError("scene materialization array keys must be strings")
-        array = np.ascontiguousarray(np.asarray(data[key]))
+        array = np.asarray(data[key])
+        # Match the native boundary exactly: a 0-D scalar remains shape [],
+        # while only non-contiguous arrays with at least one dimension are
+        # copied into C order.  np.ascontiguousarray() would promote a scalar
+        # to shape [1] and change the mapping digest despite identical bytes.
+        if array.ndim and not array.flags.c_contiguous:
+            array = np.ascontiguousarray(array)
         if array.dtype.hasobject:
             raise ValueError(
                 f"scene materialization object dtype is forbidden for {key}"

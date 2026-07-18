@@ -804,7 +804,9 @@ def _independent_array_mapping_sha256(data: Mapping[str, np.ndarray]) -> str:
     for key in sorted(data):
         if type(key) is not str:
             raise ValueError("independent scene materialization has a non-string key")
-        array = np.ascontiguousarray(np.asarray(data[key]))
+        array = np.asarray(data[key])
+        if array.ndim and not array.flags.c_contiguous:
+            array = np.ascontiguousarray(array)
         if array.dtype.hasobject:
             raise ValueError(f"independent scene materialization object dtype: {key}")
         digest.update(key.encode("utf-8"))

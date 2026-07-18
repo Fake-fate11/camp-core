@@ -20,6 +20,9 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (
     verify_complete_seal,
 )
 from camp_core.integrations import diffusion_planner_v25_a163_bounded_authority as authority
+from camp_core.integrations.diffusion_planner_v21_native import (
+    deterministic_array_mapping_sha256 as native_array_mapping_sha256,
+)
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (
     EXPECTED_RUNS,
     EXPECTED_TICKS,
@@ -399,6 +402,17 @@ def test_a17_diagnostic_release_is_exact_identity0_and_non_scientific(
     )
     assert verified["plan"] == {"runs": [_plan()["runs"][0]]}
     assert verified["nonce_marker"] is not None
+
+
+def test_preprojection_mapping_digest_preserves_native_zero_dimensional_shape() -> None:
+    value = {
+        "matrix": np.arange(6, dtype=np.float32).reshape(2, 3)[:, ::-1],
+        "version": np.asarray(7, dtype=np.int64),
+    }
+    assert value["version"].shape == ()
+    assert runner._deterministic_array_mapping_sha256(value) == (
+        native_array_mapping_sha256(value)
+    )
 
 
 @pytest.mark.parametrize("asset_kind", ["probe_template", "fixed_dp_args"])
