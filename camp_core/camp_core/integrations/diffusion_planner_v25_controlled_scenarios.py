@@ -10,12 +10,16 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
-    build_causal_signal_atom_input,
     build_no_signal_causal_atom_input,
     build_runtime_no_signal_receipt,
-    build_runtime_signal_receipt,
     validate_no_signal_chain,
-    validate_signal_chain,
+)
+from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (
+    apply_controlled_same_tick_override,
+    build_mapped_signal_causal_atom_input,
+    build_mapped_signal_runtime_receipt,
+    observe_same_tick_request_phase,
+    validate_mapped_signal_chain,
 )
 
 
@@ -55,19 +59,47 @@ class RetainedScenarioCapabilityFailure(RuntimeError):
         *,
         scenario_id: str,
         family: str,
+        source_class: str,
+        phase_authority_mode: str,
         reason: ScenarioCapabilityReason,
     ) -> None:
-        self.scenario_id = str(scenario_id)
-        self.family = str(family)
+        if (
+            type(scenario_id) is not str
+            or not scenario_id
+            or type(family) is not str
+            or not family
+            or type(source_class) is not str
+            or type(phase_authority_mode) is not str
+            or type(reason) is not ScenarioCapabilityReason
+        ):
+            raise ValueError("retained signal capability failure types are invalid")
+        self.scenario_id = scenario_id
+        self.family = family
+        self.source_class = source_class
+        self.phase_authority_mode = phase_authority_mode
         self.reason = reason
+        if self.source_class != "mapped_signal":
+            raise ValueError(
+                "retained signal capability failure requires mapped_signal source class"
+            )
+        if self.phase_authority_mode not in {
+            "controlled_same_tick_override",
+            "observe_same_tick_request",
+        }:
+            raise ValueError(
+                "retained signal capability failure requires an exact phase authority mode"
+            )
         super().__init__(
-            f"scenario capability unavailable: {self.family}/{self.reason.value}"
+            "scenario capability unavailable: "
+            f"{self.source_class}/{self.phase_authority_mode}/{self.reason.value}"
         )
 
     def as_receipt(self) -> dict[str, str]:
         return {
             "scenario_id": self.scenario_id,
             "family": self.family,
+            "source_class": self.source_class,
+            "phase_authority_mode": self.phase_authority_mode,
             "reason": self.reason.value,
         }
 
@@ -516,25 +548,55 @@ class V25ControlledSceneAdapter:
         self,
         case: Mapping[str, Any],
         *,
-        red_signal_authority: Mapping[str, Any] | None = None,
+        mapped_signal_authority: Mapping[str, Any] | None = None,
         no_signal_authority: Mapping[str, Any] | None = None,
     ) -> None:
         validate_controlled_scenario_case(case)
         if case.get("runner_eligible") is not True:
             raise ValueError("cannot execute a source-ineligible controlled scenario")
         self.case = dict(case)
-        self.red_signal_authority = (
+        self.mapped_signal_authority = (
             None
-            if red_signal_authority is None
-            else validate_signal_chain(red_signal_authority)
+            if mapped_signal_authority is None
+            else validate_mapped_signal_chain(mapped_signal_authority)
         )
         self.no_signal_authority = (
             None
             if no_signal_authority is None
             else validate_no_signal_chain(no_signal_authority)
         )
-        if self.red_signal_authority is not None and self.no_signal_authority is not None:
+        if self.mapped_signal_authority is not None and self.no_signal_authority is not None:
             raise ValueError("controlled scenario has ambiguous signal authority")
+        if self.mapped_signal_authority is not None:
+            if (
+                self.case.get("signal_source_class") != "mapped_signal"
+                or self.case.get("phase_authority_mode")
+                != self.mapped_signal_authority["phase_authority_mode"]
+                or self.mapped_signal_authority["scenario_id"]
+                != self.case["scenario_id"]
+                or self.mapped_signal_authority["route_identity_sha256"]
+                != self.case["route_identity_sha256"]
+                or self.mapped_signal_authority["source_map_sha256"]
+                != self.case["source_map_sha256"]
+            ):
+                raise ValueError("mapped signal authority does not bind the formal case")
+        elif self.no_signal_authority is not None:
+            if (
+                self.case.get("signal_source_class") != "no_signal"
+                or self.case.get("phase_authority_mode") is not None
+                or self.no_signal_authority["scenario_id"] != self.case["scenario_id"]
+                or self.no_signal_authority["route_identity_sha256"]
+                != self.case["route_identity_sha256"]
+                or self.no_signal_authority["source_map_sha256"]
+                != self.case["source_map_sha256"]
+            ):
+                raise ValueError("no-signal authority does not bind the formal case")
+        elif (
+            self.case.get("signal_source_class") != "mapped_signal"
+            or self.case.get("phase_authority_mode")
+            not in {"controlled_same_tick_override", "observe_same_tick_request"}
+        ):
+            raise ValueError("missing route-level signal source authority is not retainable")
         self._route_lanelet_ids: tuple[int, ...] = ()
         self._map_lanelet_ids: tuple[int, ...] = ()
         self.receipts: list[dict[str, Any]] = []
@@ -586,10 +648,12 @@ class V25ControlledSceneAdapter:
         self, scene: Any, tick_index: int
     ) -> Mapping[str, Any]:
         """Return the same-tick R0-authorized stop line in the ego frame."""
-        if self.red_signal_authority is None and self.no_signal_authority is None:
+        if self.mapped_signal_authority is None and self.no_signal_authority is None:
             raise RetainedScenarioCapabilityFailure(
-                scenario_id=str(self.case["scenario_id"]),
-                family=str(self.case["family"]),
+                scenario_id=self.case["scenario_id"],
+                family=self.case["family"],
+                source_class=self.case.get("signal_source_class"),
+                phase_authority_mode=self.case.get("phase_authority_mode"),
                 reason=ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE,
             )
         if not self.receipts or self.receipts[-1].get("tick_index") != tick_index:
@@ -606,12 +670,34 @@ class V25ControlledSceneAdapter:
         ego = scene.ego_agent
         if ego is None:
             raise ValueError("controlled signal atom input requires ego state")
-        return build_causal_signal_atom_input(
-            self.red_signal_authority,
+        route_tensor, map_tensor = self._current_signal_tensors(scene)
+        return build_mapped_signal_causal_atom_input(
+            self.mapped_signal_authority,
             signal["source_receipt"],
+            route_tensor=route_tensor,
+            route_lanelet_ids=self._route_lanelet_ids,
+            map_tensor=map_tensor,
+            map_lanelet_ids=self._map_lanelet_ids,
             ego_position_world_m=np.asarray(ego.current_position, dtype=np.float64),
             ego_heading_rad=float(ego.current_heading),
         )
+
+    def _current_signal_tensors(self, scene: Any) -> tuple[np.ndarray, np.ndarray]:
+        ego = scene.ego_agent
+        if ego is None or ego.route_lanes is None:
+            raise ValueError("runtime route request tensor is unavailable")
+        route = np.asarray(ego.route_lanes)
+        if not self._route_lanelet_ids or len(self._route_lanelet_ids) > len(route):
+            raise ValueError("runtime route lanelet ID/tensor alignment is unavailable")
+        padded = route[len(self._route_lanelet_ids) :]
+        if padded.size and np.any(np.abs(padded) > 0.0):
+            raise ValueError("runtime route tensor has unmapped nonzero rows")
+        if scene.map_data is None or scene.map_data.lanes is None:
+            raise ValueError("runtime map request tensor is unavailable")
+        mapped = np.asarray(scene.map_data.lanes)
+        if len(self._map_lanelet_ids) != len(mapped):
+            raise ValueError("runtime map lanelet ID/tensor alignment is unavailable")
+        return route[: len(self._route_lanelet_ids)], mapped
 
     def _upsert_actor(
         self, scene: Any, ego: Any, spec: Mapping[str, Any], sim_time_s: float
@@ -673,11 +759,16 @@ class V25ControlledSceneAdapter:
         tick_index: int,
         sim_time_s: float,
     ) -> dict[str, Any]:
-        signal = self.case["signal"]
-        phase = str(signal["phase"])
-        if phase == "none":
+        if self.mapped_signal_authority is None:
+            phase = str(self.case["signal"]["phase"])
             if self.no_signal_authority is None:
-                return {"phase": phase, "source_row_count": 0, "applied": False}
+                raise RetainedScenarioCapabilityFailure(
+                    scenario_id=self.case["scenario_id"],
+                    family=self.case["family"],
+                    source_class=self.case.get("signal_source_class"),
+                    phase_authority_mode=self.case.get("phase_authority_mode"),
+                    reason=ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE,
+                )
             receipt = build_runtime_no_signal_receipt(
                 self.no_signal_authority,
                 scenario_id=str(self.case["scenario_id"]),
@@ -690,73 +781,76 @@ class V25ControlledSceneAdapter:
                 "applied": False,
                 "source_receipt": receipt,
             }
-        if self.red_signal_authority is None:
-            raise RetainedScenarioCapabilityFailure(
-                scenario_id=str(self.case["scenario_id"]),
-                family=str(self.case["family"]),
-                reason=(
-                    ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE
-                ),
+        chain = self.mapped_signal_authority
+        route_tensor, map_tensor = self._current_signal_tensors(scene)
+        route_before = route_tensor.copy()
+        map_before = map_tensor.copy()
+        mode = chain["phase_authority_mode"]
+        applied = False
+        if mode == "controlled_same_tick_override":
+            changed_route, changed_map = apply_controlled_same_tick_override(
+                chain,
+                route_tensor=route_tensor,
+                route_lanelet_ids=self._route_lanelet_ids,
+                map_tensor=map_tensor,
+                map_lanelet_ids=self._map_lanelet_ids,
             )
-        channel = {"green": 0, "yellow": 1, "red": 2}[phase]
-        controlled = set(self.red_signal_authority["controlled_lanelet_ids"])
-        applied_route_lanelet_ids: list[int] = []
-        applied_map_lanelet_ids: list[int] = []
-        ego = scene.ego_agent
-        if ego is not None and ego.route_lanes is not None:
-            route_ids = self._route_lanelet_ids
-            if not route_ids or len(route_ids) > len(ego.route_lanes):
-                raise ValueError("runtime route lanelet ID/tensor alignment is unavailable")
-            padded = np.asarray(ego.route_lanes[len(route_ids) :])
-            if padded.size and np.any(np.abs(padded) > 0.0):
-                raise ValueError("runtime route tensor has unmapped nonzero rows")
-            for row_index, lanelet_id in enumerate(route_ids):
-                if lanelet_id not in controlled:
-                    continue
-                values = ego.route_lanes[row_index]
-                if not np.any(values[:, 8:12] > 0.5):
-                    raise ValueError("qualified route signal row has no current source")
-                values[:, 8:13] = 0.0
-                values[:, 8 + channel] = 1.0
-                applied_route_lanelet_ids.append(lanelet_id)
-        if scene.map_data is not None and scene.map_data.lanes is not None:
-            values = np.asarray(scene.map_data.lanes)
-            if values.ndim != 3 or values.shape[2] < 13:
-                raise ValueError("traffic-light tensor shape changed")
-            if len(self._map_lanelet_ids) != len(values):
-                raise ValueError("runtime map lanelet ID/tensor alignment is unavailable")
-            for row_index, lanelet_id in enumerate(self._map_lanelet_ids):
-                if lanelet_id not in controlled:
-                    continue
-                if not np.any(values[row_index, :, 8:12] > 0.5):
-                    raise ValueError("qualified map signal row has no current source")
-                values[row_index, :, 8:13] = 0.0
-                values[row_index, :, 8 + channel] = 1.0
-                applied_map_lanelet_ids.append(lanelet_id)
-        if not applied_route_lanelet_ids and not applied_map_lanelet_ids:
-            raise RetainedScenarioCapabilityFailure(
-                scenario_id=str(self.case["scenario_id"]),
-                family=str(self.case["family"]),
-                reason=(
-                    ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE
-                ),
+            ego = scene.ego_agent
+            ego.route_lanes[: len(self._route_lanelet_ids)] = changed_route
+            scene.map_data.lanes[...] = changed_map
+            route_tensor, map_tensor = self._current_signal_tensors(scene)
+            applied = True
+        elif mode == "observe_same_tick_request":
+            observe_same_tick_request_phase(
+                chain,
+                route_tensor=route_tensor,
+                route_lanelet_ids=self._route_lanelet_ids,
+                map_tensor=map_tensor,
+                map_lanelet_ids=self._map_lanelet_ids,
             )
-        receipt = build_runtime_signal_receipt(
-            self.red_signal_authority,
-            scenario_id=str(self.case["scenario_id"]),
+            if not np.array_equal(route_tensor, route_before) or not np.array_equal(
+                map_tensor, map_before
+            ):
+                raise ValueError("observed current signal request tensor was mutated")
+        else:
+            raise ValueError("mapped signal phase authority mode drifted")
+        receipt = build_mapped_signal_runtime_receipt(
+            chain,
             tick_index=tick_index,
-            decision_time_s=sim_time_s,
-            current_phase=phase,
-            applied_route_lanelet_ids=applied_route_lanelet_ids,
-            applied_map_lanelet_ids=applied_map_lanelet_ids,
+            decision_timestamp_s=sim_time_s,
+            source_timestamp_s=sim_time_s,
+            route_tensor=route_tensor,
+            route_lanelet_ids=self._route_lanelet_ids,
+            map_tensor=map_tensor,
+            map_lanelet_ids=self._map_lanelet_ids,
         )
+        observed = observe_same_tick_request_phase(
+            chain,
+            route_tensor=route_tensor,
+            route_lanelet_ids=self._route_lanelet_ids,
+            map_tensor=map_tensor,
+            map_lanelet_ids=self._map_lanelet_ids,
+        )
+        tensor_evidence = {
+            "schema_version": "camp_dp_v25_production_signal_tensor_evidence_v2",
+            "tick_index": tick_index,
+            "decision_timestamp_s": sim_time_s,
+            "source_timestamp_s": sim_time_s,
+            "route_signal_rows": observed["route_signal_rows"],
+            "map_signal_rows": observed["map_signal_rows"],
+            "current_phase": observed["current_phase"],
+            "route_signal_tensor_sha256": observed["route_signal_tensor_sha256"],
+            "map_signal_tensor_sha256": observed["map_signal_tensor_sha256"],
+            "future_schedule_consumed": False,
+            "phase_remaining_available": False,
+        }
         return {
-            "phase": phase,
-            "source_row_count": (
-                len(applied_route_lanelet_ids) + len(applied_map_lanelet_ids)
-            ),
-            "applied": True,
+            "phase": receipt["current_phase"],
+            "source_row_count": len(receipt["observed_route_lanelet_ids"])
+            + len(receipt["observed_map_lanelet_ids"]),
+            "applied": applied,
             "source_receipt": receipt,
+            "tensor_evidence": tensor_evidence,
         }
 
 

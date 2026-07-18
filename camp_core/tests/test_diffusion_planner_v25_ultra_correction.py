@@ -271,11 +271,15 @@ def test_identity_and_terminal_acceptance_reject_all_partial_snapshots() -> None
     capability = RetainedScenarioCapabilityFailure(
         scenario_id=scenario_id,
         family="red_light_phase_timing",
+        source_class="mapped_signal",
+        phase_authority_mode="controlled_same_tick_override",
         reason=ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE,
     )
     allowlist = {
         scenario_id: {
             "family": "red_light_phase_timing",
+            "source_class": "mapped_signal",
+            "phase_authority_mode": "controlled_same_tick_override",
             "reasons": [capability.reason.value],
         }
     }
@@ -372,6 +376,8 @@ def test_capability_failure_requires_typed_exact_formal_receipt() -> None:
     allowlist = {
         scenario_id: {
             "family": "red_light_phase_timing",
+            "source_class": "mapped_signal",
+            "phase_authority_mode": "controlled_same_tick_override",
             "reasons": [
                 ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value
             ],
@@ -399,6 +405,8 @@ def test_capability_failure_requires_typed_exact_formal_receipt() -> None:
             capability_failure={
                 "scenario_id": "c" * 64,
                 "family": "red_light_phase_timing",
+                "source_class": "mapped_signal",
+                "phase_authority_mode": "controlled_same_tick_override",
                 "reason": ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value,
             },
             capability_allowlist=allowlist,
@@ -416,10 +424,12 @@ def test_terminal_acceptance_enforces_preregistered_capability_failure_cap() -> 
             "snapshot_count": 64,
         }
     ]
-    for index in range(33):
+    for index in range(147):
         scenario_id = f"{index + 100:064x}"
         allowlist[scenario_id] = {
             "family": "red_light_phase_timing",
+            "source_class": "mapped_signal",
+            "phase_authority_mode": "controlled_same_tick_override",
             "reasons": [reason],
         }
         rows.append(
@@ -433,6 +443,8 @@ def test_terminal_acceptance_enforces_preregistered_capability_failure_cap() -> 
                 "capability_failure": {
                     "scenario_id": scenario_id,
                     "family": "red_light_phase_timing",
+                    "source_class": "mapped_signal",
+                    "phase_authority_mode": "controlled_same_tick_override",
                     "reason": reason,
                 },
             }

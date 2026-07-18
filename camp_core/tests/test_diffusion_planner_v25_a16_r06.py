@@ -8,10 +8,14 @@ import pytest
 from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (
     MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION,
     apply_controlled_same_tick_override,
+    build_mapped_signal_causal_atom_input,
     build_mapped_signal_runtime_receipt,
     observe_same_tick_request_phase,
     validate_mapped_signal_chain,
     validate_mapped_signal_runtime_receipt,
+)
+from scripts.integrations import (
+    review_diffusion_planner_v25_controlled_training_corpus as corpus_reviewer,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     SEMANTIC_PAYLOAD_SCHEMA_VERSION,
@@ -332,3 +336,105 @@ def test_runtime_receipt_rejects_source_alias_and_type_smuggling(mutation) -> No
             map_tensor=mapped,
             map_lanelet_ids=[11, 12],
         )
+
+
+def _snapshot_signal_sidecar(phase: str = "green", tick_index: int = 7) -> dict:
+    chain = _chain()
+    route, mapped = _tensors(phase)
+    observed = observe_same_tick_request_phase(
+        chain,
+        route_tensor=route,
+        route_lanelet_ids=[10, 11],
+        map_tensor=mapped,
+        map_lanelet_ids=[11, 12],
+    )
+    timestamp = 0.1 * tick_index
+    receipt = build_mapped_signal_runtime_receipt(
+        chain,
+        tick_index=tick_index,
+        decision_timestamp_s=timestamp,
+        source_timestamp_s=timestamp,
+        route_tensor=route,
+        route_lanelet_ids=[10, 11],
+        map_tensor=mapped,
+        map_lanelet_ids=[11, 12],
+    )
+    causal = build_mapped_signal_causal_atom_input(
+        chain,
+        receipt,
+        route_tensor=route,
+        route_lanelet_ids=[10, 11],
+        map_tensor=mapped,
+        map_lanelet_ids=[11, 12],
+        ego_position_world_m=[0.0, 0.0],
+        ego_heading_rad=0.0,
+    )
+    evidence = {
+        "schema_version": "camp_dp_v25_production_signal_tensor_evidence_v2",
+        "tick_index": tick_index,
+        "decision_timestamp_s": timestamp,
+        "source_timestamp_s": timestamp,
+        "route_signal_rows": observed["route_signal_rows"],
+        "map_signal_rows": observed["map_signal_rows"],
+        "current_phase": phase,
+        "route_signal_tensor_sha256": observed["route_signal_tensor_sha256"],
+        "map_signal_tensor_sha256": observed["map_signal_tensor_sha256"],
+        "future_schedule_consumed": False,
+        "phase_remaining_available": False,
+    }
+    return {
+        "context_source_receipt": {
+            "mode": "no_v2i",
+            "phase_remaining_available": False,
+            "regulatory_signal_mapped": True,
+        },
+        "signal_source_class": "mapped_signal",
+        "phase_authority_mode": "observe_same_tick_request",
+        "controlled_signal_source_receipt": receipt,
+        "controlled_signal_tensor_evidence": evidence,
+        "causal_signal_atom_input": causal,
+    }
+
+
+def test_snapshot_reviewer_independently_recomputes_mapped_signal_rows() -> None:
+    sidecar = _snapshot_signal_sidecar("green", 7)
+    corpus_reviewer._validate_context_and_signal_receipts(sidecar)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "stale",
+        "future",
+        "multihot",
+        "missing",
+        "conflict",
+        "phase_transition_mismatch",
+    ],
+)
+def test_snapshot_reviewer_rejects_timestamp_and_phase_evidence_drift(
+    mutation: str,
+) -> None:
+    sidecar = _snapshot_signal_sidecar("green", 7)
+    receipt = sidecar["controlled_signal_source_receipt"]
+    evidence = sidecar["controlled_signal_tensor_evidence"]
+    if mutation == "stale":
+        receipt["source_timestamp_s"] = 0.6
+        receipt["source_age_s"] = 0.1
+    elif mutation == "future":
+        receipt["source_timestamp_s"] = 0.8
+        receipt["source_age_s"] = -0.1
+    elif mutation == "multihot":
+        evidence["route_signal_rows"][0]["signal_channels_8_12"][0][1] = 1.0
+    elif mutation == "missing":
+        evidence["route_signal_rows"] = []
+        evidence["map_signal_rows"] = []
+    elif mutation == "conflict":
+        rows = evidence["map_signal_rows"][0]["signal_channels_8_12"]
+        for row in rows:
+            row[0] = 0.0
+            row[2] = 1.0
+    else:
+        evidence["current_phase"] = "yellow"
+    with pytest.raises(ValueError):
+        corpus_reviewer._validate_context_and_signal_receipts(sidecar)

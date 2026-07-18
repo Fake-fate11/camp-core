@@ -955,7 +955,11 @@ def validate_causal_signal_atom_input(
         or receipt.get("regulatory_element_id") != payload.get("regulatory_element_id")
         or receipt.get("stop_line_id") != payload.get("stop_line_id")
         or receipt.get("current_phase") != payload.get("current_phase")
-        or float(receipt.get("decision_time_s", -1.0))
+        or float(
+            receipt.get(
+                "decision_time_s", receipt.get("decision_timestamp_s", -1.0)
+            )
+        )
         != float(payload.get("decision_time_s"))
     ):
         raise ValueError("causal signal runtime receipt binding is invalid")

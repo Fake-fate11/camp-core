@@ -29,6 +29,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
     EXPECTED_SEED,
     SNAPSHOT_SCHEMA_VERSION,
     _file_sha256,
+    build_capability_failure_allowlist,
     build_controlled_train_config,
     combine_snapshot_context,
 )
@@ -121,6 +122,26 @@ def test_controlled_train_config_rejects_split_seed_or_outcome_drift() -> None:
             runner.validate_v25_controlled_train_config(config)
 
 
+def test_capability_allowlist_is_route_source_state_not_scenario_family() -> None:
+    mapped_non_red = _case()
+    mapped_non_red["signal_source_class"] = "mapped_signal"
+    mapped_non_red["phase_authority_mode"] = "observe_same_tick_request"
+    no_signal = copy.deepcopy(mapped_non_red)
+    no_signal["scenario_id"] = "9" * 64
+    no_signal["signal_source_class"] = "no_signal"
+    no_signal["phase_authority_mode"] = None
+
+    allowlist = build_capability_failure_allowlist([mapped_non_red, no_signal])
+    assert allowlist == {
+        mapped_non_red["scenario_id"]: {
+            "family": "lead_vehicle_hard_brake",
+            "source_class": "mapped_signal",
+            "phase_authority_mode": "observe_same_tick_request",
+            "reasons": ["mapped_current_signal_source_unavailable"],
+        }
+    }
+
+
 def _snapshot() -> dict:
     candidates = np.zeros((8, 80, 4), dtype=np.float32)
     candidates[:, :, 2] = 1.0
@@ -171,7 +192,7 @@ def _snapshot() -> dict:
     }
 
 
-def _no_signal_authority(case: dict) -> tuple[dict, dict]:
+def _no_signal_authority(case: dict, *, tick_index: int = 7) -> tuple[dict, dict]:
     route = np.column_stack((np.linspace(0.0, 100.0, 101), np.zeros(101)))
     semantic = build_semantic_clone_payload(
         case, route_polyline_world=route, stop_line_world=None
@@ -194,9 +215,41 @@ def _no_signal_authority(case: dict) -> tuple[dict, dict]:
         {key: value for key, value in chain.items() if key != "source_chain_sha256"}
     )
     receipt = build_runtime_no_signal_receipt(
-        chain, scenario_id=case["scenario_id"], tick_index=7, decision_time_s=0.7
+        chain,
+        scenario_id=case["scenario_id"],
+        tick_index=tick_index,
+        decision_time_s=0.1 * tick_index,
     )
     return chain, receipt
+
+
+def _combine_no_signal(snapshot: dict, *, tick_index: int = 0) -> dict:
+    case = _case()
+    chain, receipt = _no_signal_authority(case, tick_index=tick_index)
+    case.update(
+        {
+            "no_signal_authority": chain,
+            "canonical_semantic_clone_sha256": chain["semantic_clone_sha256"],
+            "signal_source_class": "no_signal",
+            "phase_authority_mode": None,
+        }
+    )
+    for row in snapshot["feature_payload"]["atom_matrix"]:
+        row[10] = 0.0
+        row[12] = 0.0
+    for row in snapshot["feature_payload"]["atom_applicable_mask"]:
+        row[10] = False
+        row[12] = False
+    snapshot["sidecar"]["causal_signal_atom_input"] = (
+        build_no_signal_causal_atom_input(chain, receipt)
+    )
+    return combine_snapshot_context(
+        snapshot=snapshot,
+        context=_context(),
+        case=case,
+        tick_index=tick_index,
+        controlled_scene_receipt={"signal": {"source_receipt": receipt}},
+    )
 
 
 def _context() -> dict:
@@ -221,6 +274,8 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
     chain, receipt = _no_signal_authority(case)
     case["no_signal_authority"] = chain
     case["canonical_semantic_clone_sha256"] = chain["semantic_clone_sha256"]
+    case["signal_source_class"] = "no_signal"
+    case["phase_authority_mode"] = None
     snapshot = _snapshot()
     for row in snapshot["feature_payload"]["atom_matrix"]:
         row[10] = 0.0
@@ -335,9 +390,7 @@ def test_combined_snapshot_freezes_all_k_high_risk_definition(
     snapshot["sidecar"]["all_k_high_risk"] = all_k_high_risk
 
     if passes:
-        payload = combine_snapshot_context(
-            snapshot=snapshot, context=_context(), case=_case(), tick_index=0
-        )
+        payload = _combine_no_signal(snapshot, tick_index=0)
         assert payload["sidecar"]["all_k_high_risk"] is all_k_high_risk
     else:
         with pytest.raises(ValueError, match="score/mask invariant"):

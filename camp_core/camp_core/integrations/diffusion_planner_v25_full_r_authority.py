@@ -586,6 +586,7 @@ CRITICAL_IMPLEMENTATION_PATHS = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_context.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_semantic_authority.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_route_signal_authority.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_controlled_scenarios.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_full_r_authority.py",
     "scripts/integrations/run_diffusion_planner_dp_camp_v21_native.py",
     "scripts/integrations/run_diffusion_planner_v25_controlled_training_corpus.py",

@@ -42,6 +42,9 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
     RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
     validate_causal_signal_atom_input,
 )
+from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (  # noqa: E402
+    MAPPED_SIGNAL_RUNTIME_RECEIPT_SCHEMA_VERSION,
+)
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
     validate_fixed_k8_candidate_tensor,
 )
@@ -50,7 +53,7 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v2"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v3"
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -101,7 +104,10 @@ SIDECAR_FIELDS = frozenset(
         "context_source_receipt",
         "generation_behavior_scale_sha256",
         "canonical_semantic_clone_sha256",
+        "signal_source_class",
+        "phase_authority_mode",
         "controlled_signal_source_receipt",
+        "controlled_signal_tensor_evidence",
         "causal_signal_atom_input",
         "offline_label_provenance",
         "outcome_fields_consumed",
@@ -121,13 +127,24 @@ CONTEXT_SOURCE_RECEIPT_FIELDS = frozenset(
 )
 RUNTIME_SIGNAL_RECEIPT_FIELDS = frozenset(
     {
-        "schema_version", "scenario_id", "tick_index", "decision_time_s",
-        "source_mode", "current_phase", "regulatory_element_id",
+        "schema_version", "scenario_id", "tick_index", "phase_authority_mode",
+        "current_phase", "decision_timestamp_s", "source_timestamp_s",
+        "source_age_s", "freshness", "source_id", "regulatory_element_id",
         "physical_light_ids", "bulb_ids", "controlled_lanelet_ids",
         "stop_line_id", "stop_line_geometry_sha256", "route_geometry_sha256",
-        "route_arc_m", "route_tangent_world", "source_chain_sha256",
-        "semantic_clone_sha256", "applied_route_lanelet_ids",
-        "applied_map_lanelet_ids", "phase_remaining_available", "source_valid",
+        "route_arc_m", "source_chain_sha256", "observed_route_lanelet_ids",
+        "observed_map_lanelet_ids", "route_signal_tensor_sha256",
+        "map_signal_tensor_sha256", "phase_remaining_available", "source_valid",
+        "applicable",
+    }
+)
+SIGNAL_TENSOR_EVIDENCE_FIELDS = frozenset(
+    {
+        "schema_version", "tick_index", "decision_timestamp_s",
+        "source_timestamp_s", "route_signal_rows", "map_signal_rows",
+        "current_phase", "route_signal_tensor_sha256",
+        "map_signal_tensor_sha256", "future_schedule_consumed",
+        "phase_remaining_available",
     }
 )
 RUNTIME_NO_SIGNAL_RECEIPT_FIELDS = frozenset(
@@ -162,6 +179,15 @@ RESULT_FIELDS = frozenset(
         "seed", "status", "snapshot_count", "failure_type", "failure_reason",
         "capability_failure", "wall_seconds", "retained",
         "outcome_fields_consumed", "fresh_b_opened",
+    }
+)
+CAPABILITY_FAILURE_FIELDS = frozenset(
+    {
+        "scenario_id",
+        "family",
+        "source_class",
+        "phase_authority_mode",
+        "reason",
     }
 )
 REPORT_FIELDS = frozenset(
@@ -236,6 +262,10 @@ def _oracle_canonical_snapshot_bytes(payload: Any) -> bytes:
         )
         + "\n"
     ).encode("utf-8")
+
+
+def _oracle_sha256(payload: Any) -> str:
+    return hashlib.sha256(_oracle_canonical_snapshot_bytes(payload)).hexdigest()
 
 
 def _is_sha256(value: Any) -> bool:
@@ -459,8 +489,18 @@ def _validate_terminal_schemas(
                 type(row.get("failure_type")) is not str
                 or type(row.get("failure_reason")) is not str
                 or type(failure) is not dict
-                or set(failure) != {"scenario_id", "family", "reason"}
+                or set(failure) != CAPABILITY_FAILURE_FIELDS
                 or any(type(value) is not str for value in failure.values())
+                or failure.get("scenario_id") != row.get("scenario_id")
+                or failure.get("family") != row.get("family")
+                or failure.get("source_class") != "mapped_signal"
+                or failure.get("phase_authority_mode")
+                not in {
+                    "controlled_same_tick_override",
+                    "observe_same_tick_request",
+                }
+                or failure.get("reason")
+                != "mapped_current_signal_source_unavailable"
             ):
                 raise ValueError("failed result capability receipt schema drifted")
         else:
@@ -516,28 +556,59 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
     causal = sidecar.get("causal_signal_atom_input")
     if type(receipt) is not dict or type(causal) is not dict:
         raise ValueError("signal/no-signal receipts must be exact objects")
+    source_class = sidecar.get("signal_source_class")
+    phase_mode = sidecar.get("phase_authority_mode")
+    evidence = sidecar.get("controlled_signal_tensor_evidence")
     mode = receipt.get("source_mode")
-    expected_fields = (
-        RUNTIME_SIGNAL_RECEIPT_FIELDS
-        if mode == "same_tick_current_phase_no_v2i"
-        else RUNTIME_NO_SIGNAL_RECEIPT_FIELDS
-        if mode == "same_tick_no_signal_rule_no_v2i"
+    expected_fields = RUNTIME_SIGNAL_RECEIPT_FIELDS if source_class == "mapped_signal" else (
+        RUNTIME_NO_SIGNAL_RECEIPT_FIELDS
+        if source_class == "no_signal" and mode == "same_tick_no_signal_rule_no_v2i"
         else frozenset()
     )
     if set(receipt) != expected_fields:
         raise ValueError("runtime signal receipt exact schema drifted")
-    if (
-        receipt.get("schema_version") != RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION
-        or type(receipt.get("tick_index")) is not int
-        or type(receipt.get("decision_time_s")) is not float
-        or not np.isfinite(receipt["decision_time_s"])
-        or type(receipt.get("phase_remaining_available")) is not bool
-        or receipt.get("phase_remaining_available") is not False
-        or type(receipt.get("source_valid")) is not bool
-        or receipt.get("source_valid") is not True
-    ):
-        raise ValueError("runtime signal receipt type/value contract drifted")
-    if mode == "same_tick_current_phase_no_v2i":
+    if source_class == "mapped_signal":
+        if (
+            receipt.get("schema_version")
+            != MAPPED_SIGNAL_RUNTIME_RECEIPT_SCHEMA_VERSION
+            or phase_mode not in {
+                "controlled_same_tick_override",
+                "observe_same_tick_request",
+            }
+            or receipt.get("phase_authority_mode") != phase_mode
+            or type(receipt.get("tick_index")) is not int
+            or any(
+                type(receipt.get(field)) is not float
+                or not np.isfinite(receipt[field])
+                for field in (
+                    "decision_timestamp_s",
+                    "source_timestamp_s",
+                    "source_age_s",
+                )
+            )
+            or receipt.get("source_age_s") != 0.0
+            or not np.isclose(
+                receipt.get("decision_timestamp_s")
+                - receipt.get("source_timestamp_s"),
+                receipt.get("source_age_s"),
+                rtol=0.0,
+                atol=1e-12,
+            )
+            or not np.isclose(
+                receipt.get("decision_timestamp_s"),
+                0.1 * receipt.get("tick_index"),
+                rtol=0.0,
+                atol=1e-12,
+            )
+            or receipt.get("freshness") != "same_tick"
+            or receipt.get("source_id")
+            != "fixed_dp_current_request_route_map_signal_one_hot"
+            or receipt.get("phase_remaining_available") is not False
+            or receipt.get("source_valid") is not True
+            or type(receipt.get("applicable")) is not bool
+            or receipt.get("applicable") is not (receipt.get("current_phase") == "red")
+        ):
+            raise ValueError("mapped runtime signal receipt type/value contract drifted")
         for field in (
             "regulatory_element_id",
             "stop_line_id",
@@ -547,19 +618,95 @@ def _validate_context_and_signal_receipts(sidecar: Mapping[str, Any]) -> None:
             "physical_light_ids",
             "bulb_ids",
             "controlled_lanelet_ids",
-            "applied_route_lanelet_ids",
-            "applied_map_lanelet_ids",
+            "observed_route_lanelet_ids",
+            "observed_map_lanelet_ids",
         ):
             values = receipt.get(field)
             if type(values) is not list or any(type(value) is not int for value in values):
                 raise ValueError(f"runtime receipt {field} must be native int list")
         _native_finite_number(receipt.get("route_arc_m"), "runtime receipt route_arc_m")
-        _native_numeric_array(
-            receipt.get("route_tangent_world"), (2,), "runtime route tangent"
-        )
         if receipt.get("current_phase") not in {"green", "yellow", "red"}:
             raise ValueError("runtime signal phase is invalid")
+        if type(evidence) is not dict or set(evidence) != SIGNAL_TENSOR_EVIDENCE_FIELDS:
+            raise ValueError("production signal tensor evidence exact schema drifted")
+        if (
+            evidence.get("schema_version")
+            != "camp_dp_v25_production_signal_tensor_evidence_v2"
+            or type(evidence.get("tick_index")) is not int
+            or evidence.get("tick_index") != receipt.get("tick_index")
+            or evidence.get("decision_timestamp_s")
+            != receipt.get("decision_timestamp_s")
+            or evidence.get("source_timestamp_s") != receipt.get("source_timestamp_s")
+            or evidence.get("current_phase") != receipt.get("current_phase")
+            or evidence.get("future_schedule_consumed") is not False
+            or evidence.get("phase_remaining_available") is not False
+        ):
+            raise ValueError("production signal tensor evidence values drifted")
+
+        def validate_rows(rows: Any, label: str) -> tuple[list[int], set[str]]:
+            if type(rows) is not list:
+                raise ValueError(f"{label} signal rows must be a list")
+            ids: list[int] = []
+            phases: set[str] = set()
+            for row in rows:
+                if type(row) is not dict or set(row) != {
+                    "lanelet_id", "signal_channels_8_12"
+                } or type(row.get("lanelet_id")) is not int:
+                    raise ValueError(f"{label} signal row schema drifted")
+                values_raw = row.get("signal_channels_8_12")
+                if type(values_raw) is not list or not values_raw:
+                    raise ValueError(f"{label} signal row values are missing")
+                values = _native_numeric_array(
+                    values_raw, (len(values_raw), 5), f"{label} signal row"
+                )
+                active = np.any(np.abs(values) > 1e-12, axis=1)
+                if not np.any(active):
+                    raise ValueError(f"{label} signal row has no active source")
+                row_phases: set[str] = set()
+                for phase, column in {"green": 0, "yellow": 1, "red": 2}.items():
+                    matches = np.isclose(values[active, column], 1.0, atol=1e-8)
+                    other = np.delete(values[active], column, axis=1)
+                    matches &= np.all(np.isclose(other, 0.0, atol=1e-8), axis=1)
+                    if np.any(matches):
+                        row_phases.add(phase)
+                    if not np.all(matches) and np.any(matches):
+                        raise ValueError(f"{label} signal row phase is not uniform")
+                if len(row_phases) != 1:
+                    raise ValueError(f"{label} signal row is missing/multihot/unknown")
+                ids.append(row["lanelet_id"])
+                phases.update(row_phases)
+            return ids, phases
+
+        route_ids, route_phases = validate_rows(evidence["route_signal_rows"], "route")
+        map_ids, map_phases = validate_rows(evidence["map_signal_rows"], "map")
+        phases = route_phases | map_phases
+        if (
+            not phases
+            or phases != {receipt["current_phase"]}
+            or route_ids != receipt["observed_route_lanelet_ids"]
+            or map_ids != receipt["observed_map_lanelet_ids"]
+            or _oracle_sha256(evidence["route_signal_rows"])
+            != receipt["route_signal_tensor_sha256"]
+            or _oracle_sha256(evidence["map_signal_rows"])
+            != receipt["map_signal_tensor_sha256"]
+            or evidence["route_signal_tensor_sha256"]
+            != receipt["route_signal_tensor_sha256"]
+            or evidence["map_signal_tensor_sha256"]
+            != receipt["map_signal_tensor_sha256"]
+        ):
+            raise ValueError("mapped signal tensor evidence/receipt binding drifted")
     else:
+        if (
+            phase_mode is not None
+            or evidence is not None
+            or receipt.get("schema_version") != RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION
+            or type(receipt.get("tick_index")) is not int
+            or type(receipt.get("decision_time_s")) is not float
+            or not np.isfinite(receipt["decision_time_s"])
+            or receipt.get("phase_remaining_available") is not False
+            or receipt.get("source_valid") is not True
+        ):
+            raise ValueError("runtime no-signal receipt type/value contract drifted")
         for field in (
             "route_lanelet_ids",
             "traffic_light_regulatory_element_ids",
@@ -717,6 +864,7 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
         "tie_break_contract",
         "context_schema_version",
         "offline_label_provenance",
+        "signal_source_class",
     ):
         if type(sidecar.get(field)) is not str:
             raise ValueError(f"sidecar {field} must be a native string")
@@ -735,6 +883,17 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
     semantic = sidecar.get("canonical_semantic_clone_sha256")
     if semantic is not None and not _is_sha256(semantic):
         raise ValueError("canonical semantic clone must be null or SHA256")
+    if sidecar.get("signal_source_class") == "mapped_signal":
+        if sidecar.get("phase_authority_mode") not in {
+            "controlled_same_tick_override",
+            "observe_same_tick_request",
+        }:
+            raise ValueError("mapped signal phase-authority mode is invalid")
+    elif sidecar.get("signal_source_class") == "no_signal":
+        if sidecar.get("phase_authority_mode") is not None:
+            raise ValueError("no-signal phase-authority mode must be null")
+    else:
+        raise ValueError("snapshot signal source class is invalid")
     for field in (
         "candidate0_independent_second_forward",
         "all_k_high_risk",
@@ -929,6 +1088,16 @@ def review(corpus: Path, expected_root: str) -> dict[str, Any]:
                 or not isinstance(failure, Mapping)
                 or failure.get("scenario_id") != scenario_id
                 or failure.get("family") != row.get("family")
+                or set(failure) != CAPABILITY_FAILURE_FIELDS
+                or any(type(value) is not str for value in failure.values())
+                or failure.get("source_class") != "mapped_signal"
+                or failure.get("phase_authority_mode")
+                not in {
+                    "controlled_same_tick_override",
+                    "observe_same_tick_request",
+                }
+                or failure.get("reason")
+                != "mapped_current_signal_source_unavailable"
             ):
                 raise ValueError("failed corpus identity is not a typed retained failure")
         else:

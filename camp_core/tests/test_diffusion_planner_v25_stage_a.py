@@ -208,6 +208,8 @@ def test_all_21_red_capability_failures_are_scientifically_ineligible() -> None:
         scenario_id = f"{index + 100:064x}"
         allowlist[scenario_id] = {
             "family": "red_light_phase_timing",
+            "source_class": "mapped_signal",
+            "phase_authority_mode": "controlled_same_tick_override",
             "reasons": [reason],
         }
         authority[scenario_id] = {
@@ -226,6 +228,8 @@ def test_all_21_red_capability_failures_are_scientifically_ineligible() -> None:
                 "capability_failure": {
                     "scenario_id": scenario_id,
                     "family": "red_light_phase_timing",
+                    "source_class": "mapped_signal",
+                    "phase_authority_mode": "controlled_same_tick_override",
                     "reason": reason,
                 },
             }

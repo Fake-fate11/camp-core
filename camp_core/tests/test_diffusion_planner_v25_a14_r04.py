@@ -170,7 +170,10 @@ def _snapshot() -> dict[str, object]:
             },
             "generation_behavior_scale_sha256": semantic_sha,
             "canonical_semantic_clone_sha256": semantic_sha,
+            "signal_source_class": "no_signal",
+            "phase_authority_mode": None,
             "controlled_signal_source_receipt": runtime_receipt,
+            "controlled_signal_tensor_evidence": None,
             "causal_signal_atom_input": causal_input,
             "offline_label_provenance": "pending_train_only_causal_label",
             "outcome_fields_consumed": [],
@@ -522,3 +525,34 @@ def test_terminal_report_progress_results_are_exact_and_type_closed() -> None:
     for values in mutations:
         with pytest.raises(ValueError):
             corpus_reviewer._validate_terminal_schemas(*values)
+
+
+def test_terminal_retained_failure_is_bound_to_exact_route_source_state() -> None:
+    report, progress, results = _terminal_fixture()
+    failed = copy.deepcopy(results)
+    failed[0].update(
+        {
+            "status": "failed",
+            "snapshot_count": 0,
+            "failure_type": "RetainedScenarioCapabilityFailure",
+            "failure_reason": "mapped source unavailable",
+            "capability_failure": {
+                "scenario_id": failed[0]["scenario_id"],
+                "family": failed[0]["family"],
+                "source_class": "mapped_signal",
+                "phase_authority_mode": "observe_same_tick_request",
+                "reason": "mapped_current_signal_source_unavailable",
+            },
+        }
+    )
+    corpus_reviewer._validate_terminal_schemas(report, progress, failed)
+    for key, value in (
+        ("source_class", "no_signal"),
+        ("phase_authority_mode", "red_light_phase_timing"),
+        ("reason", "other"),
+        ("source_class", 1),
+    ):
+        changed = copy.deepcopy(failed)
+        changed[0]["capability_failure"][key] = value
+        with pytest.raises(ValueError, match="capability receipt"):
+            corpus_reviewer._validate_terminal_schemas(report, progress, changed)

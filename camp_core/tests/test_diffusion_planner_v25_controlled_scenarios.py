@@ -21,10 +21,13 @@ from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
     build_final_controlled_corpus_plan,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
-    SIGNAL_CHAIN_SCHEMA_VERSION,
+    NO_SIGNAL_CHAIN_SCHEMA_VERSION,
     build_semantic_clone_payload,
     canonical_json_sha256,
-    validate_runtime_signal_receipt,
+)
+from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (
+    MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION,
+    validate_mapped_signal_runtime_receipt,
 )
 
 
@@ -274,10 +277,22 @@ def _signal_authority(case: dict) -> dict:
         case, route_polyline_world=route, stop_line_world=stop
     )
     chain = {
-        "schema_version": SIGNAL_CHAIN_SCHEMA_VERSION,
+        "schema_version": MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION,
         "scenario_id": case["scenario_id"],
         "route_identity_sha256": case["route_identity_sha256"],
         "source_map_sha256": case["source_map_sha256"],
+        "phase_authority_mode": (
+            "controlled_same_tick_override"
+            if case["signal"]["phase"] != "none"
+            else "observe_same_tick_request"
+        ),
+        "expected_current_phase": (
+            case["signal"]["phase"] if case["signal"]["phase"] != "none" else None
+        ),
+        "formal_phase": case["signal"]["phase"],
+        "formal_mapped_source_required": case["signal"]["mapped_source_required"],
+        "formal_route_mapped_traffic_light": True,
+        "phase_remaining_available": False,
         "regulatory_element_ids": [100],
         "physical_light_ids": [101],
         "bulb_ids": [102],
@@ -296,7 +311,31 @@ def _signal_authority(case: dict) -> dict:
         "route_arc_m": 20.0,
         "route_length_m": 100.0,
         "route_tangent_world": [1.0, 0.0],
-        "expected_current_phase": case["signal"]["phase"],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": canonical_json_sha256(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = canonical_json_sha256(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    return chain
+
+
+def _no_signal_authority(case: dict) -> dict:
+    route = np.column_stack((np.linspace(0.0, 100.0, 101), np.zeros(101)))
+    semantic = build_semantic_clone_payload(
+        case, route_polyline_world=route, stop_line_world=None
+    )
+    chain = {
+        "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+        "scenario_id": case["scenario_id"],
+        "route_identity_sha256": case["route_identity_sha256"],
+        "source_map_sha256": case["source_map_sha256"],
+        "route_lanelet_ids": [1],
+        "route_geometry_sha256": canonical_json_sha256(
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+        ),
+        "traffic_light_regulatory_element_ids": [],
         "semantic_clone_payload": semantic,
         "semantic_clone_sha256": canonical_json_sha256(semantic),
         "source_chain_sha256": "",
@@ -319,7 +358,11 @@ def test_scene_adapter_injects_scripted_actor_without_candidate_or_outcome_input
         seeds=[25991],
     )
     scene = _scene()
-    adapter = V25ControlledSceneAdapter(case)
+    case["signal_source_class"] = "no_signal"
+    case["phase_authority_mode"] = None
+    adapter = V25ControlledSceneAdapter(
+        case, no_signal_authority=_no_signal_authority(case)
+    )
 
     first = adapter(scene, 0)
     second = adapter(scene, 20)
@@ -346,7 +389,9 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
     )
     scene = _scene(signal=True)
     chain = _signal_authority(case)
-    adapter = V25ControlledSceneAdapter(case, red_signal_authority=chain)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
+    adapter = V25ControlledSceneAdapter(case, mapped_signal_authority=chain)
     adapter.bind_runtime_lanelet_ids(
         route_lanelet_ids=[1, 2], map_lanelet_ids=[1, 3, 4, 5]
     )
@@ -357,8 +402,13 @@ def test_scene_adapter_only_overwrites_existing_mapped_signal_rows():
     assert np.all(scene.ego_agent.route_lanes[0, :, 10] == 1.0)
     assert np.all(scene.map_data.lanes[0, :, 10] == 1.0)
     assert np.all(scene.map_data.lanes[1:, :, 12] == 1.0)
-    validate_runtime_signal_receipt(
-        receipt["signal"]["source_receipt"], chain
+    validate_mapped_signal_runtime_receipt(
+        receipt["signal"]["source_receipt"],
+        chain,
+        route_tensor=scene.ego_agent.route_lanes,
+        route_lanelet_ids=[1, 2],
+        map_tensor=scene.map_data.lanes,
+        map_lanelet_ids=[1, 3, 4, 5],
     )
 
 
@@ -374,8 +424,11 @@ def test_scene_adapter_rejects_unmapped_nonzero_padded_route_row():
         seeds=[25991],
     )
     scene = _scene(signal=True)
+    chain = _signal_authority(case)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
     adapter = V25ControlledSceneAdapter(
-        case, red_signal_authority=_signal_authority(case)
+        case, mapped_signal_authority=chain
     )
     adapter.bind_runtime_lanelet_ids(
         route_lanelet_ids=[1], map_lanelet_ids=[1, 3, 4, 5]
@@ -395,6 +448,8 @@ def test_scene_adapter_raises_typed_capability_failure_for_missing_signal_source
         variant=0,
         seeds=[25001],
     )
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = "controlled_same_tick_override"
 
     with pytest.raises(RetainedScenarioCapabilityFailure) as captured:
         V25ControlledSceneAdapter(case)(_scene(signal=False), 0)
@@ -402,5 +457,117 @@ def test_scene_adapter_raises_typed_capability_failure_for_missing_signal_source
     assert captured.value.as_receipt() == {
         "scenario_id": case["scenario_id"],
         "family": "red_light_phase_timing",
+        "source_class": "mapped_signal",
+        "phase_authority_mode": "controlled_same_tick_override",
         "reason": ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value,
     }
+
+
+@pytest.mark.parametrize(
+    "family",
+    [
+        "lead_vehicle_hard_brake",
+        "cut_in_merge",
+        "narrow_encounter",
+    ],
+)
+def test_mapped_non_red_observes_cross_family_same_tick_without_mutation(
+    family: str,
+) -> None:
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family=family,
+        tier="borderline",
+        variant=0,
+        seeds=[25001],
+    )
+    scene = _scene(signal=True)
+    chain = _signal_authority(case)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
+    adapter = V25ControlledSceneAdapter(case, mapped_signal_authority=chain)
+    adapter.bind_runtime_lanelet_ids(
+        route_lanelet_ids=[1, 2], map_lanelet_ids=[1, 3, 4, 5]
+    )
+    route_before = scene.ego_agent.route_lanes.copy()
+    map_before = scene.map_data.lanes.copy()
+    first = adapter(scene, 0)
+    assert first["signal"]["applied"] is False
+    assert first["signal"]["source_receipt"]["phase_authority_mode"] == (
+        "observe_same_tick_request"
+    )
+    assert first["signal"]["source_receipt"]["current_phase"] == "green"
+    assert np.array_equal(scene.ego_agent.route_lanes, route_before)
+    assert np.array_equal(scene.map_data.lanes, map_before)
+
+    scene.ego_agent.route_lanes[0, :, 8:13] = 0.0
+    scene.ego_agent.route_lanes[0, :, 9] = 1.0
+    scene.map_data.lanes[0, :, 8:13] = 0.0
+    scene.map_data.lanes[0, :, 9] = 1.0
+    second = adapter(scene, 1)
+    assert second["signal"]["source_receipt"]["current_phase"] == "yellow"
+    assert second["signal"]["source_receipt"]["decision_timestamp_s"] == 0.1
+    assert second["signal"]["source_receipt"]["source_timestamp_s"] == 0.1
+    assert second["signal"]["tensor_evidence"]["future_schedule_consumed"] is False
+
+
+@pytest.mark.parametrize("failure", ["missing", "multihot", "conflict"])
+def test_mapped_non_red_runtime_phase_failures_are_fail_closed(failure: str) -> None:
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family="cut_in_merge",
+        tier="easy",
+        variant=0,
+        seeds=[25001],
+    )
+    scene = _scene(signal=True)
+    chain = _signal_authority(case)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
+    adapter = V25ControlledSceneAdapter(
+        case, mapped_signal_authority=chain
+    )
+    adapter.bind_runtime_lanelet_ids(
+        route_lanelet_ids=[1, 2], map_lanelet_ids=[1, 3, 4, 5]
+    )
+    if failure == "missing":
+        scene.ego_agent.route_lanes[0, :, 8:13] = 0.0
+        scene.map_data.lanes[0, :, 8:13] = 0.0
+    elif failure == "multihot":
+        scene.ego_agent.route_lanes[0, :, 9] = 1.0
+    else:
+        scene.map_data.lanes[0, :, 8:13] = 0.0
+        scene.map_data.lanes[0, :, 10] = 1.0
+    with pytest.raises(ValueError):
+        adapter(scene, 0)
+
+
+def test_scene_adapter_rejects_source_chain_or_case_state_mismatch() -> None:
+    route = _route(0, "map_family_d7f16a17d3eb", traffic_light=True)
+    case = build_controlled_scenario_case(
+        route=route,
+        corridor_group_sha256="1" * 64,
+        split="train",
+        family="lead_vehicle_hard_brake",
+        tier="easy",
+        variant=0,
+        seeds=[25001],
+    )
+    chain = _signal_authority(case)
+    case["signal_source_class"] = "mapped_signal"
+    case["phase_authority_mode"] = chain["phase_authority_mode"]
+    for key, value in (
+        ("signal_source_class", "no_signal"),
+        ("phase_authority_mode", "controlled_same_tick_override"),
+        ("route_identity_sha256", "f" * 64),
+    ):
+        changed = copy.deepcopy(case)
+        changed[key] = value
+        with pytest.raises(ValueError, match="does not bind"):
+            V25ControlledSceneAdapter(changed, mapped_signal_authority=chain)

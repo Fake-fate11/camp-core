@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import math
 from pathlib import Path
@@ -31,12 +32,17 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     seal_artifact,
     verify_complete_seal,
 )
+from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
+    build_critical_implementation_manifest,
+    canonical_sha256 as full_r_canonical_sha256,
+    verify_dual_head_contract,
+)
 
 
-SCHEMA_VERSION = "camp_dp_v25_a16_r06_route_signal_source_review_v1"
-PRODUCER_SCHEMA_VERSION = "camp_dp_v25_a16_r06_route_signal_source_census_v1"
-RECEIPTS_SCHEMA_VERSION = "camp_dp_v25_a16_r06_route_signal_source_receipts_v1"
-SUPPLEMENT_SCHEMA_VERSION = "camp_dp_v25_formal_route_source_contract_supplement_v1"
+SCHEMA_VERSION = "camp_dp_v25_a161_route_signal_source_review_v2"
+PRODUCER_SCHEMA_VERSION = "camp_dp_v25_a161_route_signal_source_census_v2"
+RECEIPTS_SCHEMA_VERSION = "camp_dp_v25_a161_route_signal_source_receipts_v2"
+SUPPLEMENT_SCHEMA_VERSION = "camp_dp_v25_formal_route_source_contract_supplement_v2"
 MAPPED_CHAIN_SCHEMA_VERSION = (
     "camp_dp_v25_family_independent_mapped_signal_source_chain_v1"
 )
@@ -74,6 +80,34 @@ CONSUMED_NONCE = (
 CONSUMED_MARKER_SHA256 = (
     "0b62753b0b07ea987d78e309fde4ed9d9aeda5e2cf0b25d1107f7c446a1b864d"
 )
+CANONICAL_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
+CANONICAL_CONSUMED_MARKER = Path(
+    "/root/autodl-tmp/.camp_dp_v25_controlled_train_release_nonces/"
+    "v25_preflight_5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e."
+    "consumed.json"
+)
+CANONICAL_CONSUMED_MARKER_PAYLOAD = {
+    "gate": "preflight",
+    "nonce": CONSUMED_NONCE,
+    "authorized_output_dir": str(FAILED_PREFLIGHT_ARTIFACT),
+}
+SOURCE_PAYLOAD_PATHS = frozenset(
+    {
+        "COMMAND",
+        "HEADS",
+        "formal_route_source_contract_supplement.json",
+        "report.json",
+        "route_signal_source_receipts.json",
+        "run.exit",
+    }
+)
+REVIEW_PAYLOAD_PATHS = frozenset({"COMMAND", "HEADS", "report.json", "run.exit"})
+DP_IMPORT_PATHS = {
+    "scenario_generation.traffic_light": "scenario_generation/traffic_light.py",
+    "scenario_generation.gui.lanelet_scene_builder": (
+        "scenario_generation/gui/lanelet_scene_builder.py"
+    ),
+}
 CURRENT_REQUEST_SOURCE_ID = "fixed_dp_current_request_route_map_signal_one_hot"
 EXPECTED_EXECUTABLE = 1500
 EXPECTED_RETAINED = 153
@@ -83,12 +117,15 @@ EXPECTED_CONTROLLED = 21
 EXPECTED_OBSERVED = 125
 EXPECTED_SEED = 25001
 MINIMUM_FREE_BYTES = 10 * 1024**3
+BOUNDED_COVERAGE_SCHEMA_VERSION = "camp_dp_v25_bounded_coverage_design_v1"
+BOUNDED_COVERAGE_MAX_IDENTITIES = 320
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--expected-camp-source-head", required=True)
+    parser.add_argument("--expected-camp-pointer-head", required=True)
     parser.add_argument("--source-artifact", type=Path, required=True)
     parser.add_argument("--source-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
@@ -148,6 +185,93 @@ def _strict_equal(left: Any, right: Any) -> bool:
             _strict_equal(a, b) for a, b in zip(left, right)
         )
     return left == right
+
+
+def _verify_exact_payload_inventory(
+    root: Path, root_sha256: str, *, expected_paths: frozenset[str], label: str
+) -> dict[str, Any]:
+    receipt = verify_complete_seal(root, root_sha256, label=label)
+    paths = receipt.get("manifest_paths")
+    if (
+        type(paths) is not list
+        or frozenset(paths) != expected_paths
+        or len(paths) != len(expected_paths)
+        or receipt.get("file_count") != len(expected_paths)
+    ):
+        raise ValueError(f"{label} exact payload inventory drifted")
+    return receipt
+
+
+def _validate_consumed_marker(path: Path) -> dict[str, Any]:
+    if path.is_symlink():
+        raise ValueError("consumed nonce marker must not be a symlink")
+    if (
+        not path.is_absolute()
+        or str(path) != str(CANONICAL_CONSUMED_MARKER)
+        or path.resolve() != CANONICAL_CONSUMED_MARKER.resolve()
+        or not path.is_file()
+        or _file_sha256(path) != CONSUMED_MARKER_SHA256
+    ):
+        raise ValueError("consumed nonce marker canonical path/bytes drifted")
+    payload = _load(path)
+    if not _strict_equal(payload, CANONICAL_CONSUMED_MARKER_PAYLOAD):
+        raise ValueError("consumed nonce marker schema/value/type drifted")
+    return payload
+
+
+def _verify_imported_dp_module(
+    *, repo: Path, fixed_head: str, module: Any, relative_path: str
+) -> dict[str, str]:
+    expected = repo.resolve() / Path(relative_path)
+    module_file = getattr(module, "__file__", None)
+    if type(module_file) is not str or Path(module_file).resolve() != expected.resolve():
+        raise ValueError("imported fixed-DP module is outside canonical fixed-DP repo")
+    if expected.is_symlink() or not expected.is_file():
+        raise ValueError("imported fixed-DP module path is unavailable or symlinked")
+    subprocess.run(
+        ["git", "ls-files", "--error-unmatch", relative_path],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    committed = subprocess.run(
+        ["git", "show", f"{fixed_head}:{relative_path}"],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ).stdout
+    actual = expected.read_bytes()
+    if actual != committed:
+        raise ValueError("imported fixed-DP module bytes differ from fixed git object")
+    return {
+        "relative_path": relative_path,
+        "resolved_path": str(expected.resolve()),
+        "sha256": hashlib.sha256(actual).hexdigest(),
+    }
+
+
+def _verify_dp_import_authority(dp_repo: Path) -> dict[str, dict[str, str]]:
+    if (
+        not dp_repo.is_absolute()
+        or str(dp_repo) != str(CANONICAL_DP_REPO)
+        or dp_repo.is_symlink()
+        or dp_repo.resolve() != CANONICAL_DP_REPO.resolve()
+    ):
+        raise ValueError("fixed-DP repo must be the canonical real path")
+    for path in (dp_repo, dp_repo / "diffusion_planner"):
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
+    receipts = {}
+    for module_name, relative_path in DP_IMPORT_PATHS.items():
+        receipts[module_name] = _verify_imported_dp_module(
+            repo=dp_repo,
+            fixed_head=FIXED_DP_HEAD,
+            module=importlib.import_module(module_name),
+            relative_path=relative_path,
+        )
+    return receipts
 
 
 def _git_head(repo: Path) -> str:
@@ -598,6 +722,146 @@ def _materialize_expected(
     return receipt, evidence
 
 
+def _oracle_id_free_tensor_layout(
+    case: Mapping[str, Any], builder: Any
+) -> dict[str, Any]:
+    route_ids = [int(value) for value in case["route_spec"]["lanelet_ids"]]
+    route_lanes, _speed, _has_speed = builder._route_to_33dim(route_ids)
+    route_row_count = len(
+        [value for value in route_ids[:25] if value in builder._cache]
+    )
+    route = np.asarray(route_lanes[:route_row_count])
+    map_data = builder._build_map_data(route_ids)
+    mapped = np.asarray(map_data.lanes)
+    if (
+        route.ndim != 3
+        or mapped.ndim != 3
+        or route.shape[-1] != 33
+        or mapped.shape[-1] != 33
+    ):
+        raise ValueError("independent fixed-DP request tensor layout is invalid")
+    payload = {
+        "schema_version": "camp_dp_v25_id_free_tensor_layout_v1",
+        "route_tensor_shape": [int(value) for value in route.shape],
+        "map_tensor_shape": [int(value) for value in mapped.shape],
+        "signal_channel_slice": [8, 13],
+        "lanelet_ids_included": False,
+        "map_route_scenario_split_ids_included": False,
+    }
+    return {**payload, "layout_sha256": _oracle_sha256(payload)}
+
+
+def _oracle_bounded_coverage_design(
+    train: list[Mapping[str, Any]], receipts: list[Mapping[str, Any]]
+) -> dict[str, Any]:
+    rows = {str(row["scenario_id"]): row for row in receipts}
+    executable = [case for case in train if case.get("runner_eligible") is True]
+    if len(rows) != len(train) or len(executable) != EXPECTED_EXECUTABLE:
+        raise ValueError("independent bounded coverage denominator drifted")
+
+    def tie(case: Mapping[str, Any]) -> tuple[str, str, str]:
+        row = rows[str(case["scenario_id"])]
+        return (
+            str(row["source_chain"]["semantic_clone_sha256"]),
+            str(case["route_identity_sha256"]),
+            str(case["scenario_id"]),
+        )
+
+    mapped = [
+        case
+        for case in executable
+        if rows[str(case["scenario_id"])]["source_class"] == "mapped_signal"
+    ]
+    no_signal = [
+        case
+        for case in executable
+        if rows[str(case["scenario_id"])]["source_class"] == "no_signal"
+    ]
+    if len(mapped) != EXPECTED_EXECUTABLE_MAPPED:
+        raise ValueError("independent bounded mapped denominator drifted")
+    selected = {str(case["scenario_id"]): case for case in mapped}
+    primary_groups: dict[tuple[str, str, str, str], list[Mapping[str, Any]]] = {}
+    for case in no_signal:
+        key = (
+            str(case["family"]),
+            str(case["semantic_variant"]),
+            str(case["tier"]),
+            str(case["source_map_sha256"]),
+        )
+        primary_groups.setdefault(key, []).append(case)
+    for group in primary_groups.values():
+        chosen = min(group, key=tie)
+        selected[str(chosen["scenario_id"])] = chosen
+
+    def augment(value_for) -> int:
+        universe = {value_for(case) for case in no_signal}
+        selected_ids = set(selected)
+        covered = {
+            value_for(case)
+            for case in no_signal
+            if str(case["scenario_id"]) in selected_ids
+        }
+        for value in sorted(universe - covered):
+            chosen = min(
+                [case for case in no_signal if value_for(case) == value], key=tie
+            )
+            selected[str(chosen["scenario_id"])] = chosen
+        return len(universe)
+
+    corridor_count = augment(lambda case: str(case["corridor_group_sha256"]))
+    layout_count = augment(
+        lambda case: str(rows[str(case["scenario_id"])]["id_free_tensor_layout"]["layout_sha256"])
+    )
+    identity0 = executable[0]
+    selected[str(identity0["scenario_id"])] = identity0
+    selected_cases = sorted(selected.values(), key=tie)
+    if len(selected_cases) > BOUNDED_COVERAGE_MAX_IDENTITIES:
+        raise ValueError("independent bounded coverage exceeds the hard cap")
+    selected_ids = {str(case["scenario_id"]) for case in selected_cases}
+    if (
+        any(str(case["scenario_id"]) not in selected_ids for case in mapped)
+        or any(
+            not any(str(case["scenario_id"]) in selected_ids for case in group)
+            for group in primary_groups.values()
+        )
+    ):
+        raise ValueError("independent bounded coverage leaves a cell uncovered")
+    return {
+        "schema_version": BOUNDED_COVERAGE_SCHEMA_VERSION,
+        "status": "design_only_k8_not_authorized",
+        "selection_rule": (
+            "all_mapped_then_nosignal_family_semantic_variant_tier_source_map_"
+            "cells_then_corridor_and_id_free_tensor_layout_augmentation"
+        ),
+        "tie_break_fields": [
+            "semantic_clone_sha256",
+            "route_identity_sha256",
+            "scenario_id",
+        ],
+        "forbidden_selection_inputs": [
+            "outcome",
+            "score",
+            "atom",
+            "margin",
+            "selected_index",
+            "dp_private_latent",
+        ],
+        "selected_scenario_ids": [str(case["scenario_id"]) for case in selected_cases],
+        "selected_identity_count": len(selected_cases),
+        "mapped_selected_count": len(mapped),
+        "no_signal_selected_count": len(selected_cases) - len(mapped),
+        "no_signal_primary_cell_count": len(primary_groups),
+        "no_signal_corridor_count": corridor_count,
+        "no_signal_id_free_tensor_layout_count": layout_count,
+        "formal_identity0_scenario_id": str(identity0["scenario_id"]),
+        "formal_identity0_separate_64_tick_repeat_planned": True,
+        "unique_identity_hard_cap": BOUNDED_COVERAGE_MAX_IDENTITIES,
+        "k8_executed": False,
+        "candidate_generation_started": False,
+        "outcome_fields_consumed": [],
+    }
+
+
 def _builder_for(case: Mapping[str, Any], builders: dict[str, Any], dp_repo: Path) -> Any:
     map_path = str(case["source_map_path"])
     if map_path in builders:
@@ -622,16 +886,26 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         raise FileExistsError(args.output_dir)
     if shutil.disk_usage(args.output_dir.parent).free < MINIMUM_FREE_BYTES:
         raise RuntimeError("free disk is below the 10 GiB floor")
+    pointer_head = _git_head(ROOT)
+    critical_manifest = build_critical_implementation_manifest(ROOT)
+    dual_head = verify_dual_head_contract(
+        repo=ROOT,
+        implementation_source_head=args.expected_camp_source_head,
+        current_pointer_head=pointer_head,
+        implementation_manifest=critical_manifest,
+    )
     if (
-        _git_head(ROOT) != args.expected_camp_source_head
+        pointer_head != args.expected_camp_pointer_head
         or not _tracked_clean(ROOT)
         or _git_head(args.dp_repo) != FIXED_DP_HEAD
         or not _tracked_clean(args.dp_repo)
     ):
         raise ValueError("CAMP/fixed-DP live authority drifted")
-    source_seal = verify_complete_seal(
+    fixed_dp_import_authority = _verify_dp_import_authority(args.dp_repo)
+    source_seal = _verify_exact_payload_inventory(
         args.source_artifact,
         args.source_root_sha256,
+        expected_paths=SOURCE_PAYLOAD_PATHS,
         label="A1.6/R0.6 source census",
     )
     verify_complete_seal(FORMAL_ARTIFACT, FORMAL_ROOT_SHA256, label="formal plan")
@@ -650,6 +924,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "counts",
         "receipts_sha256",
         "supplement_sha256",
+        "bounded_coverage_design",
+        "bounded_coverage_design_sha256",
         "model_loaded",
         "simulator_started",
         "candidate_generation_started",
@@ -667,7 +943,13 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     }
     expected_authority_fields = {
         "camp_source_head",
+        "camp_pointer_head",
+        "pointer_only_changed_paths",
+        "critical_implementation_manifest",
+        "critical_implementation_manifest_sha256",
         "fixed_dp_head",
+        "fixed_dp_repo",
+        "fixed_dp_import_authority",
         "formal_root_sha256",
         "consumed_release_artifact",
         "consumed_release_root_sha256",
@@ -758,7 +1040,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     if (args.source_artifact / "run.exit").read_text(encoding="ascii") != "0\n":
         raise ValueError("source census did not exit successfully")
     if (args.source_artifact / "HEADS").read_text(encoding="ascii").splitlines() != [
-        f"camp_head={args.expected_camp_source_head}",
+        f"camp_source_head={args.expected_camp_source_head}",
+        f"camp_pointer_head={args.expected_camp_pointer_head}",
         f"fixed_dp_head={FIXED_DP_HEAD}",
     ]:
         raise ValueError("source census HEADS drifted")
@@ -768,7 +1051,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         authority.get("consumed_release_artifact") != str(CONSUMED_RELEASE_ARTIFACT)
         or authority.get("failed_preflight_artifact")
         != str(FAILED_PREFLIGHT_ARTIFACT)
-        or authority.get("consumed_marker_path") is None
+        or authority.get("consumed_marker_path") != str(CANONICAL_CONSUMED_MARKER)
     ):
         raise ValueError("source census diagnostic path authority drifted")
     verify_complete_seal(
@@ -781,9 +1064,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         FAILED_PREFLIGHT_ROOT_SHA256,
         label="failed full-config preflight",
     )
-    marker = Path(str(authority["consumed_marker_path"]))
-    if not marker.is_file() or _file_sha256(marker) != CONSUMED_MARKER_SHA256:
-        raise ValueError("consumed nonce marker drifted during independent review")
+    _validate_consumed_marker(Path(str(authority["consumed_marker_path"])))
     if (
         report.get("schema_version") != PRODUCER_SCHEMA_VERSION
         or report.get("status") != "passed_source_only_route_signal_authority_census"
@@ -793,7 +1074,27 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("supplement_sha256") != _oracle_sha256(supplement)
         or report.get("authority", {}).get("camp_source_head")
         != args.expected_camp_source_head
+        or report.get("authority", {}).get("camp_pointer_head")
+        != args.expected_camp_pointer_head
+        or not _strict_equal(
+            report.get("authority", {}).get("pointer_only_changed_paths"),
+            dual_head["pointer_only_changed_paths"],
+        )
+        or not _strict_equal(
+            report.get("authority", {}).get("critical_implementation_manifest"),
+            critical_manifest,
+        )
+        or report.get("authority", {}).get(
+            "critical_implementation_manifest_sha256"
+        )
+        != full_r_canonical_sha256(critical_manifest)
         or report.get("authority", {}).get("fixed_dp_head") != FIXED_DP_HEAD
+        or report.get("authority", {}).get("fixed_dp_repo")
+        != str(CANONICAL_DP_REPO)
+        or not _strict_equal(
+            report.get("authority", {}).get("fixed_dp_import_authority"),
+            fixed_dp_import_authority,
+        )
         or report.get("authority", {}).get("formal_root_sha256")
         != FORMAL_ROOT_SHA256
         or report.get("authority", {}).get("consumed_release_root_sha256")
@@ -876,6 +1177,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             "source_map_sha256": str(case["source_map_sha256"]),
             "route_identity_sha256": str(case["route_identity_sha256"]),
             "actual_mapped_signal": mapped,
+            "id_free_tensor_layout": (
+                _oracle_id_free_tensor_layout(case, builder)
+                if case["runner_eligible"] is True
+                else None
+            ),
             "source_class": "mapped_signal" if mapped else "no_signal",
             "phase_authority_mode": (
                 chain["phase_authority_mode"] if mapped else None
@@ -909,6 +1215,18 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             raise ValueError("source supplement row differs from independent oracle")
         independent_rows.append(expected)
 
+    expected_bounded_design = _oracle_bounded_coverage_design(
+        train, independent_rows
+    )
+    if (
+        not _strict_equal(
+            report.get("bounded_coverage_design"), expected_bounded_design
+        )
+        or report.get("bounded_coverage_design_sha256")
+        != _oracle_sha256(expected_bounded_design)
+    ):
+        raise ValueError("bounded coverage design differs from independent oracle")
+
     executable = [row for row in independent_rows if row["runner_eligible"] is True]
     retained = [row for row in independent_rows if row["runner_eligible"] is False]
     mapped = sum(row["source_class"] == "mapped_signal" for row in executable)
@@ -931,6 +1249,22 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "observe_same_tick_request_count": observed,
         "source_failure_count": 0,
     }
+    expected_checks = {
+        "all_1653_formal_train_identities_accounted": True,
+        "all_1500_executable_source_qualified": True,
+        "all_153_retained_preserved": True,
+        "executable_146_mapped_signal": True,
+        "executable_1354_no_signal": True,
+        "mapped_21_controlled_same_tick_override": True,
+        "mapped_125_observe_same_tick_request": True,
+        "source_failures_empty": True,
+        "future_schedule_not_consumed": True,
+        "phase_remaining_unavailable": True,
+        "no_model_simulator_candidate_dp_forward": True,
+        "training_calibration_scene_v2i_fresh_outcome_closed": True,
+        "bounded_coverage_design_within_320_identity_cap": True,
+        "bounded_coverage_design_k8_not_executed": True,
+    }
     if (
         len(executable) != EXPECTED_EXECUTABLE
         or len(retained) != EXPECTED_RETAINED
@@ -939,6 +1273,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or controlled != EXPECTED_CONTROLLED
         or observed != EXPECTED_OBSERVED
         or not _strict_equal(report.get("counts"), expected_counts)
+        or not _strict_equal(report.get("checks"), expected_checks)
     ):
         raise ValueError("independent source census counts drifted")
     return {
@@ -947,9 +1282,16 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "reviewed_artifact": str(args.source_artifact),
         "reviewed_root_sha256": source_seal["root_sha256"],
         "camp_source_head": args.expected_camp_source_head,
+        "camp_pointer_head": args.expected_camp_pointer_head,
+        "pointer_only_changed_paths": dual_head["pointer_only_changed_paths"],
+        "critical_implementation_manifest_sha256": full_r_canonical_sha256(
+            critical_manifest
+        ),
+        "fixed_dp_import_authority": fixed_dp_import_authority,
         "fixed_dp_head": FIXED_DP_HEAD,
         "formal_root_sha256": FORMAL_ROOT_SHA256,
         "counts": expected_counts,
+        "bounded_coverage_design": expected_bounded_design,
         "independent_checks": {
             "formal_actual_route_classification_recomputed": True,
             "regulatory_physical_bulb_stopline_route_arc_chain_recomputed": True,
@@ -960,6 +1302,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             "future_schedule_unused": True,
             "phase_remaining_unavailable": True,
             "denominator_unchanged": True,
+            "bounded_coverage_design_recomputed_without_outcome_or_k8": True,
         },
         "model_loaded": False,
         "simulator_started": False,
@@ -980,7 +1323,8 @@ def main() -> None:
     args.output_dir.mkdir(parents=False)
     _write(args.output_dir / "report.json", report)
     (args.output_dir / "HEADS").write_text(
-        f"camp_head={report['camp_source_head']}\n"
+        f"camp_source_head={report['camp_source_head']}\n"
+        f"camp_pointer_head={report['camp_pointer_head']}\n"
         f"fixed_dp_head={FIXED_DP_HEAD}\n",
         encoding="ascii",
     )
@@ -989,6 +1333,12 @@ def main() -> None:
     )
     (args.output_dir / "run.exit").write_text("0\n", encoding="ascii")
     root_sha256 = seal_artifact(args.output_dir, label="A1.6/R0.6 source review")
+    _verify_exact_payload_inventory(
+        args.output_dir,
+        root_sha256,
+        expected_paths=REVIEW_PAYLOAD_PATHS,
+        label="A1.6.1 source review",
+    )
     print(
         json.dumps(
             {

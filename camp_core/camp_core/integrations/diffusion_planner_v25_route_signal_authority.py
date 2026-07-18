@@ -13,7 +13,9 @@ from typing import Any, Mapping, Sequence
 import numpy as np
 
 from .diffusion_planner_v25_semantic_authority import (
+    CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
     canonical_json_sha256,
+    validate_causal_signal_atom_input,
     validate_semantic_clone_payload,
 )
 
@@ -25,7 +27,7 @@ MAPPED_SIGNAL_RUNTIME_RECEIPT_SCHEMA_VERSION = (
     "camp_dp_v25_family_independent_current_signal_receipt_v1"
 )
 ROUTE_SOURCE_SUPPLEMENT_SCHEMA_VERSION = (
-    "camp_dp_v25_formal_route_source_contract_supplement_v1"
+    "camp_dp_v25_formal_route_source_contract_supplement_v2"
 )
 PHASE_AUTHORITY_MODES = frozenset(
     {"controlled_same_tick_override", "observe_same_tick_request"}
@@ -517,4 +519,102 @@ def validate_mapped_signal_runtime_receipt(
     )
     if not _strict_json_equal(dict(receipt), expected):
         raise ValueError("mapped-signal runtime receipt value/type drifted")
+    return expected
+
+
+def _world_to_ego(
+    points: np.ndarray, ego_position_world_m: np.ndarray, ego_heading_rad: float
+) -> np.ndarray:
+    relative = np.asarray(points, dtype=np.float64) - ego_position_world_m.reshape(1, 2)
+    c = math.cos(float(ego_heading_rad))
+    s = math.sin(float(ego_heading_rad))
+    rotation = np.asarray([[c, s], [-s, c]], dtype=np.float64)
+    return relative @ rotation.T
+
+
+def build_mapped_signal_causal_atom_input(
+    chain: Mapping[str, Any],
+    runtime_receipt: Mapping[str, Any],
+    *,
+    route_tensor: Any,
+    route_lanelet_ids: Sequence[int],
+    map_tensor: Any,
+    map_lanelet_ids: Sequence[int],
+    ego_position_world_m: Sequence[float],
+    ego_heading_rad: float,
+) -> dict[str, Any]:
+    """Bind the route-level same-tick receipt and certified stop line to atoms."""
+
+    validated = validate_mapped_signal_chain(chain)
+    receipt = validate_mapped_signal_runtime_receipt(
+        runtime_receipt,
+        validated,
+        route_tensor=route_tensor,
+        route_lanelet_ids=route_lanelet_ids,
+        map_tensor=map_tensor,
+        map_lanelet_ids=map_lanelet_ids,
+    )
+    ego_position = np.asarray(ego_position_world_m, dtype=np.float64)
+    if (
+        ego_position.shape != (2,)
+        or not np.isfinite(ego_position).all()
+        or type(ego_heading_rad) not in (int, float)
+        or not math.isfinite(float(ego_heading_rad))
+    ):
+        raise ValueError("mapped-signal causal ego pose is invalid")
+    stop_world = np.asarray(validated["stop_line_geometry_m"], dtype=np.float64)
+    stop_ego = _world_to_ego(stop_world, ego_position, float(ego_heading_rad))
+    tangent_world = np.asarray(validated["route_tangent_world"], dtype=np.float64)
+    c = math.cos(float(ego_heading_rad))
+    s = math.sin(float(ego_heading_rad))
+    tangent_ego = np.asarray([[c, s], [-s, c]], dtype=np.float64) @ tangent_world
+    phase = str(receipt["current_phase"])
+    payload = {
+        "schema_version": CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
+        "source_state": "available",
+        "source_valid": True,
+        "applicable": phase == "red",
+        "current_phase": phase,
+        "decision_time_s": float(receipt["decision_timestamp_s"]),
+        "ego_position_world_m": ego_position.tolist(),
+        "ego_heading_rad": float(ego_heading_rad),
+        "regulatory_element_id": validated["regulatory_element_ids"][0],
+        "stop_line_id": validated["stop_line_id"],
+        "stop_line_geometry_world_m": stop_world.tolist(),
+        "stop_line_geometry_ego_m": stop_ego.tolist(),
+        "stop_line_geometry_sha256": validated["stop_line_geometry_sha256"],
+        "route_tangent_world": tangent_world.tolist(),
+        "route_tangent_ego": tangent_ego.tolist(),
+        "route_geometry_sha256": validated["route_geometry_sha256"],
+        "route_arc_m": float(validated["route_arc_m"]),
+        "source_chain_sha256": validated["source_chain_sha256"],
+        "runtime_receipt": receipt,
+        "runtime_receipt_sha256": canonical_json_sha256(receipt),
+    }
+    return validate_causal_signal_atom_input(payload)
+
+
+def validate_mapped_signal_causal_atom_input(
+    payload: Mapping[str, Any],
+    chain: Mapping[str, Any],
+    runtime_receipt: Mapping[str, Any],
+    *,
+    route_tensor: Any,
+    route_lanelet_ids: Sequence[int],
+    map_tensor: Any,
+    map_lanelet_ids: Sequence[int],
+) -> dict[str, Any]:
+    validated = validate_causal_signal_atom_input(payload)
+    expected = build_mapped_signal_causal_atom_input(
+        chain,
+        runtime_receipt,
+        route_tensor=route_tensor,
+        route_lanelet_ids=route_lanelet_ids,
+        map_tensor=map_tensor,
+        map_lanelet_ids=map_lanelet_ids,
+        ego_position_world_m=validated["ego_position_world_m"],
+        ego_heading_rad=validated["ego_heading_rad"],
+    )
+    if not _strict_json_equal(dict(payload), expected):
+        raise ValueError("mapped-signal causal atom input does not match authority")
     return expected

@@ -58,8 +58,11 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
     validate_causal_signal_atom_input,
     validate_no_signal_chain,
     validate_runtime_no_signal_receipt,
-    validate_runtime_signal_receipt,
-    validate_signal_chain,
+)
+from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (  # noqa: E402
+    validate_mapped_signal_causal_atom_input,
+    validate_mapped_signal_chain,
+    validate_mapped_signal_runtime_receipt,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
     RetainedScenarioCapabilityFailure,
@@ -85,10 +88,13 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v5"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v5"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v6"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v6"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
-    "camp_dp_v25_full_r_semantic_authority_chains_v2"
+    "camp_dp_v25_full_r_semantic_authority_chains_v3"
+)
+ROUTE_SIGNAL_SOURCE_RECEIPTS_SCHEMA_VERSION = (
+    "camp_dp_v25_a161_route_signal_source_receipts_v2"
 )
 FORMAL_ARTIFACT = Path(
     "/root/autodl-tmp/"
@@ -125,9 +131,9 @@ CORRECTED_GENERATION_SCALES = (
 )
 PREREGISTERED_CAPABILITY_FAILURE_LIMITS = {
     (
-        "red_light_phase_timing",
+        "mapped_signal",
         ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value,
-    ): 32,
+    ): 146,
 }
 RED_SCIENTIFIC_MIN_COMPLETE_BY_TIER = {
     "easy": 4,
@@ -241,7 +247,7 @@ def validate_terminal_acceptance(
                     "capability failure receipt does not bind the result identity"
                 )
             retained_capability += 1
-            contract = (receipt["family"], receipt["reason"])
+            contract = (receipt["source_class"], receipt["reason"])
             retained_by_contract[contract] += 1
             limit = PREREGISTERED_CAPABILITY_FAILURE_LIMITS.get(contract)
             if limit is None or retained_by_contract[contract] > limit:
@@ -347,17 +353,21 @@ def validate_terminal_acceptance(
 def build_capability_failure_allowlist(
     cases: list[Mapping[str, Any]],
 ) -> dict[str, dict[str, Any]]:
-    """Bind retainable capability failures to formal identities and families."""
+    """Bind retainable failures to formal route-source state, not family."""
     allowed_reason = (
         ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value
     )
     return {
         str(case["scenario_id"]): {
-            "family": "red_light_phase_timing",
+            "family": str(case["family"]),
+            "source_class": "mapped_signal",
+            "phase_authority_mode": str(case["phase_authority_mode"]),
             "reasons": [allowed_reason],
         }
         for case in cases
-        if case.get("family") == "red_light_phase_timing"
+        if case.get("signal_source_class") == "mapped_signal"
+        and case.get("phase_authority_mode")
+        in {"controlled_same_tick_override", "observe_same_tick_request"}
         and case.get("runner_eligible") is True
     }
 
@@ -370,6 +380,8 @@ def _validate_capability_failure_receipt(
     if not isinstance(receipt, Mapping) or set(receipt) != {
         "scenario_id",
         "family",
+        "source_class",
+        "phase_authority_mode",
         "reason",
     }:
         raise ArtifactContractViolation(
@@ -377,15 +389,22 @@ def _validate_capability_failure_receipt(
         )
     if not isinstance(capability_allowlist, Mapping):
         raise ArtifactContractViolation("capability failure allowlist is unavailable")
-    normalized = {name: str(receipt[name]) for name in receipt}
+    if any(type(receipt[name]) is not str or not receipt[name] for name in receipt):
+        raise ArtifactContractViolation(
+            "retained capability failure receipt values must be native strings"
+        )
+    normalized = dict(receipt)
     authority = capability_allowlist.get(normalized["scenario_id"])
     if (
         not isinstance(authority, Mapping)
         or authority.get("family") != normalized["family"]
+        or authority.get("source_class") != normalized["source_class"]
+        or authority.get("phase_authority_mode")
+        != normalized["phase_authority_mode"]
         or normalized["reason"] not in authority.get("reasons", [])
     ):
         raise ArtifactContractViolation(
-            "capability failure is not in the formal identity/family/reason allowlist"
+            "capability failure is not in the formal route-source-state allowlist"
         )
     try:
         ScenarioCapabilityReason(normalized["reason"])
@@ -508,6 +527,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         cases,
         dp_repo=args.dp_repo,
         r0_source_artifact=Path(full_r_authority["r0_source_artifact"]),
+        expected_camp_source_head=str(
+            full_r_authority["implementation_source_head"]
+        ),
     )
     semantic_authority_receipts = [
         {
@@ -518,7 +540,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "source_chain_sha256": (
                 str(
                     (
-                        case.get("red_signal_authority")
+                        case.get("mapped_signal_authority")
                         or case.get("no_signal_authority")
                     )["source_chain_sha256"]
                 )
@@ -528,7 +550,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     ]
     semantic_authority_root = _canonical_sha256(semantic_authority_receipts)
     semantic_authority_chains = [
-        dict(case.get("red_signal_authority") or case["no_signal_authority"])
+        dict(case.get("mapped_signal_authority") or case["no_signal_authority"])
         for case in cases
     ]
     semantic_chain_root = _canonical_sha256(semantic_authority_chains)
@@ -1156,18 +1178,62 @@ def _attach_semantic_clone_authority(
     *,
     dp_repo: Path,
     r0_source_artifact: Path,
+    expected_camp_source_head: str,
 ) -> list[dict[str, Any]]:
-    """Bind every R identity to an ID/source-independent semantic hash."""
-    chain_payload = _load_json(r0_source_artifact / "red_signal_chains.json")
-    raw_chains = chain_payload.get("chains")
-    if not isinstance(raw_chains, list) or len(raw_chains) != 21:
-        raise ValueError("R0 red signal-chain denominator is not exactly 21")
-    chains = {
-        str(chain["scenario_id"]): validate_signal_chain(chain)
-        for chain in raw_chains
+    """Bind every R identity to sealed route-level source authority, not family."""
+    source_payload = _load_json(
+        r0_source_artifact / "route_signal_source_receipts.json"
+    )
+    source_rows = source_payload.get("cases")
+    if (
+        set(source_payload)
+        != {
+            "schema_version",
+            "formal_artifact",
+            "formal_root_sha256",
+            "camp_source_head",
+            "fixed_dp_head",
+            "cases",
+            "source_failures",
+        }
+        or source_payload.get("schema_version")
+        != ROUTE_SIGNAL_SOURCE_RECEIPTS_SCHEMA_VERSION
+        or Path(str(source_payload.get("formal_artifact"))).resolve()
+        != FORMAL_ARTIFACT.resolve()
+        or source_payload.get("formal_root_sha256") != FORMAL_ROOT_SHA256
+        or source_payload.get("fixed_dp_head") != FIXED_DP_HEAD
+        or source_payload.get("camp_source_head") != expected_camp_source_head
+        or not isinstance(source_rows, list)
+        or len(source_rows) != EXPECTED_EXECUTABLE_IDENTITIES + EXPECTED_RETAINED_INELIGIBLE
+        or source_payload.get("source_failures") != []
+    ):
+        raise ValueError("route-level source authority denominator drifted")
+    source_row_fields = {
+        "scenario_id",
+        "formal_case_sha256",
+        "runner_eligible",
+        "retention_role",
+        "family",
+        "tier",
+        "seed",
+        "source_map_sha256",
+        "route_identity_sha256",
+        "actual_mapped_signal",
+        "id_free_tensor_layout",
+        "source_class",
+        "phase_authority_mode",
+        "source_chain",
+        "runtime_receipt",
+        "tensor_evidence",
     }
-    if len(chains) != len(raw_chains):
-        raise ValueError("R0 red signal-chain scenario IDs are not unique")
+    if any(
+        not isinstance(row, Mapping) or set(row) != source_row_fields
+        for row in source_rows
+    ):
+        raise ValueError("route-level source authority row schema drifted")
+    rows = {str(row.get("scenario_id")): row for row in source_rows}
+    if len(rows) != len(source_rows):
+        raise ValueError("route-level source authority identities are not unique")
 
     for path in (dp_repo, dp_repo / "diffusion_planner"):
         if str(path) not in sys.path:
@@ -1176,7 +1242,7 @@ def _attach_semantic_clone_authority(
 
     builders: dict[str, Any] = {}
     enriched: list[dict[str, Any]] = []
-    seen_red: set[str] = set()
+    seen: set[str] = set()
     for raw_case in cases:
         case = json.loads(json.dumps(raw_case))
         map_path = str(case["source_map_path"])
@@ -1194,17 +1260,21 @@ def _attach_semantic_clone_authority(
             builders[map_path], route_ids
         )
         scenario_id = str(case["scenario_id"])
-        chain = chains.get(scenario_id)
-        if case.get("family") == "red_light_phase_timing":
-            if chain is None:
-                raise ValueError("formal red identity lacks R0 signal authority")
-            if (
-                chain["route_identity_sha256"]
-                != case["route_identity_sha256"]
-                or chain["source_map_sha256"] != case["source_map_sha256"]
-                or chain["route_lanelet_ids"] != route_ids
-            ):
-                raise ValueError("R0 red signal authority does not match formal case")
+        row = rows.get(scenario_id)
+        if not isinstance(row, Mapping) or row.get("runner_eligible") is not True:
+            raise ValueError("formal executable identity lacks route-level source authority")
+        if (
+            row.get("formal_case_sha256") != canonical_json_sha256(raw_case)
+            or row.get("route_identity_sha256") != case["route_identity_sha256"]
+            or row.get("source_map_sha256") != case["source_map_sha256"]
+        ):
+            raise ValueError("route-level source authority does not match formal case")
+        source_class = row.get("source_class")
+        chain = row.get("source_chain")
+        if source_class == "mapped_signal":
+            chain = validate_mapped_signal_chain(chain)
+            if chain["route_lanelet_ids"] != route_ids:
+                raise ValueError("mapped-signal route authority lanelets drifted")
             semantic = build_semantic_clone_payload(
                 case,
                 route_polyline_world=route_polyline,
@@ -1213,58 +1283,32 @@ def _attach_semantic_clone_authority(
                 ),
             )
             if canonical_json_sha256(semantic) != chain["semantic_clone_sha256"]:
-                raise ValueError("red semantic clone hash does not match R0 source")
-            case["red_signal_authority"] = chain
-            seen_red.add(scenario_id)
-        else:
-            if chain is not None:
-                raise ValueError("non-red identity unexpectedly has red authority")
-            regulatory_ids = sorted(
-                {
-                    int(reg.id)
-                    for lanelet_id in route_ids
-                    for reg in builders[map_path]._ll_by_id[lanelet_id].trafficLights()
-                }
-            )
-            if regulatory_ids:
-                raise ValueError(
-                    "non-red identity lacks a qualified same-tick mapped signal source"
-                )
+                raise ValueError("mapped semantic clone hash does not match source")
+            case["mapped_signal_authority"] = chain
+            case["phase_authority_mode"] = chain["phase_authority_mode"]
+        elif source_class == "no_signal":
+            chain = validate_no_signal_chain(chain)
+            if chain["route_lanelet_ids"] != route_ids:
+                raise ValueError("no-signal route authority lanelets drifted")
             semantic = build_semantic_clone_payload(
                 case,
                 route_polyline_world=route_polyline,
                 stop_line_world=None,
             )
-            no_signal_chain: dict[str, Any] = {
-                "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
-                "scenario_id": scenario_id,
-                "route_identity_sha256": str(case["route_identity_sha256"]),
-                "source_map_sha256": str(case["source_map_sha256"]),
-                "route_lanelet_ids": route_ids,
-                "route_geometry_sha256": canonical_json_sha256(
-                    {"route_polyline_local_m": semantic["route_polyline_local_m"]}
-                ),
-                "traffic_light_regulatory_element_ids": [],
-                "semantic_clone_payload": semantic,
-                "semantic_clone_sha256": canonical_json_sha256(semantic),
-                "source_chain_sha256": "",
-            }
-            no_signal_chain["source_chain_sha256"] = canonical_json_sha256(
-                {
-                    key: value
-                    for key, value in no_signal_chain.items()
-                    if key != "source_chain_sha256"
-                }
-            )
-            case["no_signal_authority"] = validate_no_signal_chain(
-                no_signal_chain
-            )
+            if canonical_json_sha256(semantic) != chain["semantic_clone_sha256"]:
+                raise ValueError("no-signal semantic clone hash does not match source")
+            case["no_signal_authority"] = chain
+            case["phase_authority_mode"] = None
+        else:
+            raise ValueError("route-level source class is invalid")
+        case["signal_source_class"] = source_class
         case["canonical_semantic_clone_sha256"] = canonical_json_sha256(
             semantic
         )
         enriched.append(case)
-    if seen_red != set(chains):
-        raise ValueError("R0 red signal authority has missing or extra identities")
+        seen.add(scenario_id)
+    if seen != {str(case["scenario_id"]) for case in cases}:
+        raise ValueError("route-level source authority coverage drifted")
     return enriched
 
 
@@ -1431,7 +1475,7 @@ def _config_authority_receipt(config: Mapping[str, Any]) -> dict[str, Any]:
         ),
         "signal_source_chain_sha256": str(
             (
-                controlled.get("red_signal_authority")
+                controlled.get("mapped_signal_authority")
                 or controlled.get("no_signal_authority")
             )["source_chain_sha256"]
         ),
@@ -1776,7 +1820,7 @@ def _execute(
                     )
                     adapter = V25ControlledSceneAdapter(
                         case,
-                        red_signal_authority=case.get("red_signal_authority"),
+                        mapped_signal_authority=case.get("mapped_signal_authority"),
                         no_signal_authority=case.get("no_signal_authority"),
                     )
                     snapshots: list[Mapping[str, Any]] = []
@@ -1987,6 +2031,91 @@ def _strict_json_numeric_array(
     return np.asarray(flatten(value, 0), dtype=dtype).reshape(shape)
 
 
+def _signal_tensors_from_evidence(
+    evidence: Mapping[str, Any], *, tick_index: int
+) -> tuple[np.ndarray, list[int], np.ndarray, list[int]]:
+    required = {
+        "schema_version",
+        "tick_index",
+        "decision_timestamp_s",
+        "source_timestamp_s",
+        "route_signal_rows",
+        "map_signal_rows",
+        "current_phase",
+        "route_signal_tensor_sha256",
+        "map_signal_tensor_sha256",
+        "future_schedule_consumed",
+        "phase_remaining_available",
+    }
+    if (
+        not isinstance(evidence, Mapping)
+        or set(evidence) != required
+        or evidence.get("schema_version")
+        != "camp_dp_v25_production_signal_tensor_evidence_v2"
+        or type(evidence.get("tick_index")) is not int
+        or evidence.get("tick_index") != tick_index
+        or type(evidence.get("decision_timestamp_s")) not in (int, float)
+        or type(evidence.get("source_timestamp_s")) not in (int, float)
+        or not np.isfinite(float(evidence.get("decision_timestamp_s")))
+        or not np.isfinite(float(evidence.get("source_timestamp_s")))
+        or not np.isclose(
+            float(evidence.get("decision_timestamp_s")),
+            0.1 * tick_index,
+            rtol=0.0,
+            atol=1e-12,
+        )
+        or evidence.get("source_timestamp_s")
+        != evidence.get("decision_timestamp_s")
+        or evidence.get("current_phase") not in {"green", "yellow", "red"}
+        or not _is_sha256(evidence.get("route_signal_tensor_sha256"))
+        or not _is_sha256(evidence.get("map_signal_tensor_sha256"))
+        or evidence.get("future_schedule_consumed") is not False
+        or evidence.get("phase_remaining_available") is not False
+    ):
+        raise ValueError("production signal tensor evidence schema drifted")
+
+    def materialize(rows: Any, expected_sha: Any) -> tuple[np.ndarray, list[int]]:
+        if not isinstance(rows, list) or canonical_json_sha256(rows) != expected_sha:
+            raise ValueError("production signal-row evidence root drifted")
+        ids: list[int] = []
+        arrays: list[np.ndarray] = []
+        for row in rows:
+            if not isinstance(row, Mapping) or set(row) != {
+                "lanelet_id",
+                "signal_channels_8_12",
+            }:
+                raise ValueError("production signal-row schema drifted")
+            if type(row["lanelet_id"]) is not int:
+                raise ValueError("production signal-row lanelet ID type drifted")
+            raw_values = row["signal_channels_8_12"]
+            if not isinstance(raw_values, list):
+                raise ValueError("production signal-row values are invalid")
+            values = _strict_json_numeric_array(
+                raw_values,
+                (len(raw_values), 5),
+                label="production signal-row values",
+            )
+            ids.append(row["lanelet_id"])
+            arrays.append(values)
+        if len(ids) != len(set(ids)):
+            raise ValueError("production signal-row lanelet IDs are duplicated")
+        points = arrays[0].shape[0] if arrays else 20
+        if any(array.shape != (points, 5) for array in arrays):
+            raise ValueError("production signal-row shapes differ")
+        tensor = np.zeros((len(arrays), points, 13), dtype=np.float64)
+        for index, values in enumerate(arrays):
+            tensor[index, :, 8:13] = values
+        return tensor, ids
+
+    route, route_ids = materialize(
+        evidence["route_signal_rows"], evidence["route_signal_tensor_sha256"]
+    )
+    mapped, map_ids = materialize(
+        evidence["map_signal_rows"], evidence["map_signal_tensor_sha256"]
+    )
+    return route, route_ids, mapped, map_ids
+
+
 def combine_snapshot_context(
     *,
     snapshot: Mapping[str, Any],
@@ -2162,27 +2291,56 @@ def combine_snapshot_context(
     ):
         raise ValueError("controlled semantic clone SHA is invalid")
     controlled_signal_receipt = None
-    if case.get("family") == "red_light_phase_timing":
-        if controlled_scene_receipt is not None:
-            chain = validate_signal_chain(case.get("red_signal_authority", {}))
-            signal = controlled_scene_receipt.get("signal")
-            if not isinstance(signal, Mapping):
-                raise ValueError("controlled red tick lacks signal receipt")
-            controlled_signal_receipt = validate_runtime_signal_receipt(
-                signal.get("source_receipt", {}), chain
-            )
-        elif semantic_clone_sha256 is not None:
-            raise ValueError("controlled red snapshot lacks same-tick source receipt")
+    controlled_signal_tensor_evidence = None
+    source_class = case.get("signal_source_class")
+    if source_class == "mapped_signal":
+        chain = validate_mapped_signal_chain(case.get("mapped_signal_authority", {}))
+        if controlled_scene_receipt is None:
+            raise ValueError("controlled mapped-signal snapshot lacks same-tick receipt")
+        signal = controlled_scene_receipt.get("signal")
+        if not isinstance(signal, Mapping) or not isinstance(
+            signal.get("tensor_evidence"), Mapping
+        ):
+            raise ValueError("controlled mapped-signal tick lacks tensor evidence")
+        controlled_signal_tensor_evidence = dict(signal["tensor_evidence"])
+        route_tensor, route_ids, map_tensor, map_ids = _signal_tensors_from_evidence(
+            controlled_signal_tensor_evidence, tick_index=tick_index
+        )
+        controlled_signal_receipt = validate_mapped_signal_runtime_receipt(
+            signal.get("source_receipt", {}),
+            chain,
+            route_tensor=route_tensor,
+            route_lanelet_ids=route_ids,
+            map_tensor=map_tensor,
+            map_lanelet_ids=map_ids,
+        )
+        if (
+            controlled_signal_receipt["current_phase"]
+            != controlled_signal_tensor_evidence["current_phase"]
+            or controlled_signal_receipt["decision_timestamp_s"]
+            != controlled_signal_tensor_evidence["decision_timestamp_s"]
+            or controlled_signal_receipt["source_timestamp_s"]
+            != controlled_signal_tensor_evidence["source_timestamp_s"]
+            or controlled_signal_receipt["route_signal_tensor_sha256"]
+            != controlled_signal_tensor_evidence["route_signal_tensor_sha256"]
+            or controlled_signal_receipt["map_signal_tensor_sha256"]
+            != controlled_signal_tensor_evidence["map_signal_tensor_sha256"]
+        ):
+            raise ValueError("mapped signal receipt/tensor evidence binding drifted")
     causal_signal_atom_input = sidecar.get("causal_signal_atom_input")
-    if case.get("family") == "red_light_phase_timing":
+    if source_class == "mapped_signal":
         if not isinstance(causal_signal_atom_input, Mapping):
-            raise ValueError("controlled red snapshot lacks causal stop-line input")
-        validate_causal_signal_atom_input(
+            raise ValueError("controlled mapped-signal snapshot lacks causal stop-line input")
+        validated_causal_signal = validate_mapped_signal_causal_atom_input(
             causal_signal_atom_input,
             chain,
             controlled_signal_receipt,
+            route_tensor=route_tensor,
+            route_lanelet_ids=route_ids,
+            map_tensor=map_tensor,
+            map_lanelet_ids=map_ids,
         )
-    elif semantic_clone_sha256 is not None:
+    elif source_class == "no_signal":
         chain = validate_no_signal_chain(case.get("no_signal_authority", {}))
         if controlled_scene_receipt is None:
             raise ValueError("controlled non-signal snapshot lacks same-tick source receipt")
@@ -2194,13 +2352,12 @@ def combine_snapshot_context(
         )
         if not isinstance(causal_signal_atom_input, Mapping):
             raise ValueError("controlled non-signal snapshot lacks causal source input")
-        validate_causal_signal_atom_input(
-            causal_signal_atom_input, chain, controlled_signal_receipt
-        )
-    if semantic_clone_sha256 is not None:
         validated_causal_signal = validate_causal_signal_atom_input(
             causal_signal_atom_input, chain, controlled_signal_receipt
         )
+    else:
+        raise ValueError("controlled snapshot route-level source class is invalid")
+    if semantic_clone_sha256 is not None:
         signal_applicable = validated_causal_signal["current_phase"] == "red"
         signal_columns = np.asarray([10, 12])
         if (
@@ -2281,7 +2438,10 @@ def combine_snapshot_context(
                 CORRECTED_GENERATION_SCALES
             ),
             "canonical_semantic_clone_sha256": semantic_clone_sha256,
+            "signal_source_class": source_class,
+            "phase_authority_mode": case.get("phase_authority_mode"),
             "controlled_signal_source_receipt": controlled_signal_receipt,
+            "controlled_signal_tensor_evidence": controlled_signal_tensor_evidence,
             "causal_signal_atom_input": causal_signal_atom_input,
             "offline_label_provenance": "pending_train_only_causal_label",
             "outcome_fields_consumed": [],
