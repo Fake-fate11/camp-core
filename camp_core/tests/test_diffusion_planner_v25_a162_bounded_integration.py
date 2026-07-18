@@ -47,7 +47,17 @@ def _case(index: int, *, mapped: bool, speed: float = 4.0) -> dict:
         "source_map_sha256": "a" * 64,
         "route_identity_sha256": "b" * 64 if not mapped else "c" * 64,
         "corridor_group_sha256": "d" * 64,
-        "parameters": {"ego_speed_mps": 7.0},
+        "parameters": {
+            "crossing_speed_mps": 1.2,
+            "deceleration_mps2": -2.0,
+            "ego_speed_mps": 7.0,
+            "headway_m": 34.0,
+            "lateral_offset_m": 4.0,
+            "lateral_speed_mps": 0.6,
+            "other_speed_mps": 7.0,
+            "trigger_time_s": 2.5,
+            "variant": index,
+        },
         "actors": [_actor(speed)],
         "signal": {
             "phase": "red" if mapped else "none",
@@ -67,7 +77,9 @@ def _case(index: int, *, mapped: bool, speed: float = 4.0) -> dict:
 def _row(case: dict, *, mapped: bool) -> dict:
     chain = {
         "semantic_clone_sha256": "e" * 64 if not mapped else "f" * 64,
-        "source_chain_sha256": "1" * 64,
+        "scenario_id": case["scenario_id"],
+        "source_chain_sha256": case["scenario_id"],
+        "route_geometry_sha256": "9" * 64,
     }
     return {
         "scenario_id": case["scenario_id"],
@@ -108,6 +120,37 @@ def test_route_level_plan_freezes_identity0_repeat_and_equivalent_tie() -> None:
     assert plan["runs"][0]["scenario_id"] == plan["runs"][-1]["scenario_id"]
     assert plan["tie_equivalence_proofs"][0]["all_terminal_items_equivalent"] is True
     assert plan["k8_executed"] is False
+
+
+def test_identity_variant_and_identity_bound_chain_sha_do_not_fake_physical_drift() -> None:
+    cases, rows = _fixture()
+    assert cases[1]["parameters"]["variant"] != cases[2]["parameters"]["variant"]
+    assert (
+        rows[1]["source_chain"]["source_chain_sha256"]
+        != rows[2]["source_chain"]["source_chain_sha256"]
+    )
+    plan = build_route_level_bounded_execution_plan(
+        formal_train=cases,
+        source_rows=rows,
+        source_root_sha256="3" * 64,
+        source_review_root_sha256="4" * 64,
+    )
+    proof = plan["tie_equivalence_proofs"][0]
+    assert proof["all_terminal_items_equivalent"] is True
+    assert len(set(proof["k8_relevant_physical_payload_sha256"])) == 1
+
+
+def test_physical_source_chain_change_is_not_treated_as_equivalent() -> None:
+    cases, rows = _fixture()
+    rows[2]["source_chain"]["route_geometry_sha256"] = "8" * 64
+    plan = build_route_level_bounded_execution_plan(
+        formal_train=cases,
+        source_rows=rows,
+        source_root_sha256="3" * 64,
+        source_review_root_sha256="4" * 64,
+    )
+    assert plan["status"].startswith("requires_ultra_review")
+    assert plan["unique_identity_count"] == 3
 
 
 def test_non_equivalent_scenario_id_tie_includes_every_terminal_item() -> None:

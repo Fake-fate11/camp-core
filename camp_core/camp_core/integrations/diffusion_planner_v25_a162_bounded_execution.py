@@ -5,12 +5,22 @@ import json
 from typing import Any, Mapping, Sequence
 
 
-PLAN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_execution_plan_v1"
+PLAN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_execution_plan_v2"
 RUN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_run_v1"
 TERMINAL_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_terminal_v1"
 EXPECTED_SEED = 25001
 TICKS_PER_RUN = 64
 MAX_UNIQUE_IDENTITIES = 320
+PHYSICAL_PARAMETER_FIELDS = (
+    "crossing_speed_mps",
+    "deceleration_mps2",
+    "ego_speed_mps",
+    "headway_m",
+    "lateral_offset_m",
+    "lateral_speed_mps",
+    "other_speed_mps",
+    "trigger_time_s",
+)
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -72,14 +82,34 @@ def _physical_k8_payload(
         physical_actors.append({field: actor[field] for field in actor_fields})
     chain = source_row.get("source_chain")
     layout = source_row.get("id_free_tensor_layout")
-    if type(chain) is not dict or type(layout) is not dict:
+    parameters = case.get("parameters")
+    if (
+        type(chain) is not dict
+        or type(layout) is not dict
+        or type(parameters) is not dict
+        or set(parameters) != {*PHYSICAL_PARAMETER_FIELDS, "variant"}
+        or type(parameters["variant"]) is not int
+        or parameters["variant"] < 0
+        or chain.get("scenario_id") != case.get("scenario_id")
+    ):
         raise ValueError("bounded plan source-chain/layout payload drifted")
+    physical_parameters = {
+        field: parameters[field] for field in PHYSICAL_PARAMETER_FIELDS
+    }
+    # source_chain_sha256 signs the identity-bound scenario_id.  It is valid
+    # authority evidence but not a physical K8 input, so prove equivalence from
+    # the complete chain with only those two identity wrappers removed.
+    physical_source_chain = {
+        key: value
+        for key, value in chain.items()
+        if key not in {"scenario_id", "source_chain_sha256"}
+    }
     payload = {
-        "schema_version": "camp_dp_v25_a162_k8_relevant_physical_payload_v1",
+        "schema_version": "camp_dp_v25_a162_k8_relevant_physical_payload_v2",
         "family": case.get("family"),
         "tier": case.get("tier"),
         "semantic_variant": case.get("semantic_variant"),
-        "parameters": case.get("parameters"),
+        "physical_parameters_without_identity_variant": physical_parameters,
         "actors_in_formal_order_without_ids": physical_actors,
         "signal": case.get("signal"),
         "route_spec": {
@@ -93,7 +123,9 @@ def _physical_k8_payload(
         "seed": EXPECTED_SEED,
         "source_class": source_row.get("source_class"),
         "phase_authority_mode": source_row.get("phase_authority_mode"),
-        "source_chain_sha256": chain.get("source_chain_sha256"),
+        "source_chain_physical_contract_sha256": canonical_sha256(
+            physical_source_chain
+        ),
         "id_free_tensor_layout_sha256": layout.get("layout_sha256"),
         "fixed_candidate_contract": "sequential_fixed_dp_k8_same_forward",
     }

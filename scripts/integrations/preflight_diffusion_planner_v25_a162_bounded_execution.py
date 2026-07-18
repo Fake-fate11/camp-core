@@ -31,7 +31,7 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # n
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a162_bounded_execution_preflight_v1"
+SCHEMA_VERSION = "camp_dp_v25_a162_bounded_execution_preflight_v2"
 FORMAL_ARTIFACT = Path(
     "/root/autodl-tmp/"
     "camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_"
