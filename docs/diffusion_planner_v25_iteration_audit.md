@@ -2207,3 +2207,181 @@ local_origin_github_autodl_aligned=true
 observed_autodl_free_bytes=46960885760
 current_v25_phase=A1_6_1_source_only_census_and_independent_review_passed
 next_work_target=ultra_read_only_A1_6_1_source_package_review_before_any_bounded_k8
+
+## A1.6.2 Bounded-Integration Correction and Execution-Plan Preflight
+
+Ultra accepted the A1.6.1 static source census and authorized only a bounded
+integration correction and a sealed execution-plan preflight. K8 execution,
+full-config release, full R, worker/monitor creation, training, calibration,
+Scene/V2I, Fresh, and all outcome access remained closed throughout this gate.
+
+Implementation source HEAD
+`daa8407e922080b84a4955371e86b8d8b6e51c72` closes the bounded integration
+findings without changing the fixed DP repository, commit, K=8 candidate
+semantics, trajectory tensors, atom formulas, normalization, or source-valid
+progress contract:
+
+- controlled same-tick signal override now synchronizes the already-built
+  fixed-DP `MapTensorCache` after the scenario adapter and before tensor
+  conversion or any forward; scene lanes, route lanes, and model-consumed cache
+  state must agree;
+- observe mode performs no request/cache mutation, while override mode records
+  same-tick readback and both modes bind deterministic input hashes;
+- snapshot schema v7 binds each source receipt and model-cache receipt to the
+  exact sealed A1.6.2 source row, source-chain, regulatory/stop-line/route
+  geometry, and rejects cross-identity swaps, duplicate lanelets, non-exact
+  one-hot values, or receipt/tensor mismatches;
+- bounded terminal acceptance requires every selected run to complete exactly
+  64 ticks with no retained capability failure; mapped runtime source failure
+  is fail-closed rather than a retained denominator allowance.
+
+Two plan attempts were preserved as diagnostic failures before the final plan.
+The `eafe96e4...` attempt failed before a complete seal because it looked for a
+source HEAD at the wrong report level. The `7e1d5be3...` retry correctly sealed
+fail-closed at root
+`d1cdc934d385da3b53884a89b4e4d819740dac7f046f3dd167d495890872690a`.
+Read-only diagnosis showed four terminal cells were being expanded solely by
+`parameters.variant` and `source_chain_sha256`; the former is an identity-only
+generator ordinal and the latter signs `scenario_id`. Neither is a fixed-DP
+physical input. The versioned v2 tie payload now freezes the eight physical
+tier parameters and the complete source-chain physical contract with only the
+scenario-ID/signature wrappers removed. Tests separately prove that changes to
+actor dynamics or route/source geometry remain non-equivalent.
+
+The final implementation reproduces the preregistered outcome-blind design on
+the live formal/source universe: all 146 mapped identities and 97 no-signal
+coverage identities, 243 unique identities total. Execution order is identity0
+first, the remaining 242 unique identities, and identity0 final repeat: 244
+runs and a prospective 15,616 ticks. All four scenario-ID terminal ties have
+identical route, semantic physical payload, seed, and K8-relevant input. The
+plan contains no score, selected-index, outcome, Fresh, holdout, or private-DP
+latent selection source.
+
+Fresh source evidence was rebuilt under the same implementation HEAD:
+
+- source census:
+  `/root/autodl-tmp/camp_dp_v25_a162_route_signal_source_census_daa8407e_20260718T131723CST`,
+  root `1540fcaeda72fc1e3ab23ba400ad050e3144d8d82fcd100ca5b3aa4293b3c5ac`;
+- independent source review:
+  `/root/autodl-tmp/camp_dp_v25_a162_route_signal_source_review_daa8407e_20260718T131723CST`,
+  root `290bdd8001d6eb4938bd534a46347c6bf56d2a6b74c0167979c090acbdc88fcc`;
+- bounded execution plan:
+  `/root/autodl-tmp/camp_dp_v25_a162_bounded_execution_plan_daa8407e_20260718T131815CST`,
+  root `26563110b20f3d6f12488baad84629871a5eb4f6f2c8e82c15ebaa3f4258bbdb`;
+- independent plan review:
+  `/root/autodl-tmp/camp_dp_v25_a162_bounded_execution_plan_review_daa8407e_20260718T131815CST`,
+  root `56c3a173abc1f620f1244f72d5e40d5a631c959d18d3d136c3212917273daa3e`.
+
+The source artifacts retain the complete 1,653-row denominator: 1,500
+executable plus 153 retained, 146 mapped plus 1,354 no-signal, 21 controlled
+same-tick override plus 125 observe-same-tick, and zero source failures.
+Producer and independent reviewer both exited zero with exact inventories.
+The plan and independent reconstruction both record 243/244/15,616, four
+equivalent ties, identity0 repeat positions `[0, 243]`, `k8_executed=false`,
+`candidate_generation_started=false`, `model_loaded=false`,
+`simulator_started=false`, `fresh_b2_opened=false`, and no outcome fields.
+
+Focused evidence is 110 local tests passed and the same 110 AutoDL tests
+passed, plus the real sealed source and plan producer/reviewer runs. At the
+decision-package stop, local/origin/GitHub/AutoDL are aligned through the
+implementation/pointer chain, fixed DP remains clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, worker and GPU compute counts are
+zero, the corpus lock is free, disk is above the 10 GiB floor, and Fresh/outcome
+remains unopened. The next gate is Ultra read-only A1.6.2 review; this record
+does not authorize bounded K8 execution.
+
+current_v25_status=v25_a162_bounded_plan_review_passed_ultra_k8_execute_review_required
+current_v25_source_head=daa8407e922080b84a4955371e86b8d8b6e51c72
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a162_bounded_execution_plan_daa8407e_20260718T131815CST
+current_v25_artifact_root_sha256=26563110b20f3d6f12488baad84629871a5eb4f6f2c8e82c15ebaa3f4258bbdb
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a162_bounded_execution_plan_review_daa8407e_20260718T131815CST
+current_v25_review_artifact_root_sha256=56c3a173abc1f620f1244f72d5e40d5a631c959d18d3d136c3212917273daa3e
+current_v25_a16_old_source_machine_authority_eligible=false
+current_v25_a16_old_source_scientific_diagnostic=true
+current_v25_a16_old_source_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db
+current_v25_a16_old_source_review_artifact_root_sha256=0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e
+current_v25_a161_failed_census_artifact=/root/autodl-tmp/camp_dp_v25_a161_route_signal_source_census_4d0cfe6e_20260718T115300CST
+current_v25_a161_failed_census_root_sha256=1b8b2dfebaccd9e7071ff04f8e3b1f30c2f2af3677abac6bd02183a94c28064e
+current_v25_a161_failed_census_machine_authority_eligible=false
+current_v25_a161_failed_review_reason=source_census_report_exact_check_key_contract_drift
+current_v25_full_config_preflight_release_artifact=/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2
+current_v25_full_config_preflight_release_artifact_root_sha256=cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1
+current_v25_full_config_preflight_consumed_nonce=5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e
+current_v25_full_config_preflight_consumed_marker_sha256=0b62753b0b07ea987d78e309fde4ed9d9aeda5e2cf0b25d1107f7c446a1b864d
+current_v25_full_config_preflight_failure=non_red_identity_lacks_qualified_same_tick_mapped_signal_source
+current_v25_r05_failed_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053400CST
+current_v25_r05_failed_review_artifact_root_sha256=d3cf28b2f62814b89e9b6debace6e3f87a14d5a3b9c38eabd92a50e059b1cab5
+current_v25_ultra_stage_a_decision_artifact_root_sha256=0f48f22861721258be945ae42fb10d3fec7f90992addb386c535a1b8001b3e5a
+current_v25_atom_ledger_artifact_root_sha256=5e762a14b53c6c81f6bb3bfa67c6aeeb7fa5fe603bb95fa0776d75035cb8311c
+current_v25_atom_ledger_validation_artifact_root_sha256=641fadb24926cb7e6fc49c98d66f6a0a9528f41856b0417aae9e6fb9a80fa469
+current_v25_r0_authority_source_artifact_root_sha256=1540fcaeda72fc1e3ab23ba400ad050e3144d8d82fcd100ca5b3aa4293b3c5ac
+current_v25_r0_authority_source_review_artifact_root_sha256=290bdd8001d6eb4938bd534a46347c6bf56d2a6b74c0167979c090acbdc88fcc
+current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481
+current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06
+current_v25_seven_root_bindings_sha256=4c3410f5c4f123e08e63a18cef10c366911fef7f454f74dbc2532d20db3dd396
+current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3
+current_v25_canonical_json_byte_spec=camp_dp_v25_canonical_json_utf8_lf_v1
+current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v7
+current_v25_snapshot_schema=camp_dp_v25_controlled_train_snapshot_v7
+current_v25_route_source_receipts_schema=camp_dp_v25_a161_route_signal_source_receipts_v2
+current_v25_bounded_coverage_design_schema=camp_dp_v25_bounded_coverage_design_v1
+current_v25_bounded_execution_plan_schema=camp_dp_v25_a162_route_level_bounded_execution_plan_v2
+current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v6.json
+current_v25_a16_formal_train_identity_count=1653
+current_v25_a16_executable_identity_count=1500
+current_v25_a16_retained_identity_count=153
+current_v25_a16_mapped_signal_identity_count=146
+current_v25_a16_no_signal_identity_count=1354
+current_v25_a16_controlled_same_tick_override_count=21
+current_v25_a16_observe_same_tick_request_count=125
+current_v25_a16_source_failure_count=0
+current_v25_a16_source_only_no_model_simulator_candidate_dp_forward=true
+current_v25_a16_independent_review_passed=true
+current_v25_a161_local_non_torch_test_result=185_passed_2_skipped
+current_v25_a161_targeted_test_result=117_passed_1_skipped
+current_v25_a161_schema_regression_test_result=43_passed
+current_v25_a161_autodl_v25_test_result=193_passed
+current_v25_a161_pointer_test_result=18_passed
+current_v25_a161_windows_full_collection=torch_dll_abort_not_counted
+current_v25_a161_source_census_started=true
+current_v25_a161_source_census_completed=true
+current_v25_a161_source_review_started=true
+current_v25_a161_source_review_completed=true
+current_v25_a161_source_census_review_passed=true
+current_v25_a161_bounded_coverage_design_identity_count=243
+current_v25_a161_bounded_k8_executed=false
+current_v25_a162_source_artifact_root_sha256=1540fcaeda72fc1e3ab23ba400ad050e3144d8d82fcd100ca5b3aa4293b3c5ac
+current_v25_a162_source_review_artifact_root_sha256=290bdd8001d6eb4938bd534a46347c6bf56d2a6b74c0167979c090acbdc88fcc
+current_v25_a162_failed_sealed_plan_artifact_root_sha256=d1cdc934d385da3b53884a89b4e4d819740dac7f046f3dd167d495890872690a
+current_v25_a162_bounded_plan_artifact_root_sha256=26563110b20f3d6f12488baad84629871a5eb4f6f2c8e82c15ebaa3f4258bbdb
+current_v25_a162_bounded_plan_review_artifact_root_sha256=56c3a173abc1f620f1244f72d5e40d5a631c959d18d3d136c3212917273daa3e
+current_v25_a162_unique_identity_count=243
+current_v25_a162_run_count=244
+current_v25_a162_snapshot_capacity=15616
+current_v25_a162_tie_proof_count=4
+current_v25_a162_all_tie_proofs_equivalent=true
+current_v25_a162_identity0_repeat_positions=0,243
+current_v25_a162_local_targeted_test_result=110_passed
+current_v25_a162_autodl_targeted_test_result=110_passed
+current_v25_a162_pointer_test_result=18_passed
+current_v25_a162_bounded_k8_executed=false
+current_v25_a162_candidate_generation_started=false
+current_v25_a162_model_loaded=false
+current_v25_a162_simulator_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
+current_v25_corrected_full_corpus_started=false
+current_v25_full_r_authorized=false
+current_v25_monitor_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_b2_opened=false
+current_v25_fresh_outcome_opened=false
+local_origin_github_autodl_aligned=true
+observed_autodl_free_bytes=46936682496
+current_v25_phase=A1_6_2_bounded_integration_plan_and_independent_review_passed_k8_closed
+next_work_target=ultra_read_only_A1_6_2_review_before_any_bounded_k8_execute
