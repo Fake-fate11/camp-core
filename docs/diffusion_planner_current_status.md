@@ -81,13 +81,25 @@ later stage remain closed.
 
 Ultra accepted the A1.6 scientific census but blocked its machine authority.
 A1.6.1 implementation source HEAD
-`4d0cfe6e2e1f46bd6a8d6a73ace724121660f415` now freezes exact source/review
+`df55b700b4e0e323f2d69d4bac3ec3c1ccd16322` now freezes exact source/review
 inventories, the canonical consumed marker, fixed-DP import git-object
 provenance, dual-HEAD manifests, route-level production source semantics, and
 an outcome-blind bounded coverage design capped at 320 unique identities.
 Mapped observe mode is family-independent and immutable; controlled override
 is same-tick with readback. No K8 is authorized or executed. The next action is
 AutoDL ff-only verification followed only by a fresh source-only census/review.
+
+The first A1.6.1 source-only producer run under `4d0cfe6e...` sealed 1,653
+identities at
+`/root/autodl-tmp/camp_dp_v25_a161_route_signal_source_census_4d0cfe6e_20260718T115300CST`
+with root
+`1b8b2dfebaccd9e7071ff04f8e3b1f30c2f2af3677abac6bd02183a94c28064e`.
+It preserved 1,500 executable plus 153 retained and reproduced 146/1,354 and
+21/125 with zero source failures. The independent reviewer then failed closed
+before sealing because its exact check-key contract omitted the two newly
+frozen bounded-design checks. Commit `df55b700...` fixes that schema mismatch
+with a literal regression contract. The producer root is immutable diagnostic
+evidence only and is not eligible for later execution authority.
 
 All A1.4/R0.4 roots remain immutable superseded diagnostic evidence. A1.5/R0.5
 rebuilt all seven roots and a fresh bounded producer from identity0 under the
@@ -104,8 +116,8 @@ preflight, full R, monitor, training, calibration, Scene/V2I, and Fresh remain
 unauthorized. Worker/GPU counts are zero, the lock is free, disk free is
 46,990,168,064 bytes, and Fresh/outcome remains false.
 
-current_v25_status=v25_a161_implementation_ready_source_census_rerun_pending
-current_v25_source_head=4d0cfe6e2e1f46bd6a8d6a73ace724121660f415
+current_v25_status=v25_a161_schema_fix_ready_source_census_rerun_pending
+current_v25_source_head=df55b700b4e0e323f2d69d4bac3ec3c1ccd16322
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_source_census_53b07e30_20260718T104858CST
 current_v25_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db
@@ -113,6 +125,10 @@ current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_so
 current_v25_review_artifact_root_sha256=0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e
 current_v25_a16_old_source_machine_authority_eligible=false
 current_v25_a16_old_source_scientific_diagnostic=true
+current_v25_a161_failed_census_artifact=/root/autodl-tmp/camp_dp_v25_a161_route_signal_source_census_4d0cfe6e_20260718T115300CST
+current_v25_a161_failed_census_root_sha256=1b8b2dfebaccd9e7071ff04f8e3b1f30c2f2af3677abac6bd02183a94c28064e
+current_v25_a161_failed_census_machine_authority_eligible=false
+current_v25_a161_failed_review_reason=source_census_report_exact_check_key_contract_drift
 current_v25_full_config_preflight_release_artifact=/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2
 current_v25_full_config_preflight_release_artifact_root_sha256=cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1
 current_v25_full_config_preflight_consumed_nonce=5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e
@@ -236,6 +252,7 @@ current_v25_a16_source_only_no_model_simulator_candidate_dp_forward=true
 current_v25_a16_independent_review_passed=true
 current_v25_a161_local_non_torch_test_result=185_passed_2_skipped
 current_v25_a161_targeted_test_result=117_passed_1_skipped
+current_v25_a161_schema_regression_test_result=43_passed
 current_v25_a161_windows_full_collection=torch_dll_abort_not_counted
 current_v25_a161_source_census_started=false
 current_v25_a161_source_review_started=false
@@ -261,8 +278,8 @@ local_origin_github_aligned=true
 autodl_alignment_pending=true
 minimum_free_disk_gib=10
 observed_autodl_free_bytes=46980939776
-current_v25_phase=A1_6_1_machine_authority_and_production_integration_ready_source_only_rerun_pending
-next_work_target=autodl_ff_only_tests_then_fresh_1653_source_census_and_independent_review_no_k8
+current_v25_phase=A1_6_1_reviewer_schema_fix_ready_source_only_rerun_pending
+next_work_target=autodl_ff_only_schema_regression_then_fresh_1653_source_census_and_independent_review_no_k8
 
 ## Current V24 Status
 
