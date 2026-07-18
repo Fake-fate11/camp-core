@@ -3528,3 +3528,144 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=46883004416
 current_v25_phase=A1_6_9_terminal_timing_scene_materialization_and_byte_policy_corrected_static_four_root_review_required_k8_closed
 next_work_target=ultra_read_only_A1_6_9_review_before_any_bounded_execute_release
+
+## A1.6.10 terminal reachability, seeded-history, float32, and full-manifest JSON correction (2026-07-18 CST)
+
+Ultra accepted the A1.6.9 source/design roots, causal scene-materialization
+boundary, max-steps temporal direction, and canonical execution-policy wiring,
+but kept bounded execution closed for four exact evidence gaps. A 64-post-
+safety receipt could still claim a pre-advance row-63 goal termination that the
+fixed DP cannot produce; initial speed was equated to configured spawn speed
+instead of the seeded noisy-history velocity; initial/terminal arithmetic mixed
+formal float64 values with Route float32 values; and two source JSON payloads
+were inventoried without being opened by the four-root strict loader. The four
+A1.6.9 roots remain unchanged, immutable diagnostic evidence and machine-
+authority false:
+
+- source `92c8c5b878d86f7a9ce043b543ee40f78add54f63fbdfe52425f48d34ba43330`;
+- source review `88c028e1534edd6cd3458dc964d34fbb1ccf0c45adbf5d9cf160cba5967d1daa`;
+- plan `357f34ed39467f6c16fe64e41118cc48a8a922c3ee51d9ba657b98954930110b`;
+- plan review `9d05e1617e65a61a95f2543821b32dddb830c0d083d88017a14e01633e41b15e`.
+
+Implementation source HEAD
+`ee457bd845f0caa83c4891b1c4dacfe28d07bbbe` changes only the prospective
+bounded evidence path. The 244-run, 64-decision denominator remains frozen.
+Both producer and independent reviewer now require a run with exactly 64
+post-safety ticks to end at `final_step=63`, `goal_reached=false`, and
+`reason=max_steps`. If the formal-goal oracle reaches or passes the goal at any
+pre-advance trajectory row, including row 63, the coexistence of 64 post-safety
+ticks is impossible and fails closed. Max-steps with the retained post-safety
+row 63 remains valid. No fixed-DP code or behavior was changed.
+
+The independent initial-world oracle validates the pinned fixed-DP builder
+source and locally reproduces its `generate_history` and velocity chain:
+31 float32 history rows, seed 25001 through legacy NumPy MT19937, the same
+backward-polyline interpolation and lateral Gaussian draw order, the explicit
+heading override, and `(history[-1]-history[-2])/0.1` stored as float32 before
+the speed norm. It handles the fixed-DP fallback when configured ego speed is
+absent. A real AutoDL fixed-source/formal-route fixture compares the independent
+result with the actual pinned `LaneletSceneBuilder.generate_history`; the noisy
+row-zero speed is not silently replaced by configured spawn speed.
+
+The initial and terminal oracles independently rebuild Route start and goal as
+float32. Snapping uses that float32 start; distance uses float32 position minus
+float32 goal followed by the same NumPy norm; the ego forward vector and pass-
+window dot product are float32. Logged `goal_d` must equal the value produced by
+that exact chain. Decimal coordinates not exactly representable in float32 and
+large-coordinate fixtures cover both ordinary and amplified rounding cases.
+
+The four-root verifier now executes strict canonical JSON parsing for every
+`.json` file in each verified manifest before reading role-specific fields.
+This includes `formal_route_source_contract_supplement.json` and
+`route_signal_source_receipts.json`, in addition to reports and the bounded
+plan. UTF-8 errors, duplicate keys, nonfinite values, noncompact/sorted bytes,
+or a missing single trailing LF fail closed even after resealing. Both omitted
+source payloads have mutation tests through the real `verify_four_root_chain`;
+representative execution policies continue to be tested through the real
+post-run review entrypoint. COMMAND remains non-authoritative diagnostic text.
+
+The four modified code/test files passed `py_compile`. The single consolidated
+local regression batch passed 226 tests with three platform/source-fixture
+skips. The single AutoDL Python 3.12 batch passed all 229 tests, including the
+real fixed-source history fixture. No test batch overlapped another, no
+polling monitor or unconditional process cleanup was created, and all commands
+ended naturally before this review gate.
+
+Without loading a model, starting a simulator, generating candidates, or
+executing a DP forward, the full source universe and outcome-blind bounded plan
+were rebuilt from identity0 under the same implementation HEAD and independently
+reviewed:
+
+- source: `/root/autodl-tmp/camp_dp_v25_a1610_route_signal_source_census_ee457bd8_20260718T225856CST`, root `6e78cf3b2178572163d5642c2b3dbcae142b09156e19869cc51205eab3960270`;
+- source review: `/root/autodl-tmp/camp_dp_v25_a1610_route_signal_source_review_ee457bd8_20260718T225856CST`, root `86d4c4f2e38a385cb998db1d73cecfe152094dfa987d61e78c0555be5d30b26d`;
+- bounded plan: `/root/autodl-tmp/camp_dp_v25_a1610_bounded_execution_plan_ee457bd8_20260718T225856CST`, root `290798d1040abd64e29959f2076c795e6372ee14046b6c42038eb0ff7633db3b`;
+- bounded plan review: `/root/autodl-tmp/camp_dp_v25_a1610_bounded_execution_plan_review_ee457bd8_20260718T225856CST`, root `090a952ea77d8edeb0ccf9b8dd5fa084b79bad3b90c24c986497aeedb8380dd9`.
+
+The A1.6.10 strict verifier reopened every JSON payload, exact inventories,
+`run.exit=0`, HEADS, reports, source rows, cross-links, plan order and all tie
+proofs. Four-root binding SHA is
+`4773fa3f290cf997305235f101a97467da890c0981166e4ced5ef3788a040497`.
+Counts remain 1,653 formal train identities, 1,500 executable, 153 retained,
+146 mapped, 1,354 no-signal, 21 controlled overrides, 125 observe mode, zero
+source failures, 243 unique bounded identities, 244 ordered runs, identity0 at
+positions 0 and 243, and 15,616 prospective ticks. The plan records
+`k8_executed=false` and `fresh_b2_opened=false`.
+
+Control-plane evidence before the pointer-only commit found worker/GPU counts
+zero, the shared corpus lock free, the A1.6.10 nonce ledger absent, and
+46,874,378,240 free bytes. No A1.6.10 release, nonce, execution output, K8,
+full-config/full-R, 1500x64, monitor, training, calibration, Scene/V2I, Fresh B2
+or outcome access occurred. The four roots are not machine-execution authority
+until Ultra reviews them. The only next action is Ultra read-only A1.6.10
+review.
+
+current_v25_status=v25_a1610_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
+current_v25_source_head=ee457bd845f0caa83c4891b1c4dacfe28d07bbbe
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a1610_bounded_execution_plan_ee457bd8_20260718T225856CST
+current_v25_artifact_root_sha256=290798d1040abd64e29959f2076c795e6372ee14046b6c42038eb0ff7633db3b
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a1610_bounded_execution_plan_review_ee457bd8_20260718T225856CST
+current_v25_review_artifact_root_sha256=090a952ea77d8edeb0ccf9b8dd5fa084b79bad3b90c24c986497aeedb8380dd9
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a1610_route_signal_source_census_ee457bd8_20260718T225856CST
+current_v25_r0_authority_source_artifact_root_sha256=6e78cf3b2178572163d5642c2b3dbcae142b09156e19869cc51205eab3960270
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a1610_route_signal_source_review_ee457bd8_20260718T225856CST
+current_v25_r0_authority_source_review_artifact_root_sha256=86d4c4f2e38a385cb998db1d73cecfe152094dfa987d61e78c0555be5d30b26d
+current_v25_a16_formal_train_identity_count=1653
+current_v25_a16_executable_identity_count=1500
+current_v25_a16_retained_identity_count=153
+current_v25_a16_mapped_signal_identity_count=146
+current_v25_a16_no_signal_identity_count=1354
+current_v25_a16_controlled_same_tick_override_count=21
+current_v25_a16_observe_same_tick_request_count=125
+current_v25_a16_source_failure_count=0
+current_v25_a162_unique_identity_count=243
+current_v25_a162_run_count=244
+current_v25_a162_snapshot_capacity=15616
+current_v25_a162_identity0_repeat_positions=0,243
+current_v25_a169_four_roots_machine_authority_eligible=false
+current_v25_a1610_release_schema=camp_dp_v25_ultra_a1610_bounded_execute_release_v8
+current_v25_a1610_device=cuda
+current_v25_a1610_four_root_bindings_sha256=4773fa3f290cf997305235f101a97467da890c0981166e4ced5ef3788a040497
+current_v25_a1610_four_roots_machine_authority_eligible=false
+current_v25_a1610_local_targeted_test_result=226_passed_3_skipped
+current_v25_a1610_autodl_targeted_test_result=229_passed
+current_v25_a1610_bounded_release_created=false
+current_v25_a1610_bounded_nonce_created=false
+current_v25_a1610_bounded_k8_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
+current_v25_full_r_authorized=false
+current_v25_monitor_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=46874378240
+current_v25_phase=A1_6_10_terminal_reachability_seeded_history_float32_and_full_manifest_json_corrected_static_four_root_review_required_k8_closed
+next_work_target=ultra_read_only_A1_6_10_review_before_any_bounded_execute_release
