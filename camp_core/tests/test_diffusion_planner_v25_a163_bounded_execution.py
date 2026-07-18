@@ -294,6 +294,9 @@ def test_four_root_chain_strictly_opens_every_source_json_payload(
 
 def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(authority, "NONCE_LEDGER", tmp_path / "nonce-ledger")
+    monkeypatch.setattr(
+        authority, "A17_DIAGNOSTIC_NONCE_LEDGER", tmp_path / "a17-nonce-ledger"
+    )
     monkeypatch.setattr(authority, "verify_dual_head_contract", lambda **kwargs: {})
     monkeypatch.setattr(
         authority,
@@ -315,6 +318,87 @@ def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
         "EXPECTED_PROBE_TEMPLATE_SHA256",
         hashlib.sha256((tmp_path / "template.json").read_bytes()).hexdigest(),
     )
+
+
+def test_a17_diagnostic_release_is_exact_identity0_and_non_scientific(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    dp_repo = tmp_path / "dp"
+    dp_repo.mkdir()
+    template = tmp_path / "template.json"
+    template.write_text("{}\n", encoding="utf-8")
+    output = (tmp_path / "a17-diagnostic-output").resolve()
+    roots = {
+        role: {
+            "path": str((tmp_path / role).resolve()),
+            "root_sha256": "b" * 64,
+            "report_file": "report.json",
+        }
+        for role in authority.ROOT_ROLES
+    }
+    manifest = {"critical.py": "a" * 64}
+    monkeypatch.setattr(authority, "verify_dual_head_contract", lambda **kwargs: {})
+    monkeypatch.setattr(
+        authority,
+        "verify_frozen_execution_assets",
+        lambda **kwargs: copy.deepcopy(_TEST_EXECUTION_ASSETS),
+    )
+    monkeypatch.setattr(
+        authority,
+        "verify_four_root_chain",
+        lambda **kwargs: {"verified": {}, "plan": _plan()},
+    )
+    monkeypatch.setattr(
+        authority, "build_critical_implementation_manifest", lambda repo: manifest
+    )
+    monkeypatch.setattr(
+        authority,
+        "_git",
+        lambda repo, *args: FIXED_DP_HEAD
+        if args == ("rev-parse", "HEAD")
+        else "",
+    )
+    monkeypatch.setattr(
+        authority,
+        "EXPECTED_PROBE_TEMPLATE_SHA256",
+        hashlib.sha256(template.read_bytes()).hexdigest(),
+    )
+    monkeypatch.setattr(
+        authority, "A17_DIAGNOSTIC_NONCE_LEDGER", tmp_path / "a17-nonce-ledger"
+    )
+    decision = authority.build_a17_diagnostic_release_decision(
+        repo=ROOT,
+        implementation_source_head="1" * 40,
+        pointer_head_at_release="2" * 40,
+        root_artifacts=roots,
+        run_nonce="c" * 64,
+        authorized_output_dir=str(output),
+        dp_repo=dp_repo,
+        probe_template=template,
+    )
+    assert set(decision) == authority.A17_DIAGNOSTIC_RELEASE_FIELDS
+    assert decision["diagnostic_run"] == _plan()["runs"][0]
+    assert decision["unique_identity_count"] == 1
+    assert decision["run_count"] == 1
+    assert decision["snapshot_capacity"] == 64
+    assert decision["diagnostic_execute_authorized"] is True
+    assert decision["bounded_execute_authorized"] is False
+    assert decision["accepted_as_scientific_evidence"] is False
+    release = tmp_path / "a17-release"
+    root = _seal_release(release, decision)
+    verified = authority.verify_a17_diagnostic_release(
+        repo=ROOT,
+        release_artifact=release,
+        release_root_sha256=root,
+        requested_output_dir=str(output),
+        current_pointer_head="2" * 40,
+        dp_repo=dp_repo,
+        probe_template=template,
+        requested_device="cuda",
+        consume=True,
+    )
+    assert verified["plan"] == {"runs": [_plan()["runs"][0]]}
+    assert verified["nonce_marker"] is not None
 
 
 @pytest.mark.parametrize("asset_kind", ["probe_template", "fixed_dp_args"])

@@ -26,6 +26,14 @@ RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a1610_bounded_execute_release_v8"
 RELEASE_STATUS = "bounded_execute_released"
 RELEASE_GATE = "a1610_bounded_execute"
 NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a1610_bounded_execute_nonces")
+A17_DIAGNOSTIC_RELEASE_SCHEMA_VERSION = (
+    "camp_dp_v25_a17_preprojection_diagnostic_release_v1"
+)
+A17_DIAGNOSTIC_RELEASE_STATUS = "diagnostic_execute_released"
+A17_DIAGNOSTIC_RELEASE_GATE = "a17_preprojection_evidence_localization"
+A17_DIAGNOSTIC_NONCE_LEDGER = Path(
+    "/root/autodl-tmp/.camp_dp_v25_a17_preprojection_diagnostic_nonces"
+)
 EXPECTED_DEVICE = "cuda"
 EXPECTED_SEED = 25001
 EXPECTED_UNIQUE_IDENTITIES = 243
@@ -634,6 +642,44 @@ RELEASE_FIELDS = {
     "outcome_fields_consumed",
 }
 
+A17_DIAGNOSTIC_RELEASE_FIELDS = {
+    "schema_version",
+    "status",
+    "gate",
+    "implementation_source_head",
+    "pointer_head_at_release",
+    "fixed_dp_head",
+    "dp_repo",
+    "probe_template",
+    "probe_template_sha256",
+    "execution_assets",
+    "execution_assets_sha256",
+    "critical_implementation_manifest",
+    "critical_implementation_manifest_sha256",
+    "root_artifacts",
+    "root_artifacts_sha256",
+    "diagnostic_run",
+    "run_nonce",
+    "authorized_output_dir",
+    "device",
+    "seed",
+    "unique_identity_count",
+    "run_count",
+    "snapshot_capacity",
+    "diagnostic_execute_authorized",
+    "bounded_execute_authorized",
+    "full_config_preflight_authorized",
+    "full_r_execute_authorized",
+    "monitor_enabled",
+    "training_executed",
+    "calibration_executed",
+    "scene_runtime_enabled",
+    "v2i_enabled",
+    "accepted_as_scientific_evidence",
+    "fresh_b2_opened",
+    "outcome_fields_consumed",
+}
+
 
 def build_release_decision(
     *,
@@ -845,6 +891,252 @@ def verify_bounded_release(
         "release_root_sha256": seal["root_sha256"],
         "decision": decision,
         "plan": chain["plan"],
+        "nonce_marker": None
+        if marker is None
+        else {
+            "path": str(marker),
+            "sha256": hashlib.sha256(marker.read_bytes()).hexdigest(),
+        },
+    }
+
+
+def build_a17_diagnostic_release_decision(
+    *,
+    repo: Path,
+    implementation_source_head: str,
+    pointer_head_at_release: str,
+    root_artifacts: Mapping[str, Any],
+    run_nonce: str,
+    authorized_output_dir: str,
+    dp_repo: Path,
+    probe_template: Path,
+) -> dict[str, Any]:
+    """Build one-shot authority for identity0 preprojection diagnosis only."""
+
+    if not _is_sha256(run_nonce):
+        raise ValueError("A1.7 diagnostic nonce must be a lowercase 64-hex string")
+    canonical_output = _canonical_absolute_path(
+        authorized_output_dir, label="A1.7 authorized output directory"
+    )
+    assets = verify_frozen_execution_assets(
+        repo=repo, dp_repo=dp_repo, probe_template=probe_template
+    )
+    canonical_dp = dp_repo.resolve()
+    canonical_template = probe_template.resolve()
+    manifest = build_critical_implementation_manifest(repo)
+    verify_dual_head_contract(
+        repo=repo,
+        implementation_source_head=implementation_source_head,
+        current_pointer_head=pointer_head_at_release,
+        implementation_manifest=manifest,
+    )
+    chain = verify_four_root_chain(
+        bindings=root_artifacts,
+        implementation_source_head=implementation_source_head,
+        fixed_dp_head=FIXED_DP_HEAD,
+    )
+    diagnostic_run = json.loads(json.dumps(chain["plan"]["runs"][0]))
+    if (
+        type(diagnostic_run) is not dict
+        or diagnostic_run.get("run_ordinal") != 0
+        or diagnostic_run.get("occurrence") != "identity0_first"
+        or diagnostic_run.get("ticks") != 64
+        or diagnostic_run.get("seed") != EXPECTED_SEED
+    ):
+        raise ValueError("A1.7 diagnostic run is not the frozen identity0 first run")
+    roots = json.loads(json.dumps(root_artifacts))
+    return {
+        "schema_version": A17_DIAGNOSTIC_RELEASE_SCHEMA_VERSION,
+        "status": A17_DIAGNOSTIC_RELEASE_STATUS,
+        "gate": A17_DIAGNOSTIC_RELEASE_GATE,
+        "implementation_source_head": implementation_source_head,
+        "pointer_head_at_release": pointer_head_at_release,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "dp_repo": str(canonical_dp),
+        "probe_template": str(canonical_template),
+        "probe_template_sha256": EXPECTED_PROBE_TEMPLATE_SHA256,
+        "execution_assets": assets,
+        "execution_assets_sha256": canonical_sha256(assets),
+        "critical_implementation_manifest": manifest,
+        "critical_implementation_manifest_sha256": canonical_sha256(manifest),
+        "root_artifacts": roots,
+        "root_artifacts_sha256": canonical_sha256(roots),
+        "diagnostic_run": diagnostic_run,
+        "run_nonce": run_nonce,
+        "authorized_output_dir": str(canonical_output),
+        "device": EXPECTED_DEVICE,
+        "seed": EXPECTED_SEED,
+        "unique_identity_count": 1,
+        "run_count": 1,
+        "snapshot_capacity": 64,
+        "diagnostic_execute_authorized": True,
+        "bounded_execute_authorized": False,
+        "full_config_preflight_authorized": False,
+        "full_r_execute_authorized": False,
+        "monitor_enabled": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "scene_runtime_enabled": False,
+        "v2i_enabled": False,
+        "accepted_as_scientific_evidence": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _consume_a17_diagnostic_nonce(
+    *, nonce: str, authorized_output_dir: str, output_dir: str
+) -> Path:
+    expected = _canonical_absolute_path(
+        authorized_output_dir, label="A1.7 authorized output directory"
+    )
+    requested = _canonical_absolute_path(
+        output_dir, label="A1.7 requested output directory"
+    )
+    if output_dir != authorized_output_dir or requested != expected:
+        raise ValueError("A1.7 diagnostic release output directory mismatch")
+    A17_DIAGNOSTIC_NONCE_LEDGER.mkdir(parents=True, exist_ok=True)
+    marker = A17_DIAGNOSTIC_NONCE_LEDGER / (
+        f"v25_{A17_DIAGNOSTIC_RELEASE_GATE}_{nonce}.consumed.json"
+    )
+    payload = {
+        "gate": A17_DIAGNOSTIC_RELEASE_GATE,
+        "nonce": nonce,
+        "authorized_output_dir": str(expected),
+    }
+    try:
+        with marker.open("xb") as handle:
+            handle.write(canonical_json_bytes(payload))
+    except FileExistsError as exc:
+        raise ValueError("A1.7 diagnostic release nonce was already consumed") from exc
+    return marker
+
+
+def verify_a17_diagnostic_release(
+    *,
+    repo: Path,
+    release_artifact: Path,
+    release_root_sha256: str,
+    requested_output_dir: str,
+    current_pointer_head: str,
+    dp_repo: Path,
+    probe_template: Path,
+    requested_device: str,
+    consume: bool,
+) -> dict[str, Any]:
+    """Strictly reopen and optionally consume one diagnostic-only release."""
+
+    seal = verify_complete_seal(
+        release_artifact,
+        release_root_sha256,
+        label="V25 A1.7 preprojection diagnostic release",
+    )
+    if (
+        seal["manifest_paths"] != RELEASE_PAYLOADS
+        or (release_artifact / "run.exit").read_bytes() != b"0\n"
+    ):
+        raise ValueError("A1.7 diagnostic release inventory/run.exit drifted")
+    _validate_diagnostic_command(release_artifact / "COMMAND")
+    decision = _load_object(release_artifact / "decision.json")
+    heads = _parse_heads(release_artifact / "HEADS")
+    if set(decision) != A17_DIAGNOSTIC_RELEASE_FIELDS:
+        raise ValueError("A1.7 diagnostic release field set drifted")
+    exact = {
+        "schema_version": A17_DIAGNOSTIC_RELEASE_SCHEMA_VERSION,
+        "status": A17_DIAGNOSTIC_RELEASE_STATUS,
+        "gate": A17_DIAGNOSTIC_RELEASE_GATE,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "seed": EXPECTED_SEED,
+        "unique_identity_count": 1,
+        "run_count": 1,
+        "snapshot_capacity": 64,
+        "device": EXPECTED_DEVICE,
+        "diagnostic_execute_authorized": True,
+        "bounded_execute_authorized": False,
+        "full_config_preflight_authorized": False,
+        "full_r_execute_authorized": False,
+        "monitor_enabled": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "scene_runtime_enabled": False,
+        "v2i_enabled": False,
+        "accepted_as_scientific_evidence": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    for key, expected in exact.items():
+        if not strict_json_equal(decision.get(key), expected):
+            raise ValueError(f"A1.7 diagnostic release exact value drifted: {key}")
+    if (
+        not _is_sha256(decision.get("run_nonce"))
+        or decision.get("pointer_head_at_release") != current_pointer_head
+        or not _is_sha256(decision.get("critical_implementation_manifest_sha256"))
+        or decision["critical_implementation_manifest_sha256"]
+        != canonical_sha256(decision.get("critical_implementation_manifest"))
+        or not _is_sha256(decision.get("execution_assets_sha256"))
+        or decision["execution_assets_sha256"]
+        != canonical_sha256(decision.get("execution_assets"))
+        or not _is_sha256(decision.get("root_artifacts_sha256"))
+        or decision["root_artifacts_sha256"]
+        != canonical_sha256(decision.get("root_artifacts"))
+        or heads
+        != {
+            "camp_source_head": decision.get("implementation_source_head"),
+            "camp_pointer_head": decision.get("pointer_head_at_release"),
+            "fixed_dp_head": FIXED_DP_HEAD,
+        }
+    ):
+        raise ValueError("A1.7 diagnostic release hashes/pointer authority drifted")
+    assets = verify_frozen_execution_assets(
+        repo=repo, dp_repo=dp_repo, probe_template=probe_template
+    )
+    canonical_dp = dp_repo.resolve()
+    canonical_template = probe_template.resolve()
+    if (
+        decision.get("dp_repo") != str(canonical_dp)
+        or decision.get("probe_template") != str(canonical_template)
+        or decision.get("probe_template_sha256") != EXPECTED_PROBE_TEMPLATE_SHA256
+        or not strict_json_equal(decision.get("execution_assets"), assets)
+        or _git(canonical_dp, "rev-parse", "HEAD") != FIXED_DP_HEAD
+        or _git(canonical_dp, "status", "--porcelain")
+    ):
+        raise ValueError("A1.7 diagnostic release execution assets drifted")
+    verify_dual_head_contract(
+        repo=repo,
+        implementation_source_head=decision["implementation_source_head"],
+        current_pointer_head=current_pointer_head,
+        implementation_manifest=decision["critical_implementation_manifest"],
+    )
+    chain = verify_four_root_chain(
+        bindings=decision["root_artifacts"],
+        implementation_source_head=decision["implementation_source_head"],
+        fixed_dp_head=decision["fixed_dp_head"],
+    )
+    first_run = chain["plan"]["runs"][0]
+    if not strict_json_equal(decision.get("diagnostic_run"), first_run):
+        raise ValueError("A1.7 diagnostic identity0 run binding drifted")
+    if type(requested_device) is not str or requested_device != EXPECTED_DEVICE:
+        raise ValueError("A1.7 diagnostic release requires CUDA")
+    output = _canonical_absolute_path(
+        decision["authorized_output_dir"], label="A1.7 authorized output directory"
+    )
+    requested = _canonical_absolute_path(
+        requested_output_dir, label="A1.7 requested output directory"
+    )
+    if requested_output_dir != decision["authorized_output_dir"] or output != requested:
+        raise ValueError("A1.7 diagnostic output directory mismatch")
+    marker = None
+    if consume:
+        marker = _consume_a17_diagnostic_nonce(
+            nonce=decision["run_nonce"],
+            authorized_output_dir=decision["authorized_output_dir"],
+            output_dir=requested_output_dir,
+        )
+    return {
+        "release_artifact": str(release_artifact.resolve()),
+        "release_root_sha256": seal["root_sha256"],
+        "decision": decision,
+        "plan": {"runs": [first_run]},
         "nonce_marker": None
         if marker is None
         else {

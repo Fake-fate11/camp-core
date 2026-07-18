@@ -601,6 +601,7 @@ CRITICAL_IMPLEMENTATION_PATHS = (
     "scripts/integrations/preflight_diffusion_planner_v25_a162_bounded_execution.py",
     "scripts/integrations/review_diffusion_planner_v25_a162_bounded_execution.py",
     "scripts/integrations/create_diffusion_planner_v25_a163_bounded_release.py",
+    "scripts/integrations/create_diffusion_planner_v25_a17_diagnostic_release.py",
     "scripts/integrations/run_diffusion_planner_v25_a163_bounded_execution.py",
     "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py",
     "configs/integrations/diffusion_planner_v25_atom_scales_correction_v2.json",

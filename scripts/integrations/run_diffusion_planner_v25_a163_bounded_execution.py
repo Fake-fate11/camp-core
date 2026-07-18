@@ -35,11 +35,13 @@ from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import 
     validate_bounded_terminal_acceptance,
 )
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
+    A17_DIAGNOSTIC_RELEASE_GATE,
     EXPECTED_DEVICE,
     EXPECTED_RUNS,
     EXPECTED_TICKS,
     EXPECTED_UNIQUE_IDENTITIES,
     FIXED_DP_HEAD,
+    verify_a17_diagnostic_release,
     verify_bounded_release,
 )
 from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (  # noqa: E402
@@ -55,6 +57,12 @@ SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_snapshot_v6"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
+A17_DIAGNOSTIC_EXECUTION_SCHEMA_VERSION = (
+    "camp_dp_v25_a17_preprojection_diagnostic_execution_v1"
+)
+A17_DIAGNOSTIC_FAILURE_SCHEMA_VERSION = (
+    "camp_dp_v25_a17_preprojection_diagnostic_failure_v1"
+)
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
 MINIMUM_FREE_BYTES = 10 * 1024**3
 
@@ -1341,8 +1349,14 @@ def _execute(
     cases: Mapping[str, Mapping[str, Any]],
     template: Mapping[str, Any],
     route_assets: Mapping[str, Mapping[str, str]],
+    diagnostic_only: bool = False,
 ) -> dict[str, Any]:
     runs = plan["runs"]
+    expected_runs = 1 if diagnostic_only else EXPECTED_RUNS
+    expected_unique_identities = 1 if diagnostic_only else EXPECTED_UNIQUE_IDENTITIES
+    expected_ticks = TICKS_PER_RUN if diagnostic_only else EXPECTED_TICKS
+    if len(runs) != expected_runs:
+        raise ValueError("execution plan denominator does not match its authority mode")
     first_case = cases[str(runs[0]["scenario_id"])]
     first_config = corpus.build_controlled_train_config(
         template,
@@ -1566,34 +1580,58 @@ def _execute(
                     "schema_version": SCHEMA_VERSION,
                     "status": "running",
                     "completed_runs": len(results),
-                    "total_runs": EXPECTED_RUNS,
+                    "total_runs": expected_runs,
                     "snapshot_count": snapshot_count,
                     "fresh_b2_opened": False,
                     "outcome_fields_consumed": [],
                 },
             )
-    terminal = validate_bounded_terminal_acceptance(
-        plan, results, run_evidence=evidence_rows
-    )
+    if diagnostic_only:
+        if (
+            len(results) != 1
+            or snapshot_count != TICKS_PER_RUN
+            or len(evidence_rows) != 1
+            or results[0].get("status") != "complete"
+            or results[0].get("failure_class") != "none"
+        ):
+            raise RuntimeError("A1.7 diagnostic terminal evidence was incomplete")
+        terminal = {
+            "diagnostic_only": True,
+            "completed_runs": 1,
+            "snapshot_count": TICKS_PER_RUN,
+            "accepted_as_scientific_evidence": False,
+        }
+    else:
+        terminal = validate_bounded_terminal_acceptance(
+            plan, results, run_evidence=evidence_rows
+        )
     _write_json_atomic(
         args.output_dir / "progress.json",
         {
             "schema_version": SCHEMA_VERSION,
             "status": "complete",
             "completed_runs": len(results),
-            "total_runs": EXPECTED_RUNS,
+            "total_runs": expected_runs,
             "snapshot_count": snapshot_count,
             "fresh_b2_opened": False,
             "outcome_fields_consumed": [],
         },
     )
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "status": "passed_exact_bounded_execution",
-        "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
+    report = {
+        "schema_version": (
+            A17_DIAGNOSTIC_EXECUTION_SCHEMA_VERSION
+            if diagnostic_only
+            else SCHEMA_VERSION
+        ),
+        "status": (
+            "passed_diagnostic_only_preprojection_1x64"
+            if diagnostic_only
+            else "passed_exact_bounded_execution"
+        ),
+        "unique_identity_count": expected_unique_identities,
         "run_count": len(results),
         "snapshot_count": snapshot_count,
-        "snapshot_capacity": EXPECTED_TICKS,
+        "snapshot_capacity": expected_ticks,
         "device": EXPECTED_DEVICE,
         "terminal": terminal,
         "wall_seconds": time.perf_counter() - started,
@@ -1610,6 +1648,15 @@ def _execute(
         "fresh_b2_opened": False,
         "outcome_fields_consumed": [],
     }
+    if diagnostic_only:
+        report.update(
+            {
+                "diagnostic_execute_authorized": True,
+                "bounded_execute_authorized": False,
+                "accepted_as_scientific_evidence": False,
+            }
+        )
+    return report
 
 
 def _run(args: argparse.Namespace) -> dict[str, Any]:
@@ -1637,9 +1684,13 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     if shutil.disk_usage(output_dir.parent).free < MINIMUM_FREE_BYTES:
         raise RuntimeError("free disk is below the 10 GiB floor")
 
-    # Fail closed and consume the one-shot release before loading the formal
+    # Fail closed and consume the one-shot authority before loading the formal
     # universe, materializing routes, building the model, simulator or K8.
-    authority = verify_bounded_release(
+    diagnostic_only = getattr(args, "a17_diagnostic", False) is True
+    verifier = (
+        verify_a17_diagnostic_release if diagnostic_only else verify_bounded_release
+    )
+    authority = verifier(
         repo=ROOT,
         release_artifact=args.release_artifact,
         release_root_sha256=args.release_root_sha256,
@@ -1661,10 +1712,11 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         if case.get("runner_eligible") is True
     }
     selected_ids = {str(run["scenario_id"]) for run in plan["runs"]}
-    if len(selected_ids) != EXPECTED_UNIQUE_IDENTITIES or not selected_ids <= set(
+    expected_selected = 1 if diagnostic_only else EXPECTED_UNIQUE_IDENTITIES
+    if len(selected_ids) != expected_selected or not selected_ids <= set(
         formal_cases
     ):
-        raise ValueError("bounded plan/formal selected identity universe drifted")
+        raise ValueError("execution plan/formal selected identity universe drifted")
     source_binding = authority["decision"]["root_artifacts"]["source"]
     selected = [formal_cases[scenario_id] for scenario_id in sorted(selected_ids)]
     attached = corpus._attach_semantic_clone_authority(
@@ -1688,9 +1740,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     (args.output_dir / "COMMAND").write_text(
         " ".join(sys.argv) + "\n", encoding="utf-8"
     )
-    _write_json(
-        args.output_dir / "source_receipt.json",
-        {
+    source_receipt = {
             "schema_version": SCHEMA_VERSION,
             "release_artifact": authority["release_artifact"],
             "release_root_sha256": authority["release_root_sha256"],
@@ -1701,21 +1751,31 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "critical_implementation_manifest": authority["decision"][
                 "critical_implementation_manifest"
             ],
-            "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
-            "run_count": EXPECTED_RUNS,
-            "snapshot_capacity": EXPECTED_TICKS,
+            "unique_identity_count": expected_selected,
+            "run_count": 1 if diagnostic_only else EXPECTED_RUNS,
+            "snapshot_capacity": TICKS_PER_RUN if diagnostic_only else EXPECTED_TICKS,
             "device": EXPECTED_DEVICE,
             "full_r_execute_authorized": False,
             "fresh_b2_opened": False,
             "outcome_fields_consumed": [],
-        },
-    )
+        }
+    if diagnostic_only:
+        source_receipt.update(
+            {
+                "schema_version": A17_DIAGNOSTIC_EXECUTION_SCHEMA_VERSION,
+                "diagnostic_execute_authorized": True,
+                "bounded_execute_authorized": False,
+                "accepted_as_scientific_evidence": False,
+            }
+        )
+    _write_json(args.output_dir / "source_receipt.json", source_receipt)
     return _execute(
         args=args,
         plan=plan,
         cases=cases,
         template=template,
         route_assets=route_assets,
+        diagnostic_only=diagnostic_only,
     )
 
 
@@ -1727,7 +1787,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--release-root-sha256", required=True)
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--device", choices=(EXPECTED_DEVICE,), default=EXPECTED_DEVICE)
-    parser.add_argument("--bounded-execute", action="store_true", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--bounded-execute", action="store_true")
+    mode.add_argument("--a17-diagnostic", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -1738,26 +1800,50 @@ def main(argv: list[str] | None = None) -> None:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.10 bounded execution")
+            label = (
+                "V25 A1.7 preprojection diagnostic execution"
+                if getattr(args, "a17_diagnostic", False)
+                else "V25 A1.6.10 bounded execution"
+            )
+            root = seal_artifact(args.output_dir, label=label)
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
             if getattr(args, "authority_consumed", False) is not True:
                 raise
             args.output_dir.mkdir(parents=True, exist_ok=True)
-            _write_json(
-                args.output_dir / "failure.json",
-                {
-                    "schema_version": FAILURE_SCHEMA_VERSION,
-                    "status": "failed_closed_bounded_execution",
+            failure = {
+                    "schema_version": (
+                        A17_DIAGNOSTIC_FAILURE_SCHEMA_VERSION
+                        if getattr(args, "a17_diagnostic", False)
+                        else FAILURE_SCHEMA_VERSION
+                    ),
+                    "status": (
+                        "failed_closed_a17_preprojection_diagnostic"
+                        if getattr(args, "a17_diagnostic", False)
+                        else "failed_closed_bounded_execution"
+                    ),
                     "failure_type": type(exc).__name__,
                     "failure_reason": str(exc),
                     "full_r_execute_authorized": False,
                     "fresh_b2_opened": False,
                     "outcome_fields_consumed": [],
-                },
-            )
+                }
+            if getattr(args, "a17_diagnostic", False):
+                failure.update(
+                    {
+                        "diagnostic_execute_authorized": True,
+                        "bounded_execute_authorized": False,
+                        "accepted_as_scientific_evidence": False,
+                    }
+                )
+            _write_json(args.output_dir / "failure.json", failure)
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.10 bounded execution")
+            label = (
+                "failed V25 A1.7 preprojection diagnostic execution"
+                if getattr(args, "a17_diagnostic", False)
+                else "failed V25 A1.6.10 bounded execution"
+            )
+            seal_artifact(args.output_dir, label=label)
             raise
 
 
