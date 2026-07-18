@@ -222,13 +222,13 @@ def _hook(
     return hook, state
 
 
-def test_v25_causal_input_sink_receives_complete_preimage_before_forward() -> None:
+def test_v25_sink_captures_scene_materialization_not_batched_forward_input() -> None:
     module = _runner()
     captured = []
 
     class OrderedModel(_FakeModel):
         def __call__(self, data):
-            assert captured, "causal input preimage must be captured before DP forward"
+            assert captured, "scene materialization must be captured before DP forward"
             return super().__call__(data)
 
     model = OrderedModel()
@@ -248,6 +248,7 @@ def test_v25_causal_input_sink_receives_complete_preimage_before_forward() -> No
     tick, arrays = captured[0]
     assert tick == 0
     assert set(arrays) == set(CAUSAL_DP_INPUT_SCHEMA)
+    assert arrays["neighbor_agents_past"].shape[0] == 32
     for name, (shape, dtype_name) in CAUSAL_DP_INPUT_SCHEMA.items():
         assert arrays[name].shape == shape
         assert arrays[name].dtype == np.dtype(dtype_name)

@@ -22,10 +22,10 @@ from .diffusion_planner_v25_full_r_authority import (
 )
 
 
-RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a168_bounded_execute_release_v6"
+RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a169_bounded_execute_release_v7"
 RELEASE_STATUS = "bounded_execute_released"
-RELEASE_GATE = "a168_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a168_bounded_execute_nonces")
+RELEASE_GATE = "a169_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a169_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_SEED = 25001
 EXPECTED_UNIQUE_IDENTITIES = 243
@@ -150,11 +150,52 @@ def _is_sha256(value: Any) -> bool:
     )
 
 
+def _reject_json_constant(value: str) -> None:
+    raise ValueError(f"nonfinite JSON constant is forbidden: {value}")
+
+
+def _strict_object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key is forbidden: {key}")
+        result[key] = value
+    return result
+
+
 def _load_object(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    data = path.read_bytes()
+    try:
+        text = data.decode("utf-8", errors="strict")
+        value = json.loads(
+            text,
+            object_pairs_hook=_strict_object_pairs,
+            parse_constant=_reject_json_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"authority JSON is not strict UTF-8 JSON: {path}") from exc
     if type(value) is not dict:
         raise ValueError(f"authority JSON is not an exact object: {path}")
+    if data != canonical_json_bytes(value):
+        raise ValueError(f"authority JSON is not canonical single-LF bytes: {path}")
     return value
+
+
+def _validate_diagnostic_command(path: Path) -> None:
+    data = path.read_bytes()
+    try:
+        text = data.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError("bounded authority COMMAND is not strict UTF-8") from exc
+    if (
+        not text
+        or not text.endswith("\n")
+        or text.endswith("\n\n")
+        or "\r" in text
+        or "\x00" in text
+        or not text[:-1]
+    ):
+        raise ValueError("bounded authority COMMAND diagnostic bytes drifted")
 
 
 def _file_sha256(path: Path) -> str:
@@ -194,7 +235,7 @@ def _verify_exact_asset(contract: Mapping[str, Any], *, label: str) -> Path:
 def verify_frozen_execution_assets(
     *, repo: Path, dp_repo: Path, probe_template: Path
 ) -> dict[str, Any]:
-    """Bind A1.6.8 execution to one template/weights/fixed-DP universe."""
+    """Bind A1.6.9 execution to one template/weights/fixed-DP universe."""
 
     camp = _require_exact_path(repo, EXPECTED_CAMP_REPO, label="CAMP repository")
     dp = _require_exact_path(dp_repo, EXPECTED_DP_REPO, label="fixed-DP repository")
@@ -314,8 +355,20 @@ def verify_frozen_execution_assets(
 
 
 def _parse_heads(path: Path) -> dict[str, str]:
+    data = path.read_bytes()
+    try:
+        text = data.decode("ascii", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError("bounded authority HEADS is not strict ASCII") from exc
+    if (
+        not text.endswith("\n")
+        or text.endswith("\n\n")
+        or "\r" in text
+        or "\x00" in text
+    ):
+        raise ValueError("bounded authority HEADS bytes drifted")
     fields: dict[str, str] = {}
-    for line in path.read_text(encoding="ascii").splitlines():
+    for line in text.splitlines():
         if line.count("=") != 1:
             raise ValueError("bounded authority HEADS is malformed")
         key, value = line.split("=", 1)
@@ -328,6 +381,18 @@ def _parse_heads(path: Path) -> dict[str, str]:
         {"review_head", "fixed_dp_head"},
     ):
         raise ValueError("bounded authority HEADS key set drifted")
+    order = (
+        ("camp_source_head", "camp_pointer_head", "fixed_dp_head")
+        if "camp_pointer_head" in fields
+        else (
+            ("camp_source_head", "fixed_dp_head")
+            if "camp_source_head" in fields
+            else ("review_head", "fixed_dp_head")
+        )
+    )
+    expected = "".join(f"{key}={fields[key]}\n" for key in order).encode("ascii")
+    if data != expected:
+        raise ValueError("bounded authority HEADS ordering/bytes drifted")
     return fields
 
 
@@ -367,12 +432,13 @@ def verify_four_root_chain(
         report_file = binding["report_file"]
         if not _is_sha256(root) or report_file != ROOT_REPORT_FILES[role]:
             raise ValueError(f"{role} root/report binding drifted")
-        seal = verify_complete_seal(artifact, root, label=f"V25 A1.6.8 {role}")
+        seal = verify_complete_seal(artifact, root, label=f"V25 A1.6.9 {role}")
         if (
             seal["manifest_paths"] != ROOT_PAYLOADS[role]
             or (artifact / "run.exit").read_bytes() != b"0\n"
         ):
             raise ValueError(f"{role} inventory/run.exit drifted")
+        _validate_diagnostic_command(artifact / "COMMAND")
         report = _load_object(artifact / report_file)
         heads = _parse_heads(artifact / "HEADS")
         source_head = heads.get("camp_source_head") or heads.get("review_head")
@@ -622,13 +688,14 @@ def verify_bounded_release(
     consume: bool,
 ) -> dict[str, Any]:
     seal = verify_complete_seal(
-        release_artifact, release_root_sha256, label="V25 A1.6.8 bounded release"
+        release_artifact, release_root_sha256, label="V25 A1.6.9 bounded release"
     )
     if (
         seal["manifest_paths"] != RELEASE_PAYLOADS
         or (release_artifact / "run.exit").read_bytes() != b"0\n"
     ):
         raise ValueError("bounded release inventory/run.exit drifted")
+    _validate_diagnostic_command(release_artifact / "COMMAND")
     decision = _load_object(release_artifact / "decision.json")
     heads = _parse_heads(release_artifact / "HEADS")
     if set(decision) != RELEASE_FIELDS:

@@ -400,6 +400,9 @@ class NativeCampPredictBatch:
                 for agent_id in agent_ids
             ]
             batched = _cat_tensor_dicts(tensor_dicts)
+            # This 32-neighbor training-NPZ representation is causal scene
+            # materialization evidence.  It is intentionally not described as
+            # the normalized/batched 320-neighbor tensor consumed by `model`.
             raw_causal = self.dump_step_npz(
                 scene,
                 map_cache,

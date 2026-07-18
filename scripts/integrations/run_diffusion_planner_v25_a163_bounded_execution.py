@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.8 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.9 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a168_bounded_execution_v6"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a168_bounded_snapshot_v4"
+SCHEMA_VERSION = "camp_dp_v25_a169_bounded_execution_v7"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a169_bounded_snapshot_v5"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
@@ -59,7 +59,7 @@ TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
 MINIMUM_FREE_BYTES = 10 * 1024**3
 
 PUBLIC_TICK_FIELDS = {
-    "tick_index", "status", "input_sha256", "padding", "tracker", "safety",
+    "tick_index", "status", "scene_materialization_sha256", "padding", "tracker", "safety",
     "latency_ms", "pre_decision_speed_mps", "default_output_sha256", "candidate_tensor_sha256_before",
     "candidate_tensor_sha256_after", "candidate_neighbor_sha256",
     "selected_trajectory_sha256", "global_rng_sha256_before",
@@ -88,18 +88,18 @@ LATENCY_FIELDS = {
 NATIVE_RECEIPT_FIELDS = {
     "schema_version", "status", "route_name", "route_sha256",
     "logical_map_sha256", "fixed_dp_head", "checkpoint_sha256", "args_sha256",
-    "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
-    "initial_input_sha256", "ticks", "native_result", "claim_authorized",
+    "arm", "scenario_seed", "spawn_config_sha256", "initial_world_state_sha256",
+    "initial_scene_materialization_sha256", "ticks", "native_result", "claim_authorized",
     "selector_scale_contract", "runtime_annotation_compatibility",
-    "causal_input_evidence",
+    "causal_scene_materialization_evidence",
 }
-CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION = (
-    "camp_dp_v25_a168_causal_input_evidence_v1"
+SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION = (
+    "camp_dp_v25_a169_causal_scene_materialization_evidence_v1"
 )
-CAUSAL_INPUT_EVIDENCE_FIELDS = {
+SCENE_MATERIALIZATION_EVIDENCE_FIELDS = {
     "schema_version", "relative_path", "sha256", "tick_count", "arrays",
 }
-CAUSAL_INPUT_ARRAY_SCHEMA = {
+SCENE_MATERIALIZATION_ARRAY_SCHEMA = {
     "ego_agent_past": ((31, 3), "float32"),
     "ego_current_state": ((10,), "float32"),
     "ego_shape": ((3,), "float32"),
@@ -117,6 +117,7 @@ CAUSAL_INPUT_ARRAY_SCHEMA = {
     "turn_indicators": ((31,), "int32"),
     "version": ((), "int64"),
 }
+INITIAL_WORLD_STATE_SCHEMA_VERSION = "camp_dp_v25_a169_initial_world_state_v1"
 EXPECTED_SELECTOR_SCALE_CONTRACT = {
     "declared_atom_schema_version": "dp_camp_v10_14d",
     "effective_atom_schema_version": "dp_camp_v10_14d",
@@ -174,15 +175,17 @@ def _write_jsonl_row(handle: Any, value: Any) -> None:
 
 
 def _deterministic_array_mapping_sha256(data: Mapping[str, Any]) -> str:
-    """Producer-side mirror of the fixed-DP causal-input byte contract."""
+    """Producer-side digest for the saved causal scene materialization."""
 
     digest = hashlib.sha256()
     for key in sorted(data):
         if type(key) is not str:
-            raise ValueError("causal input array mapping keys must be strings")
+            raise ValueError("scene materialization array keys must be strings")
         array = np.ascontiguousarray(np.asarray(data[key]))
         if array.dtype.hasobject:
-            raise ValueError(f"causal input object dtype is forbidden for {key}")
+            raise ValueError(
+                f"scene materialization object dtype is forbidden for {key}"
+            )
         digest.update(key.encode("utf-8"))
         digest.update(b"\0")
         digest.update(array.dtype.str.encode("ascii"))
@@ -195,41 +198,41 @@ def _deterministic_array_mapping_sha256(data: Mapping[str, Any]) -> str:
     return digest.hexdigest()
 
 
-def _validated_causal_input(
+def _validated_scene_materialization(
     value: Mapping[str, Any], *, tick_index: int
 ) -> dict[str, np.ndarray]:
-    if type(value) is not dict or set(value) != set(CAUSAL_INPUT_ARRAY_SCHEMA):
-        raise ValueError("bounded causal input exact array set drifted")
+    if type(value) is not dict or set(value) != set(SCENE_MATERIALIZATION_ARRAY_SCHEMA):
+        raise ValueError("bounded scene materialization exact array set drifted")
     result: dict[str, np.ndarray] = {}
-    for name, (shape, dtype_name) in CAUSAL_INPUT_ARRAY_SCHEMA.items():
+    for name, (shape, dtype_name) in SCENE_MATERIALIZATION_ARRAY_SCHEMA.items():
         array = np.asarray(value[name])
         expected_dtype = np.dtype(dtype_name)
         if array.shape != shape or array.dtype != expected_dtype:
             raise ValueError(
-                f"bounded causal input {name} dtype/shape drifted at tick {tick_index}"
+                f"bounded scene materialization {name} dtype/shape drifted at tick {tick_index}"
             )
         if not np.isfinite(array).all():
             raise ValueError(
-                f"bounded causal input {name} is nonfinite at tick {tick_index}"
+                f"bounded scene materialization {name} is nonfinite at tick {tick_index}"
             )
         result[name] = np.array(array, copy=True, order="C")
     return result
 
 
-def _write_causal_input_evidence(
+def _write_scene_materialization_evidence(
     *, output_dir: Path, run: Mapping[str, Any], rows: list[Mapping[str, Any]]
 ) -> tuple[dict[str, Any], list[str]]:
     if len(rows) != TICKS_PER_RUN:
-        raise ValueError("bounded causal input evidence must contain exactly 64 ticks")
+        raise ValueError("bounded scene materialization evidence must contain exactly 64 ticks")
     validated = [
-        _validated_causal_input(row, tick_index=index)
+        _validated_scene_materialization(row, tick_index=index)
         for index, row in enumerate(rows)
     ]
     stacked = {
         name: np.stack([row[name] for row in validated], axis=0)
-        for name in sorted(CAUSAL_INPUT_ARRAY_SCHEMA)
+        for name in sorted(SCENE_MATERIALIZATION_ARRAY_SCHEMA)
     }
-    evidence_dir = output_dir / "causal_inputs"
+    evidence_dir = output_dir / "causal_scene_materializations"
     evidence_dir.mkdir(parents=True, exist_ok=True)
     temporary = evidence_dir / (
         f"run_{int(run['run_ordinal']):03d}_{run['occurrence']}.tmp.npz"
@@ -242,13 +245,11 @@ def _write_causal_input_evidence(
     target = evidence_dir / f"{digest}.npz"
     if target.exists():
         if target.is_symlink() or target.read_bytes() != data:
-            raise ValueError("bounded causal input content-address collision")
+            raise ValueError("bounded scene materialization content-address collision")
         temporary.unlink()
     else:
         temporary.replace(target)
-    hashes = [
-        _deterministic_array_mapping_sha256(row) for row in validated
-    ]
+    hashes = [_deterministic_array_mapping_sha256(row) for row in validated]
     arrays = {
         name: {
             "dtype": array.dtype.str,
@@ -261,7 +262,7 @@ def _write_causal_input_evidence(
     }
     return (
         {
-            "schema_version": CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION,
+            "schema_version": SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION,
             "relative_path": target.relative_to(output_dir).as_posix(),
             "sha256": digest,
             "tick_count": TICKS_PER_RUN,
@@ -269,6 +270,98 @@ def _write_causal_input_evidence(
         },
         hashes,
     )
+
+
+def _strict_object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate native JSON key is forbidden: {key}")
+        result[key] = value
+    return result
+
+
+def _load_native_json(path: Path) -> Any:
+    try:
+        return json.loads(
+            path.read_text(encoding="utf-8"),
+            object_pairs_hook=_strict_object_pairs,
+            parse_constant=lambda value: (_ for _ in ()).throw(
+                ValueError(f"nonfinite native JSON constant is forbidden: {value}")
+            ),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"bounded native JSON is not strict: {path}") from exc
+
+
+def _initial_world_state_payload(trajectory_row: Mapping[str, Any]) -> dict[str, Any]:
+    if (
+        type(trajectory_row) is not dict
+        or set(trajectory_row) != {"step", "x", "y", "heading", "speed", "goal_d"}
+        or type(trajectory_row.get("step")) is not int
+        or trajectory_row["step"] != 0
+    ):
+        raise ValueError("bounded initial trajectory row schema drifted")
+    return {
+        "schema_version": INITIAL_WORLD_STATE_SCHEMA_VERSION,
+        "position_xy": [
+            _native_number(trajectory_row.get("x"), label="initial world x"),
+            _native_number(trajectory_row.get("y"), label="initial world y"),
+        ],
+        "heading_rad": _native_number(
+            trajectory_row.get("heading"), label="initial world heading"
+        ),
+        "speed_mps": _native_number(
+            trajectory_row.get("speed"), label="initial world speed"
+        ),
+    }
+
+
+def _project_bounded_scientific_receipt(
+    receipt: Mapping[str, Any],
+    *,
+    scene_materialization_hashes: list[str],
+    scene_materialization_evidence: Mapping[str, Any],
+    native_dir: Path,
+) -> dict[str, Any]:
+    projected = dict(receipt)
+    ticks = []
+    for index, source_tick in enumerate(receipt.get("ticks", [])):
+        if type(source_tick) is not dict or type(source_tick.get("input_sha256")) is not str:
+            raise ValueError("bounded legacy native scene-materialization digest is missing")
+        tick = dict(source_tick)
+        legacy_digest = tick.pop("input_sha256")
+        if legacy_digest != scene_materialization_hashes[index]:
+            raise ValueError("bounded scene materialization digest drifted before projection")
+        tick["scene_materialization_sha256"] = legacy_digest
+        ticks.append(tick)
+    projected["ticks"] = ticks
+    legacy_initial_input = projected.pop("initial_input_sha256", None)
+    projected.pop("initial_state_sha256", None)
+    if legacy_initial_input != scene_materialization_hashes[0]:
+        raise ValueError("bounded initial scene materialization digest drifted")
+    trajectory = _load_native_json(native_dir / "trajectory_log.json")
+    if type(trajectory) is not list or len(trajectory) != TICKS_PER_RUN:
+        raise ValueError("bounded initial world-state trajectory source drifted")
+    initial_world = _initial_world_state_payload(trajectory[0])
+    projected["schema_version"] = "camp_dp_v25_a169_bounded_native_receipt_v1"
+    projected["initial_scene_materialization_sha256"] = scene_materialization_hashes[0]
+    projected["initial_world_state_sha256"] = hashlib.sha256(
+        (
+            json.dumps(
+                initial_world,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
+    projected["causal_scene_materialization_evidence"] = dict(
+        scene_materialization_evidence
+    )
+    return projected
 
 
 @contextmanager
@@ -371,12 +464,13 @@ def _validate_success_native_receipt(
     config: Mapping[str, Any] | None = None,
     route: Mapping[str, Any] | None = None,
     native_dir: Path | None = None,
-    causal_input_hashes: list[str] | None = None,
+    scene_materialization_hashes: list[str] | None = None,
 ) -> None:
     if type(native_receipt) is not dict or set(native_receipt) != NATIVE_RECEIPT_FIELDS:
         raise ValueError("bounded native receipt exact field set drifted")
     if (
-        native_receipt.get("schema_version") != "v21_native_arm_receipt_v1"
+        native_receipt.get("schema_version")
+        != "camp_dp_v25_a169_bounded_native_receipt_v1"
         or native_receipt.get("arm") != "camp"
         or native_receipt.get("claim_authorized") is not False
         or native_receipt.get("status") != "ok"
@@ -398,31 +492,29 @@ def _validate_success_native_receipt(
     for index, tick in enumerate(ticks):
         _validate_public_success_tick(tick, tick_index=index)
     if (
-        type(causal_input_hashes) is not list
-        or len(causal_input_hashes) != TICKS_PER_RUN
+        type(scene_materialization_hashes) is not list
+        or len(scene_materialization_hashes) != TICKS_PER_RUN
         or any(
             type(value) is not str
             or len(value) != 64
             or any(character not in "0123456789abcdef" for character in value)
-            for value in causal_input_hashes
+            for value in scene_materialization_hashes
         )
         or any(
-            ticks[index].get("input_sha256") != causal_input_hashes[index]
+            ticks[index].get("scene_materialization_sha256")
+            != scene_materialization_hashes[index]
             for index in range(TICKS_PER_RUN)
         )
     ):
-        raise ValueError("bounded native causal input preimage/hash binding drifted")
-    initial_input = causal_input_hashes[0]
-    expected_initial_state = hashlib.sha256(
-        ("v21_native_scene_context_v1\0" + str(initial_input)).encode("ascii")
-    ).hexdigest()
+        raise ValueError("bounded native scene materialization binding drifted")
+    initial_materialization = scene_materialization_hashes[0]
     for name in (
         "route_name",
         "route_sha256",
         "logical_map_sha256",
         "spawn_config_sha256",
-        "initial_state_sha256",
-        "initial_input_sha256",
+        "initial_world_state_sha256",
+        "initial_scene_materialization_sha256",
     ):
         value = native_receipt.get(name)
         if type(value) is not str or len(value) != 64 or any(
@@ -430,27 +522,50 @@ def _validate_success_native_receipt(
         ):
             raise ValueError(f"bounded native {name} must be a lowercase SHA256")
     if (
-        native_receipt["initial_input_sha256"] != initial_input
-        or native_receipt["initial_state_sha256"] != expected_initial_state
+        native_receipt["initial_scene_materialization_sha256"]
+        != initial_materialization
     ):
-        raise ValueError("bounded native initial input/state binding drifted")
-    evidence = native_receipt.get("causal_input_evidence")
+        raise ValueError("bounded native initial materialization binding drifted")
+    if native_dir is None:
+        raise ValueError("bounded native directory is required for initial world state")
+    trajectory = _load_native_json(native_dir / "trajectory_log.json")
+    if type(trajectory) is not list or len(trajectory) != TICKS_PER_RUN:
+        raise ValueError("bounded initial world-state trajectory source drifted")
+    expected_initial_world_sha = hashlib.sha256(
+        (
+            json.dumps(
+                _initial_world_state_payload(trajectory[0]),
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
+    if native_receipt["initial_world_state_sha256"] != expected_initial_world_sha:
+        raise ValueError("bounded native initial world-state binding drifted")
+    evidence = native_receipt.get("causal_scene_materialization_evidence")
     if (
         type(evidence) is not dict
-        or set(evidence) != CAUSAL_INPUT_EVIDENCE_FIELDS
+        or set(evidence) != SCENE_MATERIALIZATION_EVIDENCE_FIELDS
         or evidence.get("schema_version")
-        != CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION
+        != SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION
         or type(evidence.get("relative_path")) is not str
-        or not re.fullmatch(r"causal_inputs/[0-9a-f]{64}\.npz", evidence["relative_path"])
+        or not re.fullmatch(
+            r"causal_scene_materializations/[0-9a-f]{64}\.npz",
+            evidence["relative_path"],
+        )
         or type(evidence.get("sha256")) is not str
-        or evidence["relative_path"] != f"causal_inputs/{evidence['sha256']}.npz"
+        or evidence["relative_path"]
+        != f"causal_scene_materializations/{evidence['sha256']}.npz"
         or type(evidence.get("tick_count")) is not int
         or evidence["tick_count"] != TICKS_PER_RUN
         or type(evidence.get("arrays")) is not dict
-        or set(evidence["arrays"]) != set(CAUSAL_INPUT_ARRAY_SCHEMA)
+        or set(evidence["arrays"]) != set(SCENE_MATERIALIZATION_ARRAY_SCHEMA)
     ):
-        raise ValueError("bounded native causal input evidence receipt drifted")
-    for name, (shape, dtype_name) in CAUSAL_INPUT_ARRAY_SCHEMA.items():
+        raise ValueError("bounded native scene materialization evidence receipt drifted")
+    for name, (shape, dtype_name) in SCENE_MATERIALIZATION_ARRAY_SCHEMA.items():
         metadata = evidence["arrays"].get(name)
         if (
             type(metadata) is not dict
@@ -461,7 +576,7 @@ def _validate_success_native_receipt(
             or not re.fullmatch(r"[0-9a-f]{64}", metadata["sha256"])
         ):
             raise ValueError(
-                f"bounded native causal input evidence metadata drifted for {name}"
+                f"bounded native scene materialization metadata drifted for {name}"
             )
     native_result = native_receipt.get("native_result")
     if (
@@ -475,8 +590,10 @@ def _validate_success_native_receipt(
         or type(native_result.get("trajectory_log_path")) is not str
         or type(native_result.get("clearance_log_path")) is not str
         or native_result.get("final_step") != 63
-        or native_result.get("goal_reached") is not False
-        or native_result.get("reason") != "max_steps"
+        or native_result.get("reason")
+        not in {"max_steps", "goal_reached", "goal_passed"}
+        or native_result.get("goal_reached")
+        is not (native_result.get("reason") in {"goal_reached", "goal_passed"})
         or native_result.get("n_npc_spawned") != 0
     ):
         raise ValueError("bounded native result exact schema drifted")
@@ -514,20 +631,17 @@ def _validate_success_native_receipt(
             "args_sha256": EXPECTED_FIXED_DP_ARGS_SHA256,
             "scenario_seed": 25001,
             "spawn_config_sha256": expected_spawn_sha,
-            "initial_input_sha256": initial_input,
-            "initial_state_sha256": expected_initial_state,
+            "initial_scene_materialization_sha256": initial_materialization,
+            "initial_world_state_sha256": expected_initial_world_sha,
         }
         if any(native_receipt.get(key) != value for key, value in expected.items()):
             raise ValueError("bounded native producer header authority drifted")
         expected_result = {
             "final_step": 63,
-            "goal_reached": False,
-            "reason": "max_steps",
-            "n_npc_spawned": 0,
             "trajectory_log_path": str(native_dir / "trajectory_log.json"),
             "clearance_log_path": str(native_dir / "clearance_log.json"),
         }
-        if native_result != expected_result:
+        if any(native_result.get(key) != value for key, value in expected_result.items()):
             raise ValueError("bounded native producer terminal authority drifted")
 
 
@@ -584,7 +698,10 @@ def _reject_native_forbidden_fields(value: Any, *, path: str = "native") -> None
 def _derive_native_failure_class(
     native_receipt: Mapping[str, Any],
     *,
-    causal_input_hashes: list[str] | None = None,
+    scene_materialization_hashes: list[str] | None = None,
+    config: Mapping[str, Any] | None = None,
+    route: Mapping[str, Any] | None = None,
+    native_dir: Path | None = None,
 ) -> str:
     """Derive completion from persisted native evidence, never caller input."""
 
@@ -593,7 +710,11 @@ def _derive_native_failure_class(
     try:
         _reject_native_forbidden_fields(native_receipt)
         _validate_success_native_receipt(
-            native_receipt, causal_input_hashes=causal_input_hashes
+            native_receipt,
+            config=config,
+            route=route,
+            native_dir=native_dir,
+            scene_materialization_hashes=scene_materialization_hashes,
         )
     except ValueError:
         return "native_evidence_schema_invalid"
@@ -770,14 +891,19 @@ def _execute(
             )
             snapshots: list[Mapping[str, Any]] = []
             contexts: list[Mapping[str, Any]] = []
-            causal_inputs: list[Mapping[str, Any]] = []
+            scene_materializations: list[Mapping[str, Any]] = []
 
             def capture_causal_input(
                 tick_index: int, value: Mapping[str, Any]
             ) -> None:
-                if type(tick_index) is not int or tick_index != len(causal_inputs):
-                    raise ValueError("bounded causal input sink tick order drifted")
-                causal_inputs.append(value)
+                if (
+                    type(tick_index) is not int
+                    or tick_index != len(scene_materializations)
+                ):
+                    raise ValueError(
+                        "bounded scene materialization sink tick order drifted"
+                    )
+                scene_materializations.append(value)
             native_dir = (
                 args.output_dir
                 / "native_runs"
@@ -803,7 +929,7 @@ def _execute(
                 or len(snapshots) != TICKS_PER_RUN
                 or len(contexts) != TICKS_PER_RUN
                 or len(adapter.receipts) != TICKS_PER_RUN
-                or len(causal_inputs) != TICKS_PER_RUN
+                or len(scene_materializations) != TICKS_PER_RUN
             ):
                 raise RuntimeError("bounded run was partial or lacked exact tick evidence")
             corpus.validate_native_arm_receipt(
@@ -828,21 +954,32 @@ def _execute(
                     raise RuntimeError(
                         f"bounded native {derived_summary} summary was unavailable"
                     )
-            causal_reference, causal_input_hashes = _write_causal_input_evidence(
+            scene_reference, scene_materialization_hashes = (
+                _write_scene_materialization_evidence(
                 output_dir=args.output_dir,
                 run=run,
-                rows=causal_inputs,
+                rows=scene_materializations,
+                )
             )
-            receipt["causal_input_evidence"] = causal_reference
+            receipt = _project_bounded_scientific_receipt(
+                receipt,
+                scene_materialization_hashes=scene_materialization_hashes,
+                scene_materialization_evidence=scene_reference,
+                native_dir=native_dir,
+            )
             _validate_success_native_receipt(
                 receipt,
                 config=config,
                 route=config["routes"][0],
                 native_dir=native_dir,
-                causal_input_hashes=causal_input_hashes,
+                scene_materialization_hashes=scene_materialization_hashes,
             )
             failure_class = _derive_native_failure_class(
-                receipt, causal_input_hashes=causal_input_hashes
+                receipt,
+                scene_materialization_hashes=scene_materialization_hashes,
+                config=config,
+                route=config["routes"][0],
+                native_dir=native_dir,
             )
             if failure_class != "none":
                 raise RuntimeError(
@@ -863,6 +1000,9 @@ def _execute(
                 # so preserve that already-validated sequence explicitly.
                 payload["sidecar"]["scores"] = list(
                     snapshots[tick_index]["sidecar"]["scores"]
+                )
+                payload["sidecar"]["scene_materialization_sha256"] = (
+                    payload["sidecar"].pop("causal_input_sha256")
                 )
                 _write_snapshot(
                     output_dir=args.output_dir,
@@ -1076,7 +1216,7 @@ def main(argv: list[str] | None = None) -> None:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.8 bounded execution")
+            root = seal_artifact(args.output_dir, label="V25 A1.6.9 bounded execution")
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
             if getattr(args, "authority_consumed", False) is not True:
@@ -1095,7 +1235,7 @@ def main(argv: list[str] | None = None) -> None:
                 },
             )
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.8 bounded execution")
+            seal_artifact(args.output_dir, label="failed V25 A1.6.9 bounded execution")
             raise
 
 

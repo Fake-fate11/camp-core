@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.8 bounded K8 execution."""
+"""Independently review a sealed A1.6.9 bounded K8 execution."""
 
 from __future__ import annotations
 
@@ -29,14 +29,18 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     seal_artifact,
     verify_complete_seal,
 )
+from camp_core.integrations.diffusion_planner import (  # noqa: E402
+    install_lanelet2_projection_fallback,
+    require_source_preserving_lanelet2_regulatory_adapter,
+)
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
     verify_bounded_release,
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a168_bounded_execution_review_v6"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a168_bounded_execution_v6"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a168_bounded_snapshot_v4"
+SCHEMA_VERSION = "camp_dp_v25_a169_bounded_execution_review_v7"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a169_bounded_execution_v7"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a169_bounded_snapshot_v5"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -44,8 +48,8 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-RELEASE_GATE = "a168_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a168_bounded_execute_nonces")
+RELEASE_GATE = "a169_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a169_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
 EXPECTED_FORMAL_ROOT_SHA256 = "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
@@ -116,14 +120,14 @@ EXPECTED_DP_NATIVE_SOURCE_SHA256 = {
 GOAL_TOLERANCE_M = 2.0
 GOAL_PASS_WINDOW_M = 25.0
 EXPECTED_CLEARANCE_MAX_RANGE_M = 100.0
-CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION = (
-    "camp_dp_v25_a168_causal_input_evidence_v1"
+SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION = (
+    "camp_dp_v25_a169_causal_scene_materialization_evidence_v1"
 )
-CAUSAL_INPUT_EVIDENCE_FIELDS = {
+SCENE_MATERIALIZATION_EVIDENCE_FIELDS = {
     "schema_version", "relative_path", "sha256", "tick_count", "arrays",
 }
 # Frozen locally rather than imported from the producer/hash implementation.
-CAUSAL_INPUT_ARRAY_SCHEMA = {
+SCENE_MATERIALIZATION_ARRAY_SCHEMA = {
     "ego_agent_past": ((31, 3), "float32"),
     "ego_current_state": ((10,), "float32"),
     "ego_shape": ((3,), "float32"),
@@ -153,7 +157,10 @@ EXECUTION_FILE_BYTE_POLICIES = (
     ),
     (r"routes/[0-9a-f]{64}\.pkl", "fixed-dp-route-pickle-v1"),
     (r"snapshots/[0-9a-f]{64}\.json", "canonical-content-address-json-v1"),
-    (r"causal_inputs/[0-9a-f]{64}\.npz", "strict-causal-input-npz-v1"),
+    (
+        r"causal_scene_materializations/[0-9a-f]{64}\.npz",
+        "strict-causal-scene-materialization-npz-v1",
+    ),
     (
         r"native_runs/[^/]+/bounded_native_receipt\.json",
         "canonical-json-utf8-sort-compact-single-lf-v1",
@@ -280,7 +287,7 @@ SIDECAR_FIELDS = {
     "default_candidate0_identity",
     "candidate0_semantics",
     "candidate0_independent_second_forward",
-    "causal_input_sha256",
+    "scene_materialization_sha256",
     "causal_evidence_sha256",
     "route_lanes_sha256",
     "route_lanes_speed_limit_sha256",
@@ -480,7 +487,7 @@ CAUSAL_EVIDENCE_FIELDS = {
     "signal_mask", "fixed_dp_planned_red_light_cost",
 }
 PUBLIC_TICK_FIELDS = {
-    "tick_index", "status", "input_sha256", "padding", "tracker", "safety",
+    "tick_index", "status", "scene_materialization_sha256", "padding", "tracker", "safety",
     "latency_ms", "pre_decision_speed_mps", "default_output_sha256", "candidate_tensor_sha256_before",
     "candidate_tensor_sha256_after", "candidate_neighbor_sha256",
     "selected_trajectory_sha256", "global_rng_sha256_before",
@@ -509,11 +516,12 @@ LATENCY_FIELDS = {
 NATIVE_RECEIPT_FIELDS = {
     "schema_version", "status", "route_name", "route_sha256",
     "logical_map_sha256", "fixed_dp_head", "checkpoint_sha256", "args_sha256",
-    "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
-    "initial_input_sha256", "ticks", "native_result", "claim_authorized",
+    "arm", "scenario_seed", "spawn_config_sha256", "initial_world_state_sha256",
+    "initial_scene_materialization_sha256", "ticks", "native_result", "claim_authorized",
     "selector_scale_contract", "runtime_annotation_compatibility",
-    "causal_input_evidence",
+    "causal_scene_materialization_evidence",
 }
+INITIAL_WORLD_STATE_SCHEMA_VERSION = "camp_dp_v25_a169_initial_world_state_v1"
 NATIVE_HEADER_RESULT_FIELDS = NATIVE_RECEIPT_FIELDS - {"ticks"}
 EXPECTED_SELECTOR_SCALE_CONTRACT = {
     "declared_atom_schema_version": "dp_camp_v10_14d",
@@ -642,10 +650,107 @@ def _execution_file_byte_policy(relative_path: str) -> str:
     return matches[0]
 
 
-def _validate_execution_manifest_policies(paths: list[str]) -> dict[str, str]:
+def _validate_diagnostic_text(path: Path, *, require_single_lf: bool) -> None:
+    data = path.read_bytes()
+    try:
+        text = data.decode("utf-8", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"bounded diagnostic text is not strict UTF-8: {path}") from exc
+    if "\x00" in text or "\r" in text:
+        raise ValueError(f"bounded diagnostic text framing drifted: {path}")
+    if require_single_lf and (
+        not text or not text.endswith("\n") or text.endswith("\n\n")
+    ):
+        raise ValueError(f"bounded control text framing drifted: {path}")
+
+
+def _validate_execution_policy_file(
+    *, artifact: Path, relative_path: str, policy: str
+) -> None:
+    path = artifact / relative_path
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"bounded policy file is unavailable: {relative_path}")
+    if policy == "exact-control-text-v1":
+        if relative_path == "run.exit":
+            if path.read_bytes() != b"0\n":
+                raise ValueError("bounded execution run.exit exact bytes drifted")
+        elif relative_path == "HEADS":
+            _validate_diagnostic_text(path, require_single_lf=True)
+            data = path.read_bytes()
+            try:
+                lines = data.decode("ascii", errors="strict").splitlines()
+            except UnicodeDecodeError as exc:
+                raise ValueError("bounded execution HEADS is not strict ASCII") from exc
+            fields: dict[str, str] = {}
+            for line in lines:
+                if line.count("=") != 1:
+                    raise ValueError("bounded execution HEADS line drifted")
+                key, value = line.split("=", 1)
+                if not key or not value or key in fields:
+                    raise ValueError("bounded execution HEADS key/value drifted")
+                fields[key] = value
+            order = ("camp_source_head", "camp_pointer_head", "fixed_dp_head")
+            if tuple(fields) != order:
+                raise ValueError("bounded execution HEADS order/key set drifted")
+            expected = "".join(f"{key}={fields[key]}\n" for key in order).encode(
+                "ascii"
+            )
+            if data != expected:
+                raise ValueError("bounded execution HEADS exact bytes drifted")
+        elif relative_path == "COMMAND":
+            # COMMAND is a sealed diagnostic only; it is intentionally not an
+            # execution-authority argv oracle because shell quoting is external.
+            _validate_diagnostic_text(path, require_single_lf=True)
+            if path.read_bytes() == b"\n":
+                raise ValueError("bounded execution COMMAND diagnostic is empty")
+        else:
+            raise ValueError("unknown bounded control-text path")
+    elif policy in {
+        "canonical-json-utf8-sort-compact-single-lf-v1",
+        "canonical-content-address-json-v1",
+    }:
+        _load(path, canonical=True)
+    elif policy == "canonical-jsonl-each-row-single-lf-v1":
+        _jsonl(path)
+    elif policy == "fixed-dp-route-pickle-v1":
+        if not path.read_bytes():
+            raise ValueError("bounded fixed-DP route pickle is empty")
+    elif policy == "strict-causal-scene-materialization-npz-v1":
+        try:
+            with zipfile.ZipFile(path, "r") as archive:
+                members = archive.namelist()
+                if (
+                    not members
+                    or len(members) != len(set(members))
+                    or any(
+                        info.is_dir()
+                        or info.filename.startswith(("/", "\\"))
+                        or ".." in Path(info.filename).parts
+                        for info in archive.infolist()
+                    )
+                ):
+                    raise ValueError("bounded scene materialization archive drifted")
+        except zipfile.BadZipFile as exc:
+            raise ValueError("bounded scene materialization archive is invalid") from exc
+    elif policy == "fixed-dp-strict-json-exact-schema-v1":
+        _load(path, canonical=False)
+    elif policy == "diagnostic-utf8-text-nonauthoritative-v1":
+        _validate_diagnostic_text(path, require_single_lf=False)
+    else:
+        raise ValueError(f"unknown bounded execution byte policy: {policy}")
+
+
+def _validate_execution_manifest_policies(
+    *, artifact: Path, paths: list[str]
+) -> dict[str, str]:
     if type(paths) is not list or not paths:
         raise ValueError("bounded execution manifest paths are unavailable")
-    return {path: _execution_file_byte_policy(path) for path in paths}
+    policies = {path: _execution_file_byte_policy(path) for path in paths}
+    for relative_path, policy in policies.items():
+        _validate_execution_policy_file(
+            artifact=artifact, relative_path=relative_path, policy=policy
+        )
+    return policies
 
 
 def _native_numeric_array(value: Any, shape: tuple[int, ...], *, label: str) -> np.ndarray:
@@ -691,15 +796,15 @@ def _array_sha(value: np.ndarray) -> str:
 
 
 def _independent_array_mapping_sha256(data: Mapping[str, np.ndarray]) -> str:
-    """Local oracle for fixed-DP deterministic_array_mapping_sha256."""
+    """Local digest oracle for the saved causal scene materialization."""
 
     digest = hashlib.sha256()
     for key in sorted(data):
         if type(key) is not str:
-            raise ValueError("independent causal input has a non-string key")
+            raise ValueError("independent scene materialization has a non-string key")
         array = np.ascontiguousarray(np.asarray(data[key]))
         if array.dtype.hasobject:
-            raise ValueError(f"independent causal input object dtype: {key}")
+            raise ValueError(f"independent scene materialization object dtype: {key}")
         digest.update(key.encode("utf-8"))
         digest.update(b"\0")
         digest.update(array.dtype.str.encode("ascii"))
@@ -712,52 +817,55 @@ def _independent_array_mapping_sha256(data: Mapping[str, np.ndarray]) -> str:
     return digest.hexdigest()
 
 
-def _load_causal_input_evidence(
+def _load_scene_materialization_evidence(
     *, artifact: Path, receipt: Mapping[str, Any]
 ) -> tuple[list[dict[str, np.ndarray]], list[str]]:
-    reference = receipt.get("causal_input_evidence")
+    reference = receipt.get("causal_scene_materialization_evidence")
     if (
         type(reference) is not dict
-        or set(reference) != CAUSAL_INPUT_EVIDENCE_FIELDS
+        or set(reference) != SCENE_MATERIALIZATION_EVIDENCE_FIELDS
         or reference.get("schema_version")
-        != CAUSAL_INPUT_EVIDENCE_SCHEMA_VERSION
+        != SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION
         or type(reference.get("relative_path")) is not str
         or type(reference.get("sha256")) is not str
         or not re.fullmatch(r"[0-9a-f]{64}", reference["sha256"])
         or reference["relative_path"]
-        != f"causal_inputs/{reference['sha256']}.npz"
+        != f"causal_scene_materializations/{reference['sha256']}.npz"
         or type(reference.get("tick_count")) is not int
         or reference["tick_count"] != 64
         or type(reference.get("arrays")) is not dict
-        or set(reference["arrays"]) != set(CAUSAL_INPUT_ARRAY_SCHEMA)
+        or set(reference["arrays"]) != set(SCENE_MATERIALIZATION_ARRAY_SCHEMA)
     ):
-        raise ValueError("bounded causal input evidence reference drifted")
+        raise ValueError("bounded scene materialization evidence reference drifted")
     path = artifact / reference["relative_path"]
     if (
         path.is_symlink()
         or not path.is_file()
-        or path.resolve().parent != (artifact / "causal_inputs").resolve()
+        or path.resolve().parent
+        != (artifact / "causal_scene_materializations").resolve()
         or hashlib.sha256(path.read_bytes()).hexdigest() != reference["sha256"]
     ):
-        raise ValueError("bounded causal input evidence file/root drifted")
-    expected_members = {f"{name}.npy" for name in CAUSAL_INPUT_ARRAY_SCHEMA}
+        raise ValueError("bounded scene materialization evidence file/root drifted")
+    expected_members = {
+        f"{name}.npy" for name in SCENE_MATERIALIZATION_ARRAY_SCHEMA
+    }
     try:
         with zipfile.ZipFile(path, "r") as archive:
             members = archive.namelist()
             if len(members) != len(set(members)) or set(members) != expected_members:
-                raise ValueError("bounded causal input NPZ member set drifted")
+                raise ValueError("bounded scene materialization NPZ member set drifted")
             if any(
                 info.is_dir()
                 or info.filename.startswith(("/", "\\"))
                 or ".." in Path(info.filename).parts
                 for info in archive.infolist()
             ):
-                raise ValueError("bounded causal input NPZ member path drifted")
+                raise ValueError("bounded scene materialization NPZ member path drifted")
         arrays: dict[str, np.ndarray] = {}
         with np.load(path, allow_pickle=False) as shard:
-            if set(shard.files) != set(CAUSAL_INPUT_ARRAY_SCHEMA):
-                raise ValueError("bounded causal input shard key set drifted")
-            for name, (shape, dtype_name) in CAUSAL_INPUT_ARRAY_SCHEMA.items():
+            if set(shard.files) != set(SCENE_MATERIALIZATION_ARRAY_SCHEMA):
+                raise ValueError("bounded scene materialization shard key set drifted")
+            for name, (shape, dtype_name) in SCENE_MATERIALIZATION_ARRAY_SCHEMA.items():
                 array = np.asarray(shard[name])
                 expected_shape = (64, *shape)
                 expected_dtype = np.dtype(dtype_name)
@@ -773,13 +881,13 @@ def _load_causal_input_evidence(
                     or metadata.get("sha256") != _array_sha(array)
                 ):
                     raise ValueError(
-                        f"bounded causal input shard metadata drifted for {name}"
+                        f"bounded scene materialization shard metadata drifted for {name}"
                     )
                 arrays[name] = np.array(array, copy=True, order="C")
     except (OSError, ValueError, zipfile.BadZipFile) as exc:
-        if isinstance(exc, ValueError) and str(exc).startswith("bounded causal"):
+        if isinstance(exc, ValueError) and str(exc).startswith("bounded scene"):
             raise
-        raise ValueError("bounded causal input evidence archive is invalid") from exc
+        raise ValueError("bounded scene materialization archive is invalid") from exc
     rows = [
         {name: arrays[name][tick_index].copy() for name in arrays}
         for tick_index in range(64)
@@ -788,8 +896,10 @@ def _load_causal_input_evidence(
     return rows, hashes
 
 
-def _validate_causal_input_snapshot_binding(
-    *, evidence: Mapping[str, np.ndarray], causal_input: Mapping[str, np.ndarray]
+def _validate_scene_materialization_snapshot_binding(
+    *,
+    evidence: Mapping[str, np.ndarray],
+    scene_materialization: Mapping[str, np.ndarray],
 ) -> None:
     for name in (
         "ego_current_state",
@@ -800,13 +910,13 @@ def _validate_causal_input_snapshot_binding(
         "route_lanes_speed_limit",
         "route_lanes_has_speed_limit",
     ):
-        if not np.array_equal(evidence[name], causal_input[name]):
+        if not np.array_equal(evidence[name], scene_materialization[name]):
             raise ValueError(
-                f"bounded causal input/snapshot preimage binding drifted for {name}"
+                f"bounded scene materialization/snapshot binding drifted for {name}"
             )
 
 
-def _validate_causal_input_hash_sequence(
+def _validate_scene_materialization_hash_sequence(
     *, receipt: Mapping[str, Any], hashes: list[str]
 ) -> None:
     ticks = receipt.get("ticks")
@@ -816,16 +926,12 @@ def _validate_causal_input_hash_sequence(
         or type(hashes) is not list
         or len(hashes) != 64
         or any(
-            ticks[index].get("input_sha256") != hashes[index]
+            ticks[index].get("scene_materialization_sha256") != hashes[index]
             for index in range(64)
         )
-        or receipt.get("initial_input_sha256") != hashes[0]
-        or receipt.get("initial_state_sha256")
-        != hashlib.sha256(
-            ("v21_native_scene_context_v1\0" + hashes[0]).encode("ascii")
-        ).hexdigest()
+        or receipt.get("initial_scene_materialization_sha256") != hashes[0]
     ):
-        raise ValueError("bounded native causal input preimage/hash sequence drifted")
+        raise ValueError("bounded native scene materialization hash sequence drifted")
 
 
 def _validate_causal_evidence(
@@ -1297,7 +1403,7 @@ def _independent_formal_cases() -> dict[str, dict[str, Any]]:
     seal = verify_complete_seal(
         EXPECTED_FORMAL_ARTIFACT,
         EXPECTED_FORMAL_ROOT_SHA256,
-        label="V25 A1.6.8 independent formal authority",
+        label="V25 A1.6.9 independent formal authority",
     )
     if seal["root_sha256"] != EXPECTED_FORMAL_ROOT_SHA256:
         raise ValueError("independent formal root drifted")
@@ -1431,9 +1537,94 @@ def _independent_route_sha256(
     return route_path, expected_sha
 
 
+_INITIAL_STATE_BUILDERS: dict[str, Any] = {}
+
+
+def _independent_initial_world_state(
+    *, formal_case: Mapping[str, Any], template: Mapping[str, Any], dp_repo: Path
+) -> dict[str, Any]:
+    spec = formal_case.get("route_spec")
+    if type(spec) is not dict:
+        raise ValueError("independent initial route spec is unavailable")
+    route_ids = spec.get("lanelet_ids")
+    start_pose = _native_numeric_array(
+        spec.get("start_pose"), (3,), label="formal route start pose"
+    )
+    if (
+        type(route_ids) is not list
+        or not route_ids
+        or any(type(value) is not int for value in route_ids)
+    ):
+        raise ValueError("independent initial route lanelets drifted")
+    map_path = Path(str(formal_case.get("source_map_path")))
+    if (
+        not map_path.is_absolute()
+        or map_path.is_symlink()
+        or str(map_path.resolve()) != str(map_path)
+        or not map_path.is_file()
+        or _file_sha256(map_path) != formal_case.get("source_map_sha256")
+    ):
+        raise ValueError("independent initial map authority drifted")
+    builder_source = (
+        dp_repo / "scenario_generation" / "gui" / "lanelet_scene_builder.py"
+    )
+    committed = subprocess.run(
+        [
+            "git",
+            "show",
+            f"{FIXED_DP_HEAD}:scenario_generation/gui/lanelet_scene_builder.py",
+        ],
+        cwd=dp_repo,
+        check=True,
+        capture_output=True,
+    ).stdout
+    if builder_source.is_symlink() or builder_source.read_bytes() != committed:
+        raise ValueError("independent initial-state fixed-DP builder source drifted")
+    key = str(map_path)
+    builder = _INITIAL_STATE_BUILDERS.get(key)
+    if builder is None:
+        for value in (str(dp_repo), str(dp_repo / "diffusion_planner")):
+            if value not in sys.path:
+                sys.path.insert(0, value)
+        require_source_preserving_lanelet2_regulatory_adapter(map_path)
+        sys.modules.pop("autoware_lanelet2_extension_python.projection", None)
+        sys.modules.pop("autoware_lanelet2_extension_python", None)
+        install_lanelet2_projection_fallback(map_path)
+        module = importlib.import_module(
+            "scenario_generation.gui.lanelet_scene_builder"
+        )
+        if Path(module.__file__).resolve() != builder_source.resolve():
+            raise ValueError("independent initial-state builder import escaped fixed DP")
+        builder = module.LaneletSceneBuilder(str(map_path))
+        _INITIAL_STATE_BUILDERS[key] = builder
+    start_lanelet = builder.snap_to_nearest_ll(
+        start_pose[:2], candidate_ids=list(route_ids)
+    )
+    if start_lanelet not in builder._cache:
+        raise ValueError("independent snapped start lanelet is unavailable")
+    centerline = np.asarray(
+        builder._cache[start_lanelet].raw_centerline, dtype=np.float64
+    )
+    if centerline.ndim != 2 or centerline.shape[1] != 2 or not np.isfinite(centerline).all():
+        raise ValueError("independent snapped start centerline drifted")
+    closest = int(np.argmin(np.linalg.norm(centerline - start_pose[:2], axis=1)))
+    snapped_xy = centerline[closest].astype(np.float32)
+    spawn = _independent_spawn_config_payload(
+        template=template, formal_case=formal_case
+    )
+    return {
+        "schema_version": INITIAL_WORLD_STATE_SCHEMA_VERSION,
+        "position_xy": [float(snapped_xy[0]), float(snapped_xy[1])],
+        "heading_rad": float(start_pose[2]),
+        "speed_mps": _native_number(
+            spawn.get("ego_init_speed"), label="initial ego speed"
+        ),
+    }
+
+
 def _expected_native_header_result(
-    *, artifact: Path, native_dir: Path, initial_input_sha256: str,
-    causal_input_evidence: Mapping[str, Any],
+    *, artifact: Path, native_dir: Path, initial_scene_materialization_sha256: str,
+    scene_materialization_evidence: Mapping[str, Any],
     derived_native_result: Mapping[str, Any],
     formal_case: Mapping[str, Any], source_row: Mapping[str, Any],
     template: Mapping[str, Any], dp_repo: Path,
@@ -1451,13 +1642,13 @@ def _expected_native_header_result(
     _route_path, route_sha = _independent_route_sha256(
         artifact=artifact, formal_case=formal_case, dp_repo=dp_repo
     )
-    if not _is_sha256(initial_input_sha256):
-        raise ValueError("bounded native initial input SHA drifted")
-    initial_state = hashlib.sha256(
-        ("v21_native_scene_context_v1\0" + initial_input_sha256).encode("ascii")
-    ).hexdigest()
+    if not _is_sha256(initial_scene_materialization_sha256):
+        raise ValueError("bounded native initial scene materialization SHA drifted")
+    initial_world = _independent_initial_world_state(
+        formal_case=formal_case, template=template, dp_repo=dp_repo
+    )
     return {
-        "schema_version": "v21_native_arm_receipt_v1",
+        "schema_version": "camp_dp_v25_a169_bounded_native_receipt_v1",
         "status": "ok",
         "route_name": formal_case["route_identity_sha256"],
         "route_sha256": route_sha,
@@ -1470,13 +1661,17 @@ def _expected_native_header_result(
         "spawn_config_sha256": _independent_spawn_config_sha256(
             template=template, formal_case=formal_case
         ),
-        "initial_state_sha256": initial_state,
-        "initial_input_sha256": initial_input_sha256,
+        "initial_world_state_sha256": _sha(initial_world),
+        "initial_scene_materialization_sha256": (
+            initial_scene_materialization_sha256
+        ),
         "native_result": dict(derived_native_result),
         "claim_authorized": False,
         "selector_scale_contract": EXPECTED_SELECTOR_SCALE_CONTRACT,
         "runtime_annotation_compatibility": EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY,
-        "causal_input_evidence": dict(causal_input_evidence),
+        "causal_scene_materialization_evidence": dict(
+            scene_materialization_evidence
+        ),
     }
 
 
@@ -1509,6 +1704,7 @@ def _validate_native_log_files(
     formal_case: Mapping[str, Any],
     template: Mapping[str, Any],
     source_row: Mapping[str, Any],
+    dp_repo: Path,
 ) -> dict[str, Any]:
     ticks = receipt["ticks"]
     trajectory_path = native_dir / "trajectory_log.json"
@@ -1532,34 +1728,48 @@ def _validate_native_log_files(
     derived_reason = "max_steps"
     derived_goal_reached = False
     derived_final_step = 63
-    for index, (row, tick) in enumerate(zip(trajectory, ticks)):
-        safety = tick["safety"]
-        position = np.asarray(safety["position_xy"], dtype=np.float64)
-        heading = _native_number(
-            safety.get("ego_heading_rad"), label="native ego heading"
-        )
-        goal_distance = float(np.linalg.norm(position - goal_pose[:2]))
-        min_goal_distance = min(min_goal_distance, goal_distance)
+    initial_world = _independent_initial_world_state(
+        formal_case=formal_case, template=template, dp_repo=dp_repo
+    )
+    for index, row in enumerate(trajectory):
         if (
             type(row) is not dict
             or set(row) != {"step", "x", "y", "heading", "speed", "goal_d"}
-            or type(row.get("step")) is not int or row["step"] != index
-            or type(row.get("goal_d")) is not float
+            or type(row.get("step")) is not int
+            or row["step"] != index
+        ):
+            raise ValueError("bounded native trajectory row schema drifted")
+        position = _native_numeric_array(
+            [row.get("x"), row.get("y")], (2,), label="trajectory position"
+        )
+        heading = _native_number(
+            row.get("heading"), label="trajectory ego heading"
+        )
+        speed = _native_number(row.get("speed"), label="trajectory ego speed")
+        goal_distance = float(np.linalg.norm(position - goal_pose[:2]))
+        min_goal_distance = min(min_goal_distance, goal_distance)
+        if (
+            type(row.get("goal_d")) is not float
             or not math.isclose(
                 _native_number(row["goal_d"], label="trajectory goal distance"),
                 goal_distance,
                 rel_tol=0.0,
                 abs_tol=1e-9,
             )
-            or not np.allclose(
-                [row.get("x"), row.get("y"), row.get("heading"), row.get("speed")],
-                [safety["position_xy"][0], safety["position_xy"][1],
-                 safety["ego_heading_rad"], safety["speed_mps"]],
-                rtol=0.0, atol=1e-9,
-            )
         ):
-            raise ValueError("bounded native trajectory log/tick binding drifted")
-        _validate_native_red_stop_lines(safety=safety, source_row=source_row)
+            raise ValueError("bounded native trajectory goal oracle drifted")
+        if index == 0 and not np.allclose(
+            [position[0], position[1], heading, speed],
+            [
+                initial_world["position_xy"][0],
+                initial_world["position_xy"][1],
+                initial_world["heading_rad"],
+                initial_world["speed_mps"],
+            ],
+            rtol=0.0,
+            atol=1e-6,
+        ):
+            raise ValueError("bounded trajectory[0] is not the snapped initial world state")
         reason_at_tick: str | None = None
         if goal_distance <= GOAL_TOLERANCE_M:
             reason_at_tick = "goal_reached"
@@ -1578,6 +1788,30 @@ def _validate_native_log_files(
             derived_reason = reason_at_tick
             derived_goal_reached = True
             derived_final_step = index
+    for index in range(63):
+        post_safety = ticks[index]["safety"]
+        next_row = trajectory[index + 1]
+        if not np.allclose(
+            [
+                next_row["x"],
+                next_row["y"],
+                next_row["heading"],
+                next_row["speed"],
+            ],
+            [
+                post_safety["position_xy"][0],
+                post_safety["position_xy"][1],
+                post_safety["ego_heading_rad"],
+                post_safety["speed_mps"],
+            ],
+            rtol=0.0,
+            atol=1e-9,
+        ):
+            raise ValueError("bounded pre/post tracker temporal binding drifted")
+    for tick in ticks:
+        _validate_native_red_stop_lines(
+            safety=tick["safety"], source_row=source_row
+        )
     records = clearance.get("records") if type(clearance) is dict else None
     spawn = _independent_spawn_config_payload(
         template=template, formal_case=formal_case
@@ -1603,19 +1837,18 @@ def _validate_native_log_files(
         raise ValueError("bounded native clearance log contract drifted")
     fields = {"step", "ego_x", "ego_y", "ego_yaw", "rb_dist", "stopped_dist",
               "stopped_id", "moving_dist", "moving_id", "png"}
-    for index, (row, tick) in enumerate(zip(records, ticks)):
-        safety = tick["safety"]
+    for index, (row, trajectory_row) in enumerate(zip(records, trajectory)):
         if (
             type(row) is not dict or set(row) != fields
             or type(row.get("step")) is not int or row["step"] != index
             or row.get("png") != f"step_{index:04d}.png"
             or not np.allclose(
                 [row.get("ego_x"), row.get("ego_y"), row.get("ego_yaw")],
-                [safety["position_xy"][0], safety["position_xy"][1],
-                 safety["ego_heading_rad"]], rtol=0.0, atol=1e-9,
+                [trajectory_row["x"], trajectory_row["y"],
+                 trajectory_row["heading"]], rtol=0.0, atol=1e-9,
             )
         ):
-            raise ValueError("bounded native clearance log/tick binding drifted")
+            raise ValueError("bounded clearance/pre-advance trajectory binding drifted")
         for field in ("rb_dist", "stopped_dist", "moving_dist"):
             if row[field] is not None:
                 if (
@@ -2429,11 +2662,12 @@ def _validate_native_static_contract(receipt: Mapping[str, Any]) -> None:
         "route_sha256",
         "logical_map_sha256",
         "spawn_config_sha256",
-        "initial_state_sha256",
-        "initial_input_sha256",
+        "initial_world_state_sha256",
+        "initial_scene_materialization_sha256",
     )
     if (
-        receipt.get("schema_version") != "v21_native_arm_receipt_v1"
+        receipt.get("schema_version")
+        != "camp_dp_v25_a169_bounded_native_receipt_v1"
         or receipt.get("status") != "ok"
         or receipt.get("fixed_dp_head") != FIXED_DP_HEAD
         or receipt.get("checkpoint_sha256")
@@ -2530,7 +2764,8 @@ def _validate_native_cross_binding(
         or native_tick.get("candidate_tensor_sha256_after") != tensor_sha
         or native_tick.get("candidate_row_sha256") != row_shas
         or native_tick.get("default_output_sha256") != row_shas[0]
-        or native_tick.get("input_sha256") != sidecar.get("causal_input_sha256")
+        or native_tick.get("scene_materialization_sha256")
+        != sidecar.get("scene_materialization_sha256")
         or native_tick.get("selected_trajectory_sha256")
         != row_shas[sidecar["selected_index"]]
         or native_tick.get("selected_index") != sidecar["selected_index"]
@@ -2594,7 +2829,7 @@ def _review_tick(
     source_row: Mapping[str, Any],
     source_root_sha256: str,
     native_tick: Mapping[str, Any],
-    causal_input: Mapping[str, np.ndarray],
+    scene_materialization: Mapping[str, np.ndarray],
     scales: np.ndarray,
     weights: np.ndarray,
     scale_sha256: str,
@@ -2719,8 +2954,8 @@ def _review_tick(
     evidence = _validate_causal_evidence(
         feature=feature, sidecar=sidecar, native_tick=native_tick
     )
-    _validate_causal_input_snapshot_binding(
-        evidence=evidence, causal_input=causal_input
+    _validate_scene_materialization_snapshot_binding(
+        evidence=evidence, scene_materialization=scene_materialization
     )
     projection = _independent_route_projection(
         candidate,
@@ -2860,11 +3095,13 @@ def _review_run(
         native_dir / "bounded_native_receipt.json", canonical=True
     )
     _validate_native_static_contract(receipt)
-    causal_inputs, causal_input_hashes = _load_causal_input_evidence(
+    scene_materializations, scene_materialization_hashes = (
+        _load_scene_materialization_evidence(
         artifact=artifact, receipt=receipt
+        )
     )
-    _validate_causal_input_hash_sequence(
-        receipt=receipt, hashes=causal_input_hashes
+    _validate_scene_materialization_hash_sequence(
+        receipt=receipt, hashes=scene_materialization_hashes
     )
     ticks = receipt["ticks"]
     derived_native_result = _validate_native_log_files(
@@ -2873,12 +3110,15 @@ def _review_run(
         formal_case=formal_case,
         template=template,
         source_row=source_row,
+        dp_repo=dp_repo,
     )
     expected_native = _expected_native_header_result(
         artifact=artifact,
         native_dir=native_dir,
-        initial_input_sha256=causal_input_hashes[0],
-        causal_input_evidence=receipt["causal_input_evidence"],
+        initial_scene_materialization_sha256=scene_materialization_hashes[0],
+        scene_materialization_evidence=receipt[
+            "causal_scene_materialization_evidence"
+        ],
         derived_native_result=derived_native_result,
         formal_case=formal_case,
         source_row=source_row,
@@ -2931,7 +3171,7 @@ def _review_run(
                 source_row=source_row,
                 source_root_sha256=source_root_sha256,
                 native_tick=ticks[tick_index],
-                causal_input=causal_inputs[tick_index],
+                scene_materialization=scene_materializations[tick_index],
                 scales=scales,
                 weights=weights,
                 scale_sha256=scale_sha256,
@@ -3129,11 +3369,13 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.8 bounded execution",
+        label="V25 A1.6.9 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
-    file_policies = _validate_execution_manifest_policies(seal["manifest_paths"])
+    file_policies = _validate_execution_manifest_policies(
+        artifact=args.execution_artifact, paths=seal["manifest_paths"]
+    )
     if any(
         token in path.lower()
         for path in seal["manifest_paths"]
@@ -3177,6 +3419,13 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     )
     decision = authority["decision"]
     plan = authority["plan"]
+    expected_execution_heads = (
+        f"camp_source_head={decision['implementation_source_head']}\n"
+        f"camp_pointer_head={head}\n"
+        f"fixed_dp_head={FIXED_DP_HEAD}\n"
+    ).encode("ascii")
+    if (args.execution_artifact / "HEADS").read_bytes() != expected_execution_heads:
+        raise ValueError("bounded execution HEADS authority values drifted")
     execution_assets, scales, weights, scale_sha256 = _independent_execution_assets(
         repo=ROOT,
         dp_repo=args.dp_repo,
@@ -3362,7 +3611,7 @@ def main(argv: list[str] | None = None) -> None:
             " ".join(sys.argv) + "\n", encoding="utf-8"
         )
         (args.output_dir / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(args.output_dir, label="V25 A1.6.8 bounded review")
+        root = seal_artifact(args.output_dir, label="V25 A1.6.9 bounded review")
         print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
     except Exception as exc:
         _write(
@@ -3378,7 +3627,7 @@ def main(argv: list[str] | None = None) -> None:
             },
         )
         (args.output_dir / "run.exit").write_bytes(b"1\n")
-        seal_artifact(args.output_dir, label="failed V25 A1.6.8 bounded review")
+        seal_artifact(args.output_dir, label="failed V25 A1.6.9 bounded review")
         raise
 
 
