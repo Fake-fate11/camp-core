@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (
+    RESULT_SCHEMA_VERSION,
+    RUN_EVIDENCE_SCHEMA_VERSION,
     TICKS_PER_RUN,
     build_route_level_bounded_execution_plan,
     canonical_sha256,
@@ -176,8 +178,10 @@ def test_bounded_terminal_requires_all_runs_exactly_64_and_zero_failures() -> No
     )
     results = [
         {
+            "schema_version": RESULT_SCHEMA_VERSION,
             "run_ordinal": run["run_ordinal"],
             "scenario_id": run["scenario_id"],
+            "occurrence": run["occurrence"],
             "status": "complete",
             "tick_count": 64,
             "retained_capability_failure": None,
@@ -187,18 +191,26 @@ def test_bounded_terminal_requires_all_runs_exactly_64_and_zero_failures() -> No
         }
         for run in plan["runs"]
     ]
-    repeat = {
-        "candidate0_sha256_sequence_equal": True,
-        "k8_row_sha256_sequence_equal": True,
-        "atom_matrix_sequence_equal": True,
-        "context_sequence_equal": True,
-        "selected_index_sequence_equal": True,
-        "failure_class_equal": True,
-        "closed_loop_trajectory_equal": True,
-        "speed_probe_equal": True,
-    }
+    run_evidence = [
+        {
+            "schema_version": RUN_EVIDENCE_SCHEMA_VERSION,
+            "run_ordinal": run["run_ordinal"],
+            "scenario_id": run["scenario_id"],
+            "occurrence": run["occurrence"],
+            "tick_count": 64,
+            "candidate0_sha256_sequence": ["1" * 64] * 64,
+            "k8_row_sha256_sequence": [[f"{index:x}" * 64 for index in range(8)]] * 64,
+            "atom_matrix_sha256_sequence": ["2" * 64] * 64,
+            "context_sha256_sequence": ["3" * 64] * 64,
+            "selected_index_sequence": [0] * 64,
+            "failure_class": "none",
+            "closed_loop_trajectory_sha256": "4" * 64,
+            "speed_probe_sha256": "5" * 64,
+        }
+        for run in plan["runs"]
+    ]
     terminal = validate_bounded_terminal_acceptance(
-        plan, results, repeat_comparison=repeat
+        plan, results, run_evidence=run_evidence
     )
     assert terminal["retained_capability_failure_count"] == 0
     assert terminal["tick_count"] == len(results) * 64
@@ -212,7 +224,14 @@ def test_bounded_terminal_requires_all_runs_exactly_64_and_zero_failures() -> No
     failed[1]["failure_class"] = "mapped_runtime_source_failure"
     with pytest.raises(ValueError, match="64-tick completion"):
         validate_bounded_terminal_acceptance(
-            plan, failed, repeat_comparison=repeat
+            plan, failed, run_evidence=run_evidence
+        )
+
+    drifted = copy.deepcopy(run_evidence)
+    drifted[-1]["selected_index_sequence"][-1] = 1
+    with pytest.raises(ValueError, match="determinism comparison"):
+        validate_bounded_terminal_acceptance(
+            plan, results, run_evidence=drifted
         )
 
 

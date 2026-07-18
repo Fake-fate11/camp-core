@@ -7,7 +7,9 @@ from typing import Any, Mapping, Sequence
 
 PLAN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_execution_plan_v2"
 RUN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_run_v1"
-TERMINAL_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_terminal_v1"
+TERMINAL_SCHEMA_VERSION = "camp_dp_v25_a163_route_level_bounded_terminal_v2"
+RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
+RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 EXPECTED_SEED = 25001
 TICKS_PER_RUN = 64
 MAX_UNIQUE_IDENTITIES = 320
@@ -342,21 +344,32 @@ def validate_bounded_terminal_acceptance(
     plan: Mapping[str, Any],
     results: Sequence[Mapping[str, Any]],
     *,
-    repeat_comparison: Mapping[str, Any],
+    run_evidence: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Fail closed unless every planned run completed exactly 64 ticks."""
+    """Derive terminal/repeat acceptance from actual per-run evidence.
+
+    The caller may not supply pass/fail booleans for the identity0 repeat.  It
+    must provide the frozen sequences and projections produced by every run;
+    this function validates their exact schema and computes all eight equality
+    decisions itself.  The independent post-run reviewer rebuilds the same
+    evidence from sealed raw snapshots and native receipts.
+    """
 
     runs = plan.get("runs")
     if (
         plan.get("schema_version") != PLAN_SCHEMA_VERSION
         or type(runs) is not list
         or type(results) is not list
+        or type(run_evidence) is not list
         or len(results) != len(runs)
+        or len(run_evidence) != len(runs)
     ):
         raise ValueError("bounded terminal plan/result denominator drifted")
     exact_result_fields = {
+        "schema_version",
         "run_ordinal",
         "scenario_id",
+        "occurrence",
         "status",
         "tick_count",
         "retained_capability_failure",
@@ -364,12 +377,33 @@ def validate_bounded_terminal_acceptance(
         "fresh_b2_opened",
         "outcome_fields_consumed",
     }
-    for expected, result in zip(runs, results):
+    evidence_fields = {
+        "schema_version",
+        "run_ordinal",
+        "scenario_id",
+        "occurrence",
+        "tick_count",
+        "candidate0_sha256_sequence",
+        "k8_row_sha256_sequence",
+        "atom_matrix_sha256_sequence",
+        "context_sha256_sequence",
+        "selected_index_sequence",
+        "failure_class",
+        "closed_loop_trajectory_sha256",
+        "speed_probe_sha256",
+    }
+
+    def sha256(value: Any) -> bool:
+        return _is_sha256(value)
+
+    for expected, result, evidence in zip(runs, results, run_evidence):
         if (
             type(result) is not dict
             or set(result) != exact_result_fields
+            or result.get("schema_version") != RESULT_SCHEMA_VERSION
             or result.get("run_ordinal") != expected.get("run_ordinal")
             or result.get("scenario_id") != expected.get("scenario_id")
+            or result.get("occurrence") != expected.get("occurrence")
             or result.get("status") != "complete"
             or result.get("tick_count") != TICKS_PER_RUN
             or result.get("retained_capability_failure") is not None
@@ -378,21 +412,77 @@ def validate_bounded_terminal_acceptance(
             or result.get("outcome_fields_consumed") != []
         ):
             raise ValueError("bounded run was not an exact 64-tick completion")
-    required_repeat_fields = {
-        "candidate0_sha256_sequence_equal",
-        "k8_row_sha256_sequence_equal",
-        "atom_matrix_sequence_equal",
-        "context_sequence_equal",
-        "selected_index_sequence_equal",
-        "failure_class_equal",
-        "closed_loop_trajectory_equal",
-        "speed_probe_equal",
-    }
+        if (
+            type(evidence) is not dict
+            or set(evidence) != evidence_fields
+            or evidence.get("schema_version") != RUN_EVIDENCE_SCHEMA_VERSION
+            or evidence.get("run_ordinal") != expected.get("run_ordinal")
+            or evidence.get("scenario_id") != expected.get("scenario_id")
+            or evidence.get("occurrence") != expected.get("occurrence")
+            or type(evidence.get("tick_count")) is not int
+            or evidence["tick_count"] != TICKS_PER_RUN
+            or evidence.get("failure_class") != result.get("failure_class")
+            or any(
+                type(evidence.get(field)) is not list
+                or len(evidence[field]) != TICKS_PER_RUN
+                for field in (
+                    "candidate0_sha256_sequence",
+                    "k8_row_sha256_sequence",
+                    "atom_matrix_sha256_sequence",
+                    "context_sha256_sequence",
+                    "selected_index_sequence",
+                )
+            )
+            or any(
+                not sha256(value)
+                for field in (
+                    "candidate0_sha256_sequence",
+                    "atom_matrix_sha256_sequence",
+                    "context_sha256_sequence",
+                )
+                for value in evidence[field]
+            )
+            or any(
+                type(row) is not list
+                or len(row) != 8
+                or any(not sha256(value) for value in row)
+                for row in evidence["k8_row_sha256_sequence"]
+            )
+            or any(
+                type(value) is not int or value < 0 or value >= 8
+                for value in evidence["selected_index_sequence"]
+            )
+            or not sha256(evidence.get("closed_loop_trajectory_sha256"))
+            or not sha256(evidence.get("speed_probe_sha256"))
+        ):
+            raise ValueError("bounded run evidence schema/content drifted")
+
+    first = run_evidence[0]
+    final = run_evidence[-1]
     if (
-        type(repeat_comparison) is not dict
-        or set(repeat_comparison) != required_repeat_fields
-        or any(value is not True for value in repeat_comparison.values())
+        first.get("occurrence") != "identity0_first"
+        or final.get("occurrence") != "identity0_final_repeat"
+        or first.get("scenario_id") != final.get("scenario_id")
     ):
+        raise ValueError("identity0 repeat evidence positions drifted")
+    repeat_comparison = {
+        "candidate0_sha256_sequence_equal": first["candidate0_sha256_sequence"]
+        == final["candidate0_sha256_sequence"],
+        "k8_row_sha256_sequence_equal": first["k8_row_sha256_sequence"]
+        == final["k8_row_sha256_sequence"],
+        "atom_matrix_sequence_equal": first["atom_matrix_sha256_sequence"]
+        == final["atom_matrix_sha256_sequence"],
+        "context_sequence_equal": first["context_sha256_sequence"]
+        == final["context_sha256_sequence"],
+        "selected_index_sequence_equal": first["selected_index_sequence"]
+        == final["selected_index_sequence"],
+        "failure_class_equal": first["failure_class"] == final["failure_class"],
+        "closed_loop_trajectory_equal": first["closed_loop_trajectory_sha256"]
+        == final["closed_loop_trajectory_sha256"],
+        "speed_probe_equal": first["speed_probe_sha256"]
+        == final["speed_probe_sha256"],
+    }
+    if any(value is not True for value in repeat_comparison.values()):
         raise ValueError("identity0 first/final determinism comparison failed")
     return {
         "schema_version": TERMINAL_SCHEMA_VERSION,
@@ -403,6 +493,7 @@ def validate_bounded_terminal_acceptance(
         "retained_capability_failure_count": 0,
         "mapped_runtime_source_failure_count": 0,
         "identity0_repeat_deterministic": True,
+        "repeat_comparison": repeat_comparison,
         "fresh_b2_opened": False,
         "outcome_fields_consumed": [],
     }
