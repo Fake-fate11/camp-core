@@ -2741,6 +2741,10 @@ def _elapsed_ms(started_ns: int) -> float:
     return (time.perf_counter_ns() - started_ns) / 1e6
 
 
+def _derive_run_summaries_for_config(config: Mapping[str, Any]) -> bool:
+    return config.get("schema_version") != "camp_dp_v25_controlled_train_v2"
+
+
 def build_native_arm_runner(
     config: Mapping[str, Any], *, device: str
 ) -> Callable[..., Mapping[str, Any]]:
@@ -3052,6 +3056,7 @@ def build_native_arm_runner(
             builder=builder,
             route_ids=route_ids,
             selector_scale_contract=selector_scale_contract,
+            derive_run_summaries=_derive_run_summaries_for_config(config),
         )
         receipt["runtime_annotation_compatibility"] = context[
             "annotation_compatibility"
@@ -3283,7 +3288,10 @@ def _build_native_arm_receipt(
     builder: Any,
     route_ids: list[int],
     selector_scale_contract: Mapping[str, Any] | None,
+    derive_run_summaries: bool,
 ) -> dict[str, Any]:
+    if type(derive_run_summaries) is not bool:
+        raise TypeError("derive_run_summaries must be a native bool")
     executed = [receipt for receipt in state.receipts if "_safety_record" in receipt]
     if not executed:
         raise ValueError("native replay produced no executed tracker tick")
@@ -3312,7 +3320,7 @@ def _build_native_arm_receipt(
         "native_result": dict(native_result),
         "claim_authorized": False,
     }
-    if max_steps > 1:
+    if max_steps > 1 and derive_run_summaries:
         if not all(bool(record["source_complete"]) for record in records):
             raise ValueError("native safety metric source is incomplete")
         result["safety"] = _summarize_safety_records(

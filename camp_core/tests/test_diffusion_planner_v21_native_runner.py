@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -99,6 +100,7 @@ def _arm(route, arm: str, *, mismatch_initial=False, duplicate=False, missing=Fa
                     "candidate_tensor_sha256_before": "1" * 64,
                     "candidate_tensor_sha256_after": "1" * 64,
                     "atom_matrix_sha256": "2" * 64,
+                    "normalized_atom_matrix_sha256": "2" * 64,
                     "selected_trajectory_sha256": "3" * 64,
                 }
             )
@@ -181,6 +183,104 @@ def test_config_freezes_every_native_field_asset_route_and_seed() -> None:
     assert config["selector"]["weights"]["sha256"] == (
         "922ae11db719a2bda983bccf0c6bca842c37a899c4df222a1f7a5ac733285134"
     )
+
+
+def _all_offroad_native_hook_state(module):
+    input_sha = "1" * 64
+    receipts = []
+    for index in range(64):
+        safety = {
+            "tick_index": index,
+            "min_obb_clearance_m": 3.0,
+            "five_point_drivable_coverage": False,
+            "speed_mps": 1.0,
+            "ego_heading_rad": 0.0,
+            "route_heading_rad": 0.0,
+            "front_center_prev_xy": [float(index), -1.0],
+            "front_center_xy": [float(index), 0.0],
+            "red_light_at_interval_start": False,
+            "red_stop_lines": [],
+            "speed_limit_mps": None,
+            "position_xy": [float(index), 0.0],
+            "route_progress_m": float(index),
+            "source_complete": True,
+        }
+        receipts.append(
+            {
+                "tick_index": index,
+                "status": "ok",
+                "causal_input": {
+                    "input_sha256": input_sha,
+                    "observed_frames": 31,
+                    "padded_frames": 0,
+                    "padding_policy": "native_zero_left_pad_to_31_v1",
+                },
+                "tracker": {"status": "ok"},
+                "_safety_record": safety,
+                "_safety_pre": {"pre_decision_speed_mps": 1.0},
+                "latency_ms": {"total_planning": 1.0},
+                "default_output_sha256": "2" * 64,
+            }
+        )
+    return module.NativeHookState(tick_index=64, receipts=receipts)
+
+
+def test_controlled_train_receipt_skips_only_derived_run_summaries() -> None:
+    module = _runner()
+    assert (
+        module._derive_run_summaries_for_config(
+            {"schema_version": "camp_dp_v25_controlled_train_v2"}
+        )
+        is False
+    )
+    assert (
+        module._derive_run_summaries_for_config(
+            {"schema_version": "camp_dp_v24_native_evaluation_run_v1"}
+        )
+        is True
+    )
+    state = _all_offroad_native_hook_state(module)
+    common = {
+        "route": {"name": "route", "sha256": "3" * 64},
+        "arm": "dp",
+        "config": {
+            "map": {"sha256": "4" * 64},
+            "fixed_dp": {
+                "head": "5" * 40,
+                "checkpoint": {"sha256": "6" * 64},
+                "args_json": {"sha256": "7" * 64},
+            },
+            "seeds": {"scenario": 25001},
+            "protocol": {"safety_schema": "safety_cost_native_v22"},
+            "spawn_config": {},
+        },
+        "max_steps": 64,
+        "state": state,
+        "native_result": {"reason": "max_steps"},
+        "builder": SimpleNamespace(
+            _cache={1: SimpleNamespace(arc_length=10.0)}
+        ),
+        "route_ids": [1],
+        "selector_scale_contract": None,
+    }
+
+    receipt = module._build_native_arm_receipt(
+        **common, derive_run_summaries=False
+    )
+
+    assert len(receipt["ticks"]) == 64
+    assert not {"safety", "secondary", "latency"}.intersection(receipt)
+    assert all(
+        tick["safety"]["source_complete"] is True for tick in receipt["ticks"]
+    )
+    with pytest.raises(ValueError, match="moving_onroad_ticks denominator is zero"):
+        module._build_native_arm_receipt(
+            **common, derive_run_summaries=True
+        )
+    with pytest.raises(TypeError, match="native bool"):
+        module._build_native_arm_receipt(
+            **common, derive_run_summaries=0
+        )
 
 
 def test_paired_protocol_is_fresh_ordered_symmetric_and_writes_atomic_receipts(

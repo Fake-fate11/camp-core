@@ -1476,9 +1476,10 @@ def _execute(
             native_spawn_config.unlink()
             receipt = dict(receipt)
             for derived_summary in ("safety", "secondary", "latency"):
-                if type(receipt.pop(derived_summary, None)) is not dict:
+                if derived_summary in receipt:
                     raise RuntimeError(
-                        f"bounded native {derived_summary} summary was unavailable"
+                        f"bounded native {derived_summary} summary was unexpectedly "
+                        "materialized"
                     )
             scene_reference, scene_materialization_hashes = (
                 _write_scene_materialization_evidence(
