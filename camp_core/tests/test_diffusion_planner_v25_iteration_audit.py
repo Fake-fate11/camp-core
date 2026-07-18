@@ -129,13 +129,13 @@ LEGACY_POINTER = (
 )
 
 POINTER = (
-    "current_v25_status=v25_full_config_preflight_failed_closed_a16_r06_source_only_authorized",
-    "current_v25_source_head=1e1c32c71be4a0672652f8574f7cd62002a3c2b4",
+    "current_v25_status=v25_a16_r06_source_only_census_review_passed_ultra_read_only_review_required",
+    "current_v25_source_head=53b07e309c03d8d0a491121b4b135f80fccbbc3d",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_full_config_preflight_1e1c32c7_5f919a54290957e2",
-    "current_v25_artifact_root_sha256=b2022b6eb363023ce4ad842aefebb95c7d575a5101d822c0bdf874890758b62d",
-    "current_v25_review_artifact=not_run_fail_closed",
-    "current_v25_review_artifact_root_sha256=none",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_source_census_53b07e30_20260718T104858CST",
+    "current_v25_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_source_review_53b07e30_20260718T104923CST",
+    "current_v25_review_artifact_root_sha256=0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e",
     "current_v25_full_config_preflight_release_artifact=/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2",
     "current_v25_full_config_preflight_release_artifact_root_sha256=cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1",
     "current_v25_full_config_preflight_consumed_nonce=5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e",
@@ -146,8 +146,8 @@ POINTER = (
     "current_v25_ultra_stage_a_decision_artifact_root_sha256=0f48f22861721258be945ae42fb10d3fec7f90992addb386c535a1b8001b3e5a",
     "current_v25_atom_ledger_artifact_root_sha256=5e762a14b53c6c81f6bb3bfa67c6aeeb7fa5fe603bb95fa0776d75035cb8311c",
     "current_v25_atom_ledger_validation_artifact_root_sha256=641fadb24926cb7e6fc49c98d66f6a0a9528f41856b0417aae9e6fb9a80fa469",
-    "current_v25_r0_authority_source_artifact_root_sha256=372dd7a9d248e9a70b00c188b87053c33e2333533639d618461b17e21aa06632",
-    "current_v25_r0_authority_source_review_artifact_root_sha256=6d74c0739a042c16af2eb4bc3a50888ddbc3291a659572096dcbe9bc1c42bcb5",
+    "current_v25_r0_authority_source_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db",
+    "current_v25_r0_authority_source_review_artifact_root_sha256=0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e",
     "current_v25_rejected_partial_artifact_root_sha256=a2f69cdc352528c599b76904dd42df882c162fe610775ac7d8164b7ddb4c2481",
     "current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe633f145f78c18edbe1ddc56a448f2d74b7cb0c06",
     "current_v25_seven_root_bindings_sha256=4c3410f5c4f123e08e63a18cef10c366911fef7f454f74dbc2532d20db3dd396",
@@ -156,13 +156,16 @@ POINTER = (
     "current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v5",
     "current_v25_snapshot_schema=camp_dp_v25_controlled_train_snapshot_v5",
     "current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v6.json",
-    "current_v25_r0_source_identity_count=21",
-    "current_v25_r0_source_map_count=4",
-    "current_v25_r0_physical_signature_count=9",
-    "current_v25_r0_stop_line_geometry_sha256_count=5",
-    "current_v25_r0_probe_identity_count=22",
-    "current_v25_r0_probe_tick_count=1408",
-    "current_v25_r0_non_signal_identity_count=1",
+    "current_v25_a16_formal_train_identity_count=1653",
+    "current_v25_a16_executable_identity_count=1500",
+    "current_v25_a16_retained_identity_count=153",
+    "current_v25_a16_mapped_signal_identity_count=146",
+    "current_v25_a16_no_signal_identity_count=1354",
+    "current_v25_a16_controlled_same_tick_override_count=21",
+    "current_v25_a16_observe_same_tick_request_count=125",
+    "current_v25_a16_source_failure_count=0",
+    "current_v25_a16_source_only_no_model_simulator_candidate_dp_forward=true",
+    "current_v25_a16_independent_review_passed=true",
     "current_v25_full_config_preflight_release_created=true_diagnostic_consumed",
     "current_v25_full_config_preflight_started=true_failed_closed_before_receipts",
     "current_v25_corrected_full_corpus_started=false",
@@ -175,9 +178,9 @@ POINTER = (
     "current_v25_calibration_started=false",
     "current_v25_fresh_b2_opened=false",
     "current_v25_fresh_outcome_opened=false",
-    "observed_autodl_free_bytes=46989713408",
-    "current_v25_phase=A1_6_R0_6_route_level_signal_authority_source_only_correction",
-    "next_work_target=implement_and_independently_review_A1_6_R0_6_full_universe_source_only_census",
+    "observed_autodl_free_bytes=46981681152",
+    "current_v25_phase=A1_6_R0_6_route_level_signal_authority_source_only_census_review_passed",
+    "next_work_target=ultra_read_only_A1_6_R0_6_source_package_review_before_bounded_coverage_gate",
 )
 
 
@@ -450,5 +453,25 @@ def test_v25_a15_r05_nested_control_and_corpus_schema_are_bounded() -> None:
         "all 139 V25 tests",
         "No full-config release nonce or output",
         "The next gate is Ultra read-only A1.5/R0.5 review",
+    ):
+        assert phrase in text
+
+
+def test_v25_a16_r06_source_census_and_independent_review_are_bounded() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Stage A1.6/R0.6 Route-Level Signal-Authority Source-Only Correction",
+        "53b07e309c03d8d0a491121b4b135f80fccbbc3d",
+        "all 164 V25 tests",
+        "c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db",
+        "0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e",
+        "all 1,653 formal train identities",
+        "1,500 executable and 153 retained",
+        "146 mapped-signal routes and 1,354 no-signal routes",
+        "21 controlled-same-tick overrides plus 125 observed-same-tick request phases",
+        "Source failures are zero",
+        "Neither loaded a model, started a simulator, generated a candidate, executed a DP forward",
+        "Bounded K8 and all later gates remain closed",
+        "ultra_read_only_A1_6_R0_6_source_package_review_before_bounded_coverage_gate",
     ):
         assert phrase in text
