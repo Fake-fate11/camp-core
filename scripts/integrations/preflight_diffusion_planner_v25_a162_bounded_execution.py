@@ -117,9 +117,10 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     if (
         source_report.get("status")
         != "passed_source_only_route_signal_authority_census"
-        or source_report.get("camp_source_head") != camp_head
         or source_review.get("status")
         != "passed_independent_route_signal_source_review"
+        or source_review.get("camp_source_head") != camp_head
+        or source_review.get("fixed_dp_head") != FIXED_DP_HEAD
         or source_review.get("reviewed_root_sha256") != args.source_root_sha256
         or Path(str(source_review.get("reviewed_artifact"))).resolve()
         != args.source_artifact.resolve()
@@ -209,9 +210,31 @@ def main() -> None:
         (args.output_dir / "run.exit").write_text("0\n", encoding="ascii")
         root_sha256 = seal_artifact(args.output_dir, label="A1.6.2 bounded plan")
         print(json.dumps({**summary, "artifact_root_sha256": root_sha256}, sort_keys=True))
-    except Exception:
-        if not (args.output_dir / "run.exit").exists():
+    except Exception as exc:
+        if not (args.output_dir / "SHA256SUMS").exists():
+            _write(
+                args.output_dir / "failure.json",
+                {
+                    "schema_version": "camp_dp_v25_a162_bounded_plan_failure_v1",
+                    "status": "failed_closed_before_k8",
+                    "failure_type": type(exc).__name__,
+                    "failure_reason": str(exc),
+                    "k8_executed": False,
+                    "candidate_generation_started": False,
+                    "fresh_b2_opened": False,
+                    "outcome_fields_consumed": [],
+                },
+            )
+            (args.output_dir / "HEADS").write_text(
+                f"camp_source_head={_git(ROOT, 'rev-parse', 'HEAD')}\n"
+                f"fixed_dp_head={FIXED_DP_HEAD}\n",
+                encoding="ascii",
+            )
+            (args.output_dir / "COMMAND").write_text(
+                " ".join(sys.argv) + "\n", encoding="utf-8"
+            )
             (args.output_dir / "run.exit").write_text("1\n", encoding="ascii")
+            seal_artifact(args.output_dir, label="failed A1.6.2 bounded plan")
         raise
 
 
