@@ -22,10 +22,10 @@ from .diffusion_planner_v25_full_r_authority import (
 )
 
 
-RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a169_bounded_execute_release_v7"
+RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a1610_bounded_execute_release_v8"
 RELEASE_STATUS = "bounded_execute_released"
-RELEASE_GATE = "a169_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a169_bounded_execute_nonces")
+RELEASE_GATE = "a1610_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a1610_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_SEED = 25001
 EXPECTED_UNIQUE_IDENTITIES = 243
@@ -163,7 +163,7 @@ def _strict_object_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _load_object(path: Path) -> dict[str, Any]:
+def _load_json_value(path: Path) -> Any:
     data = path.read_bytes()
     try:
         text = data.decode("utf-8", errors="strict")
@@ -174,10 +174,15 @@ def _load_object(path: Path) -> dict[str, Any]:
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise ValueError(f"authority JSON is not strict UTF-8 JSON: {path}") from exc
-    if type(value) is not dict:
-        raise ValueError(f"authority JSON is not an exact object: {path}")
     if data != canonical_json_bytes(value):
         raise ValueError(f"authority JSON is not canonical single-LF bytes: {path}")
+    return value
+
+
+def _load_object(path: Path) -> dict[str, Any]:
+    value = _load_json_value(path)
+    if type(value) is not dict:
+        raise ValueError(f"authority JSON is not an exact object: {path}")
     return value
 
 
@@ -235,7 +240,7 @@ def _verify_exact_asset(contract: Mapping[str, Any], *, label: str) -> Path:
 def verify_frozen_execution_assets(
     *, repo: Path, dp_repo: Path, probe_template: Path
 ) -> dict[str, Any]:
-    """Bind A1.6.9 execution to one template/weights/fixed-DP universe."""
+    """Bind A1.6.10 execution to one template/weights/fixed-DP universe."""
 
     camp = _require_exact_path(repo, EXPECTED_CAMP_REPO, label="CAMP repository")
     dp = _require_exact_path(dp_repo, EXPECTED_DP_REPO, label="fixed-DP repository")
@@ -432,13 +437,16 @@ def verify_four_root_chain(
         report_file = binding["report_file"]
         if not _is_sha256(root) or report_file != ROOT_REPORT_FILES[role]:
             raise ValueError(f"{role} root/report binding drifted")
-        seal = verify_complete_seal(artifact, root, label=f"V25 A1.6.9 {role}")
+        seal = verify_complete_seal(artifact, root, label=f"V25 A1.6.10 {role}")
         if (
             seal["manifest_paths"] != ROOT_PAYLOADS[role]
             or (artifact / "run.exit").read_bytes() != b"0\n"
         ):
             raise ValueError(f"{role} inventory/run.exit drifted")
         _validate_diagnostic_command(artifact / "COMMAND")
+        for relative_path in seal["manifest_paths"]:
+            if relative_path.endswith(".json"):
+                _load_json_value(artifact / relative_path)
         report = _load_object(artifact / report_file)
         heads = _parse_heads(artifact / "HEADS")
         source_head = heads.get("camp_source_head") or heads.get("review_head")
@@ -688,7 +696,7 @@ def verify_bounded_release(
     consume: bool,
 ) -> dict[str, Any]:
     seal = verify_complete_seal(
-        release_artifact, release_root_sha256, label="V25 A1.6.9 bounded release"
+        release_artifact, release_root_sha256, label="V25 A1.6.10 bounded release"
     )
     if (
         seal["manifest_paths"] != RELEASE_PAYLOADS

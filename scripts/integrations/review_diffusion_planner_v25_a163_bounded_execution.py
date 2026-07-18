@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.9 bounded K8 execution."""
+"""Independently review a sealed A1.6.10 bounded K8 execution."""
 
 from __future__ import annotations
 
@@ -38,9 +38,9 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a169_bounded_execution_review_v7"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a169_bounded_execution_v7"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a169_bounded_snapshot_v5"
+SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_review_v8"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_snapshot_v6"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -48,8 +48,9 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-RELEASE_GATE = "a169_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a169_bounded_execute_nonces")
+EXPECTED_SEED = 25001
+RELEASE_GATE = "a1610_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a1610_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
 EXPECTED_FORMAL_ROOT_SHA256 = "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
@@ -121,7 +122,7 @@ GOAL_TOLERANCE_M = 2.0
 GOAL_PASS_WINDOW_M = 25.0
 EXPECTED_CLEARANCE_MAX_RANGE_M = 100.0
 SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION = (
-    "camp_dp_v25_a169_causal_scene_materialization_evidence_v1"
+    "camp_dp_v25_a1610_causal_scene_materialization_evidence_v2"
 )
 SCENE_MATERIALIZATION_EVIDENCE_FIELDS = {
     "schema_version", "relative_path", "sha256", "tick_count", "arrays",
@@ -521,7 +522,7 @@ NATIVE_RECEIPT_FIELDS = {
     "selector_scale_contract", "runtime_annotation_compatibility",
     "causal_scene_materialization_evidence",
 }
-INITIAL_WORLD_STATE_SCHEMA_VERSION = "camp_dp_v25_a169_initial_world_state_v1"
+INITIAL_WORLD_STATE_SCHEMA_VERSION = "camp_dp_v25_a1610_initial_world_state_v2"
 NATIVE_HEADER_RESULT_FIELDS = NATIVE_RECEIPT_FIELDS - {"ticks"}
 EXPECTED_SELECTOR_SCALE_CONTRACT = {
     "declared_atom_schema_version": "dp_camp_v10_14d",
@@ -1403,7 +1404,7 @@ def _independent_formal_cases() -> dict[str, dict[str, Any]]:
     seal = verify_complete_seal(
         EXPECTED_FORMAL_ARTIFACT,
         EXPECTED_FORMAL_ROOT_SHA256,
-        label="V25 A1.6.9 independent formal authority",
+        label="V25 A1.6.10 independent formal authority",
     )
     if seal["root_sha256"] != EXPECTED_FORMAL_ROOT_SHA256:
         raise ValueError("independent formal root drifted")
@@ -1540,6 +1541,74 @@ def _independent_route_sha256(
 _INITIAL_STATE_BUILDERS: dict[str, Any] = {}
 
 
+def _independent_fixed_dp_initial_speed(
+    *,
+    builder: Any,
+    snapped_xy: np.ndarray,
+    heading: float,
+    init_speed: float,
+    start_lanelet: int,
+) -> float:
+    """Reproduce the pinned replay generate-history/velocity chain locally."""
+
+    n_steps = 31
+    dt = 0.1
+    history = np.zeros((n_steps, 3), dtype=np.float32)
+    history[-1] = [snapped_xy[0], snapped_xy[1], heading]
+    if init_speed < 0.1 or start_lanelet not in builder._cache:
+        history[:, 0] = snapped_xy[0]
+        history[:, 1] = snapped_xy[1]
+        history[:, 2] = heading
+    else:
+        bw_pts, _ = builder._build_backward_polyline(
+            start_lanelet, snapped_xy, heading, n_steps, init_speed, dt
+        )
+        bw_pts = np.asarray(bw_pts)
+        if (
+            bw_pts.ndim != 2
+            or bw_pts.shape[1] != 2
+            or len(bw_pts) == 0
+            or not np.isfinite(bw_pts).all()
+        ):
+            raise ValueError("independent fixed-DP backward history drifted")
+        diffs = np.linalg.norm(np.diff(bw_pts, axis=0), axis=1)
+        arc = np.concatenate([[0.0], np.cumsum(diffs)])
+        seg_idx = 0
+        rng = np.random.RandomState(EXPECTED_SEED)
+        for step in range(n_steps - 2, -1, -1):
+            backward_dist = (n_steps - 1 - step) * init_speed * dt
+            while seg_idx + 1 < len(arc) and arc[seg_idx + 1] < backward_dist:
+                seg_idx += 1
+            if seg_idx >= len(bw_pts) - 1:
+                pos = bw_pts[-1]
+                if len(bw_pts) >= 2:
+                    fwd = bw_pts[-2] - bw_pts[-1]
+                    frame_heading = math.atan2(fwd[1], fwd[0])
+                else:
+                    frame_heading = heading
+            else:
+                seg_len = arc[seg_idx + 1] - arc[seg_idx]
+                safe_len = max(seg_len, 1e-6)
+                fraction = (backward_dist - arc[seg_idx]) / safe_len
+                fraction = max(0.0, min(1.0, fraction))
+                pos = bw_pts[seg_idx] + fraction * (
+                    bw_pts[seg_idx + 1] - bw_pts[seg_idx]
+                )
+                fwd = bw_pts[seg_idx] - bw_pts[seg_idx + 1]
+                frame_heading = math.atan2(fwd[1], fwd[0])
+            lateral = np.asarray(
+                [-math.sin(frame_heading), math.cos(frame_heading)]
+            )
+            pos = pos + lateral * rng.normal(0, 0.05)
+            history[step] = [pos[0], pos[1], frame_heading]
+    history[-1, 2] = heading
+    velocities = np.zeros((history.shape[0], 2), dtype=np.float32)
+    for index in range(1, history.shape[0]):
+        velocities[index] = (history[index, :2] - history[index - 1, :2]) / dt
+    velocities[0] = velocities[1]
+    return float(np.linalg.norm(velocities[-1]))
+
+
 def _independent_initial_world_state(
     *, formal_case: Mapping[str, Any], template: Mapping[str, Any], dp_repo: Path
 ) -> dict[str, Any]:
@@ -1549,7 +1618,7 @@ def _independent_initial_world_state(
     route_ids = spec.get("lanelet_ids")
     start_pose = _native_numeric_array(
         spec.get("start_pose"), (3,), label="formal route start pose"
-    )
+    ).astype(np.float32)
     if (
         type(route_ids) is not list
         or not route_ids
@@ -1599,12 +1668,10 @@ def _independent_initial_world_state(
         _INITIAL_STATE_BUILDERS[key] = builder
     start_lanelet = builder.snap_to_nearest_ll(
         start_pose[:2], candidate_ids=list(route_ids)
-    )
+    ) or route_ids[0]
     if start_lanelet not in builder._cache:
         raise ValueError("independent snapped start lanelet is unavailable")
-    centerline = np.asarray(
-        builder._cache[start_lanelet].raw_centerline, dtype=np.float64
-    )
+    centerline = np.asarray(builder._cache[start_lanelet].raw_centerline)
     if centerline.ndim != 2 or centerline.shape[1] != 2 or not np.isfinite(centerline).all():
         raise ValueError("independent snapped start centerline drifted")
     closest = int(np.argmin(np.linalg.norm(centerline - start_pose[:2], axis=1)))
@@ -1612,13 +1679,27 @@ def _independent_initial_world_state(
     spawn = _independent_spawn_config_payload(
         template=template, formal_case=formal_case
     )
+    init_speed_raw = spawn.get("ego_init_speed")
+    if init_speed_raw is None:
+        init_speed = 0.5 * (
+            _native_number(spawn.get("npc_min_speed"), label="spawn npc min speed")
+            + _native_number(spawn.get("npc_max_speed"), label="spawn npc max speed")
+        )
+    else:
+        init_speed = _native_number(init_speed_raw, label="initial ego history speed")
+    heading = float(start_pose[2])
+    initial_speed = _independent_fixed_dp_initial_speed(
+        builder=builder,
+        snapped_xy=snapped_xy,
+        heading=heading,
+        init_speed=init_speed,
+        start_lanelet=start_lanelet,
+    )
     return {
         "schema_version": INITIAL_WORLD_STATE_SCHEMA_VERSION,
         "position_xy": [float(snapped_xy[0]), float(snapped_xy[1])],
-        "heading_rad": float(start_pose[2]),
-        "speed_mps": _native_number(
-            spawn.get("ego_init_speed"), label="initial ego speed"
-        ),
+        "heading_rad": heading,
+        "speed_mps": initial_speed,
     }
 
 
@@ -1648,7 +1729,7 @@ def _expected_native_header_result(
         formal_case=formal_case, template=template, dp_repo=dp_repo
     )
     return {
-        "schema_version": "camp_dp_v25_a169_bounded_native_receipt_v1",
+        "schema_version": "camp_dp_v25_a1610_bounded_native_receipt_v2",
         "status": "ok",
         "route_name": formal_case["route_identity_sha256"],
         "route_sha256": route_sha,
@@ -1723,11 +1804,8 @@ def _validate_native_log_files(
         route_spec.get("goal_pose") if type(route_spec) is dict else None,
         (3,),
         label="formal goal pose",
-    )
+    ).astype(np.float32)
     min_goal_distance = float("inf")
-    derived_reason = "max_steps"
-    derived_goal_reached = False
-    derived_final_step = 63
     initial_world = _independent_initial_world_state(
         formal_case=formal_case, template=template, dp_repo=dp_repo
     )
@@ -1741,7 +1819,7 @@ def _validate_native_log_files(
             raise ValueError("bounded native trajectory row schema drifted")
         position = _native_numeric_array(
             [row.get("x"), row.get("y")], (2,), label="trajectory position"
-        )
+        ).astype(np.float32)
         heading = _native_number(
             row.get("heading"), label="trajectory ego heading"
         )
@@ -1750,12 +1828,8 @@ def _validate_native_log_files(
         min_goal_distance = min(min_goal_distance, goal_distance)
         if (
             type(row.get("goal_d")) is not float
-            or not math.isclose(
-                _native_number(row["goal_d"], label="trajectory goal distance"),
-                goal_distance,
-                rel_tol=0.0,
-                abs_tol=1e-9,
-            )
+            or _native_number(row["goal_d"], label="trajectory goal distance")
+            != goal_distance
         ):
             raise ValueError("bounded native trajectory goal oracle drifted")
         if index == 0 and not np.allclose(
@@ -1767,27 +1841,27 @@ def _validate_native_log_files(
                 initial_world["speed_mps"],
             ],
             rtol=0.0,
-            atol=1e-6,
+            atol=0.0,
         ):
             raise ValueError("bounded trajectory[0] is not the snapped initial world state")
         reason_at_tick: str | None = None
         if goal_distance <= GOAL_TOLERANCE_M:
             reason_at_tick = "goal_reached"
         else:
-            forward = np.asarray([math.cos(heading), math.sin(heading)])
+            forward = np.asarray(
+                [math.cos(heading), math.sin(heading)], dtype=np.float32
+            )
+            to_goal = goal_pose[:2] - position
             if (
-                float(np.dot(goal_pose[:2] - position, forward)) < 0.0
+                float(np.dot(to_goal, forward)) < 0.0
                 and min_goal_distance <= GOAL_PASS_WINDOW_M
             ):
                 reason_at_tick = "goal_passed"
         if reason_at_tick is not None:
-            if index != 63:
-                raise ValueError(
-                    "bounded native trajectory continued after derived goal termination"
-                )
-            derived_reason = reason_at_tick
-            derived_goal_reached = True
-            derived_final_step = index
+            raise ValueError(
+                "bounded 64-post-safety run cannot coexist with pre-advance "
+                f"{reason_at_tick} at trajectory row {index}"
+            )
     for index in range(63):
         post_safety = ticks[index]["safety"]
         next_row = trajectory[index + 1]
@@ -1867,9 +1941,9 @@ def _validate_native_log_files(
             elif type(identifier) is not str or not identifier:
                 raise ValueError("bounded native clearance ID/source drifted")
     return {
-        "final_step": derived_final_step,
-        "goal_reached": derived_goal_reached,
-        "reason": derived_reason,
+        "final_step": 63,
+        "goal_reached": False,
+        "reason": "max_steps",
         "n_npc_spawned": 0,
         "trajectory_log_path": str(trajectory_path),
         "clearance_log_path": str(clearance_path),
@@ -2667,7 +2741,7 @@ def _validate_native_static_contract(receipt: Mapping[str, Any]) -> None:
     )
     if (
         receipt.get("schema_version")
-        != "camp_dp_v25_a169_bounded_native_receipt_v1"
+        != "camp_dp_v25_a1610_bounded_native_receipt_v2"
         or receipt.get("status") != "ok"
         or receipt.get("fixed_dp_head") != FIXED_DP_HEAD
         or receipt.get("checkpoint_sha256")
@@ -3369,7 +3443,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.9 bounded execution",
+        label="V25 A1.6.10 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
@@ -3611,7 +3685,7 @@ def main(argv: list[str] | None = None) -> None:
             " ".join(sys.argv) + "\n", encoding="utf-8"
         )
         (args.output_dir / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(args.output_dir, label="V25 A1.6.9 bounded review")
+        root = seal_artifact(args.output_dir, label="V25 A1.6.10 bounded review")
         print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
     except Exception as exc:
         _write(
@@ -3627,7 +3701,7 @@ def main(argv: list[str] | None = None) -> None:
             },
         )
         (args.output_dir / "run.exit").write_bytes(b"1\n")
-        seal_artifact(args.output_dir, label="failed V25 A1.6.9 bounded review")
+        seal_artifact(args.output_dir, label="failed V25 A1.6.10 bounded review")
         raise
 
 

@@ -265,6 +265,30 @@ def test_four_root_chain_rejects_resealed_noncanonical_plan_bytes(
         )
 
 
+@pytest.mark.parametrize(
+    "payload_name",
+    [
+        "formal_route_source_contract_supplement.json",
+        "route_signal_source_receipts.json",
+    ],
+)
+def test_four_root_chain_strictly_opens_every_source_json_payload(
+    tmp_path: Path, payload_name: str
+) -> None:
+    bindings, _ = _four_root_chain(tmp_path)
+    source_path = tmp_path / "source" / payload_name
+    source_path.write_bytes(b'{"value":1,"value":2}\n')
+    bindings["source"]["root_sha256"] = seal_artifact(
+        tmp_path / "source", label="resealed strict source JSON mutation"
+    )
+    with pytest.raises(ValueError, match="strict UTF-8 JSON"):
+        authority.verify_four_root_chain(
+            bindings=bindings,
+            implementation_source_head="1" * 40,
+            fixed_dp_head=FIXED_DP_HEAD,
+        )
+
+
 def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(authority, "NONCE_LEDGER", tmp_path / "nonce-ledger")
     monkeypatch.setattr(authority, "verify_dual_head_contract", lambda **kwargs: {})
@@ -2088,7 +2112,7 @@ def _exact_native_receipt_fixture() -> dict:
         "speed_mps": 1.0,
     }
     return {
-        "schema_version": "camp_dp_v25_a169_bounded_native_receipt_v1",
+        "schema_version": "camp_dp_v25_a1610_bounded_native_receipt_v2",
         "status": "ok",
         "route_name": "1" * 64,
         "route_sha256": "2" * 64,
@@ -2141,7 +2165,7 @@ def _exact_native_receipt_fixture() -> dict:
 def test_native_header_result_every_leaf_is_covered_by_exact_contract() -> None:
     receipt = _exact_native_receipt_fixture()
     expected = {
-        "schema_version": "camp_dp_v25_a169_bounded_native_receipt_v1",
+        "schema_version": "camp_dp_v25_a1610_bounded_native_receipt_v2",
         "status": "ok",
         "route_name": "1" * 64,
         "route_sha256": "2" * 64,
@@ -2242,22 +2266,25 @@ def _write_native_logs(
     }
     if pre_positions is not None:
         positions.update(pre_positions)
+    goal_xy = np.asarray([goal_x, 0.0], dtype=np.float32)
     for index, tick in enumerate(receipt["ticks"]):
         pre_x = positions[index]
+        position_xy = np.asarray([pre_x, 0.0], dtype=np.float32)
+        logged_x = float(position_xy[0])
         trajectory.append(
             {
                 "step": index,
-                "x": pre_x,
+                "x": logged_x,
                 "y": 0.0,
                 "heading": 0.0,
                 "speed": 1.0,
-                "goal_d": abs(pre_x - goal_x),
+                "goal_d": float(np.linalg.norm(position_xy - goal_xy)),
             }
         )
         clearance.append(
             {
                 "step": index,
-                "ego_x": pre_x,
+                "ego_x": logged_x,
                 "ego_y": 0.0,
                 "ego_yaw": 0.0,
                 "rb_dist": None,
@@ -2269,7 +2296,7 @@ def _write_native_logs(
             }
         )
         post_x = positions[index + 1] if index < 63 else positions[index] + 1.0
-        tick["safety"]["position_xy"] = [post_x, 0.0]
+        tick["safety"]["position_xy"] = [float(np.float32(post_x)), 0.0]
         tick["safety"]["ego_heading_rad"] = 0.0
         tick["safety"]["speed_mps"] = 1.0
     (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
@@ -2285,13 +2312,15 @@ def _write_native_logs(
     )
 
 
-def _patch_initial_world_oracle(monkeypatch: pytest.MonkeyPatch) -> None:
+def _patch_initial_world_oracle(
+    monkeypatch: pytest.MonkeyPatch, *, position_x: float = 0.0
+) -> None:
     monkeypatch.setattr(
         post_reviewer,
         "_independent_initial_world_state",
         lambda **kwargs: {
             "schema_version": post_reviewer.INITIAL_WORLD_STATE_SCHEMA_VERSION,
-            "position_xy": [0.0, 0.0],
+            "position_xy": [position_x, 0.0],
             "heading_rad": 0.0,
             "speed_mps": 1.0,
         },
@@ -2337,8 +2366,23 @@ def test_independent_initial_world_state_rebuilds_fixed_dp_snapped_start(
 
         def snap_to_nearest_ll(self, xy, *, candidate_ids):
             assert list(candidate_ids) == [7]
-            assert np.allclose(xy, [1.9, 0.0], rtol=0.0, atol=1e-12)
+            assert np.array_equal(
+                np.asarray(xy), np.asarray([1.9, 0.0], dtype=np.float32)
+            )
             return 7
+
+        def _build_backward_polyline(
+            self, lanelet_id, position_xy, heading, n_steps, speed, dt
+        ):
+            assert lanelet_id == 7
+            assert np.array_equal(position_xy, np.asarray([2.0, 0.0], dtype=np.float32))
+            points = np.column_stack(
+                (
+                    2.0 + np.arange(n_steps + 6, dtype=np.float64) * speed * dt,
+                    np.zeros(n_steps + 6, dtype=np.float64),
+                )
+            )
+            return points, {7}
 
     fake_module = SimpleNamespace(
         __file__=str(builder_source), LaneletSceneBuilder=FakeBuilder
@@ -2375,12 +2419,77 @@ def test_independent_initial_world_state_rebuilds_fixed_dp_snapped_start(
     state = post_reviewer._independent_initial_world_state(
         formal_case=formal_case, template=template, dp_repo=dp_repo
     )
+    draw = np.random.RandomState(25001).normal(0, 0.05)
+    previous = np.asarray([2.8, -draw], dtype=np.float32)
+    current = np.asarray([2.0, 0.0], dtype=np.float32)
+    velocity = np.zeros(2, dtype=np.float32)
+    velocity[:] = (current - previous) / 0.1
+    expected_speed = float(np.linalg.norm(velocity))
     assert state == {
         "schema_version": post_reviewer.INITIAL_WORLD_STATE_SCHEMA_VERSION,
         "position_xy": [2.0, 0.0],
-        "heading_rad": float(np.pi),
-        "speed_mps": 8.0,
+        "heading_rad": float(np.float32(np.pi)),
+        "speed_mps": expected_speed,
     }
+    assert state["speed_mps"] != 8.0
+
+
+@pytest.mark.skipif(
+    not post_reviewer.EXPECTED_DP_REPO.is_dir()
+    or not post_reviewer.EXPECTED_FORMAL_ARTIFACT.is_dir()
+    or not post_reviewer.EXPECTED_PROBE_TEMPLATE.is_file(),
+    reason="canonical fixed-DP source fixture is available only on AutoDL",
+)
+def test_initial_world_speed_matches_real_fixed_dp_generate_history_source() -> None:
+    formal = json.loads(
+        (
+            post_reviewer.EXPECTED_FORMAL_ARTIFACT
+            / "controlled_corpus_final_plan.json"
+        ).read_text(encoding="utf-8")
+    )
+    template = json.loads(
+        post_reviewer.EXPECTED_PROBE_TEMPLATE.read_text(encoding="utf-8")
+    )
+    formal_case = formal["train"][0]
+    state = post_reviewer._independent_initial_world_state(
+        formal_case=formal_case,
+        template=template,
+        dp_repo=post_reviewer.EXPECTED_DP_REPO,
+    )
+    spec = formal_case["route_spec"]
+    route_ids = spec["lanelet_ids"]
+    start_pose = np.asarray(spec["start_pose"], dtype=np.float32)
+    builder = post_reviewer._INITIAL_STATE_BUILDERS[
+        str(Path(formal_case["source_map_path"]))
+    ]
+    start_lanelet = builder.snap_to_nearest_ll(
+        start_pose[:2], candidate_ids=list(route_ids)
+    ) or route_ids[0]
+    centerline = np.asarray(builder._cache[start_lanelet].raw_centerline)
+    closest = int(np.argmin(np.linalg.norm(centerline - start_pose[:2], axis=1)))
+    snapped_xy = centerline[closest].astype(np.float32)
+    spawn = post_reviewer._independent_spawn_config_payload(
+        template=template, formal_case=formal_case
+    )
+    init_speed = float(spawn["ego_init_speed"])
+    rng_state = np.random.get_state()
+    try:
+        np.random.seed(25001)
+        history, _ = builder.generate_history(
+            snapped_xy, float(start_pose[2]), init_speed, start_lanelet
+        )
+    finally:
+        np.random.set_state(rng_state)
+    history[-1, 2] = float(start_pose[2])
+    velocities = np.zeros((history.shape[0], 2), dtype=np.float32)
+    for index in range(1, history.shape[0]):
+        velocities[index] = (history[index, :2] - history[index - 1, :2]) / 0.1
+    velocities[0] = velocities[1]
+    expected_speed = float(np.linalg.norm(velocities[-1]))
+    assert state["position_xy"] == [float(snapped_xy[0]), float(snapped_xy[1])]
+    assert state["heading_rad"] == float(start_pose[2])
+    assert state["speed_mps"] == expected_speed
+    assert state["speed_mps"] != init_speed
 
 
 def test_native_terminal_logs_bind_pre_and_post_tracker_timing(
@@ -2456,6 +2565,60 @@ def test_terminal_oracle_uses_pre_rows_and_excludes_post_safety_63(
         )
 
 
+@pytest.mark.parametrize(
+    ("start_x", "goal_x"),
+    [(0.1, 10.2), (100000.1, 100003.2)],
+)
+def test_terminal_oracle_matches_route_float32_numeric_semantics(
+    tmp_path: Path,
+    start_x: float,
+    goal_x: float,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rounded_start = float(np.float32(start_x))
+    _patch_initial_world_oracle(monkeypatch, position_x=rounded_start)
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / f"float32_{abs(hash((start_x, goal_x)))}").resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(
+        native_dir / "trajectory_log.json"
+    )
+    receipt["native_result"]["clearance_log_path"] = str(
+        native_dir / "clearance_log.json"
+    )
+    _write_native_logs(
+        native_dir,
+        receipt,
+        pre_positions={index: start_x for index in range(64)},
+        goal_x=goal_x,
+    )
+    formal_case, template, source_row = _native_log_authority_fixture()
+    formal_case["route_spec"]["goal_pose"] = [goal_x, 0.0, 0.0]
+    derived = post_reviewer._validate_native_log_files(
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        template=template,
+        source_row=source_row,
+        dp_repo=tmp_path / "dp",
+    )
+    expected = float(
+        np.linalg.norm(
+            np.asarray([start_x, 0.0], dtype=np.float32)
+            - np.asarray([goal_x, 0.0], dtype=np.float32)
+        )
+    )
+    trajectory = json.loads((native_dir / "trajectory_log.json").read_text())
+    assert trajectory[0]["goal_d"] == expected
+    assert derived == {
+        "final_step": 63,
+        "goal_reached": False,
+        "reason": "max_steps",
+        "n_npc_spawned": 0,
+        "trajectory_log_path": str(native_dir / "trajectory_log.json"),
+        "clearance_log_path": str(native_dir / "clearance_log.json"),
+    }
+
+
 def test_producer_native_header_terminal_contract_is_exact(tmp_path: Path) -> None:
     receipt = _exact_native_receipt_fixture()
     native_dir = (tmp_path / "native").resolve()
@@ -2482,6 +2645,18 @@ def test_producer_native_header_terminal_contract_is_exact(tmp_path: Path) -> No
         native_dir=native_dir,
         scene_materialization_hashes=["0" * 64] * 64,
     )
+    receipt["native_result"]["goal_reached"] = True
+    receipt["native_result"]["reason"] = "goal_reached"
+    with pytest.raises(ValueError, match="native result exact schema"):
+        runner._validate_success_native_receipt(
+            receipt,
+            config=config,
+            route=route,
+            native_dir=native_dir,
+            scene_materialization_hashes=["0" * 64] * 64,
+        )
+    receipt["native_result"]["goal_reached"] = False
+    receipt["native_result"]["reason"] = "max_steps"
     receipt["route_sha256"] = "9" * 64
     with pytest.raises(ValueError, match="producer header"):
         runner._validate_success_native_receipt(
@@ -2701,7 +2876,7 @@ def test_legacy_native_npz_receipt_is_projected_to_scene_materialization_only(
         native_dir=native_dir,
     )
     assert projected["schema_version"] == (
-        "camp_dp_v25_a169_bounded_native_receipt_v1"
+        "camp_dp_v25_a1610_bounded_native_receipt_v2"
     )
     assert projected["ticks"][0]["scene_materialization_sha256"] == "0" * 64
     assert "input_sha256" not in projected["ticks"][0]
@@ -2890,7 +3065,7 @@ def test_goal_oracle_rejects_coordinated_goal_distance_forgery(
         ("passed", 50.0, {62: 30.0, 63: 80.0}, "goal_passed"),
     ],
 )
-def test_goal_oracle_derives_terminal_reason_from_formal_goal_and_trajectory(
+def test_goal_oracle_rejects_pre_advance_terminal_with_64_post_safety_ticks(
     tmp_path: Path,
     mode: str,
     goal_x: float,
@@ -2910,17 +3085,15 @@ def test_goal_oracle_derives_terminal_reason_from_formal_goal_and_trajectory(
     )
     formal_case, template, source_row = _native_log_authority_fixture()
     formal_case["route_spec"]["goal_pose"] = [goal_x, 0.0, 0.0]
-    derived = post_reviewer._validate_native_log_files(
-        native_dir=native_dir,
-        receipt=receipt,
-        formal_case=formal_case,
-        template=template,
-        source_row=source_row,
-        dp_repo=tmp_path / "dp",
-    )
-    assert derived["final_step"] == 63
-    assert derived["goal_reached"] is True
-    assert derived["reason"] == expected_reason
+    with pytest.raises(ValueError, match=f"cannot coexist.*{expected_reason}"):
+        post_reviewer._validate_native_log_files(
+            native_dir=native_dir,
+            receipt=receipt,
+            formal_case=formal_case,
+            template=template,
+            source_row=source_row,
+            dp_repo=tmp_path / "dp",
+        )
 
 
 @pytest.mark.parametrize("target", ["red_stop_lines", "clearance_extra", "negative_distance", "bad_id"])

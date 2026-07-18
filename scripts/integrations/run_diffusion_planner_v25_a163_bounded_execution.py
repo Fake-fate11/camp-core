@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.9 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.10 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a169_bounded_execution_v7"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a169_bounded_snapshot_v5"
+SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_snapshot_v6"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
@@ -94,7 +94,7 @@ NATIVE_RECEIPT_FIELDS = {
     "causal_scene_materialization_evidence",
 }
 SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION = (
-    "camp_dp_v25_a169_causal_scene_materialization_evidence_v1"
+    "camp_dp_v25_a1610_causal_scene_materialization_evidence_v2"
 )
 SCENE_MATERIALIZATION_EVIDENCE_FIELDS = {
     "schema_version", "relative_path", "sha256", "tick_count", "arrays",
@@ -117,7 +117,7 @@ SCENE_MATERIALIZATION_ARRAY_SCHEMA = {
     "turn_indicators": ((31,), "int32"),
     "version": ((), "int64"),
 }
-INITIAL_WORLD_STATE_SCHEMA_VERSION = "camp_dp_v25_a169_initial_world_state_v1"
+INITIAL_WORLD_STATE_SCHEMA_VERSION = "camp_dp_v25_a1610_initial_world_state_v2"
 EXPECTED_SELECTOR_SCALE_CONTRACT = {
     "declared_atom_schema_version": "dp_camp_v10_14d",
     "effective_atom_schema_version": "dp_camp_v10_14d",
@@ -344,7 +344,7 @@ def _project_bounded_scientific_receipt(
     if type(trajectory) is not list or len(trajectory) != TICKS_PER_RUN:
         raise ValueError("bounded initial world-state trajectory source drifted")
     initial_world = _initial_world_state_payload(trajectory[0])
-    projected["schema_version"] = "camp_dp_v25_a169_bounded_native_receipt_v1"
+    projected["schema_version"] = "camp_dp_v25_a1610_bounded_native_receipt_v2"
     projected["initial_scene_materialization_sha256"] = scene_materialization_hashes[0]
     projected["initial_world_state_sha256"] = hashlib.sha256(
         (
@@ -470,7 +470,7 @@ def _validate_success_native_receipt(
         raise ValueError("bounded native receipt exact field set drifted")
     if (
         native_receipt.get("schema_version")
-        != "camp_dp_v25_a169_bounded_native_receipt_v1"
+        != "camp_dp_v25_a1610_bounded_native_receipt_v2"
         or native_receipt.get("arm") != "camp"
         or native_receipt.get("claim_authorized") is not False
         or native_receipt.get("status") != "ok"
@@ -590,10 +590,8 @@ def _validate_success_native_receipt(
         or type(native_result.get("trajectory_log_path")) is not str
         or type(native_result.get("clearance_log_path")) is not str
         or native_result.get("final_step") != 63
-        or native_result.get("reason")
-        not in {"max_steps", "goal_reached", "goal_passed"}
-        or native_result.get("goal_reached")
-        is not (native_result.get("reason") in {"goal_reached", "goal_passed"})
+        or native_result.get("reason") != "max_steps"
+        or native_result.get("goal_reached") is not False
         or native_result.get("n_npc_spawned") != 0
     ):
         raise ValueError("bounded native result exact schema drifted")
@@ -1216,7 +1214,7 @@ def main(argv: list[str] | None = None) -> None:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.9 bounded execution")
+            root = seal_artifact(args.output_dir, label="V25 A1.6.10 bounded execution")
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
             if getattr(args, "authority_consumed", False) is not True:
@@ -1235,7 +1233,7 @@ def main(argv: list[str] | None = None) -> None:
                 },
             )
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.9 bounded execution")
+            seal_artifact(args.output_dir, label="failed V25 A1.6.10 bounded execution")
             raise
 
 
