@@ -320,13 +320,55 @@ release, nonce, output, K8, full-config/full-R, monitor, training, calibration,
 Scene/V2I, Fresh, or outcome access occurred. The only next gate is Ultra
 read-only A1.6.8 review.
 
-current_v25_status=v25_a168_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
-current_v25_source_head=b7dd2932e4e3667ae3204e0a3698340f5bd5b2e5
+Ultra kept bounded execution closed at A1.6.8 because the prospective evidence
+still mixed pre-advance trajectory rows with post-advance safety rows, called a
+16-array scene materialization the actual fixed-DP forward input, and registered
+byte/schema policies without executing every policy at the real authority
+entrypoints. The four A1.6.8 roots remain immutable diagnostic evidence with
+machine authority false.
+
+A1.6.9 implementation source HEAD
+`1779fb8993ef66151c8d641732a7861d1135dd6a` makes only those authorized
+scientific-evidence consistency corrections. The independent terminal oracle
+uses the formal goal and pre-advance trajectory rows; trajectory row zero is
+bound to the independently reconstructed snapped initial world state,
+trajectory rows 1 through 63 bind post-advance safety rows 0 through 62, and
+post-advance safety row 63 is retained without being misused as a goal-check
+row. The 16-array shard is explicitly causal scene-materialization evidence,
+not the normalized/batched model-forward input. Initial-world-state authority
+is reconstructed from the formal route/spawn, snapped start and trajectory row
+zero; candidate0/K8 tensor and output SHAs remain the fixed-DP execution
+evidence if a later release is ever granted.
+
+Strict canonical JSON/JSONL policies are now executed for every registered
+CAMP-authored authority file. HEADS and run.exit use exact bytes, COMMAND is
+explicitly diagnostic, and fixed-DP native logs retain strict duplicate/nonfinite
+rejection plus exact schema/value validation. Real four-root, release and
+post-run review entrypoint mutation tests cover noncanonical or duplicate-key
+rewrites after resealing. Local focused verification passed 222 tests with two
+Windows-only skips; AutoDL Python 3.12 passed all 224 tests. All modified files
+passed py_compile and diff checks.
+
+Under the same implementation HEAD, the source census, independent source
+review, bounded design and independent plan review were rebuilt from identity0
+at roots `92c8c5b8...`, `88c028e1...`, `357f34ed...`, and `9d05e161...`.
+The A1.6.9 verifier reopened exact inventories, exits, HEADS, reports,
+cross-links, source rows, plan order and tie proofs. Four-root binding SHA is
+`a7d0249af3ba2b8fdccddec820d6eb17a47b59582769970661a364e8e0bb6980`.
+Counts remain 1,653/1,500/153, 146/1,354, 21/125, zero source failures, 243
+unique identities, 244 ordered runs, and 15,616 prospective ticks. No A1.6.9
+release, nonce, output, K8, full-config/full-R, monitor, training, calibration,
+Scene/V2I, Fresh, or outcome access occurred. All local and remote commands
+ended naturally before this review gate; no XHigh process cleanup or concurrent
+test batch was used. The only next gate is Ultra read-only A1.6.9 review.
+
+current_v25_status=v25_a169_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
+current_v25_source_head=1779fb8993ef66151c8d641732a7861d1135dd6a
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a168_bounded_execution_plan_b7dd2932_20260718T213107CST
-current_v25_artifact_root_sha256=b9660ad7ee5ecda719a463e0cbb593c915bb967ad6d139ab6e63ff7a275331be
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a168_bounded_execution_plan_review_b7dd2932_20260718T213107CST
-current_v25_review_artifact_root_sha256=fbc312aa00730595adf185157f683fb60cfbaa5ea048234b1b7185adbc756a21
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a169_bounded_execution_plan_1779fb89_20260718T222955CST
+current_v25_artifact_root_sha256=357f34ed39467f6c16fe64e41118cc48a8a922c3ee51d9ba657b98954930110b
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a169_bounded_execution_plan_review_1779fb89_20260718T222955CST
+current_v25_review_artifact_root_sha256=9d05e1617e65a61a95f2543821b32dddb830c0d083d88017a14e01633e41b15e
 current_v25_a16_old_source_machine_authority_eligible=false
 current_v25_a16_old_source_scientific_diagnostic=true
 current_v25_a16_old_source_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db
@@ -372,10 +414,10 @@ current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger
 current_v25_atom_ledger_artifact_root_sha256=5e762a14b53c6c81f6bb3bfa67c6aeeb7fa5fe603bb95fa0776d75035cb8311c
 current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a15_1e1c32c7_20260718T051807CST
 current_v25_atom_ledger_validation_artifact_root_sha256=641fadb24926cb7e6fc49c98d66f6a0a9528f41856b0417aae9e6fb9a80fa469
-current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a168_route_signal_source_census_b7dd2932_20260718T213107CST
-current_v25_r0_authority_source_artifact_root_sha256=48bdbf77a2df14a1002f371f32fab47604f3daaa4b09646f434b0c843aa3f272
-current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a168_route_signal_source_review_b7dd2932_20260718T213107CST
-current_v25_r0_authority_source_review_artifact_root_sha256=c80424c1b217afe7d603e939233d0c9c8dd3461d2dde0f28988181974dd09c90
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a169_route_signal_source_census_1779fb89_20260718T222955CST
+current_v25_r0_authority_source_artifact_root_sha256=92c8c5b878d86f7a9ce043b543ee40f78add54f63fbdfe52425f48d34ba43330
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a169_route_signal_source_review_1779fb89_20260718T222955CST
+current_v25_r0_authority_source_review_artifact_root_sha256=88c028e1534edd6cd3458dc964d34fbb1ccf0c45adbf5d9cf160cba5967d1daa
 current_v25_r0_bounded_k8_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_1e1c32c7_20260718T051807CST
 current_v25_r0_bounded_k8_artifact_root_sha256=694ddcde9bd5972c4fb95eeb45da7f46663bb3a6acb87ca5b4cc18abbf97b79c
 current_v25_r0_bounded_k8_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053800CST
@@ -529,16 +571,16 @@ current_v25_a167_autodl_targeted_test_result=193_passed
 current_v25_a167_bounded_release_created=false
 current_v25_a167_bounded_nonce_created=false
 current_v25_a167_bounded_k8_executed=false
-current_v25_a167_four_roots_machine_authority_eligible=false
-current_v25_a168_release_schema=camp_dp_v25_ultra_a168_bounded_execute_release_v6
-current_v25_a168_device=cuda
-current_v25_a168_four_root_bindings_sha256=7cc450281423580aca4485a36cdfc05b63ae9e199e000428b736234543eb7978
 current_v25_a168_four_roots_machine_authority_eligible=false
-current_v25_a168_local_targeted_test_result=247_passed_2_skipped
-current_v25_a168_autodl_targeted_test_result=249_passed
-current_v25_a168_bounded_release_created=false
-current_v25_a168_bounded_nonce_created=false
-current_v25_a168_bounded_k8_executed=false
+current_v25_a169_release_schema=camp_dp_v25_ultra_a169_bounded_execute_release_v7
+current_v25_a169_device=cuda
+current_v25_a169_four_root_bindings_sha256=a7d0249af3ba2b8fdccddec820d6eb17a47b59582769970661a364e8e0bb6980
+current_v25_a169_four_roots_machine_authority_eligible=false
+current_v25_a169_local_targeted_test_result=222_passed_2_skipped
+current_v25_a169_autodl_targeted_test_result=224_passed
+current_v25_a169_bounded_release_created=false
+current_v25_a169_bounded_nonce_created=false
+current_v25_a169_bounded_k8_executed=false
 current_v25_corrected_full_corpus_started=false
 current_v25_full_config_preflight_release_created=true_diagnostic_consumed
 current_v25_full_config_preflight_started=true_failed_closed_before_receipts
@@ -558,9 +600,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=46892244992
-current_v25_phase=A1_6_8_full_causal_input_goal_terminal_and_serialization_evidence_corrected_static_four_root_review_required_k8_closed
-next_work_target=ultra_read_only_A1_6_8_review_before_any_bounded_execute_release
+observed_autodl_free_bytes=46883004416
+current_v25_phase=A1_6_9_terminal_timing_scene_materialization_and_byte_policy_corrected_static_four_root_review_required_k8_closed
+next_work_target=ultra_read_only_A1_6_9_review_before_any_bounded_execute_release
 
 ## Current V24 Status
 
