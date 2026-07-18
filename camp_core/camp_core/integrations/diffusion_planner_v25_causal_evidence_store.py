@@ -14,7 +14,7 @@ import numpy as np
 LOGICAL_SCHEMA_VERSION = "camp_dp_v25_bounded_causal_evidence_v1"
 REFERENCE_SCHEMA_VERSION = "camp_dp_v25_causal_evidence_shard_reference_v1"
 ARRAY_SCHEMA_VERSION = "camp_dp_v25_causal_evidence_array_v1"
-ARRAY_CODEC = "canonical-metadata-plus-bitexact-array-bytes-xz6-v2"
+ARRAY_CODEC = "canonical-metadata-plus-bitexact-array-bytes-xz6-v3"
 SHARD_DIRECTORY = "causal_evidence_shards"
 SHARD_SUFFIX = ".bin.xz"
 _MAGIC = b"CAMP-DP-V25-ARRAY-V1\x00"
@@ -115,7 +115,7 @@ def _array_metadata(name: str, array: np.ndarray) -> dict[str, Any]:
         "array_sha256": _sha256(raw),
         "uncompressed_nbytes": len(raw),
         "transform": (
-            f"uint32-xor-axis-{_XOR_TIME_AXES[name]}"
+            f"uint32-xor-axis-{_XOR_TIME_AXES[name]}-byte-shuffle4"
             if name in _XOR_TIME_AXES
             else "identity"
         ),
@@ -136,7 +136,9 @@ def _encode_array(name: str, array: np.ndarray) -> tuple[bytes, dict[str, Any]]:
         current[axis] = slice(1, None)
         previous[axis] = slice(None, -1)
         transformed[tuple(current)] ^= bits[tuple(previous)]
-        stored_raw = np.ascontiguousarray(transformed).tobytes(order="C")
+        stored_raw = np.ascontiguousarray(
+            transformed.view(np.uint8).reshape(-1, 4).T
+        ).tobytes(order="C")
     preimage = (
         _MAGIC
         + struct.pack("<Q", len(metadata_bytes))
@@ -272,14 +274,17 @@ def decode_array_shard(data: bytes) -> tuple[dict[str, Any], np.ndarray]:
         raise ValueError("causal evidence shard raw bytes drifted")
     transform = metadata.get("transform")
     expected_transform = (
-        f"uint32-xor-axis-{_XOR_TIME_AXES[name]}"
+        f"uint32-xor-axis-{_XOR_TIME_AXES[name]}-byte-shuffle4"
         if name in _XOR_TIME_AXES
         else "identity"
     )
     if transform != expected_transform:
         raise ValueError("causal evidence shard transform drifted")
     if name in _XOR_TIME_AXES:
-        encoded = np.frombuffer(raw, dtype=np.uint32).reshape(expected_shape)
+        shuffled = np.frombuffer(raw, dtype=np.uint8).reshape(4, -1)
+        encoded = np.ascontiguousarray(shuffled.T).reshape(-1).view(
+            np.uint32
+        ).reshape(expected_shape)
         restored = np.bitwise_xor.accumulate(
             encoded, axis=_XOR_TIME_AXES[name]
         )

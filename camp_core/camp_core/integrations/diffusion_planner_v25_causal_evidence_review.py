@@ -13,7 +13,7 @@ import numpy as np
 LOGICAL_SCHEMA_VERSION = "camp_dp_v25_bounded_causal_evidence_v1"
 REFERENCE_SCHEMA_VERSION = "camp_dp_v25_causal_evidence_shard_reference_v1"
 ARRAY_SCHEMA_VERSION = "camp_dp_v25_causal_evidence_array_v1"
-ARRAY_CODEC = "canonical-metadata-plus-bitexact-array-bytes-xz6-v2"
+ARRAY_CODEC = "canonical-metadata-plus-bitexact-array-bytes-xz6-v3"
 SHARD_DIRECTORY = "causal_evidence_shards"
 SHARD_SUFFIX = ".bin.xz"
 _MAGIC = b"CAMP-DP-V25-ARRAY-V1\x00"
@@ -134,7 +134,7 @@ def _decode_array_shard(
     shape, dtype = _ARRAY_CONTRACT[name]
     raw = preimage[metadata_end:]
     expected_transform = (
-        f"uint32-xor-axis-{_XOR_TIME_AXES[name]}"
+        f"uint32-xor-axis-{_XOR_TIME_AXES[name]}-byte-shuffle4"
         if name in _XOR_TIME_AXES
         else "identity"
     )
@@ -158,7 +158,10 @@ def _decode_array_shard(
     ):
         raise ValueError("causal evidence shard metadata or raw bytes drifted")
     if name in _XOR_TIME_AXES:
-        encoded = np.frombuffer(raw, dtype=np.uint32).reshape(shape)
+        shuffled = np.frombuffer(raw, dtype=np.uint8).reshape(4, -1)
+        encoded = np.ascontiguousarray(shuffled.T).reshape(-1).view(
+            np.uint32
+        ).reshape(shape)
         restored = np.bitwise_xor.accumulate(
             encoded, axis=_XOR_TIME_AXES[name]
         )
@@ -206,7 +209,7 @@ def independently_materialize_causal_evidence(
             or type(item.get("uncompressed_nbytes")) is not int
             or item.get("transform")
             != (
-                f"uint32-xor-axis-{_XOR_TIME_AXES[name]}"
+                f"uint32-xor-axis-{_XOR_TIME_AXES[name]}-byte-shuffle4"
                 if name in _XOR_TIME_AXES
                 else "identity"
             )
