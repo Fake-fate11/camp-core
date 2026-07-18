@@ -3787,3 +3787,112 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=46857494528
 current_v25_phase=A1_6_11_python_random_history_and_real_github_alignment_corrected_static_four_root_review_required_k8_closed
 next_work_target=ultra_read_only_A1_6_11_final_correction_review_before_bounded_execute_release
+
+## A1.6.11-R2 closeout and R3 interpreter qualification/static-root rebuild (2026-07-19 CST)
+
+Ultra formally closed A1.6.11-R2 as
+`fail_closed_stopped_before_test_execution`. Implementation source HEAD
+`0a07183913844dd9ab0c1e7c619c42be81c579ab` classifies the exact frozen probe
+template and fixed-DP args as external legacy JSON objects: both retain exact
+path/SHA/schema/value binding plus strict UTF-8, duplicate-key, nonfinite, and
+top-level-object checks, while CAMP-authored authority JSON remains canonical
+compact/sorted/single-LF. Local py_compile, diff-check, and the frozen focused
+scope passed 238 tests with five platform/source skips. The first R2 AutoDL
+invocation nevertheless used an unavailable bare `python` command and stopped
+before py_compile, pytest, the actual release-create entry, or any authority
+directory. R2 was never a PASS; its nonce
+`4c8cc2086d77cf5969fa0ce1bfc8d22305269f74b11fd8074869977a5d3a5d26`
+is permanently revoked unconsumed, and its exact release/execution/review
+directories remain absent.
+
+Ultra separately authorized the R3 environment-interpreter gate without a repo
+or schema change. The exact launcher
+`/root/autodl-tmp/dp312_venv/bin/python` exists and is executable, resolves to
+`/root/miniconda3/bin/python3.12`, and reported `sys.executable` as the launcher,
+`sys.prefix` as `/root/autodl-tmp/dp312_venv`, Python 3.12.3, and pytest 8.3.5.
+The same interpreter imported pytest, NumPy, Torch, and SciPy. The exact R3
+qualification then passed, followed serially by py_compile and the unchanged
+frozen AutoDL scope: 243 tests passed, including the actual temporary
+`create_diffusion_planner_v25_a163_bounded_release.py` entry through both
+external legacy assets, the four-root chain, execution assets, critical
+manifest, and decision construction. No package install, PATH change, new venv,
+interpreter search, nonce, model, simulator, candidate generation, K8, training,
+calibration, Scene/V2I, Fresh, or outcome access occurred.
+
+With CAMP source/pointer both still at `0a071839...` and fixed DP clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, the static package was rebuilt
+from identity0 and independently reviewed:
+
+- source census: `/root/autodl-tmp/camp_dp_v25_a1611r3_route_signal_source_census_0a071839_20260719T001726CST`, root `944f07399616f8870385827204ac2dcfef29637828e0a40112cb266a908aa3aa`;
+- source review: `/root/autodl-tmp/camp_dp_v25_a1611r3_route_signal_source_review_0a071839_20260719T001726CST`, root `4bef57a9bcea8b911cbbf3880f2c29d575b5fc1c9696e222a587eae675c1a989`;
+- bounded plan: `/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_plan_0a071839_20260719T001726CST`, root `27bc6cd53da17535ab573016102d26d6d21d26b951bb16739d56bc5c8720b7b8`;
+- bounded plan review: `/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_plan_review_0a071839_20260719T001726CST`, root `44453e0ad2220b29bbd9bb473d41f927429a6ed899cecb6c1e990f8c8bcf96f4`.
+
+The exact four-root verifier reopened the inventories, canonical JSON payloads,
+`run.exit=0`, HEADS, source rows, cross-links, ordered runs, and four tie proofs.
+Four-root binding SHA is
+`163c4fd7c67d924a27c7cf9b47ec986e915d3db1fe0f54ff10a7077fe344b5eb`.
+Counts remain 1,653 formal train identities, 1,500 executable, 153 retained,
+146 mapped signal, 1,354 no signal, 21 controlled override, 125 observe mode,
+zero source failures, 243 unique bounded identities, 244 ordered runs,
+identity0 at positions 0 and 243, and 15,616 prospective ticks. Worker/GPU
+counts remained zero, the shared lock was free, and free space was
+46,856,781,824 bytes. These new four roots remain machine-authority-ineligible
+until Ultra's final R3 release decision; bounded K8 remains closed.
+
+current_v25_status=v25_a1611_r3_static_source_plan_package_passed_ultra_final_release_review_required
+current_v25_source_head=0a07183913844dd9ab0c1e7c619c42be81c579ab
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_plan_0a071839_20260719T001726CST
+current_v25_artifact_root_sha256=27bc6cd53da17535ab573016102d26d6d21d26b951bb16739d56bc5c8720b7b8
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_plan_review_0a071839_20260719T001726CST
+current_v25_review_artifact_root_sha256=44453e0ad2220b29bbd9bb473d41f927429a6ed899cecb6c1e990f8c8bcf96f4
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_route_signal_source_census_0a071839_20260719T001726CST
+current_v25_r0_authority_source_artifact_root_sha256=944f07399616f8870385827204ac2dcfef29637828e0a40112cb266a908aa3aa
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_route_signal_source_review_0a071839_20260719T001726CST
+current_v25_r0_authority_source_review_artifact_root_sha256=4bef57a9bcea8b911cbbf3880f2c29d575b5fc1c9696e222a587eae675c1a989
+current_v25_a16_formal_train_identity_count=1653
+current_v25_a16_executable_identity_count=1500
+current_v25_a16_retained_identity_count=153
+current_v25_a16_mapped_signal_identity_count=146
+current_v25_a16_no_signal_identity_count=1354
+current_v25_a16_controlled_same_tick_override_count=21
+current_v25_a16_observe_same_tick_request_count=125
+current_v25_a16_source_failure_count=0
+current_v25_a162_unique_identity_count=243
+current_v25_a162_run_count=244
+current_v25_a162_snapshot_capacity=15616
+current_v25_a162_identity0_repeat_positions=0,243
+current_v25_a169_four_roots_machine_authority_eligible=false
+current_v25_a1611_release_schema=camp_dp_v25_ultra_a1610_bounded_execute_release_v8
+current_v25_a1611_device=cuda
+current_v25_a1611_four_root_bindings_sha256=163c4fd7c67d924a27c7cf9b47ec986e915d3db1fe0f54ff10a7077fe344b5eb
+current_v25_a1611_four_roots_machine_authority_eligible=false
+current_v25_a1611_local_targeted_test_result=238_passed_5_skipped
+current_v25_a1611_autodl_targeted_test_result=243_passed
+current_v25_a1611_r2_status=fail_closed_stopped_before_test_execution
+current_v25_a1611_r2_nonce_status=permanently_revoked_unconsumed
+current_v25_a1611_r3_interpreter=/root/autodl-tmp/dp312_venv/bin/python
+current_v25_a1611_r3_interpreter_realpath=/root/miniconda3/bin/python3.12
+current_v25_a1611_r3_python_version=3.12.3
+current_v25_a1611_r3_pytest_version=8.3.5
+current_v25_a1611_bounded_release_created=false
+current_v25_a1611_bounded_nonce_created=false
+current_v25_a1611_bounded_k8_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
+current_v25_full_r_authorized=false
+current_v25_monitor_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=46856781824
+current_v25_phase=A1_6_11_R3_interpreter_qualification_and_static_four_root_review_passed_k8_closed
+next_work_target=ultra_read_only_A1_6_11_R3_final_release_decision_before_bounded_execute
