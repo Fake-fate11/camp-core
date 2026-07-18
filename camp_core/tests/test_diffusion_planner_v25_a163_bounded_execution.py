@@ -11,6 +11,7 @@ import subprocess
 import sys
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 from camp_core.integrations.diffusion_planner_artifact_seal import (
@@ -32,9 +33,11 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
     verify_bounded_release,
 )
 from scripts.integrations import run_diffusion_planner_v25_a163_bounded_execution as runner
+from scripts.integrations import review_diffusion_planner_v25_a163_bounded_execution as post_reviewer
 
 
 ROOT = Path(__file__).resolve().parents[2]
+_TEST_EXECUTION_ASSETS = {"schema_version": "test_frozen_execution_assets_v1"}
 
 
 def _plan() -> dict:
@@ -92,6 +95,8 @@ def _decision(tmp_path: Path) -> tuple[dict, Path, Path, Path]:
         "dp_repo": str(dp_repo.resolve()),
         "probe_template": str(template.resolve()),
         "probe_template_sha256": hashlib.sha256(template.read_bytes()).hexdigest(),
+        "execution_assets": copy.deepcopy(_TEST_EXECUTION_ASSETS),
+        "execution_assets_sha256": canonical_sha256(_TEST_EXECUTION_ASSETS),
         "critical_implementation_manifest": manifest,
         "critical_implementation_manifest_sha256": canonical_sha256(manifest),
         "root_artifacts": roots,
@@ -136,6 +141,11 @@ def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     monkeypatch.setattr(authority, "verify_dual_head_contract", lambda **kwargs: {})
     monkeypatch.setattr(
         authority,
+        "verify_frozen_execution_assets",
+        lambda **kwargs: copy.deepcopy(_TEST_EXECUTION_ASSETS),
+    )
+    monkeypatch.setattr(
+        authority,
         "verify_four_root_chain",
         lambda **kwargs: {"verified": {}, "plan": _plan()},
     )
@@ -143,6 +153,11 @@ def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
         authority,
         "_git",
         lambda repo, *args: FIXED_DP_HEAD if args == ("rev-parse", "HEAD") else "",
+    )
+    monkeypatch.setattr(
+        authority,
+        "EXPECTED_PROBE_TEMPLATE_SHA256",
+        hashlib.sha256((tmp_path / "template.json").read_bytes()).hexdigest(),
     )
 
 
@@ -272,6 +287,35 @@ def test_release_authority_bindings_fail_closed(
         )
 
 
+@pytest.mark.parametrize("asset", ["template", "weights", "checkpoint", "args"])
+def test_self_consistent_alternate_execution_assets_fail_closed_before_nonce(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, asset: str
+) -> None:
+    decision, dp_repo, template, output = _decision(tmp_path)
+    decision["execution_assets"] = {
+        "schema_version": "self_consistent_but_alternate",
+        "asset": asset,
+    }
+    decision["execution_assets_sha256"] = canonical_sha256(
+        decision["execution_assets"]
+    )
+    release = tmp_path / "release"
+    root = _seal_release(release, decision)
+    _patch_release_dependencies(monkeypatch, tmp_path)
+    with pytest.raises(ValueError, match="asset|binding"):
+        verify_bounded_release(
+            repo=ROOT,
+            release_artifact=release,
+            release_root_sha256=root,
+            requested_output_dir=output,
+            current_pointer_head=decision["pointer_head_at_release"],
+            dp_repo=dp_repo,
+            probe_template=template,
+            consume=True,
+        )
+    assert not (tmp_path / "nonce-ledger").exists()
+
+
 def test_authority_fails_before_model_or_output(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -380,6 +424,567 @@ def test_run_evidence_is_derived_from_raw_snapshots_and_native_ticks() -> None:
     assert evidence["selected_index_sequence"] == [value % 8 for value in range(64)]
     assert len(evidence["closed_loop_trajectory_sha256"]) == 64
     assert len(evidence["speed_probe_sha256"]) == 64
+
+
+def _minimal_post_review_tick() -> tuple[dict, dict, dict, dict, np.ndarray, np.ndarray]:
+    candidate = np.zeros((8, 80, 4), dtype=np.float32)
+    candidate[:, :, 2] = 1.0
+    rows = [
+        hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
+        for value in candidate
+    ]
+    tensor_sha = hashlib.sha256(
+        np.ascontiguousarray(candidate).tobytes()
+    ).hexdigest()
+    atoms = np.zeros((8, 14), dtype=np.float64)
+    normalized_sha = hashlib.sha256(
+        np.ascontiguousarray(atoms).tobytes()
+    ).hexdigest()
+    scenario_id = "1" * 64
+    semantic_sha = "2" * 64
+    source_row = {
+        "scenario_id": scenario_id,
+        "family": "lead_vehicle_hard_brake",
+        "tier": "easy",
+        "seed": 25001,
+        "route_identity_sha256": "3" * 64,
+        "source_map_sha256": "4" * 64,
+        "source_class": "no_signal",
+        "phase_authority_mode": None,
+        "source_chain": {"semantic_clone_sha256": semantic_sha},
+    }
+    run = {
+        "run_ordinal": 0,
+        "occurrence": "identity0_first",
+        "scenario_id": scenario_id,
+    }
+    payload = {
+        "schema_version": post_reviewer.SNAPSHOT_SCHEMA_VERSION,
+        "feature_payload": {
+            "atom_matrix": atoms.tolist(),
+            "source_valid_mask": [True] * 8,
+            "atom_source_valid_mask": [[True] * 14 for _ in range(8)],
+            "atom_applicable_mask": [
+                [column not in (10, 12) for column in range(14)] for _ in range(8)
+            ],
+            "physical_feasible_mask": [False] * 8,
+            "candidate_row_sha256": rows,
+            "candidate_tensor": candidate.tolist(),
+            "default_output": candidate[0].tolist(),
+            "raw_context": {},
+            "context_source_complete": {},
+        },
+        "sidecar": {
+            "tick_index": 0,
+            "dt_s": 0.1,
+            "scenario_id": scenario_id,
+            "family": source_row["family"],
+            "tier": source_row["tier"],
+            "parameter_block_id": "fixture",
+            "route_identity_sha256": source_row["route_identity_sha256"],
+            "corridor_group_sha256": "5" * 64,
+            "map_family_id": "fixture-map",
+            "source_map_sha256": source_row["source_map_sha256"],
+            "seed": 25001,
+            "candidate_tensor_sha256_before": tensor_sha,
+            "candidate_tensor_sha256_after": tensor_sha,
+            "default_output_sha256": rows[0],
+            "candidate0_sha256": rows[0],
+            "default_candidate0_identity": {
+                "elementwise_equal": True,
+                "max_abs_difference": 0.0,
+                "default_output_sha256": rows[0],
+                "candidate0_sha256": rows[0],
+                "native_ranked_k8": False,
+            },
+            "candidate0_semantics": "operational_default_alias_from_same_forward",
+            "candidate0_independent_second_forward": False,
+            "causal_input_sha256": "6" * 64,
+            "physical_feasible_mask": [False] * 8,
+            "source_valid_mask": [True] * 8,
+            "all_k_high_risk": True,
+            "selected_index": 0,
+            "selected_trajectory_sha256": rows[0],
+            "scores": [0.0] * 8,
+            "score_contract": "score_k=clip(a_k/s,0,10)^T w",
+            "tie_break_contract": "lowest_eligible_candidate_index",
+            "normalized_atom_matrix_sha256": normalized_sha,
+            "context_schema_version": "camp_dp_v25_causal_context_raw_v2",
+            "context_source_receipt": {},
+            "generation_behavior_scale_sha256": "7" * 64,
+            "canonical_semantic_clone_sha256": semantic_sha,
+            "route_signal_source_artifact_root_sha256": "8" * 64,
+            "route_signal_source_row_sha256": post_reviewer._sha(source_row),
+            "signal_source_class": "no_signal",
+            "phase_authority_mode": None,
+            "controlled_signal_source_receipt": {},
+            "controlled_signal_tensor_evidence": None,
+            "controlled_model_input_cache_receipt": {},
+            "causal_signal_atom_input": {},
+            "offline_label_provenance": "pending_train_only_causal_label",
+            "outcome_fields_consumed": [],
+            "fresh_b_opened": False,
+            "run_ordinal": 0,
+            "occurrence": "identity0_first",
+        },
+    }
+    return payload, run, source_row, {}, np.ones(14), np.ones(14) / 14.0
+
+
+def _patch_post_tick_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        post_reviewer,
+        "_validate_signal_receipts",
+        lambda **kwargs: {"current_phase": "none"},
+    )
+    monkeypatch.setattr(post_reviewer, "_validate_causal_signal", lambda **kwargs: {})
+    monkeypatch.setattr(post_reviewer, "_validate_context", lambda **kwargs: None)
+    monkeypatch.setattr(post_reviewer, "_validate_cache", lambda **kwargs: None)
+    monkeypatch.setattr(
+        post_reviewer,
+        "_independent_red_stopping_oracle",
+        lambda *args, **kwargs: np.zeros(8),
+    )
+    monkeypatch.setattr(
+        post_reviewer, "_validate_native_cross_binding", lambda **kwargs: None
+    )
+
+
+def test_post_reviewer_accepts_nonempty_all_k_physically_bad_source_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_post_tick_dependencies(monkeypatch)
+    payload, run, source_row, native, scales, weights = _minimal_post_review_tick()
+    reviewed = post_reviewer._review_tick(
+        payload=payload,
+        run=run,
+        tick_index=0,
+        source_row=source_row,
+        source_root_sha256="8" * 64,
+        native_tick=native,
+        scales=scales,
+        weights=weights,
+        scale_sha256="7" * 64,
+    )
+    assert reviewed["selected"] == 0
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "all_source_false",
+        "none_source_mask",
+        "numeric_source_mask",
+        "string_source_mask",
+        "feature_sidecar_mismatch",
+        "physical_not_source_subset",
+        "bad_heading",
+        "source_root_swap",
+        "source_row_swap",
+    ],
+)
+def test_post_reviewer_mask_and_fixed_k8_mutations_fail_closed(
+    monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    _patch_post_tick_dependencies(monkeypatch)
+    payload, run, source_row, native, scales, weights = _minimal_post_review_tick()
+    source_root = "8" * 64
+    feature = payload["feature_payload"]
+    sidecar = payload["sidecar"]
+    if mutation == "all_source_false":
+        feature["source_valid_mask"] = [False] * 8
+        feature["atom_source_valid_mask"] = [[False] * 14 for _ in range(8)]
+        sidecar["source_valid_mask"] = [False] * 8
+        sidecar["all_k_high_risk"] = False
+    elif mutation == "none_source_mask":
+        feature["source_valid_mask"] = None
+    elif mutation == "numeric_source_mask":
+        feature["source_valid_mask"][0] = 1
+    elif mutation == "string_source_mask":
+        feature["source_valid_mask"][0] = "true"
+    elif mutation == "feature_sidecar_mismatch":
+        sidecar["source_valid_mask"][0] = False
+    elif mutation == "physical_not_source_subset":
+        feature["source_valid_mask"][0] = False
+        feature["atom_source_valid_mask"][0] = [False] * 14
+        sidecar["source_valid_mask"][0] = False
+        feature["physical_feasible_mask"][0] = True
+        sidecar["physical_feasible_mask"][0] = True
+        sidecar["all_k_high_risk"] = False
+    elif mutation == "bad_heading":
+        feature["candidate_tensor"][0][0][2] = 0.0
+    elif mutation == "source_root_swap":
+        source_root = "9" * 64
+    else:
+        source_row["scenario_id"] = "9" * 64
+    with pytest.raises(ValueError):
+        post_reviewer._review_tick(
+            payload=payload,
+            run=run,
+            tick_index=0,
+            source_row=source_row,
+            source_root_sha256=source_root,
+            native_tick=native,
+            scales=scales,
+            weights=weights,
+            scale_sha256="7" * 64,
+        )
+
+
+def test_post_reviewer_independent_red_atom_oracle_detects_mutation() -> None:
+    candidate = np.zeros((8, 80, 4), dtype=np.float64)
+    candidate[:, :, 0] = np.linspace(0.0, 15.8, 80)
+    candidate[:, :, 2] = 1.0
+    causal = {
+        "applicable": True,
+        "stop_line_geometry_ego_m": [[10.0, -1.0], [10.0, 1.0]],
+        "route_tangent_ego": [1.0, 0.0],
+    }
+    expected = post_reviewer._independent_red_stopping_oracle(candidate, causal, 0.1)
+    assert np.all(expected > 0.0)
+    mutated = expected.copy()
+    mutated[0] += 1e-3
+    assert not np.allclose(mutated, expected, rtol=0.0, atol=1e-12)
+
+
+def _semantic_fixture(*, mapped: bool) -> dict:
+    payload = {
+        "schema_version": "camp_dp_v25_semantic_clone_payload_v3",
+        "family": "red_light_phase_timing" if mapped else "lead_vehicle_hard_brake",
+        "tier": "easy",
+        "semantic_variant": "fixture",
+        "parameters": {},
+        "actors": [],
+        "signal": {
+            "current_phase": "none",
+            "mapped_source_required": mapped,
+            "source_mode": "no_v2i",
+        },
+        "route_polyline_local_m": [[float(index), 0.0] for index in range(64)],
+    }
+    if mapped:
+        payload["stop_line_local_m"] = [[10.0, -1.0], [10.0, 1.0]]
+    return payload
+
+
+def _mapped_source_and_tick(phase: str = "red") -> tuple[dict, dict]:
+    semantic = _semantic_fixture(mapped=True)
+    stop = [[10.0, -1.0], [10.0, 1.0]]
+    chain = {
+        "schema_version": "camp_dp_v25_family_independent_mapped_signal_source_chain_v1",
+        "scenario_id": "a" * 64,
+        "route_identity_sha256": "b" * 64,
+        "source_map_sha256": "c" * 64,
+        "phase_authority_mode": "observe_same_tick_request",
+        "expected_current_phase": None,
+        "formal_phase": "none",
+        "formal_mapped_source_required": False,
+        "formal_route_mapped_traffic_light": True,
+        "phase_remaining_available": False,
+        "regulatory_element_ids": [101],
+        "physical_light_ids": [201],
+        "bulb_ids": [301, 302, 303],
+        "controlled_lanelet_ids": [11],
+        "route_lanelet_ids": [10, 11],
+        "route_geometry_sha256": post_reviewer._sha(
+            {
+                "route_polyline_local_m": semantic["route_polyline_local_m"],
+                "stop_line_local_m": semantic["stop_line_local_m"],
+            }
+        ),
+        "stop_line_id": 401,
+        "stop_line_geometry_m": stop,
+        "stop_line_geometry_sha256": post_reviewer._sha(stop),
+        "stop_line_route_distance_m": 0.01,
+        "route_arc_m": 10.0,
+        "route_length_m": 63.0,
+        "route_tangent_world": [1.0, 0.0],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": post_reviewer._sha(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = post_reviewer._sha(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    column = {"green": 0, "yellow": 1, "red": 2}[phase]
+    vector = [0.0] * 5
+    vector[column] = 1.0
+    route_rows = [{"lanelet_id": 11, "signal_channels_8_12": [vector] * 20}]
+    map_rows = copy.deepcopy(route_rows)
+    receipt = {
+        "schema_version": "camp_dp_v25_family_independent_current_signal_receipt_v1",
+        "scenario_id": chain["scenario_id"],
+        "tick_index": 0,
+        "phase_authority_mode": "observe_same_tick_request",
+        "current_phase": phase,
+        "decision_timestamp_s": 0.0,
+        "source_timestamp_s": 0.0,
+        "source_age_s": 0.0,
+        "freshness": "same_tick",
+        "source_id": "fixed_dp_current_request_route_map_signal_one_hot",
+        "regulatory_element_id": 101,
+        "physical_light_ids": [201],
+        "bulb_ids": [301, 302, 303],
+        "controlled_lanelet_ids": [11],
+        "stop_line_id": 401,
+        "stop_line_geometry_sha256": chain["stop_line_geometry_sha256"],
+        "route_geometry_sha256": chain["route_geometry_sha256"],
+        "route_arc_m": 10.0,
+        "source_chain_sha256": chain["source_chain_sha256"],
+        "observed_route_lanelet_ids": [11],
+        "observed_map_lanelet_ids": [11],
+        "route_signal_tensor_sha256": post_reviewer._sha(route_rows),
+        "map_signal_tensor_sha256": post_reviewer._sha(map_rows),
+        "phase_remaining_available": False,
+        "source_valid": True,
+        "applicable": phase == "red",
+    }
+    evidence = {
+        "schema_version": "camp_dp_v25_production_signal_tensor_evidence_v2",
+        "tick_index": 0,
+        "decision_timestamp_s": 0.0,
+        "source_timestamp_s": 0.0,
+        "route_signal_rows": route_rows,
+        "map_signal_rows": map_rows,
+        "current_phase": phase,
+        "route_signal_tensor_sha256": receipt["route_signal_tensor_sha256"],
+        "map_signal_tensor_sha256": receipt["map_signal_tensor_sha256"],
+        "future_schedule_consumed": False,
+        "phase_remaining_available": False,
+    }
+    source_row = {
+        "scenario_id": chain["scenario_id"],
+        "formal_case_sha256": "d" * 64,
+        "runner_eligible": True,
+        "retention_role": "executable",
+        "family": "red_light_phase_timing",
+        "tier": "easy",
+        "seed": 25001,
+        "source_map_sha256": chain["source_map_sha256"],
+        "route_identity_sha256": chain["route_identity_sha256"],
+        "actual_mapped_signal": True,
+        "id_free_tensor_layout": {},
+        "source_class": "mapped_signal",
+        "phase_authority_mode": "observe_same_tick_request",
+        "source_chain": chain,
+        "runtime_receipt": receipt,
+        "tensor_evidence": evidence,
+    }
+    causal = {
+        "schema_version": "camp_dp_v25_causal_signal_atom_input_v2",
+        "source_state": "available",
+        "source_valid": True,
+        "applicable": phase == "red",
+        "current_phase": phase,
+        "decision_time_s": 0.0,
+        "ego_position_world_m": [0.0, 0.0],
+        "ego_heading_rad": 0.0,
+        "regulatory_element_id": 101,
+        "stop_line_id": 401,
+        "stop_line_geometry_world_m": stop,
+        "stop_line_geometry_ego_m": stop,
+        "stop_line_geometry_sha256": chain["stop_line_geometry_sha256"],
+        "route_tangent_world": [1.0, 0.0],
+        "route_tangent_ego": [1.0, 0.0],
+        "route_geometry_sha256": chain["route_geometry_sha256"],
+        "route_arc_m": 10.0,
+        "source_chain_sha256": chain["source_chain_sha256"],
+        "runtime_receipt": receipt,
+        "runtime_receipt_sha256": post_reviewer._sha(receipt),
+    }
+    sidecar = {
+        "signal_source_class": "mapped_signal",
+        "phase_authority_mode": "observe_same_tick_request",
+        "controlled_signal_source_receipt": receipt,
+        "controlled_signal_tensor_evidence": evidence,
+        "causal_signal_atom_input": causal,
+    }
+    return source_row, sidecar
+
+
+def test_post_reviewer_independently_validates_mapped_source_chain_and_red_input() -> None:
+    source_row, sidecar = _mapped_source_and_tick("red")
+    assert post_reviewer._validate_source_row(source_row) is source_row
+    receipt = post_reviewer._validate_signal_receipts(
+        sidecar=sidecar, source_row=source_row, tick_index=0
+    )
+    causal = post_reviewer._validate_causal_signal(
+        sidecar=sidecar, source_row=source_row, receipt=receipt
+    )
+    assert causal["stop_line_geometry_sha256"] == source_row["source_chain"][
+        "stop_line_geometry_sha256"
+    ]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["timestamp", "phase", "tensor", "stopline", "route", "future", "missing"],
+)
+def test_post_reviewer_mapped_receipt_mutations_fail_closed(mutation: str) -> None:
+    source_row, sidecar = _mapped_source_and_tick("red")
+    receipt = sidecar["controlled_signal_source_receipt"]
+    evidence = sidecar["controlled_signal_tensor_evidence"]
+    if mutation == "timestamp":
+        receipt["source_timestamp_s"] = 0.1
+    elif mutation == "phase":
+        evidence["current_phase"] = "green"
+    elif mutation == "tensor":
+        evidence["route_signal_rows"][0]["signal_channels_8_12"][0][2] = 0.0
+    elif mutation == "stopline":
+        receipt["stop_line_geometry_sha256"] = "e" * 64
+    elif mutation == "route":
+        receipt["route_geometry_sha256"] = "e" * 64
+    elif mutation == "future":
+        evidence["future_schedule"] = ["red", "green"]
+    else:
+        receipt.pop("freshness")
+    with pytest.raises(ValueError):
+        post_reviewer._validate_signal_receipts(
+            sidecar=sidecar, source_row=source_row, tick_index=0
+        )
+
+
+def test_post_reviewer_context_rejects_phase_remaining_and_extra_fields() -> None:
+    _, sidecar = _mapped_source_and_tick("green")
+    sidecar["context_schema_version"] = "camp_dp_v25_causal_context_raw_v2"
+    sidecar["context_source_receipt"] = {
+        "mode": "no_v2i",
+        "phase_remaining_available": False,
+        "regulatory_signal_mapped": True,
+    }
+    raw = {name: 0.0 for name in post_reviewer.RAW_CONTEXT_NAMES}
+    raw["traffic_phase_green"] = 1.0
+    complete = {name: True for name in post_reviewer.RAW_CONTEXT_NAMES}
+    complete["traffic_signal_phase_remaining_s"] = False
+    feature = {"raw_context": raw, "context_source_complete": complete}
+    receipt = sidecar["controlled_signal_source_receipt"]
+    post_reviewer._validate_context(feature=feature, sidecar=sidecar, receipt=receipt)
+    for mutation in ("phase_remaining", "extra", "numeric_source"):
+        changed = copy.deepcopy(feature)
+        if mutation == "phase_remaining":
+            changed["raw_context"]["traffic_signal_phase_remaining_s"] = 1.0
+        elif mutation == "extra":
+            changed["raw_context"]["route_id"] = 1.0
+        else:
+            changed["context_source_complete"]["ego_speed_mps"] = 1
+        with pytest.raises(ValueError):
+            post_reviewer._validate_context(
+                feature=changed, sidecar=sidecar, receipt=receipt
+            )
+
+
+def _native_cross_fixture() -> tuple[dict, dict, dict, np.ndarray, np.ndarray, list[str], str]:
+    payload, _, _, _, scales, weights = _minimal_post_review_tick()
+    feature = payload["feature_payload"]
+    sidecar = payload["sidecar"]
+    candidate = np.asarray(feature["candidate_tensor"], dtype=np.float32)
+    atoms = np.asarray(feature["atom_matrix"], dtype=np.float64)
+    normalized = np.clip(atoms / scales.reshape(1, 14), 0.0, 10.0)
+    scores = normalized @ weights
+    rows = feature["candidate_row_sha256"]
+    tensor_sha = sidecar["candidate_tensor_sha256_before"]
+    native = {
+        "tick_index": 0,
+        "input_sha256": sidecar["causal_input_sha256"],
+        "candidate_tensor_sha256_before": tensor_sha,
+        "candidate_tensor_sha256_after": tensor_sha,
+        "candidate_row_sha256": copy.deepcopy(rows),
+        "default_output_sha256": rows[0],
+        "selected_trajectory_sha256": rows[0],
+        "selected_index": 0,
+        "scores": scores.tolist(),
+        "selection_policy": "v22_source_valid",
+        "score_contract": "score_k=clip(a_k/s,0,10)^T w",
+        "eligibility_mask_name": "source_valid_mask",
+        "tie_break_contract": "lowest_eligible_candidate_index",
+        "all_k_high_risk": True,
+        "source_valid_mask": [True] * 8,
+        "physical_feasible_mask": [False] * 8,
+        "default_candidate0_identity": copy.deepcopy(
+            sidecar["default_candidate0_identity"]
+        ),
+        "atom_matrix_sha256": hashlib.sha256(
+            np.ascontiguousarray(atoms).tobytes()
+        ).hexdigest(),
+        "normalized_atom_matrix_sha256": hashlib.sha256(
+            np.ascontiguousarray(normalized).tobytes()
+        ).hexdigest(),
+    }
+    return native, feature, sidecar, candidate, atoms, rows, tensor_sha
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["candidate", "atom", "score", "mask", "selected", "trajectory"],
+)
+def test_post_reviewer_native_snapshot_cross_binding_mutations_fail_closed(
+    mutation: str,
+) -> None:
+    native, feature, sidecar, candidate, atoms, rows, tensor_sha = _native_cross_fixture()
+    normalized = atoms.copy()
+    scores = np.zeros(8, dtype=np.float64)
+    if mutation == "candidate":
+        native["candidate_row_sha256"][0] = "f" * 64
+    elif mutation == "atom":
+        native["atom_matrix_sha256"] = "f" * 64
+    elif mutation == "score":
+        native["scores"][0] = 1.0
+    elif mutation == "mask":
+        native["source_valid_mask"][0] = False
+    elif mutation == "selected":
+        native["selected_index"] = 1
+    else:
+        native["selected_trajectory_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="native/snapshot"):
+        post_reviewer._validate_native_cross_binding(
+            native_tick=native,
+            tick_index=0,
+            feature=feature,
+            sidecar=sidecar,
+            candidate=candidate,
+            atoms=atoms,
+            normalized=normalized,
+            scores=scores,
+            row_shas=rows,
+            tensor_sha=tensor_sha,
+        )
+
+
+def test_post_reviewer_cache_schema_and_mode_are_exact() -> None:
+    source_row, _ = _mapped_source_and_tick("green")
+    digest = "9" * 64
+    sidecar = {
+        "controlled_model_input_cache_receipt": {
+            "schema_version": "camp_dp_v25_model_input_signal_cache_receipt_v1",
+            "scenario_id": source_row["scenario_id"],
+            "tick_index": 0,
+            "signal_source_class": "mapped_signal",
+            "phase_authority_mode": "observe_same_tick_request",
+            "scene_map_tl_sha256": digest,
+            "model_cache_tl_sha256_before": digest,
+            "model_cache_tl_sha256_after": digest,
+            "model_route_lanes_tl_sha256": "8" * 64,
+            "cache_matches_scene_after": True,
+            "observe_cache_unchanged": True,
+            "sync_applied_before_tensor_conversion": True,
+            "future_schedule_consumed": False,
+            "phase_remaining_available": False,
+        }
+    }
+    post_reviewer._validate_cache(sidecar=sidecar, source_row=source_row, tick_index=0)
+    for mutation in ("missing", "extra", "mismatch"):
+        changed = copy.deepcopy(sidecar)
+        cache = changed["controlled_model_input_cache_receipt"]
+        if mutation == "missing":
+            cache.pop("model_route_lanes_tl_sha256")
+        elif mutation == "extra":
+            cache["future_schedule"] = []
+        else:
+            cache["model_cache_tl_sha256_after"] = "7" * 64
+        with pytest.raises(ValueError):
+            post_reviewer._validate_cache(
+                sidecar=changed, source_row=source_row, tick_index=0
+            )
 
 
 def test_failure_path_is_sealed_and_releases_lock(

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create an Ultra-specified one-shot A1.6.3 bounded execute release."""
+"""Create an Ultra-specified one-shot A1.6.4 bounded execute release."""
 
 from __future__ import annotations
 
@@ -101,7 +101,7 @@ def main(argv: list[str] | None = None) -> None:
         " ".join(sys.argv) + "\n", encoding="utf-8"
     )
     (args.output_dir / "run.exit").write_bytes(b"0\n")
-    root = seal_artifact(args.output_dir, label="V25 A1.6.3 bounded release")
+    root = seal_artifact(args.output_dir, label="V25 A1.6.4 bounded release")
     print(json.dumps({**decision, "artifact_root_sha256": root}, sort_keys=True))
 
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.3 bounded K8 execution."""
+"""Independently review a sealed A1.6.4 bounded K8 execution."""
 
 from __future__ import annotations
 
@@ -26,22 +26,110 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     verify_complete_seal,
 )
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
-    EXPECTED_RUNS,
-    EXPECTED_TICKS,
-    EXPECTED_UNIQUE_IDENTITIES,
-    FIXED_DP_HEAD,
-    NONCE_LEDGER,
-    RELEASE_GATE,
     verify_bounded_release,
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a163_bounded_execution_review_v1"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_execution_v1"
+SCHEMA_VERSION = "camp_dp_v25_a164_bounded_execution_review_v2"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a164_bounded_execution_v2"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_v1"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
+FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+EXPECTED_UNIQUE_IDENTITIES = 243
+EXPECTED_RUNS = 244
+EXPECTED_TICKS = 15616
+RELEASE_GATE = "a164_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a164_bounded_execute_nonces")
+EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
+EXPECTED_PROBE_TEMPLATE = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_"
+    "a53d6ee3_20260715T204719CST/prepared/probe_config.json"
+)
+EXPECTED_PROBE_TEMPLATE_SHA256 = (
+    "1e734165f7a614e93019df0a5c22b5e36722298cb50b21c5ce8fd0e4e2cf82bc"
+)
+EXPECTED_PROBE_TEMPLATE_SCHEMA_VERSION = "camp_dp_v24_single_record_source_probe_v1"
+EXPECTED_GENERATION_SCALES = {
+    "path": (
+        "/root/autodl-tmp/camp_core/configs/integrations/"
+        "diffusion_planner_v25_atom_scales_correction_v2.json"
+    ),
+    "sha256": "e844d159dc6c9c21b099084f5a46bf90fb77ca92571749f529e61e08814fe316",
+}
+EXPECTED_STATIC_WEIGHTS = {
+    "path": (
+        "/root/autodl-tmp/"
+        "camp_dp_v18_nuplan_causal_10k_static_14d_train_calibrate_"
+        "79c9570b_0c22f85e/models/corrected14d_weights.npy"
+    ),
+    "sha256": "922ae11db719a2bda983bccf0c6bca842c37a899c4df222a1f7a5ac733285134",
+}
+EXPECTED_STATIC_WEIGHT_VALUES = (
+    0.10947278201682221,
+    4.5339121051258635e-14,
+    4.436657731585812e-14,
+    0.33777087074295037,
+    7.284723165939581e-10,
+    0.0,
+    0.0,
+    0.0,
+    0.34158690923521606,
+    0.10033962151340078,
+    0.0,
+    0.1108291578563568,
+    6.579066917788303e-07,
+    0.0,
+)
+EXPECTED_FIXED_DP_CHECKPOINT = {
+    "path": "/root/autodl-tmp/camp_dp_assets/diffusion_planner.pth",
+    "sha256": "4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75",
+}
+EXPECTED_FIXED_DP_ARGS = {
+    "path": (
+        "/root/autodl-tmp/"
+        "camp_dp_v18_nuplan_mini_smoke_split_candidate_preflight_"
+        "20260710T220921CST/fixed_dp_args.json"
+    ),
+    "sha256": "42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa",
+}
+EXPECTED_DP_NATIVE_SOURCE_SHA256 = {
+    "scenario_generation/mpc_tracker.py": "bf2fdc6398898a42eda4ab3d12045c5204eb5ce8a993dbf96feee975de04395a",
+    "scenario_generation/replay.py": "92158e32f8e2626a20aeee1783501d1afad228f06d5948f3426716d93320c5eb",
+    "scenario_generation/simulate.py": "de4542fbc8685718379dbf0626499113d8bca6f7dead1c4456d2d34ffd0b9e4e",
+    "scenario_generation/tensor_converter.py": "af0a087dcfa910e5f0ad4732c5d1ebabb2fe5c41d2d61a4aa7aaf0f4351d36a7",
+    "scenario_generation/traffic_light.py": "5a1659fe753102c514528c0bd93c261124bdf8de11bbc00ba5b941c151956af4",
+}
+RAW_CONTEXT_NAMES = (
+    "ego_speed_mps",
+    "ego_longitudinal_acceleration_mps2",
+    "ego_lateral_acceleration_mps2",
+    "ego_yaw_rate_radps",
+    "route_curvature_mean_abs_radpm",
+    "route_curvature_max_abs_radpm",
+    "route_lane_width_min_m",
+    "route_lane_width_p50_m",
+    "route_speed_limit_min_mps",
+    "route_speed_limit_current_mps",
+    "traffic_phase_red",
+    "traffic_phase_yellow",
+    "traffic_phase_green",
+    "traffic_phase_unknown",
+    "traffic_signal_distance_m",
+    "traffic_signal_phase_remaining_s",
+    "neighbor_count",
+    "neighbor_min_distance_m",
+    "neighbor_min_ttc_s",
+    "neighbor_closing_speed_mps",
+    "neighbor_lateral_gap_min_m",
+    "candidate_consensus_rms_median_m",
+    "candidate_consensus_rms_mad_m",
+    "candidate_endpoint_xy_std_m",
+    "candidate_progress_std_m",
+    "candidate_source_valid_fraction",
+)
 RESULT_FIELDS = {
     "schema_version",
     "run_ordinal",
@@ -152,6 +240,192 @@ SIDECAR_FIELDS = {
     "run_ordinal",
     "occurrence",
 }
+SOURCE_ROW_FIELDS = {
+    "scenario_id",
+    "formal_case_sha256",
+    "runner_eligible",
+    "retention_role",
+    "family",
+    "tier",
+    "seed",
+    "source_map_sha256",
+    "route_identity_sha256",
+    "actual_mapped_signal",
+    "id_free_tensor_layout",
+    "source_class",
+    "phase_authority_mode",
+    "source_chain",
+    "runtime_receipt",
+    "tensor_evidence",
+}
+MAPPED_CHAIN_FIELDS = {
+    "schema_version",
+    "scenario_id",
+    "route_identity_sha256",
+    "source_map_sha256",
+    "phase_authority_mode",
+    "expected_current_phase",
+    "formal_phase",
+    "formal_mapped_source_required",
+    "formal_route_mapped_traffic_light",
+    "phase_remaining_available",
+    "regulatory_element_ids",
+    "physical_light_ids",
+    "bulb_ids",
+    "controlled_lanelet_ids",
+    "route_lanelet_ids",
+    "route_geometry_sha256",
+    "stop_line_id",
+    "stop_line_geometry_m",
+    "stop_line_geometry_sha256",
+    "stop_line_route_distance_m",
+    "route_arc_m",
+    "route_length_m",
+    "route_tangent_world",
+    "semantic_clone_payload",
+    "semantic_clone_sha256",
+    "source_chain_sha256",
+}
+NO_SIGNAL_CHAIN_FIELDS = {
+    "schema_version",
+    "scenario_id",
+    "route_identity_sha256",
+    "source_map_sha256",
+    "route_lanelet_ids",
+    "route_geometry_sha256",
+    "traffic_light_regulatory_element_ids",
+    "semantic_clone_payload",
+    "semantic_clone_sha256",
+    "source_chain_sha256",
+}
+MAPPED_RECEIPT_FIELDS = {
+    "schema_version",
+    "scenario_id",
+    "tick_index",
+    "phase_authority_mode",
+    "current_phase",
+    "decision_timestamp_s",
+    "source_timestamp_s",
+    "source_age_s",
+    "freshness",
+    "source_id",
+    "regulatory_element_id",
+    "physical_light_ids",
+    "bulb_ids",
+    "controlled_lanelet_ids",
+    "stop_line_id",
+    "stop_line_geometry_sha256",
+    "route_geometry_sha256",
+    "route_arc_m",
+    "source_chain_sha256",
+    "observed_route_lanelet_ids",
+    "observed_map_lanelet_ids",
+    "route_signal_tensor_sha256",
+    "map_signal_tensor_sha256",
+    "phase_remaining_available",
+    "source_valid",
+    "applicable",
+}
+SIGNAL_TENSOR_FIELDS = {
+    "schema_version",
+    "tick_index",
+    "decision_timestamp_s",
+    "source_timestamp_s",
+    "route_signal_rows",
+    "map_signal_rows",
+    "current_phase",
+    "route_signal_tensor_sha256",
+    "map_signal_tensor_sha256",
+    "future_schedule_consumed",
+    "phase_remaining_available",
+}
+NO_SIGNAL_RECEIPT_FIELDS = {
+    "schema_version",
+    "scenario_id",
+    "tick_index",
+    "decision_time_s",
+    "source_mode",
+    "current_phase",
+    "route_geometry_sha256",
+    "route_lanelet_ids",
+    "traffic_light_regulatory_element_ids",
+    "source_chain_sha256",
+    "semantic_clone_sha256",
+    "phase_remaining_available",
+    "source_valid",
+    "applicable",
+}
+CAUSAL_SIGNAL_FIELDS = {
+    "schema_version",
+    "source_state",
+    "source_valid",
+    "applicable",
+    "current_phase",
+    "decision_time_s",
+    "ego_position_world_m",
+    "ego_heading_rad",
+    "regulatory_element_id",
+    "stop_line_id",
+    "stop_line_geometry_world_m",
+    "stop_line_geometry_ego_m",
+    "stop_line_geometry_sha256",
+    "route_tangent_world",
+    "route_tangent_ego",
+    "route_geometry_sha256",
+    "route_arc_m",
+    "source_chain_sha256",
+    "runtime_receipt",
+    "runtime_receipt_sha256",
+}
+CACHE_RECEIPT_FIELDS = {
+    "schema_version",
+    "scenario_id",
+    "tick_index",
+    "signal_source_class",
+    "phase_authority_mode",
+    "scene_map_tl_sha256",
+    "model_cache_tl_sha256_before",
+    "model_cache_tl_sha256_after",
+    "model_route_lanes_tl_sha256",
+    "cache_matches_scene_after",
+    "observe_cache_unchanged",
+    "sync_applied_before_tensor_conversion",
+    "future_schedule_consumed",
+    "phase_remaining_available",
+}
+DEFAULT_IDENTITY_FIELDS = {
+    "elementwise_equal",
+    "max_abs_difference",
+    "default_output_sha256",
+    "candidate0_sha256",
+    "native_ranked_k8",
+}
+SEMANTIC_REQUIRED_FIELDS = {
+    "schema_version",
+    "family",
+    "tier",
+    "semantic_variant",
+    "parameters",
+    "actors",
+    "signal",
+    "route_polyline_local_m",
+}
+SEMANTIC_ACTOR_FIELDS = {
+    "agent_type",
+    "initial_xy_local_m",
+    "initial_heading_local_unit",
+    "route_tangent_local",
+    "route_normal_local",
+    "trigger_time_s",
+    "longitudinal_speed_mps",
+    "lateral_offset_m",
+    "lateral_speed_mps",
+    "lateral_target_m",
+    "longitudinal_acceleration_mps2",
+    "length_m",
+    "width_m",
+    "wheelbase_m",
+}
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -211,6 +485,751 @@ def _native_number(value: Any, *, label: str) -> float:
     return float(value)
 
 
+def _is_sha256(value: Any) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _strict_equal(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return set(left) == set(right) and all(
+            _strict_equal(left[key], right[key]) for key in left
+        )
+    if type(left) is list:
+        return len(left) == len(right) and all(
+            _strict_equal(a, b) for a, b in zip(left, right)
+        )
+    return left == right
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _exact_asset(contract: Mapping[str, Any], *, label: str) -> Path:
+    if type(contract) is not dict or set(contract) != {"path", "sha256"}:
+        raise ValueError(f"{label} contract drifted")
+    path = Path(contract["path"])
+    if (
+        not path.is_absolute()
+        or str(path) != str(path.resolve())
+        or path.is_symlink()
+        or not path.is_file()
+        or _file_sha256(path) != contract["sha256"]
+    ):
+        raise ValueError(f"{label} path/bytes drifted")
+    return path
+
+
+def _independent_execution_assets(
+    *, repo: Path, dp_repo: Path, probe_template: Path
+) -> tuple[dict[str, Any], np.ndarray, np.ndarray, str]:
+    if (
+        str(repo.resolve()) != "/root/autodl-tmp/camp_core"
+        or not dp_repo.is_absolute()
+        or str(dp_repo) != str(EXPECTED_DP_REPO)
+        or dp_repo.is_symlink()
+        or dp_repo.resolve() != EXPECTED_DP_REPO.resolve()
+        or not probe_template.is_absolute()
+        or str(probe_template) != str(EXPECTED_PROBE_TEMPLATE)
+        or probe_template.is_symlink()
+        or probe_template.resolve() != EXPECTED_PROBE_TEMPLATE.resolve()
+    ):
+        raise ValueError("independent canonical asset path authority drifted")
+    if (
+        _git(dp_repo, "rev-parse", "HEAD") != FIXED_DP_HEAD
+        or _git(dp_repo, "status", "--porcelain")
+        or _file_sha256(probe_template) != EXPECTED_PROBE_TEMPLATE_SHA256
+    ):
+        raise ValueError("independent DP/template bytes drifted")
+    template = _load(probe_template)
+    fixed = template.get("fixed_dp") if type(template) is dict else None
+    selector = template.get("selector") if type(template) is dict else None
+    if (
+        template.get("schema_version") != EXPECTED_PROBE_TEMPLATE_SCHEMA_VERSION
+        or type(fixed) is not dict
+        or set(fixed)
+        != {"repo", "head", "checkpoint", "args_json", "native_source_sha256"}
+        or fixed.get("repo") != str(EXPECTED_DP_REPO)
+        or fixed.get("head") != FIXED_DP_HEAD
+        or not _strict_equal(fixed.get("checkpoint"), EXPECTED_FIXED_DP_CHECKPOINT)
+        or not _strict_equal(fixed.get("args_json"), EXPECTED_FIXED_DP_ARGS)
+        or not _strict_equal(
+            fixed.get("native_source_sha256"), EXPECTED_DP_NATIVE_SOURCE_SHA256
+        )
+        or type(selector) is not dict
+        or not _strict_equal(selector.get("weights"), EXPECTED_STATIC_WEIGHTS)
+        or selector.get("candidate_k") != 8
+        or selector.get("nonnegative_simplex") is not True
+        or selector.get("selection_policy") != "v22_source_valid"
+        or selector.get("score_contract") != "score_k(w)=a_k^T w"
+    ):
+        raise ValueError("independent canonical template content drifted")
+    scale_path = _exact_asset(EXPECTED_GENERATION_SCALES, label="generation scales")
+    weight_path = _exact_asset(EXPECTED_STATIC_WEIGHTS, label="static weights")
+    checkpoint = _exact_asset(EXPECTED_FIXED_DP_CHECKPOINT, label="DP checkpoint")
+    args_path = _exact_asset(EXPECTED_FIXED_DP_ARGS, label="DP args")
+    args_payload = _load(args_path)
+    if type(args_payload) is not dict or not args_payload:
+        raise ValueError("fixed-DP args JSON content drifted")
+    scale_payload = _load(scale_path)
+    scales = _native_numeric_array(
+        scale_payload.get("scales") if type(scale_payload) is dict else None,
+        (14,),
+        label="generation scales",
+    )
+    if np.any(scales <= 0.0):
+        raise ValueError("generation scales are not finite positive")
+    weights = np.load(weight_path, allow_pickle=False)
+    expected_weights = np.asarray(EXPECTED_STATIC_WEIGHT_VALUES, dtype=np.float64)
+    if (
+        weights.dtype != np.dtype(np.float64)
+        or weights.shape != (14,)
+        or not np.array_equal(weights, expected_weights)
+        or np.any(weights < 0.0)
+        or not np.isclose(float(weights.sum()), 1.0, rtol=0.0, atol=1e-12)
+    ):
+        raise ValueError("independent static weight content/value drifted")
+    native: dict[str, dict[str, str]] = {}
+    for relative, expected_sha in EXPECTED_DP_NATIVE_SOURCE_SHA256.items():
+        source = dp_repo / relative
+        committed = subprocess.run(
+            ["git", "show", f"{FIXED_DP_HEAD}:{relative}"],
+            cwd=dp_repo,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).stdout
+        actual = source.read_bytes()
+        digest = hashlib.sha256(actual).hexdigest()
+        if source.is_symlink() or actual != committed or digest != expected_sha:
+            raise ValueError("independent fixed-DP native source drifted")
+        native[relative] = {"path": str(source.resolve()), "sha256": digest}
+    assets = {
+        "probe_template": {
+            "path": str(probe_template),
+            "sha256": EXPECTED_PROBE_TEMPLATE_SHA256,
+            "schema_version": EXPECTED_PROBE_TEMPLATE_SCHEMA_VERSION,
+        },
+        "generation_scales": dict(EXPECTED_GENERATION_SCALES),
+        "static_weights": {
+            **EXPECTED_STATIC_WEIGHTS,
+            "dtype": "float64",
+            "shape": [14],
+            "values": expected_weights.tolist(),
+        },
+        "fixed_dp_checkpoint": {
+            **EXPECTED_FIXED_DP_CHECKPOINT,
+            "size_bytes": checkpoint.stat().st_size,
+        },
+        "fixed_dp_args_json": {
+            **EXPECTED_FIXED_DP_ARGS,
+            "content_sha256": _sha(args_payload),
+        },
+        "native_sources": native,
+        "generation_scales_size_bytes": scale_path.stat().st_size,
+    }
+    return assets, scales, weights, _file_sha256(scale_path)
+
+
+def _strict_int_list(value: Any, *, label: str, nonempty: bool = False) -> list[int]:
+    if (
+        type(value) is not list
+        or (nonempty and not value)
+        or any(type(item) is not int for item in value)
+        or len(value) != len(set(value))
+    ):
+        raise ValueError(f"{label} must be a unique native-int list")
+    return list(value)
+
+
+def _validate_semantic_payload(payload: Any, *, mapped: bool) -> dict[str, Any]:
+    allowed = SEMANTIC_REQUIRED_FIELDS | ({"stop_line_local_m"} if mapped else set())
+    if (
+        type(payload) is not dict
+        or set(payload) != allowed
+        or payload.get("schema_version") != "camp_dp_v25_semantic_clone_payload_v3"
+        or any(type(payload.get(key)) is not str or not payload[key] for key in ("family", "tier", "semantic_variant"))
+        or type(payload.get("parameters")) is not dict
+        or type(payload.get("actors")) is not list
+        or type(payload.get("signal")) is not dict
+        or set(payload["signal"])
+        != {"current_phase", "mapped_source_required", "source_mode"}
+        or payload["signal"].get("source_mode") != "no_v2i"
+        or type(payload["signal"].get("mapped_source_required")) is not bool
+    ):
+        raise ValueError("independent semantic-v3 payload schema drifted")
+    forbidden = ("future", "outcome", "fresh", "holdout", "split", "scenario_id", "route_id", "map_id")
+    if any(any(token in str(key).lower() for token in forbidden) for key in payload["parameters"]):
+        raise ValueError("semantic payload contains forbidden authority proxy")
+    if any(
+        type(value) not in (int, float) or not math.isfinite(float(value))
+        for value in payload["parameters"].values()
+    ):
+        raise ValueError("semantic parameters are not finite native numbers")
+    for actor in payload["actors"]:
+        if type(actor) is not dict or set(actor) != SEMANTIC_ACTOR_FIELDS:
+            raise ValueError("semantic actor schema drifted")
+        for vector in (
+            "initial_xy_local_m",
+            "initial_heading_local_unit",
+            "route_tangent_local",
+            "route_normal_local",
+        ):
+            values = _native_numeric_array(actor.get(vector), (2,), label=vector)
+            if vector != "initial_xy_local_m" and not np.isclose(
+                np.linalg.norm(values), 1.0, rtol=0.0, atol=2e-6
+            ):
+                raise ValueError("semantic actor route frame is not unit")
+    route = _native_numeric_array(
+        payload.get("route_polyline_local_m"), (64, 2), label="semantic route"
+    )
+    if not np.allclose(route[0], np.zeros(2), rtol=0.0, atol=1e-9):
+        raise ValueError("semantic route local origin drifted")
+    if mapped:
+        stop = payload.get("stop_line_local_m")
+        if type(stop) is not list or len(stop) < 2:
+            raise ValueError("semantic mapped stop line is absent")
+        _native_numeric_array(stop, (len(stop), 2), label="semantic stop line")
+    return payload
+
+
+def _validate_source_row(row: Any) -> dict[str, Any]:
+    if (
+        type(row) is not dict
+        or set(row) != SOURCE_ROW_FIELDS
+        or not _is_sha256(row.get("scenario_id"))
+        or not _is_sha256(row.get("formal_case_sha256"))
+        or not _is_sha256(row.get("source_map_sha256"))
+        or not _is_sha256(row.get("route_identity_sha256"))
+        or row.get("runner_eligible") is not True
+        or row.get("retention_role") != "executable"
+        or type(row.get("family")) is not str
+        or type(row.get("tier")) is not str
+        or type(row.get("seed")) is not int
+        or row["seed"] != 25001
+        or type(row.get("actual_mapped_signal")) is not bool
+        or type(row.get("id_free_tensor_layout")) is not dict
+    ):
+        raise ValueError("sealed route-source row schema/type drifted")
+    chain = row.get("source_chain")
+    mapped = row.get("source_class") == "mapped_signal"
+    if mapped:
+        if (
+            row.get("actual_mapped_signal") is not True
+            or row.get("phase_authority_mode")
+            not in {"controlled_same_tick_override", "observe_same_tick_request"}
+            or type(chain) is not dict
+            or set(chain) != MAPPED_CHAIN_FIELDS
+            or chain.get("schema_version")
+            != "camp_dp_v25_family_independent_mapped_signal_source_chain_v1"
+        ):
+            raise ValueError("mapped route-source authority drifted")
+        for field in (
+            "scenario_id", "route_identity_sha256", "source_map_sha256",
+            "route_geometry_sha256", "stop_line_geometry_sha256",
+            "semantic_clone_sha256", "source_chain_sha256",
+        ):
+            if not _is_sha256(chain.get(field)):
+                raise ValueError("mapped chain SHA field drifted")
+        regulatory = _strict_int_list(chain.get("regulatory_element_ids"), label="regulatory IDs", nonempty=True)
+        physical = _strict_int_list(chain.get("physical_light_ids"), label="physical IDs", nonempty=True)
+        bulbs = _strict_int_list(chain.get("bulb_ids"), label="bulb IDs", nonempty=True)
+        controlled = _strict_int_list(chain.get("controlled_lanelet_ids"), label="controlled lanelets", nonempty=True)
+        route_ids = _strict_int_list(chain.get("route_lanelet_ids"), label="route lanelets", nonempty=True)
+        if len(regulatory) != 1 or not physical or not bulbs or not set(controlled) <= set(route_ids):
+            raise ValueError("mapped regulatory chain relation drifted")
+        stop_raw = chain.get("stop_line_geometry_m")
+        if type(stop_raw) is not list or len(stop_raw) < 2:
+            raise ValueError("mapped certified stop line is absent")
+        stop = _native_numeric_array(stop_raw, (len(stop_raw), 2), label="certified stop line")
+        tangent = _native_numeric_array(chain.get("route_tangent_world"), (2,), label="route tangent")
+        if (
+            type(chain.get("stop_line_id")) is not int
+            or _sha(stop.tolist()) != chain["stop_line_geometry_sha256"]
+            or not np.isclose(np.linalg.norm(tangent), 1.0, rtol=0.0, atol=1e-6)
+        ):
+            raise ValueError("mapped stop-line/tangent authority drifted")
+        semantic = _validate_semantic_payload(chain.get("semantic_clone_payload"), mapped=True)
+        if (
+            row["scenario_id"] != chain["scenario_id"]
+            or row["route_identity_sha256"] != chain["route_identity_sha256"]
+            or row["source_map_sha256"] != chain["source_map_sha256"]
+            or row["phase_authority_mode"] != chain["phase_authority_mode"]
+            or chain["route_geometry_sha256"]
+            != _sha({"route_polyline_local_m": semantic["route_polyline_local_m"], "stop_line_local_m": semantic["stop_line_local_m"]})
+            or chain["semantic_clone_sha256"] != _sha(semantic)
+            or chain["source_chain_sha256"]
+            != _sha({key: value for key, value in chain.items() if key != "source_chain_sha256"})
+        ):
+            raise ValueError("mapped source-chain hash/row binding drifted")
+    elif row.get("source_class") == "no_signal":
+        if (
+            row.get("actual_mapped_signal") is not False
+            or row.get("phase_authority_mode") is not None
+            or type(chain) is not dict
+            or set(chain) != NO_SIGNAL_CHAIN_FIELDS
+            or chain.get("schema_version") != "camp_dp_v25_no_signal_source_chain_v1"
+            or chain.get("traffic_light_regulatory_element_ids") != []
+        ):
+            raise ValueError("no-signal route-source authority drifted")
+        route_ids = _strict_int_list(chain.get("route_lanelet_ids"), label="no-signal route lanelets", nonempty=True)
+        semantic = _validate_semantic_payload(chain.get("semantic_clone_payload"), mapped=False)
+        if (
+            not route_ids
+            or row["scenario_id"] != chain.get("scenario_id")
+            or row["route_identity_sha256"] != chain.get("route_identity_sha256")
+            or row["source_map_sha256"] != chain.get("source_map_sha256")
+            or chain.get("route_geometry_sha256")
+            != _sha({"route_polyline_local_m": semantic["route_polyline_local_m"]})
+            or chain.get("semantic_clone_sha256") != _sha(semantic)
+            or chain.get("source_chain_sha256")
+            != _sha({key: value for key, value in chain.items() if key != "source_chain_sha256"})
+        ):
+            raise ValueError("no-signal source-chain hash/row binding drifted")
+    else:
+        raise ValueError("route-source class is invalid")
+    _validate_signal_receipts(
+        sidecar={
+            "signal_source_class": row["source_class"],
+            "phase_authority_mode": row["phase_authority_mode"],
+            "controlled_signal_source_receipt": row["runtime_receipt"],
+            "controlled_signal_tensor_evidence": row["tensor_evidence"],
+        },
+        source_row=row,
+        tick_index=0,
+    )
+    return row
+
+
+def _signal_row_oracle(rows: Any, *, label: str) -> tuple[list[int], str]:
+    if type(rows) is not list or not rows:
+        raise ValueError(f"{label} signal rows are absent")
+    ids: list[int] = []
+    phases: set[str] = set()
+    for row in rows:
+        if (
+            type(row) is not dict
+            or set(row) != {"lanelet_id", "signal_channels_8_12"}
+            or type(row.get("lanelet_id")) is not int
+        ):
+            raise ValueError(f"{label} signal row schema drifted")
+        raw = row.get("signal_channels_8_12")
+        if type(raw) is not list or not raw:
+            raise ValueError(f"{label} signal row tensor is absent")
+        values = _native_numeric_array(raw, (len(raw), 5), label=f"{label} signal rows")
+        active = np.any(values != 0.0, axis=1)
+        if not np.any(active):
+            raise ValueError(f"{label} signal row has no active source")
+        phase_for_row: set[str] = set()
+        for vector in values[active]:
+            matches = []
+            for phase, column in (("green", 0), ("yellow", 1), ("red", 2)):
+                expected = np.zeros(5, dtype=np.float64)
+                expected[column] = 1.0
+                if np.array_equal(vector, expected):
+                    matches.append(phase)
+            if len(matches) != 1:
+                raise ValueError(f"{label} signal row is non-one-hot/multiphase")
+            phase_for_row.add(matches[0])
+        if len(phase_for_row) != 1:
+            raise ValueError(f"{label} signal row phase is not uniform")
+        ids.append(row["lanelet_id"])
+        phases.update(phase_for_row)
+    if len(ids) != len(set(ids)) or len(phases) != 1:
+        raise ValueError(f"{label} signal rows are duplicated/conflicting")
+    return ids, next(iter(phases))
+
+
+def _validate_signal_receipts(
+    *, sidecar: Mapping[str, Any], source_row: Mapping[str, Any], tick_index: int
+) -> dict[str, Any]:
+    source_class = sidecar.get("signal_source_class")
+    phase_mode = sidecar.get("phase_authority_mode")
+    chain = source_row["source_chain"]
+    receipt = sidecar.get("controlled_signal_source_receipt")
+    evidence = sidecar.get("controlled_signal_tensor_evidence")
+    if type(receipt) is not dict:
+        raise ValueError("runtime signal receipt is absent")
+    if source_class == "mapped_signal":
+        if (
+            set(receipt) != MAPPED_RECEIPT_FIELDS
+            or receipt.get("schema_version")
+            != "camp_dp_v25_family_independent_current_signal_receipt_v1"
+            or phase_mode != source_row["phase_authority_mode"]
+            or receipt.get("phase_authority_mode") != phase_mode
+            or receipt.get("scenario_id") != source_row["scenario_id"]
+            or type(receipt.get("tick_index")) is not int
+            or receipt["tick_index"] != tick_index
+            or receipt.get("current_phase") not in {"green", "yellow", "red"}
+            or any(
+                type(receipt.get(name)) is not float
+                or not math.isfinite(receipt[name])
+                for name in ("decision_timestamp_s", "source_timestamp_s", "source_age_s")
+            )
+            or receipt.get("decision_timestamp_s") != 0.1 * tick_index
+            or receipt.get("source_timestamp_s") != receipt.get("decision_timestamp_s")
+            or receipt.get("source_age_s") != 0.0
+            or receipt.get("freshness") != "same_tick"
+            or receipt.get("source_id")
+            != "fixed_dp_current_request_route_map_signal_one_hot"
+            or receipt.get("phase_remaining_available") is not False
+            or receipt.get("source_valid") is not True
+            or type(receipt.get("applicable")) is not bool
+            or receipt["applicable"] is not (receipt["current_phase"] == "red")
+        ):
+            raise ValueError("mapped same-tick receipt contract drifted")
+        regulatory = chain["regulatory_element_ids"]
+        if (
+            receipt.get("regulatory_element_id") != regulatory[0]
+            or receipt.get("physical_light_ids") != chain["physical_light_ids"]
+            or receipt.get("bulb_ids") != chain["bulb_ids"]
+            or receipt.get("controlled_lanelet_ids") != chain["controlled_lanelet_ids"]
+            or receipt.get("stop_line_id") != chain["stop_line_id"]
+            or receipt.get("stop_line_geometry_sha256")
+            != chain["stop_line_geometry_sha256"]
+            or receipt.get("route_geometry_sha256") != chain["route_geometry_sha256"]
+            or receipt.get("route_arc_m") != chain["route_arc_m"]
+            or receipt.get("source_chain_sha256") != chain["source_chain_sha256"]
+            or type(evidence) is not dict
+            or set(evidence) != SIGNAL_TENSOR_FIELDS
+            or evidence.get("schema_version")
+            != "camp_dp_v25_production_signal_tensor_evidence_v2"
+            or evidence.get("tick_index") != tick_index
+            or evidence.get("decision_timestamp_s") != receipt["decision_timestamp_s"]
+            or evidence.get("source_timestamp_s") != receipt["source_timestamp_s"]
+            or evidence.get("current_phase") != receipt["current_phase"]
+            or evidence.get("future_schedule_consumed") is not False
+            or evidence.get("phase_remaining_available") is not False
+        ):
+            raise ValueError("mapped regulatory/tensor receipt binding drifted")
+        route_ids, route_phase = _signal_row_oracle(
+            evidence["route_signal_rows"], label="route"
+        )
+        map_ids, map_phase = _signal_row_oracle(evidence["map_signal_rows"], label="map")
+        if (
+            route_phase != receipt["current_phase"]
+            or map_phase != receipt["current_phase"]
+            or route_ids != receipt["observed_route_lanelet_ids"]
+            or map_ids != receipt["observed_map_lanelet_ids"]
+            or not set(route_ids + map_ids) <= set(chain["controlled_lanelet_ids"])
+            or _sha(evidence["route_signal_rows"])
+            != receipt["route_signal_tensor_sha256"]
+            or _sha(evidence["map_signal_rows"])
+            != receipt["map_signal_tensor_sha256"]
+            or evidence["route_signal_tensor_sha256"]
+            != receipt["route_signal_tensor_sha256"]
+            or evidence["map_signal_tensor_sha256"]
+            != receipt["map_signal_tensor_sha256"]
+        ):
+            raise ValueError("mapped current tensor/source-chain evidence drifted")
+    elif source_class == "no_signal":
+        if (
+            phase_mode is not None
+            or evidence is not None
+            or set(receipt) != NO_SIGNAL_RECEIPT_FIELDS
+            or receipt.get("schema_version") != "camp_dp_v25_runtime_signal_receipt_v2"
+            or receipt.get("scenario_id") != source_row["scenario_id"]
+            or type(receipt.get("tick_index")) is not int
+            or receipt["tick_index"] != tick_index
+            or type(receipt.get("decision_time_s")) is not float
+            or receipt["decision_time_s"] != 0.1 * tick_index
+            or receipt.get("source_mode") != "same_tick_no_signal_rule_no_v2i"
+            or receipt.get("current_phase") != "none"
+            or receipt.get("route_geometry_sha256") != chain["route_geometry_sha256"]
+            or receipt.get("route_lanelet_ids") != chain["route_lanelet_ids"]
+            or receipt.get("traffic_light_regulatory_element_ids") != []
+            or receipt.get("source_chain_sha256") != chain["source_chain_sha256"]
+            or receipt.get("semantic_clone_sha256") != chain["semantic_clone_sha256"]
+            or receipt.get("phase_remaining_available") is not False
+            or receipt.get("source_valid") is not True
+            or receipt.get("applicable") is not False
+        ):
+            raise ValueError("same-tick no-signal receipt contract drifted")
+    else:
+        raise ValueError("runtime source class drifted")
+    return receipt
+
+
+def _validate_causal_signal(
+    *, sidecar: Mapping[str, Any], source_row: Mapping[str, Any], receipt: Mapping[str, Any]
+) -> dict[str, Any]:
+    causal = sidecar.get("causal_signal_atom_input")
+    chain = source_row["source_chain"]
+    if (
+        type(causal) is not dict
+        or set(causal) != CAUSAL_SIGNAL_FIELDS
+        or causal.get("schema_version") != "camp_dp_v25_causal_signal_atom_input_v2"
+        or causal.get("runtime_receipt_sha256") != _sha(receipt)
+        or not _strict_equal(causal.get("runtime_receipt"), receipt)
+        or causal.get("source_valid") is not True
+        or type(causal.get("applicable")) is not bool
+        or causal.get("source_chain_sha256") != chain["source_chain_sha256"]
+        or causal.get("route_geometry_sha256") != chain["route_geometry_sha256"]
+    ):
+        raise ValueError("causal signal input receipt/hash binding drifted")
+    if source_row["source_class"] == "mapped_signal":
+        if (
+            causal.get("source_state") != "available"
+            or causal.get("current_phase") != receipt["current_phase"]
+            or causal.get("applicable") is not (receipt["current_phase"] == "red")
+            or causal.get("decision_time_s") != receipt["decision_timestamp_s"]
+            or causal.get("regulatory_element_id") != chain["regulatory_element_ids"][0]
+            or causal.get("stop_line_id") != chain["stop_line_id"]
+            or causal.get("stop_line_geometry_sha256")
+            != chain["stop_line_geometry_sha256"]
+            or causal.get("route_arc_m") != chain["route_arc_m"]
+        ):
+            raise ValueError("mapped causal source-state binding drifted")
+        stop_world = _native_numeric_array(
+            causal.get("stop_line_geometry_world_m"),
+            (len(chain["stop_line_geometry_m"]), 2),
+            label="causal world stop line",
+        )
+        stop_ego = _native_numeric_array(
+            causal.get("stop_line_geometry_ego_m"), stop_world.shape,
+            label="causal ego stop line",
+        )
+        ego = _native_numeric_array(
+            causal.get("ego_position_world_m"), (2,), label="causal ego position"
+        )
+        heading = _native_number(causal.get("ego_heading_rad"), label="causal ego heading")
+        tangent_world = _native_numeric_array(
+            causal.get("route_tangent_world"), (2,), label="causal tangent world"
+        )
+        tangent_ego = _native_numeric_array(
+            causal.get("route_tangent_ego"), (2,), label="causal tangent ego"
+        )
+        c, s = math.cos(heading), math.sin(heading)
+        rotation = np.asarray([[c, s], [-s, c]], dtype=np.float64)
+        if (
+            not np.array_equal(stop_world, np.asarray(chain["stop_line_geometry_m"], dtype=np.float64))
+            or not np.allclose(stop_ego, (stop_world - ego) @ rotation.T, rtol=0.0, atol=1e-12)
+            or not np.array_equal(tangent_world, np.asarray(chain["route_tangent_world"], dtype=np.float64))
+            or not np.allclose(tangent_ego, rotation @ tangent_world, rtol=0.0, atol=1e-12)
+        ):
+            raise ValueError("certified stop-line ego-frame transform drifted")
+    else:
+        null_fields = {
+            "ego_position_world_m", "ego_heading_rad", "regulatory_element_id",
+            "stop_line_id", "stop_line_geometry_world_m", "stop_line_geometry_ego_m",
+            "stop_line_geometry_sha256", "route_tangent_world", "route_tangent_ego",
+            "route_arc_m",
+        }
+        if (
+            causal.get("source_state") != "not_applicable"
+            or causal.get("current_phase") != "none"
+            or causal.get("applicable") is not False
+            or causal.get("decision_time_s") != receipt["decision_time_s"]
+            or any(causal.get(field) is not None for field in null_fields)
+        ):
+            raise ValueError("no-signal causal source-state drifted")
+    return causal
+
+
+def _validate_context(
+    *, feature: Mapping[str, Any], sidecar: Mapping[str, Any], receipt: Mapping[str, Any]
+) -> None:
+    raw = feature.get("raw_context")
+    complete = feature.get("context_source_complete")
+    context_receipt = sidecar.get("context_source_receipt")
+    if (
+        sidecar.get("context_schema_version") != "camp_dp_v25_causal_context_raw_v2"
+        or type(raw) is not dict
+        or set(raw) != set(RAW_CONTEXT_NAMES)
+        or type(complete) is not dict
+        or set(complete) != set(RAW_CONTEXT_NAMES)
+        or any(type(raw[name]) is not float or not math.isfinite(raw[name]) for name in RAW_CONTEXT_NAMES)
+        or any(type(complete[name]) is not bool for name in RAW_CONTEXT_NAMES)
+        or type(context_receipt) is not dict
+        or set(context_receipt)
+        != {"mode", "phase_remaining_available", "regulatory_signal_mapped"}
+        or context_receipt.get("mode") != "no_v2i"
+        or context_receipt.get("phase_remaining_available") is not False
+        or type(context_receipt.get("regulatory_signal_mapped")) is not bool
+        or raw["traffic_signal_phase_remaining_s"] != 0.0
+        or complete["traffic_signal_phase_remaining_s"] is not False
+    ):
+        raise ValueError("bounded exact 26D no-V2I context contract drifted")
+    phase_names = (
+        "traffic_phase_red",
+        "traffic_phase_yellow",
+        "traffic_phase_green",
+        "traffic_phase_unknown",
+    )
+    phase = np.asarray([raw[name] for name in phase_names], dtype=np.float64)
+    if not np.array_equal(phase, np.eye(4, dtype=np.float64)[int(np.argmax(phase))]):
+        raise ValueError("bounded context signal phase is not exact one-hot")
+    expected_phase = receipt.get("current_phase")
+    expected_index = {"red": 0, "yellow": 1, "green": 2, "none": 3}.get(expected_phase)
+    mapped = sidecar.get("signal_source_class") == "mapped_signal"
+    if (
+        expected_index is None
+        or int(np.argmax(phase)) != expected_index
+        or context_receipt["regulatory_signal_mapped"] is not mapped
+        or any(complete[name] is not mapped for name in phase_names[:3])
+        or complete["traffic_phase_unknown"] is not mapped
+        or complete["traffic_signal_distance_m"] is not mapped
+    ):
+        raise ValueError("bounded 26D context/source receipt phase binding drifted")
+
+
+def _validate_cache(
+    *, sidecar: Mapping[str, Any], source_row: Mapping[str, Any], tick_index: int
+) -> None:
+    cache = sidecar.get("controlled_model_input_cache_receipt")
+    mode = source_row["phase_authority_mode"]
+    if (
+        type(cache) is not dict
+        or set(cache) != CACHE_RECEIPT_FIELDS
+        or cache.get("schema_version")
+        != "camp_dp_v25_model_input_signal_cache_receipt_v1"
+        or cache.get("scenario_id") != source_row["scenario_id"]
+        or type(cache.get("tick_index")) is not int
+        or cache["tick_index"] != tick_index
+        or cache.get("signal_source_class") != source_row["source_class"]
+        or cache.get("phase_authority_mode") != mode
+        or any(
+            not _is_sha256(cache.get(field))
+            for field in (
+                "scene_map_tl_sha256",
+                "model_cache_tl_sha256_before",
+                "model_cache_tl_sha256_after",
+                "model_route_lanes_tl_sha256",
+            )
+        )
+        or cache.get("model_cache_tl_sha256_after")
+        != cache.get("scene_map_tl_sha256")
+        or cache.get("cache_matches_scene_after") is not True
+        or type(cache.get("observe_cache_unchanged")) is not bool
+        or cache.get("sync_applied_before_tensor_conversion") is not True
+        or cache.get("future_schedule_consumed") is not False
+        or cache.get("phase_remaining_available") is not False
+        or (
+            mode != "controlled_same_tick_override"
+            and cache.get("observe_cache_unchanged") is not True
+        )
+        or (
+            mode != "controlled_same_tick_override"
+            and cache.get("model_cache_tl_sha256_before")
+            != cache.get("model_cache_tl_sha256_after")
+        )
+    ):
+        raise ValueError("bounded model-consumed cache contract drifted")
+
+
+def _independent_red_stopping_oracle(
+    candidates: np.ndarray, causal: Mapping[str, Any], dt_s: float
+) -> np.ndarray:
+    """Independent scalar implementation of the frozen stopping envelope."""
+    trajectories = np.asarray(candidates, dtype=np.float64)
+    if trajectories.shape != (8, 80, 4) or not np.isfinite(trajectories).all():
+        raise ValueError("red stopping oracle requires finite [8,80,4]")
+    if type(dt_s) is not float or not math.isfinite(dt_s) or dt_s != 0.1:
+        raise ValueError("red stopping oracle dt contract drifted")
+    if causal.get("applicable") is not True:
+        return np.zeros(8, dtype=np.float64)
+    raw_stop = causal.get("stop_line_geometry_ego_m")
+    if type(raw_stop) is not list or len(raw_stop) < 2:
+        raise ValueError("red stopping oracle lacks certified stop line")
+    stop = _native_numeric_array(raw_stop, (len(raw_stop), 2), label="stop line ego")
+    tangent = _native_numeric_array(causal.get("route_tangent_ego"), (2,), label="route tangent ego")
+    norm = float(np.linalg.norm(tangent))
+    if not math.isfinite(norm) or norm <= 0.0:
+        raise ValueError("red stopping oracle tangent is invalid")
+    direction = (tangent / norm)[None, :]
+    red_xy = stop.mean(axis=0)[None, :]
+    costs = np.zeros(8, dtype=np.float64)
+    for candidate_index, trajectory in enumerate(trajectories):
+        xy = trajectory[:, :2]
+        speeds = np.linalg.norm(np.diff(xy, axis=0), axis=1) / dt_s
+        headings = np.arctan2(trajectory[:, 3], trajectory[:, 2])[1:]
+        heading_vectors = np.column_stack((np.cos(headings), np.sin(headings)))
+        relative = red_xy[None, :, :] - xy[1:, None, :]
+        distances = np.linalg.norm(relative, axis=2)
+        aligned = heading_vectors @ direction.T > 0.5
+        ahead = np.einsum("trd,td->tr", relative, heading_vectors) > 0.0
+        eligible = aligned & ahead & (distances <= 40.0)
+        nearest = np.min(np.where(eligible, distances, np.inf), axis=1)
+        active = np.isfinite(nearest)
+        if not np.any(active):
+            continue
+        safe_speed = np.sqrt(4.0 * np.maximum(nearest[active] - 3.0, 0.0))
+        excess = np.maximum(speeds[active] - safe_speed, 0.0)
+        proximity = np.maximum(1.0 - nearest[active] / 40.0, 0.0)
+        costs[candidate_index] = dt_s * float(np.sum(proximity * excess**2))
+    if not np.all(np.isfinite(costs)) or np.any(costs < 0.0):
+        raise ValueError("red stopping oracle violated finite/nonnegative contract")
+    return costs
+
+
+def _validate_native_cross_binding(
+    *,
+    native_tick: Any,
+    tick_index: int,
+    feature: Mapping[str, Any],
+    sidecar: Mapping[str, Any],
+    candidate: np.ndarray,
+    atoms: np.ndarray,
+    normalized: np.ndarray,
+    scores: np.ndarray,
+    row_shas: list[str],
+    tensor_sha: str,
+) -> None:
+    if type(native_tick) is not dict or native_tick.get("tick_index") != tick_index:
+        raise ValueError("bounded native tick schema/index drifted")
+    native_source = native_tick.get("source_valid_mask")
+    native_physical = native_tick.get("physical_feasible_mask")
+    identity = native_tick.get("default_candidate0_identity")
+    if (
+        type(native_source) is not list
+        or len(native_source) != 8
+        or any(type(value) is not bool for value in native_source)
+        or type(native_physical) is not list
+        or len(native_physical) != 8
+        or any(type(value) is not bool for value in native_physical)
+        or native_source != feature["source_valid_mask"]
+        or native_physical != feature["physical_feasible_mask"]
+        or native_tick.get("candidate_tensor_sha256_before") != tensor_sha
+        or native_tick.get("candidate_tensor_sha256_after") != tensor_sha
+        or native_tick.get("candidate_row_sha256") != row_shas
+        or native_tick.get("default_output_sha256") != row_shas[0]
+        or native_tick.get("input_sha256") != sidecar.get("causal_input_sha256")
+        or native_tick.get("selected_trajectory_sha256")
+        != row_shas[sidecar["selected_index"]]
+        or native_tick.get("selected_index") != sidecar["selected_index"]
+        or native_tick.get("scores") != sidecar["scores"]
+        or native_tick.get("score_contract") != "score_k=clip(a_k/s,0,10)^T w"
+        or native_tick.get("selection_policy") != "v22_source_valid"
+        or native_tick.get("eligibility_mask_name") != "source_valid_mask"
+        or native_tick.get("tie_break_contract") != "lowest_eligible_candidate_index"
+        or native_tick.get("all_k_high_risk") is not sidecar["all_k_high_risk"]
+        or type(identity) is not dict
+        or set(identity) != DEFAULT_IDENTITY_FIELDS
+        or not _strict_equal(identity, sidecar["default_candidate0_identity"])
+        or native_tick.get("atom_matrix_sha256")
+        != hashlib.sha256(np.ascontiguousarray(atoms).tobytes()).hexdigest()
+        or native_tick.get("normalized_atom_matrix_sha256")
+        != hashlib.sha256(np.ascontiguousarray(normalized).tobytes()).hexdigest()
+        or sidecar.get("normalized_atom_matrix_sha256")
+        != native_tick.get("normalized_atom_matrix_sha256")
+        or not np.array_equal(
+            _native_numeric_array(native_tick.get("scores"), (8,), label="native scores"),
+            scores,
+        )
+    ):
+        raise ValueError("bounded native/snapshot candidate-atom-score-selection binding drifted")
+
+
 def _context_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     feature = payload["feature_payload"]
     sidecar = payload["sidecar"]
@@ -239,6 +1258,8 @@ def _review_tick(
     run: Mapping[str, Any],
     tick_index: int,
     source_row: Mapping[str, Any],
+    source_root_sha256: str,
+    native_tick: Mapping[str, Any],
     scales: np.ndarray,
     weights: np.ndarray,
     scale_sha256: str,
@@ -263,8 +1284,20 @@ def _review_tick(
         or sidecar["run_ordinal"] != run["run_ordinal"]
         or sidecar.get("occurrence") != run["occurrence"]
         or sidecar.get("scenario_id") != run["scenario_id"]
+        or source_row.get("scenario_id") != run["scenario_id"]
         or type(sidecar.get("tick_index")) is not int
         or sidecar["tick_index"] != tick_index
+        or type(sidecar.get("dt_s")) is not float
+        or sidecar["dt_s"] != 0.1
+        or sidecar.get("family") != source_row["family"]
+        or sidecar.get("tier") != source_row["tier"]
+        or sidecar.get("route_identity_sha256")
+        != source_row["route_identity_sha256"]
+        or sidecar.get("source_map_sha256") != source_row["source_map_sha256"]
+        or type(sidecar.get("seed")) is not int
+        or sidecar["seed"] != source_row["seed"]
+        or sidecar.get("route_signal_source_artifact_root_sha256")
+        != source_root_sha256
         or sidecar.get("route_signal_source_row_sha256") != _sha(source_row)
         or sidecar.get("signal_source_class") != source_row["source_class"]
         or sidecar.get("phase_authority_mode")
@@ -272,6 +1305,13 @@ def _review_tick(
         or sidecar.get("fresh_b_opened") is not False
         or sidecar.get("outcome_fields_consumed") != []
         or sidecar.get("generation_behavior_scale_sha256") != scale_sha256
+        or sidecar.get("canonical_semantic_clone_sha256")
+        != source_row["source_chain"]["semantic_clone_sha256"]
+        or sidecar.get("offline_label_provenance")
+        != "pending_train_only_causal_label"
+        or sidecar.get("candidate0_semantics")
+        != "operational_default_alias_from_same_forward"
+        or sidecar.get("score_contract") != "score_k=clip(a_k/s,0,10)^T w"
     ):
         raise ValueError("bounded snapshot run/source/Fresh binding drifted")
     candidate = _native_numeric_array(
@@ -281,8 +1321,12 @@ def _review_tick(
         feature.get("default_output"), (80, 4), label="default output"
     ).astype(np.float32)
     atoms = _native_numeric_array(feature.get("atom_matrix"), (8, 14), label="atoms")
-    if np.any(atoms < 0.0):
-        raise ValueError("bounded raw atoms are negative")
+    heading_norms = np.linalg.norm(candidate[:, :, 2:4].astype(np.float64), axis=2)
+    if (
+        np.any(atoms < 0.0)
+        or not np.allclose(heading_norms, np.ones((8, 80)), rtol=0.0, atol=1e-6)
+    ):
+        raise ValueError("bounded raw atoms or fixed-K8 heading contract drifted")
     row_shas = [
         hashlib.sha256(np.ascontiguousarray(candidate[index]).tobytes()).hexdigest()
         for index in range(8)
@@ -298,9 +1342,13 @@ def _review_tick(
         or sidecar.get("candidate_tensor_sha256_before") != tensor_sha
         or sidecar.get("candidate_tensor_sha256_after") != tensor_sha
         or type(identity) is not dict
+        or set(identity) != DEFAULT_IDENTITY_FIELDS
         or identity.get("elementwise_equal") is not True
+        or type(identity.get("max_abs_difference")) is not float
+        or identity.get("max_abs_difference") != 0.0
         or identity.get("candidate0_sha256") != row_shas[0]
         or identity.get("default_output_sha256") != row_shas[0]
+        or identity.get("native_ranked_k8") is not False
         or sidecar.get("candidate0_independent_second_forward") is not False
     ):
         raise ValueError("bounded K8/candidate0 same-forward evidence drifted")
@@ -325,12 +1373,45 @@ def _review_tick(
         or len(physical) != 8
         or any(type(value) is not bool for value in physical)
         or any(feasible and not valid for feasible, valid in zip(physical, source_valid))
+        or not any(source_valid)
+        or sidecar.get("source_valid_mask") != source_valid
+        or sidecar.get("physical_feasible_mask") != physical
+        or any(
+            applicable[row][column] and not atom_source[row][column]
+            for row in range(8)
+            for column in range(14)
+        )
         or sidecar.get("all_k_high_risk")
         is not (all(source_valid) and not any(physical))
     ):
         raise ValueError("bounded source/applicability/physical mask drifted")
+    receipt = _validate_signal_receipts(
+        sidecar=sidecar, source_row=source_row, tick_index=tick_index
+    )
+    causal = _validate_causal_signal(
+        sidecar=sidecar, source_row=source_row, receipt=receipt
+    )
+    _validate_context(feature=feature, sidecar=sidecar, receipt=receipt)
+    _validate_cache(sidecar=sidecar, source_row=source_row, tick_index=tick_index)
+    signal_applicable = receipt["current_phase"] == "red"
+    for row_index in range(8):
+        if (
+            atom_source[row_index][10] is not True
+            or atom_source[row_index][12] is not True
+            or applicable[row_index][10] is not signal_applicable
+            or applicable[row_index][12] is not signal_applicable
+            or (
+                not signal_applicable
+                and (atoms[row_index, 10] != 0.0 or atoms[row_index, 12] != 0.0)
+            )
+        ):
+            raise ValueError("bounded signal atom source/applicability binding drifted")
+    expected_red_stopping = _independent_red_stopping_oracle(candidate, causal, 0.1)
+    if not np.allclose(atoms[:, 12], expected_red_stopping, rtol=0.0, atol=1e-12):
+        raise ValueError("bounded red-stopping atom differs from independent oracle")
     scores = _native_numeric_array(sidecar.get("scores"), (8,), label="scores")
-    expected_scores = np.clip(atoms / scales.reshape(1, 14), 0.0, 10.0) @ weights
+    normalized = np.clip(atoms / scales.reshape(1, 14), 0.0, 10.0)
+    expected_scores = normalized @ weights
     selected = sidecar.get("selected_index")
     expected_selected = int(
         np.argmin(np.where(np.asarray(source_valid, dtype=bool), scores, np.inf))
@@ -343,20 +1424,18 @@ def _review_tick(
         or sidecar.get("tie_break_contract") != "lowest_eligible_candidate_index"
     ):
         raise ValueError("bounded selector argmin/tie evidence drifted")
-    cache = sidecar.get("controlled_model_input_cache_receipt")
-    if (
-        type(cache) is not dict
-        or cache.get("scenario_id") != run["scenario_id"]
-        or cache.get("tick_index") != tick_index
-        or cache.get("signal_source_class") != source_row["source_class"]
-        or cache.get("phase_authority_mode") != source_row["phase_authority_mode"]
-        or cache.get("cache_matches_scene_after") is not True
-        or cache.get("sync_applied_before_tensor_conversion") is not True
-        or cache.get("model_cache_tl_sha256_after") != cache.get("scene_map_tl_sha256")
-        or cache.get("future_schedule_consumed") is not False
-        or cache.get("phase_remaining_available") is not False
-    ):
-        raise ValueError("bounded model-consumed signal cache evidence drifted")
+    _validate_native_cross_binding(
+        native_tick=native_tick,
+        tick_index=tick_index,
+        feature=feature,
+        sidecar=sidecar,
+        candidate=candidate,
+        atoms=atoms,
+        normalized=normalized,
+        scores=scores,
+        row_shas=row_shas,
+        tensor_sha=tensor_sha,
+    )
     return {
         "candidate0": row_shas[0],
         "rows": row_shas,
@@ -372,11 +1451,21 @@ def _review_run(
     run: Mapping[str, Any],
     index_rows: list[Mapping[str, Any]],
     source_row: Mapping[str, Any],
+    source_root_sha256: str,
     scales: np.ndarray,
     weights: np.ndarray,
     scale_sha256: str,
 ) -> dict[str, Any]:
     ordinal = run["run_ordinal"]
+    native_dir = (
+        artifact
+        / "native_runs"
+        / f"run_{ordinal:03d}_{run['occurrence']}_{run['scenario_id']}"
+    )
+    receipt = _load(native_dir / "bounded_native_receipt.json")
+    ticks = receipt.get("ticks") if type(receipt) is dict else None
+    if type(ticks) is not list or len(ticks) != 64:
+        raise ValueError("bounded native receipt tick denominator drifted")
     selected_rows = [row for row in index_rows if row.get("run_ordinal") == ordinal]
     if len(selected_rows) != 64:
         raise ValueError("bounded run snapshot denominator drifted")
@@ -417,20 +1506,13 @@ def _review_run(
                 run=run,
                 tick_index=tick_index,
                 source_row=source_row,
+                source_root_sha256=source_root_sha256,
+                native_tick=ticks[tick_index],
                 scales=scales,
                 weights=weights,
                 scale_sha256=scale_sha256,
             )
         )
-    native_dir = (
-        artifact
-        / "native_runs"
-        / f"run_{ordinal:03d}_{run['occurrence']}_{run['scenario_id']}"
-    )
-    receipt = _load(native_dir / "bounded_native_receipt.json")
-    ticks = receipt.get("ticks") if type(receipt) is dict else None
-    if type(ticks) is not list or len(ticks) != 64:
-        raise ValueError("bounded native receipt tick denominator drifted")
     trajectory = []
     speeds = []
     for tick_index, tick in enumerate(ticks):
@@ -483,7 +1565,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.3 bounded execution",
+        label="V25 A1.6.4 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
@@ -507,6 +1589,16 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     )
     decision = authority["decision"]
     plan = authority["plan"]
+    execution_assets, scales, weights, scale_sha256 = _independent_execution_assets(
+        repo=ROOT,
+        dp_repo=args.dp_repo,
+        probe_template=args.probe_template,
+    )
+    if (
+        not _strict_equal(decision.get("execution_assets"), execution_assets)
+        or decision.get("execution_assets_sha256") != _sha(execution_assets)
+    ):
+        raise ValueError("bounded release execution assets fail independent oracle")
     marker = NONCE_LEDGER / f"v25_{RELEASE_GATE}_{decision['run_nonce']}.consumed.json"
     marker_payload = _load(marker)
     if (
@@ -547,6 +1639,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("bounded execution report/authority drifted")
 
     source_artifact = Path(decision["root_artifacts"]["source"]["path"])
+    source_root_sha256 = decision["root_artifacts"]["source"]["root_sha256"]
     source_payload = _load(source_artifact / "route_signal_source_receipts.json")
     source_rows = source_payload.get("cases")
     if type(source_rows) is not list:
@@ -554,37 +1647,6 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     rows_by_id = {str(row.get("scenario_id")): row for row in source_rows}
     if len(rows_by_id) != len(source_rows):
         raise ValueError("bounded source row IDs are duplicated")
-    scale_path = (
-        ROOT
-        / "configs"
-        / "integrations"
-        / "diffusion_planner_v25_atom_scales_correction_v2.json"
-    )
-    scale_payload = _load(scale_path)
-    scale_sha256 = hashlib.sha256(scale_path.read_bytes()).hexdigest()
-    atom_names = scale_payload.get("atom_names")
-    scales = _native_numeric_array(
-        scale_payload.get("scales"), (14,), label="generation scales"
-    )
-    template = _load(args.probe_template)
-    weights_by_name = template.get("selector", {}).get("weights")
-    if (
-        type(atom_names) is not list
-        or len(atom_names) != 14
-        or type(weights_by_name) is not dict
-        or set(weights_by_name) != set(atom_names)
-        or np.any(scales <= 0.0)
-    ):
-        raise ValueError("bounded scale/weight authority drifted")
-    weights = _native_numeric_array(
-        [weights_by_name[name] for name in atom_names],
-        (14,),
-        label="static weights",
-    )
-    if np.any(weights < 0.0) or not np.isclose(
-        float(weights.sum()), 1.0, rtol=0.0, atol=1e-12
-    ):
-        raise ValueError("bounded static weights are not a nonnegative simplex")
     results = _jsonl(args.execution_artifact / "results.jsonl")
     evidence = _jsonl(args.execution_artifact / "run_evidence.jsonl")
     index_rows = _jsonl(args.execution_artifact / "snapshot_index.jsonl")
@@ -596,6 +1658,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("bounded results/evidence/index denominator drifted")
     rebuilt = []
     for run, result in zip(plan["runs"], results):
+        source_row = _validate_source_row(rows_by_id[str(run["scenario_id"])])
         if (
             type(result) is not dict
             or set(result) != RESULT_FIELDS
@@ -617,7 +1680,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 artifact=args.execution_artifact,
                 run=run,
                 index_rows=index_rows,
-                source_row=rows_by_id[str(run["scenario_id"])],
+                source_row=source_row,
+                source_root_sha256=source_root_sha256,
                 scales=scales,
                 weights=weights,
                 scale_sha256=scale_sha256,
@@ -688,7 +1752,7 @@ def main(argv: list[str] | None = None) -> None:
             " ".join(sys.argv) + "\n", encoding="utf-8"
         )
         (args.output_dir / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(args.output_dir, label="V25 A1.6.3 bounded review")
+        root = seal_artifact(args.output_dir, label="V25 A1.6.4 bounded review")
         print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
     except Exception as exc:
         _write(
@@ -704,7 +1768,7 @@ def main(argv: list[str] | None = None) -> None:
             },
         )
         (args.output_dir / "run.exit").write_bytes(b"1\n")
-        seal_artifact(args.output_dir, label="failed V25 A1.6.3 bounded review")
+        seal_artifact(args.output_dir, label="failed V25 A1.6.4 bounded review")
         raise
 
 

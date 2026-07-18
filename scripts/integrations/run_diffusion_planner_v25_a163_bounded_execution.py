@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.2 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.4 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a163_bounded_execution_v1"
+SCHEMA_VERSION = "camp_dp_v25_a164_bounded_execution_v2"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_v1"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -545,7 +545,7 @@ def main(argv: list[str] | None = None) -> None:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.3 bounded execution")
+            root = seal_artifact(args.output_dir, label="V25 A1.6.4 bounded execution")
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
             args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -562,7 +562,7 @@ def main(argv: list[str] | None = None) -> None:
                 },
             )
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.3 bounded execution")
+            seal_artifact(args.output_dir, label="failed V25 A1.6.4 bounded execution")
             raise
 
 
