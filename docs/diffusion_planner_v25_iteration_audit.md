@@ -3264,3 +3264,132 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=46892675072
 current_v25_phase=A1_6_7_exact_receipt_native_header_terminal_authority_corrected_static_four_root_review_required_k8_closed
 next_work_target=ultra_read_only_A1_6_7_review_before_any_bounded_execute_release
+
+## A1.6.8 full causal-input, goal-terminal, and serialization evidence correction (2026-07-18 CST)
+
+Ultra accepted the A1.6.7 static source/design counts but kept bounded execution
+closed because three scientific-evidence contracts were incomplete. The
+initial-input digest was still circularly anchored to producer receipts rather
+than an independently readable preimage; `goal_d` and final reason were not
+derived from the formal goal plus the full trajectory; and authoritative
+JSON/JSONL and nested native evidence could be re-encoded or extended without
+one complete byte/schema policy. The A1.6.7 roots remain unchanged, immutable
+diagnostic evidence and machine-authority false:
+
+- source `039b706a32a0f9aaefabf3e5e5f5d745d5127ecfc7ebe2091afdb94017a6a74d`;
+- source review `8992f880956f421964be13dd5857b6ae714ed06e44acb07501ce6fef29b2581c`;
+- plan `88c2c60706ffb01e27152987719dee91597903a1929e1f4351daf097eb18855e`;
+- plan review `4badcc8bf775f2b1c33edbb7788fb14d37fe17316d015bb487a63a0e19a915be`.
+
+Implementation source HEAD
+`b7dd2932e4e3667ae3204e0a3698340f5bd5b2e5` changes only the bounded
+scientific-evidence path. The native hook copies all 16 fixed-DP causal arrays
+before tensor conversion/forward. The prospective runner stores all 64 ticks
+in a content-addressed compressed NPZ shard with exact array name, dtype,
+shape, and raw-byte digests. The independent reviewer contains its own
+deterministic array-mapping digest implementation and reconstructs each tick's
+input digest and initial state from the saved preimage. Coordinated changes to
+receipt, sidecar, initial state, index, or seal therefore cannot replace the
+independent data source; missing/extra arrays, dtype/shape/byte mutations, and
+cross-run shard swaps fail closed.
+
+The reviewer also implements the fixed-DP goal oracle independently from the
+pinned git-object contract: each of the 64 trajectory positions/headings is
+compared with the formal goal using the 2 m arrival tolerance and 25 m pass
+window, and `goal_d`, minimum goal distance, `goal_reached`, `goal_passed`, and
+the final reason are derived rather than assumed. Trajectory and clearance log
+schemas are exact; red stop-line geometry is finite and source-bound; unknown
+nested evidence is rejected.
+
+Every retained CAMP-authored authority JSON now uses canonical UTF-8, sorted
+compact keys, finite values, and exactly one trailing LF. Authority JSONL uses
+the same per-row contract. The reviewer uses a local strict parser that rejects
+duplicate keys and non-finite values, compares original bytes to the canonical
+oracle, and registers exactly one byte/schema policy for every sealed execution
+path. Noncanonical spacing, double LF, duplicate-key first/last variants,
+nested evidence additions, goal-distance coordination, and NPZ byte mutations
+are covered by focused tests.
+
+Local verification passed the focused 144-test suite with two platform skips
+and the expanded V25 regression suite with 247 passed and two Windows-only
+skips. AutoDL Python 3.12.3 passed all 249 expanded tests. All six modified
+files passed `py_compile`; local/staged/remote diff checks passed. CAMP local,
+origin/GitHub, and AutoDL were aligned at the implementation HEAD before the
+pointer-only commit; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Without loading a model, starting a simulator, generating candidates, or
+executing any DP forward, the source universe and bounded design were rebuilt
+from identity0 and independently reviewed under the same implementation HEAD:
+
+- source: `/root/autodl-tmp/camp_dp_v25_a168_route_signal_source_census_b7dd2932_20260718T213107CST`, root `48bdbf77a2df14a1002f371f32fab47604f3daaa4b09646f434b0c843aa3f272`;
+- source review: `/root/autodl-tmp/camp_dp_v25_a168_route_signal_source_review_b7dd2932_20260718T213107CST`, root `c80424c1b217afe7d603e939233d0c9c8dd3461d2dde0f28988181974dd09c90`;
+- bounded plan: `/root/autodl-tmp/camp_dp_v25_a168_bounded_execution_plan_b7dd2932_20260718T213107CST`, root `b9660ad7ee5ecda719a463e0cbb593c915bb967ad6d139ab6e63ff7a275331be`;
+- bounded plan review: `/root/autodl-tmp/camp_dp_v25_a168_bounded_execution_plan_review_b7dd2932_20260718T213107CST`, root `fbc312aa00730595adf185157f683fb60cfbaa5ea048234b1b7185adbc756a21`.
+
+The current strict verifier reopened exact inventories, `run.exit=0`, HEADS,
+reports, source rows, cross-links, plan order, and all tie proofs. Four-root
+binding SHA is
+`7cc450281423580aca4485a36cdfc05b63ae9e199e000428b736234543eb7978`.
+Counts remain 1,653 formal train identities, 1,500 executable, 153 retained,
+146 mapped, 1,354 no-signal, 21 controlled overrides, 125 observe mode, zero
+source failures, 243 unique bounded identities, 244 ordered runs, identity0 at
+positions 0 and 243, and 15,616 prospective ticks.
+
+Final control-plane evidence before the pointer-only commit found worker/GPU
+counts zero, the shared corpus lock free, and 46,892,244,992 free bytes. No
+A1.6.8 bounded release, nonce, execution output, K8, full-config/full-R,
+1500x64, monitor, training, calibration, Scene/V2I, Fresh B2, or outcome access
+occurred. The new four roots are not machine-execution authority until Ultra
+reviews them. The only next action is Ultra read-only A1.6.8 review.
+
+current_v25_status=v25_a168_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
+current_v25_source_head=b7dd2932e4e3667ae3204e0a3698340f5bd5b2e5
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a168_bounded_execution_plan_b7dd2932_20260718T213107CST
+current_v25_artifact_root_sha256=b9660ad7ee5ecda719a463e0cbb593c915bb967ad6d139ab6e63ff7a275331be
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a168_bounded_execution_plan_review_b7dd2932_20260718T213107CST
+current_v25_review_artifact_root_sha256=fbc312aa00730595adf185157f683fb60cfbaa5ea048234b1b7185adbc756a21
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a168_route_signal_source_census_b7dd2932_20260718T213107CST
+current_v25_r0_authority_source_artifact_root_sha256=48bdbf77a2df14a1002f371f32fab47604f3daaa4b09646f434b0c843aa3f272
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a168_route_signal_source_review_b7dd2932_20260718T213107CST
+current_v25_r0_authority_source_review_artifact_root_sha256=c80424c1b217afe7d603e939233d0c9c8dd3461d2dde0f28988181974dd09c90
+current_v25_a16_formal_train_identity_count=1653
+current_v25_a16_executable_identity_count=1500
+current_v25_a16_retained_identity_count=153
+current_v25_a16_mapped_signal_identity_count=146
+current_v25_a16_no_signal_identity_count=1354
+current_v25_a16_controlled_same_tick_override_count=21
+current_v25_a16_observe_same_tick_request_count=125
+current_v25_a16_source_failure_count=0
+current_v25_a162_unique_identity_count=243
+current_v25_a162_run_count=244
+current_v25_a162_snapshot_capacity=15616
+current_v25_a162_identity0_repeat_positions=0,243
+current_v25_a167_four_roots_machine_authority_eligible=false
+current_v25_a168_release_schema=camp_dp_v25_ultra_a168_bounded_execute_release_v6
+current_v25_a168_device=cuda
+current_v25_a168_four_root_bindings_sha256=7cc450281423580aca4485a36cdfc05b63ae9e199e000428b736234543eb7978
+current_v25_a168_four_roots_machine_authority_eligible=false
+current_v25_a168_local_targeted_test_result=247_passed_2_skipped
+current_v25_a168_autodl_targeted_test_result=249_passed
+current_v25_a168_bounded_release_created=false
+current_v25_a168_bounded_nonce_created=false
+current_v25_a168_bounded_k8_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
+current_v25_full_r_authorized=false
+current_v25_monitor_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=46892244992
+current_v25_phase=A1_6_8_full_causal_input_goal_terminal_and_serialization_evidence_corrected_static_four_root_review_required_k8_closed
+next_work_target=ultra_read_only_A1_6_8_review_before_any_bounded_execute_release
