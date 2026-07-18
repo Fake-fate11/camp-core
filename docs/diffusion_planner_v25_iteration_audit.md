@@ -2074,15 +2074,40 @@ simulator, generated a candidate, executed a DP forward, trained, calibrated,
 read Fresh/outcome, or authorized a claim. Terminal sampling found worker=0,
 GPU=0, lock free, both repos tracked-clean, fixed DP unchanged, and
 46,981,681,152 bytes free. Bounded K8 and all later gates remain closed pending
-Ultra read-only A1.6/R0.6 review.
+Ultra read-only A1.6/R0.6 review. Its historical next target was
+`ultra_read_only_A1_6_R0_6_source_package_review_before_bounded_coverage_gate`.
 
-current_v25_status=v25_a16_r06_source_only_census_review_passed_ultra_read_only_review_required
-current_v25_source_head=53b07e309c03d8d0a491121b4b135f80fccbbc3d
+## Stage A1.6.1 Machine-Authority and Production-Integration Correction
+
+Ultra accepted the A1.6 scientific census while withholding machine authority.
+The prior source and review roots remain immutable scientific diagnostic
+evidence, but they are ineligible to authorize a later bounded K8 run. Source
+HEAD `4d0cfe6e2e1f46bd6a8d6a73ace724121660f415` now freezes the exact six-file
+source and four-file review inventories, the canonical one-shot consumed
+marker, fixed-DP imported-module provenance against commit `7a1d33da...`, the
+source/pointer dual-HEAD critical manifest, and route-level production signal
+semantics independent of scenario family. Observe mode leaves the request
+tensor immutable; controlled override is same-tick only and requires readback.
+
+The same implementation also produces an outcome-blind bounded coverage design
+that includes all 146 mapped identities and covers no-signal semantic/source
+cells, corridor, tensor-layout signature, identity0, and a separate 64-tick
+repeat, with a hard ceiling of 320 unique identities. This is design evidence
+only: no K8, model, simulator, candidate generation, DP forward, training,
+calibration, Fresh, or outcome was run. Local non-Torch V25 tests passed
+185 with 2 skipped; the targeted set passed 117 with 1 skipped. The next action
+is AutoDL ff-only verification followed only by a fresh 1,653-identity
+source-only census and independent review under a later pointer HEAD.
+
+current_v25_status=v25_a161_implementation_ready_source_census_rerun_pending
+current_v25_source_head=4d0cfe6e2e1f46bd6a8d6a73ace724121660f415
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_source_census_53b07e30_20260718T104858CST
 current_v25_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db
 current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a16_r06_route_signal_source_review_53b07e30_20260718T104923CST
 current_v25_review_artifact_root_sha256=0797f4dfbbe947eed7296249e0b904ed91cfde323f1e775f2e189100e3e2c73e
+current_v25_a16_old_source_machine_authority_eligible=false
+current_v25_a16_old_source_scientific_diagnostic=true
 current_v25_full_config_preflight_release_artifact=/root/autodl-tmp/camp_dp_v25_ultra_full_config_preflight_release_1e1c32c7_5f919a54290957e2
 current_v25_full_config_preflight_release_artifact_root_sha256=cb8733b4c81a2071a82c37caf74fa06586f51d7d9c1b7c3c0722f824029b33b1
 current_v25_full_config_preflight_consumed_nonce=5f919a54290957e2decfc662804db6ff320ca9582b62ea2869b67a13926fe37e
@@ -2100,8 +2125,10 @@ current_v25_r01_failed_projection_artifact_root_sha256=652975e9464988d10971c4fe6
 current_v25_seven_root_bindings_sha256=4c3410f5c4f123e08e63a18cef10c366911fef7f454f74dbc2532d20db3dd396
 current_v25_semantic_clone_schema=camp_dp_v25_semantic_clone_payload_v3
 current_v25_canonical_json_byte_spec=camp_dp_v25_canonical_json_utf8_lf_v1
-current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v5
-current_v25_snapshot_schema=camp_dp_v25_controlled_train_snapshot_v5
+current_v25_execution_schema=camp_dp_v25_controlled_training_corpus_execution_v6
+current_v25_snapshot_schema=camp_dp_v25_controlled_train_snapshot_v6
+current_v25_route_source_receipts_schema=camp_dp_v25_a161_route_signal_source_receipts_v2
+current_v25_bounded_coverage_design_schema=camp_dp_v25_bounded_coverage_design_v1
 current_v25_atom_ledger_plan=configs/integrations/diffusion_planner_v25_atom_ledger_plan_v6.json
 current_v25_a16_formal_train_identity_count=1653
 current_v25_a16_executable_identity_count=1500
@@ -2113,6 +2140,12 @@ current_v25_a16_observe_same_tick_request_count=125
 current_v25_a16_source_failure_count=0
 current_v25_a16_source_only_no_model_simulator_candidate_dp_forward=true
 current_v25_a16_independent_review_passed=true
+current_v25_a161_local_non_torch_test_result=185_passed_2_skipped
+current_v25_a161_targeted_test_result=117_passed_1_skipped
+current_v25_a161_windows_full_collection=torch_dll_abort_not_counted
+current_v25_a161_source_census_started=false
+current_v25_a161_source_review_started=false
+current_v25_a161_bounded_k8_executed=false
 current_v25_full_config_preflight_release_created=true_diagnostic_consumed
 current_v25_full_config_preflight_started=true_failed_closed_before_receipts
 current_v25_corrected_full_corpus_started=false
@@ -2125,6 +2158,6 @@ current_v25_training_started=false
 current_v25_calibration_started=false
 current_v25_fresh_b2_opened=false
 current_v25_fresh_outcome_opened=false
-observed_autodl_free_bytes=46981681152
-current_v25_phase=A1_6_R0_6_route_level_signal_authority_source_only_census_review_passed
-next_work_target=ultra_read_only_A1_6_R0_6_source_package_review_before_bounded_coverage_gate
+observed_autodl_free_bytes=46980939776
+current_v25_phase=A1_6_1_machine_authority_and_production_integration_ready_source_only_rerun_pending
+next_work_target=autodl_ff_only_tests_then_fresh_1653_source_census_and_independent_review_no_k8
