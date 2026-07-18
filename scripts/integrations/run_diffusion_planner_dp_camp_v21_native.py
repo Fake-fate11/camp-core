@@ -3220,6 +3220,7 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
     safety = _mapping(receipt, "_safety_record")
     tick: dict[str, Any] = {
         "tick_index": int(receipt["tick_index"]),
+        "status": str(receipt["status"]),
         "input_sha256": str(causal["input_sha256"]),
         "padding": {
             "observed_frames": int(causal["observed_frames"]),
@@ -3276,6 +3277,14 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
                 tick[name] = list(receipt[name])
         if "all_k_high_risk" in receipt:
             tick["all_k_high_risk"] = bool(receipt["all_k_high_risk"])
+        if "controlled_scene" in receipt:
+            tick["controlled_scene"] = json.loads(
+                json.dumps(receipt["controlled_scene"], allow_nan=False)
+            )
+        if "v25_context" in receipt:
+            tick["v25_context"] = json.loads(
+                json.dumps(receipt["v25_context"], allow_nan=False)
+            )
     return tick
 
 

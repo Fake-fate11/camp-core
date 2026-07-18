@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.4 bounded K8 execution."""
+"""Independently review a sealed A1.6.5 bounded K8 execution."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import subprocess
 import sys
 from typing import Any, Mapping
@@ -30,8 +31,8 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a164_bounded_execution_review_v2"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a164_bounded_execution_v2"
+SCHEMA_VERSION = "camp_dp_v25_a165_bounded_execution_review_v3"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a165_bounded_execution_v3"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_v1"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
@@ -40,8 +41,9 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-RELEASE_GATE = "a164_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a164_bounded_execute_nonces")
+RELEASE_GATE = "a165_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a165_bounded_execute_nonces")
+EXPECTED_DEVICE = "cuda"
 EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
 EXPECTED_PROBE_TEMPLATE = Path(
     "/root/autodl-tmp/"
@@ -149,6 +151,7 @@ EXECUTION_REPORT_FIELDS = {
     "run_count",
     "snapshot_count",
     "snapshot_capacity",
+    "device",
     "terminal",
     "wall_seconds",
     "retained_capability_failure_count",
@@ -176,6 +179,7 @@ SOURCE_RECEIPT_FIELDS = {
     "unique_identity_count",
     "run_count",
     "snapshot_capacity",
+    "device",
     "full_r_execute_authorized",
     "fresh_b2_opened",
     "outcome_fields_consumed",
@@ -734,6 +738,31 @@ def _validate_source_row(row: Any) -> dict[str, Any]:
             != "camp_dp_v25_family_independent_mapped_signal_source_chain_v1"
         ):
             raise ValueError("mapped route-source authority drifted")
+        mode = chain.get("phase_authority_mode")
+        expected_phase = chain.get("expected_current_phase")
+        formal_phase = chain.get("formal_phase")
+        formal_required = chain.get("formal_mapped_source_required")
+        if (
+            chain.get("formal_route_mapped_traffic_light") is not True
+            or chain.get("phase_remaining_available") is not False
+            or (
+                mode == "controlled_same_tick_override"
+                and (
+                    expected_phase not in {"green", "yellow", "red"}
+                    or formal_phase != expected_phase
+                    or formal_required is not True
+                )
+            )
+            or (
+                mode == "observe_same_tick_request"
+                and (
+                    expected_phase is not None
+                    or formal_phase != "none"
+                    or formal_required is not False
+                )
+            )
+        ):
+            raise ValueError("mapped controlled/observe phase authority drifted")
         for field in (
             "scenario_id", "route_identity_sha256", "source_map_sha256",
             "route_geometry_sha256", "stop_line_geometry_sha256",
@@ -886,6 +915,15 @@ def _validate_signal_receipts(
             or receipt.get("source_valid") is not True
             or type(receipt.get("applicable")) is not bool
             or receipt["applicable"] is not (receipt["current_phase"] == "red")
+            or (
+                phase_mode == "controlled_same_tick_override"
+                and receipt.get("current_phase")
+                != chain.get("expected_current_phase")
+            )
+            or (
+                phase_mode == "observe_same_tick_request"
+                and chain.get("expected_current_phase") is not None
+            )
         ):
             raise ValueError("mapped same-tick receipt contract drifted")
         regulatory = chain["regulatory_element_ids"]
@@ -1172,12 +1210,158 @@ def _independent_red_stopping_oracle(
     return costs
 
 
+def _strict_bool_mask(value: Any, *, label: str) -> list[bool]:
+    if (
+        type(value) is not list
+        or len(value) != 8
+        or any(type(item) is not bool for item in value)
+    ):
+        raise ValueError(f"{label} must be native bool[8]")
+    return list(value)
+
+
+def _validate_native_source_context(
+    *,
+    native_tick: Mapping[str, Any],
+    feature: Mapping[str, Any],
+    sidecar: Mapping[str, Any],
+    source_row: Mapping[str, Any],
+    tick_index: int,
+) -> None:
+    """Bind native-hook source/context evidence to the persisted snapshot."""
+
+    if native_tick.get("status") != "ok":
+        raise ValueError("bounded native tick is not successful")
+    controlled = native_tick.get("controlled_scene")
+    expected_controlled_fields = {
+        "scenario_id",
+        "tick_index",
+        "sim_time_s",
+        "actor_count",
+        "actors",
+        "signal",
+        "outcome_fields_consumed",
+        "candidate_tensor_consumed",
+        "selected_trajectory_consumed",
+        "model_input_cache",
+    }
+    if (
+        type(controlled) is not dict
+        or set(controlled) != expected_controlled_fields
+        or controlled.get("scenario_id") != source_row["scenario_id"]
+        or type(controlled.get("tick_index")) is not int
+        or controlled["tick_index"] != tick_index
+        or type(controlled.get("sim_time_s")) is not float
+        or controlled["sim_time_s"] != 0.1 * tick_index
+        or type(controlled.get("actor_count")) is not int
+        or type(controlled.get("actors")) is not list
+        or controlled["actor_count"] != len(controlled["actors"])
+        or controlled.get("outcome_fields_consumed") != []
+        or controlled.get("candidate_tensor_consumed") is not False
+        or controlled.get("selected_trajectory_consumed") is not False
+        or not _strict_equal(
+            controlled.get("model_input_cache"),
+            sidecar.get("controlled_model_input_cache_receipt"),
+        )
+    ):
+        raise ValueError("bounded native controlled-scene binding drifted")
+    signal = controlled.get("signal")
+    mapped = source_row["source_class"] == "mapped_signal"
+    expected_signal_fields = {
+        "phase",
+        "source_row_count",
+        "applied",
+        "source_receipt",
+    } | ({"tensor_evidence"} if mapped else set())
+    receipt = sidecar.get("controlled_signal_source_receipt")
+    if (
+        type(signal) is not dict
+        or type(receipt) is not dict
+        or set(signal) != expected_signal_fields
+        or signal.get("phase") != receipt.get("current_phase")
+        or type(signal.get("source_row_count")) is not int
+        or type(signal.get("applied")) is not bool
+        or signal["applied"]
+        is not (source_row["phase_authority_mode"] == "controlled_same_tick_override")
+        or not _strict_equal(signal.get("source_receipt"), receipt)
+        or (
+            mapped
+            and not _strict_equal(
+                signal.get("tensor_evidence"),
+                sidecar.get("controlled_signal_tensor_evidence"),
+            )
+        )
+        or (not mapped and sidecar.get("controlled_signal_tensor_evidence") is not None)
+    ):
+        raise ValueError("bounded native signal receipt/tensor binding drifted")
+    expected_source_rows = (
+        len(receipt.get("observed_route_lanelet_ids", []))
+        + len(receipt.get("observed_map_lanelet_ids", []))
+        if mapped
+        else 0
+    )
+    if signal["source_row_count"] != expected_source_rows:
+        raise ValueError("bounded native signal source-row denominator drifted")
+
+    native_context = native_tick.get("v25_context")
+    expected_context = {
+        "schema_version": sidecar.get("context_schema_version"),
+        "raw_context": feature.get("raw_context"),
+        "source_complete": feature.get("context_source_complete"),
+        "source_receipt": sidecar.get("context_source_receipt"),
+    }
+    if not _strict_equal(native_context, expected_context):
+        raise ValueError("bounded native V25 context/snapshot binding drifted")
+
+
+def _reject_unknown_failure_fields(value: Any, *, path: str = "native") -> None:
+    if type(value) is dict:
+        for key, item in value.items():
+            if type(key) is not str:
+                raise ValueError("bounded native evidence has a non-string key")
+            normalized = re.sub(r"[^a-z0-9]", "", key.lower())
+            if any(token in normalized for token in ("error", "exception", "failure")):
+                raise ValueError(f"bounded native evidence has an unknown failure field: {path}.{key}")
+            if "outcome" in normalized and key != "outcome_fields_consumed":
+                raise ValueError(f"bounded native evidence has an unknown outcome field: {path}.{key}")
+            if "future" in normalized and key != "future_schedule_consumed":
+                raise ValueError(f"bounded native evidence has an unknown future field: {path}.{key}")
+            if key == "outcome_fields_consumed" and item != []:
+                raise ValueError("bounded native evidence consumed outcome fields")
+            if key == "future_schedule_consumed" and item is not False:
+                raise ValueError("bounded native evidence consumed a future schedule")
+            _reject_unknown_failure_fields(item, path=f"{path}.{key}")
+    elif type(value) is list:
+        for index, item in enumerate(value):
+            _reject_unknown_failure_fields(item, path=f"{path}[{index}]")
+
+
+def _derive_native_failure_class(receipt: Any) -> str:
+    if type(receipt) is not dict:
+        return "native_receipt_malformed"
+    _reject_unknown_failure_fields(receipt)
+    if (
+        receipt.get("schema_version") != "v21_native_arm_receipt_v1"
+        or receipt.get("arm") != "camp"
+        or receipt.get("claim_authorized") is not False
+        or receipt.get("status") != "ok"
+    ):
+        return "native_receipt_failed"
+    ticks = receipt.get("ticks")
+    if type(ticks) is not list or len(ticks) != 64:
+        return "native_tick_denominator_invalid"
+    if any(type(tick) is not dict or tick.get("status") != "ok" for tick in ticks):
+        return "native_tick_failed"
+    return "none"
+
+
 def _validate_native_cross_binding(
     *,
     native_tick: Any,
     tick_index: int,
     feature: Mapping[str, Any],
     sidecar: Mapping[str, Any],
+    source_row: Mapping[str, Any],
     candidate: np.ndarray,
     atoms: np.ndarray,
     normalized: np.ndarray,
@@ -1189,16 +1373,14 @@ def _validate_native_cross_binding(
         raise ValueError("bounded native tick schema/index drifted")
     native_source = native_tick.get("source_valid_mask")
     native_physical = native_tick.get("physical_feasible_mask")
+    native_complete = native_tick.get("source_complete_mask")
     identity = native_tick.get("default_candidate0_identity")
     if (
-        type(native_source) is not list
-        or len(native_source) != 8
-        or any(type(value) is not bool for value in native_source)
-        or type(native_physical) is not list
-        or len(native_physical) != 8
-        or any(type(value) is not bool for value in native_physical)
-        or native_source != feature["source_valid_mask"]
-        or native_physical != feature["physical_feasible_mask"]
+        _strict_bool_mask(native_source, label="native source-valid") != feature["source_valid_mask"]
+        or _strict_bool_mask(native_physical, label="native physical-feasible")
+        != feature["physical_feasible_mask"]
+        or _strict_bool_mask(native_complete, label="native route-speed source-complete")
+        != feature["source_valid_mask"]
         or native_tick.get("candidate_tensor_sha256_before") != tensor_sha
         or native_tick.get("candidate_tensor_sha256_after") != tensor_sha
         or native_tick.get("candidate_row_sha256") != row_shas
@@ -1228,6 +1410,13 @@ def _validate_native_cross_binding(
         )
     ):
         raise ValueError("bounded native/snapshot candidate-atom-score-selection binding drifted")
+    _validate_native_source_context(
+        native_tick=native_tick,
+        feature=feature,
+        sidecar=sidecar,
+        source_row=source_row,
+        tick_index=tick_index,
+    )
 
 
 def _context_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -1356,6 +1545,10 @@ def _review_tick(
     applicable = feature.get("atom_applicable_mask")
     source_valid = feature.get("source_valid_mask")
     physical = feature.get("physical_feasible_mask")
+    native_speed_source = _strict_bool_mask(
+        native_tick.get("source_complete_mask"),
+        label="native route-speed source-complete",
+    )
     if (
         type(atom_source) is not list
         or len(atom_source) != 8
@@ -1368,23 +1561,11 @@ def _review_tick(
         or type(source_valid) is not list
         or len(source_valid) != 8
         or any(type(value) is not bool for value in source_valid)
-        or source_valid != [all(row) for row in atom_source]
         or type(physical) is not list
         or len(physical) != 8
         or any(type(value) is not bool for value in physical)
-        or any(feasible and not valid for feasible, valid in zip(physical, source_valid))
-        or not any(source_valid)
-        or sidecar.get("source_valid_mask") != source_valid
-        or sidecar.get("physical_feasible_mask") != physical
-        or any(
-            applicable[row][column] and not atom_source[row][column]
-            for row in range(8)
-            for column in range(14)
-        )
-        or sidecar.get("all_k_high_risk")
-        is not (all(source_valid) and not any(physical))
     ):
-        raise ValueError("bounded source/applicability/physical mask drifted")
+        raise ValueError("bounded atom/source/applicability mask schema drifted")
     receipt = _validate_signal_receipts(
         sidecar=sidecar, source_row=source_row, tick_index=tick_index
     )
@@ -1394,6 +1575,26 @@ def _review_tick(
     _validate_context(feature=feature, sidecar=sidecar, receipt=receipt)
     _validate_cache(sidecar=sidecar, source_row=source_row, tick_index=tick_index)
     signal_applicable = receipt["current_phase"] == "red"
+    expected_atom_source = [[True] * 14 for _ in range(8)]
+    expected_applicable = [[True] * 14 for _ in range(8)]
+    for row_index in range(8):
+        for column in range(4, 7):
+            expected_atom_source[row_index][column] = native_speed_source[row_index]
+        expected_applicable[row_index][10] = signal_applicable
+        expected_applicable[row_index][12] = signal_applicable
+    expected_source_valid = [all(row) for row in expected_atom_source]
+    if (
+        atom_source != expected_atom_source
+        or applicable != expected_applicable
+        or source_valid != expected_source_valid
+        or not any(source_valid)
+        or sidecar.get("source_valid_mask") != source_valid
+        or sidecar.get("physical_feasible_mask") != physical
+        or any(feasible and not valid for feasible, valid in zip(physical, source_valid))
+        or sidecar.get("all_k_high_risk")
+        is not (all(source_valid) and not any(physical))
+    ):
+        raise ValueError("bounded canonical atom/source/applicability mask drifted")
     for row_index in range(8):
         if (
             atom_source[row_index][10] is not True
@@ -1429,6 +1630,7 @@ def _review_tick(
         tick_index=tick_index,
         feature=feature,
         sidecar=sidecar,
+        source_row=source_row,
         candidate=candidate,
         atoms=atoms,
         normalized=normalized,
@@ -1463,6 +1665,9 @@ def _review_run(
         / f"run_{ordinal:03d}_{run['occurrence']}_{run['scenario_id']}"
     )
     receipt = _load(native_dir / "bounded_native_receipt.json")
+    failure_class = _derive_native_failure_class(receipt)
+    if failure_class != "none":
+        raise ValueError(f"bounded native failure evidence: {failure_class}")
     ticks = receipt.get("ticks") if type(receipt) is dict else None
     if type(ticks) is not list or len(ticks) != 64:
         raise ValueError("bounded native receipt tick denominator drifted")
@@ -1547,7 +1752,7 @@ def _review_run(
         "atom_matrix_sha256_sequence": [row["atoms"] for row in tick_oracles],
         "context_sha256_sequence": [row["context"] for row in tick_oracles],
         "selected_index_sequence": [row["selected"] for row in tick_oracles],
-        "failure_class": "none",
+        "failure_class": failure_class,
         "closed_loop_trajectory_sha256": _sha(trajectory),
         "speed_probe_sha256": _sha(speeds),
     }
@@ -1565,7 +1770,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.4 bounded execution",
+        label="V25 A1.6.5 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
@@ -1585,6 +1790,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         current_pointer_head=head,
         dp_repo=args.dp_repo,
         probe_template=args.probe_template,
+        requested_device=EXPECTED_DEVICE,
         consume=False,
     )
     decision = authority["decision"]
@@ -1620,6 +1826,9 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or set(source_receipt) != SOURCE_RECEIPT_FIELDS
         or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
         or report.get("status") != "passed_exact_bounded_execution"
+        or report.get("device") != EXPECTED_DEVICE
+        or source_receipt.get("device") != EXPECTED_DEVICE
+        or decision.get("device") != EXPECTED_DEVICE
         or type(report.get("unique_identity_count")) is not int
         or report["unique_identity_count"] != EXPECTED_UNIQUE_IDENTITIES
         or type(report.get("run_count")) is not int

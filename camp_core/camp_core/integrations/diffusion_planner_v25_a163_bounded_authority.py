@@ -22,10 +22,11 @@ from .diffusion_planner_v25_full_r_authority import (
 )
 
 
-RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a164_bounded_execute_release_v2"
+RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a165_bounded_execute_release_v3"
 RELEASE_STATUS = "bounded_execute_released"
-RELEASE_GATE = "a164_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a164_bounded_execute_nonces")
+RELEASE_GATE = "a165_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a165_bounded_execute_nonces")
+EXPECTED_DEVICE = "cuda"
 EXPECTED_SEED = 25001
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
@@ -498,6 +499,7 @@ RELEASE_FIELDS = {
     "root_artifacts_sha256",
     "run_nonce",
     "authorized_output_dir",
+    "device",
     "seed",
     "unique_identity_count",
     "run_count",
@@ -528,7 +530,9 @@ def build_release_decision(
 ) -> dict[str, Any]:
     if not _is_sha256(run_nonce):
         raise ValueError("bounded release nonce must be a lowercase 64-hex string")
-    _canonical_absolute_path(authorized_output_dir, label="authorized output directory")
+    canonical_output = _canonical_absolute_path(
+        authorized_output_dir, label="authorized output directory"
+    )
     assets = verify_frozen_execution_assets(
         repo=repo, dp_repo=dp_repo, probe_template=probe_template
     )
@@ -564,7 +568,8 @@ def build_release_decision(
         "root_artifacts": roots,
         "root_artifacts_sha256": canonical_sha256(roots),
         "run_nonce": run_nonce,
-        "authorized_output_dir": authorized_output_dir,
+        "authorized_output_dir": str(canonical_output),
+        "device": EXPECTED_DEVICE,
         "seed": EXPECTED_SEED,
         "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
         "run_count": EXPECTED_RUNS,
@@ -586,7 +591,12 @@ def _consume_nonce(*, nonce: str, authorized_output_dir: str, output_dir: Path) 
     expected = _canonical_absolute_path(
         authorized_output_dir, label="authorized output directory"
     )
-    if output_dir.resolve() != expected:
+    if (
+        not output_dir.is_absolute()
+        or str(output_dir) != authorized_output_dir
+        or str(output_dir.resolve()) != authorized_output_dir
+        or output_dir.resolve() != expected
+    ):
         raise ValueError("bounded release is bound to a different exact output directory")
     NONCE_LEDGER.mkdir(parents=True, exist_ok=True)
     marker = NONCE_LEDGER / f"v25_{RELEASE_GATE}_{nonce}.consumed.json"
@@ -612,10 +622,11 @@ def verify_bounded_release(
     current_pointer_head: str,
     dp_repo: Path,
     probe_template: Path,
+    requested_device: str,
     consume: bool,
 ) -> dict[str, Any]:
     seal = verify_complete_seal(
-        release_artifact, release_root_sha256, label="V25 A1.6.4 bounded release"
+        release_artifact, release_root_sha256, label="V25 A1.6.5 bounded release"
     )
     if (
         seal["manifest_paths"] != RELEASE_PAYLOADS
@@ -635,6 +646,7 @@ def verify_bounded_release(
         "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
         "run_count": EXPECTED_RUNS,
         "snapshot_capacity": EXPECTED_TICKS,
+        "device": EXPECTED_DEVICE,
         "bounded_execute_authorized": True,
         "full_config_preflight_authorized": False,
         "full_r_execute_authorized": False,
@@ -696,10 +708,17 @@ def verify_bounded_release(
         implementation_source_head=decision["implementation_source_head"],
         fixed_dp_head=decision["fixed_dp_head"],
     )
+    if type(requested_device) is not str or requested_device != EXPECTED_DEVICE:
+        raise ValueError("bounded release requires the frozen CUDA execution backend")
     output = _canonical_absolute_path(
         decision["authorized_output_dir"], label="authorized output directory"
     )
-    if output != requested_output_dir.resolve():
+    if (
+        not requested_output_dir.is_absolute()
+        or str(requested_output_dir) != decision["authorized_output_dir"]
+        or str(requested_output_dir.resolve()) != decision["authorized_output_dir"]
+        or output != requested_output_dir.resolve()
+    ):
         raise ValueError("bounded release output directory mismatch")
     marker = None
     if consume:

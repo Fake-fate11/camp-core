@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.4 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.5 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -32,6 +33,7 @@ from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import 
     validate_bounded_terminal_acceptance,
 )
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
+    EXPECTED_DEVICE,
     EXPECTED_RUNS,
     EXPECTED_TICKS,
     EXPECTED_UNIQUE_IDENTITIES,
@@ -46,7 +48,7 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a164_bounded_execution_v2"
+SCHEMA_VERSION = "camp_dp_v25_a165_bounded_execution_v3"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_v1"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -125,12 +127,55 @@ def _repeat_context_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _reject_native_forbidden_fields(value: Any, *, path: str = "native") -> None:
+    if type(value) is dict:
+        for key, item in value.items():
+            if type(key) is not str:
+                raise ValueError("bounded native evidence has a non-string key")
+            normalized = re.sub(r"[^a-z0-9]", "", key.lower())
+            if any(token in normalized for token in ("error", "exception", "failure")):
+                raise ValueError(f"bounded native evidence has an unknown failure field: {path}.{key}")
+            if "outcome" in normalized and key != "outcome_fields_consumed":
+                raise ValueError(f"bounded native evidence has an unknown outcome field: {path}.{key}")
+            if "future" in normalized and key != "future_schedule_consumed":
+                raise ValueError(f"bounded native evidence has an unknown future field: {path}.{key}")
+            if key == "outcome_fields_consumed" and item != []:
+                raise ValueError("bounded native evidence consumed outcome fields")
+            if key == "future_schedule_consumed" and item is not False:
+                raise ValueError("bounded native evidence consumed a future schedule")
+            _reject_native_forbidden_fields(item, path=f"{path}.{key}")
+    elif type(value) is list:
+        for index, item in enumerate(value):
+            _reject_native_forbidden_fields(item, path=f"{path}[{index}]")
+
+
+def _derive_native_failure_class(native_receipt: Mapping[str, Any]) -> str:
+    """Derive completion from persisted native evidence, never caller input."""
+
+    if type(native_receipt) is not dict:
+        return "native_receipt_malformed"
+    _reject_native_forbidden_fields(native_receipt)
+    if (
+        native_receipt.get("schema_version") != "v21_native_arm_receipt_v1"
+        or native_receipt.get("arm") != "camp"
+        or native_receipt.get("claim_authorized") is not False
+        or native_receipt.get("status") != "ok"
+    ):
+        return "native_receipt_failed"
+    ticks = native_receipt.get("ticks")
+    if type(ticks) is not list or len(ticks) != TICKS_PER_RUN:
+        return "native_tick_denominator_invalid"
+    for tick in ticks:
+        if type(tick) is not dict or tick.get("status") != "ok":
+            return "native_tick_failed"
+    return "none"
+
+
 def build_run_evidence(
     *,
     run: Mapping[str, Any],
     payloads: list[Mapping[str, Any]],
     native_receipt: Mapping[str, Any],
-    failure_class: str,
 ) -> dict[str, Any]:
     """Build evidence values, never caller-supplied repeat-pass booleans."""
 
@@ -201,7 +246,7 @@ def build_run_evidence(
         "atom_matrix_sha256_sequence": atoms,
         "context_sha256_sequence": contexts,
         "selected_index_sequence": selected,
-        "failure_class": failure_class,
+        "failure_class": _derive_native_failure_class(native_receipt),
         "closed_loop_trajectory_sha256": canonical_sha256(trajectory),
         "speed_probe_sha256": canonical_sha256(speeds),
     }
@@ -330,6 +375,11 @@ def _execute(
                 expected_selection_policy="v22_source_valid",
                 expected_safety_schema="safety_cost_native_v22",
             )
+            failure_class = _derive_native_failure_class(receipt)
+            if failure_class != "none":
+                raise RuntimeError(
+                    f"bounded native run failed closed: {failure_class}"
+                )
             payloads: list[dict[str, Any]] = []
             for tick_index in range(TICKS_PER_RUN):
                 payload = corpus.combine_snapshot_context(
@@ -359,7 +409,6 @@ def _execute(
                 run=run,
                 payloads=payloads,
                 native_receipt=receipt,
-                failure_class="none",
             )
             result = {
                 "schema_version": RESULT_SCHEMA_VERSION,
@@ -369,7 +418,7 @@ def _execute(
                 "status": "complete",
                 "tick_count": TICKS_PER_RUN,
                 "retained_capability_failure": None,
-                "failure_class": "none",
+                "failure_class": failure_class,
                 "fresh_b2_opened": False,
                 "outcome_fields_consumed": [],
             }
@@ -417,6 +466,7 @@ def _execute(
         "run_count": len(results),
         "snapshot_count": snapshot_count,
         "snapshot_capacity": EXPECTED_TICKS,
+        "device": EXPECTED_DEVICE,
         "terminal": terminal,
         "wall_seconds": time.perf_counter() - started,
         "retained_capability_failure_count": 0,
@@ -456,6 +506,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         current_pointer_head=camp_head,
         dp_repo=args.dp_repo,
         probe_template=args.probe_template,
+        requested_device=args.device,
         consume=True,
     )
     plan = authority["plan"]
@@ -510,6 +561,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
             "run_count": EXPECTED_RUNS,
             "snapshot_capacity": EXPECTED_TICKS,
+            "device": EXPECTED_DEVICE,
             "full_r_execute_authorized": False,
             "fresh_b2_opened": False,
             "outcome_fields_consumed": [],
@@ -531,7 +583,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--release-artifact", type=Path, required=True)
     parser.add_argument("--release-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--device", choices=("cpu", "cuda"), default="cuda")
+    parser.add_argument("--device", choices=(EXPECTED_DEVICE,), default=EXPECTED_DEVICE)
     parser.add_argument("--bounded-execute", action="store_true", required=True)
     return parser.parse_args(argv)
 
