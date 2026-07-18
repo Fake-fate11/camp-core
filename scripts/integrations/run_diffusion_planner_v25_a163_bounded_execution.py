@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.6 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.7 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -48,8 +48,8 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a166_bounded_execution_v4"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a166_bounded_snapshot_v2"
+SCHEMA_VERSION = "camp_dp_v25_a167_bounded_execution_v5"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a167_bounded_snapshot_v3"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
@@ -88,9 +88,20 @@ NATIVE_RECEIPT_FIELDS = {
     "logical_map_sha256", "fixed_dp_head", "checkpoint_sha256", "args_sha256",
     "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
     "initial_input_sha256", "ticks", "native_result", "claim_authorized",
-    "safety", "secondary", "latency", "selector_scale_contract",
-    "runtime_annotation_compatibility",
+    "selector_scale_contract", "runtime_annotation_compatibility",
 }
+EXPECTED_SELECTOR_SCALE_CONTRACT = {
+    "declared_atom_schema_version": "dp_camp_v10_14d",
+    "effective_atom_schema_version": "dp_camp_v10_14d",
+    "compatibility_policy": "exact_atom_names_on_frozen_sha_v1",
+}
+EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY = "not_required_python310_or_newer"
+EXPECTED_FIXED_DP_CHECKPOINT_SHA256 = (
+    "4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75"
+)
+EXPECTED_FIXED_DP_ARGS_SHA256 = (
+    "42c1174de7db49d20343d9ff155093ee206ea9fb31bf0fa7185b108e36c66caa"
+)
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -214,7 +225,13 @@ def _validate_public_success_tick(tick: Any, *, tick_index: int) -> None:
         raise ValueError("bounded native candidate reasons schema drifted")
 
 
-def _validate_success_native_receipt(native_receipt: Any) -> None:
+def _validate_success_native_receipt(
+    native_receipt: Any,
+    *,
+    config: Mapping[str, Any] | None = None,
+    route: Mapping[str, Any] | None = None,
+    native_dir: Path | None = None,
+) -> None:
     if type(native_receipt) is not dict or set(native_receipt) != NATIVE_RECEIPT_FIELDS:
         raise ValueError("bounded native receipt exact field set drifted")
     if (
@@ -222,7 +239,16 @@ def _validate_success_native_receipt(native_receipt: Any) -> None:
         or native_receipt.get("arm") != "camp"
         or native_receipt.get("claim_authorized") is not False
         or native_receipt.get("status") != "ok"
+        or native_receipt.get("fixed_dp_head") != FIXED_DP_HEAD
+        or native_receipt.get("checkpoint_sha256")
+        != EXPECTED_FIXED_DP_CHECKPOINT_SHA256
+        or native_receipt.get("args_sha256") != EXPECTED_FIXED_DP_ARGS_SHA256
         or type(native_receipt.get("scenario_seed")) is not int
+        or native_receipt.get("scenario_seed") != 25001
+        or native_receipt.get("selector_scale_contract")
+        != EXPECTED_SELECTOR_SCALE_CONTRACT
+        or native_receipt.get("runtime_annotation_compatibility")
+        != EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY
     ):
         raise ValueError("bounded native receipt exact value/type contract drifted")
     ticks = native_receipt.get("ticks")
@@ -230,6 +256,28 @@ def _validate_success_native_receipt(native_receipt: Any) -> None:
         raise ValueError("bounded native tick denominator is invalid")
     for index, tick in enumerate(ticks):
         _validate_public_success_tick(tick, tick_index=index)
+    initial_input = ticks[0].get("input_sha256")
+    expected_initial_state = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + str(initial_input)).encode("ascii")
+    ).hexdigest()
+    for name in (
+        "route_name",
+        "route_sha256",
+        "logical_map_sha256",
+        "spawn_config_sha256",
+        "initial_state_sha256",
+        "initial_input_sha256",
+    ):
+        value = native_receipt.get(name)
+        if type(value) is not str or len(value) != 64 or any(
+            character not in "0123456789abcdef" for character in value
+        ):
+            raise ValueError(f"bounded native {name} must be a lowercase SHA256")
+    if (
+        native_receipt["initial_input_sha256"] != initial_input
+        or native_receipt["initial_state_sha256"] != expected_initial_state
+    ):
+        raise ValueError("bounded native initial input/state binding drifted")
     native_result = native_receipt.get("native_result")
     if (
         type(native_result) is not dict
@@ -241,8 +289,61 @@ def _validate_success_native_receipt(native_receipt: Any) -> None:
         or type(native_result.get("n_npc_spawned")) is not int
         or type(native_result.get("trajectory_log_path")) is not str
         or type(native_result.get("clearance_log_path")) is not str
+        or native_result.get("final_step") != 63
+        or native_result.get("goal_reached") is not False
+        or native_result.get("reason") != "max_steps"
+        or native_result.get("n_npc_spawned") != 0
     ):
         raise ValueError("bounded native result exact schema drifted")
+    trajectory_path = Path(native_result["trajectory_log_path"])
+    clearance_path = Path(native_result["clearance_log_path"])
+    if (
+        not trajectory_path.is_absolute()
+        or not clearance_path.is_absolute()
+        or str(trajectory_path.resolve()) != str(trajectory_path)
+        or str(clearance_path.resolve()) != str(clearance_path)
+        or trajectory_path.name != "trajectory_log.json"
+        or clearance_path.name != "clearance_log.json"
+        or trajectory_path.parent != clearance_path.parent
+    ):
+        raise ValueError("bounded native result path authority drifted")
+    if config is not None or route is not None or native_dir is not None:
+        if (
+            type(config) is not dict
+            or type(route) is not dict
+            or not isinstance(native_dir, Path)
+        ):
+            raise ValueError("bounded native producer authority inputs are incomplete")
+        spawn_payload = {**config["spawn_config"], "max_steps": TICKS_PER_RUN}
+        expected_spawn_sha = hashlib.sha256(
+            json.dumps(spawn_payload, sort_keys=True, separators=(",", ":")).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        expected = {
+            "route_name": str(route["name"]),
+            "route_sha256": str(route["sha256"]),
+            "logical_map_sha256": str(config["map"]["sha256"]),
+            "fixed_dp_head": FIXED_DP_HEAD,
+            "checkpoint_sha256": EXPECTED_FIXED_DP_CHECKPOINT_SHA256,
+            "args_sha256": EXPECTED_FIXED_DP_ARGS_SHA256,
+            "scenario_seed": 25001,
+            "spawn_config_sha256": expected_spawn_sha,
+            "initial_input_sha256": initial_input,
+            "initial_state_sha256": expected_initial_state,
+        }
+        if any(native_receipt.get(key) != value for key, value in expected.items()):
+            raise ValueError("bounded native producer header authority drifted")
+        expected_result = {
+            "final_step": 63,
+            "goal_reached": False,
+            "reason": "max_steps",
+            "n_npc_spawned": 0,
+            "trajectory_log_path": str(native_dir / "trajectory_log.json"),
+            "clearance_log_path": str(native_dir / "clearance_log.json"),
+        }
+        if native_result != expected_result:
+            raise ValueError("bounded native producer terminal authority drifted")
 
 
 def _repeat_context_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -512,6 +613,18 @@ def _execute(
                 expected_selection_policy="v22_source_valid",
                 expected_safety_schema="safety_cost_native_v22",
             )
+            receipt = dict(receipt)
+            for derived_summary in ("safety", "secondary", "latency"):
+                if type(receipt.pop(derived_summary, None)) is not dict:
+                    raise RuntimeError(
+                        f"bounded native {derived_summary} summary was unavailable"
+                    )
+            _validate_success_native_receipt(
+                receipt,
+                config=config,
+                route=config["routes"][0],
+                native_dir=native_dir,
+            )
             failure_class = _derive_native_failure_class(receipt)
             if failure_class != "none":
                 raise RuntimeError(
@@ -747,7 +860,7 @@ def main(argv: list[str] | None = None) -> None:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.6 bounded execution")
+            root = seal_artifact(args.output_dir, label="V25 A1.6.7 bounded execution")
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
             if getattr(args, "authority_consumed", False) is not True:
@@ -766,7 +879,7 @@ def main(argv: list[str] | None = None) -> None:
                 },
             )
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.6 bounded execution")
+            seal_artifact(args.output_dir, label="failed V25 A1.6.7 bounded execution")
             raise
 
 

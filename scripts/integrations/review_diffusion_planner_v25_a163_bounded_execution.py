@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.6 bounded K8 execution."""
+"""Independently review a sealed A1.6.7 bounded K8 execution."""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import math
 from pathlib import Path
+import pickle
 import re
 import subprocess
 import sys
@@ -31,9 +33,9 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a166_bounded_execution_review_v4"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a166_bounded_execution_v4"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a166_bounded_snapshot_v2"
+SCHEMA_VERSION = "camp_dp_v25_a167_bounded_execution_review_v5"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a167_bounded_execution_v5"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a167_bounded_snapshot_v3"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -41,11 +43,16 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-RELEASE_GATE = "a166_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a166_bounded_execute_nonces")
+RELEASE_GATE = "a167_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a167_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
 EXPECTED_FORMAL_ROOT_SHA256 = "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
+EXPECTED_FORMAL_ARTIFACT = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v25_controlled_corpus_source_freeze_retry2_ff028387_"
+    "20260717T140842CST"
+)
 EXPECTED_PROBE_TEMPLATE = Path(
     "/root/autodl-tmp/"
     "camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_"
@@ -449,9 +456,15 @@ NATIVE_RECEIPT_FIELDS = {
     "logical_map_sha256", "fixed_dp_head", "checkpoint_sha256", "args_sha256",
     "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
     "initial_input_sha256", "ticks", "native_result", "claim_authorized",
-    "safety", "secondary", "latency", "selector_scale_contract",
-    "runtime_annotation_compatibility",
+    "selector_scale_contract", "runtime_annotation_compatibility",
 }
+NATIVE_HEADER_RESULT_FIELDS = NATIVE_RECEIPT_FIELDS - {"ticks"}
+EXPECTED_SELECTOR_SCALE_CONTRACT = {
+    "declared_atom_schema_version": "dp_camp_v10_14d",
+    "effective_atom_schema_version": "dp_camp_v10_14d",
+    "compatibility_policy": "exact_atom_names_on_frozen_sha_v1",
+}
+EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY = "not_required_python310_or_newer"
 SEMANTIC_REQUIRED_FIELDS = {
     "schema_version",
     "family",
@@ -1014,6 +1027,259 @@ def _independent_execution_assets(
         "generation_scales_size_bytes": scale_path.stat().st_size,
     }
     return assets, scales, weights, _file_sha256(scale_path)
+
+
+def _independent_formal_cases() -> dict[str, dict[str, Any]]:
+    if (
+        not EXPECTED_FORMAL_ARTIFACT.is_absolute()
+        or EXPECTED_FORMAL_ARTIFACT.is_symlink()
+        or str(EXPECTED_FORMAL_ARTIFACT.resolve()) != str(EXPECTED_FORMAL_ARTIFACT)
+    ):
+        raise ValueError("independent formal artifact path authority drifted")
+    seal = verify_complete_seal(
+        EXPECTED_FORMAL_ARTIFACT,
+        EXPECTED_FORMAL_ROOT_SHA256,
+        label="V25 A1.6.7 independent formal authority",
+    )
+    if seal["root_sha256"] != EXPECTED_FORMAL_ROOT_SHA256:
+        raise ValueError("independent formal root drifted")
+    report = _load(EXPECTED_FORMAL_ARTIFACT / "report.json")
+    formal = _load(EXPECTED_FORMAL_ARTIFACT / "controlled_corpus_final_plan.json")
+    train = formal.get("train") if type(formal) is dict else None
+    if (
+        type(report) is not dict
+        or report.get("status") != "passed"
+        or report.get("mode") != "freeze_formal"
+        or formal.get("schema_version")
+        != "camp_dp_v25_controlled_corpus_final_plan_v1"
+        or formal.get("outcome_blind") is not True
+        or formal.get("outcome_fields_consumed") != []
+        or formal.get("fresh_b_outcome_opened") is not False
+        or type(train) is not list
+        or len(train) != 1653
+    ):
+        raise ValueError("independent formal universe contract drifted")
+    executable = [case for case in train if case.get("runner_eligible") is True]
+    retained = [case for case in train if case.get("runner_eligible") is False]
+    by_id = {str(case.get("scenario_id")): case for case in executable}
+    if (
+        len(executable) != 1500
+        or len(retained) != 153
+        or len(by_id) != 1500
+        or any(not _is_sha256(scenario_id) for scenario_id in by_id)
+        or any(case.get("split") != "train" for case in train)
+        or any(case.get("seeds") != [25001] for case in train)
+    ):
+        raise ValueError("independent formal denominator/seed drifted")
+    return by_id
+
+
+def _independent_spawn_config_sha256(
+    *, template: Mapping[str, Any], formal_case: Mapping[str, Any]
+) -> str:
+    spawn = template.get("spawn_config") if type(template) is dict else None
+    parameters = formal_case.get("parameters") if type(formal_case) is dict else None
+    if type(spawn) is not dict or type(parameters) is not dict:
+        raise ValueError("independent spawn authority is unavailable")
+    ego_speed = _native_number(
+        parameters.get("ego_speed_mps"), label="formal ego speed"
+    )
+    payload = dict(spawn)
+    payload.update(
+        {
+            "seed": 25001,
+            "max_steps": 64,
+            "max_active_npcs": 0,
+            "spawn_probability": 0.0,
+            "static_npc_count": 0,
+            "parked_vehicles_yaml": None,
+            "ego_init_speed": ego_speed,
+        }
+    )
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _independent_route_sha256(
+    *, artifact: Path, formal_case: Mapping[str, Any], dp_repo: Path
+) -> tuple[Path, str]:
+    identity = formal_case.get("route_identity_sha256")
+    spec = formal_case.get("route_spec")
+    if not _is_sha256(identity) or type(spec) is not dict:
+        raise ValueError("independent route identity/spec drifted")
+    route_source = dp_repo / "scenario_generation" / "route.py"
+    tracked = subprocess.run(
+        ["git", "show", f"{FIXED_DP_HEAD}:scenario_generation/route.py"],
+        cwd=dp_repo,
+        check=True,
+        capture_output=True,
+    ).stdout
+    if route_source.is_symlink() or route_source.read_bytes() != tracked:
+        raise ValueError("independent fixed-DP Route source drifted")
+    for value in (str(dp_repo), str(dp_repo / "diffusion_planner")):
+        if value not in sys.path:
+            sys.path.insert(0, value)
+    route_module = importlib.import_module("scenario_generation.route")
+    if Path(route_module.__file__).resolve() != route_source.resolve():
+        raise ValueError("independent Route import escaped canonical fixed DP")
+    lanelet_ids = spec.get("lanelet_ids")
+    start_pose = _native_numeric_array(
+        spec.get("start_pose"), (3,), label="formal route start pose"
+    ).astype(np.float32)
+    goal_pose = _native_numeric_array(
+        spec.get("goal_pose"), (3,), label="formal route goal pose"
+    ).astype(np.float32)
+    if (
+        type(lanelet_ids) is not list
+        or not lanelet_ids
+        or any(type(value) is not int for value in lanelet_ids)
+    ):
+        raise ValueError("independent formal route lanelets drifted")
+    route = route_module.Route(
+        map_path=str(formal_case["source_map_path"]),
+        start_pose=start_pose,
+        goal_pose=goal_pose,
+        start_lanelet_id=lanelet_ids[0],
+        goal_lanelet_id=lanelet_ids[-1],
+        route_lanelet_ids=list(lanelet_ids),
+    )
+    expected_sha = hashlib.sha256(pickle.dumps(route)).hexdigest()
+    route_path = artifact / "routes" / f"{identity}.pkl"
+    if (
+        route_path.is_symlink()
+        or not route_path.is_file()
+        or _file_sha256(route_path) != expected_sha
+    ):
+        raise ValueError("bounded route bytes differ from independent formal rebuild")
+    map_path = Path(str(formal_case.get("source_map_path")))
+    if (
+        not map_path.is_absolute()
+        or map_path.is_symlink()
+        or str(map_path.resolve()) != str(map_path)
+        or not map_path.is_file()
+        or _file_sha256(map_path) != formal_case.get("source_map_sha256")
+    ):
+        raise ValueError("bounded formal map path/bytes drifted")
+    return route_path, expected_sha
+
+
+def _expected_native_header_result(
+    *, artifact: Path, native_dir: Path, receipt: Mapping[str, Any],
+    formal_case: Mapping[str, Any], source_row: Mapping[str, Any],
+    template: Mapping[str, Any], dp_repo: Path,
+) -> dict[str, Any]:
+    if (
+        source_row.get("formal_case_sha256") != _sha(formal_case)
+        or source_row.get("route_identity_sha256")
+        != formal_case.get("route_identity_sha256")
+        or source_row.get("source_map_sha256")
+        != formal_case.get("source_map_sha256")
+        or source_row.get("family") != formal_case.get("family")
+        or source_row.get("tier") != formal_case.get("tier")
+    ):
+        raise ValueError("bounded source row/formal case binding drifted")
+    _route_path, route_sha = _independent_route_sha256(
+        artifact=artifact, formal_case=formal_case, dp_repo=dp_repo
+    )
+    ticks = receipt.get("ticks")
+    if type(ticks) is not list or len(ticks) != 64:
+        raise ValueError("bounded native ticks unavailable for initial state binding")
+    initial_input = ticks[0].get("input_sha256")
+    if not _is_sha256(initial_input):
+        raise ValueError("bounded native initial input SHA drifted")
+    initial_state = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + initial_input).encode("ascii")
+    ).hexdigest()
+    return {
+        "schema_version": "v21_native_arm_receipt_v1",
+        "status": "ok",
+        "route_name": formal_case["route_identity_sha256"],
+        "route_sha256": route_sha,
+        "logical_map_sha256": formal_case["source_map_sha256"],
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "checkpoint_sha256": EXPECTED_FIXED_DP_CHECKPOINT["sha256"],
+        "args_sha256": EXPECTED_FIXED_DP_ARGS["sha256"],
+        "arm": "camp",
+        "scenario_seed": 25001,
+        "spawn_config_sha256": _independent_spawn_config_sha256(
+            template=template, formal_case=formal_case
+        ),
+        "initial_state_sha256": initial_state,
+        "initial_input_sha256": initial_input,
+        "native_result": {
+            "final_step": 63,
+            "goal_reached": False,
+            "reason": "max_steps",
+            "n_npc_spawned": 0,
+            "trajectory_log_path": str(native_dir / "trajectory_log.json"),
+            "clearance_log_path": str(native_dir / "clearance_log.json"),
+        },
+        "claim_authorized": False,
+        "selector_scale_contract": EXPECTED_SELECTOR_SCALE_CONTRACT,
+        "runtime_annotation_compatibility": EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY,
+    }
+
+
+def _validate_native_log_files(*, native_dir: Path, receipt: Mapping[str, Any]) -> None:
+    ticks = receipt["ticks"]
+    trajectory_path = native_dir / "trajectory_log.json"
+    clearance_path = native_dir / "clearance_log.json"
+    if (
+        trajectory_path.is_symlink() or clearance_path.is_symlink()
+        or not trajectory_path.is_file() or not clearance_path.is_file()
+    ):
+        raise ValueError("bounded native terminal log files are unavailable")
+    trajectory = _load(trajectory_path)
+    clearance = _load(clearance_path)
+    if type(trajectory) is not list or len(trajectory) != 64:
+        raise ValueError("bounded native trajectory log denominator drifted")
+    for index, (row, tick) in enumerate(zip(trajectory, ticks)):
+        safety = tick["safety"]
+        if (
+            type(row) is not dict
+            or set(row) != {"step", "x", "y", "heading", "speed", "goal_d"}
+            or type(row.get("step")) is not int or row["step"] != index
+            or _native_number(row.get("goal_d"), label="trajectory goal distance") < 0.0
+            or not np.allclose(
+                [row.get("x"), row.get("y"), row.get("heading"), row.get("speed")],
+                [safety["position_xy"][0], safety["position_xy"][1],
+                 safety["ego_heading_rad"], safety["speed_mps"]],
+                rtol=0.0, atol=1e-9,
+            )
+        ):
+            raise ValueError("bounded native trajectory log/tick binding drifted")
+    records = clearance.get("records") if type(clearance) is dict else None
+    if (
+        type(clearance) is not dict
+        or set(clearance) != {"ego_shape", "max_range_m", "png_dir", "records"}
+        or type(clearance.get("ego_shape")) is not list
+        or len(clearance["ego_shape"]) != 3
+        or any(_native_number(v, label="clearance ego shape") <= 0.0
+               for v in clearance["ego_shape"])
+        or _native_number(clearance.get("max_range_m"), label="clearance range") <= 0.0
+        or clearance.get("png_dir") != str(native_dir)
+        or type(records) is not list or len(records) != 64
+    ):
+        raise ValueError("bounded native clearance log contract drifted")
+    fields = {"step", "ego_x", "ego_y", "ego_yaw", "rb_dist", "stopped_dist",
+              "stopped_id", "moving_dist", "moving_id", "png"}
+    for index, (row, tick) in enumerate(zip(records, ticks)):
+        safety = tick["safety"]
+        if (
+            type(row) is not dict or set(row) != fields
+            or type(row.get("step")) is not int or row["step"] != index
+            or row.get("png") != f"step_{index:04d}.png"
+            or not np.allclose(
+                [row.get("ego_x"), row.get("ego_y"), row.get("ego_yaw")],
+                [safety["position_xy"][0], safety["position_xy"][1],
+                 safety["ego_heading_rad"]], rtol=0.0, atol=1e-9,
+            )
+        ):
+            raise ValueError("bounded native clearance log/tick binding drifted")
+        for field in ("rb_dist", "stopped_dist", "moving_dist"):
+            if row[field] is not None:
+                _native_number(row[field], label=f"clearance {field}")
 
 
 def _strict_int_list(value: Any, *, label: str, nonempty: bool = False) -> list[int]:
@@ -1772,41 +2038,110 @@ def _validate_public_success_tick(tick: Any, *, tick_index: int) -> None:
         raise ValueError("bounded native candidate reasons schema drifted")
 
 
-def _derive_native_failure_class(receipt: Any) -> str:
-    if type(receipt) is not dict:
-        return "native_receipt_malformed"
-    _reject_unknown_failure_fields(receipt)
+def _validate_native_header_result_exact(
+    *, receipt: Any, expected: Mapping[str, Any]
+) -> None:
+    """Compare every authoritative native header/result leaf with strict JSON types."""
+
     if (
-        receipt.get("schema_version") != "v21_native_arm_receipt_v1"
-        or receipt.get("arm") != "camp"
-        or receipt.get("claim_authorized") is not False
-        or receipt.get("status") != "ok"
+        type(receipt) is not dict
+        or set(receipt) != NATIVE_RECEIPT_FIELDS
+        or type(expected) is not dict
+        or set(expected) != NATIVE_HEADER_RESULT_FIELDS
     ):
-        return "native_receipt_failed"
+        raise ValueError("bounded native header/result field contract drifted")
+    actual = {key: receipt[key] for key in NATIVE_HEADER_RESULT_FIELDS}
+    if not _strict_equal(actual, dict(expected)):
+        raise ValueError("bounded native header/result exact value/type drifted")
+
+
+def _validate_native_static_contract(receipt: Mapping[str, Any]) -> None:
+    if type(receipt) is not dict or set(receipt) != NATIVE_RECEIPT_FIELDS:
+        raise ValueError("bounded native receipt exact field set drifted")
     ticks = receipt.get("ticks")
     if type(ticks) is not list or len(ticks) != 64:
-        return "native_tick_denominator_invalid"
-    if any(type(tick) is not dict or tick.get("status") != "ok" for tick in ticks):
-        return "native_tick_failed"
-    if set(receipt) != NATIVE_RECEIPT_FIELDS:
-        return "native_receipt_failed"
-    try:
-        for index, tick in enumerate(ticks):
-            _validate_public_success_tick(tick, tick_index=index)
-    except ValueError:
-        return "native_evidence_schema_invalid"
+        raise ValueError("bounded native tick denominator drifted")
+    for index, tick in enumerate(ticks):
+        _validate_public_success_tick(tick, tick_index=index)
+    initial_input = ticks[0].get("input_sha256")
+    expected_initial_state = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + str(initial_input)).encode("ascii")
+    ).hexdigest()
+    sha_fields = (
+        "route_name",
+        "route_sha256",
+        "logical_map_sha256",
+        "spawn_config_sha256",
+        "initial_state_sha256",
+        "initial_input_sha256",
+    )
+    if (
+        receipt.get("schema_version") != "v21_native_arm_receipt_v1"
+        or receipt.get("status") != "ok"
+        or receipt.get("fixed_dp_head") != FIXED_DP_HEAD
+        or receipt.get("checkpoint_sha256")
+        != EXPECTED_FIXED_DP_CHECKPOINT["sha256"]
+        or receipt.get("args_sha256") != EXPECTED_FIXED_DP_ARGS["sha256"]
+        or receipt.get("arm") != "camp"
+        or type(receipt.get("scenario_seed")) is not int
+        or receipt.get("scenario_seed") != 25001
+        or receipt.get("claim_authorized") is not False
+        or not _strict_equal(
+            receipt.get("selector_scale_contract"),
+            EXPECTED_SELECTOR_SCALE_CONTRACT,
+        )
+        or receipt.get("runtime_annotation_compatibility")
+        != EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY
+        or any(not _is_sha256(receipt.get(name)) for name in sha_fields)
+        or receipt.get("initial_input_sha256") != initial_input
+        or receipt.get("initial_state_sha256") != expected_initial_state
+    ):
+        raise ValueError("bounded native static header contract drifted")
     native_result = receipt.get("native_result")
     if (
         type(native_result) is not dict
         or set(native_result)
-        != {"final_step", "goal_reached", "reason", "n_npc_spawned", "trajectory_log_path", "clearance_log_path"}
+        != {
+            "final_step",
+            "goal_reached",
+            "reason",
+            "n_npc_spawned",
+            "trajectory_log_path",
+            "clearance_log_path",
+        }
         or type(native_result.get("final_step")) is not int
+        or native_result.get("final_step") != 63
         or type(native_result.get("goal_reached")) is not bool
+        or native_result.get("goal_reached") is not False
         or type(native_result.get("reason")) is not str
+        or native_result.get("reason") != "max_steps"
         or type(native_result.get("n_npc_spawned")) is not int
+        or native_result.get("n_npc_spawned") != 0
         or type(native_result.get("trajectory_log_path")) is not str
         or type(native_result.get("clearance_log_path")) is not str
     ):
+        raise ValueError("bounded native terminal contract drifted")
+    trajectory = Path(native_result["trajectory_log_path"])
+    clearance = Path(native_result["clearance_log_path"])
+    if (
+        not trajectory.is_absolute()
+        or not clearance.is_absolute()
+        or str(trajectory.resolve()) != str(trajectory)
+        or str(clearance.resolve()) != str(clearance)
+        or trajectory.name != "trajectory_log.json"
+        or clearance.name != "clearance_log.json"
+        or trajectory.parent != clearance.parent
+    ):
+        raise ValueError("bounded native terminal path contract drifted")
+
+
+def _derive_native_failure_class(receipt: Any) -> str:
+    if type(receipt) is not dict:
+        return "native_receipt_malformed"
+    _reject_unknown_failure_fields(receipt)
+    try:
+        _validate_native_static_contract(receipt)
+    except ValueError:
         return "native_evidence_schema_invalid"
     return "none"
 
@@ -2152,6 +2487,9 @@ def _review_run(
     run: Mapping[str, Any],
     index_rows: list[Mapping[str, Any]],
     source_row: Mapping[str, Any],
+    formal_case: Mapping[str, Any],
+    template: Mapping[str, Any],
+    dp_repo: Path,
     source_root_sha256: str,
     scales: np.ndarray,
     weights: np.ndarray,
@@ -2164,6 +2502,18 @@ def _review_run(
         / f"run_{ordinal:03d}_{run['occurrence']}_{run['scenario_id']}"
     )
     receipt = _load(native_dir / "bounded_native_receipt.json")
+    _validate_native_static_contract(receipt)
+    expected_native = _expected_native_header_result(
+        artifact=artifact,
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        source_row=source_row,
+        template=template,
+        dp_repo=dp_repo,
+    )
+    _validate_native_header_result_exact(receipt=receipt, expected=expected_native)
+    _validate_native_log_files(native_dir=native_dir, receipt=receipt)
     failure_class = _derive_native_failure_class(receipt)
     if failure_class != "none":
         raise ValueError(f"bounded native failure evidence: {failure_class}")
@@ -2257,29 +2607,142 @@ def _review_run(
     }
 
 
-def _validate_execution_source_authority(
-    *, source_receipt: Any, report: Any, authority: Mapping[str, Any]
-) -> None:
+def _expected_execution_source_receipt(
+    *, authority: Mapping[str, Any], nonce_marker: Mapping[str, Any]
+) -> dict[str, Any]:
     decision = authority["decision"]
+    return {
+        "schema_version": EXECUTION_SCHEMA_VERSION,
+        "release_artifact": authority["release_artifact"],
+        "release_root_sha256": authority["release_root_sha256"],
+        "release_run_nonce": decision["run_nonce"],
+        "nonce_marker": dict(nonce_marker),
+        "root_artifacts": decision["root_artifacts"],
+        "formal_root_sha256": EXPECTED_FORMAL_ROOT_SHA256,
+        "critical_implementation_manifest": decision[
+            "critical_implementation_manifest"
+        ],
+        "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
+        "run_count": EXPECTED_RUNS,
+        "snapshot_capacity": EXPECTED_TICKS,
+        "device": EXPECTED_DEVICE,
+        "full_r_execute_authorized": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _expected_execution_report(
+    *, terminal: Mapping[str, Any], wall_seconds: int | float
+) -> dict[str, Any]:
+    wall = _native_number(wall_seconds, label="bounded execution wall seconds")
+    if wall < 0.0:
+        raise ValueError("bounded execution wall seconds must be nonnegative")
+    return {
+        "schema_version": EXECUTION_SCHEMA_VERSION,
+        "status": "passed_exact_bounded_execution",
+        "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
+        "run_count": EXPECTED_RUNS,
+        "snapshot_count": EXPECTED_TICKS,
+        "snapshot_capacity": EXPECTED_TICKS,
+        "device": EXPECTED_DEVICE,
+        "terminal": dict(terminal),
+        "wall_seconds": wall_seconds,
+        "retained_capability_failure_count": 0,
+        "mapped_runtime_source_failure_count": 0,
+        "candidate0_semantics": "operational_default_alias_from_same_forward",
+        "sequential_fixed_k8": True,
+        "candidate_tensors_modified": False,
+        "full_r_execute_authorized": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "scene_runtime_enabled": False,
+        "v2i_enabled": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _independent_terminal(
+    *, plan: Mapping[str, Any], results: list[Mapping[str, Any]], evidence: list[Mapping[str, Any]]
+) -> dict[str, Any]:
     if (
-        type(report) is not dict
-        or set(report) != EXECUTION_REPORT_FIELDS
-        or type(source_receipt) is not dict
-        or set(source_receipt) != SOURCE_RECEIPT_FIELDS
-        or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
-        or report.get("status") != "passed_exact_bounded_execution"
-        or report.get("device") != EXPECTED_DEVICE
-        or source_receipt.get("device") != EXPECTED_DEVICE
-        or decision.get("device") != EXPECTED_DEVICE
-        or source_receipt.get("release_root_sha256") != authority["release_root_sha256"]
-        or source_receipt.get("release_artifact") != authority["release_artifact"]
-        or source_receipt.get("release_run_nonce") != decision["run_nonce"]
-        or source_receipt.get("formal_root_sha256") != EXPECTED_FORMAL_ROOT_SHA256
-        or not _strict_equal(
-            source_receipt.get("critical_implementation_manifest"),
-            decision["critical_implementation_manifest"],
+        type(plan) is not dict
+        or type(results) is not list
+        or type(evidence) is not list
+        or len(results) != EXPECTED_RUNS
+        or len(evidence) != EXPECTED_RUNS
+        or len(plan.get("runs", [])) != EXPECTED_RUNS
+        or type(plan.get("unique_identity_count")) is not int
+        or plan.get("unique_identity_count") != EXPECTED_UNIQUE_IDENTITIES
+    ):
+        raise ValueError("bounded independent terminal denominator drifted")
+    first, final = evidence[0], evidence[-1]
+    if (
+        first.get("occurrence") != "identity0_first"
+        or final.get("occurrence") != "identity0_final_repeat"
+        or first.get("scenario_id") != final.get("scenario_id")
+    ):
+        raise ValueError("bounded independent identity0 terminal order drifted")
+    comparison = {
+        "candidate0_sha256_sequence_equal": first["candidate0_sha256_sequence"]
+        == final["candidate0_sha256_sequence"],
+        "k8_row_sha256_sequence_equal": first["k8_row_sha256_sequence"]
+        == final["k8_row_sha256_sequence"],
+        "atom_matrix_sequence_equal": first["atom_matrix_sha256_sequence"]
+        == final["atom_matrix_sha256_sequence"],
+        "context_sequence_equal": first["context_sha256_sequence"]
+        == final["context_sha256_sequence"],
+        "selected_index_sequence_equal": first["selected_index_sequence"]
+        == final["selected_index_sequence"],
+        "failure_class_equal": first["failure_class"] == final["failure_class"],
+        "closed_loop_trajectory_equal": first["closed_loop_trajectory_sha256"]
+        == final["closed_loop_trajectory_sha256"],
+        "speed_probe_equal": first["speed_probe_sha256"]
+        == final["speed_probe_sha256"],
+    }
+    if any(value is not True for value in comparison.values()):
+        raise ValueError("bounded independent identity0 terminal comparison failed")
+    return {
+        "schema_version": "camp_dp_v25_a163_route_level_bounded_terminal_v2",
+        "status": "passed_exact_bounded_terminal",
+        "run_count": EXPECTED_RUNS,
+        "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
+        "tick_count": EXPECTED_TICKS,
+        "retained_capability_failure_count": 0,
+        "mapped_runtime_source_failure_count": 0,
+        "identity0_repeat_deterministic": True,
+        "repeat_comparison": comparison,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _validate_execution_source_authority(
+    *,
+    source_receipt: Any,
+    report: Any,
+    authority: Mapping[str, Any],
+    nonce_marker: Mapping[str, Any],
+    expected_terminal: Mapping[str, Any],
+) -> None:
+    try:
+        expected_source = _expected_execution_source_receipt(
+            authority=authority, nonce_marker=nonce_marker
         )
-        or not _strict_equal(source_receipt.get("root_artifacts"), decision["root_artifacts"])
+        expected_report = _expected_execution_report(
+            terminal=expected_terminal,
+            wall_seconds=report.get("wall_seconds") if type(report) is dict else None,
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("bounded execution report/source authority drifted") from exc
+    if (
+        type(source_receipt) is not dict
+        or set(source_receipt) != SOURCE_RECEIPT_FIELDS
+        or not _strict_equal(source_receipt, expected_source)
+        or type(report) is not dict
+        or set(report) != EXECUTION_REPORT_FIELDS
+        or not _strict_equal(report, expected_report)
     ):
         raise ValueError("bounded execution report/source authority drifted")
 
@@ -2296,7 +2759,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.6 bounded execution",
+        label="V25 A1.6.7 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
@@ -2331,6 +2794,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or decision.get("execution_assets_sha256") != _sha(execution_assets)
     ):
         raise ValueError("bounded release execution assets fail independent oracle")
+    formal_cases = _independent_formal_cases()
+    template = _load(args.probe_template)
     marker = NONCE_LEDGER / f"v25_{RELEASE_GATE}_{decision['run_nonce']}.consumed.json"
     marker_payload = _load(marker)
     if (
@@ -2345,9 +2810,15 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         != hashlib.sha256(marker.read_bytes()).hexdigest()
     ):
         raise ValueError("bounded nonce consumption marker drifted")
-    _validate_execution_source_authority(
-        source_receipt=source_receipt, report=report, authority=authority
+    expected_source_receipt = _expected_execution_source_receipt(
+        authority=authority,
+        nonce_marker={
+            "path": str(marker),
+            "sha256": hashlib.sha256(marker.read_bytes()).hexdigest(),
+        },
     )
+    if not _strict_equal(source_receipt, expected_source_receipt):
+        raise ValueError("bounded execution source authority drifted")
     if (
         type(report.get("unique_identity_count")) is not int
         or report["unique_identity_count"] != EXPECTED_UNIQUE_IDENTITIES
@@ -2408,6 +2879,9 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 run=run,
                 index_rows=index_rows,
                 source_row=source_row,
+                formal_case=formal_cases[str(run["scenario_id"])],
+                template=template,
+                dp_repo=args.dp_repo,
                 source_root_sha256=source_root_sha256,
                 scales=scales,
                 weights=weights,
@@ -2416,6 +2890,19 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         )
     if _canonical_bytes(rebuilt) != _canonical_bytes(evidence):
         raise ValueError("bounded producer run evidence differs from independent rebuild")
+    expected_terminal = _independent_terminal(
+        plan=plan, results=results, evidence=rebuilt
+    )
+    _validate_execution_source_authority(
+        source_receipt=source_receipt,
+        report=report,
+        authority=authority,
+        nonce_marker={
+            "path": str(marker),
+            "sha256": hashlib.sha256(marker.read_bytes()).hexdigest(),
+        },
+        expected_terminal=expected_terminal,
+    )
     first, final = rebuilt[0], rebuilt[-1]
     repeat_fields = (
         "candidate0_sha256_sequence",
@@ -2480,7 +2967,7 @@ def main(argv: list[str] | None = None) -> None:
             " ".join(sys.argv) + "\n", encoding="utf-8"
         )
         (args.output_dir / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(args.output_dir, label="V25 A1.6.6 bounded review")
+        root = seal_artifact(args.output_dir, label="V25 A1.6.7 bounded review")
         print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
     except Exception as exc:
         _write(
@@ -2496,7 +2983,7 @@ def main(argv: list[str] | None = None) -> None:
             },
         )
         (args.output_dir / "run.exit").write_bytes(b"1\n")
-        seal_artifact(args.output_dir, label="failed V25 A1.6.6 bounded review")
+        seal_artifact(args.output_dir, label="failed V25 A1.6.7 bounded review")
         raise
 
 

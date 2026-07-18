@@ -22,10 +22,10 @@ from .diffusion_planner_v25_full_r_authority import (
 )
 
 
-RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a166_bounded_execute_release_v4"
+RELEASE_SCHEMA_VERSION = "camp_dp_v25_ultra_a167_bounded_execute_release_v5"
 RELEASE_STATUS = "bounded_execute_released"
-RELEASE_GATE = "a166_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a166_bounded_execute_nonces")
+RELEASE_GATE = "a167_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a167_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_SEED = 25001
 EXPECTED_UNIQUE_IDENTITIES = 243
@@ -194,7 +194,7 @@ def _verify_exact_asset(contract: Mapping[str, Any], *, label: str) -> Path:
 def verify_frozen_execution_assets(
     *, repo: Path, dp_repo: Path, probe_template: Path
 ) -> dict[str, Any]:
-    """Bind A1.6.6 execution to one template/weights/fixed-DP universe."""
+    """Bind A1.6.7 execution to one template/weights/fixed-DP universe."""
 
     camp = _require_exact_path(repo, EXPECTED_CAMP_REPO, label="CAMP repository")
     dp = _require_exact_path(dp_repo, EXPECTED_DP_REPO, label="fixed-DP repository")
@@ -367,7 +367,7 @@ def verify_four_root_chain(
         report_file = binding["report_file"]
         if not _is_sha256(root) or report_file != ROOT_REPORT_FILES[role]:
             raise ValueError(f"{role} root/report binding drifted")
-        seal = verify_complete_seal(artifact, root, label=f"V25 A1.6.6 {role}")
+        seal = verify_complete_seal(artifact, root, label=f"V25 A1.6.7 {role}")
         if (
             seal["manifest_paths"] != ROOT_PAYLOADS[role]
             or (artifact / "run.exit").read_bytes() != b"0\n"
@@ -622,7 +622,7 @@ def verify_bounded_release(
     consume: bool,
 ) -> dict[str, Any]:
     seal = verify_complete_seal(
-        release_artifact, release_root_sha256, label="V25 A1.6.6 bounded release"
+        release_artifact, release_root_sha256, label="V25 A1.6.7 bounded release"
     )
     if (
         seal["manifest_paths"] != RELEASE_PAYLOADS

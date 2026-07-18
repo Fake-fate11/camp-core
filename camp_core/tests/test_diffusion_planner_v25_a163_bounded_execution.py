@@ -1612,20 +1612,19 @@ def test_post_reviewer_native_source_context_mutations_fail_closed(
 def test_post_reviewer_derives_native_failure_and_rejects_unknown_fields(
     mutation: str,
 ) -> None:
-    native, _, _, _, _, _, _, _ = _native_cross_fixture()
-    receipt = {
-        "schema_version": "v21_native_arm_receipt_v1",
-        "status": "ok",
-        "arm": "camp",
-        "claim_authorized": False,
-        "ticks": [copy.deepcopy(native) for _ in range(64)],
-    }
+    receipt = _exact_native_receipt_fixture()
     if mutation == "top_status":
         receipt["status"] = "failed"
-        assert post_reviewer._derive_native_failure_class(receipt) == "native_receipt_failed"
+        assert (
+            post_reviewer._derive_native_failure_class(receipt)
+            == "native_evidence_schema_invalid"
+        )
     elif mutation == "tick_status":
         receipt["ticks"][0]["status"] = "failed"
-        assert post_reviewer._derive_native_failure_class(receipt) == "native_tick_failed"
+        assert (
+            post_reviewer._derive_native_failure_class(receipt)
+            == "native_evidence_schema_invalid"
+        )
     elif mutation == "error":
         receipt["ticks"][0]["error_message"] = "synthetic"
         with pytest.raises(ValueError, match="failure field"):
@@ -1673,7 +1672,32 @@ def test_post_reviewer_cache_schema_and_mode_are_exact() -> None:
             )
 
 
-def _execution_source_authority_fixture() -> tuple[dict, dict, dict]:
+def _terminal_fixture() -> dict:
+    return {
+        "schema_version": "camp_dp_v25_a163_route_level_bounded_terminal_v2",
+        "status": "passed_exact_bounded_terminal",
+        "run_count": EXPECTED_RUNS,
+        "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
+        "tick_count": EXPECTED_TICKS,
+        "retained_capability_failure_count": 0,
+        "mapped_runtime_source_failure_count": 0,
+        "identity0_repeat_deterministic": True,
+        "repeat_comparison": {
+            "candidate0_sha256_sequence_equal": True,
+            "k8_row_sha256_sequence_equal": True,
+            "atom_matrix_sequence_equal": True,
+            "context_sequence_equal": True,
+            "selected_index_sequence_equal": True,
+            "failure_class_equal": True,
+            "closed_loop_trajectory_equal": True,
+            "speed_probe_equal": True,
+        },
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _execution_source_authority_fixture() -> tuple[dict, dict, dict, dict, dict]:
     manifest = {"critical.py": "1" * 64}
     roots = {"source": {"path": "/root/source", "root_sha256": "2" * 64}}
     decision = {
@@ -1687,27 +1711,15 @@ def _execution_source_authority_fixture() -> tuple[dict, dict, dict]:
         "release_artifact": "/root/release",
         "decision": decision,
     }
-    report = {field: None for field in post_reviewer.EXECUTION_REPORT_FIELDS}
-    report.update(
-        {
-            "schema_version": post_reviewer.EXECUTION_SCHEMA_VERSION,
-            "status": "passed_exact_bounded_execution",
-            "device": "cuda",
-        }
+    marker = {"path": "/root/nonce.consumed.json", "sha256": "5" * 64}
+    terminal = _terminal_fixture()
+    report = post_reviewer._expected_execution_report(
+        terminal=terminal, wall_seconds=1.25
     )
-    receipt = {field: None for field in post_reviewer.SOURCE_RECEIPT_FIELDS}
-    receipt.update(
-        {
-            "release_artifact": authority_payload["release_artifact"],
-            "release_root_sha256": authority_payload["release_root_sha256"],
-            "release_run_nonce": decision["run_nonce"],
-            "formal_root_sha256": post_reviewer.EXPECTED_FORMAL_ROOT_SHA256,
-            "critical_implementation_manifest": manifest,
-            "root_artifacts": roots,
-            "device": "cuda",
-        }
+    receipt = post_reviewer._expected_execution_source_receipt(
+        authority=authority_payload, nonce_marker=marker
     )
-    return report, receipt, authority_payload
+    return report, receipt, authority_payload, marker, terminal
 
 
 @pytest.mark.parametrize(
@@ -1720,9 +1732,15 @@ def _execution_source_authority_fixture() -> tuple[dict, dict, dict]:
     ],
 )
 def test_post_reviewer_execution_source_authority_is_exact(field: str) -> None:
-    report, receipt, authority_payload = _execution_source_authority_fixture()
+    report, receipt, authority_payload, marker, terminal = (
+        _execution_source_authority_fixture()
+    )
     post_reviewer._validate_execution_source_authority(
-        source_receipt=receipt, report=report, authority=authority_payload
+        source_receipt=receipt,
+        report=report,
+        authority=authority_payload,
+        nonce_marker=marker,
+        expected_terminal=terminal,
     )
     if field == "critical_implementation_manifest":
         receipt[field] = {"critical.py": "9" * 64}
@@ -1730,16 +1748,348 @@ def test_post_reviewer_execution_source_authority_is_exact(field: str) -> None:
         receipt[field] = "9" * 64
     with pytest.raises(ValueError, match="source authority"):
         post_reviewer._validate_execution_source_authority(
-            source_receipt=receipt, report=report, authority=authority_payload
+            source_receipt=receipt,
+            report=report,
+            authority=authority_payload,
+            nonce_marker=marker,
+            expected_terminal=terminal,
         )
 
 
 def test_post_reviewer_report_device_is_exact_cuda() -> None:
-    report, receipt, authority_payload = _execution_source_authority_fixture()
+    report, receipt, authority_payload, marker, terminal = (
+        _execution_source_authority_fixture()
+    )
     report["device"] = "cpu"
     with pytest.raises(ValueError, match="source authority"):
         post_reviewer._validate_execution_source_authority(
-            source_receipt=receipt, report=report, authority=authority_payload
+            source_receipt=receipt,
+            report=report,
+            authority=authority_payload,
+            nonce_marker=marker,
+            expected_terminal=terminal,
+        )
+
+
+def _leaf_paths(value, prefix=()):
+    if type(value) is dict:
+        if not value:
+            return [prefix]
+        return [
+            path
+            for key in sorted(value)
+            for path in _leaf_paths(value[key], prefix + (key,))
+        ]
+    if type(value) is list:
+        if not value:
+            return [prefix]
+        return [
+            path
+            for index, item in enumerate(value)
+            for path in _leaf_paths(item, prefix + (index,))
+        ]
+    return [prefix]
+
+
+def _mutate_leaf(value, path):
+    changed = copy.deepcopy(value)
+    parent = changed
+    for part in path[:-1]:
+        parent = parent[part]
+    old = parent[path[-1]] if path else changed
+    if type(old) is bool:
+        replacement = not old
+    elif type(old) is int:
+        replacement = old + 1
+    elif type(old) is float:
+        replacement = old + 0.5
+    elif type(old) is str:
+        replacement = "mutated"
+    elif old is None:
+        replacement = "not-null"
+    elif type(old) is list:
+        replacement = ["forbidden"]
+    elif type(old) is dict:
+        replacement = {"forbidden": True}
+    else:  # pragma: no cover - fixtures contain JSON-native leaves only.
+        raise AssertionError(type(old))
+    if path:
+        parent[path[-1]] = replacement
+        return changed
+    return replacement
+
+
+def _replace_leaf(value, path, replacement):
+    changed = copy.deepcopy(value)
+    parent = changed
+    for part in path[:-1]:
+        parent = parent[part]
+    parent[path[-1]] = replacement
+    return changed
+
+
+def _delete_leaf(value, path):
+    changed = copy.deepcopy(value)
+    parent = changed
+    for part in path[:-1]:
+        parent = parent[part]
+    if type(parent) is dict:
+        del parent[path[-1]]
+    else:
+        del parent[path[-1]]
+    return changed
+
+
+def _strictly_distinct_replacements(old):
+    candidates = [False, 0, 0.0, "wrong-type-or-value", None]
+    return [
+        value
+        for value in candidates
+        if not post_reviewer._strict_equal(old, value)
+    ]
+
+
+def test_source_receipt_every_leaf_has_exact_value_and_native_type() -> None:
+    report, receipt, authority_payload, marker, terminal = (
+        _execution_source_authority_fixture()
+    )
+    assert set(receipt) == post_reviewer.SOURCE_RECEIPT_FIELDS
+    for path in _leaf_paths(receipt):
+        old = receipt
+        for part in path:
+            old = old[part]
+        mutations = [_mutate_leaf(receipt, path), _delete_leaf(receipt, path)]
+        mutations.extend(
+            _replace_leaf(receipt, path, replacement)
+            for replacement in _strictly_distinct_replacements(old)
+        )
+        for changed in mutations:
+            with pytest.raises(ValueError, match="source authority"):
+                post_reviewer._validate_execution_source_authority(
+                    source_receipt=changed,
+                    report=report,
+                    authority=authority_payload,
+                    nonce_marker=marker,
+                    expected_terminal=terminal,
+                )
+
+
+def test_execution_report_every_leaf_has_exact_value_and_native_type() -> None:
+    report, receipt, authority_payload, marker, terminal = (
+        _execution_source_authority_fixture()
+    )
+    assert set(report) == post_reviewer.EXECUTION_REPORT_FIELDS
+    for path in _leaf_paths(report):
+        old = report
+        for part in path:
+            old = old[part]
+        mutations = [_delete_leaf(report, path)]
+        if path != ("wall_seconds",):
+            mutations.extend(
+                _replace_leaf(report, path, replacement)
+                for replacement in _strictly_distinct_replacements(old)
+            )
+            mutations.append(_mutate_leaf(report, path))
+        else:
+            mutations.extend(
+                _replace_leaf(report, path, replacement)
+                for replacement in (False, "1.25", None, -1.0)
+            )
+        for changed in mutations:
+            with pytest.raises(ValueError, match="source authority"):
+                post_reviewer._validate_execution_source_authority(
+                    source_receipt=receipt,
+                    report=changed,
+                    authority=authority_payload,
+                    nonce_marker=marker,
+                    expected_terminal=terminal,
+                )
+
+
+def _exact_native_receipt_fixture() -> dict:
+    ticks = []
+    for tick_index in range(64):
+        tick = _exact_public_tick_fixture()
+        tick["tick_index"] = tick_index
+        tick["safety"]["tick_index"] = tick_index
+        ticks.append(tick)
+    initial_input = ticks[0]["input_sha256"]
+    return {
+        "schema_version": "v21_native_arm_receipt_v1",
+        "status": "ok",
+        "route_name": "1" * 64,
+        "route_sha256": "2" * 64,
+        "logical_map_sha256": "3" * 64,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "checkpoint_sha256": post_reviewer.EXPECTED_FIXED_DP_CHECKPOINT["sha256"],
+        "args_sha256": post_reviewer.EXPECTED_FIXED_DP_ARGS["sha256"],
+        "arm": "camp",
+        "scenario_seed": 25001,
+        "spawn_config_sha256": "4" * 64,
+        "initial_state_sha256": hashlib.sha256(
+            ("v21_native_scene_context_v1\0" + initial_input).encode("ascii")
+        ).hexdigest(),
+        "initial_input_sha256": initial_input,
+        "ticks": ticks,
+        "native_result": {
+            "final_step": 63,
+            "goal_reached": False,
+            "reason": "max_steps",
+            "n_npc_spawned": 0,
+            "trajectory_log_path": "/root/run/trajectory_log.json",
+            "clearance_log_path": "/root/run/clearance_log.json",
+        },
+        "claim_authorized": False,
+        "selector_scale_contract": copy.deepcopy(
+            post_reviewer.EXPECTED_SELECTOR_SCALE_CONTRACT
+        ),
+        "runtime_annotation_compatibility": (
+            post_reviewer.EXPECTED_RUNTIME_ANNOTATION_COMPATIBILITY
+        ),
+    }
+
+
+def test_native_header_result_every_leaf_is_covered_by_exact_contract() -> None:
+    receipt = _exact_native_receipt_fixture()
+    expected = copy.deepcopy(receipt)
+    expected.pop("ticks")
+    assert set(receipt) == post_reviewer.NATIVE_RECEIPT_FIELDS
+    assert set(expected) == post_reviewer.NATIVE_HEADER_RESULT_FIELDS
+    post_reviewer._validate_native_header_result_exact(
+        receipt=receipt, expected=expected
+    )
+    for path in _leaf_paths(expected):
+        old = expected
+        for part in path:
+            old = old[part]
+        mutations = [_mutate_leaf(receipt, path), _delete_leaf(receipt, path)]
+        mutations.extend(
+            _replace_leaf(receipt, path, replacement)
+            for replacement in _strictly_distinct_replacements(old)
+        )
+        for changed in mutations:
+            with pytest.raises(ValueError, match="native header/result"):
+                post_reviewer._validate_native_header_result_exact(
+                    receipt=changed, expected=expected
+                )
+
+
+@pytest.mark.parametrize("summary", ["safety", "secondary", "latency"])
+def test_bounded_authoritative_native_receipt_rejects_top_level_summary(
+    summary: str,
+) -> None:
+    receipt = _exact_native_receipt_fixture()
+    receipt[summary] = {}
+    assert post_reviewer._derive_native_failure_class(receipt) != "none"
+
+
+def test_nested_marker_and_terminal_extras_fail_exact_contract() -> None:
+    report, receipt, authority_payload, marker, terminal = (
+        _execution_source_authority_fixture()
+    )
+    for target, path in ((receipt, "nonce_marker"), (report, "terminal")):
+        changed = copy.deepcopy(target)
+        changed[path]["futureOutcome"] = True
+        with pytest.raises(ValueError, match="source authority"):
+            post_reviewer._validate_execution_source_authority(
+                source_receipt=changed if target is receipt else receipt,
+                report=changed if target is report else report,
+                authority=authority_payload,
+                nonce_marker=marker,
+                expected_terminal=terminal,
+            )
+
+
+def _write_native_logs(native_dir: Path, receipt: dict) -> None:
+    native_dir.mkdir(parents=True)
+    trajectory = []
+    clearance = []
+    for index, tick in enumerate(receipt["ticks"]):
+        safety = tick["safety"]
+        trajectory.append(
+            {
+                "step": index,
+                "x": safety["position_xy"][0],
+                "y": safety["position_xy"][1],
+                "heading": safety["ego_heading_rad"],
+                "speed": safety["speed_mps"],
+                "goal_d": 100.0,
+            }
+        )
+        clearance.append(
+            {
+                "step": index,
+                "ego_x": safety["position_xy"][0],
+                "ego_y": safety["position_xy"][1],
+                "ego_yaw": safety["ego_heading_rad"],
+                "rb_dist": None,
+                "stopped_dist": None,
+                "stopped_id": None,
+                "moving_dist": None,
+                "moving_id": None,
+                "png": f"step_{index:04d}.png",
+            }
+        )
+    (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
+    (native_dir / "clearance_log.json").write_text(
+        json.dumps(
+            {
+                "ego_shape": [2.79, 4.9, 1.9],
+                "max_range_m": 100.0,
+                "png_dir": str(native_dir),
+                "records": clearance,
+            }
+        )
+    )
+
+
+def test_native_terminal_logs_bind_every_tick_and_exact_paths(tmp_path: Path) -> None:
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / "run").resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(
+        native_dir / "trajectory_log.json"
+    )
+    receipt["native_result"]["clearance_log_path"] = str(
+        native_dir / "clearance_log.json"
+    )
+    _write_native_logs(native_dir, receipt)
+    post_reviewer._validate_native_log_files(
+        native_dir=native_dir, receipt=receipt
+    )
+    trajectory = json.loads((native_dir / "trajectory_log.json").read_text())
+    trajectory[0]["speed"] += 1.0
+    (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
+    with pytest.raises(ValueError, match="trajectory log/tick"):
+        post_reviewer._validate_native_log_files(
+            native_dir=native_dir, receipt=receipt
+        )
+
+
+def test_producer_native_header_terminal_contract_is_exact(tmp_path: Path) -> None:
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / "native").resolve()
+    route = {"name": "1" * 64, "sha256": "2" * 64}
+    config = {
+        "map": {"sha256": "3" * 64},
+        "spawn_config": {"seed": 25001, "ego_init_speed": 8.0},
+    }
+    spawn = {**config["spawn_config"], "max_steps": 64}
+    receipt["spawn_config_sha256"] = hashlib.sha256(
+        json.dumps(spawn, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    receipt["native_result"]["trajectory_log_path"] = str(
+        native_dir / "trajectory_log.json"
+    )
+    receipt["native_result"]["clearance_log_path"] = str(
+        native_dir / "clearance_log.json"
+    )
+    runner._validate_success_native_receipt(
+        receipt, config=config, route=route, native_dir=native_dir
+    )
+    receipt["route_sha256"] = "9" * 64
+    with pytest.raises(ValueError, match="producer header"):
+        runner._validate_success_native_receipt(
+            receipt, config=config, route=route, native_dir=native_dir
         )
 
 
