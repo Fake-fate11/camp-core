@@ -153,8 +153,9 @@ def _write_static_root(
     return seal_artifact(root, label="test static bounded authority")
 
 
-def _four_root_chain(tmp_path: Path) -> tuple[dict[str, dict[str, str]], dict]:
-    source_head = "1" * 40
+def _four_root_chain(
+    tmp_path: Path, *, source_head: str = "1" * 40
+) -> tuple[dict[str, dict[str, str]], dict]:
     source_dir = (tmp_path / "source").resolve()
     source_root = _write_static_root(
         source_dir,
@@ -316,6 +317,7 @@ def _patch_release_dependencies(monkeypatch: pytest.MonkeyPatch, tmp_path: Path)
     )
 
 
+@pytest.mark.parametrize("asset_kind", ["probe_template", "fixed_dp_args"])
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
@@ -330,34 +332,87 @@ def test_frozen_legacy_probe_loader_rejects_invalid_json_contract(
     monkeypatch: pytest.MonkeyPatch,
     raw: bytes,
     expected: str,
+    asset_kind: str,
 ) -> None:
     probe = (tmp_path / "legacy-probe.json").resolve()
     probe.write_bytes(raw)
-    monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", probe)
-    monkeypatch.setattr(
-        authority, "EXPECTED_PROBE_TEMPLATE_SHA256", hashlib.sha256(raw).hexdigest()
-    )
+    if asset_kind == "probe_template":
+        monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", probe)
+        monkeypatch.setattr(
+            authority,
+            "EXPECTED_PROBE_TEMPLATE_SHA256",
+            hashlib.sha256(raw).hexdigest(),
+        )
+    else:
+        monkeypatch.setattr(
+            authority,
+            "EXPECTED_FIXED_DP_ARGS",
+            {"path": str(probe), "sha256": hashlib.sha256(raw).hexdigest()},
+        )
     with pytest.raises(ValueError, match=expected):
-        authority._load_frozen_legacy_probe_template(probe)
+        authority._load_frozen_external_legacy_json_object(
+            probe, asset_kind=asset_kind
+        )
 
 
+@pytest.mark.parametrize("asset_kind", ["probe_template", "fixed_dp_args"])
 def test_frozen_legacy_probe_loader_rejects_alternate_path_or_sha(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, asset_kind: str
 ) -> None:
     raw = b'{"a":1}\n'
     probe = (tmp_path / "legacy-probe.json").resolve()
     alternate = (tmp_path / "alternate.json").resolve()
     probe.write_bytes(raw)
     alternate.write_bytes(raw)
-    monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", probe)
-    monkeypatch.setattr(
-        authority, "EXPECTED_PROBE_TEMPLATE_SHA256", hashlib.sha256(raw).hexdigest()
-    )
+    if asset_kind == "probe_template":
+        monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", probe)
+        monkeypatch.setattr(
+            authority,
+            "EXPECTED_PROBE_TEMPLATE_SHA256",
+            hashlib.sha256(raw).hexdigest(),
+        )
+    else:
+        monkeypatch.setattr(
+            authority,
+            "EXPECTED_FIXED_DP_ARGS",
+            {"path": str(probe), "sha256": hashlib.sha256(raw).hexdigest()},
+        )
     with pytest.raises(ValueError, match="canonical path"):
-        authority._load_frozen_legacy_probe_template(alternate)
-    monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE_SHA256", "0" * 64)
+        authority._load_frozen_external_legacy_json_object(
+            alternate, asset_kind=asset_kind
+        )
+    if asset_kind == "probe_template":
+        monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE_SHA256", "0" * 64)
+    else:
+        monkeypatch.setattr(
+            authority,
+            "EXPECTED_FIXED_DP_ARGS",
+            {"path": str(probe), "sha256": "0" * 64},
+        )
     with pytest.raises(ValueError, match="bytes drifted"):
-        authority._load_frozen_legacy_probe_template(probe)
+        authority._load_frozen_external_legacy_json_object(
+            probe, asset_kind=asset_kind
+        )
+
+
+@pytest.mark.parametrize("asset_kind", ["probe_template", "fixed_dp_args"])
+def test_registered_external_legacy_json_object_accepts_precanonical_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, asset_kind: str
+) -> None:
+    raw = b'{\n  "b": 2,\n  "a": 1\n}\n'
+    asset = (tmp_path / f"{asset_kind}.json").resolve()
+    asset.write_bytes(raw)
+    contract = {"path": str(asset), "sha256": hashlib.sha256(raw).hexdigest()}
+    if asset_kind == "probe_template":
+        monkeypatch.setattr(authority, "EXPECTED_PROBE_TEMPLATE", asset)
+        monkeypatch.setattr(
+            authority, "EXPECTED_PROBE_TEMPLATE_SHA256", contract["sha256"]
+        )
+    else:
+        monkeypatch.setattr(authority, "EXPECTED_FIXED_DP_ARGS", contract)
+    assert authority._load_frozen_external_legacy_json_object(
+        asset, asset_kind=asset_kind
+    ) == {"a": 1, "b": 2}
 
 
 @pytest.mark.skipif(
@@ -375,12 +430,7 @@ def test_real_create_entry_accepts_exact_precanonical_legacy_probe(
         capture_output=True,
         text=True,
     ).stdout.strip()
-    monkeypatch.setattr(authority, "verify_dual_head_contract", lambda **kwargs: {})
-    monkeypatch.setattr(
-        authority,
-        "verify_four_root_chain",
-        lambda **kwargs: {"verified": {}, "plan": _plan()},
-    )
+    bindings, _ = _four_root_chain(tmp_path, source_head=head)
     release = (tmp_path / "sealed-release").resolve()
     authorized_output = (tmp_path / "authorized-output").resolve()
     argv = [
@@ -398,12 +448,13 @@ def test_real_create_entry_accepts_exact_precanonical_legacy_probe(
         str(authority.EXPECTED_PROBE_TEMPLATE),
     ]
     for role in authority.ROOT_ROLES:
+        binding = bindings[role]
         argv.extend(
             [
                 f"--{role.replace('_', '-')}-artifact",
-                str((tmp_path / role).resolve()),
+                binding["path"],
                 f"--{role.replace('_', '-')}-root-sha256",
-                "8" * 64,
+                binding["root_sha256"],
             ]
         )
     argv.extend(["--output-dir", str(release)])

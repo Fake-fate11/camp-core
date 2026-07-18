@@ -186,18 +186,31 @@ def _load_object(path: Path) -> dict[str, Any]:
     return value
 
 
-def _load_frozen_legacy_probe_template(path: Path) -> dict[str, Any]:
-    """Strictly parse the one frozen pre-canonical probe-template asset."""
+def _load_frozen_external_legacy_json_object(
+    path: Path, *, asset_kind: str
+) -> dict[str, Any]:
+    """Strictly parse one explicitly registered pre-canonical external asset."""
 
-    template_path = _require_exact_path(
-        path, EXPECTED_PROBE_TEMPLATE, label="legacy probe template"
+    contracts = {
+        "probe_template": {
+            "path": str(EXPECTED_PROBE_TEMPLATE),
+            "sha256": EXPECTED_PROBE_TEMPLATE_SHA256,
+        },
+        "fixed_dp_args": EXPECTED_FIXED_DP_ARGS,
+    }
+    if asset_kind not in contracts:
+        raise ValueError("external legacy JSON asset kind is not registered")
+    contract = contracts[asset_kind]
+    expected_path = Path(contract["path"])
+    asset_path = _require_exact_path(
+        path, expected_path, label=f"external legacy {asset_kind}"
     )
     if (
-        not template_path.is_file()
-        or _file_sha256(template_path) != EXPECTED_PROBE_TEMPLATE_SHA256
+        not asset_path.is_file()
+        or _file_sha256(asset_path) != contract["sha256"]
     ):
-        raise ValueError("legacy probe template bytes drifted")
-    data = template_path.read_bytes()
+        raise ValueError(f"external legacy {asset_kind} bytes drifted")
+    data = asset_path.read_bytes()
     try:
         value = json.loads(
             data.decode("utf-8", errors="strict"),
@@ -205,9 +218,11 @@ def _load_frozen_legacy_probe_template(path: Path) -> dict[str, Any]:
             parse_constant=_reject_json_constant,
         )
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
-        raise ValueError("legacy probe template is not strict UTF-8 JSON") from exc
+        raise ValueError(
+            f"external legacy {asset_kind} is not strict UTF-8 JSON"
+        ) from exc
     if type(value) is not dict:
-        raise ValueError("legacy probe template is not an exact object")
+        raise ValueError(f"external legacy {asset_kind} is not an exact object")
     return value
 
 
@@ -282,7 +297,9 @@ def verify_frozen_execution_assets(
     ):
         raise ValueError("bounded frozen repository/template authority drifted")
 
-    template = _load_frozen_legacy_probe_template(template_path)
+    template = _load_frozen_external_legacy_json_object(
+        template_path, asset_kind="probe_template"
+    )
     fixed = template.get("fixed_dp")
     selector = template.get("selector")
     if (
@@ -314,7 +331,9 @@ def verify_frozen_execution_assets(
         EXPECTED_FIXED_DP_CHECKPOINT, label="fixed-DP checkpoint"
     )
     args_path = _verify_exact_asset(EXPECTED_FIXED_DP_ARGS, label="fixed-DP args")
-    args_payload = _load_object(args_path)
+    args_payload = _load_frozen_external_legacy_json_object(
+        args_path, asset_kind="fixed_dp_args"
+    )
     if not args_payload:
         raise ValueError("fixed-DP args content is empty")
 
