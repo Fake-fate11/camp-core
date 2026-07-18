@@ -3669,3 +3669,120 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=46874378240
 current_v25_phase=A1_6_10_terminal_reachability_seeded_history_float32_and_full_manifest_json_corrected_static_four_root_review_required_k8_closed
 next_work_target=ultra_read_only_A1_6_10_review_before_any_bounded_execute_release
+
+## A1.6.11 Python-Random History and Real GitHub Authority Correction (2026-07-18 CST)
+
+Ultra accepted the A1.6.10 terminal-reachability, Route float32, and complete
+four-root JSON corrections, and froze A1.6.11 as the final bounded-execute
+correction gate. This gate changed only two verified items. First, the
+independent fixed-DP history oracle now reproduces the Python `random` stream
+used by `LaneletSceneBuilder._build_backward_polyline` when the snapped start
+lanelet has multiple predecessors. It verifies that the formal route has a
+nonempty explicit lanelet sequence, saves the process Python RNG state, seeds
+with 25001 only around the backward-polyline call, and restores the original
+state in `finally`. The existing isolated NumPy `RandomState(25001)` remains
+unchanged. Second, the repository chain was repaired through a normal GitHub
+push rather than a local tracking-ref update or AutoDL bundle.
+
+The new formal-corpus branching-predecessor regression deliberately perturbs
+global Python RNG state, invokes the independent oracle repeatedly, verifies
+that the caller's RNG state is unchanged, and compares the result to the real
+pinned builder with both NumPy and Python RNGs seeded to 25001. The existing
+real fixed-source history comparison now also saves, seeds, and restores both
+RNGs. The formal route IDs are explicitly nonempty, so fixed replay does not
+call `find_route` or consume an earlier Python-random draw before history
+generation. No schema/version name, receipt, atom, source, terminal, float32,
+fixed-DP, K8, trajectory, denominator, or claim contract changed.
+
+Implementation source commit is
+`bcbb27ec5babccacdf009787d886aabfd9f4babe`. A normal `git push origin main`
+advanced the real GitHub branch from `ee457bd845f0caa83c4891b1c4dacfe28d07bbbe`,
+and a fresh independent `git ls-remote origin refs/heads/main` returned the
+implementation commit exactly. AutoDL then performed a normal GitHub fetch and
+ff-only merge to the same commit; fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+One consolidated local scope passed 191 tests with four platform/source-fixture
+skips. The matching AutoDL Python 3.12 scope passed all 195 tests, including the
+real fixed-source history fixture and the new branching-predecessor comparison.
+The relevant implementation/test files passed `py_compile`; local and remote
+`git diff --check` and tracked-clean checks passed. Tests ran serially, all
+commands ended naturally before this gate, and no polling monitor, taskkill, or
+concurrent local shell batch was used.
+
+Without loading a model, starting a simulator, generating candidates, executing
+a DP forward, or reading any outcome, the static source and bounded-plan package
+was rebuilt from identity0 under the same implementation commit:
+
+- source: `/root/autodl-tmp/camp_dp_v25_a1611_route_signal_source_census_bcbb27ec_20260718T233203CST`, root `8015ace9fa00a84ed5524b0dd9bfa31a29937e6aad37fe6a46ea505000613a72`;
+- source review: `/root/autodl-tmp/camp_dp_v25_a1611_route_signal_source_review_bcbb27ec_20260718T233203CST`, root `87b7bbf319665bc3023d6495f0cd5f59d101e12a01b4cdd353c002ab3bc03f91`;
+- bounded plan: `/root/autodl-tmp/camp_dp_v25_a1611_bounded_execution_plan_bcbb27ec_20260718T233203CST`, root `4c72abbb9435a88805a65e0dc9b41030f371130a8896b3a11766265eb359106e`;
+- bounded plan review: `/root/autodl-tmp/camp_dp_v25_a1611_bounded_execution_plan_review_bcbb27ec_20260718T233203CST`, root `5047b3947d0b703b7b5eed6468ced519b29e5e6096104aa52c456f06695adf88`.
+
+The strict four-root verifier reopened the exact inventories, every registered
+JSON payload, `run.exit=0`, HEADS, reports, source rows, cross-links, ordered
+plan, and four tie proofs. Four-root binding SHA is
+`a9979c8e90a06f48cc58c2b12359b2f9e1c70506da5a900cdffd20119fef229b`.
+Counts remain 1,653 formal train identities, 1,500 executable, 153 retained,
+146 mapped signal, 1,354 no signal, 21 controlled override, 125 observe mode,
+zero source failures, 243 unique bounded identities, 244 ordered runs,
+identity0 at positions 0 and 243, and 15,616 prospective ticks.
+
+The final control-plane check found worker/GPU counts zero, the shared corpus
+lock free, 46,857,494,528 free bytes, and no A1.6.11 release, nonce, execution
+output, K8, full-config/full-R, 1500x64, monitor, training, calibration,
+Scene/V2I, Fresh B2, or outcome access. The A1.6.10 roots remain immutable
+diagnostic evidence with machine authority false. The A1.6.11 roots are also
+machine-authority false until the single frozen Ultra read-only review; no
+further preventive A1.6.x gate is authorized.
+
+current_v25_status=v25_a1611_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
+current_v25_source_head=bcbb27ec5babccacdf009787d886aabfd9f4babe
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a1611_bounded_execution_plan_bcbb27ec_20260718T233203CST
+current_v25_artifact_root_sha256=4c72abbb9435a88805a65e0dc9b41030f371130a8896b3a11766265eb359106e
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611_bounded_execution_plan_review_bcbb27ec_20260718T233203CST
+current_v25_review_artifact_root_sha256=5047b3947d0b703b7b5eed6468ced519b29e5e6096104aa52c456f06695adf88
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a1611_route_signal_source_census_bcbb27ec_20260718T233203CST
+current_v25_r0_authority_source_artifact_root_sha256=8015ace9fa00a84ed5524b0dd9bfa31a29937e6aad37fe6a46ea505000613a72
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611_route_signal_source_review_bcbb27ec_20260718T233203CST
+current_v25_r0_authority_source_review_artifact_root_sha256=87b7bbf319665bc3023d6495f0cd5f59d101e12a01b4cdd353c002ab3bc03f91
+current_v25_a16_formal_train_identity_count=1653
+current_v25_a16_executable_identity_count=1500
+current_v25_a16_retained_identity_count=153
+current_v25_a16_mapped_signal_identity_count=146
+current_v25_a16_no_signal_identity_count=1354
+current_v25_a16_controlled_same_tick_override_count=21
+current_v25_a16_observe_same_tick_request_count=125
+current_v25_a16_source_failure_count=0
+current_v25_a162_unique_identity_count=243
+current_v25_a162_run_count=244
+current_v25_a162_snapshot_capacity=15616
+current_v25_a162_identity0_repeat_positions=0,243
+current_v25_a169_four_roots_machine_authority_eligible=false
+current_v25_a1611_release_schema=camp_dp_v25_ultra_a1610_bounded_execute_release_v8
+current_v25_a1611_device=cuda
+current_v25_a1611_four_root_bindings_sha256=a9979c8e90a06f48cc58c2b12359b2f9e1c70506da5a900cdffd20119fef229b
+current_v25_a1611_four_roots_machine_authority_eligible=false
+current_v25_a1611_local_targeted_test_result=191_passed_4_skipped
+current_v25_a1611_autodl_targeted_test_result=195_passed
+current_v25_a1611_bounded_release_created=false
+current_v25_a1611_bounded_nonce_created=false
+current_v25_a1611_bounded_k8_executed=false
+current_v25_corrected_full_corpus_started=false
+current_v25_full_config_preflight_release_created=true_diagnostic_consumed
+current_v25_full_config_preflight_started=true_failed_closed_before_receipts
+current_v25_full_r_authorized=false
+current_v25_monitor_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=46857494528
+current_v25_phase=A1_6_11_python_random_history_and_real_github_alignment_corrected_static_four_root_review_required_k8_closed
+next_work_target=ultra_read_only_A1_6_11_final_correction_review_before_bounded_execute_release

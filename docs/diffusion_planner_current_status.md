@@ -403,13 +403,51 @@ Scene/V2I, Fresh, or outcome access occurred. All commands ended naturally;
 no concurrent test batch, polling monitor, or XHigh process cleanup was used.
 The only next gate is Ultra read-only A1.6.10 review.
 
-current_v25_status=v25_a1610_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
-current_v25_source_head=ee457bd845f0caa83c4891b1c4dacfe28d07bbbe
+Ultra accepted the A1.6.10 terminal, float32, and full-manifest boundaries but
+kept bounded execution closed because the independent history oracle did not
+isolate the Python `random` stream used by the pinned builder when a lanelet has
+multiple predecessors. It also found that the real GitHub `main` still pointed
+to `ee457bd8...`, while the local tracking ref and AutoDL had previously been
+advanced without a successful GitHub write. The A1.6.10 roots therefore remain
+immutable diagnostic evidence with machine authority false.
+
+A1.6.11 changes only the verified RNG and GitHub authority boundaries. Before
+calling the pinned builder's backward-polyline routine, the reviewer now
+requires a nonempty explicit route-lanelet list, saves the process Python RNG,
+seeds it with 25001, and restores it in `finally`; NumPy remains isolated by the
+existing legacy `RandomState`. The new formal-corpus branching-predecessor
+fixture perturbs global Python RNG state, proves repeatability and restoration,
+and matches a pinned `LaneletSceneBuilder.generate_history` call made with both
+NumPy and Python RNGs seeded to 25001. No schema, receipt, atom, terminal,
+float32, source, fixed-DP, K8, trajectory, or denominator contract changed.
+
+Implementation source HEAD `bcbb27ec5babccacdf009787d886aabfd9f4babe`
+was pushed normally to GitHub, and a fresh `git ls-remote` returned that exact
+HEAD. AutoDL then fetched GitHub and advanced ff-only to the same HEAD. The
+consolidated local regression passed 191 tests with four platform/source skips;
+the AutoDL batch passed all 195 tests, including the real fixed-source and
+branching-predecessor RNG regressions. All commands ended naturally and no
+concurrent local test batch, polling monitor, or XHigh process cleanup was used.
+
+Under the same implementation HEAD, the source census, source review, bounded
+design, and plan review were rebuilt from identity0 at roots `8015ace9...`,
+`87b7bbf3...`, `4c72abbb...`, and `5047b394...`. The exact verifier reopened
+all payloads and cross-links; four-root binding SHA is `a9979c8e...`. Counts
+remain 1,653/1,500/153, 146/1,354, 21/125, zero source failures, 243 unique
+identities, 244 ordered runs, and 15,616 prospective ticks. Worker/GPU counts
+were zero, the lock was free, free disk was 46,857,494,528 bytes, and no
+release, nonce, output, K8, full-config/full-R, monitor, training, calibration,
+Scene/V2I, Fresh, or outcome access occurred. The only next gate is the single
+Ultra read-only A1.6.11 review under the frozen bounded-execute acceptance
+criteria.
+
+current_v25_status=v25_a1611_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
+current_v25_source_head=bcbb27ec5babccacdf009787d886aabfd9f4babe
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a1610_bounded_execution_plan_ee457bd8_20260718T225856CST
-current_v25_artifact_root_sha256=290798d1040abd64e29959f2076c795e6372ee14046b6c42038eb0ff7633db3b
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a1610_bounded_execution_plan_review_ee457bd8_20260718T225856CST
-current_v25_review_artifact_root_sha256=090a952ea77d8edeb0ccf9b8dd5fa084b79bad3b90c24c986497aeedb8380dd9
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a1611_bounded_execution_plan_bcbb27ec_20260718T233203CST
+current_v25_artifact_root_sha256=4c72abbb9435a88805a65e0dc9b41030f371130a8896b3a11766265eb359106e
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611_bounded_execution_plan_review_bcbb27ec_20260718T233203CST
+current_v25_review_artifact_root_sha256=5047b3947d0b703b7b5eed6468ced519b29e5e6096104aa52c456f06695adf88
 current_v25_a16_old_source_machine_authority_eligible=false
 current_v25_a16_old_source_scientific_diagnostic=true
 current_v25_a16_old_source_artifact_root_sha256=c93af9687c0c4c50e62d396311d3d10e0b8e953453186b0dde6b1aa21ecf51db
@@ -455,10 +493,10 @@ current_v25_atom_ledger_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger
 current_v25_atom_ledger_artifact_root_sha256=5e762a14b53c6c81f6bb3bfa67c6aeeb7fa5fe603bb95fa0776d75035cb8311c
 current_v25_atom_ledger_validation_artifact=/root/autodl-tmp/camp_dp_v25_static_atom_ledger_validation_a15_1e1c32c7_20260718T051807CST
 current_v25_atom_ledger_validation_artifact_root_sha256=641fadb24926cb7e6fc49c98d66f6a0a9528f41856b0417aae9e6fb9a80fa469
-current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a1610_route_signal_source_census_ee457bd8_20260718T225856CST
-current_v25_r0_authority_source_artifact_root_sha256=6e78cf3b2178572163d5642c2b3dbcae142b09156e19869cc51205eab3960270
-current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a1610_route_signal_source_review_ee457bd8_20260718T225856CST
-current_v25_r0_authority_source_review_artifact_root_sha256=86d4c4f2e38a385cb998db1d73cecfe152094dfa987d61e78c0555be5d30b26d
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a1611_route_signal_source_census_bcbb27ec_20260718T233203CST
+current_v25_r0_authority_source_artifact_root_sha256=8015ace9fa00a84ed5524b0dd9bfa31a29937e6aad37fe6a46ea505000613a72
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611_route_signal_source_review_bcbb27ec_20260718T233203CST
+current_v25_r0_authority_source_review_artifact_root_sha256=87b7bbf319665bc3023d6495f0cd5f59d101e12a01b4cdd353c002ab3bc03f91
 current_v25_r0_bounded_k8_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_1e1c32c7_20260718T051807CST
 current_v25_r0_bounded_k8_artifact_root_sha256=694ddcde9bd5972c4fb95eeb45da7f46663bb3a6acb87ca5b4cc18abbf97b79c
 current_v25_r0_bounded_k8_review_artifact=/root/autodl-tmp/camp_dp_v25_r05_red21_nonsignal1_sequential_k8_review_1e1c32c7_20260718T053800CST
@@ -622,6 +660,15 @@ current_v25_a1610_autodl_targeted_test_result=229_passed
 current_v25_a1610_bounded_release_created=false
 current_v25_a1610_bounded_nonce_created=false
 current_v25_a1610_bounded_k8_executed=false
+current_v25_a1611_release_schema=camp_dp_v25_ultra_a1610_bounded_execute_release_v8
+current_v25_a1611_device=cuda
+current_v25_a1611_four_root_bindings_sha256=a9979c8e90a06f48cc58c2b12359b2f9e1c70506da5a900cdffd20119fef229b
+current_v25_a1611_four_roots_machine_authority_eligible=false
+current_v25_a1611_local_targeted_test_result=191_passed_4_skipped
+current_v25_a1611_autodl_targeted_test_result=195_passed
+current_v25_a1611_bounded_release_created=false
+current_v25_a1611_bounded_nonce_created=false
+current_v25_a1611_bounded_k8_executed=false
 current_v25_corrected_full_corpus_started=false
 current_v25_full_config_preflight_release_created=true_diagnostic_consumed
 current_v25_full_config_preflight_started=true_failed_closed_before_receipts
@@ -641,9 +688,9 @@ current_v25_v24_holdout_read=false
 current_v25_fresh_benchmark_b_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=46874378240
-current_v25_phase=A1_6_10_terminal_reachability_seeded_history_float32_and_full_manifest_json_corrected_static_four_root_review_required_k8_closed
-next_work_target=ultra_read_only_A1_6_10_review_before_any_bounded_execute_release
+observed_autodl_free_bytes=46857494528
+current_v25_phase=A1_6_11_python_random_history_and_real_github_alignment_corrected_static_four_root_review_required_k8_closed
+next_work_target=ultra_read_only_A1_6_11_final_correction_review_before_bounded_execute_release
 
 ## Current V24 Status
 
