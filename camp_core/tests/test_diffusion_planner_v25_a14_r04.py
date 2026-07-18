@@ -73,6 +73,25 @@ def _snapshot() -> dict[str, object]:
     ).hexdigest()
     default = candidates[0]
     default_sha = hashlib.sha256(np.ascontiguousarray(default).tobytes()).hexdigest()
+    route_lanes = np.zeros((25, 20, 33), dtype=np.float32)
+    route_speed = np.ones((25, 1), dtype=np.float32)
+    route_has_speed = np.ones((25, 1), dtype=np.bool_)
+    causal_evidence = {
+        "schema_version": "camp_dp_v25_bounded_causal_evidence_v1",
+        "ego_current_state": np.zeros(10, dtype=np.float32).tolist(),
+        "ego_shape": np.asarray([2.8, 4.8, 2.0], dtype=np.float32).tolist(),
+        "neighbor_agents_past": np.zeros((32, 31, 11), dtype=np.float32).tolist(),
+        "neighbor_valid_mask": np.zeros(32, dtype=np.bool_).tolist(),
+        "candidate_neighbor_predictions": np.zeros(
+            (8, 32, 80, 4), dtype=np.float32
+        ).tolist(),
+        "static_objects": np.zeros((5, 10), dtype=np.float32).tolist(),
+        "route_lanes": route_lanes.tolist(),
+        "route_lanes_speed_limit": route_speed.tolist(),
+        "route_lanes_has_speed_limit": route_has_speed.tolist(),
+        "signal_mask": np.ones(8, dtype=np.bool_).tolist(),
+        "fixed_dp_planned_red_light_cost": np.zeros(8).tolist(),
+    }
     runtime_receipt = {
         "schema_version": RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
         "scenario_id": scenario_sha,
@@ -114,7 +133,7 @@ def _snapshot() -> dict[str, object]:
     source_complete = {name: True for name in RAW_FEATURE_NAMES}
     source_complete["traffic_signal_phase_remaining_s"] = False
     return {
-        "schema_version": "camp_dp_v25_controlled_train_snapshot_v5",
+        "schema_version": corpus_reviewer.SNAPSHOT_SCHEMA_VERSION,
         "feature_payload": {
             "atom_matrix": np.zeros((8, 14), dtype=np.float64).tolist(),
             "source_valid_mask": [True] * 8,
@@ -127,6 +146,7 @@ def _snapshot() -> dict[str, object]:
             "candidate_row_sha256": candidate_rows,
             "candidate_tensor": candidates.tolist(),
             "default_output": default.tolist(),
+            "causal_evidence": causal_evidence,
             "raw_context": {name: 0.0 for name in RAW_FEATURE_NAMES},
             "context_source_complete": source_complete,
         },
@@ -155,7 +175,20 @@ def _snapshot() -> dict[str, object]:
             "candidate0_semantics": "operational_default_alias_from_same_forward",
             "candidate0_independent_second_forward": False,
             "causal_input_sha256": source_chain_sha,
+            "causal_evidence_sha256": corpus_reviewer._canonical_sha256(
+                causal_evidence
+            ),
+            "route_lanes_sha256": hashlib.sha256(
+                np.ascontiguousarray(route_lanes).tobytes()
+            ).hexdigest(),
+            "route_lanes_speed_limit_sha256": hashlib.sha256(
+                np.ascontiguousarray(route_speed).tobytes()
+            ).hexdigest(),
+            "route_lanes_has_speed_limit_sha256": hashlib.sha256(
+                np.ascontiguousarray(route_has_speed).tobytes()
+            ).hexdigest(),
             "physical_feasible_mask": [True] * 8,
+            "candidate_reasons": [[] for _ in range(8)],
             "source_valid_mask": [True] * 8,
             "all_k_high_risk": False,
             "selected_index": 0,

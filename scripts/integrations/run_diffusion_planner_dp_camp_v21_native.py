@@ -62,6 +62,20 @@ NATIVE_SOURCE_SHA256 = {
         "5a1659fe753102c514528c0bd93c261124bdf8de11bbc00ba5b941c151956af4"
     ),
 }
+
+
+def _v25_causal_evidence_sha256(value: Mapping[str, Any]) -> str:
+    payload = (
+        json.dumps(
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 _PREDICT_BATCH_PARAMETERS = (
     "model",
     "model_args",
@@ -519,6 +533,55 @@ class NativeCampPredictBatch:
                 self.planned_red_cost(candidate_tensor, causal_input, scene),
                 dtype=np.float64,
             )
+            causal_evidence = {
+                "schema_version": "camp_dp_v25_bounded_causal_evidence_v1",
+                "ego_current_state": np.asarray(
+                    causal_input["ego_current_state"], dtype=np.float32
+                ).tolist(),
+                "ego_shape": np.asarray(
+                    causal_input["ego_shape"], dtype=np.float32
+                ).tolist(),
+                "neighbor_agents_past": np.asarray(
+                    causal_input["neighbor_agents_past"], dtype=np.float32
+                ).tolist(),
+                "neighbor_valid_mask": np.asarray(
+                    neighbor_valid, dtype=np.bool_
+                ).tolist(),
+                "candidate_neighbor_predictions": neighbor_tensor.tolist(),
+                "static_objects": np.asarray(
+                    causal_input["static_objects"], dtype=np.float32
+                ).tolist(),
+                "route_lanes": np.asarray(
+                    causal_input["route_lanes"], dtype=np.float32
+                ).tolist(),
+                "route_lanes_speed_limit": np.asarray(
+                    causal_input["route_lanes_speed_limit"], dtype=np.float32
+                ).tolist(),
+                "route_lanes_has_speed_limit": np.asarray(
+                    causal_input["route_lanes_has_speed_limit"], dtype=np.bool_
+                ).tolist(),
+                "signal_mask": np.asarray(signals, dtype=np.bool_).tolist(),
+                "fixed_dp_planned_red_light_cost": red_cost.tolist(),
+            }
+            causal_evidence_sha256 = _v25_causal_evidence_sha256(causal_evidence)
+            receipt.update(
+                {
+                    "causal_evidence_sha256": causal_evidence_sha256,
+                    "route_lanes_sha256": array_sha256(
+                        np.asarray(causal_input["route_lanes"], dtype=np.float32)
+                    ),
+                    "route_lanes_speed_limit_sha256": array_sha256(
+                        np.asarray(
+                            causal_input["route_lanes_speed_limit"], dtype=np.float32
+                        )
+                    ),
+                    "route_lanes_has_speed_limit_sha256": array_sha256(
+                        np.asarray(
+                            causal_input["route_lanes_has_speed_limit"], dtype=np.bool_
+                        )
+                    ),
+                }
+            )
             causal_signal_atom_input = (
                 self.causal_signal_atom_input_provider(scene, tick_index)
                 if self.causal_signal_atom_input_provider is not None
@@ -732,6 +795,7 @@ class NativeCampPredictBatch:
                         "candidate_row_sha256": candidate_row_sha256,
                         "candidate_tensor": candidate_tensor.tolist(),
                         "default_output": np.asarray(default_ego).tolist(),
+                        "causal_evidence": causal_evidence,
                     },
                     "sidecar": {
                         "tick_index": tick_index,
@@ -762,9 +826,20 @@ class NativeCampPredictBatch:
                         "causal_input_sha256": str(
                             boundary.receipt["input_sha256"]
                         ),
+                        "causal_evidence_sha256": causal_evidence_sha256,
+                        "route_lanes_sha256": str(receipt["route_lanes_sha256"]),
+                        "route_lanes_speed_limit_sha256": str(
+                            receipt["route_lanes_speed_limit_sha256"]
+                        ),
+                        "route_lanes_has_speed_limit_sha256": str(
+                            receipt["route_lanes_has_speed_limit_sha256"]
+                        ),
                         "physical_feasible_mask": list(
                             receipt["physical_feasible_mask"]
                         ),
+                        "candidate_reasons": [
+                            list(value) for value in materialized["candidate_reasons"]
+                        ],
                         "source_valid_mask": list(
                             receipt["source_valid_mask"]
                         ),
@@ -2965,6 +3040,9 @@ def _capture_pre_safety(
     ]
     stop_lines = _matching_red_stop_lines(scene, builder, red_ids)
     receipt["_safety_pre"] = {
+        "pre_decision_speed_mps": float(
+            np.linalg.norm(np.asarray(ego.current_velocity, dtype=np.float64))
+        ),
         "front_center_prev_xy": corners[[1, 2]].mean(axis=0).tolist(),
         "red_light_at_interval_start": bool(red_ids),
         "red_stop_lines": stop_lines.tolist(),
@@ -3233,6 +3311,9 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             key: float(value)
             for key, value in _mapping(receipt, "latency_ms").items()
         },
+        "pre_decision_speed_mps": float(
+            _mapping(receipt, "_safety_pre")["pre_decision_speed_mps"]
+        ),
         "default_output_sha256": str(receipt["default_output_sha256"]),
     }
     if "candidate_tensor_sha256_before" in receipt:
@@ -3243,6 +3324,10 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             "selected_trajectory_sha256",
             "global_rng_sha256_before",
             "global_rng_sha256_after",
+            "causal_evidence_sha256",
+            "route_lanes_sha256",
+            "route_lanes_speed_limit_sha256",
+            "route_lanes_has_speed_limit_sha256",
         ):
             tick[name] = str(receipt[name])
         tick["candidate_row_sha256"] = list(receipt["candidate_row_sha256"])
@@ -3275,6 +3360,10 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
         ):
             if name in receipt:
                 tick[name] = list(receipt[name])
+        if "candidate_reasons" in receipt:
+            tick["candidate_reasons"] = [
+                list(value) for value in receipt["candidate_reasons"]
+            ]
         if "all_k_high_risk" in receipt:
             tick["all_k_high_risk"] = bool(receipt["all_k_high_risk"])
         if "controlled_scene" in receipt:

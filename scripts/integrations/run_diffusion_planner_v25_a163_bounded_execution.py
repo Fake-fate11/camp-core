@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute only a sealed A1.6.5 bounded plan after an Ultra one-shot release."""
+"""Execute only a sealed A1.6.6 bounded plan after an Ultra one-shot release."""
 
 from __future__ import annotations
 
@@ -48,13 +48,49 @@ from scripts.integrations import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a165_bounded_execution_v3"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_v1"
+SCHEMA_VERSION = "camp_dp_v25_a166_bounded_execution_v4"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a166_bounded_snapshot_v2"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
 MINIMUM_FREE_BYTES = 10 * 1024**3
+
+PUBLIC_TICK_FIELDS = {
+    "tick_index", "status", "input_sha256", "padding", "tracker", "safety",
+    "latency_ms", "pre_decision_speed_mps", "default_output_sha256", "candidate_tensor_sha256_before",
+    "candidate_tensor_sha256_after", "candidate_neighbor_sha256",
+    "selected_trajectory_sha256", "global_rng_sha256_before",
+    "global_rng_sha256_after", "causal_evidence_sha256", "route_lanes_sha256",
+    "route_lanes_speed_limit_sha256", "route_lanes_has_speed_limit_sha256",
+    "candidate_row_sha256", "selection_policy", "score_contract",
+    "tie_break_contract", "eligibility_mask_name", "selected_index",
+    "default_candidate0_identity", "atom_matrix_sha256",
+    "normalized_atom_matrix_sha256", "npc_operational_outputs_unchanged",
+    "scores", "physical_feasible_mask", "source_valid_mask",
+    "source_complete_mask", "candidate_reasons", "all_k_high_risk",
+    "controlled_scene", "v25_context",
+}
+SAFETY_FIELDS = {
+    "tick_index", "position_xy", "speed_mps", "ego_heading_rad",
+    "route_heading_rad", "route_progress_m", "five_point_drivable_coverage",
+    "min_obb_clearance_m", "red_light_at_interval_start",
+    "front_center_prev_xy", "front_center_xy", "red_stop_lines",
+    "speed_limit_mps", "constant_velocity_circle_ttc_diagnostic_s",
+    "source_complete",
+}
+LATENCY_FIELDS = {
+    "input_materialization", "default_inference", "candidate_inference",
+    "atom_materialization", "selector", "hook_total", "tracker", "total_planning",
+}
+NATIVE_RECEIPT_FIELDS = {
+    "schema_version", "status", "route_name", "route_sha256",
+    "logical_map_sha256", "fixed_dp_head", "checkpoint_sha256", "args_sha256",
+    "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
+    "initial_input_sha256", "ticks", "native_result", "claim_authorized",
+    "safety", "secondary", "latency", "selector_scale_contract",
+    "runtime_annotation_compatibility",
+}
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -103,6 +139,112 @@ def _native_number(value: Any, *, label: str) -> float:
     return float(value)
 
 
+def _strict_pair(value: Any, *, label: str) -> None:
+    if type(value) is not list or len(value) != 2:
+        raise ValueError(f"{label} must be an exact numeric pair")
+    for item in value:
+        _native_number(item, label=label)
+
+
+def _validate_public_success_tick(tick: Any, *, tick_index: int) -> None:
+    if type(tick) is not dict or set(tick) != PUBLIC_TICK_FIELDS:
+        raise ValueError("bounded native public tick exact field set drifted")
+    if type(tick.get("tick_index")) is not int or tick["tick_index"] != tick_index:
+        raise ValueError("bounded native public tick index drifted")
+    if tick.get("status") != "ok":
+        raise ValueError("bounded native public tick status is not ok")
+    padding = tick.get("padding")
+    tracker = tick.get("tracker")
+    safety = tick.get("safety")
+    latency = tick.get("latency_ms")
+    if (
+        type(padding) is not dict
+        or set(padding) != {"observed_frames", "padded_frames", "padding_policy"}
+        or type(padding.get("observed_frames")) is not int
+        or type(padding.get("padded_frames")) is not int
+        or padding["observed_frames"] < 1
+        or padding["observed_frames"] > 31
+        or padding["padded_frames"] != 31 - padding["observed_frames"]
+        or padding.get("padding_policy") != "native_zero_left_pad_to_31_v1"
+        or type(tracker) is not dict
+        or tracker != {"status": "ok"}
+        or type(safety) is not dict
+        or set(safety) != SAFETY_FIELDS
+        or type(latency) is not dict
+        or set(latency) != LATENCY_FIELDS
+    ):
+        raise ValueError("bounded native padding/tracker/safety/latency schema drifted")
+    if type(safety.get("tick_index")) is not int or safety["tick_index"] != tick_index:
+        raise ValueError("bounded native safety tick index drifted")
+    for name in ("position_xy", "front_center_prev_xy", "front_center_xy"):
+        _strict_pair(safety.get(name), label=f"safety.{name}")
+    for name in (
+        "speed_mps", "ego_heading_rad", "route_heading_rad", "route_progress_m",
+        "min_obb_clearance_m", "speed_limit_mps",
+    ):
+        _native_number(safety.get(name), label=f"safety.{name}")
+    optional_ttc = safety.get("constant_velocity_circle_ttc_diagnostic_s")
+    if optional_ttc is not None:
+        _native_number(optional_ttc, label="safety.constant_velocity_circle_ttc_diagnostic_s")
+    if (
+        type(safety.get("five_point_drivable_coverage")) is not bool
+        or type(safety.get("red_light_at_interval_start")) is not bool
+        or safety.get("source_complete") is not True
+        or type(safety.get("red_stop_lines")) is not list
+    ):
+        raise ValueError("bounded native safety exact type/value contract drifted")
+    for name, value in latency.items():
+        number = _native_number(value, label=f"latency_ms.{name}")
+        if number < 0.0:
+            raise ValueError("bounded native latency must be nonnegative")
+    if _native_number(
+        tick.get("pre_decision_speed_mps"), label="pre-decision speed"
+    ) < 0.0:
+        raise ValueError("bounded native pre-decision speed must be nonnegative")
+    for name in ("physical_feasible_mask", "source_valid_mask", "source_complete_mask"):
+        value = tick.get(name)
+        if type(value) is not list or len(value) != 8 or any(type(item) is not bool for item in value):
+            raise ValueError(f"bounded native {name} must be exact bool[8]")
+    reasons = tick.get("candidate_reasons")
+    if (
+        type(reasons) is not list
+        or len(reasons) != 8
+        or any(type(row) is not list or any(type(item) is not str for item in row) for row in reasons)
+    ):
+        raise ValueError("bounded native candidate reasons schema drifted")
+
+
+def _validate_success_native_receipt(native_receipt: Any) -> None:
+    if type(native_receipt) is not dict or set(native_receipt) != NATIVE_RECEIPT_FIELDS:
+        raise ValueError("bounded native receipt exact field set drifted")
+    if (
+        native_receipt.get("schema_version") != "v21_native_arm_receipt_v1"
+        or native_receipt.get("arm") != "camp"
+        or native_receipt.get("claim_authorized") is not False
+        or native_receipt.get("status") != "ok"
+        or type(native_receipt.get("scenario_seed")) is not int
+    ):
+        raise ValueError("bounded native receipt exact value/type contract drifted")
+    ticks = native_receipt.get("ticks")
+    if type(ticks) is not list or len(ticks) != TICKS_PER_RUN:
+        raise ValueError("bounded native tick denominator is invalid")
+    for index, tick in enumerate(ticks):
+        _validate_public_success_tick(tick, tick_index=index)
+    native_result = native_receipt.get("native_result")
+    if (
+        type(native_result) is not dict
+        or set(native_result)
+        != {"final_step", "goal_reached", "reason", "n_npc_spawned", "trajectory_log_path", "clearance_log_path"}
+        or type(native_result.get("final_step")) is not int
+        or type(native_result.get("goal_reached")) is not bool
+        or type(native_result.get("reason")) is not str
+        or type(native_result.get("n_npc_spawned")) is not int
+        or type(native_result.get("trajectory_log_path")) is not str
+        or type(native_result.get("clearance_log_path")) is not str
+    ):
+        raise ValueError("bounded native result exact schema drifted")
+
+
 def _repeat_context_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     feature = payload.get("feature_payload")
     sidecar = payload.get("sidecar")
@@ -133,7 +275,11 @@ def _reject_native_forbidden_fields(value: Any, *, path: str = "native") -> None
             if type(key) is not str:
                 raise ValueError("bounded native evidence has a non-string key")
             normalized = re.sub(r"[^a-z0-9]", "", key.lower())
-            if any(token in normalized for token in ("error", "exception", "failure")):
+            if (
+                any(token in normalized for token in ("error", "exception", "failure"))
+                or normalized
+                in {"fault", "success", "aborted", "crash", "exitcode", "statuscode"}
+            ):
                 raise ValueError(f"bounded native evidence has an unknown failure field: {path}.{key}")
             if "outcome" in normalized and key != "outcome_fields_consumed":
                 raise ValueError(f"bounded native evidence has an unknown outcome field: {path}.{key}")
@@ -154,20 +300,11 @@ def _derive_native_failure_class(native_receipt: Mapping[str, Any]) -> str:
 
     if type(native_receipt) is not dict:
         return "native_receipt_malformed"
-    _reject_native_forbidden_fields(native_receipt)
-    if (
-        native_receipt.get("schema_version") != "v21_native_arm_receipt_v1"
-        or native_receipt.get("arm") != "camp"
-        or native_receipt.get("claim_authorized") is not False
-        or native_receipt.get("status") != "ok"
-    ):
-        return "native_receipt_failed"
-    ticks = native_receipt.get("ticks")
-    if type(ticks) is not list or len(ticks) != TICKS_PER_RUN:
-        return "native_tick_denominator_invalid"
-    for tick in ticks:
-        if type(tick) is not dict or tick.get("status") != "ok":
-            return "native_tick_failed"
+    try:
+        _reject_native_forbidden_fields(native_receipt)
+        _validate_success_native_receipt(native_receipt)
+    except ValueError:
+        return "native_evidence_schema_invalid"
     return "none"
 
 
@@ -485,6 +622,19 @@ def _execute(
 
 
 def _run(args: argparse.Namespace) -> dict[str, Any]:
+    if type(args.output_dir) is not str or not args.output_dir:
+        raise ValueError("bounded requested output must retain its raw CLI string")
+    raw_output_dir = args.output_dir
+    output_dir = Path(raw_output_dir)
+    resolved_output = output_dir.resolve()
+    if (
+        not output_dir.is_absolute()
+        or raw_output_dir != str(resolved_output)
+        or output_dir.is_symlink()
+    ):
+        raise ValueError("bounded requested output must be one exact canonical path")
+    if output_dir.exists():
+        raise FileExistsError(output_dir)
     camp_head = _git(ROOT, "rev-parse", "HEAD")
     if _git(ROOT, "status", "--porcelain", "--untracked-files=no"):
         raise ValueError("CAMP tracked worktree is dirty")
@@ -493,7 +643,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         or _git(args.dp_repo, "status", "--porcelain")
     ):
         raise ValueError("fixed DP drifted or is not fully clean")
-    if shutil.disk_usage(args.output_dir.parent).free < MINIMUM_FREE_BYTES:
+    if shutil.disk_usage(output_dir.parent).free < MINIMUM_FREE_BYTES:
         raise RuntimeError("free disk is below the 10 GiB floor")
 
     # Fail closed and consume the one-shot release before loading the formal
@@ -502,13 +652,15 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         repo=ROOT,
         release_artifact=args.release_artifact,
         release_root_sha256=args.release_root_sha256,
-        requested_output_dir=args.output_dir,
+        requested_output_dir=raw_output_dir,
         current_pointer_head=camp_head,
         dp_repo=args.dp_repo,
         probe_template=args.probe_template,
         requested_device=args.device,
         consume=True,
     )
+    args.output_dir = output_dir
+    args.authority_consumed = True
     plan = authority["plan"]
     formal, formal_root = corpus._load_formal_plan()
     template = corpus._load_json(args.probe_template)
@@ -582,7 +734,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--release-artifact", type=Path, required=True)
     parser.add_argument("--release-root-sha256", required=True)
-    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--output-dir", required=True)
     parser.add_argument("--device", choices=(EXPECTED_DEVICE,), default=EXPECTED_DEVICE)
     parser.add_argument("--bounded-execute", action="store_true", required=True)
     return parser.parse_args(argv)
@@ -591,15 +743,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     with _exclusive_lock(TRAIN_LOCK):
-        if args.output_dir.exists():
-            raise FileExistsError(args.output_dir)
         try:
             report = _run(args)
             _write_json(args.output_dir / "report.json", report)
             (args.output_dir / "run.exit").write_bytes(b"0\n")
-            root = seal_artifact(args.output_dir, label="V25 A1.6.4 bounded execution")
+            root = seal_artifact(args.output_dir, label="V25 A1.6.6 bounded execution")
             print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
         except BaseException as exc:
+            if getattr(args, "authority_consumed", False) is not True:
+                raise
             args.output_dir.mkdir(parents=True, exist_ok=True)
             _write_json(
                 args.output_dir / "failure.json",
@@ -614,7 +766,7 @@ def main(argv: list[str] | None = None) -> None:
                 },
             )
             (args.output_dir / "run.exit").write_bytes(b"1\n")
-            seal_artifact(args.output_dir, label="failed V25 A1.6.4 bounded execution")
+            seal_artifact(args.output_dir, label="failed V25 A1.6.6 bounded execution")
             raise
 
 

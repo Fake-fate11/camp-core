@@ -156,6 +156,37 @@ def _snapshot() -> dict:
     tensor_sha = hashlib.sha256(
         np.ascontiguousarray(candidates).tobytes()
     ).hexdigest()
+    route_lanes = np.zeros((25, 20, 33), dtype=np.float32)
+    route_speed = np.ones((25, 1), dtype=np.float32)
+    route_has_speed = np.ones((25, 1), dtype=np.bool_)
+    causal_evidence = {
+        "schema_version": "camp_dp_v25_bounded_causal_evidence_v1",
+        "ego_current_state": np.zeros(10, dtype=np.float32).tolist(),
+        "ego_shape": np.asarray([4.8, 2.0, 1.7], dtype=np.float32).tolist(),
+        "neighbor_agents_past": np.zeros((32, 31, 11), dtype=np.float32).tolist(),
+        "neighbor_valid_mask": np.zeros(32, dtype=np.bool_).tolist(),
+        "candidate_neighbor_predictions": np.zeros(
+            (8, 32, 80, 4), dtype=np.float32
+        ).tolist(),
+        "static_objects": np.zeros((5, 10), dtype=np.float32).tolist(),
+        "route_lanes": route_lanes.tolist(),
+        "route_lanes_speed_limit": route_speed.tolist(),
+        "route_lanes_has_speed_limit": route_has_speed.tolist(),
+        "signal_mask": np.zeros(8, dtype=np.bool_).tolist(),
+        "fixed_dp_planned_red_light_cost": np.zeros(8, dtype=np.float64).tolist(),
+    }
+    causal_sha = hashlib.sha256(
+        (
+            json.dumps(
+                causal_evidence,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
     return {
         "schema_version": "v22_native_decision_snapshot_v1",
         "feature_payload": {
@@ -166,6 +197,7 @@ def _snapshot() -> dict:
             "default_output": default.tolist(),
             "atom_source_valid_mask": np.ones((8, 14), dtype=np.bool_).tolist(),
             "atom_applicable_mask": np.ones((8, 14), dtype=np.bool_).tolist(),
+            "causal_evidence": causal_evidence,
         },
         "sidecar": {
             "candidate_tensor_sha256_before": tensor_sha,
@@ -186,7 +218,18 @@ def _snapshot() -> dict:
             "tie_break_contract": "lowest_eligible_candidate_index",
             "scores": [0.0] * 8,
             "causal_input_sha256": "b" * 64,
+            "causal_evidence_sha256": causal_sha,
+            "route_lanes_sha256": hashlib.sha256(
+                np.ascontiguousarray(route_lanes).tobytes()
+            ).hexdigest(),
+            "route_lanes_speed_limit_sha256": hashlib.sha256(
+                np.ascontiguousarray(route_speed).tobytes()
+            ).hexdigest(),
+            "route_lanes_has_speed_limit_sha256": hashlib.sha256(
+                np.ascontiguousarray(route_has_speed).tobytes()
+            ).hexdigest(),
             "physical_feasible_mask": [True] * 8,
+            "candidate_reasons": [[] for _ in range(8)],
             "source_valid_mask": [True] * 8,
             "all_k_high_risk": False,
         },

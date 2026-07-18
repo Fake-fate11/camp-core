@@ -193,7 +193,7 @@ def test_release_consumption_is_one_shot_and_exact_output(
         repo=ROOT,
         release_artifact=release,
         release_root_sha256=root,
-        requested_output_dir=output,
+        requested_output_dir=str(output),
         current_pointer_head=decision["pointer_head_at_release"],
         dp_repo=dp_repo,
         probe_template=template,
@@ -206,7 +206,7 @@ def test_release_consumption_is_one_shot_and_exact_output(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=output,
+            requested_output_dir=str(output),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -218,7 +218,7 @@ def test_release_consumption_is_one_shot_and_exact_output(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=tmp_path / "alternate",
+            requested_output_dir=str(tmp_path / "alternate"),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -242,7 +242,7 @@ def test_release_rejects_non_cuda_device_before_nonce(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=output,
+            requested_output_dir=str(output),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -270,7 +270,7 @@ def test_release_rejects_output_text_alias_before_nonce(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=requested,
+            requested_output_dir=str(requested),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -296,7 +296,7 @@ def test_release_rejects_output_symlink_alias_before_nonce(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=alias,
+            requested_output_dir=str(alias),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -335,7 +335,7 @@ def test_release_mutations_fail_closed(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=output,
+            requested_output_dir=str(output),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -366,7 +366,7 @@ def test_release_authority_bindings_fail_closed(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=output,
+            requested_output_dir=str(output),
             current_pointer_head=current_pointer,
             dp_repo=dp_repo,
             probe_template=template,
@@ -395,7 +395,7 @@ def test_self_consistent_alternate_execution_assets_fail_closed_before_nonce(
             repo=ROOT,
             release_artifact=release,
             release_root_sha256=root,
-            requested_output_dir=output,
+            requested_output_dir=str(output),
             current_pointer_head=decision["pointer_head_at_release"],
             dp_repo=dp_repo,
             probe_template=template,
@@ -435,7 +435,7 @@ def test_authority_fails_before_model_or_output(
     dp_repo.mkdir()
     args = SimpleNamespace(
         dp_repo=dp_repo,
-        output_dir=tmp_path / "output",
+        output_dir=str(tmp_path / "output"),
         release_artifact=tmp_path / "release",
         release_root_sha256="1" * 64,
         probe_template=tmp_path / "template",
@@ -444,7 +444,40 @@ def test_authority_fails_before_model_or_output(
     with pytest.raises(ValueError, match="authority blocked"):
         runner._run(args)
     assert model_called is False
-    assert not args.output_dir.exists()
+    assert not Path(args.output_dir).exists()
+
+
+@pytest.mark.parametrize("alias_kind", ["dot", "duplicate", "trailing"])
+def test_runner_rejects_raw_output_alias_before_authority_or_nonce(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, alias_kind: str
+) -> None:
+    canonical = str(tmp_path / "bounded-output")
+    if alias_kind == "dot":
+        raw = str(tmp_path) + os.sep + "." + os.sep + "bounded-output"
+    elif alias_kind == "duplicate":
+        raw = str(tmp_path) + os.sep + os.sep + "bounded-output"
+    else:
+        raw = canonical + os.sep
+    called = False
+
+    def authority_call(**kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("authority must not see aliased output text")
+
+    monkeypatch.setattr(runner, "verify_bounded_release", authority_call)
+    args = SimpleNamespace(
+        dp_repo=tmp_path / "dp",
+        output_dir=raw,
+        release_artifact=tmp_path / "release",
+        release_root_sha256="1" * 64,
+        probe_template=tmp_path / "template",
+        device="cuda",
+    )
+    with pytest.raises(ValueError, match="canonical"):
+        runner._run(args)
+    assert called is False
+    assert not Path(canonical).exists()
 
 
 def test_bounded_snapshot_index_carries_repeat_occurrence(tmp_path: Path) -> None:
@@ -568,6 +601,7 @@ def _minimal_post_review_tick() -> tuple[dict, dict, dict, dict, np.ndarray, np.
             "default_output": candidate[0].tolist(),
             "raw_context": {},
             "context_source_complete": {},
+            "causal_evidence": {},
         },
         "sidecar": {
             "tick_index": 0,
@@ -595,7 +629,12 @@ def _minimal_post_review_tick() -> tuple[dict, dict, dict, dict, np.ndarray, np.
             "candidate0_semantics": "operational_default_alias_from_same_forward",
             "candidate0_independent_second_forward": False,
             "causal_input_sha256": "6" * 64,
+            "causal_evidence_sha256": "a" * 64,
+            "route_lanes_sha256": "b" * 64,
+            "route_lanes_speed_limit_sha256": "c" * 64,
+            "route_lanes_has_speed_limit_sha256": "d" * 64,
             "physical_feasible_mask": [False] * 8,
+            "candidate_reasons": [[] for _ in range(8)],
             "source_valid_mask": [True] * 8,
             "all_k_high_risk": True,
             "selected_index": 0,
@@ -623,7 +662,10 @@ def _minimal_post_review_tick() -> tuple[dict, dict, dict, dict, np.ndarray, np.
             "occurrence": "identity0_first",
         },
     }
-    native = {"source_complete_mask": [True] * 8}
+    native = {
+        "source_complete_mask": [True] * 8,
+        "candidate_reasons": [[] for _ in range(8)],
+    }
     return payload, run, source_row, native, np.ones(14), np.ones(14) / 14.0
 
 
@@ -644,6 +686,36 @@ def _patch_post_tick_dependencies(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         post_reviewer, "_validate_native_cross_binding", lambda **kwargs: None
     )
+    monkeypatch.setattr(
+        post_reviewer,
+        "_validate_causal_evidence",
+        lambda **kwargs: {
+            "route_lanes": np.zeros((25, 20, 33), dtype=np.float32),
+            "route_lanes_speed_limit": np.ones((25, 1), dtype=np.float32),
+            "route_lanes_has_speed_limit": np.ones((25, 1), dtype=np.bool_),
+            "fixed_dp_planned_red_light_cost": np.zeros(8, dtype=np.float64),
+        },
+    )
+    monkeypatch.setattr(
+        post_reviewer,
+        "_independent_route_projection",
+        lambda *args, **kwargs: {"source": np.ones(8, dtype=np.bool_)},
+    )
+    monkeypatch.setattr(
+        post_reviewer,
+        "_independent_physical_mask",
+        lambda *args, **kwargs: ([False] * 8, [[] for _ in range(8)]),
+    )
+    monkeypatch.setattr(
+        post_reviewer,
+        "_independent_planned_red_cost",
+        lambda *args, **kwargs: np.zeros(8),
+    )
+    monkeypatch.setattr(
+        post_reviewer,
+        "_independent_raw_context",
+        lambda *args, **kwargs: ({}, {}),
+    )
 
 
 def test_post_reviewer_accepts_nonempty_all_k_physically_bad_source_set(
@@ -663,6 +735,55 @@ def test_post_reviewer_accepts_nonempty_all_k_physically_bad_source_set(
         scale_sha256="7" * 64,
     )
     assert reviewed["selected"] == 0
+
+
+def test_post_reviewer_rejects_self_reported_all_physical_true() -> None:
+    payload, run, source_row, native, scales, weights = _minimal_post_review_tick()
+    feature, sidecar = payload["feature_payload"], payload["sidecar"]
+    feature["physical_feasible_mask"] = [True] * 8
+    sidecar["physical_feasible_mask"] = [True] * 8
+    sidecar["all_k_high_risk"] = False
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _patch_post_tick_dependencies(monkeypatch)
+        with pytest.raises(ValueError, match="canonical atom/source"):
+            post_reviewer._review_tick(
+                payload=payload,
+                run=run,
+                tick_index=0,
+                source_row=source_row,
+                source_root_sha256="8" * 64,
+                native_tick=native,
+                scales=scales,
+                weights=weights,
+                scale_sha256="7" * 64,
+            )
+
+
+def test_post_reviewer_rejects_self_consistent_planned_red_col10_mutation() -> None:
+    payload, run, source_row, native, scales, weights = _minimal_post_review_tick()
+    payload["feature_payload"]["atom_matrix"][0][10] = 1.0
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        _patch_post_tick_dependencies(monkeypatch)
+        monkeypatch.setattr(
+            post_reviewer,
+            "_validate_signal_receipts",
+            lambda **kwargs: {"current_phase": "red"},
+        )
+        for row in payload["feature_payload"]["atom_applicable_mask"]:
+            row[10] = True
+            row[12] = True
+        with pytest.raises(ValueError, match="planned-red"):
+            post_reviewer._review_tick(
+                payload=payload,
+                run=run,
+                tick_index=0,
+                source_row=source_row,
+                source_root_sha256="8" * 64,
+                native_tick=native,
+                scales=scales,
+                weights=weights,
+                scale_sha256="7" * 64,
+            )
 
 
 @pytest.mark.parametrize(
@@ -733,7 +854,7 @@ def test_post_reviewer_mask_and_fixed_k8_mutations_fail_closed(
         )
 
 
-def test_post_reviewer_accepts_route_speed_ineligible_candidate_with_exact_masks(
+def test_post_reviewer_rejects_self_reported_route_speed_ineligible_candidate(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _patch_post_tick_dependencies(monkeypatch)
@@ -748,18 +869,18 @@ def test_post_reviewer_accepts_route_speed_ineligible_candidate_with_exact_masks
     sidecar["all_k_high_risk"] = False
     sidecar["selected_index"] = 1
     sidecar["selected_trajectory_sha256"] = feature["candidate_row_sha256"][1]
-    reviewed = post_reviewer._review_tick(
-        payload=payload,
-        run=run,
-        tick_index=0,
-        source_row=source_row,
-        source_root_sha256="8" * 64,
-        native_tick=native,
-        scales=scales,
-        weights=weights,
-        scale_sha256="7" * 64,
-    )
-    assert reviewed["selected"] == 1
+    with pytest.raises(ValueError, match="route oracle"):
+        post_reviewer._review_tick(
+            payload=payload,
+            run=run,
+            tick_index=0,
+            source_row=source_row,
+            source_root_sha256="8" * 64,
+            native_tick=native,
+            scales=scales,
+            weights=weights,
+            scale_sha256="7" * 64,
+        )
 
 
 def test_post_reviewer_independent_red_atom_oracle_detects_mutation() -> None:
@@ -1233,6 +1354,7 @@ def test_native_public_tick_persists_status_controlled_scene_and_v25_context() -
             "padding_policy": "native_zero_left_pad_to_31_v1",
         },
         "tracker": {"status": "ok"},
+        "_safety_pre": {"pre_decision_speed_mps": 0.0},
         "_safety_record": {
             "position_xy": [0.0, 0.0],
             "ego_heading_rad": 0.0,
@@ -1247,6 +1369,10 @@ def test_native_public_tick_persists_status_controlled_scene_and_v25_context() -
         "selected_trajectory_sha256": rows[0],
         "global_rng_sha256_before": "8" * 64,
         "global_rng_sha256_after": "8" * 64,
+        "causal_evidence_sha256": "9" * 64,
+        "route_lanes_sha256": "a" * 64,
+        "route_lanes_speed_limit_sha256": "b" * 64,
+        "route_lanes_has_speed_limit_sha256": "c" * 64,
         "candidate_row_sha256": rows,
         "selection_policy": "v22_source_valid",
         "score_contract": "score_k=clip(a_k/s,0,10)^T w",
@@ -1257,6 +1383,7 @@ def test_native_public_tick_persists_status_controlled_scene_and_v25_context() -
         "source_valid_mask": [True] * 8,
         "physical_feasible_mask": [False] * 8,
         "source_complete_mask": [True] * 8,
+        "candidate_reasons": [[] for _ in range(8)],
         "scores": [0.0] * 8,
         "all_k_high_risk": True,
         "controlled_scene": native["controlled_scene"],
@@ -1264,8 +1391,147 @@ def test_native_public_tick_persists_status_controlled_scene_and_v25_context() -
     }
     public = native_runner._public_tick_receipt(internal, "camp")
     assert public["status"] == "ok"
+    assert public["pre_decision_speed_mps"] == 0.0
     assert public["controlled_scene"] == native["controlled_scene"]
     assert public["v25_context"] == native["v25_context"]
+
+
+def _exact_public_tick_fixture() -> dict:
+    tick = {field: None for field in post_reviewer.PUBLIC_TICK_FIELDS}
+    tick.update(
+        {
+            "tick_index": 0,
+            "status": "ok",
+            "input_sha256": "0" * 64,
+            "padding": {
+                "observed_frames": 31,
+                "padded_frames": 0,
+                "padding_policy": "native_zero_left_pad_to_31_v1",
+            },
+            "tracker": {"status": "ok"},
+            "safety": {
+                "tick_index": 0,
+                "position_xy": [0.0, 0.0],
+                "speed_mps": 1.0,
+                "ego_heading_rad": 0.0,
+                "route_heading_rad": 0.0,
+                "route_progress_m": 0.0,
+                "five_point_drivable_coverage": True,
+                "min_obb_clearance_m": 10.0,
+                "red_light_at_interval_start": False,
+                "front_center_prev_xy": [0.0, 0.0],
+                "front_center_xy": [0.1, 0.0],
+                "red_stop_lines": [],
+                "speed_limit_mps": 10.0,
+                "constant_velocity_circle_ttc_diagnostic_s": None,
+                "source_complete": True,
+            },
+            "latency_ms": {name: 1.0 for name in post_reviewer.LATENCY_FIELDS},
+            "pre_decision_speed_mps": 1.0,
+            "physical_feasible_mask": [False] * 8,
+            "source_valid_mask": [True] * 8,
+            "source_complete_mask": [True] * 8,
+            "candidate_reasons": [[] for _ in range(8)],
+        }
+    )
+    return tick
+
+
+@pytest.mark.parametrize(
+    "field", ["fault", "success", "aborted", "crash", "exit_code", "status_code"]
+)
+def test_native_public_tick_unknown_failure_fields_fail_closed(field: str) -> None:
+    tick = _exact_public_tick_fixture()
+    tick[field] = False if field in {"success", "aborted", "crash"} else 1
+    with pytest.raises(ValueError, match="field set"):
+        post_reviewer._validate_public_success_tick(tick, tick_index=0)
+
+
+def test_native_public_tick_exact_success_schema_is_accepted() -> None:
+    post_reviewer._validate_public_success_tick(_exact_public_tick_fixture(), tick_index=0)
+
+
+def test_native_public_tick_nested_failure_field_fails_closed() -> None:
+    tick = _exact_public_tick_fixture()
+    tick["safety"]["fault"] = "gpu_oom"
+    with pytest.raises(ValueError, match="schema"):
+        post_reviewer._validate_public_success_tick(tick, tick_index=0)
+
+
+def test_post_reviewer_independent_context_rejects_safety_speed_contradiction() -> None:
+    candidate = np.zeros((8, 80, 4), dtype=np.float32)
+    candidate[:, :, 2] = 1.0
+    route = np.zeros((25, 20, 33), dtype=np.float32)
+    route[0, :3, 0] = [0.0, 1.0, 2.0]
+    route[0, :3, 2] = 1.0
+    route[0, :3, 5] = 1.0
+    route[0, :3, 7] = -1.0
+    ego = np.zeros(10, dtype=np.float32)
+    ego[4] = 1.0
+    evidence = {
+        "ego_current_state": ego,
+        "neighbor_agents_past": np.zeros((32, 31, 11), dtype=np.float32),
+        "route_lanes": route,
+        "route_lanes_speed_limit": np.ones((25, 1), dtype=np.float32) * 10.0,
+        "route_lanes_has_speed_limit": np.ones((25, 1), dtype=np.bool_),
+    }
+    raw, complete = post_reviewer._independent_raw_context(
+        evidence=evidence, candidates=candidate, source_valid=[True] * 8
+    )
+    assert raw["ego_speed_mps"] == 1.0
+    assert complete["ego_speed_mps"] is True
+    contradicted = copy.deepcopy(raw)
+    contradicted["ego_speed_mps"] = 999.0
+    with pytest.raises(ValueError, match="independent causal oracle"):
+        post_reviewer._validate_independent_context(
+            feature={
+                "raw_context": contradicted,
+                "context_source_complete": complete,
+            },
+            evidence=evidence,
+            candidates=candidate,
+            source_valid=[True] * 8,
+        )
+
+
+def test_post_reviewer_causal_evidence_rejects_predecision_speed_contradiction() -> None:
+    ego = np.zeros(10, dtype=np.float32)
+    ego[4] = 999.0
+    route = np.zeros((25, 20, 33), dtype=np.float32)
+    route_speed = np.ones((25, 1), dtype=np.float32)
+    route_has_speed = np.ones((25, 1), dtype=np.bool_)
+    neighbors = np.zeros((8, 32, 80, 4), dtype=np.float32)
+    raw = {
+        "schema_version": "camp_dp_v25_bounded_causal_evidence_v1",
+        "ego_current_state": ego.tolist(),
+        "ego_shape": np.asarray([2.8, 4.8, 2.0], dtype=np.float32).tolist(),
+        "neighbor_agents_past": np.zeros((32, 31, 11), dtype=np.float32).tolist(),
+        "neighbor_valid_mask": np.zeros(32, dtype=np.bool_).tolist(),
+        "candidate_neighbor_predictions": neighbors.tolist(),
+        "static_objects": np.zeros((5, 10), dtype=np.float32).tolist(),
+        "route_lanes": route.tolist(),
+        "route_lanes_speed_limit": route_speed.tolist(),
+        "route_lanes_has_speed_limit": route_has_speed.tolist(),
+        "signal_mask": np.ones(8, dtype=np.bool_).tolist(),
+        "fixed_dp_planned_red_light_cost": np.zeros(8).tolist(),
+    }
+    sidecar = {
+        "causal_evidence_sha256": post_reviewer._sha(raw),
+        "route_lanes_sha256": post_reviewer._array_sha(route),
+        "route_lanes_speed_limit_sha256": post_reviewer._array_sha(route_speed),
+        "route_lanes_has_speed_limit_sha256": post_reviewer._array_sha(
+            route_has_speed
+        ),
+    }
+    native = {
+        **sidecar,
+        "candidate_neighbor_sha256": post_reviewer._array_sha(neighbors),
+        "pre_decision_speed_mps": 1.0,
+    }
+    with pytest.raises(ValueError, match="raw causal evidence"):
+        post_reviewer._validate_causal_evidence(
+            feature={"causal_evidence": raw}, sidecar=sidecar, native_tick=native
+        )
 
 
 @pytest.mark.parametrize(
@@ -1407,16 +1673,88 @@ def test_post_reviewer_cache_schema_and_mode_are_exact() -> None:
             )
 
 
-def test_failure_path_is_sealed_and_releases_lock(
+def _execution_source_authority_fixture() -> tuple[dict, dict, dict]:
+    manifest = {"critical.py": "1" * 64}
+    roots = {"source": {"path": "/root/source", "root_sha256": "2" * 64}}
+    decision = {
+        "device": "cuda",
+        "run_nonce": "3" * 64,
+        "critical_implementation_manifest": manifest,
+        "root_artifacts": roots,
+    }
+    authority_payload = {
+        "release_root_sha256": "4" * 64,
+        "release_artifact": "/root/release",
+        "decision": decision,
+    }
+    report = {field: None for field in post_reviewer.EXECUTION_REPORT_FIELDS}
+    report.update(
+        {
+            "schema_version": post_reviewer.EXECUTION_SCHEMA_VERSION,
+            "status": "passed_exact_bounded_execution",
+            "device": "cuda",
+        }
+    )
+    receipt = {field: None for field in post_reviewer.SOURCE_RECEIPT_FIELDS}
+    receipt.update(
+        {
+            "release_artifact": authority_payload["release_artifact"],
+            "release_root_sha256": authority_payload["release_root_sha256"],
+            "release_run_nonce": decision["run_nonce"],
+            "formal_root_sha256": post_reviewer.EXPECTED_FORMAL_ROOT_SHA256,
+            "critical_implementation_manifest": manifest,
+            "root_artifacts": roots,
+            "device": "cuda",
+        }
+    )
+    return report, receipt, authority_payload
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "release_artifact",
+        "release_run_nonce",
+        "formal_root_sha256",
+        "critical_implementation_manifest",
+    ],
+)
+def test_post_reviewer_execution_source_authority_is_exact(field: str) -> None:
+    report, receipt, authority_payload = _execution_source_authority_fixture()
+    post_reviewer._validate_execution_source_authority(
+        source_receipt=receipt, report=report, authority=authority_payload
+    )
+    if field == "critical_implementation_manifest":
+        receipt[field] = {"critical.py": "9" * 64}
+    else:
+        receipt[field] = "9" * 64
+    with pytest.raises(ValueError, match="source authority"):
+        post_reviewer._validate_execution_source_authority(
+            source_receipt=receipt, report=report, authority=authority_payload
+        )
+
+
+def test_post_reviewer_report_device_is_exact_cuda() -> None:
+    report, receipt, authority_payload = _execution_source_authority_fixture()
+    report["device"] = "cpu"
+    with pytest.raises(ValueError, match="source authority"):
+        post_reviewer._validate_execution_source_authority(
+            source_receipt=receipt, report=report, authority=authority_payload
+        )
+
+
+def test_pre_authority_failure_creates_no_output_or_nonce(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     output = tmp_path / "failed"
+    nonce_ledger = tmp_path / "nonce-ledger"
 
     @contextmanager
     def lock(path):
         yield
 
     monkeypatch.setattr(runner, "_exclusive_lock", lock)
+    monkeypatch.setattr(authority, "NONCE_LEDGER", nonce_ledger)
     monkeypatch.setattr(
         runner,
         "_run",
@@ -1437,6 +1775,38 @@ def test_failure_path_is_sealed_and_releases_lock(
                 str(output),
                 "--device",
                 "cuda",
+                "--bounded-execute",
+            ]
+        )
+    assert not output.exists()
+    assert not nonce_ledger.exists()
+
+
+def test_post_authority_failure_is_sealed_and_releases_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    output = tmp_path / "failed-after-authority"
+
+    @contextmanager
+    def lock(path):
+        yield
+
+    def fail_after_authority(args):
+        args.output_dir = output
+        args.authority_consumed = True
+        raise RuntimeError("synthetic post-authority failure")
+
+    monkeypatch.setattr(runner, "_exclusive_lock", lock)
+    monkeypatch.setattr(runner, "_run", fail_after_authority)
+    with pytest.raises(RuntimeError, match="post-authority"):
+        runner.main(
+            [
+                "--probe-template", str(tmp_path / "template"),
+                "--dp-repo", str(tmp_path / "dp"),
+                "--release-artifact", str(tmp_path / "release"),
+                "--release-root-sha256", "a" * 64,
+                "--output-dir", str(output),
+                "--device", "cuda",
                 "--bounded-execute",
             ]
         )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently review a sealed A1.6.5 bounded K8 execution."""
+"""Independently review a sealed A1.6.6 bounded K8 execution."""
 
 from __future__ import annotations
 
@@ -31,9 +31,9 @@ from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import 
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a165_bounded_execution_review_v3"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a165_bounded_execution_v3"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_v1"
+SCHEMA_VERSION = "camp_dp_v25_a166_bounded_execution_review_v4"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a166_bounded_execution_v4"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a166_bounded_snapshot_v2"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
 RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
 RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
@@ -41,10 +41,11 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-RELEASE_GATE = "a165_bounded_execute"
-NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a165_bounded_execute_nonces")
+RELEASE_GATE = "a166_bounded_execute"
+NONCE_LEDGER = Path("/root/autodl-tmp/.camp_dp_v25_a166_bounded_execute_nonces")
 EXPECTED_DEVICE = "cuda"
 EXPECTED_DP_REPO = Path("/root/autodl-tmp/Diffusion-Planner")
+EXPECTED_FORMAL_ROOT_SHA256 = "c4dbd49c5fde36302046c6386ca1b8d9cdcaa922976f08230e6227962cc1e531"
 EXPECTED_PROBE_TEMPLATE = Path(
     "/root/autodl-tmp/"
     "camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_"
@@ -196,6 +197,7 @@ FEATURE_FIELDS = {
     "default_output",
     "raw_context",
     "context_source_complete",
+    "causal_evidence",
 }
 SIDECAR_FIELDS = {
     "tick_index",
@@ -217,7 +219,12 @@ SIDECAR_FIELDS = {
     "candidate0_semantics",
     "candidate0_independent_second_forward",
     "causal_input_sha256",
+    "causal_evidence_sha256",
+    "route_lanes_sha256",
+    "route_lanes_speed_limit_sha256",
+    "route_lanes_has_speed_limit_sha256",
     "physical_feasible_mask",
+    "candidate_reasons",
     "source_valid_mask",
     "all_k_high_risk",
     "selected_index",
@@ -404,6 +411,47 @@ DEFAULT_IDENTITY_FIELDS = {
     "candidate0_sha256",
     "native_ranked_k8",
 }
+CAUSAL_EVIDENCE_FIELDS = {
+    "schema_version", "ego_current_state", "ego_shape", "neighbor_agents_past",
+    "neighbor_valid_mask", "candidate_neighbor_predictions", "static_objects",
+    "route_lanes", "route_lanes_speed_limit", "route_lanes_has_speed_limit",
+    "signal_mask", "fixed_dp_planned_red_light_cost",
+}
+PUBLIC_TICK_FIELDS = {
+    "tick_index", "status", "input_sha256", "padding", "tracker", "safety",
+    "latency_ms", "pre_decision_speed_mps", "default_output_sha256", "candidate_tensor_sha256_before",
+    "candidate_tensor_sha256_after", "candidate_neighbor_sha256",
+    "selected_trajectory_sha256", "global_rng_sha256_before",
+    "global_rng_sha256_after", "causal_evidence_sha256", "route_lanes_sha256",
+    "route_lanes_speed_limit_sha256", "route_lanes_has_speed_limit_sha256",
+    "candidate_row_sha256", "selection_policy", "score_contract",
+    "tie_break_contract", "eligibility_mask_name", "selected_index",
+    "default_candidate0_identity", "atom_matrix_sha256",
+    "normalized_atom_matrix_sha256", "npc_operational_outputs_unchanged",
+    "scores", "physical_feasible_mask", "source_valid_mask",
+    "source_complete_mask", "candidate_reasons", "all_k_high_risk",
+    "controlled_scene", "v25_context",
+}
+SAFETY_FIELDS = {
+    "tick_index", "position_xy", "speed_mps", "ego_heading_rad",
+    "route_heading_rad", "route_progress_m", "five_point_drivable_coverage",
+    "min_obb_clearance_m", "red_light_at_interval_start",
+    "front_center_prev_xy", "front_center_xy", "red_stop_lines",
+    "speed_limit_mps", "constant_velocity_circle_ttc_diagnostic_s",
+    "source_complete",
+}
+LATENCY_FIELDS = {
+    "input_materialization", "default_inference", "candidate_inference",
+    "atom_materialization", "selector", "hook_total", "tracker", "total_planning",
+}
+NATIVE_RECEIPT_FIELDS = {
+    "schema_version", "status", "route_name", "route_sha256",
+    "logical_map_sha256", "fixed_dp_head", "checkpoint_sha256", "args_sha256",
+    "arm", "scenario_seed", "spawn_config_sha256", "initial_state_sha256",
+    "initial_input_sha256", "ticks", "native_result", "claim_authorized",
+    "safety", "secondary", "latency", "selector_scale_contract",
+    "runtime_annotation_compatibility",
+}
 SEMANTIC_REQUIRED_FIELDS = {
     "schema_version",
     "family",
@@ -487,6 +535,329 @@ def _native_number(value: Any, *, label: str) -> float:
     if type(value) not in (int, float) or not math.isfinite(float(value)):
         raise ValueError(f"{label} must be a finite native number")
     return float(value)
+
+
+def _strict_bool_array(value: Any, shape: tuple[int, ...], *, label: str) -> np.ndarray:
+    def walk(node: Any, depth: int) -> list[bool]:
+        if depth == len(shape):
+            if type(node) is not bool:
+                raise ValueError(f"{label} contains a non-bool value")
+            return [node]
+        if type(node) is not list or len(node) != shape[depth]:
+            raise ValueError(f"{label} shape drifted")
+        result: list[bool] = []
+        for child in node:
+            result.extend(walk(child, depth + 1))
+        return result
+
+    return np.asarray(walk(value, 0), dtype=np.bool_).reshape(shape)
+
+
+def _array_sha(value: np.ndarray) -> str:
+    return hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
+
+
+def _validate_causal_evidence(
+    *, feature: Mapping[str, Any], sidecar: Mapping[str, Any], native_tick: Mapping[str, Any]
+) -> dict[str, np.ndarray]:
+    raw = feature.get("causal_evidence")
+    if (
+        type(raw) is not dict
+        or set(raw) != CAUSAL_EVIDENCE_FIELDS
+        or raw.get("schema_version") != "camp_dp_v25_bounded_causal_evidence_v1"
+    ):
+        raise ValueError("bounded causal-evidence exact schema drifted")
+    arrays = {
+        "ego_current_state": _native_numeric_array(raw.get("ego_current_state"), (10,), label="ego state").astype(np.float32),
+        "ego_shape": _native_numeric_array(raw.get("ego_shape"), (3,), label="ego shape").astype(np.float32),
+        "neighbor_agents_past": _native_numeric_array(raw.get("neighbor_agents_past"), (32, 31, 11), label="neighbor history").astype(np.float32),
+        "neighbor_valid_mask": _strict_bool_array(raw.get("neighbor_valid_mask"), (32,), label="neighbor valid"),
+        "candidate_neighbor_predictions": _native_numeric_array(raw.get("candidate_neighbor_predictions"), (8, 32, 80, 4), label="candidate neighbors").astype(np.float32),
+        "static_objects": _native_numeric_array(raw.get("static_objects"), (5, 10), label="static objects").astype(np.float32),
+        "route_lanes": _native_numeric_array(raw.get("route_lanes"), (25, 20, 33), label="route lanes").astype(np.float32),
+        "route_lanes_speed_limit": _native_numeric_array(raw.get("route_lanes_speed_limit"), (25, 1), label="route speed limits").astype(np.float32),
+        "route_lanes_has_speed_limit": _strict_bool_array(raw.get("route_lanes_has_speed_limit"), (25, 1), label="route has speed limits"),
+        "signal_mask": _strict_bool_array(raw.get("signal_mask"), (8,), label="signal mask"),
+        "fixed_dp_planned_red_light_cost": _native_numeric_array(raw.get("fixed_dp_planned_red_light_cost"), (8,), label="fixed DP planned red cost"),
+    }
+    causal_sha = _sha(raw)
+    route_sha = _array_sha(arrays["route_lanes"])
+    speed_sha = _array_sha(arrays["route_lanes_speed_limit"])
+    has_speed_sha = _array_sha(arrays["route_lanes_has_speed_limit"])
+    if (
+        sidecar.get("causal_evidence_sha256") != causal_sha
+        or native_tick.get("causal_evidence_sha256") != causal_sha
+        or sidecar.get("route_lanes_sha256") != route_sha
+        or native_tick.get("route_lanes_sha256") != route_sha
+        or sidecar.get("route_lanes_speed_limit_sha256") != speed_sha
+        or native_tick.get("route_lanes_speed_limit_sha256") != speed_sha
+        or sidecar.get("route_lanes_has_speed_limit_sha256") != has_speed_sha
+        or native_tick.get("route_lanes_has_speed_limit_sha256") != has_speed_sha
+        or native_tick.get("candidate_neighbor_sha256")
+        != _array_sha(arrays["candidate_neighbor_predictions"])
+        or not math.isclose(
+            _native_number(
+                native_tick.get("pre_decision_speed_mps"),
+                label="native pre-decision speed",
+            ),
+            float(arrays["ego_current_state"][4]),
+            rel_tol=0.0,
+            abs_tol=1e-6,
+        )
+    ):
+        raise ValueError("bounded raw causal evidence SHA/native binding drifted")
+    return arrays
+
+
+def _independent_route_projection(
+    candidates: np.ndarray, route: np.ndarray, limits: np.ndarray, has_limits: np.ndarray
+) -> dict[str, np.ndarray]:
+    centers_parts: list[np.ndarray] = []
+    left_parts: list[np.ndarray] = []
+    right_parts: list[np.ndarray] = []
+    speed_parts: list[np.ndarray] = []
+    flat_limits = limits.reshape(25)
+    flat_has = has_limits.reshape(25)
+    for slot in range(25):
+        valid = np.any(np.abs(route[slot, :, :8]) > 1e-8, axis=1)
+        if not valid.any():
+            continue
+        rows = route[slot, valid].astype(np.float64)
+        if rows.shape[0] < 2:
+            raise ValueError("bounded route slot has fewer than two points")
+        available = bool(flat_has[slot] and np.isfinite(flat_limits[slot]) and flat_limits[slot] > 0.0)
+        if not available:
+            raise ValueError("bounded route slot lacks its frozen positive speed source")
+        centers_parts.append(rows[:, :2])
+        left_parts.append(rows[:, 4:6])
+        right_parts.append(rows[:, 6:8])
+        speed_parts.append(np.full(rows.shape[0], flat_limits[slot] if available else np.nan))
+    if not centers_parts:
+        raise ValueError("bounded route evidence has no visible route")
+    centers = np.concatenate(centers_parts)
+    left = np.concatenate(left_parts)
+    right = np.concatenate(right_parts)
+    point_speeds = np.concatenate(speed_parts)
+    delta = np.diff(centers, axis=0)
+    lengths = np.linalg.norm(delta, axis=1)
+    keep = lengths > 1e-6
+    if not keep.any():
+        raise ValueError("bounded route evidence has no nonzero segment")
+    starts = centers[:-1][keep]
+    directions = delta[keep] / lengths[keep, None]
+    segment_lengths = lengths[keep]
+    left_start, left_end = left[:-1][keep], left[1:][keep]
+    right_start, right_end = right[:-1][keep], right[1:][keep]
+    speed_start, speed_end = point_speeds[:-1][keep], point_speeds[1:][keep]
+    arc_starts = np.r_[0.0, np.cumsum(segment_lengths[:-1])]
+    lateral = np.empty((8, 80)); left_width = np.empty((8, 80)); right_width = np.empty((8, 80))
+    speed = np.empty((8, 80)); arc = np.empty((8, 80))
+    for k, trajectory in enumerate(candidates.astype(np.float64)):
+        for t, point in enumerate(trajectory[:, :2]):
+            relative = point - starts
+            along = np.clip(np.einsum("ij,ij->i", relative, directions), 0.0, segment_lengths)
+            projected = starts + directions * along[:, None]
+            segment = int(np.argmin(np.linalg.norm(point - projected, axis=1)))
+            fraction = along[segment] / segment_lengths[segment]
+            normal = np.asarray([-directions[segment, 1], directions[segment, 0]])
+            l_off = left_start[segment] + fraction * (left_end[segment] - left_start[segment])
+            r_off = right_start[segment] + fraction * (right_end[segment] - right_start[segment])
+            lateral[k, t] = float((point - projected[segment]) @ normal)
+            left_width[k, t] = float(l_off @ normal)
+            right_width[k, t] = float(-(r_off @ normal))
+            speed[k, t] = speed_start[segment] + fraction * (speed_end[segment] - speed_start[segment])
+            arc[k, t] = arc_starts[segment] + along[segment]
+    source = np.isfinite(speed).all(axis=1) & (speed > 0.0).all(axis=1)
+    if np.any(left_width <= 0.0) or np.any(right_width <= 0.0) or not source.all():
+        raise ValueError("bounded projected route boundary/speed source is invalid")
+    return {
+        "lateral": lateral, "left": left_width, "right": right_width,
+        "speed": speed, "arc": arc, "source": source,
+    }
+
+
+def _obb_corners_local(x: float, y: float, heading: float, length: float, width: float, wheelbase: float | None = None) -> np.ndarray:
+    c, s = math.cos(heading), math.sin(heading)
+    if wheelbase is not None and math.isfinite(wheelbase) and wheelbase > 0.0:
+        rear = (length - wheelbase) / 2.0; lo, hi = -rear, length - rear
+    else:
+        lo, hi = -length / 2.0, length / 2.0
+    local = np.asarray([[lo, -width/2], [hi, -width/2], [hi, width/2], [lo, width/2]])
+    return local @ np.asarray([[c, -s], [s, c]]).T + np.asarray([x, y])
+
+
+def _obb_collides_local(a: np.ndarray, b: np.ndarray) -> bool:
+    for corners in (a, b):
+        for index in range(4):
+            edge = corners[(index + 1) % 4] - corners[index]
+            axis = np.asarray([-edge[1], edge[0]])
+            norm = float(np.linalg.norm(axis))
+            if norm < 1e-9:
+                continue
+            axis /= norm
+            pa, pb = a @ axis, b @ axis
+            if float(pa.max()) < float(pb.min()) or float(pb.max()) < float(pa.min()):
+                return False
+    return True
+
+
+def _independent_physical_mask(
+    candidates: np.ndarray, projection: Mapping[str, np.ndarray], evidence: Mapping[str, np.ndarray]
+) -> tuple[list[bool], list[list[str]]]:
+    neighbors = evidence["candidate_neighbor_predictions"].astype(np.float64)
+    valid = evidence["neighbor_valid_mask"]
+    history = evidence["neighbor_agents_past"].astype(np.float64)
+    static = evidence["static_objects"].astype(np.float64)
+    obstacles = np.zeros((8, 37, 80, 5), dtype=np.float64)
+    for slot in np.flatnonzero(valid):
+        width, length = history[slot, -1, 6:8]
+        headings = neighbors[:, slot, :, 2:4]
+        if width <= 0.0 or length <= 0.0 or np.any(np.linalg.norm(headings, axis=2) < 1e-6):
+            raise ValueError("bounded neighbor OBB evidence is invalid")
+        obstacles[:, slot, :, :2] = neighbors[:, slot, :, :2]
+        obstacles[:, slot, :, 2] = np.arctan2(headings[:, :, 1], headings[:, :, 0])
+        obstacles[:, slot, :, 3] = length; obstacles[:, slot, :, 4] = width
+    for slot, row in enumerate(static):
+        if not np.any(np.abs(row[:6]) > 1e-8):
+            continue
+        width, length = row[4:6]
+        if np.linalg.norm(row[2:4]) < 0.5 or width <= 0.0 or length <= 0.0:
+            raise ValueError("bounded static OBB evidence is invalid")
+        obstacles[:, 32 + slot, :, :] = np.asarray([row[0], row[1], math.atan2(row[3], row[2]), length, width])
+    lateral, left, right = projection["lateral"], projection["left"], projection["right"]
+    lane = ~(((lateral > left + 1.0) | (lateral < -(right + 1.0))).any(axis=1))
+    wheelbase, ego_length, ego_width = evidence["ego_shape"].astype(np.float64)
+    if wheelbase <= 0.0 or ego_length <= 0.0 or ego_width <= 0.0:
+        raise ValueError("bounded ego OBB shape must be finite positive")
+    collision_free = np.ones(8, dtype=np.bool_)
+    headings = np.arctan2(candidates[:, :, 3], candidates[:, :, 2])
+    for k in range(8):
+        for t in range(80):
+            ego_box = _obb_corners_local(*candidates[k, t, :2], headings[k, t], ego_length, ego_width, wheelbase)
+            for obstacle in obstacles[k, :, t]:
+                if obstacle[3] <= 0.0 or obstacle[4] <= 0.0:
+                    continue
+                other = _obb_corners_local(obstacle[0], obstacle[1], obstacle[2], obstacle[3], obstacle[4])
+                if _obb_collides_local(ego_box, other):
+                    collision_free[k] = False
+                    break
+            if not collision_free[k]:
+                break
+    signal = evidence["signal_mask"]
+    physical = signal & lane & collision_free
+    reasons: list[list[str]] = []
+    for k in range(8):
+        row: list[str] = []
+        if not signal[k]: row.append("signal_source_unavailable")
+        if not lane[k]: row.append("lane_corridor")
+        if not collision_free[k]: row.append("obb_collision")
+        if not projection["source"][k]: row.append("route_speed_source_unavailable")
+        reasons.append(row)
+    return physical.tolist(), reasons
+
+
+def _independent_planned_red_cost(candidates: np.ndarray, route: np.ndarray) -> np.ndarray:
+    red_rows = route[route[:, :, 10] > 0.5].astype(np.float64)
+    if red_rows.size == 0:
+        return np.zeros(8, dtype=np.float64)
+    valid = np.linalg.norm(red_rows[:, :2], axis=1) > 0.1
+    red_rows = red_rows[valid]
+    if red_rows.size == 0:
+        return np.zeros(8, dtype=np.float64)
+    red_xy = red_rows[:, :2]
+    red_dir = red_rows[:, 2:4]
+    red_dir /= np.maximum(np.linalg.norm(red_dir, axis=1, keepdims=True), 1e-6)
+    xy = candidates[:, :, :2].astype(np.float64)
+    heading = candidates[:, :, 2:4].astype(np.float64)
+    dist = np.linalg.norm(xy[:, :, None, :] - red_xy[None, None, :, :], axis=3)
+    aligned = np.einsum("ntd,rd->ntr", heading, red_dir) > 0.5
+    speed = np.linalg.norm(np.diff(xy, axis=1), axis=2) / 0.1
+    speed = np.concatenate((speed, speed[:, -1:]), axis=1)
+    count = ((dist < 3.0) & aligned).any(axis=2) & (speed > 0.5)
+    violations = count.sum(axis=1).astype(np.float64)
+    return np.where(violations > 0.0, 10.0 + 0.5 * violations, 0.0)
+
+
+def _independent_raw_context(
+    *, evidence: Mapping[str, np.ndarray], candidates: np.ndarray, source_valid: list[bool]
+) -> tuple[dict[str, float], dict[str, bool]]:
+    ego = evidence["ego_current_state"].astype(np.float64)
+    speed = max(float(ego[4]), 0.0); accel = float(ego[6]); yaw = float(ego[9])
+    route = evidence["route_lanes"].astype(np.float64)
+    rows = []
+    for slot in route:
+        valid = np.any(np.abs(slot[:, :8]) > 1e-8, axis=1)
+        rows.extend(slot[valid])
+    route_rows = np.asarray(rows, dtype=np.float64)
+    keep = np.r_[True, np.linalg.norm(np.diff(route_rows[:, :2], axis=0), axis=1) > 1e-8]
+    route_rows = route_rows[keep]
+    delta = np.diff(route_rows[:, :2], axis=0); lengths = np.linalg.norm(delta, axis=1)
+    headings = np.unwrap(np.arctan2(delta[:, 1], delta[:, 0])); curvature = np.zeros(len(route_rows))
+    if len(headings) > 1:
+        interior = np.abs(np.diff(headings)) / np.maximum(0.5 * (lengths[:-1] + lengths[1:]), 1e-8)
+        curvature[1:-1] = interior; curvature[0] = interior[0]; curvature[-1] = interior[-1]
+    widths = np.linalg.norm(route_rows[:, 4:6], axis=1) + np.linalg.norm(route_rows[:, 6:8], axis=1)
+    limits = evidence["route_lanes_speed_limit"].reshape(25).astype(np.float64)
+    has = evidence["route_lanes_has_speed_limit"].reshape(25)
+    available = limits[has]
+    arc = np.r_[0.0, np.cumsum(lengths)]
+    states = route_rows[:, 8:13]; known = np.flatnonzero(states[:, :4].sum(axis=1) > 0.5)
+    if known.size:
+        phase_index = int(np.argmax(states[int(known[0]), :4])); phase = ("green", "yellow", "red", "unknown")[phase_index]
+        signal_distance = float(arc[int(known[0])]); phase_known = True
+    else:
+        phase = "unknown"; signal_distance = float(arc[-1]); phase_known = False
+    current = evidence["neighbor_agents_past"].astype(np.float64)[:, -1]
+    active = (current[:, 6] > 0.0) & (current[:, 7] > 0.0)
+    if active.any():
+        neighbors = current[active]; positions = neighbors[:, :2]; distances = np.linalg.norm(positions, axis=1)
+        rel_v = neighbors[:, 4:6] - np.asarray([speed, 0.0])
+        closing = -np.einsum("ij,ij->i", positions, rel_v) / np.maximum(distances, 1e-6)
+        ttc = np.where(closing > 1e-6, distances / closing, 30.0); closest = int(np.argmin(distances))
+        neighbor_values = (float(len(neighbors)), float(distances.min()), float(min(ttc.min(), 30.0)), float(closing[closest]), float(np.abs(positions[:, 1]).min()))
+    else:
+        neighbor_values = (0.0, 100.0, 30.0, 0.0, 100.0)
+    xy = candidates[:, :, :2].astype(np.float64); center = np.median(xy, axis=0)
+    rms = np.sqrt(np.mean(np.sum((xy - center[None]) ** 2, axis=2), axis=1))
+    endpoints = xy[:, -1]; endpoint_std = float(np.sqrt(np.var(endpoints[:, 0]) + np.var(endpoints[:, 1])))
+    starts = route_rows[:-1, :2]; route_delta = np.diff(route_rows[:, :2], axis=0); route_lengths = np.linalg.norm(route_delta, axis=1)
+    valid_seg = route_lengths > 1e-8; starts = starts[valid_seg]; directions = route_delta[valid_seg] / route_lengths[valid_seg, None]
+    seg_lengths = route_lengths[valid_seg]; arc_starts = np.r_[0.0, np.cumsum(route_lengths)[:-1]][valid_seg]
+    progress = []
+    for candidate_xy in xy:
+        relative = candidate_xy[:, None] - starts[None]
+        along = np.clip(np.einsum("tsd,sd->ts", relative, directions), 0.0, seg_lengths[None])
+        projected = starts[None] + directions[None] * along[:, :, None]
+        nearest = np.argmin(np.linalg.norm(candidate_xy[:, None] - projected, axis=2), axis=1)
+        progress.append(float(np.max(arc_starts[nearest] + along[np.arange(80), nearest])))
+    phase_values = {"red": (1.,0.,0.,0.), "yellow": (0.,1.,0.,0.), "green": (0.,0.,1.,0.), "unknown": (0.,0.,0.,1.)}[phase]
+    values = (
+        speed, accel, speed*yaw, yaw, float(curvature.mean()), float(curvature.max()),
+        float(widths.min()), float(np.median(widths)), float(available.min()), float(available[0]),
+        *phase_values, signal_distance, 0.0, *neighbor_values, float(np.median(rms)),
+        float(np.median(np.abs(rms - np.median(rms)))), endpoint_std,
+        float(np.std(progress)), float(np.mean(source_valid)),
+    )
+    raw = {name: float(value) for name, value in zip(RAW_CONTEXT_NAMES, values)}
+    complete_values = (*([True]*10), *([phase_known]*5), False, *([True]*5), *([True]*5))
+    return raw, {name: bool(value) for name, value in zip(RAW_CONTEXT_NAMES, complete_values)}
+
+
+def _validate_independent_context(
+    *,
+    feature: Mapping[str, Any],
+    evidence: Mapping[str, np.ndarray],
+    candidates: np.ndarray,
+    source_valid: list[bool],
+) -> None:
+    expected_raw, expected_complete = _independent_raw_context(
+        evidence=evidence, candidates=candidates, source_valid=source_valid
+    )
+    if (
+        not _strict_equal(feature.get("raw_context"), expected_raw)
+        or not _strict_equal(feature.get("context_source_complete"), expected_complete)
+    ):
+        raise ValueError("bounded 26D context differs from independent causal oracle")
 
 
 def _is_sha256(value: Any) -> bool:
@@ -1320,7 +1691,11 @@ def _reject_unknown_failure_fields(value: Any, *, path: str = "native") -> None:
             if type(key) is not str:
                 raise ValueError("bounded native evidence has a non-string key")
             normalized = re.sub(r"[^a-z0-9]", "", key.lower())
-            if any(token in normalized for token in ("error", "exception", "failure")):
+            if (
+                any(token in normalized for token in ("error", "exception", "failure"))
+                or normalized
+                in {"fault", "success", "aborted", "crash", "exitcode", "statuscode"}
+            ):
                 raise ValueError(f"bounded native evidence has an unknown failure field: {path}.{key}")
             if "outcome" in normalized and key != "outcome_fields_consumed":
                 raise ValueError(f"bounded native evidence has an unknown outcome field: {path}.{key}")
@@ -1334,6 +1709,67 @@ def _reject_unknown_failure_fields(value: Any, *, path: str = "native") -> None:
     elif type(value) is list:
         for index, item in enumerate(value):
             _reject_unknown_failure_fields(item, path=f"{path}[{index}]")
+
+
+def _validate_public_success_tick(tick: Any, *, tick_index: int) -> None:
+    if type(tick) is not dict or set(tick) != PUBLIC_TICK_FIELDS:
+        raise ValueError("bounded native public tick exact field set drifted")
+    if type(tick.get("tick_index")) is not int or tick["tick_index"] != tick_index or tick.get("status") != "ok":
+        raise ValueError("bounded native public tick index/status drifted")
+    padding, tracker, safety, latency = (
+        tick.get("padding"), tick.get("tracker"), tick.get("safety"), tick.get("latency_ms")
+    )
+    if (
+        type(padding) is not dict
+        or set(padding) != {"observed_frames", "padded_frames", "padding_policy"}
+        or type(padding.get("observed_frames")) is not int
+        or type(padding.get("padded_frames")) is not int
+        or padding["observed_frames"] < 1
+        or padding["observed_frames"] > 31
+        or padding["padded_frames"] != 31 - padding["observed_frames"]
+        or padding.get("padding_policy") != "native_zero_left_pad_to_31_v1"
+        or tracker != {"status": "ok"}
+        or type(safety) is not dict
+        or set(safety) != SAFETY_FIELDS
+        or type(latency) is not dict
+        or set(latency) != LATENCY_FIELDS
+    ):
+        raise ValueError("bounded native padding/tracker/safety/latency schema drifted")
+    if type(safety.get("tick_index")) is not int or safety["tick_index"] != tick_index:
+        raise ValueError("bounded native safety tick index drifted")
+    for name in ("position_xy", "front_center_prev_xy", "front_center_xy"):
+        value = safety.get(name)
+        if type(value) is not list or len(value) != 2:
+            raise ValueError(f"bounded safety {name} shape drifted")
+        for item in value:
+            _native_number(item, label=f"safety.{name}")
+    for name in ("speed_mps", "ego_heading_rad", "route_heading_rad", "route_progress_m", "min_obb_clearance_m", "speed_limit_mps"):
+        _native_number(safety.get(name), label=f"safety.{name}")
+    if safety.get("constant_velocity_circle_ttc_diagnostic_s") is not None:
+        _native_number(safety["constant_velocity_circle_ttc_diagnostic_s"], label="safety.ttc")
+    if (
+        type(safety.get("five_point_drivable_coverage")) is not bool
+        or type(safety.get("red_light_at_interval_start")) is not bool
+        or safety.get("source_complete") is not True
+        or type(safety.get("red_stop_lines")) is not list
+    ):
+        raise ValueError("bounded native safety exact type/value contract drifted")
+    for name, value in latency.items():
+        if _native_number(value, label=f"latency_ms.{name}") < 0.0:
+            raise ValueError("bounded native latency is negative")
+    if _native_number(
+        tick.get("pre_decision_speed_mps"), label="pre-decision speed"
+    ) < 0.0:
+        raise ValueError("bounded native pre-decision speed is negative")
+    for name in ("physical_feasible_mask", "source_valid_mask", "source_complete_mask"):
+        _strict_bool_mask(tick.get(name), label=f"native {name}")
+    reasons = tick.get("candidate_reasons")
+    if (
+        type(reasons) is not list
+        or len(reasons) != 8
+        or any(type(row) is not list or any(type(item) is not str for item in row) for row in reasons)
+    ):
+        raise ValueError("bounded native candidate reasons schema drifted")
 
 
 def _derive_native_failure_class(receipt: Any) -> str:
@@ -1352,6 +1788,26 @@ def _derive_native_failure_class(receipt: Any) -> str:
         return "native_tick_denominator_invalid"
     if any(type(tick) is not dict or tick.get("status") != "ok" for tick in ticks):
         return "native_tick_failed"
+    if set(receipt) != NATIVE_RECEIPT_FIELDS:
+        return "native_receipt_failed"
+    try:
+        for index, tick in enumerate(ticks):
+            _validate_public_success_tick(tick, tick_index=index)
+    except ValueError:
+        return "native_evidence_schema_invalid"
+    native_result = receipt.get("native_result")
+    if (
+        type(native_result) is not dict
+        or set(native_result)
+        != {"final_step", "goal_reached", "reason", "n_npc_spawned", "trajectory_log_path", "clearance_log_path"}
+        or type(native_result.get("final_step")) is not int
+        or type(native_result.get("goal_reached")) is not bool
+        or type(native_result.get("reason")) is not str
+        or type(native_result.get("n_npc_spawned")) is not int
+        or type(native_result.get("trajectory_log_path")) is not str
+        or type(native_result.get("clearance_log_path")) is not str
+    ):
+        return "native_evidence_schema_invalid"
     return "none"
 
 
@@ -1380,7 +1836,10 @@ def _validate_native_cross_binding(
         or _strict_bool_mask(native_physical, label="native physical-feasible")
         != feature["physical_feasible_mask"]
         or _strict_bool_mask(native_complete, label="native route-speed source-complete")
-        != feature["source_valid_mask"]
+        != [all(row[column] for column in range(4, 7)) for row in feature["atom_source_valid_mask"]]
+        or not _strict_equal(
+            native_tick.get("candidate_reasons"), sidecar.get("candidate_reasons")
+        )
         or native_tick.get("candidate_tensor_sha256_before") != tensor_sha
         or native_tick.get("candidate_tensor_sha256_after") != tensor_sha
         or native_tick.get("candidate_row_sha256") != row_shas
@@ -1545,10 +2004,6 @@ def _review_tick(
     applicable = feature.get("atom_applicable_mask")
     source_valid = feature.get("source_valid_mask")
     physical = feature.get("physical_feasible_mask")
-    native_speed_source = _strict_bool_mask(
-        native_tick.get("source_complete_mask"),
-        label="native route-speed source-complete",
-    )
     if (
         type(atom_source) is not list
         or len(atom_source) != 8
@@ -1574,15 +2029,37 @@ def _review_tick(
     )
     _validate_context(feature=feature, sidecar=sidecar, receipt=receipt)
     _validate_cache(sidecar=sidecar, source_row=source_row, tick_index=tick_index)
+    evidence = _validate_causal_evidence(
+        feature=feature, sidecar=sidecar, native_tick=native_tick
+    )
+    projection = _independent_route_projection(
+        candidate,
+        evidence["route_lanes"],
+        evidence["route_lanes_speed_limit"],
+        evidence["route_lanes_has_speed_limit"],
+    )
+    independent_speed_source = projection["source"].tolist()
+    if _strict_bool_mask(
+        native_tick.get("source_complete_mask"),
+        label="native route-speed source-complete",
+    ) != independent_speed_source:
+        raise ValueError("bounded native speed-source mask differs from route oracle")
     signal_applicable = receipt["current_phase"] == "red"
     expected_atom_source = [[True] * 14 for _ in range(8)]
     expected_applicable = [[True] * 14 for _ in range(8)]
     for row_index in range(8):
         for column in range(4, 7):
-            expected_atom_source[row_index][column] = native_speed_source[row_index]
+            expected_atom_source[row_index][column] = independent_speed_source[row_index]
         expected_applicable[row_index][10] = signal_applicable
         expected_applicable[row_index][12] = signal_applicable
     expected_source_valid = [all(row) for row in expected_atom_source]
+    expected_physical, expected_reasons = _independent_physical_mask(
+        candidate.astype(np.float64), projection, evidence
+    )
+    expected_physical = [
+        feasible and valid
+        for feasible, valid in zip(expected_physical, expected_source_valid)
+    ]
     if (
         atom_source != expected_atom_source
         or applicable != expected_applicable
@@ -1590,6 +2067,9 @@ def _review_tick(
         or not any(source_valid)
         or sidecar.get("source_valid_mask") != source_valid
         or sidecar.get("physical_feasible_mask") != physical
+        or physical != expected_physical
+        or sidecar.get("candidate_reasons") != expected_reasons
+        or native_tick.get("candidate_reasons") != expected_reasons
         or any(feasible and not valid for feasible, valid in zip(physical, source_valid))
         or sidecar.get("all_k_high_risk")
         is not (all(source_valid) and not any(physical))
@@ -1610,6 +2090,25 @@ def _review_tick(
     expected_red_stopping = _independent_red_stopping_oracle(candidate, causal, 0.1)
     if not np.allclose(atoms[:, 12], expected_red_stopping, rtol=0.0, atol=1e-12):
         raise ValueError("bounded red-stopping atom differs from independent oracle")
+    expected_planned_red = _independent_planned_red_cost(
+        candidate, evidence["route_lanes"]
+    )
+    if (
+        not np.allclose(
+            evidence["fixed_dp_planned_red_light_cost"],
+            expected_planned_red,
+            rtol=0.0,
+            atol=1e-12,
+        )
+        or not np.allclose(atoms[:, 10], expected_planned_red, rtol=0.0, atol=1e-12)
+    ):
+        raise ValueError("bounded planned-red atom differs from independent NumPy oracle")
+    _validate_independent_context(
+        feature=feature,
+        evidence=evidence,
+        candidates=candidate,
+        source_valid=source_valid,
+    )
     scores = _native_numeric_array(sidecar.get("scores"), (8,), label="scores")
     normalized = np.clip(atoms / scales.reshape(1, 14), 0.0, 10.0)
     expected_scores = normalized @ weights
@@ -1758,6 +2257,33 @@ def _review_run(
     }
 
 
+def _validate_execution_source_authority(
+    *, source_receipt: Any, report: Any, authority: Mapping[str, Any]
+) -> None:
+    decision = authority["decision"]
+    if (
+        type(report) is not dict
+        or set(report) != EXECUTION_REPORT_FIELDS
+        or type(source_receipt) is not dict
+        or set(source_receipt) != SOURCE_RECEIPT_FIELDS
+        or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
+        or report.get("status") != "passed_exact_bounded_execution"
+        or report.get("device") != EXPECTED_DEVICE
+        or source_receipt.get("device") != EXPECTED_DEVICE
+        or decision.get("device") != EXPECTED_DEVICE
+        or source_receipt.get("release_root_sha256") != authority["release_root_sha256"]
+        or source_receipt.get("release_artifact") != authority["release_artifact"]
+        or source_receipt.get("release_run_nonce") != decision["run_nonce"]
+        or source_receipt.get("formal_root_sha256") != EXPECTED_FORMAL_ROOT_SHA256
+        or not _strict_equal(
+            source_receipt.get("critical_implementation_manifest"),
+            decision["critical_implementation_manifest"],
+        )
+        or not _strict_equal(source_receipt.get("root_artifacts"), decision["root_artifacts"])
+    ):
+        raise ValueError("bounded execution report/source authority drifted")
+
+
 def review(args: argparse.Namespace) -> dict[str, Any]:
     head = _git(ROOT, "rev-parse", "HEAD")
     if _git(ROOT, "status", "--porcelain", "--untracked-files=no"):
@@ -1770,7 +2296,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     seal = verify_complete_seal(
         args.execution_artifact,
         args.execution_root_sha256,
-        label="V25 A1.6.5 bounded execution",
+        label="V25 A1.6.6 bounded execution",
     )
     if (args.execution_artifact / "run.exit").read_bytes() != b"0\n":
         raise ValueError("bounded execution run.exit is not zero")
@@ -1786,7 +2312,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         repo=ROOT,
         release_artifact=args.release_artifact,
         release_root_sha256=args.release_root_sha256,
-        requested_output_dir=args.execution_artifact,
+        requested_output_dir=str(args.execution_artifact),
         current_pointer_head=head,
         dp_repo=args.dp_repo,
         probe_template=args.probe_template,
@@ -1819,17 +2345,11 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         != hashlib.sha256(marker.read_bytes()).hexdigest()
     ):
         raise ValueError("bounded nonce consumption marker drifted")
+    _validate_execution_source_authority(
+        source_receipt=source_receipt, report=report, authority=authority
+    )
     if (
-        type(report) is not dict
-        or set(report) != EXECUTION_REPORT_FIELDS
-        or type(source_receipt) is not dict
-        or set(source_receipt) != SOURCE_RECEIPT_FIELDS
-        or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
-        or report.get("status") != "passed_exact_bounded_execution"
-        or report.get("device") != EXPECTED_DEVICE
-        or source_receipt.get("device") != EXPECTED_DEVICE
-        or decision.get("device") != EXPECTED_DEVICE
-        or type(report.get("unique_identity_count")) is not int
+        type(report.get("unique_identity_count")) is not int
         or report["unique_identity_count"] != EXPECTED_UNIQUE_IDENTITIES
         or type(report.get("run_count")) is not int
         or report["run_count"] != EXPECTED_RUNS
@@ -1842,8 +2362,6 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or report.get("full_r_execute_authorized") is not False
         or report.get("fresh_b2_opened") is not False
         or report.get("outcome_fields_consumed") != []
-        or source_receipt.get("release_root_sha256") != authority["release_root_sha256"]
-        or source_receipt.get("root_artifacts") != decision["root_artifacts"]
     ):
         raise ValueError("bounded execution report/authority drifted")
 
@@ -1917,6 +2435,7 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "status": "passed_independent_bounded_execution_review",
         "review_head": head,
         "fixed_dp_head": FIXED_DP_HEAD,
+        "device": EXPECTED_DEVICE,
         "reviewed_artifact": str(args.execution_artifact.resolve()),
         "reviewed_root_sha256": seal["root_sha256"],
         "release_root_sha256": authority["release_root_sha256"],
@@ -1961,7 +2480,7 @@ def main(argv: list[str] | None = None) -> None:
             " ".join(sys.argv) + "\n", encoding="utf-8"
         )
         (args.output_dir / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(args.output_dir, label="V25 A1.6.4 bounded review")
+        root = seal_artifact(args.output_dir, label="V25 A1.6.6 bounded review")
         print(json.dumps({**report, "artifact_root_sha256": root}, sort_keys=True))
     except Exception as exc:
         _write(
@@ -1977,7 +2496,7 @@ def main(argv: list[str] | None = None) -> None:
             },
         )
         (args.output_dir / "run.exit").write_bytes(b"1\n")
-        seal_artifact(args.output_dir, label="failed V25 A1.6.4 bounded review")
+        seal_artifact(args.output_dir, label="failed V25 A1.6.6 bounded review")
         raise
 
 

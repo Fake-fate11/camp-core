@@ -90,7 +90,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 
 
 SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v7"
-SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v7"
+SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v8"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
     "camp_dp_v25_full_r_semantic_authority_chains_v3"
 )
@@ -2136,6 +2136,7 @@ def combine_snapshot_context(
     raw = context.get("raw_context")
     source_complete = context.get("source_complete")
     source_receipt = context.get("source_receipt")
+    causal_evidence = features.get("causal_evidence") if isinstance(features, Mapping) else None
     if (
         context.get("schema_version") != CONTEXT_SCHEMA_VERSION
         or not all(
@@ -2161,6 +2162,90 @@ def combine_snapshot_context(
         label="default_output",
         dtype=np.dtype(np.float32),
     )
+    expected_causal_fields = {
+        "schema_version",
+        "ego_current_state",
+        "ego_shape",
+        "neighbor_agents_past",
+        "neighbor_valid_mask",
+        "candidate_neighbor_predictions",
+        "static_objects",
+        "route_lanes",
+        "route_lanes_speed_limit",
+        "route_lanes_has_speed_limit",
+        "signal_mask",
+        "fixed_dp_planned_red_light_cost",
+    }
+    if (
+        not isinstance(causal_evidence, Mapping)
+        or set(causal_evidence) != expected_causal_fields
+        or causal_evidence.get("schema_version")
+        != "camp_dp_v25_bounded_causal_evidence_v1"
+    ):
+        raise ValueError("controlled snapshot causal-evidence schema drifted")
+    causal_arrays = {
+        "ego_current_state": _strict_json_numeric_array(
+            causal_evidence.get("ego_current_state"), (10,), label="ego current state",
+            dtype=np.dtype(np.float32),
+        ),
+        "ego_shape": _strict_json_numeric_array(
+            causal_evidence.get("ego_shape"), (3,), label="ego shape",
+            dtype=np.dtype(np.float32),
+        ),
+        "neighbor_agents_past": _strict_json_numeric_array(
+            causal_evidence.get("neighbor_agents_past"), (32, 31, 11),
+            label="neighbor history", dtype=np.dtype(np.float32),
+        ),
+        "candidate_neighbor_predictions": _strict_json_numeric_array(
+            causal_evidence.get("candidate_neighbor_predictions"), (8, 32, 80, 4),
+            label="candidate neighbor predictions", dtype=np.dtype(np.float32),
+        ),
+        "static_objects": _strict_json_numeric_array(
+            causal_evidence.get("static_objects"), (5, 10), label="static objects",
+            dtype=np.dtype(np.float32),
+        ),
+        "route_lanes": _strict_json_numeric_array(
+            causal_evidence.get("route_lanes"), (25, 20, 33), label="route lanes",
+            dtype=np.dtype(np.float32),
+        ),
+        "route_lanes_speed_limit": _strict_json_numeric_array(
+            causal_evidence.get("route_lanes_speed_limit"), (25, 1),
+            label="route speed limits", dtype=np.dtype(np.float32),
+        ),
+        "fixed_dp_planned_red_light_cost": _strict_json_numeric_array(
+            causal_evidence.get("fixed_dp_planned_red_light_cost"), (8,),
+            label="fixed DP planned red cost",
+        ),
+    }
+    for name, shape in (
+        ("neighbor_valid_mask", (32,)),
+        ("route_lanes_has_speed_limit", (25, 1)),
+        ("signal_mask", (8,)),
+    ):
+        raw_mask = causal_evidence.get(name)
+        array = np.asarray(raw_mask)
+        if (
+            not isinstance(raw_mask, list)
+            or array.shape != shape
+            or array.dtype != np.bool_
+        ):
+            raise ValueError(f"controlled causal {name} must be strict bool{shape}")
+        causal_arrays[name] = array
+    causal_sha = _canonical_sha256(causal_evidence)
+    if (
+        sidecar.get("causal_evidence_sha256") != causal_sha
+        or sidecar.get("route_lanes_sha256")
+        != hashlib.sha256(np.ascontiguousarray(causal_arrays["route_lanes"]).tobytes()).hexdigest()
+        or sidecar.get("route_lanes_speed_limit_sha256")
+        != hashlib.sha256(
+            np.ascontiguousarray(causal_arrays["route_lanes_speed_limit"]).tobytes()
+        ).hexdigest()
+        or sidecar.get("route_lanes_has_speed_limit_sha256")
+        != hashlib.sha256(
+            np.ascontiguousarray(causal_arrays["route_lanes_has_speed_limit"]).tobytes()
+        ).hexdigest()
+    ):
+        raise ValueError("controlled causal route evidence SHA binding drifted")
     valid = features.get("source_valid_mask")
     atom_source_valid = np.asarray(features.get("atom_source_valid_mask"))
     atom_applicable = np.asarray(features.get("atom_applicable_mask"))
@@ -2227,6 +2312,7 @@ def combine_snapshot_context(
     ):
         raise ValueError("controlled no-V2I context exposed future signal timing")
     physical = sidecar.get("physical_feasible_mask")
+    candidate_reasons = sidecar.get("candidate_reasons")
     sidecar_source_valid = sidecar.get("source_valid_mask")
     all_k_high_risk = sidecar.get("all_k_high_risk")
     default_output_sha256 = sidecar.get("default_output_sha256")
@@ -2240,6 +2326,13 @@ def combine_snapshot_context(
         not isinstance(physical, list)
         or len(physical) != 8
         or any(not isinstance(value, bool) for value in physical)
+        or not isinstance(candidate_reasons, list)
+        or len(candidate_reasons) != 8
+        or any(
+            not isinstance(row, list)
+            or any(not isinstance(reason, str) for reason in row)
+            for row in candidate_reasons
+        )
         or not isinstance(sidecar_source_valid, list)
         or len(sidecar_source_valid) != 8
         or any(not isinstance(value, bool) for value in sidecar_source_valid)
@@ -2463,6 +2556,7 @@ def combine_snapshot_context(
             "candidate_row_sha256": list(rows),
             "candidate_tensor": candidate_tensor.tolist(),
             "default_output": default_output.tolist(),
+            "causal_evidence": json.loads(json.dumps(causal_evidence, allow_nan=False)),
             "raw_context": {name: float(raw[name]) for name in RAW_FEATURE_NAMES},
             "context_source_complete": {
                 name: bool(source_complete[name]) for name in RAW_FEATURE_NAMES
@@ -2494,6 +2588,14 @@ def combine_snapshot_context(
             ),
             "candidate0_independent_second_forward": False,
             "causal_input_sha256": str(sidecar["causal_input_sha256"]),
+            "causal_evidence_sha256": causal_sha,
+            "route_lanes_sha256": str(sidecar["route_lanes_sha256"]),
+            "route_lanes_speed_limit_sha256": str(
+                sidecar["route_lanes_speed_limit_sha256"]
+            ),
+            "route_lanes_has_speed_limit_sha256": str(
+                sidecar["route_lanes_has_speed_limit_sha256"]
+            ),
             "physical_feasible_mask": list(physical),
             "source_valid_mask": list(sidecar_source_valid),
             "all_k_high_risk": all_k_high_risk,

@@ -56,7 +56,7 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v4"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v5"
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -73,6 +73,7 @@ FEATURE_PAYLOAD_FIELDS = frozenset(
         "default_output",
         "raw_context",
         "context_source_complete",
+        "causal_evidence",
     }
 )
 SIDECAR_FIELDS = frozenset(
@@ -95,7 +96,12 @@ SIDECAR_FIELDS = frozenset(
         "candidate0_semantics",
         "candidate0_independent_second_forward",
         "causal_input_sha256",
+        "causal_evidence_sha256",
+        "route_lanes_sha256",
+        "route_lanes_speed_limit_sha256",
+        "route_lanes_has_speed_limit_sha256",
         "physical_feasible_mask",
+        "candidate_reasons",
         "source_valid_mask",
         "all_k_high_risk",
         "selected_index",
@@ -338,6 +344,20 @@ def _native_numeric_array(value: Any, shape: tuple[int, ...], label: str) -> np.
         return values
 
     return np.asarray(flatten(value, 0), dtype=np.float64).reshape(shape)
+
+
+def _canonical_sha256(value: Any) -> str:
+    payload = (
+        json.dumps(
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _native_int(value: Any, label: str) -> int:
@@ -947,6 +967,39 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
         raise ValueError(
             "context_source_complete must exactly match boolean RAW_FEATURE_NAMES"
         )
+    causal = features.get("causal_evidence")
+    causal_fields = {
+        "schema_version", "ego_current_state", "ego_shape", "neighbor_agents_past",
+        "neighbor_valid_mask", "candidate_neighbor_predictions", "static_objects",
+        "route_lanes", "route_lanes_speed_limit", "route_lanes_has_speed_limit",
+        "signal_mask", "fixed_dp_planned_red_light_cost",
+    }
+    if (
+        type(causal) is not dict
+        or set(causal) != causal_fields
+        or causal.get("schema_version") != "camp_dp_v25_bounded_causal_evidence_v1"
+    ):
+        raise ValueError("causal_evidence exact field/schema contract drifted")
+    causal_arrays = {
+        "ego_current_state": _native_numeric_array(causal.get("ego_current_state"), (10,), "ego_current_state").astype(np.float32),
+        "ego_shape": _native_numeric_array(causal.get("ego_shape"), (3,), "ego_shape").astype(np.float32),
+        "neighbor_agents_past": _native_numeric_array(causal.get("neighbor_agents_past"), (32, 31, 11), "neighbor_agents_past").astype(np.float32),
+        "candidate_neighbor_predictions": _native_numeric_array(causal.get("candidate_neighbor_predictions"), (8, 32, 80, 4), "candidate_neighbor_predictions").astype(np.float32),
+        "static_objects": _native_numeric_array(causal.get("static_objects"), (5, 10), "static_objects").astype(np.float32),
+        "route_lanes": _native_numeric_array(causal.get("route_lanes"), (25, 20, 33), "route_lanes").astype(np.float32),
+        "route_lanes_speed_limit": _native_numeric_array(causal.get("route_lanes_speed_limit"), (25, 1), "route_lanes_speed_limit").astype(np.float32),
+        "fixed_dp_planned_red_light_cost": _native_numeric_array(causal.get("fixed_dp_planned_red_light_cost"), (8,), "fixed_dp_planned_red_light_cost"),
+    }
+    for field, shape in (
+        ("neighbor_valid_mask", (32,)),
+        ("route_lanes_has_speed_limit", (25, 1)),
+        ("signal_mask", (8,)),
+    ):
+        raw_mask = causal.get(field)
+        mask = np.asarray(raw_mask)
+        if type(raw_mask) is not list or mask.shape != shape or mask.dtype != np.bool_:
+            raise ValueError(f"causal {field} must be native bool{shape}")
+        causal_arrays[field] = mask
 
     if type(sidecar.get("tick_index")) is not int:
         raise ValueError("sidecar tick_index must be a native integer")
@@ -977,6 +1030,10 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
         "default_output_sha256",
         "candidate0_sha256",
         "causal_input_sha256",
+        "causal_evidence_sha256",
+        "route_lanes_sha256",
+        "route_lanes_speed_limit_sha256",
+        "route_lanes_has_speed_limit_sha256",
         "selected_trajectory_sha256",
         "normalized_atom_matrix_sha256",
         "generation_behavior_scale_sha256",
@@ -986,6 +1043,16 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
     ):
         if not _is_sha256(sidecar.get(field)):
             raise ValueError(f"sidecar {field} must be a SHA256 string")
+    if (
+        sidecar["causal_evidence_sha256"] != _canonical_sha256(causal)
+        or sidecar["route_lanes_sha256"]
+        != hashlib.sha256(np.ascontiguousarray(causal_arrays["route_lanes"]).tobytes()).hexdigest()
+        or sidecar["route_lanes_speed_limit_sha256"]
+        != hashlib.sha256(np.ascontiguousarray(causal_arrays["route_lanes_speed_limit"]).tobytes()).hexdigest()
+        or sidecar["route_lanes_has_speed_limit_sha256"]
+        != hashlib.sha256(np.ascontiguousarray(causal_arrays["route_lanes_has_speed_limit"]).tobytes()).hexdigest()
+    ):
+        raise ValueError("causal evidence SHA binding drifted")
     semantic = sidecar.get("canonical_semantic_clone_sha256")
     if semantic is not None and not _is_sha256(semantic):
         raise ValueError("canonical semantic clone must be null or SHA256")
@@ -1015,6 +1082,13 @@ def _validate_snapshot_field_schema(snapshot: Any) -> None:
     _native_bool_list(
         sidecar.get("source_valid_mask"), 8, "sidecar source_valid_mask"
     )
+    reasons = sidecar.get("candidate_reasons")
+    if (
+        type(reasons) is not list
+        or len(reasons) != 8
+        or any(type(row) is not list or any(type(item) is not str for item in row) for row in reasons)
+    ):
+        raise ValueError("candidate_reasons exact schema drifted")
     identity = sidecar.get("default_candidate0_identity")
     if type(identity) is not dict or set(identity) != DEFAULT_CANDIDATE0_IDENTITY_FIELDS:
         raise ValueError("default_candidate0_identity exact field set drifted")
