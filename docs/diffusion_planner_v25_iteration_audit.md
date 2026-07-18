@@ -2908,3 +2908,104 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=46918983680
 current_v25_phase=A1_6_4_bounded_authority_and_independent_reviewer_corrected_static_four_root_review_required_k8_closed
 next_work_target=ultra_read_only_A1_6_4_review_before_any_bounded_execute_release
+
+## A1.6.5 bounded evidence-authority correction and static four-root package (2026-07-18 CST)
+
+Ultra kept bounded K8 closed after reproducing five A1.6.4 authority gaps. The
+reviewer did not independently bind controlled ticks to the frozen expected
+phase; native controlled-scene/context/failure evidence could contradict the
+snapshot; atom source/applicability masks were not independently reconstructed;
+the release did not freeze CUDA; and textually aliased output paths could reach
+nonce consumption. The A1.6.4 four roots remain sealed diagnostic evidence and
+are explicitly machine-authority-ineligible.
+
+Implementation source HEAD
+`82dffe39869bc0af7d0535d6fcf0ee2ae9f0d04f` implements only the authorized
+A1.6.5 correction. Controlled mode now requires a frozen green/yellow/red phase,
+matching formal phase, required authority, and exact per-tick phase. Observe
+mode requires absent expected phase, formal `none`, and no override. Native
+controlled-scene source/tensor/cache evidence and native 26D context evidence
+must exactly match the snapshot; forbidden future/outcome fields and unknown
+failure schemas fail closed, and failure class is evidence-derived. The
+independent reviewer reconstructs the speed-source and red-applicability masks,
+source-valid/physical/all-K relations, and native-to-snapshot bindings. Release
+schema `camp_dp_v25_ultra_a165_bounded_execute_release_v3` freezes native string
+`device=cuda`; noncanonical, relative, `..`, symlink, alternate, or type-smuggled
+output paths fail before nonce creation.
+
+Focused verification passed locally with 159 tests and two Windows platform
+skips. AutoDL passed the same integration scope with 161 tests, including Linux
+flock/symlink behavior. A broader legacy v21 runner fixture still has four
+pre-existing failures because it does not supply the already-required
+`normalized_atom_matrix_sha256`; the new real public-tick regression passes and
+that unrelated legacy fixture was not weakened.
+
+Under the same implementation HEAD, the full source-only universe and bounded
+design were rebuilt from identity0 without loading a model or simulator and
+without candidate/K8/outcome access:
+
+- source: `/root/autodl-tmp/camp_dp_v25_a165_route_signal_source_census_82dffe39_20260718T161700CST`, root `d9e1a391cab32ddefdc9e418b8347642929354ad6b1318e3031001416639c933`;
+- source review: `/root/autodl-tmp/camp_dp_v25_a165_route_signal_source_review_82dffe39_20260718T161700CST`, root `f5ebf66697797555ed1ba3f1e9ab2ce73393c04a63fb0d25827be0f58e57b028`;
+- bounded plan: `/root/autodl-tmp/camp_dp_v25_a165_bounded_execution_plan_82dffe39_20260718T161700CST`, root `4b1d3869d8d7f4792e7cf4533cdc31f3ccd6c059af01050125c05943b4179adc`;
+- bounded plan review: `/root/autodl-tmp/camp_dp_v25_a165_bounded_execution_plan_review_82dffe39_20260718T161700CST`, root `b0f76d563b86bc1e6d21fbfb563dc518fcdb71872a48552c8cbef0088b047d10`.
+
+The implementation's strict verifier reopened the exact inventories, exit
+codes, HEADS, source rows, reports, plan, and cross-links. The four-root binding
+SHA is `484c819072810345097dab16321ff0d37a6c2f87692441efe37c5944e16104cd`.
+Counts remain 1,653 formal, 1,500 executable, 153 retained, 146 mapped, 1,354
+no-signal, 21 controlled, 125 observe, zero source failures, 243 unique bounded
+identities, 244 ordered runs, and 15,616 prospective ticks. identity0 remains at
+positions 0 and 243.
+
+Final control-plane recheck before the documentation pointer commit found CAMP
+and fixed DP tracked clean at the stated source HEADs, worker/GPU counts zero,
+the corpus lock free, 46,910,328,832 free bytes, no A1.6.5 nonce ledger, no
+release or bounded K8 output, and no Fresh B2 outcome artifact. This package
+does not authorize release, nonce, K8, full-config/full-R, monitor, training,
+calibration, Scene/V2I, Fresh, or outcome access. The only next action is Ultra
+read-only review.
+
+current_v25_status=v25_a165_static_source_plan_package_passed_ultra_bounded_execute_release_review_required
+current_v25_source_head=82dffe39869bc0af7d0535d6fcf0ee2ae9f0d04f
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a165_bounded_execution_plan_82dffe39_20260718T161700CST
+current_v25_artifact_root_sha256=4b1d3869d8d7f4792e7cf4533cdc31f3ccd6c059af01050125c05943b4179adc
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a165_bounded_execution_plan_review_82dffe39_20260718T161700CST
+current_v25_review_artifact_root_sha256=b0f76d563b86bc1e6d21fbfb563dc518fcdb71872a48552c8cbef0088b047d10
+current_v25_r0_authority_source_artifact=/root/autodl-tmp/camp_dp_v25_a165_route_signal_source_census_82dffe39_20260718T161700CST
+current_v25_r0_authority_source_artifact_root_sha256=d9e1a391cab32ddefdc9e418b8347642929354ad6b1318e3031001416639c933
+current_v25_r0_authority_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a165_route_signal_source_review_82dffe39_20260718T161700CST
+current_v25_r0_authority_source_review_artifact_root_sha256=f5ebf66697797555ed1ba3f1e9ab2ce73393c04a63fb0d25827be0f58e57b028
+current_v25_a16_formal_train_identity_count=1653
+current_v25_a16_executable_identity_count=1500
+current_v25_a16_retained_identity_count=153
+current_v25_a16_mapped_signal_identity_count=146
+current_v25_a16_no_signal_identity_count=1354
+current_v25_a16_controlled_same_tick_override_count=21
+current_v25_a16_observe_same_tick_request_count=125
+current_v25_a16_source_failure_count=0
+current_v25_a162_unique_identity_count=243
+current_v25_a162_run_count=244
+current_v25_a162_snapshot_capacity=15616
+current_v25_a162_identity0_repeat_positions=0,243
+current_v25_a164_four_roots_machine_authority_eligible=false
+current_v25_a165_release_schema=camp_dp_v25_ultra_a165_bounded_execute_release_v3
+current_v25_a165_device=cuda
+current_v25_a165_four_root_bindings_sha256=484c819072810345097dab16321ff0d37a6c2f87692441efe37c5944e16104cd
+current_v25_a165_local_targeted_test_result=159_passed_2_skipped
+current_v25_a165_autodl_targeted_test_result=161_passed
+current_v25_a165_bounded_release_created=false
+current_v25_a165_bounded_nonce_created=false
+current_v25_a165_bounded_k8_executed=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=46910328832
+current_v25_phase=A1_6_5_phase_native_mask_device_output_authority_corrected_static_four_root_review_required_k8_closed
+next_work_target=ultra_read_only_A1_6_5_review_before_any_bounded_execute_release
