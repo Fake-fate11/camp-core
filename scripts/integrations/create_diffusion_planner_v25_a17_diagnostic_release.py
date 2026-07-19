@@ -46,6 +46,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--authorized-output-dir", required=True)
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--probe-template", type=Path, required=True)
+    parser.add_argument("--diagnostic-run-ordinal", type=int, default=0)
     for role in ROOT_ROLES:
         parser.add_argument(
             f"--{role.replace('_', '-')}-artifact", type=Path, required=True
@@ -82,6 +83,7 @@ def main(argv: list[str] | None = None) -> None:
         authorized_output_dir=args.authorized_output_dir,
         dp_repo=args.dp_repo,
         probe_template=args.probe_template,
+        diagnostic_run_ordinal=args.diagnostic_run_ordinal,
     )
     args.output_dir.mkdir(parents=True)
     _write(args.output_dir / "decision.json", decision)

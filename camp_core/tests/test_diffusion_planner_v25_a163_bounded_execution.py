@@ -397,6 +397,31 @@ def test_a17_diagnostic_release_is_exact_identity0_and_non_scientific(
     assert decision["diagnostic_execute_authorized"] is True
     assert decision["bounded_execute_authorized"] is False
     assert decision["accepted_as_scientific_evidence"] is False
+    selected = authority.build_a17_diagnostic_release_decision(
+        repo=ROOT,
+        implementation_source_head="1" * 40,
+        pointer_head_at_release="2" * 40,
+        root_artifacts=roots,
+        run_nonce="d" * 64,
+        authorized_output_dir=str((tmp_path / "a17-selected-output").resolve()),
+        dp_repo=dp_repo,
+        probe_template=template,
+        diagnostic_run_ordinal=155,
+    )
+    assert selected["diagnostic_run"] == _plan()["runs"][155]
+    for invalid in (True, -1, EXPECTED_RUNS):
+        with pytest.raises(ValueError, match="diagnostic run ordinal"):
+            authority.build_a17_diagnostic_release_decision(
+                repo=ROOT,
+                implementation_source_head="1" * 40,
+                pointer_head_at_release="2" * 40,
+                root_artifacts=roots,
+                run_nonce="e" * 64,
+                authorized_output_dir=str((tmp_path / "a17-invalid-output").resolve()),
+                dp_repo=dp_repo,
+                probe_template=template,
+                diagnostic_run_ordinal=invalid,
+            )
     release = tmp_path / "a17-release"
     root = _seal_release(release, decision)
     verified = authority.verify_a17_diagnostic_release(
@@ -412,6 +437,83 @@ def test_a17_diagnostic_release_is_exact_identity0_and_non_scientific(
     )
     assert verified["plan"] == {"runs": [_plan()["runs"][0]]}
     assert verified["nonce_marker"] is not None
+
+
+def _candidate_evidence_fixture() -> tuple[np.ndarray, dict[str, object]]:
+    candidates = np.zeros((8, 80, 4), dtype=np.float32)
+    candidates[:, :, 0] = np.arange(8, dtype=np.float32)[:, None]
+    candidates[:, :, 1] = np.arange(80, dtype=np.float32)[None, :]
+    candidates[:, :, 2] = 1.0
+    tensor_sha = native_runner.array_sha256(candidates)
+    rows = [native_runner.array_sha256(candidates[index]) for index in range(8)]
+    return candidates, {
+        "candidate_tensor_sha256": tensor_sha,
+        "candidate_row_sha256": rows,
+        "default_output_sha256": rows[0],
+        "default_candidate0_identity": {
+            "elementwise_equal": True,
+            "max_abs_difference": 0.0,
+            "default_output_sha256": rows[0],
+            "candidate0_sha256": rows[0],
+            "native_ranked_k8": False,
+        },
+    }
+
+
+def test_candidate_prematerialization_evidence_survives_heading_failure_seal(
+    tmp_path: Path,
+) -> None:
+    candidates, metadata = _candidate_evidence_fixture()
+    candidates[3, 17, 2:4] = 0.0
+    metadata["candidate_tensor_sha256"] = native_runner.array_sha256(candidates)
+    metadata["candidate_row_sha256"] = [
+        native_runner.array_sha256(candidates[index]) for index in range(8)
+    ]
+    path = runner._write_candidate_prematerialization_evidence(
+        output_dir=tmp_path,
+        run={"run_ordinal": 155, "occurrence": "unique_identity"},
+        tick_index=0,
+        candidates=candidates,
+        metadata=metadata,
+    )
+    record = runner._load_canonical_json(path)
+    assert record["run_ordinal"] == 155
+    assert record["heading_norm_min"] == 0.0
+    assert record["heading_norm_below_half_count"] == 1
+    assert record["accepted_as_scientific_evidence"] is False
+    tensor_path = tmp_path / record["candidate_tensor_relative_path"]
+    assert np.array_equal(np.load(tensor_path, allow_pickle=False), candidates)
+    root = seal_artifact(tmp_path, label="A1.7 candidate boundary failure fixture")
+    seal = verify_complete_seal(
+        tmp_path, root, label="A1.7 candidate boundary failure fixture"
+    )
+    assert path.relative_to(tmp_path).as_posix() in seal["manifest_paths"]
+    assert tensor_path.relative_to(tmp_path).as_posix() in seal["manifest_paths"]
+
+
+@pytest.mark.parametrize("mutation", ["missing", "extra", "dtype", "shape", "row_sha"])
+def test_candidate_prematerialization_evidence_contract_fail_closed(
+    tmp_path: Path, mutation: str
+) -> None:
+    candidates, metadata = _candidate_evidence_fixture()
+    if mutation == "missing":
+        metadata.pop("default_output_sha256")
+    elif mutation == "extra":
+        metadata["future_outcome"] = None
+    elif mutation == "dtype":
+        candidates = candidates.astype(np.float64)
+    elif mutation == "shape":
+        candidates = candidates[:, :-1]
+    else:
+        metadata["candidate_row_sha256"][1] = "f" * 64
+    with pytest.raises(ValueError, match="candidate evidence"):
+        runner._write_candidate_prematerialization_evidence(
+            output_dir=tmp_path,
+            run={"run_ordinal": 155, "occurrence": "unique_identity"},
+            tick_index=0,
+            candidates=candidates,
+            metadata=metadata,
+        )
 
 
 def test_preprojection_mapping_digest_preserves_native_zero_dimensional_shape() -> None:

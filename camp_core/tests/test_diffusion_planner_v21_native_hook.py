@@ -1,3 +1,4 @@
+import copy
 import hashlib
 from types import SimpleNamespace
 
@@ -181,6 +182,7 @@ def _hook(
     to_model_tensors=_to_model_tensors,
     causal_input_sink=None,
     causal_input_receipt_sink=None,
+    candidate_tensor_sink=None,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -221,6 +223,8 @@ def _hook(
         kwargs["causal_input_sink"] = causal_input_sink
     if causal_input_receipt_sink is not None:
         kwargs["causal_input_receipt_sink"] = causal_input_receipt_sink
+    if candidate_tensor_sink is not None:
+        kwargs["candidate_tensor_sink"] = candidate_tensor_sink
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
 
@@ -295,6 +299,45 @@ def test_v25_diagnostic_receipt_sink_is_same_tick_and_strictly_copied() -> None:
         "causal_input_receipt_sink"
         in module.NativeCampPredictBatch.__init__.__code__.co_varnames
     )
+
+
+def test_candidate_tensor_sink_precedes_materialization_and_is_strictly_copied() -> None:
+    module = _runner()
+    model = _FakeModel()
+    captured = []
+
+    def capture(tick_index, candidates, metadata):
+        captured.append((tick_index, candidates.copy(), copy.deepcopy(metadata)))
+        candidates.fill(0.0)
+        metadata["candidate_tensor_sha256"] = "f" * 64
+
+    def fail_after_boundary(**kwargs):
+        assert np.any(kwargs["candidates"] != 0.0)
+        raise ValueError("materialization sentinel")
+
+    hook, state = _hook(
+        module,
+        model,
+        materialize=fail_after_boundary,
+        candidate_tensor_sink=capture,
+    )
+    with pytest.raises(ValueError, match="materialization sentinel"):
+        hook(
+            model,
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            _Scene(),
+            ["ego"],
+            "cpu",
+        )
+    assert len(captured) == 1
+    tick_index, candidates, metadata = captured[0]
+    assert tick_index == 0
+    assert candidates.shape == (8, 80, 4)
+    assert candidates.dtype == np.float32
+    assert metadata["candidate_tensor_sha256"] != "f" * 64
+    assert metadata["candidate_row_sha256"][0] == metadata["default_output_sha256"]
+    assert state.receipts[0]["candidate_tensor_sha256_before"] != "f" * 64
+    assert "candidate_tensor_sink" in module.NativeCampPredictBatch.__init__.__code__.co_varnames
 
 
 def test_v25_scene_adapter_runs_before_fixed_k8_input_materialization() -> None:

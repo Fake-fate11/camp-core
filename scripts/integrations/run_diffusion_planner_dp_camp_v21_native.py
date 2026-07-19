@@ -279,6 +279,10 @@ class NativeCampPredictBatch:
             [int, Mapping[str, Any]], None
         ]
         | None = None,
+        candidate_tensor_sink: Callable[
+            [int, np.ndarray, Mapping[str, Any]], None
+        ]
+        | None = None,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -327,6 +331,7 @@ class NativeCampPredictBatch:
         self.causal_signal_atom_input_provider = causal_signal_atom_input_provider
         self.causal_input_sink = causal_input_sink
         self.causal_input_receipt_sink = causal_input_receipt_sink
+        self.candidate_tensor_sink = candidate_tensor_sink
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.weights is None
@@ -520,6 +525,35 @@ class NativeCampPredictBatch:
             receipt["candidate_tensor_sha256_before"] = before_sha
             receipt["candidate_neighbor_sha256"] = array_sha256(neighbor_tensor)
             receipt["candidate_neighbor_shape"] = list(neighbor_tensor.shape)
+            if self.candidate_tensor_sink is not None:
+                # Diagnostic-only evidence is emitted at the exact fixed-K8
+                # boundary, before atom materialization can reject a candidate.
+                # Both the tensor and metadata are strict copies so a callback
+                # cannot mutate the live candidates or native receipt.
+                self.candidate_tensor_sink(
+                    tick_index,
+                    np.array(candidate_tensor, dtype=np.float32, copy=True, order="C"),
+                    json.loads(
+                        json.dumps(
+                            {
+                                "candidate_tensor_sha256": before_sha,
+                                "candidate_row_sha256": receipt[
+                                    "candidate_row_sha256"
+                                ],
+                                "default_output_sha256": receipt[
+                                    "default_output_sha256"
+                                ],
+                                "default_candidate0_identity": receipt[
+                                    "default_candidate0_identity"
+                                ],
+                            },
+                            sort_keys=True,
+                            ensure_ascii=False,
+                            separators=(",", ":"),
+                            allow_nan=False,
+                        )
+                    ),
+                )
 
             if self.operational_mode == "dp_candidate0":
                 receipt.update(
@@ -2840,6 +2874,10 @@ def build_native_arm_runner(
             [int, Mapping[str, Any]], None
         ]
         | None = None,
+        candidate_tensor_sink: Callable[
+            [int, np.ndarray, Mapping[str, Any]], None
+        ]
+        | None = None,
     ) -> Mapping[str, Any]:
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
@@ -2967,6 +3005,7 @@ def build_native_arm_runner(
                 ),
                 causal_input_sink=causal_input_sink,
                 causal_input_receipt_sink=causal_input_receipt_sink,
+                candidate_tensor_sink=candidate_tensor_sink,
             )
         elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
             replacement = NativeCampPredictBatch(

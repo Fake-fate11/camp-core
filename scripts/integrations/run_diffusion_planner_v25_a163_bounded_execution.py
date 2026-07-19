@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 from contextlib import contextmanager
 import hashlib
+import io
 import json
 import math
 from pathlib import Path
@@ -27,6 +28,9 @@ for _path in (ROOT, PACKAGE_ROOT):
 
 from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
     seal_artifact,
+)
+from camp_core.integrations.diffusion_planner_v21_native import (  # noqa: E402
+    array_sha256,
 )
 from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (  # noqa: E402
     RUN_EVIDENCE_SCHEMA_VERSION,
@@ -139,6 +143,27 @@ PREPROJECTION_FIRST_MISMATCH_FIELDS = {
 }
 PREPROJECTION_ARRAY_DIFFERENCE_FIELDS = {
     "name", "native", "materialization",
+}
+CANDIDATE_PREMATERIALIZATION_SCHEMA_VERSION = (
+    "camp_dp_v25_a17_candidate_prematerialization_evidence_v1"
+)
+CANDIDATE_PREMATERIALIZATION_FIELDS = {
+    "schema_version", "run_ordinal", "occurrence", "tick_index",
+    "candidate_tensor_relative_path", "candidate_tensor_file_sha256",
+    "candidate_tensor_sha256", "candidate_row_sha256",
+    "default_output_sha256", "default_candidate0_identity", "shape", "dtype",
+    "all_finite", "heading_norm_min", "heading_norm_max",
+    "heading_norm_below_half_count", "accepted_as_scientific_evidence",
+    "full_r_execute_authorized", "training_executed", "calibration_executed",
+    "fresh_b2_opened", "outcome_fields_consumed",
+}
+CANDIDATE_PREMATERIALIZATION_METADATA_FIELDS = {
+    "candidate_tensor_sha256", "candidate_row_sha256", "default_output_sha256",
+    "default_candidate0_identity",
+}
+DEFAULT_CANDIDATE0_IDENTITY_FIELDS = {
+    "elementwise_equal", "max_abs_difference", "default_output_sha256",
+    "candidate0_sha256", "native_ranked_k8",
 }
 CAUSAL_RECEIPT_FIELDS = {
     "source_observed_frames", "observed_frames", "padded_frames",
@@ -363,6 +388,125 @@ def _load_canonical_json(path: Path) -> Any:
     if raw != _canonical_json_bytes(value):
         raise ValueError(f"bounded canonical JSON bytes drifted: {path}")
     return value
+
+
+def _write_candidate_prematerialization_evidence(
+    *,
+    output_dir: Path,
+    run: Mapping[str, Any],
+    tick_index: int,
+    candidates: np.ndarray,
+    metadata: Mapping[str, Any],
+) -> Path:
+    """Persist exact fixed-K8 preimage before atom materialization can fail."""
+
+    run_ordinal = _require_plain_int(
+        run.get("run_ordinal"), label="candidate evidence run ordinal"
+    )
+    occurrence = run.get("occurrence")
+    if type(occurrence) is not str or not occurrence:
+        raise ValueError("candidate evidence occurrence must be a nonempty string")
+    tick = _require_plain_int(tick_index, label="candidate evidence tick index")
+    if tick >= TICKS_PER_RUN:
+        raise ValueError("candidate evidence tick index exceeds the 64-tick contract")
+    if type(metadata) is not dict or set(metadata) != CANDIDATE_PREMATERIALIZATION_METADATA_FIELDS:
+        raise ValueError("candidate evidence metadata exact schema drifted")
+
+    tensor = np.asarray(candidates)
+    if tensor.shape != (8, 80, 4) or tensor.dtype != np.float32:
+        raise ValueError("candidate evidence tensor must be float32 [8,80,4]")
+    tensor = np.array(tensor, dtype=np.float32, copy=True, order="C")
+    tensor_sha = array_sha256(tensor)
+    row_sha = metadata.get("candidate_row_sha256")
+    default_sha = metadata.get("default_output_sha256")
+    identity = metadata.get("default_candidate0_identity")
+    if (
+        metadata.get("candidate_tensor_sha256") != tensor_sha
+        or type(row_sha) is not list
+        or len(row_sha) != 8
+        or any(type(value) is not str or not re.fullmatch(r"[0-9a-f]{64}", value) for value in row_sha)
+        or row_sha != [array_sha256(tensor[index]) for index in range(8)]
+        or type(default_sha) is not str
+        or re.fullmatch(r"[0-9a-f]{64}", default_sha) is None
+        or type(identity) is not dict
+        or set(identity) != DEFAULT_CANDIDATE0_IDENTITY_FIELDS
+        or identity.get("elementwise_equal") is not True
+        or type(identity.get("max_abs_difference")) is not float
+        or identity.get("max_abs_difference") != 0.0
+        or identity.get("native_ranked_k8") is not False
+        or identity.get("default_output_sha256") != default_sha
+        or identity.get("candidate0_sha256") != row_sha[0]
+        or default_sha != row_sha[0]
+    ):
+        raise ValueError("candidate evidence same-forward metadata drifted")
+
+    directory = (
+        output_dir
+        / "candidate_prematerialization"
+        / f"run_{run_ordinal:03d}_{occurrence}"
+    )
+    directory.mkdir(parents=True, exist_ok=True)
+    buffer = io.BytesIO()
+    np.save(buffer, tensor, allow_pickle=False)
+    tensor_bytes = buffer.getvalue()
+    file_sha = hashlib.sha256(tensor_bytes).hexdigest()
+    tensor_path = directory / f"tick_{tick:02d}_{file_sha}.npy"
+    temporary_tensor = tensor_path.with_name(tensor_path.name + ".tmp")
+    temporary_tensor.write_bytes(tensor_bytes)
+    temporary_tensor.replace(tensor_path)
+
+    finite = bool(np.isfinite(tensor).all())
+    if finite:
+        heading_norms = np.linalg.norm(tensor[:, :, 2:4].astype(np.float64), axis=2)
+        heading_min: float | None = float(np.min(heading_norms))
+        heading_max: float | None = float(np.max(heading_norms))
+        below_half: int | None = int(np.count_nonzero(heading_norms < 0.5))
+    else:
+        heading_min = None
+        heading_max = None
+        below_half = None
+    record = {
+        "schema_version": CANDIDATE_PREMATERIALIZATION_SCHEMA_VERSION,
+        "run_ordinal": run_ordinal,
+        "occurrence": occurrence,
+        "tick_index": tick,
+        "candidate_tensor_relative_path": tensor_path.relative_to(output_dir).as_posix(),
+        "candidate_tensor_file_sha256": file_sha,
+        "candidate_tensor_sha256": tensor_sha,
+        "candidate_row_sha256": list(row_sha),
+        "default_output_sha256": default_sha,
+        "default_candidate0_identity": json.loads(json.dumps(identity)),
+        "shape": [8, 80, 4],
+        "dtype": tensor.dtype.str,
+        "all_finite": finite,
+        "heading_norm_min": heading_min,
+        "heading_norm_max": heading_max,
+        "heading_norm_below_half_count": below_half,
+        "accepted_as_scientific_evidence": False,
+        "full_r_execute_authorized": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    record_path = directory / f"tick_{tick:02d}.json"
+    _write_json_atomic(record_path, record)
+
+    reopened = _load_canonical_json(record_path)
+    if type(reopened) is not dict or set(reopened) != CANDIDATE_PREMATERIALIZATION_FIELDS:
+        raise ValueError("candidate prematerialization evidence exact schema drifted")
+    reopened_tensor = np.load(tensor_path, allow_pickle=False)
+    if (
+        tensor_path.read_bytes() != tensor_bytes
+        or hashlib.sha256(tensor_path.read_bytes()).hexdigest() != reopened["candidate_tensor_file_sha256"]
+        or reopened_tensor.shape != (8, 80, 4)
+        or reopened_tensor.dtype != np.float32
+        or not np.array_equal(reopened_tensor, tensor, equal_nan=True)
+        or array_sha256(reopened_tensor) != reopened["candidate_tensor_sha256"]
+        or reopened != record
+    ):
+        raise ValueError("candidate prematerialization evidence reopen drifted")
+    return record_path
 
 
 def _require_plain_int(value: Any, *, label: str, minimum: int = 0) -> int:
@@ -1405,6 +1549,7 @@ def _execute(
             contexts: list[Mapping[str, Any]] = []
             scene_materializations: list[Mapping[str, Any]] = []
             native_causal_receipts: list[Mapping[str, Any]] = []
+            candidate_evidence_count = 0
 
             def capture_causal_input(
                 tick_index: int, value: Mapping[str, Any]
@@ -1433,6 +1578,25 @@ def _execute(
                         value, tick_index=tick_index
                     )
                 )
+
+            def capture_candidate_tensor(
+                tick_index: int,
+                candidates: np.ndarray,
+                metadata: Mapping[str, Any],
+            ) -> None:
+                nonlocal candidate_evidence_count
+                if type(tick_index) is not int or tick_index != candidate_evidence_count:
+                    raise ValueError(
+                        "diagnostic candidate evidence sink tick order drifted"
+                    )
+                _write_candidate_prematerialization_evidence(
+                    output_dir=args.output_dir,
+                    run=run,
+                    tick_index=tick_index,
+                    candidates=candidates,
+                    metadata=metadata,
+                )
+                candidate_evidence_count += 1
             native_dir = (
                 args.output_dir
                 / "native_runs"
@@ -1441,17 +1605,22 @@ def _execute(
                     f"{run['occurrence']}_{run['scenario_id']}"
                 )
             )
+            runner_kwargs: dict[str, Any] = {
+                "route": config["routes"][0],
+                "arm": "camp",
+                "config": config,
+                "output_dir": native_dir,
+                "max_steps": TICKS_PER_RUN,
+                "decision_sink": snapshots.append,
+                "scene_adapter": adapter,
+                "v25_context_sink": contexts.append,
+                "causal_input_sink": capture_causal_input,
+                "causal_input_receipt_sink": capture_causal_receipt,
+            }
+            if diagnostic_only:
+                runner_kwargs["candidate_tensor_sink"] = capture_candidate_tensor
             receipt = runner(
-                route=config["routes"][0],
-                arm="camp",
-                config=config,
-                output_dir=native_dir,
-                max_steps=TICKS_PER_RUN,
-                decision_sink=snapshots.append,
-                scene_adapter=adapter,
-                v25_context_sink=contexts.append,
-                causal_input_sink=capture_causal_input,
-                causal_input_receipt_sink=capture_causal_receipt,
+                **runner_kwargs,
             )
             if (
                 type(receipt) is not dict
@@ -1461,6 +1630,7 @@ def _execute(
                 or len(adapter.receipts) != TICKS_PER_RUN
                 or len(scene_materializations) != TICKS_PER_RUN
                 or len(native_causal_receipts) != TICKS_PER_RUN
+                or (diagnostic_only and candidate_evidence_count != TICKS_PER_RUN)
             ):
                 raise RuntimeError("bounded run was partial or lacked exact tick evidence")
             corpus.validate_native_arm_receipt(

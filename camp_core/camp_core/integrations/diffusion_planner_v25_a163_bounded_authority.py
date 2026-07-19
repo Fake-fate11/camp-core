@@ -910,8 +910,9 @@ def build_a17_diagnostic_release_decision(
     authorized_output_dir: str,
     dp_repo: Path,
     probe_template: Path,
+    diagnostic_run_ordinal: int = 0,
 ) -> dict[str, Any]:
-    """Build one-shot authority for identity0 preprojection diagnosis only."""
+    """Build one-shot authority for one exact sealed-plan diagnostic run."""
 
     if not _is_sha256(run_nonce):
         raise ValueError("A1.7 diagnostic nonce must be a lowercase 64-hex string")
@@ -935,15 +936,22 @@ def build_a17_diagnostic_release_decision(
         implementation_source_head=implementation_source_head,
         fixed_dp_head=FIXED_DP_HEAD,
     )
-    diagnostic_run = json.loads(json.dumps(chain["plan"]["runs"][0]))
+    plan_runs = chain["plan"]["runs"]
+    if (
+        type(diagnostic_run_ordinal) is not int
+        or diagnostic_run_ordinal < 0
+        or diagnostic_run_ordinal >= len(plan_runs)
+    ):
+        raise ValueError("A1.7 diagnostic run ordinal is outside the sealed plan")
+    diagnostic_run = json.loads(json.dumps(plan_runs[diagnostic_run_ordinal]))
     if (
         type(diagnostic_run) is not dict
-        or diagnostic_run.get("run_ordinal") != 0
-        or diagnostic_run.get("occurrence") != "identity0_first"
+        or diagnostic_run.get("run_ordinal") != diagnostic_run_ordinal
+        or type(diagnostic_run.get("occurrence")) is not str
         or diagnostic_run.get("ticks") != 64
         or diagnostic_run.get("seed") != EXPECTED_SEED
     ):
-        raise ValueError("A1.7 diagnostic run is not the frozen identity0 first run")
+        raise ValueError("A1.7 diagnostic run is not an exact sealed-plan row")
     roots = json.loads(json.dumps(root_artifacts))
     return {
         "schema_version": A17_DIAGNOSTIC_RELEASE_SCHEMA_VERSION,
@@ -1112,9 +1120,18 @@ def verify_a17_diagnostic_release(
         implementation_source_head=decision["implementation_source_head"],
         fixed_dp_head=decision["fixed_dp_head"],
     )
-    first_run = chain["plan"]["runs"][0]
-    if not strict_json_equal(decision.get("diagnostic_run"), first_run):
-        raise ValueError("A1.7 diagnostic identity0 run binding drifted")
+    diagnostic_run = decision.get("diagnostic_run")
+    diagnostic_ordinal = (
+        diagnostic_run.get("run_ordinal") if type(diagnostic_run) is dict else None
+    )
+    plan_runs = chain["plan"]["runs"]
+    if (
+        type(diagnostic_ordinal) is not int
+        or diagnostic_ordinal < 0
+        or diagnostic_ordinal >= len(plan_runs)
+        or not strict_json_equal(diagnostic_run, plan_runs[diagnostic_ordinal])
+    ):
+        raise ValueError("A1.7 diagnostic sealed-plan run binding drifted")
     if type(requested_device) is not str or requested_device != EXPECTED_DEVICE:
         raise ValueError("A1.7 diagnostic release requires CUDA")
     output = _canonical_absolute_path(
@@ -1136,7 +1153,7 @@ def verify_a17_diagnostic_release(
         "release_artifact": str(release_artifact.resolve()),
         "release_root_sha256": seal["root_sha256"],
         "decision": decision,
-        "plan": {"runs": [first_run]},
+        "plan": {"runs": [diagnostic_run]},
         "nonce_marker": None
         if marker is None
         else {
