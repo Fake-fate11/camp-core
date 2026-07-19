@@ -1071,7 +1071,9 @@ def test_bounded_snapshot_index_carries_repeat_occurrence(tmp_path: Path) -> Non
     assert payload["sidecar"]["occurrence"] == "identity0_final_repeat"
 
 
-def test_run_evidence_is_derived_from_raw_snapshots_and_native_ticks() -> None:
+def test_run_evidence_is_derived_from_raw_snapshots_and_native_ticks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     run = _plan()["runs"][0]
     payloads = []
     ticks = []
@@ -1108,22 +1110,49 @@ def test_run_evidence_is_derived_from_raw_snapshots_and_native_ticks() -> None:
                 }
             }
         )
+    scene_hashes = [f"{tick_index:064x}" for tick_index in range(64)]
+    config = {"routes": [{"name": "route"}]}
+    route = config["routes"][0]
+    native_dir = tmp_path / "native"
+    derived_inputs: dict[str, object] = {}
+
+    def derive_failure_class(receipt: dict, **kwargs: object) -> str:
+        derived_inputs["receipt"] = receipt
+        derived_inputs.update(kwargs)
+        return "none"
+
+    monkeypatch.setattr(
+        runner, "_derive_native_failure_class", derive_failure_class
+    )
+    native_receipt = {
+        "schema_version": "v21_native_arm_receipt_v1",
+        "status": "ok",
+        "arm": "camp",
+        "claim_authorized": False,
+        "ticks": ticks,
+    }
     evidence = runner.build_run_evidence(
         run=run,
         payloads=payloads,
-        native_receipt={
-            "schema_version": "v21_native_arm_receipt_v1",
-            "status": "ok",
-            "arm": "camp",
-            "claim_authorized": False,
-            "ticks": ticks,
-        },
+        native_receipt=native_receipt,
+        scene_materialization_hashes=scene_hashes,
+        config=config,
+        route=route,
+        native_dir=native_dir,
     )
     assert evidence["candidate0_sha256_sequence"] == ["0" * 64] * 64
     assert evidence["k8_row_sha256_sequence"][0][7] == "7" * 64
     assert evidence["selected_index_sequence"] == [value % 8 for value in range(64)]
     assert len(evidence["closed_loop_trajectory_sha256"]) == 64
     assert len(evidence["speed_probe_sha256"]) == 64
+    assert evidence["failure_class"] == "none"
+    assert derived_inputs == {
+        "receipt": native_receipt,
+        "scene_materialization_hashes": scene_hashes,
+        "config": config,
+        "route": route,
+        "native_dir": native_dir,
+    }
 
 
 def _minimal_post_review_tick() -> tuple[dict, dict, dict, dict, np.ndarray, np.ndarray]:

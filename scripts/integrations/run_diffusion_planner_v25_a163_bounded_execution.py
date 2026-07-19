@@ -1465,6 +1465,10 @@ def build_run_evidence(
     run: Mapping[str, Any],
     payloads: list[Mapping[str, Any]],
     native_receipt: Mapping[str, Any],
+    scene_materialization_hashes: list[str],
+    config: Mapping[str, Any],
+    route: Mapping[str, Any],
+    native_dir: Path,
 ) -> dict[str, Any]:
     """Build evidence values, never caller-supplied repeat-pass booleans."""
 
@@ -1535,7 +1539,13 @@ def build_run_evidence(
         "atom_matrix_sha256_sequence": atoms,
         "context_sha256_sequence": contexts,
         "selected_index_sequence": selected,
-        "failure_class": _derive_native_failure_class(native_receipt),
+        "failure_class": _derive_native_failure_class(
+            native_receipt,
+            scene_materialization_hashes=scene_materialization_hashes,
+            config=config,
+            route=route,
+            native_dir=native_dir,
+        ),
         "closed_loop_trajectory_sha256": canonical_sha256(trajectory),
         "speed_probe_sha256": canonical_sha256(speeds),
         "capability_failure_sha256": None,
@@ -1879,6 +1889,10 @@ def _execute(
                 run=run,
                 payloads=payloads,
                 native_receipt=receipt,
+                scene_materialization_hashes=scene_materialization_hashes,
+                config=config,
+                route=config["routes"][0],
+                native_dir=native_dir,
             )
             result = {
                 "schema_version": RESULT_SCHEMA_VERSION,
