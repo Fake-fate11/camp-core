@@ -759,29 +759,33 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below matches it exactly.
 
-A1.7 now treats a finite fixed-DP K8 tensor whose heading channels leave the
-frozen `[0.5,1.5]` norm envelope as a typed, outcome-blind fixed-DP candidate-
-generation capability failure. The canonical K8 validator runs after the
-unchanged same-forward K8 is constructed and before atom materialization,
-scoring, or selection. It does not normalize, repair, mask, lower K, fall back
-to candidate0, or change fixed DP, trajectories, atoms, scales, weights,
-simplex/affine scoring, eligibility, or tie-breaking.
+A1.7 keeps the accepted typed, outcome-blind fixed-DP candidate-generation
+capability contract unchanged. A finite fixed-DP K8 tensor whose heading
+channels leave the frozen `[0.5,1.5]` norm envelope terminates the whole
+identity with zero trainable rows and a content-addressed diagnostic receipt.
+It is never normalized, repaired, masked, reduced, or replaced by candidate0;
+fixed DP, trajectories, atoms, scales, weights, simplex/affine scoring,
+eligibility, and tie-breaking remain unchanged.
 
-The exact failure terminates the whole identity with zero trainable snapshots,
-contexts, labels, or scale rows. A content-addressed raw K8 preimage and exact
-receipt remain diagnostic-only and bind the fixed-DP HEAD, tick, invalid
-candidate/step indices, norm envelope, raw tensor SHA, and same-forward
-candidate0 identity. All other exceptions remain artifact-fatal. The prior
-A1.6.11/A1.7 releases, nonces, executions, and diagnostic roots remain immutable
-and ineligible.
+The first typed 244-run execution reached all prospective runs and sealed
+fail-closed at root `f78e7993...`: 242 runs completed, two identities were
+retained as typed fixed-DP capability failures, and the complete runs produced
+15,488 snapshots. Both failures had exactly zero trainable rows. Terminal
+acceptance then rejected the artifact because the execution evidence builder
+omitted the already-available validation context and classified complete rows
+as `native_evidence_schema_invalid`. This is an ordinary evidence-wiring defect,
+not a coverage or scientific-contract failure. A read-only in-memory projection
+with the independently validated complete-row class passed every frozen
+coverage gate, but the sealed artifact remains immutable and ineligible.
 
-Local focused regression passed 234 tests with six platform skips; AutoDL
-passed all 240 tests. At implementation source HEAD `87c3dc9e...`, the source
-census/review and bounded plan/review were rebuilt once. They preserve the
-1,653 formal / 1,500 executable / 153 source-ineligible denominator,
-146 mapped / 1,354 no-signal source split, 21 override / 125 observe modes,
-zero source failures, and the unchanged 243-identity / 244-run / 15,616-tick
-sequential-K8 plan.
+Implementation source HEAD `11023da5...` passes the exact config, route,
+native-directory, and scene-materialization hashes into complete-row evidence
+derivation. Local focused regression passed 179 tests with five platform skips;
+AutoDL passed all 184 tests. The source census/review and bounded plan/review
+were rebuilt once under that source HEAD. They preserve the 1,653 formal /
+1,500 executable / 153 source-ineligible denominator, 146 mapped / 1,354
+no-signal source split, 21 override / 125 observe modes, zero source failures,
+and the unchanged 243-identity / 244-run / 15,616-tick sequential-K8 plan.
 
 The bounded acceptance gate requires 244 terminal rows, complete and repeat-
 equivalent identity0 endpoints, at least 231/243 complete unique identities,
@@ -789,28 +793,35 @@ greater than 90% completion per family and source/mode, greater than 80% per
 family×tier, plus the frozen red 4/7/4 and three-source-map minimum. The later
 full corpus requires 1,500 terminal rows, at least 1,425 complete, the same
 group thresholds, no zero-complete planned stratum, and unchanged red minima.
-No new K8, full corpus, training, calibration, Scene/V2I, Fresh, or outcome has
-started yet; the next action is the fresh bounded execution from identity0.
+The failed artifact is not reused or appended. No corrected K8, full corpus,
+training, calibration, Scene/V2I, Fresh, or outcome has started yet; the next
+action is a new bounded rerun from identity0 using fresh authority and paths.
 
-current_v25_status=v25_a17_fixed_dp_heading_capability_contract_static_authority_passed_bounded_execution_next
-current_v25_source_head=87c3dc9e1851a0458dbb27bbd3e7565110fe533f
+current_v25_status=v25_a17_bounded_terminal_evidence_wiring_corrected_static_authority_passed_bounded_rerun_next
+current_v25_source_head=11023da56125d1c660fb70ab659aab5aa843762f
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_87c3dc9e_20260719T142523CST
-current_v25_artifact_root_sha256=ff633a969bdf032da543f70aa0b0b17ae3174a1a17160b4095e511715c28fae9
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_87c3dc9e_20260719T142523CST
-current_v25_review_artifact_root_sha256=64867da260ad8b32e26db2999efe58d08d992381b4873a3c8eb893fe27750347
-current_v25_a17_source_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_87c3dc9e_20260719T142523CST
-current_v25_a17_source_root_sha256=ead219b2575d4b8f7e40fbba93735a363bd124595497cfd96bc707361d0b0544
-current_v25_a17_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_87c3dc9e_20260719T142523CST
-current_v25_a17_source_review_root_sha256=09b5661538528c3ca83cdfb40f90f228affac5e33f5eabe15e7080b6874954f8
-current_v25_a17_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_87c3dc9e_20260719T142523CST
-current_v25_a17_bounded_plan_root_sha256=ff633a969bdf032da543f70aa0b0b17ae3174a1a17160b4095e511715c28fae9
-current_v25_a17_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_87c3dc9e_20260719T142523CST
-current_v25_a17_bounded_plan_review_root_sha256=64867da260ad8b32e26db2999efe58d08d992381b4873a3c8eb893fe27750347
-current_v25_a17_failed_bounded_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca
-current_v25_a17_failed_bounded_root_sha256=0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1
-current_v25_a17_failed_bounded_accepted_run_count=155
-current_v25_a17_failed_bounded_accepted_tick_count=9920
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST
+current_v25_artifact_root_sha256=c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST
+current_v25_review_artifact_root_sha256=fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98
+current_v25_a17_source_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_11023da5_20260719T185301CST
+current_v25_a17_source_root_sha256=52efa827fc6bb6e5c0646ac775f83db0856a69fc635076c05d27a63a460b0848
+current_v25_a17_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_11023da5_20260719T185301CST
+current_v25_a17_source_review_root_sha256=5eb497f0b9372ace305ea03c2b720629613e766c906efb07fd7abffa39665b8c
+current_v25_a17_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST
+current_v25_a17_bounded_plan_root_sha256=c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04
+current_v25_a17_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST
+current_v25_a17_bounded_plan_review_root_sha256=fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98
+current_v25_a17_heading_diagnostic_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca
+current_v25_a17_heading_diagnostic_root_sha256=0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1
+current_v25_a17_failed_bounded_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_87c3dc9e_8fdd1d562d63d00d
+current_v25_a17_failed_bounded_root_sha256=f78e79939579339a629c5035c83c19aaea4ec7ce6fb8346384521f298c4cdd14
+current_v25_a17_failed_bounded_complete_run_count=242
+current_v25_a17_failed_bounded_retained_fixed_dp_capability_failure_count=2
+current_v25_a17_failed_bounded_snapshot_count=15488
+current_v25_a17_failed_bounded_training_eligible=false
+current_v25_a17_failed_bounded_failure_reason=bounded_run_evidence_schema_content_drifted
+current_v25_a17_failed_bounded_coverage_projection=passed_read_only_not_artifact_authority
 current_v25_a17_diagnostic_run_ordinal=155
 current_v25_a17_diagnostic_failure_tick=32
 current_v25_a17_diagnostic_failure_candidate=5
@@ -823,8 +834,8 @@ current_v25_fixed_dp_capability_failure_reason=invalid_k8_heading_norm_envelope
 current_v25_bounded_execution_plan_schema=camp_dp_v25_a17_route_level_bounded_execution_plan_v3
 current_v25_bounded_min_complete_unique_identity_count=231
 current_v25_full_corpus_min_complete_identity_count=1425
-current_v25_local_focused_test_result=234_passed_6_skipped
-current_v25_autodl_focused_test_result=240_passed
+current_v25_local_focused_test_result=179_passed_5_skipped
+current_v25_autodl_focused_test_result=184_passed
 current_v25_corrected_full_corpus_started=false
 current_v25_training_started=false
 current_v25_calibration_started=false
@@ -835,9 +846,9 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=33868288000
-current_v25_phase=A1_7_fixed_dp_candidate_generation_capability_contract_static_authority_passed
-next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_execution_and_independent_review
+observed_autodl_free_bytes=29114728448
+current_v25_phase=A1_7_bounded_terminal_evidence_wiring_corrected_static_authority_passed
+next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_rerun_and_independent_review
 
 ## Current V24 Status
 

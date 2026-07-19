@@ -4222,3 +4222,104 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=33868288000
 current_v25_phase=A1_7_fixed_dp_candidate_generation_capability_contract_static_authority_passed
 next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_execution_and_independent_review
+
+## A1.7 bounded terminal evidence-wiring correction and static authority rebuild (2026-07-19 CST)
+
+The first execution under the typed fixed-DP capability contract completed all
+244 prospective runs and sealed fail-closed at
+`/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_87c3dc9e_8fdd1d562d63d00d`,
+root `f78e79939579339a629c5035c83c19aaea4ec7ce6fb8346384521f298c4cdd14`.
+It produced 242 complete runs and retained two exact typed
+`fixed_dp_candidate_generation_capability_failure` identities, each with zero
+training snapshots; complete runs produced 15,488 snapshots. The second typed
+failure was run 212/tick 37 and remained inside the same prospective,
+outcome-blind support-ceiling contract as run 155.
+
+Terminal acceptance rejected the artifact because `build_run_evidence` called
+the already strict native failure-class derivation without the route, config,
+native-directory, and scene-materialization hash context. Results correctly
+recorded the 242 complete rows as `none`, while evidence rows recorded
+`native_evidence_schema_invalid`. This was an ordinary evidence-wiring failure;
+the artifact remains immutable and training/calibration/evaluation-ineligible.
+A read-only in-memory correction passed 244/244 terminal accounting, 241/243
+unique completion, all eight identity0 repeat checks, every family/source-mode
+and family×tier coverage threshold, the red 6/10/5 tier counts over four maps,
+and zero mapped runtime-source failures. That projection diagnoses the defect
+but is not artifact authority.
+
+Commit `11023da56125d1c660fb70ab659aab5aa843762f` passes the exact context
+into evidence derivation and adds a regression for the complete-row path. Local
+focused tests passed 179 with five platform skips; AutoDL passed all 184 tests.
+CAMP local/origin/GitHub/AutoDL were aligned at the source HEAD before the
+static rebuild, fixed DP stayed clean at `7a1d33da...`, GPU/worker counts were
+zero, the lock was free, Fresh/outcome remained unopened, and free disk was
+29,114,728,448 bytes after sealing the four roots.
+
+The critical-manifest change invalidated the prior four roots for new execution
+authority. A single new static chain was built from identity0 at the source
+HEAD:
+
+- source census `/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_11023da5_20260719T185301CST`, root `52efa827fc6bb6e5c0646ac775f83db0856a69fc635076c05d27a63a460b0848`;
+- source review `/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_11023da5_20260719T185301CST`, root `5eb497f0b9372ace305ea03c2b720629613e766c906efb07fd7abffa39665b8c`;
+- bounded plan `/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST`, root `c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04`;
+- bounded plan review `/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST`, root `fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98`.
+
+The chain preserves 1,653/1,500/153 identities, 146 mapped/1,354 no-signal,
+21 controlled override/125 observe, zero source failures, and the unchanged
+243-identity/244-run/15,616-tick sequential-K8 plan. No new K8, full corpus,
+training, calibration, Scene/V2I, Fresh, or outcome was opened while rebuilding
+the chain. The next action is a new bounded execution from identity0 with a new
+nonce and fresh artifact paths; no failed artifact is reused or appended.
+
+current_v25_status=v25_a17_bounded_terminal_evidence_wiring_corrected_static_authority_passed_bounded_rerun_next
+current_v25_source_head=11023da56125d1c660fb70ab659aab5aa843762f
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST
+current_v25_artifact_root_sha256=c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST
+current_v25_review_artifact_root_sha256=fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98
+current_v25_a17_source_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_11023da5_20260719T185301CST
+current_v25_a17_source_root_sha256=52efa827fc6bb6e5c0646ac775f83db0856a69fc635076c05d27a63a460b0848
+current_v25_a17_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_11023da5_20260719T185301CST
+current_v25_a17_source_review_root_sha256=5eb497f0b9372ace305ea03c2b720629613e766c906efb07fd7abffa39665b8c
+current_v25_a17_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST
+current_v25_a17_bounded_plan_root_sha256=c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04
+current_v25_a17_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST
+current_v25_a17_bounded_plan_review_root_sha256=fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98
+current_v25_a17_heading_diagnostic_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca
+current_v25_a17_heading_diagnostic_root_sha256=0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1
+current_v25_a17_failed_bounded_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_87c3dc9e_8fdd1d562d63d00d
+current_v25_a17_failed_bounded_root_sha256=f78e79939579339a629c5035c83c19aaea4ec7ce6fb8346384521f298c4cdd14
+current_v25_a17_failed_bounded_complete_run_count=242
+current_v25_a17_failed_bounded_retained_fixed_dp_capability_failure_count=2
+current_v25_a17_failed_bounded_snapshot_count=15488
+current_v25_a17_failed_bounded_training_eligible=false
+current_v25_a17_failed_bounded_failure_reason=bounded_run_evidence_schema_content_drifted
+current_v25_a17_failed_bounded_coverage_projection=passed_read_only_not_artifact_authority
+current_v25_a17_diagnostic_run_ordinal=155
+current_v25_a17_diagnostic_failure_tick=32
+current_v25_a17_diagnostic_failure_candidate=5
+current_v25_a17_diagnostic_failure_steps=10,11,12,13,14,15
+current_v25_a17_diagnostic_min_heading_norm=0.06830171230455423
+current_v25_a17_diagnostic_candidate_tensor_sha256=32cb0d033f20d0f51087b81ecaae297220c89757db31bc2456d555449ae9360d
+current_v25_a17_diagnostic_training_eligible=false
+current_v25_fixed_dp_capability_failure_class=fixed_dp_candidate_generation_capability_failure
+current_v25_fixed_dp_capability_failure_reason=invalid_k8_heading_norm_envelope
+current_v25_bounded_execution_plan_schema=camp_dp_v25_a17_route_level_bounded_execution_plan_v3
+current_v25_bounded_min_complete_unique_identity_count=231
+current_v25_full_corpus_min_complete_identity_count=1425
+current_v25_local_focused_test_result=179_passed_5_skipped
+current_v25_autodl_focused_test_result=184_passed
+current_v25_corrected_full_corpus_started=false
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=29114728448
+current_v25_phase=A1_7_bounded_terminal_evidence_wiring_corrected_static_authority_passed
+next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_rerun_and_independent_review
