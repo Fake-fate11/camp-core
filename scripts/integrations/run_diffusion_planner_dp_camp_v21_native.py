@@ -245,6 +245,7 @@ class NativeCampPredictBatch:
         state: NativeHookState,
         to_model_tensors: Callable[..., Mapping[str, Any]],
         dump_step_npz: Callable[..., Mapping[str, Any]],
+        validate_candidates: Callable[..., np.ndarray],
         materialize: Callable[..., Mapping[str, Any]] | None,
         select_candidate: Callable[..., Mapping[str, Any]] | None,
         signal_mask: Callable[[np.ndarray, Mapping[str, Any], Any], np.ndarray] | None,
@@ -287,6 +288,7 @@ class NativeCampPredictBatch:
         self.state = state
         self.to_model_tensors = to_model_tensors
         self.dump_step_npz = dump_step_npz
+        self.validate_candidates = validate_candidates
         self.materialize = materialize
         self.select_candidate = select_candidate
         self.signal_mask = signal_mask
@@ -554,6 +556,15 @@ class NativeCampPredictBatch:
                         )
                     ),
                 )
+
+            self.validate_candidates(
+                candidate_tensor,
+                tick_index=tick_index,
+                default_output_sha256=receipt["default_output_sha256"],
+                default_candidate0_identity=receipt[
+                    "default_candidate0_identity"
+                ],
+            )
 
             if self.operational_mode == "dp_candidate0":
                 receipt.update(
@@ -2811,6 +2822,7 @@ def build_native_arm_runner(
         )
         from camp_core.integrations.diffusion_planner_causal_atoms import (
             materialize_canonical_14d,
+            validate_fixed_k8_candidate_tensor,
         )
         from scripts.integrations.run_diffusion_planner_camp_replay import (
             _load_model,
@@ -2842,6 +2854,7 @@ def build_native_arm_runner(
                     require_source_preserving_lanelet2_regulatory_adapter
                 ),
                 "materialize": materialize_canonical_14d,
+                "validate_candidates": validate_fixed_k8_candidate_tensor,
                 "red_cost": _fixed_dp_red_cost,
                 "signal_mask": candidate_signal_source_available_mask,
                 "select": select_camp_candidate,
@@ -2970,6 +2983,7 @@ def build_native_arm_runner(
                 state=state,
                 to_model_tensors=context["tensor_converter"].to_model_tensors,
                 dump_step_npz=context["tensor_converter"].dump_step_npz,
+                validate_candidates=context["validate_candidates"],
                 materialize=context["materialize"],
                 select_candidate=context["select"],
                 signal_mask=lambda candidates, causal, _scene: context[
@@ -3012,6 +3026,7 @@ def build_native_arm_runner(
                 state=state,
                 to_model_tensors=context["tensor_converter"].to_model_tensors,
                 dump_step_npz=context["tensor_converter"].dump_step_npz,
+                validate_candidates=context["validate_candidates"],
                 materialize=None,
                 select_candidate=None,
                 signal_mask=None,

@@ -13,6 +13,8 @@ import pytest
 
 from camp_core.integrations.diffusion_planner_causal_atoms import (
     CANONICAL_NORMALIZED_ATOM_CLIP,
+    FixedDpCandidateGenerationCapabilityFailure,
+    INVALID_K8_HEADING_NORM_REASON,
     canonical_normalize_atoms,
     canonical_score_atoms,
     validate_fixed_k8_candidate_tensor,
@@ -168,9 +170,17 @@ def test_candidate_heading_unit_vector_is_a_hard_invariant() -> None:
     np.testing.assert_array_equal(validated, before)
 
     candidates[0, 0, 2:] = 0.0
-    with pytest.raises(ValueError, match="unit vectors"):
+    with pytest.raises(
+        FixedDpCandidateGenerationCapabilityFailure,
+        match=INVALID_K8_HEADING_NORM_REASON,
+    ) as caught:
         validate_fixed_k8_candidate_tensor(candidates)
-    with pytest.raises(ValueError, match="unit vectors"):
+    assert caught.value.invalid_indices == ((0, 0),)
+    assert caught.value.candidate_tensor_copy().dtype == np.float32
+    with pytest.raises(
+        FixedDpCandidateGenerationCapabilityFailure,
+        match=INVALID_K8_HEADING_NORM_REASON,
+    ):
         select_camp_candidate(
             candidates=candidates,
             materialized=_materialized(np.zeros((8, 14))),
@@ -183,7 +193,10 @@ def test_candidate_heading_unit_vector_is_a_hard_invariant() -> None:
     validate_fixed_k8_candidate_tensor(lower_envelope)
     upper_violation = _candidate_tensor()
     upper_violation[0, 0, 2:] = [1.5001, 0.0]
-    with pytest.raises(ValueError, match="maximum_norm"):
+    with pytest.raises(
+        FixedDpCandidateGenerationCapabilityFailure,
+        match=INVALID_K8_HEADING_NORM_REASON,
+    ):
         validate_fixed_k8_candidate_tensor(upper_violation)
 
 
@@ -349,6 +362,8 @@ def test_identity_and_terminal_acceptance_reject_all_partial_snapshots() -> None
     assert summary == {
         "complete_identity_count": 1,
         "retained_capability_failure_count": 1,
+        "retained_scenario_capability_failure_count": 1,
+        "retained_fixed_dp_capability_failure_count": 0,
         "training_snapshot_count": 64,
     }
 

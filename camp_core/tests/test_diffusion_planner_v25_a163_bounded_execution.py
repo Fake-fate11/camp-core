@@ -71,6 +71,16 @@ def _plan() -> dict:
                 else "unique_identity",
                 "ticks": 64,
                 "seed": 25001,
+                "source_class": "no_signal",
+                "phase_authority_mode": None,
+                "family": "lead_vehicle_hard_brake",
+                "tier": "easy",
+                "route_identity_sha256": "4" * 64,
+                "source_map_sha256": "5" * 64,
+                "corridor_group_sha256": "6" * 64,
+                "semantic_clone_sha256": "7" * 64,
+                "source_row_sha256": "8" * 64,
+                "k8_relevant_physical_payload_sha256": "9" * 64,
             }
         )
     return {

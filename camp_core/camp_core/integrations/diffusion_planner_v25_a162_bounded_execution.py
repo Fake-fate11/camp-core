@@ -1,15 +1,23 @@
 from __future__ import annotations
 
+import collections
 import hashlib
 import json
+import math
 from typing import Any, Mapping, Sequence
 
 
-PLAN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_execution_plan_v2"
+PLAN_SCHEMA_VERSION = "camp_dp_v25_a17_route_level_bounded_execution_plan_v3"
 RUN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_run_v1"
-TERMINAL_SCHEMA_VERSION = "camp_dp_v25_a163_route_level_bounded_terminal_v2"
-RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
-RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
+TERMINAL_SCHEMA_VERSION = "camp_dp_v25_a17_route_level_bounded_terminal_v3"
+RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_run_evidence_v2"
+RESULT_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_result_v2"
+FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+FIXED_DP_FAILURE_CLASS = "fixed_dp_candidate_generation_capability_failure"
+FIXED_DP_FAILURE_REASON = "invalid_k8_heading_norm_envelope"
+FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION = (
+    "camp_dp_v25_a17_fixed_dp_candidate_generation_capability_failure_v1"
+)
 EXPECTED_SEED = 25001
 TICKS_PER_RUN = 64
 MAX_UNIQUE_IDENTITIES = 320
@@ -281,8 +289,11 @@ def build_route_level_bounded_execution_plan(
                 "seed": EXPECTED_SEED,
                 "source_class": row["source_class"],
                 "phase_authority_mode": row["phase_authority_mode"],
+                "family": case["family"],
+                "tier": case["tier"],
                 "route_identity_sha256": case["route_identity_sha256"],
                 "source_map_sha256": case["source_map_sha256"],
+                "corridor_group_sha256": case["corridor_group_sha256"],
                 "semantic_clone_sha256": row["source_chain"][
                     "semantic_clone_sha256"
                 ],
@@ -376,6 +387,12 @@ def validate_bounded_terminal_acceptance(
         "failure_class",
         "fresh_b2_opened",
         "outcome_fields_consumed",
+        "family",
+        "tier",
+        "source_class",
+        "phase_authority_mode",
+        "source_map_sha256",
+        "corridor_group_sha256",
     }
     evidence_fields = {
         "schema_version",
@@ -391,12 +408,19 @@ def validate_bounded_terminal_acceptance(
         "failure_class",
         "closed_loop_trajectory_sha256",
         "speed_probe_sha256",
+        "capability_failure_sha256",
     }
 
     def sha256(value: Any) -> bool:
         return _is_sha256(value)
 
+    complete_run_count = 0
+    retained_run_count = 0
+    unique_results: dict[str, Mapping[str, Any]] = {}
     for expected, result, evidence in zip(runs, results, run_evidence):
+        status = result.get("status") if type(result) is dict else None
+        complete = status == "complete"
+        retained = status == "retained_fixed_dp_capability_failure"
         if (
             type(result) is not dict
             or set(result) != exact_result_fields
@@ -404,14 +428,54 @@ def validate_bounded_terminal_acceptance(
             or result.get("run_ordinal") != expected.get("run_ordinal")
             or result.get("scenario_id") != expected.get("scenario_id")
             or result.get("occurrence") != expected.get("occurrence")
-            or result.get("status") != "complete"
-            or result.get("tick_count") != TICKS_PER_RUN
-            or result.get("retained_capability_failure") is not None
-            or result.get("failure_class") != "none"
+            or result.get("source_class") != expected.get("source_class")
+            or result.get("phase_authority_mode")
+            != expected.get("phase_authority_mode")
+            or result.get("family") != expected.get("family")
+            or result.get("tier") != expected.get("tier")
+            or result.get("source_map_sha256")
+            != expected.get("source_map_sha256")
+            or result.get("corridor_group_sha256")
+            != expected.get("corridor_group_sha256")
+            or not (complete or retained)
+            or result.get("tick_count") != (TICKS_PER_RUN if complete else 0)
+            or (
+                complete
+                and (
+                    result.get("retained_capability_failure") is not None
+                    or result.get("failure_class") != "none"
+                )
+            )
+            or (
+                retained
+                and (
+                    result.get("failure_class") != FIXED_DP_FAILURE_CLASS
+                    or not _validate_fixed_dp_failure_receipt(
+                        result.get("retained_capability_failure"),
+                        result=result,
+                    )
+                    or result["retained_capability_failure"].get(
+                        "route_identity_sha256"
+                    )
+                    != expected.get("route_identity_sha256")
+                )
+            )
             or result.get("fresh_b2_opened") is not False
             or result.get("outcome_fields_consumed") != []
         ):
-            raise ValueError("bounded run was not an exact 64-tick completion")
+            raise ValueError("bounded run terminal contract drifted")
+        scenario_id = str(result["scenario_id"])
+        prior = unique_results.get(scenario_id)
+        if prior is not None and (
+            result.get("occurrence") != "identity0_final_repeat"
+            or prior.get("occurrence") != "identity0_first"
+            or prior.get("status") != "complete"
+            or result.get("status") != "complete"
+        ):
+            raise ValueError("bounded duplicate identity terminal drifted")
+        unique_results.setdefault(scenario_id, result)
+        complete_run_count += int(complete)
+        retained_run_count += int(retained)
         if (
             type(evidence) is not dict
             or set(evidence) != evidence_fields
@@ -420,11 +484,11 @@ def validate_bounded_terminal_acceptance(
             or evidence.get("scenario_id") != expected.get("scenario_id")
             or evidence.get("occurrence") != expected.get("occurrence")
             or type(evidence.get("tick_count")) is not int
-            or evidence["tick_count"] != TICKS_PER_RUN
+            or evidence["tick_count"] != (TICKS_PER_RUN if complete else 0)
             or evidence.get("failure_class") != result.get("failure_class")
             or any(
                 type(evidence.get(field)) is not list
-                or len(evidence[field]) != TICKS_PER_RUN
+                or len(evidence[field]) != (TICKS_PER_RUN if complete else 0)
                 for field in (
                     "candidate0_sha256_sequence",
                     "k8_row_sha256_sequence",
@@ -452,8 +516,23 @@ def validate_bounded_terminal_acceptance(
                 type(value) is not int or value < 0 or value >= 8
                 for value in evidence["selected_index_sequence"]
             )
-            or not sha256(evidence.get("closed_loop_trajectory_sha256"))
-            or not sha256(evidence.get("speed_probe_sha256"))
+            or (
+                complete
+                and (
+                    not sha256(evidence.get("closed_loop_trajectory_sha256"))
+                    or not sha256(evidence.get("speed_probe_sha256"))
+                    or evidence.get("capability_failure_sha256") is not None
+                )
+            )
+            or (
+                retained
+                and (
+                    evidence.get("closed_loop_trajectory_sha256") is not None
+                    or evidence.get("speed_probe_sha256") is not None
+                    or evidence.get("capability_failure_sha256")
+                    != canonical_sha256(result["retained_capability_failure"])
+                )
+            )
         ):
             raise ValueError("bounded run evidence schema/content drifted")
 
@@ -482,18 +561,209 @@ def validate_bounded_terminal_acceptance(
         "speed_probe_equal": first["speed_probe_sha256"]
         == final["speed_probe_sha256"],
     }
-    if any(value is not True for value in repeat_comparison.values()):
+    if (
+        results[0].get("status") != "complete"
+        or results[-1].get("status") != "complete"
+        or any(value is not True for value in repeat_comparison.values())
+    ):
         raise ValueError("identity0 first/final determinism comparison failed")
+    if len(unique_results) != plan["unique_identity_count"]:
+        raise ValueError("bounded unique identity denominator drifted")
+    coverage = _bounded_coverage(list(unique_results.values()))
+    if coverage["passed"] is not True:
+        raise ValueError("bounded fixed-DP support coverage gate failed")
     return {
         "schema_version": TERMINAL_SCHEMA_VERSION,
         "status": "passed_exact_bounded_terminal",
         "run_count": len(results),
         "unique_identity_count": plan["unique_identity_count"],
-        "tick_count": len(results) * TICKS_PER_RUN,
-        "retained_capability_failure_count": 0,
+        "tick_count": complete_run_count * TICKS_PER_RUN,
+        "retained_capability_failure_count": retained_run_count,
         "mapped_runtime_source_failure_count": 0,
+        "fixed_dp_support_coverage": coverage,
         "identity0_repeat_deterministic": True,
         "repeat_comparison": repeat_comparison,
         "fresh_b2_opened": False,
         "outcome_fields_consumed": [],
+    }
+
+
+def _validate_fixed_dp_failure_receipt(
+    value: Any, *, result: Mapping[str, Any]
+) -> bool:
+    fields = {
+        "schema_version", "failure_class", "reason", "scenario_id",
+        "route_identity_sha256", "family", "tier", "source_class",
+        "phase_authority_mode", "source_map_sha256", "corridor_group_sha256",
+        "fixed_dp_head", "tick_index", "invalid_indices", "invalid_count",
+        "minimum_heading_norm", "maximum_heading_norm",
+        "heading_norm_minimum", "heading_norm_maximum", "raw_k8_sha256",
+        "candidate0_sha256", "default_output_sha256",
+        "default_candidate0_identity", "raw_preimage", "training_eligible",
+        "calibration_eligible", "evaluation_eligible", "fresh_b2_opened",
+        "outcome_fields_consumed",
+    }
+    if type(value) is not dict or set(value) != fields:
+        return False
+    if (
+        value.get("schema_version") != FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION
+        or value.get("failure_class") != FIXED_DP_FAILURE_CLASS
+        or value.get("reason") != FIXED_DP_FAILURE_REASON
+        or value.get("fixed_dp_head") != FIXED_DP_HEAD
+        or any(
+            value.get(field) != result.get(field)
+            for field in (
+                "scenario_id", "family", "tier", "source_class",
+                "phase_authority_mode", "source_map_sha256",
+                "corridor_group_sha256",
+            )
+        )
+        or value.get("training_eligible") is not False
+        or value.get("calibration_eligible") is not False
+        or value.get("evaluation_eligible") is not False
+        or value.get("fresh_b2_opened") is not False
+        or value.get("outcome_fields_consumed") != []
+    ):
+        return False
+    sha_fields = (
+        "scenario_id", "route_identity_sha256", "source_map_sha256",
+        "corridor_group_sha256", "raw_k8_sha256", "candidate0_sha256",
+        "default_output_sha256",
+    )
+    if any(not _is_sha256(value.get(field)) for field in sha_fields):
+        return False
+    if (
+        type(value.get("tick_index")) is not int
+        or value["tick_index"] < 0
+        or value["tick_index"] >= TICKS_PER_RUN
+        or type(value.get("invalid_count")) is not int
+        or value["invalid_count"] <= 0
+        or type(value.get("invalid_indices")) is not list
+        or len(value["invalid_indices"]) != value["invalid_count"]
+    ):
+        return False
+    pairs: list[tuple[int, int]] = []
+    for row in value["invalid_indices"]:
+        if (
+            type(row) is not dict
+            or set(row) != {"candidate_index", "step_index"}
+            or type(row.get("candidate_index")) is not int
+            or type(row.get("step_index")) is not int
+            or not 0 <= row["candidate_index"] < 8
+            or not 0 <= row["step_index"] < 80
+        ):
+            return False
+        pairs.append((row["candidate_index"], row["step_index"]))
+    if pairs != sorted(set(pairs)):
+        return False
+    for field in (
+        "minimum_heading_norm", "maximum_heading_norm",
+        "heading_norm_minimum", "heading_norm_maximum",
+    ):
+        if type(value.get(field)) not in (int, float) or not math.isfinite(
+            float(value[field])
+        ):
+            return False
+    if (
+        float(value["heading_norm_minimum"]) != 0.5
+        or float(value["heading_norm_maximum"]) != 1.5
+        or (
+            0.5 <= float(value["minimum_heading_norm"])
+            and float(value["maximum_heading_norm"]) <= 1.5
+        )
+    ):
+        return False
+    preimage = value.get("raw_preimage")
+    if (
+        type(preimage) is not dict
+        or set(preimage)
+        != {"relative_path", "file_sha256", "array_sha256", "shape", "dtype"}
+        or preimage.get("array_sha256") != value.get("raw_k8_sha256")
+        or preimage.get("file_sha256") != value.get("raw_k8_sha256")
+        or preimage.get("relative_path")
+        != f"fixed_dp_capability_failures/{value['raw_k8_sha256']}.bin"
+        or preimage.get("shape") != [8, 80, 4]
+        or preimage.get("dtype") != "float32"
+    ):
+        return False
+    identity = value.get("default_candidate0_identity")
+    return bool(
+        type(identity) is dict
+        and set(identity)
+        == {
+            "elementwise_equal",
+            "max_abs_difference",
+            "default_output_sha256",
+            "candidate0_sha256",
+            "native_ranked_k8",
+        }
+        and identity.get("elementwise_equal") is True
+        and identity.get("max_abs_difference") == 0.0
+        and identity.get("native_ranked_k8") is False
+        and identity.get("candidate0_sha256") == value.get("candidate0_sha256")
+        and identity.get("default_output_sha256")
+        == value.get("default_output_sha256")
+        and value.get("candidate0_sha256") == value.get("default_output_sha256")
+    )
+
+
+def _bounded_coverage(unique_results: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    total = len(unique_results)
+    complete = [row for row in unique_results if row.get("status") == "complete"]
+
+    def grouped(fields: tuple[str, ...], minimum_percent: int) -> dict[str, Any]:
+        totals: collections.Counter[tuple[str, ...]] = collections.Counter()
+        completes: collections.Counter[tuple[str, ...]] = collections.Counter()
+        for row in unique_results:
+            key = tuple(str(row[field]) for field in fields)
+            totals[key] += 1
+            if row.get("status") == "complete":
+                completes[key] += 1
+        rows = []
+        passed = True
+        for key in sorted(totals):
+            ok = completes[key] * 100 > totals[key] * minimum_percent
+            passed = passed and ok
+            rows.append(
+                {
+                    "key": list(key), "planned": totals[key],
+                    "complete": completes[key], "passed": ok,
+                }
+            )
+        return {"fields": list(fields), "minimum_percent_exclusive": minimum_percent, "rows": rows, "passed": passed}
+
+    family = grouped(("family",), 90)
+    source = grouped(("source_class", "phase_authority_mode"), 90)
+    family_tier = grouped(("family", "tier"), 80)
+    red = [row for row in unique_results if row.get("family") == "red_light_phase_timing"]
+    red_complete = [row for row in red if row.get("status") == "complete"]
+    red_by_tier = collections.Counter(str(row["tier"]) for row in red_complete)
+    red_maps = {str(row["source_map_sha256"]) for row in red_complete}
+    red_pass = not red or (
+        red_by_tier["easy"] >= 4
+        and red_by_tier["borderline"] >= 7
+        and red_by_tier["high_risk"] >= 4
+        and len(red_maps) >= 3
+    )
+    minimum_complete = math.ceil(total * 0.95)
+    overall_pass = total > 0 and len(complete) >= minimum_complete
+    passed = bool(
+        overall_pass and family["passed"] and source["passed"]
+        and family_tier["passed"] and red_pass
+    )
+    return {
+        "planned_unique_identity_count": total,
+        "complete_unique_identity_count": len(complete),
+        "minimum_complete_unique_identity_count": minimum_complete,
+        "family": family,
+        "source_mode": source,
+        "family_tier": family_tier,
+        "red_complete_by_tier": {
+            tier: int(red_by_tier[tier])
+            for tier in ("easy", "borderline", "high_risk")
+        },
+        "red_complete_distinct_source_map_count": len(red_maps),
+        "red_minimum_complete_by_tier": {"easy": 4, "borderline": 7, "high_risk": 4},
+        "red_minimum_distinct_source_maps": 3,
+        "passed": passed,
     }

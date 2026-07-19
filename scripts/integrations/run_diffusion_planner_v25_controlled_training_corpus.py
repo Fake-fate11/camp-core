@@ -37,8 +37,13 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     verify_complete_seal,
 )
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    FixedDpCandidateGenerationCapabilityFailure,
     compute_authorized_red_stopping_margin_costs,
     validate_fixed_k8_candidate_tensor,
+)
+from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (  # noqa: E402
+    FIXED_DP_FAILURE_CLASS,
+    FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
 )
 from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (  # noqa: E402
     externalize_causal_evidence,
@@ -96,7 +101,7 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_scenario_phase im
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v7"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v8"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_controlled_train_snapshot_v9"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
     "camp_dp_v25_full_r_semantic_authority_chains_v3"
@@ -194,6 +199,9 @@ def validate_identity_terminal(
             capability_allowlist=capability_allowlist,
         )
         return "retained_capability_failure"
+    if failure_type == FixedDpCandidateGenerationCapabilityFailure.__name__:
+        _validate_fixed_dp_capability_failure_receipt(capability_failure)
+        return "retained_fixed_dp_capability_failure"
     raise ArtifactContractViolation(
         "only an explicit preregistered scenario-capability failure may be retained"
     )
@@ -207,6 +215,7 @@ def validate_terminal_acceptance(
     capability_allowlist: Mapping[str, Mapping[str, Any]] | None = None,
     expected_identity_families: Mapping[str, str] | None = None,
     expected_red_authority: Mapping[str, Mapping[str, Any]] | None = None,
+    expected_support_authority: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if len(results) != expected_identity_count:
         raise ArtifactContractViolation(
@@ -214,6 +223,7 @@ def validate_terminal_acceptance(
         )
     complete = 0
     retained_capability = 0
+    retained_fixed_dp = 0
     retained_by_contract: collections.Counter[tuple[str, str]] = collections.Counter()
     scenario_ids = [row.get("scenario_id") for row in results]
     if (
@@ -263,6 +273,26 @@ def validate_terminal_acceptance(
                     "retained scenario-capability failures exceed the "
                     "preregistered limit"
                 )
+        elif (
+            status == "failed"
+            and snapshot_count == 0
+            and row.get("failure_type")
+            == FixedDpCandidateGenerationCapabilityFailure.__name__
+        ):
+            receipt = _validate_fixed_dp_capability_failure_receipt(
+                row.get("capability_failure")
+            )
+            if (
+                receipt["scenario_id"] != row["scenario_id"]
+                or receipt["family"] != row.get("family")
+                or receipt["tier"] != row.get("tier")
+                or receipt["route_identity_sha256"]
+                != row.get("route_identity_sha256")
+            ):
+                raise ArtifactContractViolation(
+                    "fixed-DP capability receipt does not bind result identity"
+                )
+            retained_fixed_dp += 1
         else:
             raise ArtifactContractViolation(
                 "terminal results contain an illegal failure or partial identity"
@@ -348,13 +378,29 @@ def validate_terminal_acceptance(
         raise ArtifactContractViolation(
             "terminal snapshot index does not match complete identities"
         )
+    support_coverage = None
+    if expected_support_authority is not None:
+        support_coverage = _full_support_coverage(
+            results=results,
+            authority=expected_support_authority,
+        )
+        if support_coverage["passed"] is not True:
+            raise ArtifactContractViolation(
+                "full corpus fixed-DP support coverage gate failed"
+            )
     summary: dict[str, Any] = {
         "complete_identity_count": complete,
-        "retained_capability_failure_count": retained_capability,
+        "retained_capability_failure_count": (
+            retained_capability + retained_fixed_dp
+        ),
+        "retained_scenario_capability_failure_count": retained_capability,
+        "retained_fixed_dp_capability_failure_count": retained_fixed_dp,
         "training_snapshot_count": expected_snapshots,
     }
     if red_coverage is not None:
         summary["red_scientific_coverage"] = red_coverage
+    if support_coverage is not None:
+        summary["fixed_dp_support_coverage"] = support_coverage
     return summary
 
 
@@ -421,6 +467,237 @@ def _validate_capability_failure_receipt(
             "capability failure reason is not a registered enum value"
         ) from exc
     return normalized
+
+
+def _validate_fixed_dp_capability_failure_receipt(
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    fields = {
+        "schema_version", "failure_class", "reason", "scenario_id",
+        "route_identity_sha256", "family", "tier", "source_class",
+        "phase_authority_mode", "source_map_sha256", "corridor_group_sha256",
+        "fixed_dp_head", "tick_index", "invalid_indices", "invalid_count",
+        "minimum_heading_norm", "maximum_heading_norm",
+        "heading_norm_minimum", "heading_norm_maximum", "raw_k8_sha256",
+        "candidate0_sha256", "default_output_sha256",
+        "default_candidate0_identity", "raw_preimage", "training_eligible",
+        "calibration_eligible", "evaluation_eligible", "fresh_b2_opened",
+        "outcome_fields_consumed",
+    }
+    if type(value) is not dict or set(value) != fields:
+        raise ArtifactContractViolation(
+            "fixed-DP capability failure receipt schema drifted"
+        )
+    if (
+        value.get("schema_version") != FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION
+        or value.get("failure_class") != FIXED_DP_FAILURE_CLASS
+        or value.get("reason") != "invalid_k8_heading_norm_envelope"
+        or value.get("fixed_dp_head") != FIXED_DP_HEAD
+        or value.get("training_eligible") is not False
+        or value.get("calibration_eligible") is not False
+        or value.get("evaluation_eligible") is not False
+        or value.get("fresh_b2_opened") is not False
+        or value.get("outcome_fields_consumed") != []
+    ):
+        raise ArtifactContractViolation(
+            "fixed-DP capability failure contract drifted"
+        )
+    sha_fields = (
+        "scenario_id", "route_identity_sha256", "source_map_sha256",
+        "corridor_group_sha256", "raw_k8_sha256", "candidate0_sha256",
+        "default_output_sha256",
+    )
+    if any(not _is_sha256(value.get(field)) for field in sha_fields):
+        raise ArtifactContractViolation(
+            "fixed-DP capability failure SHA authority drifted"
+        )
+    if (
+        type(value.get("tick_index")) is not int
+        or not 0 <= value["tick_index"] < CORPUS_STEPS
+        or type(value.get("invalid_count")) is not int
+        or value["invalid_count"] <= 0
+        or type(value.get("invalid_indices")) is not list
+        or len(value["invalid_indices"]) != value["invalid_count"]
+    ):
+        raise ArtifactContractViolation(
+            "fixed-DP capability failure index authority drifted"
+        )
+    pairs = []
+    for row in value["invalid_indices"]:
+        if (
+            type(row) is not dict
+            or set(row) != {"candidate_index", "step_index"}
+            or type(row.get("candidate_index")) is not int
+            or type(row.get("step_index")) is not int
+            or not 0 <= row["candidate_index"] < 8
+            or not 0 <= row["step_index"] < 80
+        ):
+            raise ArtifactContractViolation(
+                "fixed-DP capability failure invalid-index schema drifted"
+            )
+        pairs.append((row["candidate_index"], row["step_index"]))
+    if pairs != sorted(set(pairs)):
+        raise ArtifactContractViolation(
+            "fixed-DP capability invalid indices are not unique/sorted"
+        )
+    numeric = (
+        "minimum_heading_norm", "maximum_heading_norm",
+        "heading_norm_minimum", "heading_norm_maximum",
+    )
+    if any(
+        type(value.get(field)) not in (int, float)
+        or not np.isfinite(float(value[field]))
+        for field in numeric
+    ) or (
+        float(value["heading_norm_minimum"]) != 0.5
+        or float(value["heading_norm_maximum"]) != 1.5
+        or (
+            float(value["minimum_heading_norm"]) >= 0.5
+            and float(value["maximum_heading_norm"]) <= 1.5
+        )
+    ):
+        raise ArtifactContractViolation(
+            "fixed-DP capability heading envelope authority drifted"
+        )
+    preimage = value.get("raw_preimage")
+    if (
+        type(preimage) is not dict
+        or set(preimage)
+        != {"relative_path", "file_sha256", "array_sha256", "shape", "dtype"}
+        or preimage.get("relative_path")
+        != f"fixed_dp_capability_failures/{value['raw_k8_sha256']}.bin"
+        or preimage.get("file_sha256") != value["raw_k8_sha256"]
+        or preimage.get("array_sha256") != value["raw_k8_sha256"]
+        or preimage.get("shape") != [8, 80, 4]
+        or preimage.get("dtype") != "float32"
+    ):
+        raise ArtifactContractViolation(
+            "fixed-DP capability raw preimage authority drifted"
+        )
+    identity = value.get("default_candidate0_identity")
+    if (
+        type(identity) is not dict
+        or set(identity)
+        != {
+            "elementwise_equal", "max_abs_difference", "default_output_sha256",
+            "candidate0_sha256", "native_ranked_k8",
+        }
+        or identity.get("elementwise_equal") is not True
+        or identity.get("max_abs_difference") != 0.0
+        or identity.get("native_ranked_k8") is not False
+        or identity.get("candidate0_sha256") != value["candidate0_sha256"]
+        or identity.get("default_output_sha256")
+        != value["default_output_sha256"]
+        or value["candidate0_sha256"] != value["default_output_sha256"]
+    ):
+        raise ArtifactContractViolation(
+            "fixed-DP capability candidate0 same-forward authority drifted"
+        )
+    return dict(value)
+
+
+def _full_support_coverage(
+    *,
+    results: list[Mapping[str, Any]],
+    authority: Mapping[str, Mapping[str, Any]],
+) -> dict[str, Any]:
+    if set(authority) != {str(row.get("scenario_id")) for row in results}:
+        raise ArtifactContractViolation("full support authority denominator drifted")
+    rows = []
+    for result in results:
+        expected = authority[str(result["scenario_id"])]
+        if any(
+            result.get(field) != expected.get(field)
+            for field in ("family", "tier", "route_identity_sha256")
+        ):
+            raise ArtifactContractViolation("full support result authority drifted")
+        rows.append({**expected, "status": result["status"]})
+
+    def grouped(fields: tuple[str, ...], minimum: int) -> dict[str, Any]:
+        totals: collections.Counter[tuple[str, ...]] = collections.Counter()
+        completes: collections.Counter[tuple[str, ...]] = collections.Counter()
+        for row in rows:
+            key = tuple(str(row[field]) for field in fields)
+            totals[key] += 1
+            if row["status"] == "complete":
+                completes[key] += 1
+        table = []
+        passed = True
+        for key in sorted(totals):
+            ok = completes[key] > 0 and completes[key] * 100 > totals[key] * minimum
+            passed = passed and ok
+            table.append({"key": list(key), "planned": totals[key], "complete": completes[key], "passed": ok})
+        return {"fields": list(fields), "minimum_percent_exclusive": minimum, "rows": table, "passed": passed}
+
+    complete = sum(row["status"] == "complete" for row in rows)
+    family = grouped(("family",), 90)
+    source = grouped(("source_class", "phase_authority_mode"), 90)
+    family_tier = grouped(("family", "tier"), 80)
+    passed = bool(
+        len(rows) == EXPECTED_EXECUTABLE_IDENTITIES
+        and complete >= 1425
+        and family["passed"]
+        and source["passed"]
+        and family_tier["passed"]
+    )
+    return {
+        "planned_identity_count": len(rows),
+        "complete_identity_count": complete,
+        "minimum_complete_identity_count": 1425,
+        "family": family,
+        "source_mode": source,
+        "family_tier": family_tier,
+        "passed": passed,
+    }
+
+
+def _write_fixed_dp_capability_failure(
+    *, output_dir: Path, case: Mapping[str, Any], failure: FixedDpCandidateGenerationCapabilityFailure
+) -> dict[str, Any]:
+    metadata = failure.canonical_metadata()
+    tensor = failure.candidate_tensor_copy()
+    raw = np.ascontiguousarray(tensor).tobytes(order="C")
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != metadata["raw_k8_sha256"]:
+        raise ArtifactContractViolation("fixed-DP capability raw digest drifted")
+    relative = Path("fixed_dp_capability_failures") / f"{digest}.bin"
+    path = output_dir / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_bytes() != raw:
+        raise ArtifactContractViolation("fixed-DP capability raw collision")
+    if not path.exists():
+        path.write_bytes(raw)
+    return {
+        "schema_version": FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+        "failure_class": metadata["failure_class"],
+        "reason": metadata["reason"],
+        "scenario_id": str(case["scenario_id"]),
+        "route_identity_sha256": str(case["route_identity_sha256"]),
+        "family": str(case["family"]),
+        "tier": str(case["tier"]),
+        "source_class": str(case["signal_source_class"]),
+        "phase_authority_mode": case["phase_authority_mode"],
+        "source_map_sha256": str(case["source_map_sha256"]),
+        "corridor_group_sha256": str(case["corridor_group_sha256"]),
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "tick_index": metadata["tick_index"],
+        "invalid_indices": metadata["invalid_indices"],
+        "invalid_count": metadata["invalid_count"],
+        "minimum_heading_norm": metadata["minimum_heading_norm"],
+        "maximum_heading_norm": metadata["maximum_heading_norm"],
+        "heading_norm_minimum": metadata["heading_norm_minimum"],
+        "heading_norm_maximum": metadata["heading_norm_maximum"],
+        "raw_k8_sha256": digest,
+        "candidate0_sha256": metadata["candidate0_sha256"],
+        "default_output_sha256": metadata["default_output_sha256"],
+        "default_candidate0_identity": metadata["default_candidate0_identity"],
+        "raw_preimage": {"relative_path": relative.as_posix(), "file_sha256": digest, "array_sha256": digest, "shape": [8, 80, 4], "dtype": "float32"},
+        "training_eligible": False,
+        "calibration_eligible": False,
+        "evaluation_eligible": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
 
 
 def parse_args() -> argparse.Namespace:
@@ -1870,6 +2147,23 @@ def _execute(
                         failure_type = type(exc).__name__
                         failure_reason = str(exc)
                         capability_failure = exc.as_receipt()
+                    except FixedDpCandidateGenerationCapabilityFailure as exc:
+                        status = "failed"
+                        failure_type = type(exc).__name__
+                        failure_reason = str(exc)
+                        capability_failure = _write_fixed_dp_capability_failure(
+                            output_dir=output_dir,
+                            case=case,
+                            failure=exc,
+                        )
+                        snapshots.clear()
+                        contexts.clear()
+                        receipt_tick_count = 0
+                        native_dir = (
+                            output_dir / "native_runs" / str(case["scenario_id"])
+                        )
+                        if native_dir.exists():
+                            shutil.rmtree(native_dir)
                     disposition = validate_identity_terminal(
                         status=status,
                         receipt_tick_count=receipt_tick_count,
@@ -1957,6 +2251,18 @@ def _execute(
             for case in cases
             if case.get("family") == "red_light_phase_timing"
         },
+        expected_support_authority={
+            str(case["scenario_id"]): {
+                "family": str(case["family"]),
+                "tier": str(case["tier"]),
+                "route_identity_sha256": str(case["route_identity_sha256"]),
+                "source_class": str(case["signal_source_class"]),
+                "phase_authority_mode": case["phase_authority_mode"],
+                "source_map_sha256": str(case["source_map_sha256"]),
+                "corridor_group_sha256": str(case["corridor_group_sha256"]),
+            }
+            for case in cases
+        },
     )
     family_counts = collections.Counter(row["family"] for row in results)
     family_snapshots = collections.Counter()
@@ -1995,7 +2301,14 @@ def _execute(
         "retained_capability_failure_count": terminal[
             "retained_capability_failure_count"
         ],
+        "retained_scenario_capability_failure_count": terminal[
+            "retained_scenario_capability_failure_count"
+        ],
+        "retained_fixed_dp_capability_failure_count": terminal[
+            "retained_fixed_dp_capability_failure_count"
+        ],
         "red_scientific_coverage": terminal["red_scientific_coverage"],
+        "fixed_dp_support_coverage": terminal["fixed_dp_support_coverage"],
         "retained_identity_count": len(results),
         "snapshot_count": snapshot_count,
         "snapshot_capacity": len(cases) * CORPUS_STEPS,

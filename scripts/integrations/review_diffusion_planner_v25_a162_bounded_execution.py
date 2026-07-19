@@ -25,7 +25,7 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 
 
 SCHEMA_VERSION = "camp_dp_v25_a162_bounded_execution_plan_review_v2"
-PLAN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_execution_plan_v2"
+PLAN_SCHEMA_VERSION = "camp_dp_v25_a17_route_level_bounded_execution_plan_v3"
 PRODUCER_SCHEMA_VERSION = "camp_dp_v25_a162_bounded_execution_preflight_v2"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 FORMAL_ARTIFACT = Path(
@@ -276,8 +276,11 @@ def _oracle_plan(
                 "seed": EXPECTED_SEED,
                 "source_class": row["source_class"],
                 "phase_authority_mode": row["phase_authority_mode"],
+                "family": case["family"],
+                "tier": case["tier"],
                 "route_identity_sha256": case["route_identity_sha256"],
                 "source_map_sha256": case["source_map_sha256"],
+                "corridor_group_sha256": case["corridor_group_sha256"],
                 "semantic_clone_sha256": row["source_chain"]["semantic_clone_sha256"],
                 "source_row_sha256": _sha(row),
                 "k8_relevant_physical_payload_sha256": _sha(

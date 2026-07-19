@@ -8,6 +8,11 @@ import pytest
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     CAUSAL_DP_INPUT_SCHEMA,
 )
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    FixedDpCandidateGenerationCapabilityFailure,
+    INVALID_K8_HEADING_NORM_REASON,
+    validate_fixed_k8_candidate_tensor,
+)
 
 
 def _runner():
@@ -189,6 +194,7 @@ def _hook(
         "state": state,
         "to_model_tensors": to_model_tensors,
         "dump_step_npz": _dump_step_npz,
+        "validate_candidates": validate_fixed_k8_candidate_tensor,
         "materialize": materialize,
         "select_candidate": _select,
         "signal_mask": lambda candidates, causal_input, scene: np.ones(
@@ -227,6 +233,56 @@ def _hook(
         kwargs["candidate_tensor_sink"] = candidate_tensor_sink
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
+
+
+def test_same_forward_known_heading_failure_is_typed_before_materialization() -> None:
+    module = _runner()
+    materialized = []
+    captured = []
+
+    class Run155PatternModel(_FakeModel):
+        def __call__(self, data):
+            result = super().__call__(data)
+            # Default is call 1; latent candidate 5 is call 6.  Reproduce the
+            # audited run155/tick32 invalid block without changing K or shape.
+            if len(self.calls) == 6:
+                result[1]["prediction"][0, 0, 10:16, 2] = np.float32(
+                    0.06830171230455423
+                )
+                result[1]["prediction"][0, 0, 10:16, 3] = np.float32(0.0)
+            return result
+
+    model = Run155PatternModel()
+
+    def must_not_materialize(**kwargs):
+        materialized.append(kwargs)
+        return _materialize(**kwargs)
+
+    hook, state = _hook(
+        module,
+        model,
+        materialize=must_not_materialize,
+        candidate_tensor_sink=lambda *values: captured.append(values),
+    )
+    with pytest.raises(
+        FixedDpCandidateGenerationCapabilityFailure,
+        match=INVALID_K8_HEADING_NORM_REASON,
+    ) as caught:
+        hook(
+            model,
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            _Scene(),
+            ["ego"],
+            "cpu",
+        )
+    failure = caught.value
+    assert failure.tick_index == 0
+    assert failure.invalid_indices == tuple((5, step) for step in range(10, 16))
+    assert failure.minimum_heading_norm == pytest.approx(0.06830171230455423)
+    assert len(captured) == 1
+    assert materialized == []
+    assert state.receipts[-1]["status"] == "failed"
+    assert state.receipts[-1]["default_candidate0_identity"]["elementwise_equal"] is True
 
 
 def test_v25_sink_captures_scene_materialization_not_batched_forward_input() -> None:
@@ -461,6 +517,7 @@ def test_v24_dp_candidate0_mode_generates_immutable_k8_and_returns_default() -> 
         state=state,
         to_model_tensors=_to_model_tensors,
         dump_step_npz=_dump_step_npz,
+        validate_candidates=validate_fixed_k8_candidate_tensor,
         materialize=None,
         select_candidate=None,
         signal_mask=None,

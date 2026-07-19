@@ -6,6 +6,10 @@ from pathlib import Path
 import pytest
 
 from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (
+    FIXED_DP_FAILURE_CLASS,
+    FIXED_DP_FAILURE_REASON,
+    FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+    FIXED_DP_HEAD,
     RESULT_SCHEMA_VERSION,
     RUN_EVIDENCE_SCHEMA_VERSION,
     TICKS_PER_RUN,
@@ -16,6 +20,99 @@ from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import 
 
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _complete_results_and_evidence(plan: dict) -> tuple[list[dict], list[dict]]:
+    results = [
+        {
+            "schema_version": RESULT_SCHEMA_VERSION,
+            "run_ordinal": run["run_ordinal"],
+            "scenario_id": run["scenario_id"],
+            "occurrence": run["occurrence"],
+            "status": "complete",
+            "tick_count": 64,
+            "retained_capability_failure": None,
+            "failure_class": "none",
+            "fresh_b2_opened": False,
+            "outcome_fields_consumed": [],
+            "family": run["family"],
+            "tier": run["tier"],
+            "source_class": run["source_class"],
+            "phase_authority_mode": run["phase_authority_mode"],
+            "source_map_sha256": run["source_map_sha256"],
+            "corridor_group_sha256": run["corridor_group_sha256"],
+        }
+        for run in plan["runs"]
+    ]
+    evidence = [
+        {
+            "schema_version": RUN_EVIDENCE_SCHEMA_VERSION,
+            "run_ordinal": run["run_ordinal"],
+            "scenario_id": run["scenario_id"],
+            "occurrence": run["occurrence"],
+            "tick_count": 64,
+            "candidate0_sha256_sequence": ["1" * 64] * 64,
+            "k8_row_sha256_sequence": [
+                [f"{index:x}" * 64 for index in range(8)]
+            ]
+            * 64,
+            "atom_matrix_sha256_sequence": ["2" * 64] * 64,
+            "context_sha256_sequence": ["3" * 64] * 64,
+            "selected_index_sequence": [0] * 64,
+            "failure_class": "none",
+            "closed_loop_trajectory_sha256": "4" * 64,
+            "speed_probe_sha256": "5" * 64,
+            "capability_failure_sha256": None,
+        }
+        for run in plan["runs"]
+    ]
+    return results, evidence
+
+
+def _fixed_dp_failure_receipt(run: dict) -> dict:
+    return {
+        "schema_version": FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+        "failure_class": FIXED_DP_FAILURE_CLASS,
+        "reason": FIXED_DP_FAILURE_REASON,
+        "scenario_id": run["scenario_id"],
+        "route_identity_sha256": run["route_identity_sha256"],
+        "family": run["family"],
+        "tier": run["tier"],
+        "source_class": run["source_class"],
+        "phase_authority_mode": run["phase_authority_mode"],
+        "source_map_sha256": run["source_map_sha256"],
+        "corridor_group_sha256": run["corridor_group_sha256"],
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "tick_index": 32,
+        "invalid_indices": [{"candidate_index": 5, "step_index": 10}],
+        "invalid_count": 1,
+        "minimum_heading_norm": 0.06830171230455423,
+        "maximum_heading_norm": 1.0,
+        "heading_norm_minimum": 0.5,
+        "heading_norm_maximum": 1.5,
+        "raw_k8_sha256": "6" * 64,
+        "candidate0_sha256": "7" * 64,
+        "default_output_sha256": "7" * 64,
+        "default_candidate0_identity": {
+            "elementwise_equal": True,
+            "max_abs_difference": 0.0,
+            "candidate0_sha256": "7" * 64,
+            "default_output_sha256": "7" * 64,
+            "native_ranked_k8": False,
+        },
+        "raw_preimage": {
+            "relative_path": f"fixed_dp_capability_failures/{'6' * 64}.bin",
+            "file_sha256": "6" * 64,
+            "array_sha256": "6" * 64,
+            "shape": [8, 80, 4],
+            "dtype": "float32",
+        },
+        "training_eligible": False,
+        "calibration_eligible": False,
+        "evaluation_eligible": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
 
 
 def _actor(speed: float = 4.0) -> dict:
@@ -169,46 +266,17 @@ def test_non_equivalent_scenario_id_tie_includes_every_terminal_item() -> None:
 
 
 def test_bounded_terminal_requires_all_runs_exactly_64_and_zero_failures() -> None:
-    cases, rows = _fixture()
+    cases = [_case(index + 10, mapped=False) for index in range(2)]
+    for index, case in enumerate(cases):
+        case["semantic_variant"] = f"terminal-cell-{index}"
+    rows = [_row(case, mapped=False) for case in cases]
     plan = build_route_level_bounded_execution_plan(
         formal_train=cases,
         source_rows=rows,
         source_root_sha256="3" * 64,
         source_review_root_sha256="4" * 64,
     )
-    results = [
-        {
-            "schema_version": RESULT_SCHEMA_VERSION,
-            "run_ordinal": run["run_ordinal"],
-            "scenario_id": run["scenario_id"],
-            "occurrence": run["occurrence"],
-            "status": "complete",
-            "tick_count": 64,
-            "retained_capability_failure": None,
-            "failure_class": "none",
-            "fresh_b2_opened": False,
-            "outcome_fields_consumed": [],
-        }
-        for run in plan["runs"]
-    ]
-    run_evidence = [
-        {
-            "schema_version": RUN_EVIDENCE_SCHEMA_VERSION,
-            "run_ordinal": run["run_ordinal"],
-            "scenario_id": run["scenario_id"],
-            "occurrence": run["occurrence"],
-            "tick_count": 64,
-            "candidate0_sha256_sequence": ["1" * 64] * 64,
-            "k8_row_sha256_sequence": [[f"{index:x}" * 64 for index in range(8)]] * 64,
-            "atom_matrix_sha256_sequence": ["2" * 64] * 64,
-            "context_sha256_sequence": ["3" * 64] * 64,
-            "selected_index_sequence": [0] * 64,
-            "failure_class": "none",
-            "closed_loop_trajectory_sha256": "4" * 64,
-            "speed_probe_sha256": "5" * 64,
-        }
-        for run in plan["runs"]
-    ]
+    results, run_evidence = _complete_results_and_evidence(plan)
     terminal = validate_bounded_terminal_acceptance(
         plan, results, run_evidence=run_evidence
     )
@@ -222,7 +290,7 @@ def test_bounded_terminal_requires_all_runs_exactly_64_and_zero_failures() -> No
         "reason": "mapped_current_signal_source_unavailable"
     }
     failed[1]["failure_class"] = "mapped_runtime_source_failure"
-    with pytest.raises(ValueError, match="64-tick completion"):
+    with pytest.raises(ValueError, match="terminal contract"):
         validate_bounded_terminal_acceptance(
             plan, failed, run_evidence=run_evidence
         )
@@ -232,6 +300,56 @@ def test_bounded_terminal_requires_all_runs_exactly_64_and_zero_failures() -> No
     with pytest.raises(ValueError, match="determinism comparison"):
         validate_bounded_terminal_acceptance(
             plan, results, run_evidence=drifted
+        )
+
+
+def test_bounded_terminal_retains_exact_fixed_dp_capability_failure_at_zero_ticks() -> None:
+    cases = [_case(index + 100, mapped=False) for index in range(20)]
+    for index, case in enumerate(cases):
+        case["semantic_variant"] = f"support-cell-{index:02d}"
+    rows = [_row(case, mapped=False) for case in cases]
+    plan = build_route_level_bounded_execution_plan(
+        formal_train=cases,
+        source_rows=rows,
+        source_root_sha256="3" * 64,
+        source_review_root_sha256="4" * 64,
+    )
+    assert plan["unique_identity_count"] == 20
+    results, evidence = _complete_results_and_evidence(plan)
+    failed_run = plan["runs"][1]
+    receipt = _fixed_dp_failure_receipt(failed_run)
+    results[1].update(
+        status="retained_fixed_dp_capability_failure",
+        tick_count=0,
+        retained_capability_failure=receipt,
+        failure_class=FIXED_DP_FAILURE_CLASS,
+    )
+    evidence[1].update(
+        tick_count=0,
+        candidate0_sha256_sequence=[],
+        k8_row_sha256_sequence=[],
+        atom_matrix_sha256_sequence=[],
+        context_sha256_sequence=[],
+        selected_index_sequence=[],
+        failure_class=FIXED_DP_FAILURE_CLASS,
+        closed_loop_trajectory_sha256=None,
+        speed_probe_sha256=None,
+        capability_failure_sha256=canonical_sha256(receipt),
+    )
+    terminal = validate_bounded_terminal_acceptance(
+        plan, results, run_evidence=evidence
+    )
+    assert terminal["retained_capability_failure_count"] == 1
+    assert terminal["fixed_dp_support_coverage"]["passed"] is True
+    assert terminal["fixed_dp_support_coverage"]["complete_unique_identity_count"] == 19
+
+    mutated = copy.deepcopy(results)
+    mutated[1]["retained_capability_failure"]["invalid_indices"][0][
+        "step_index"
+    ] = -1
+    with pytest.raises(ValueError, match="terminal contract"):
+        validate_bounded_terminal_acceptance(
+            plan, mutated, run_evidence=evidence
         )
 
 

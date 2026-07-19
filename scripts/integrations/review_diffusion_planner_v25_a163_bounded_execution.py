@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import collections
 import hashlib
 import importlib
 import json
@@ -38,6 +39,14 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
     verify_bounded_release,
 )
+from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (  # noqa: E402
+    FIXED_DP_FAILURE_CLASS,
+    FIXED_DP_FAILURE_REASON,
+    FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+    RESULT_SCHEMA_VERSION,
+    RUN_EVIDENCE_SCHEMA_VERSION,
+    canonical_sha256,
+)
 from camp_core.integrations.diffusion_planner_v25_causal_evidence_review import (  # noqa: E402
     expected_shard_manifest_paths,
     independently_materialize_causal_evidence,
@@ -48,12 +57,10 @@ from camp_core.integrations.diffusion_planner_v25_snapshot_review import (  # no
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a17_bounded_execution_review_v9"
+SCHEMA_VERSION = "camp_dp_v25_a17_bounded_execution_review_v10"
 EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_snapshot_v7"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
-RUN_EVIDENCE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_run_evidence_v1"
-RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
@@ -177,6 +184,10 @@ EXECUTION_FILE_BYTE_POLICIES = (
         "strict-causal-scene-materialization-npz-v1",
     ),
     (
+        r"fixed_dp_capability_failures/[0-9a-f]{64}\.bin",
+        "fixed-dp-capability-raw-k8-float32-v1",
+    ),
+    (
         r"native_runs/[^/]+/bounded_native_receipt\.json",
         "canonical-json-utf8-sort-compact-single-lf-v1",
     ),
@@ -228,6 +239,12 @@ RESULT_FIELDS = {
     "failure_class",
     "fresh_b2_opened",
     "outcome_fields_consumed",
+    "family",
+    "tier",
+    "source_class",
+    "phase_authority_mode",
+    "source_map_sha256",
+    "corridor_group_sha256",
 }
 EXECUTION_REPORT_FIELDS = {
     "schema_version",
@@ -767,6 +784,18 @@ def _validate_execution_policy_file(
             raise ValueError("bounded scene materialization archive is invalid") from exc
     elif policy == "fixed-dp-strict-json-exact-schema-v1":
         _load(path, canonical=False)
+    elif policy == "fixed-dp-capability-raw-k8-float32-v1":
+        digest = path.stem
+        data = path.read_bytes()
+        if (
+            not _is_sha256(digest)
+            or len(data) != 8 * 80 * 4 * np.dtype(np.float32).itemsize
+            or hashlib.sha256(data).hexdigest() != digest
+        ):
+            raise ValueError("fixed-DP capability raw K8 preimage drifted")
+        tensor = np.frombuffer(data, dtype=np.float32).reshape(8, 80, 4)
+        if not np.isfinite(tensor).all():
+            raise ValueError("fixed-DP capability raw K8 is nonfinite")
     elif policy == "diagnostic-utf8-text-nonauthoritative-v1":
         _validate_diagnostic_text(path, require_single_lf=False)
     else:
@@ -3355,6 +3384,130 @@ def _review_run(
         "failure_class": failure_class,
         "closed_loop_trajectory_sha256": _sha(trajectory),
         "speed_probe_sha256": _sha(speeds),
+        "capability_failure_sha256": None,
+    }
+
+
+def _review_fixed_dp_capability_failure(
+    *,
+    artifact: Path,
+    run: Mapping[str, Any],
+    result: Mapping[str, Any],
+    source_row: Mapping[str, Any],
+    formal_case: Mapping[str, Any],
+) -> dict[str, Any]:
+    receipt = result.get("retained_capability_failure")
+    fields = {
+        "schema_version", "failure_class", "reason", "scenario_id",
+        "route_identity_sha256", "family", "tier", "source_class",
+        "phase_authority_mode", "source_map_sha256", "corridor_group_sha256",
+        "fixed_dp_head", "tick_index", "invalid_indices", "invalid_count",
+        "minimum_heading_norm", "maximum_heading_norm",
+        "heading_norm_minimum", "heading_norm_maximum", "raw_k8_sha256",
+        "candidate0_sha256", "default_output_sha256",
+        "default_candidate0_identity", "raw_preimage", "training_eligible",
+        "calibration_eligible", "evaluation_eligible", "fresh_b2_opened",
+        "outcome_fields_consumed",
+    }
+    if type(receipt) is not dict or set(receipt) != fields:
+        raise ValueError("fixed-DP capability failure receipt schema drifted")
+    source_class = source_row.get("source_class")
+    phase_mode = source_row.get("phase_authority_mode")
+    expected_values = {
+        "schema_version": FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+        "failure_class": FIXED_DP_FAILURE_CLASS,
+        "reason": FIXED_DP_FAILURE_REASON,
+        "scenario_id": str(run["scenario_id"]),
+        "route_identity_sha256": str(formal_case["route_identity_sha256"]),
+        "family": str(formal_case["family"]),
+        "tier": str(formal_case["tier"]),
+        "source_class": source_class,
+        "phase_authority_mode": phase_mode,
+        "source_map_sha256": str(formal_case["source_map_sha256"]),
+        "corridor_group_sha256": str(formal_case["corridor_group_sha256"]),
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "heading_norm_minimum": 0.5,
+        "heading_norm_maximum": 1.5,
+        "training_eligible": False,
+        "calibration_eligible": False,
+        "evaluation_eligible": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    if any(not _strict_equal(receipt.get(key), value) for key, value in expected_values.items()):
+        raise ValueError("fixed-DP capability failure authority drifted")
+    preimage = receipt.get("raw_preimage")
+    if (
+        type(preimage) is not dict
+        or set(preimage)
+        != {"relative_path", "file_sha256", "array_sha256", "shape", "dtype"}
+        or preimage.get("shape") != [8, 80, 4]
+        or preimage.get("dtype") != "float32"
+        or preimage.get("relative_path")
+        != f"fixed_dp_capability_failures/{receipt.get('raw_k8_sha256')}.bin"
+        or preimage.get("file_sha256") != receipt.get("raw_k8_sha256")
+        or preimage.get("array_sha256") != receipt.get("raw_k8_sha256")
+    ):
+        raise ValueError("fixed-DP capability raw preimage receipt drifted")
+    path = artifact / preimage["relative_path"]
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("fixed-DP capability raw preimage is unavailable")
+    data = path.read_bytes()
+    digest = hashlib.sha256(data).hexdigest()
+    if digest != receipt.get("raw_k8_sha256"):
+        raise ValueError("fixed-DP capability raw preimage digest drifted")
+    tensor = np.frombuffer(data, dtype=np.float32).reshape(8, 80, 4)
+    if not np.isfinite(tensor).all():
+        raise ValueError("fixed-DP capability raw tensor is nonfinite")
+    norms = np.linalg.norm(tensor[..., 2:4].astype(np.float64), axis=2)
+    invalid = np.abs(norms - 1.0) > 0.5
+    pairs = [
+        {"candidate_index": int(candidate), "step_index": int(step)}
+        for candidate, step in np.argwhere(invalid)
+    ]
+    candidate0_sha = hashlib.sha256(
+        np.ascontiguousarray(tensor[0]).tobytes(order="C")
+    ).hexdigest()
+    identity = receipt.get("default_candidate0_identity")
+    if (
+        not pairs
+        or receipt.get("invalid_indices") != pairs
+        or receipt.get("invalid_count") != len(pairs)
+        or receipt.get("minimum_heading_norm") != float(norms.min())
+        or receipt.get("maximum_heading_norm") != float(norms.max())
+        or receipt.get("candidate0_sha256") != candidate0_sha
+        or type(identity) is not dict
+        or set(identity)
+        != {
+            "elementwise_equal", "max_abs_difference", "default_output_sha256",
+            "candidate0_sha256", "native_ranked_k8",
+        }
+        or identity.get("elementwise_equal") is not True
+        or identity.get("max_abs_difference") != 0.0
+        or identity.get("native_ranked_k8") is not False
+        or identity.get("candidate0_sha256") != candidate0_sha
+        or identity.get("default_output_sha256")
+        != receipt.get("default_output_sha256")
+        or receipt.get("default_output_sha256") != candidate0_sha
+        or type(receipt.get("tick_index")) is not int
+        or not 0 <= receipt["tick_index"] < 64
+    ):
+        raise ValueError("fixed-DP capability failure independent oracle failed")
+    return {
+        "schema_version": RUN_EVIDENCE_SCHEMA_VERSION,
+        "run_ordinal": run["run_ordinal"],
+        "scenario_id": run["scenario_id"],
+        "occurrence": run["occurrence"],
+        "tick_count": 0,
+        "candidate0_sha256_sequence": [],
+        "k8_row_sha256_sequence": [],
+        "atom_matrix_sha256_sequence": [],
+        "context_sha256_sequence": [],
+        "selected_index_sequence": [],
+        "failure_class": FIXED_DP_FAILURE_CLASS,
+        "closed_loop_trajectory_sha256": None,
+        "speed_probe_sha256": None,
+        "capability_failure_sha256": canonical_sha256(receipt),
     }
 
 
@@ -3394,12 +3547,14 @@ def _expected_execution_report(
         "status": "passed_exact_bounded_execution",
         "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
         "run_count": EXPECTED_RUNS,
-        "snapshot_count": EXPECTED_TICKS,
+        "snapshot_count": terminal["tick_count"],
         "snapshot_capacity": EXPECTED_TICKS,
         "device": EXPECTED_DEVICE,
         "terminal": dict(terminal),
         "wall_seconds": wall_seconds,
-        "retained_capability_failure_count": 0,
+        "retained_capability_failure_count": terminal[
+            "retained_capability_failure_count"
+        ],
         "mapped_runtime_source_failure_count": 0,
         "candidate0_semantics": "operational_default_alias_from_same_forward",
         "sequential_fixed_k8": True,
@@ -3452,20 +3607,105 @@ def _independent_terminal(
         "speed_probe_equal": first["speed_probe_sha256"]
         == final["speed_probe_sha256"],
     }
-    if any(value is not True for value in comparison.values()):
+    if (
+        results[0].get("status") != "complete"
+        or results[-1].get("status") != "complete"
+        or any(value is not True for value in comparison.values())
+    ):
         raise ValueError("bounded independent identity0 terminal comparison failed")
+    unique: dict[str, Mapping[str, Any]] = {}
+    for row in results:
+        scenario_id = str(row.get("scenario_id"))
+        prior = unique.get(scenario_id)
+        if prior is not None and (
+            prior.get("occurrence") != "identity0_first"
+            or row.get("occurrence") != "identity0_final_repeat"
+            or prior.get("status") != "complete"
+            or row.get("status") != "complete"
+        ):
+            raise ValueError("bounded independent duplicate identity drifted")
+        unique.setdefault(scenario_id, row)
+    if len(unique) != EXPECTED_UNIQUE_IDENTITIES:
+        raise ValueError("bounded independent unique denominator drifted")
+    coverage = _independent_bounded_coverage(list(unique.values()))
+    if coverage["passed"] is not True:
+        raise ValueError("bounded independent support coverage gate failed")
+    complete_runs = sum(row.get("status") == "complete" for row in results)
+    retained_runs = len(results) - complete_runs
     return {
-        "schema_version": "camp_dp_v25_a163_route_level_bounded_terminal_v2",
+        "schema_version": "camp_dp_v25_a17_route_level_bounded_terminal_v3",
         "status": "passed_exact_bounded_terminal",
         "run_count": EXPECTED_RUNS,
         "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
-        "tick_count": EXPECTED_TICKS,
-        "retained_capability_failure_count": 0,
+        "tick_count": complete_runs * 64,
+        "retained_capability_failure_count": retained_runs,
         "mapped_runtime_source_failure_count": 0,
+        "fixed_dp_support_coverage": coverage,
         "identity0_repeat_deterministic": True,
         "repeat_comparison": comparison,
         "fresh_b2_opened": False,
         "outcome_fields_consumed": [],
+    }
+
+
+def _independent_bounded_coverage(
+    rows: list[Mapping[str, Any]],
+) -> dict[str, Any]:
+    def grouped(fields: tuple[str, ...], minimum: int) -> dict[str, Any]:
+        totals: collections.Counter[tuple[str, ...]] = collections.Counter()
+        completes: collections.Counter[tuple[str, ...]] = collections.Counter()
+        for row in rows:
+            key = tuple(str(row[field]) for field in fields)
+            totals[key] += 1
+            if row.get("status") == "complete":
+                completes[key] += 1
+        table = []
+        passed = True
+        for key in sorted(totals):
+            ok = completes[key] * 100 > totals[key] * minimum
+            passed = passed and ok
+            table.append(
+                {"key": list(key), "planned": totals[key], "complete": completes[key], "passed": ok}
+            )
+        return {"fields": list(fields), "minimum_percent_exclusive": minimum, "rows": table, "passed": passed}
+
+    complete = [row for row in rows if row.get("status") == "complete"]
+    family = grouped(("family",), 90)
+    source = grouped(("source_class", "phase_authority_mode"), 90)
+    family_tier = grouped(("family", "tier"), 80)
+    red_complete = [
+        row for row in complete
+        if row.get("family") == "red_light_phase_timing"
+    ]
+    red_by_tier = collections.Counter(str(row["tier"]) for row in red_complete)
+    red_maps = {str(row["source_map_sha256"]) for row in red_complete}
+    red_planned = [
+        row for row in rows
+        if row.get("family") == "red_light_phase_timing"
+    ]
+    red_pass = not red_planned or (
+        red_by_tier["easy"] >= 4
+        and red_by_tier["borderline"] >= 7
+        and red_by_tier["high_risk"] >= 4
+        and len(red_maps) >= 3
+    )
+    minimum_complete = math.ceil(len(rows) * 0.95)
+    passed = bool(
+        len(rows) > 0 and len(complete) >= minimum_complete and family["passed"]
+        and source["passed"] and family_tier["passed"] and red_pass
+    )
+    return {
+        "planned_unique_identity_count": len(rows),
+        "complete_unique_identity_count": len(complete),
+        "minimum_complete_unique_identity_count": minimum_complete,
+        "family": family,
+        "source_mode": source,
+        "family_tier": family_tier,
+        "red_complete_by_tier": {tier: int(red_by_tier[tier]) for tier in ("easy", "borderline", "high_risk")},
+        "red_complete_distinct_source_map_count": len(red_maps),
+        "red_minimum_complete_by_tier": {"easy": 4, "borderline": 7, "high_risk": 4},
+        "red_minimum_distinct_source_maps": 3,
+        "passed": passed,
     }
 
 
@@ -3542,7 +3782,9 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or type(progress.get("total_runs")) is not int
         or progress["total_runs"] != EXPECTED_RUNS
         or type(progress.get("snapshot_count")) is not int
-        or progress["snapshot_count"] != EXPECTED_TICKS
+        or progress["snapshot_count"] < 0
+        or progress["snapshot_count"] > EXPECTED_TICKS
+        or progress["snapshot_count"] % 64 != 0
         or progress.get("fresh_b2_opened") is not False
         or progress.get("outcome_fields_consumed") != []
     ):
@@ -3608,10 +3850,14 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or type(report.get("run_count")) is not int
         or report["run_count"] != EXPECTED_RUNS
         or type(report.get("snapshot_count")) is not int
-        or report["snapshot_count"] != EXPECTED_TICKS
+        or report["snapshot_count"] < 0
+        or report["snapshot_count"] > EXPECTED_TICKS
+        or report["snapshot_count"] % 64 != 0
         or type(report.get("snapshot_capacity")) is not int
         or report["snapshot_capacity"] != EXPECTED_TICKS
-        or report.get("retained_capability_failure_count") != 0
+        or type(report.get("retained_capability_failure_count")) is not int
+        or report["retained_capability_failure_count"] < 0
+        or report["retained_capability_failure_count"] > 12
         or report.get("mapped_runtime_source_failure_count") != 0
         or report.get("full_r_execute_authorized") is not False
         or report.get("fresh_b2_opened") is not False
@@ -3634,13 +3880,32 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
     if (
         len(results) != EXPECTED_RUNS
         or len(evidence) != EXPECTED_RUNS
-        or len(index_rows) != EXPECTED_TICKS
+        or len(index_rows) != report["snapshot_count"]
+        or len(index_rows) != progress["snapshot_count"]
     ):
         raise ValueError("bounded results/evidence/index denominator drifted")
     rebuilt = []
     referenced_causal_shards: set[str] = set()
     for run, result in zip(plan["runs"], results):
         source_row = _validate_source_row(rows_by_id[str(run["scenario_id"])])
+        complete = result.get("status") == "complete" if type(result) is dict else False
+        retained = (
+            result.get("status") == "retained_fixed_dp_capability_failure"
+            if type(result) is dict
+            else False
+        )
+        expected_result_values = {
+            "family": str(formal_cases[str(run["scenario_id"])]["family"]),
+            "tier": str(formal_cases[str(run["scenario_id"])]["tier"]),
+            "source_class": source_row["source_class"],
+            "phase_authority_mode": source_row["phase_authority_mode"],
+            "source_map_sha256": str(
+                formal_cases[str(run["scenario_id"])]["source_map_sha256"]
+            ),
+            "corridor_group_sha256": str(
+                formal_cases[str(run["scenario_id"])]["corridor_group_sha256"]
+            ),
+        }
         if (
             type(result) is not dict
             or set(result) != RESULT_FIELDS
@@ -3648,17 +3913,28 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
             or result.get("run_ordinal") != run["run_ordinal"]
             or result.get("scenario_id") != run["scenario_id"]
             or result.get("occurrence") != run["occurrence"]
-            or result.get("status") != "complete"
+            or not (complete or retained)
             or type(result.get("tick_count")) is not int
-            or result["tick_count"] != 64
-            or result.get("retained_capability_failure") is not None
-            or result.get("failure_class") != "none"
+            or result["tick_count"] != (64 if complete else 0)
+            or (
+                complete
+                and (
+                    result.get("retained_capability_failure") is not None
+                    or result.get("failure_class") != "none"
+                )
+            )
+            or (
+                retained
+                and result.get("failure_class") != FIXED_DP_FAILURE_CLASS
+            )
+            or any(result.get(key) != value for key, value in expected_result_values.items())
             or result.get("fresh_b2_opened") is not False
             or result.get("outcome_fields_consumed") != []
         ):
             raise ValueError("bounded result/order/failure contract drifted")
-        rebuilt.append(
-            _review_run(
+        if complete:
+            rebuilt.append(
+                _review_run(
                 artifact=args.execution_artifact,
                 run=run,
                 index_rows=index_rows,
@@ -3671,8 +3947,18 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
                 weights=weights,
                 scale_sha256=scale_sha256,
                 referenced_shards=referenced_causal_shards,
+                )
             )
-        )
+        else:
+            rebuilt.append(
+                _review_fixed_dp_capability_failure(
+                    artifact=args.execution_artifact,
+                    run=run,
+                    result=result,
+                    source_row=source_row,
+                    formal_case=formal_cases[str(run["scenario_id"])],
+                )
+            )
     if expected_shard_manifest_paths(seal["manifest_paths"]) != referenced_causal_shards:
         raise ValueError("bounded causal-evidence shard inventory is not exact")
     if _canonical_bytes(rebuilt) != _canonical_bytes(evidence):
@@ -3716,11 +4002,13 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "root_artifacts": decision["root_artifacts"],
         "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
         "run_count": EXPECTED_RUNS,
-        "snapshot_count": EXPECTED_TICKS,
+        "snapshot_count": expected_terminal["tick_count"],
         "execution_file_policy_count": len(file_policies),
         "execution_file_policies_sha256": _sha(file_policies),
         "identity0_repeat_comparison": comparison,
-        "retained_capability_failure_count": 0,
+        "retained_capability_failure_count": expected_terminal[
+            "retained_capability_failure_count"
+        ],
         "mapped_runtime_source_failure_count": 0,
         "full_r_execute_authorized": False,
         "fresh_b2_opened": False,

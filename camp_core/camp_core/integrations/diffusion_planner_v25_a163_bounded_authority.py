@@ -39,7 +39,7 @@ EXPECTED_SEED = 25001
 EXPECTED_UNIQUE_IDENTITIES = 243
 EXPECTED_RUNS = 244
 EXPECTED_TICKS = 15616
-PLAN_SCHEMA_VERSION = "camp_dp_v25_a162_route_level_bounded_execution_plan_v2"
+PLAN_SCHEMA_VERSION = "camp_dp_v25_a17_route_level_bounded_execution_plan_v3"
 SOURCE_STATUS = "passed_source_only_route_signal_authority_census"
 SOURCE_REVIEW_STATUS = "passed_independent_route_signal_source_review"
 PLAN_STATUS = "passed_bounded_execution_plan_preflight_k8_execute_closed"
@@ -587,8 +587,26 @@ def validate_bounded_plan(plan: Mapping[str, Any]) -> None:
     if type(runs) is not list or len(runs) != EXPECTED_RUNS:
         raise ValueError("bounded plan run denominator drifted")
     for ordinal, run in enumerate(runs):
+        expected_fields = {
+            "run_ordinal",
+            "scenario_id",
+            "occurrence",
+            "ticks",
+            "seed",
+            "source_class",
+            "phase_authority_mode",
+            "family",
+            "tier",
+            "route_identity_sha256",
+            "source_map_sha256",
+            "corridor_group_sha256",
+            "semantic_clone_sha256",
+            "source_row_sha256",
+            "k8_relevant_physical_payload_sha256",
+        }
         if (
             type(run) is not dict
+            or set(run) != expected_fields
             or type(run.get("run_ordinal")) is not int
             or run["run_ordinal"] != ordinal
             or type(run.get("ticks")) is not int

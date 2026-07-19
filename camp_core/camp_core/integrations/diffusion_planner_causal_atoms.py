@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
+import hashlib
+from typing import Any, Mapping
 
 import numpy as np
 
@@ -48,9 +49,147 @@ V25_PLANNED_RED_LIGHT_SCALE_FLOOR = 1.0
 # envelope rejects degenerate/grossly invalid cos/sin vectors without changing
 # or normalizing any fixed candidate trajectory.
 FIXED_K8_HEADING_UNIT_ATOL = 0.5
+FIXED_K8_HEADING_NORM_MIN = 1.0 - FIXED_K8_HEADING_UNIT_ATOL
+FIXED_K8_HEADING_NORM_MAX = 1.0 + FIXED_K8_HEADING_UNIT_ATOL
+FIXED_DP_CAPABILITY_FAILURE_CLASS = (
+    "fixed_dp_candidate_generation_capability_failure"
+)
+INVALID_K8_HEADING_NORM_REASON = "invalid_k8_heading_norm_envelope"
 
 
-def validate_fixed_k8_candidate_tensor(candidates: np.ndarray) -> np.ndarray:
+class FixedDpCandidateGenerationCapabilityFailure(ValueError):
+    """Typed, outcome-blind failure of the unchanged fixed-DP K=8 boundary."""
+
+    def __init__(
+        self,
+        *,
+        candidates: np.ndarray,
+        heading_norm: np.ndarray,
+        invalid_heading: np.ndarray,
+    ) -> None:
+        tensor = np.asarray(candidates)
+        norms = np.asarray(heading_norm, dtype=np.float64)
+        invalid = np.asarray(invalid_heading)
+        if (
+            tensor.shape != (8, 80, 4)
+            or tensor.dtype != np.float32
+            or not np.isfinite(tensor).all()
+            or norms.shape != (8, 80)
+            or not np.isfinite(norms).all()
+            or invalid.dtype != np.bool_
+            or invalid.shape != (8, 80)
+            or not invalid.any()
+        ):
+            raise ValueError("fixed-DP capability failure payload is invalid")
+        indices = np.argwhere(invalid)
+        self.failure_class = FIXED_DP_CAPABILITY_FAILURE_CLASS
+        self.reason = INVALID_K8_HEADING_NORM_REASON
+        self._candidate_tensor = np.array(
+            tensor, dtype=np.float32, copy=True, order="C"
+        )
+        self.invalid_indices = tuple(
+            (int(candidate), int(step)) for candidate, step in indices
+        )
+        self.invalid_count = len(self.invalid_indices)
+        self.minimum_heading_norm = float(norms.min())
+        self.maximum_heading_norm = float(norms.max())
+        self.heading_norm_minimum = FIXED_K8_HEADING_NORM_MIN
+        self.heading_norm_maximum = FIXED_K8_HEADING_NORM_MAX
+        self.raw_k8_sha256 = hashlib.sha256(
+            self._candidate_tensor.tobytes(order="C")
+        ).hexdigest()
+        self.candidate0_sha256 = hashlib.sha256(
+            np.ascontiguousarray(self._candidate_tensor[0]).tobytes(order="C")
+        ).hexdigest()
+        self.tick_index: int | None = None
+        self.default_output_sha256: str | None = None
+        self.default_candidate0_identity: dict[str, Any] | None = None
+        super().__init__(
+            f"{self.reason}: invalid_count={self.invalid_count}, "
+            f"minimum_norm={self.minimum_heading_norm:.9g}, "
+            f"maximum_norm={self.maximum_heading_norm:.9g}, "
+            f"envelope=[{self.heading_norm_minimum:.9g},"
+            f"{self.heading_norm_maximum:.9g}]"
+        )
+
+    def bind_same_forward_runtime(
+        self,
+        *,
+        tick_index: int,
+        default_output_sha256: str,
+        default_candidate0_identity: Mapping[str, Any],
+    ) -> None:
+        if type(tick_index) is not int or tick_index < 0:
+            raise ValueError("fixed-DP capability failure tick is invalid")
+        if (
+            type(default_output_sha256) is not str
+            or len(default_output_sha256) != 64
+            or set(default_output_sha256) - set("0123456789abcdef")
+            or type(default_candidate0_identity) is not dict
+            or set(default_candidate0_identity)
+            != {
+                "elementwise_equal",
+                "max_abs_difference",
+                "default_output_sha256",
+                "candidate0_sha256",
+                "native_ranked_k8",
+            }
+            or default_candidate0_identity.get("elementwise_equal") is not True
+            or default_candidate0_identity.get("max_abs_difference") != 0.0
+            or default_candidate0_identity.get("native_ranked_k8") is not False
+            or default_candidate0_identity.get("candidate0_sha256")
+            != self.candidate0_sha256
+            or default_candidate0_identity.get("default_output_sha256")
+            != default_output_sha256
+        ):
+            raise ValueError(
+                "fixed-DP capability failure lacks same-forward candidate0 authority"
+            )
+        self.tick_index = tick_index
+        self.default_output_sha256 = default_output_sha256
+        self.default_candidate0_identity = dict(default_candidate0_identity)
+
+    def candidate_tensor_copy(self) -> np.ndarray:
+        return np.array(self._candidate_tensor, copy=True, order="C")
+
+    def canonical_metadata(self) -> dict[str, Any]:
+        if (
+            self.tick_index is None
+            or self.default_output_sha256 is None
+            or self.default_candidate0_identity is None
+        ):
+            raise ValueError(
+                "fixed-DP capability failure is not bound to same-forward runtime"
+            )
+        return {
+            "failure_class": self.failure_class,
+            "reason": self.reason,
+            "tick_index": self.tick_index,
+            "invalid_indices": [
+                {"candidate_index": candidate, "step_index": step}
+                for candidate, step in self.invalid_indices
+            ],
+            "invalid_count": self.invalid_count,
+            "minimum_heading_norm": self.minimum_heading_norm,
+            "maximum_heading_norm": self.maximum_heading_norm,
+            "heading_norm_minimum": self.heading_norm_minimum,
+            "heading_norm_maximum": self.heading_norm_maximum,
+            "raw_k8_sha256": self.raw_k8_sha256,
+            "candidate0_sha256": self.candidate0_sha256,
+            "default_output_sha256": self.default_output_sha256,
+            "default_candidate0_identity": dict(
+                self.default_candidate0_identity
+            ),
+        }
+
+
+def validate_fixed_k8_candidate_tensor(
+    candidates: np.ndarray,
+    *,
+    tick_index: int | None = None,
+    default_output_sha256: str | None = None,
+    default_candidate0_identity: Mapping[str, Any] | None = None,
+) -> np.ndarray:
     """Fail closed on the immutable fixed-DP K=8 trajectory contract."""
     trajectories = np.asarray(candidates)
     if trajectories.shape != (8, 80, 4) or trajectories.dtype != np.float32:
@@ -63,14 +202,27 @@ def validate_fixed_k8_candidate_tensor(candidates: np.ndarray) -> np.ndarray:
     heading_deviation = np.abs(heading_norm - 1.0)
     invalid_heading = heading_deviation > FIXED_K8_HEADING_UNIT_ATOL
     if np.any(invalid_heading):
-        raise ValueError(
-            "candidate headings must be finite unit vectors: "
-            f"invalid_count={int(np.count_nonzero(invalid_heading))}, "
-            f"minimum_norm={float(heading_norm.min()):.9g}, "
-            f"maximum_norm={float(heading_norm.max()):.9g}, "
-            f"maximum_abs_deviation={float(heading_deviation.max()):.9g}, "
-            f"atol={FIXED_K8_HEADING_UNIT_ATOL:.9g}"
+        failure = FixedDpCandidateGenerationCapabilityFailure(
+            candidates=trajectories,
+            heading_norm=heading_norm,
+            invalid_heading=invalid_heading,
         )
+        runtime_values = (
+            tick_index,
+            default_output_sha256,
+            default_candidate0_identity,
+        )
+        if any(value is not None for value in runtime_values):
+            if any(value is None for value in runtime_values):
+                raise ValueError(
+                    "fixed-DP validator runtime binding must be all-or-none"
+                )
+            failure.bind_same_forward_runtime(
+                tick_index=tick_index,
+                default_output_sha256=default_output_sha256,
+                default_candidate0_identity=default_candidate0_identity,
+            )
+        raise failure
     return trajectories
 
 

@@ -33,10 +33,16 @@ from camp_core.integrations.diffusion_planner_v21_native import (  # noqa: E402
     array_sha256,
 )
 from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (  # noqa: E402
+    FIXED_DP_FAILURE_CLASS,
+    FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+    RESULT_SCHEMA_VERSION,
     RUN_EVIDENCE_SCHEMA_VERSION,
     TICKS_PER_RUN,
     canonical_sha256,
     validate_bounded_terminal_acceptance,
+)
+from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    FixedDpCandidateGenerationCapabilityFailure,
 )
 from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
     A17_DIAGNOSTIC_RELEASE_GATE,
@@ -66,7 +72,6 @@ from scripts.integrations import (  # noqa: E402
 SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_snapshot_v7"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
-RESULT_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_failure_v1"
 A17_DIAGNOSTIC_EXECUTION_SCHEMA_VERSION = (
     "camp_dp_v25_a17_preprojection_diagnostic_execution_v1"
@@ -507,6 +512,88 @@ def _write_candidate_prematerialization_evidence(
     ):
         raise ValueError("candidate prematerialization evidence reopen drifted")
     return record_path
+
+
+def _write_fixed_dp_capability_failure(
+    *,
+    output_dir: Path,
+    run: Mapping[str, Any],
+    case: Mapping[str, Any],
+    failure: FixedDpCandidateGenerationCapabilityFailure,
+) -> dict[str, Any]:
+    metadata = failure.canonical_metadata()
+    tensor = failure.candidate_tensor_copy()
+    raw_bytes = np.ascontiguousarray(tensor).tobytes(order="C")
+    raw_sha = hashlib.sha256(raw_bytes).hexdigest()
+    if raw_sha != metadata["raw_k8_sha256"]:
+        raise ValueError("fixed-DP failure raw K8 digest drifted")
+    relative = Path("fixed_dp_capability_failures") / f"{raw_sha}.bin"
+    path = output_dir / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_bytes() != raw_bytes:
+        raise ValueError("fixed-DP failure content-address collision")
+    if not path.exists():
+        path.write_bytes(raw_bytes)
+    return {
+        "schema_version": FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
+        "failure_class": metadata["failure_class"],
+        "reason": metadata["reason"],
+        "scenario_id": str(run["scenario_id"]),
+        "route_identity_sha256": str(case["route_identity_sha256"]),
+        "family": str(case["family"]),
+        "tier": str(case["tier"]),
+        "source_class": str(case["signal_source_class"]),
+        "phase_authority_mode": case["phase_authority_mode"],
+        "source_map_sha256": str(case["source_map_sha256"]),
+        "corridor_group_sha256": str(case["corridor_group_sha256"]),
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "tick_index": metadata["tick_index"],
+        "invalid_indices": metadata["invalid_indices"],
+        "invalid_count": metadata["invalid_count"],
+        "minimum_heading_norm": metadata["minimum_heading_norm"],
+        "maximum_heading_norm": metadata["maximum_heading_norm"],
+        "heading_norm_minimum": metadata["heading_norm_minimum"],
+        "heading_norm_maximum": metadata["heading_norm_maximum"],
+        "raw_k8_sha256": raw_sha,
+        "candidate0_sha256": metadata["candidate0_sha256"],
+        "default_output_sha256": metadata["default_output_sha256"],
+        "default_candidate0_identity": metadata[
+            "default_candidate0_identity"
+        ],
+        "raw_preimage": {
+            "relative_path": relative.as_posix(),
+            "file_sha256": raw_sha,
+            "array_sha256": raw_sha,
+            "shape": [8, 80, 4],
+            "dtype": "float32",
+        },
+        "training_eligible": False,
+        "calibration_eligible": False,
+        "evaluation_eligible": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _failure_run_evidence(
+    *, run: Mapping[str, Any], receipt: Mapping[str, Any]
+) -> dict[str, Any]:
+    return {
+        "schema_version": RUN_EVIDENCE_SCHEMA_VERSION,
+        "run_ordinal": run["run_ordinal"],
+        "scenario_id": run["scenario_id"],
+        "occurrence": run["occurrence"],
+        "tick_count": 0,
+        "candidate0_sha256_sequence": [],
+        "k8_row_sha256_sequence": [],
+        "atom_matrix_sha256_sequence": [],
+        "context_sha256_sequence": [],
+        "selected_index_sequence": [],
+        "failure_class": FIXED_DP_FAILURE_CLASS,
+        "closed_loop_trajectory_sha256": None,
+        "speed_probe_sha256": None,
+        "capability_failure_sha256": canonical_sha256(receipt),
+    }
 
 
 def _require_plain_int(value: Any, *, label: str, minimum: int = 0) -> int:
@@ -1451,6 +1538,7 @@ def build_run_evidence(
         "failure_class": _derive_native_failure_class(native_receipt),
         "closed_loop_trajectory_sha256": canonical_sha256(trajectory),
         "speed_probe_sha256": canonical_sha256(speeds),
+        "capability_failure_sha256": None,
     }
 
 
@@ -1619,9 +1707,65 @@ def _execute(
             }
             if diagnostic_only:
                 runner_kwargs["candidate_tensor_sink"] = capture_candidate_tensor
-            receipt = runner(
-                **runner_kwargs,
-            )
+            try:
+                receipt = runner(**runner_kwargs)
+            except FixedDpCandidateGenerationCapabilityFailure as exc:
+                failure_receipt = _write_fixed_dp_capability_failure(
+                    output_dir=args.output_dir,
+                    run=run,
+                    case=case,
+                    failure=exc,
+                )
+                # No partial tick from this identity can enter any trainable
+                # stream.  Native partial logs are not part of the retained
+                # capability authority; the exact raw K8 preimage above is.
+                snapshots.clear()
+                contexts.clear()
+                scene_materializations.clear()
+                native_causal_receipts.clear()
+                if native_dir.exists():
+                    shutil.rmtree(native_dir)
+                result = {
+                    "schema_version": RESULT_SCHEMA_VERSION,
+                    "run_ordinal": run["run_ordinal"],
+                    "scenario_id": run["scenario_id"],
+                    "occurrence": run["occurrence"],
+                    "status": "retained_fixed_dp_capability_failure",
+                    "tick_count": 0,
+                    "retained_capability_failure": failure_receipt,
+                    "failure_class": FIXED_DP_FAILURE_CLASS,
+                    "fresh_b2_opened": False,
+                    "outcome_fields_consumed": [],
+                    "family": str(case["family"]),
+                    "tier": str(case["tier"]),
+                    "source_class": str(case["signal_source_class"]),
+                    "phase_authority_mode": case["phase_authority_mode"],
+                    "source_map_sha256": str(case["source_map_sha256"]),
+                    "corridor_group_sha256": str(case["corridor_group_sha256"]),
+                }
+                evidence = _failure_run_evidence(
+                    run=run, receipt=failure_receipt
+                )
+                results.append(result)
+                evidence_rows.append(evidence)
+                _write_jsonl_row(result_file, result)
+                _write_jsonl_row(evidence_file, evidence)
+                result_file.flush()
+                evidence_file.flush()
+                index_file.flush()
+                _write_json_atomic(
+                    args.output_dir / "progress.json",
+                    {
+                        "schema_version": SCHEMA_VERSION,
+                        "status": "running",
+                        "completed_runs": len(results),
+                        "total_runs": expected_runs,
+                        "snapshot_count": snapshot_count,
+                        "fresh_b2_opened": False,
+                        "outcome_fields_consumed": [],
+                    },
+                )
+                continue
             if (
                 type(receipt) is not dict
                 or len(receipt.get("ticks", [])) != TICKS_PER_RUN
@@ -1747,6 +1891,12 @@ def _execute(
                 "failure_class": failure_class,
                 "fresh_b2_opened": False,
                 "outcome_fields_consumed": [],
+                "family": str(case["family"]),
+                "tier": str(case["tier"]),
+                "source_class": str(case["signal_source_class"]),
+                "phase_authority_mode": case["phase_authority_mode"],
+                "source_map_sha256": str(case["source_map_sha256"]),
+                "corridor_group_sha256": str(case["corridor_group_sha256"]),
             }
             results.append(result)
             evidence_rows.append(evidence)
@@ -1817,7 +1967,11 @@ def _execute(
         "device": EXPECTED_DEVICE,
         "terminal": terminal,
         "wall_seconds": time.perf_counter() - started,
-        "retained_capability_failure_count": 0,
+        "retained_capability_failure_count": (
+            0
+            if diagnostic_only
+            else terminal["retained_capability_failure_count"]
+        ),
         "mapped_runtime_source_failure_count": 0,
         "candidate0_semantics": "operational_default_alias_from_same_forward",
         "sequential_fixed_k8": True,
