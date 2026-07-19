@@ -4116,3 +4116,109 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=33869266944
 current_v25_phase=A1_7_preprojection_evidence_localization_confirmed_fixed_dp_candidate_heading_invariant_block
 next_work_target=ultra_read_only_A1_7_fixed_dp_heading_invariant_scientific_contract_decision
+
+## A1.7 typed fixed-DP candidate-generation capability contract (2026-07-19 CST)
+
+Ultra accepted the run155 evidence as a real unchanged fixed-DP same-forward
+K8 support limitation and selected the prospective, outcome-blind typed
+capability-failure policy. Implementation source HEAD
+`87c3dc9e1851a0458dbb27bbd3e7565110fe533f` preserves the exact finite
+`float32[8,80,4]` tensor and `[0.5,1.5]` heading-norm invariant. It does not
+normalize or repair trajectories, mask a candidate, reduce K, fall back to
+candidate0, modify fixed DP/checkpoint/args/request semantics, or change atoms,
+clip, scales, weights, simplex/affine scoring, eligibility, or tie-breaking.
+
+The canonical K8 validator now raises only the exact typed class
+`fixed_dp_candidate_generation_capability_failure` with reason
+`invalid_k8_heading_norm_envelope` after same-forward K8 generation and before
+atom materialization, scoring, or selection. The runner catches only that
+class. It drops every partial trainable row from the identity, writes zero
+snapshot/context/index/label/scale rows, and persists a content-addressed raw
+K8 preimage plus a diagnostic-only receipt binding scenario/route, family,
+tier, source mode, fixed-DP HEAD, tick, sorted invalid indices, min/max norm,
+the frozen envelope, raw tensor SHA, and same-forward candidate0 identity.
+Every other exception remains artifact-fatal.
+
+The bounded and full-corpus terminal contracts now retain this class separately
+from preregistered scenario-source capability failures. Bounded acceptance
+requires all 244 terminal rows, complete and eight-way equivalent identity0
+first/final runs, at least 231 of 243 unique identities complete, greater than
+90% completion by family and source/mode, greater than 80% by family×tier, and
+the frozen red 4/7/4 tier plus three-map minimum. Full-corpus acceptance keeps
+all 1,500 terminal rows and 153 formal source-ineligible ledger rows, requires
+at least 1,425 complete identities, the same grouped thresholds, no planned
+zero-complete stratum, and unchanged red minima. Typed fixed-DP failures remain
+excluded from every train-only scale, label, context scaler, Static/Scene model,
+and ablation input.
+
+Local py_compile plus the affected regression passed 234 tests with six
+platform skips. Commit `87c3dc9e...` was pushed normally to GitHub and AutoDL
+was fast-forwarded from GitHub. AutoDL py_compile and the same scope passed all
+240 tests. CAMP local/origin/GitHub/AutoDL were then aligned at the source HEAD;
+fixed DP remained clean at `7a1d33da...`, worker/GPU counts were zero, the
+shared lock was free, disk stayed above 10 GiB, and Fresh/outcome remained
+unopened.
+
+The critical-manifest change invalidated the prior four roots for future
+execution authority. A single fresh static chain was regenerated at the source
+HEAD:
+
+- source census `/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_87c3dc9e_20260719T142523CST`, root `ead219b2575d4b8f7e40fbba93735a363bd124595497cfd96bc707361d0b0544`;
+- source review `/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_87c3dc9e_20260719T142523CST`, root `09b5661538528c3ca83cdfb40f90f228affac5e33f5eabe15e7080b6874954f8`;
+- bounded plan `/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_87c3dc9e_20260719T142523CST`, root `ff633a969bdf032da543f70aa0b0b17ae3174a1a17160b4095e511715c28fae9`;
+- bounded plan review `/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_87c3dc9e_20260719T142523CST`, root `64867da260ad8b32e26db2999efe58d08d992381b4873a3c8eb893fe27750347`.
+
+The source-only producer completed successfully; the surrounding shell then
+stopped while parsing its deliberately noisy multi-line stdout. The sealed
+source root was not repeated. The independent source review and both plan roots
+subsequently completed once. Counts remain 1,653/1,500/153, 146/1,354,
+21/125, zero source failures, 243 unique identities, 244 ordered runs, and
+15,616 prospective ticks. No K8, training, calibration, Scene/V2I, Fresh, or
+outcome was opened while constructing these roots.
+
+current_v25_status=v25_a17_fixed_dp_heading_capability_contract_static_authority_passed_bounded_execution_next
+current_v25_source_head=87c3dc9e1851a0458dbb27bbd3e7565110fe533f
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_87c3dc9e_20260719T142523CST
+current_v25_artifact_root_sha256=ff633a969bdf032da543f70aa0b0b17ae3174a1a17160b4095e511715c28fae9
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_87c3dc9e_20260719T142523CST
+current_v25_review_artifact_root_sha256=64867da260ad8b32e26db2999efe58d08d992381b4873a3c8eb893fe27750347
+current_v25_a17_source_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_87c3dc9e_20260719T142523CST
+current_v25_a17_source_root_sha256=ead219b2575d4b8f7e40fbba93735a363bd124595497cfd96bc707361d0b0544
+current_v25_a17_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_87c3dc9e_20260719T142523CST
+current_v25_a17_source_review_root_sha256=09b5661538528c3ca83cdfb40f90f228affac5e33f5eabe15e7080b6874954f8
+current_v25_a17_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_87c3dc9e_20260719T142523CST
+current_v25_a17_bounded_plan_root_sha256=ff633a969bdf032da543f70aa0b0b17ae3174a1a17160b4095e511715c28fae9
+current_v25_a17_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_87c3dc9e_20260719T142523CST
+current_v25_a17_bounded_plan_review_root_sha256=64867da260ad8b32e26db2999efe58d08d992381b4873a3c8eb893fe27750347
+current_v25_a17_failed_bounded_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca
+current_v25_a17_failed_bounded_root_sha256=0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1
+current_v25_a17_failed_bounded_accepted_run_count=155
+current_v25_a17_failed_bounded_accepted_tick_count=9920
+current_v25_a17_diagnostic_run_ordinal=155
+current_v25_a17_diagnostic_failure_tick=32
+current_v25_a17_diagnostic_failure_candidate=5
+current_v25_a17_diagnostic_failure_steps=10,11,12,13,14,15
+current_v25_a17_diagnostic_min_heading_norm=0.06830171230455423
+current_v25_a17_diagnostic_candidate_tensor_sha256=32cb0d033f20d0f51087b81ecaae297220c89757db31bc2456d555449ae9360d
+current_v25_a17_diagnostic_training_eligible=false
+current_v25_fixed_dp_capability_failure_class=fixed_dp_candidate_generation_capability_failure
+current_v25_fixed_dp_capability_failure_reason=invalid_k8_heading_norm_envelope
+current_v25_bounded_execution_plan_schema=camp_dp_v25_a17_route_level_bounded_execution_plan_v3
+current_v25_bounded_min_complete_unique_identity_count=231
+current_v25_full_corpus_min_complete_identity_count=1425
+current_v25_local_focused_test_result=234_passed_6_skipped
+current_v25_autodl_focused_test_result=240_passed
+current_v25_corrected_full_corpus_started=false
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=33868288000
+current_v25_phase=A1_7_fixed_dp_candidate_generation_capability_contract_static_authority_passed
+next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_execution_and_independent_review
