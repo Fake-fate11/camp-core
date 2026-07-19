@@ -2220,16 +2220,19 @@ def _validate_source_row(row: Any) -> dict[str, Any]:
             raise ValueError("no-signal source-chain hash/row binding drifted")
     else:
         raise ValueError("route-source class is invalid")
-    _validate_signal_receipts(
-        sidecar={
-            "signal_source_class": row["source_class"],
-            "phase_authority_mode": row["phase_authority_mode"],
-            "controlled_signal_source_receipt": row["runtime_receipt"],
-            "controlled_signal_tensor_evidence": row["tensor_evidence"],
-        },
-        source_row=row,
-        tick_index=0,
-    )
+    if mapped:
+        _validate_signal_receipts(
+            sidecar={
+                "signal_source_class": row["source_class"],
+                "phase_authority_mode": row["phase_authority_mode"],
+                "controlled_signal_source_receipt": row["runtime_receipt"],
+                "controlled_signal_tensor_evidence": row["tensor_evidence"],
+            },
+            source_row=row,
+            tick_index=0,
+        )
+    elif row.get("runtime_receipt") is not None or row.get("tensor_evidence") is not None:
+        raise ValueError("source-only no-signal runtime evidence must be absent")
     return row
 
 

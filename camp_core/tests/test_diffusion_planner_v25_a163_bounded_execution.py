@@ -1665,6 +1665,45 @@ def _mapped_source_and_tick(phase: str = "red") -> tuple[dict, dict]:
     return source_row, sidecar
 
 
+def _no_signal_source_row() -> dict:
+    semantic = _semantic_fixture(mapped=False)
+    chain = {
+        "schema_version": "camp_dp_v25_no_signal_source_chain_v1",
+        "scenario_id": "1" * 64,
+        "route_identity_sha256": "2" * 64,
+        "source_map_sha256": "3" * 64,
+        "route_lanelet_ids": [10, 11],
+        "route_geometry_sha256": post_reviewer._sha(
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+        ),
+        "traffic_light_regulatory_element_ids": [],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": post_reviewer._sha(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = post_reviewer._sha(
+        {key: value for key, value in chain.items() if key != "source_chain_sha256"}
+    )
+    return {
+        "scenario_id": chain["scenario_id"],
+        "formal_case_sha256": "4" * 64,
+        "runner_eligible": True,
+        "retention_role": "executable",
+        "family": "lead_vehicle_hard_brake",
+        "tier": "easy",
+        "seed": 25001,
+        "source_map_sha256": chain["source_map_sha256"],
+        "route_identity_sha256": chain["route_identity_sha256"],
+        "actual_mapped_signal": False,
+        "id_free_tensor_layout": {},
+        "source_class": "no_signal",
+        "phase_authority_mode": None,
+        "source_chain": chain,
+        "runtime_receipt": None,
+        "tensor_evidence": None,
+    }
+
+
 def _controlled_source_and_tick(
     *, expected_phase: str = "red", observed_phase: str = "red"
 ) -> tuple[dict, dict]:
@@ -1710,6 +1749,15 @@ def test_post_reviewer_independently_validates_mapped_source_chain_and_red_input
     assert causal["stop_line_geometry_sha256"] == source_row["source_chain"][
         "stop_line_geometry_sha256"
     ]
+
+
+def test_post_reviewer_validates_source_only_no_signal_row_without_runtime_receipt() -> None:
+    source_row = _no_signal_source_row()
+    assert post_reviewer._validate_source_row(source_row) is source_row
+
+    source_row["runtime_receipt"] = {}
+    with pytest.raises(ValueError, match="source-only no-signal runtime evidence"):
+        post_reviewer._validate_source_row(source_row)
 
 
 def test_post_reviewer_controlled_phase_is_bound_to_frozen_expected_phase() -> None:
