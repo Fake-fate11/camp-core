@@ -1953,6 +1953,13 @@ def _validate_native_log_files(
     for index in range(63):
         post_safety = ticks[index]["safety"]
         next_row = trajectory[index + 1]
+        post_speed_as_trajectory_float32 = float(
+            np.float32(
+                _native_number(
+                    post_safety["speed_mps"], label="post-tracker ego speed"
+                )
+            )
+        )
         if not np.allclose(
             [
                 next_row["x"],
@@ -1964,7 +1971,7 @@ def _validate_native_log_files(
                 post_safety["position_xy"][0],
                 post_safety["position_xy"][1],
                 post_safety["ego_heading_rad"],
-                post_safety["speed_mps"],
+                post_speed_as_trajectory_float32,
             ],
             rtol=0.0,
             atol=1e-9,

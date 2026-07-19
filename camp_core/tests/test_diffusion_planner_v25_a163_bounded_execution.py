@@ -3089,6 +3089,47 @@ def test_native_terminal_logs_bind_pre_and_post_tracker_timing(
         )
 
 
+def test_native_terminal_logs_bind_post_speed_with_fixed_dp_float32_log_semantics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_initial_world_oracle(monkeypatch)
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / "float32-speed").resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(
+        native_dir / "trajectory_log.json"
+    )
+    receipt["native_result"]["clearance_log_path"] = str(
+        native_dir / "clearance_log.json"
+    )
+    _write_native_logs(native_dir, receipt)
+    trajectory = json.loads((native_dir / "trajectory_log.json").read_text())
+    post_speed = 6.59780826481711
+    trajectory[1]["speed"] = float(np.float32(post_speed))
+    (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
+    receipt["ticks"][0]["safety"]["speed_mps"] = post_speed
+    formal_case, template, source_row = _native_log_authority_fixture()
+
+    post_reviewer._validate_native_log_files(
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        template=template,
+        source_row=source_row,
+        dp_repo=tmp_path / "dp",
+    )
+
+    receipt["ticks"][0]["safety"]["speed_mps"] = post_speed + 1e-3
+    with pytest.raises(ValueError, match="pre/post tracker temporal"):
+        post_reviewer._validate_native_log_files(
+            native_dir=native_dir,
+            receipt=receipt,
+            formal_case=formal_case,
+            template=template,
+            source_row=source_row,
+            dp_repo=tmp_path / "dp",
+        )
+
+
 def test_terminal_oracle_uses_pre_rows_and_excludes_post_safety_63(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
