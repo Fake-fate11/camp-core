@@ -4011,3 +4011,108 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=46844665856
 current_v25_phase=A1_6_11_R3_bounded_execution_failed_closed_after_nonce_consumption_before_independent_review
 next_work_target=ultra_read_only_A1_6_11_R3_failed_bounded_execution_result_review_and_decision
+
+## A1.7 exact failing-run candidate preimage localization (2026-07-19 CST)
+
+A1.7 first added a diagnostic-only K8 boundary sink. It copies the exact
+`float32[8,80,4]` fixed-DP candidate tensor and same-forward candidate0/row
+hashes after candidate construction but before atom materialization. The
+normal bounded path does not enable the sink. Diagnostic authority now binds
+one native-integer run ordinal to the exact sealed plan; the default remains
+ordinal zero, while this investigation bound ordinal 155. The change does not
+modify fixed DP, K8 generation, trajectories, atom formulas, scales, weights,
+normalization, simplex/affine scoring, eligibility, or tie-breaking.
+
+Local py_compile and full affected regression passed 191 tests with five
+platform skips. Commit `fb2eb97c2abadaf91c1cc6d8e27dac4970499f35` was pushed
+normally to GitHub and synchronized AutoDL ff-only; AutoDL py_compile and the
+same full affected regression passed 196 tests. The fixed DP remained clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+Because the critical implementation manifest changed, all four static roots
+were regenerated at that HEAD and independently reopened:
+
+- source census `/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_fb2eb97c_20260719T133516CST`, root `3b5f41117a2de6a7e0b8ae5b95690abb4b253b7a383d090dd4d7a825d5096b3b`;
+- source review `/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_fb2eb97c_20260719T133516CST`, root `4f5cd4a7475a980d24f93362da7d455e2f2ad8f05de0f7d3abcbe47e45da29ad`;
+- bounded plan `/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_fb2eb97c_20260719T133516CST`, root `5abfe89d0831ceaa8eb7b9d44cbec940965033cf6d60260916078aa4d6db8845`;
+- bounded plan review `/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_fb2eb97c_20260719T133516CST`, root `dcbd677b1e48d9bec22735b1962b8cbe147d6d2d84904ab888727aa245681ce8`.
+
+Counts remained 1,653 formal train identities, 1,500 executable, 153 retained,
+146 mapped signal, 1,354 no signal, 21 controlled override, 125 observe mode,
+zero source failures, 243 unique bounded identities, 244 ordered runs, and
+15,616 prospective ticks.
+
+The prior corrected bounded attempt remains immutable and ineligible at
+`/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca`,
+root `0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1`.
+It accepted 155 complete runs and 9,920 ticks, then failed closed on run ordinal
+155 with `candidate headings must be valid cos/sin vectors`. No independent
+review ran and no suffix/retry was attempted.
+
+The exact-run diagnostic release is
+`/root/autodl-tmp/camp_dp_v25_a17_run155_diagnostic_release_fb2eb97c_0094bfb8a41b86ec`,
+root `74ccc44b56551dc09f25132c1cc5d743ded66aa9679094e0da5dead9193f4b94`.
+Its one-shot nonce was consumed once. The diagnostic execution sealed
+fail-closed at
+`/root/autodl-tmp/camp_dp_v25_a17_run155_diagnostic_execution_fb2eb97c_0094bfb8a41b86ec`,
+root `2a519f1deacd6d3917b1f1945141ee378368fc8a34585f4eb6ad157ccc108672`,
+with 33 candidate records for ticks zero through 32 and no accepted scientific
+result.
+
+The saved tick-32 tensor SHA is
+`32cb0d033f20d0f51087b81ecaae297220c89757db31bc2456d555449ae9360d`.
+Candidate 5 has six vectors below the frozen norm floor at steps 10 through 15;
+the minimum norm is 0.06830171230455423. The candidate rows themselves are
+finite and content-addressed. Earlier ticks have no sub-0.5 heading vectors.
+This reproduces the failure from the raw fixed-DP K8 output and rules out the
+earlier digest/tick-pairing/evidence-order hypotheses.
+
+The frozen contract requires every candidate heading to satisfy the invariant
+and makes any such violation fail the run. Normalizing/repairing the trajectory,
+masking candidate 5, or relaxing the 0.5 floor would change the scientific
+contract and is not authorized. Therefore 244-run bounded execution, the
+1,500x64 corpus, training, calibration, Scene/V2I, Fresh, and outcome work are
+stopped pending Ultra direction. Worker/GPU counts are zero, the shared lock is
+free, disk remains above the 10 GiB floor, and Fresh/outcome is unopened.
+
+current_v25_status=v25_a17_fixed_dp_heading_invariant_confirmed_scientific_contract_decision_required
+current_v25_source_head=fb2eb97c2abadaf91c1cc6d8e27dac4970499f35
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_run155_diagnostic_execution_fb2eb97c_0094bfb8a41b86ec
+current_v25_artifact_root_sha256=2a519f1deacd6d3917b1f1945141ee378368fc8a34585f4eb6ad157ccc108672
+current_v25_review_artifact=none_diagnostic_failed_closed_before_scientific_acceptance
+current_v25_review_artifact_root_sha256=none
+current_v25_a17_diagnostic_release_artifact=/root/autodl-tmp/camp_dp_v25_a17_run155_diagnostic_release_fb2eb97c_0094bfb8a41b86ec
+current_v25_a17_diagnostic_release_root_sha256=74ccc44b56551dc09f25132c1cc5d743ded66aa9679094e0da5dead9193f4b94
+current_v25_a17_source_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_fb2eb97c_20260719T133516CST
+current_v25_a17_source_root_sha256=3b5f41117a2de6a7e0b8ae5b95690abb4b253b7a383d090dd4d7a825d5096b3b
+current_v25_a17_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_fb2eb97c_20260719T133516CST
+current_v25_a17_source_review_root_sha256=4f5cd4a7475a980d24f93362da7d455e2f2ad8f05de0f7d3abcbe47e45da29ad
+current_v25_a17_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_fb2eb97c_20260719T133516CST
+current_v25_a17_bounded_plan_root_sha256=5abfe89d0831ceaa8eb7b9d44cbec940965033cf6d60260916078aa4d6db8845
+current_v25_a17_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_fb2eb97c_20260719T133516CST
+current_v25_a17_bounded_plan_review_root_sha256=dcbd677b1e48d9bec22735b1962b8cbe147d6d2d84904ab888727aa245681ce8
+current_v25_a17_failed_bounded_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca
+current_v25_a17_failed_bounded_root_sha256=0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1
+current_v25_a17_failed_bounded_accepted_run_count=155
+current_v25_a17_failed_bounded_accepted_tick_count=9920
+current_v25_a17_diagnostic_run_ordinal=155
+current_v25_a17_diagnostic_failure_tick=32
+current_v25_a17_diagnostic_failure_candidate=5
+current_v25_a17_diagnostic_failure_steps=10,11,12,13,14,15
+current_v25_a17_diagnostic_min_heading_norm=0.06830171230455423
+current_v25_a17_diagnostic_candidate_tensor_sha256=32cb0d033f20d0f51087b81ecaae297220c89757db31bc2456d555449ae9360d
+current_v25_a17_diagnostic_training_eligible=false
+current_v25_corrected_full_corpus_started=false
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=33869266944
+current_v25_phase=A1_7_preprojection_evidence_localization_confirmed_fixed_dp_candidate_heading_invariant_block
+next_work_target=ultra_read_only_A1_7_fixed_dp_heading_invariant_scientific_contract_decision
