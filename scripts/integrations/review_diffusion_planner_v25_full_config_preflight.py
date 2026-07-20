@@ -47,7 +47,10 @@ from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority impo
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     validate_no_signal_chain,
-    validate_signal_chain,
+)
+from camp_core.integrations.diffusion_planner_v25_route_signal_authority import (  # noqa: E402
+    MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION,
+    validate_mapped_signal_chain,
 )
 
 
@@ -644,9 +647,9 @@ def _independent_reconstruct_chain(case: Mapping[str, Any], builder: Any) -> dic
         for reg in lanelet.trafficLights():
             row = regs.setdefault(int(reg.id), {"reg": reg, "lanelet_ids": []})
             row["lanelet_ids"].append(lanelet_id)
-    if case.get("signal", {}).get("phase") == "none":
-        if regs:
-            raise ValueError("formal no-signal route has actual signal authority")
+    if not regs:
+        if case.get("source_availability", {}).get("mapped_traffic_light") is not False:
+            raise ValueError("formal no-signal route availability drifted")
         semantic = _independent_semantic_payload(case, route_world, None)
         result: dict[str, Any] = {
             "schema_version": "camp_dp_v25_no_signal_source_chain_v1",
@@ -663,8 +666,12 @@ def _independent_reconstruct_chain(case: Mapping[str, Any], builder: Any) -> dic
             "source_chain_sha256": "",
         }
     else:
-        if len(regs) != 1:
-            raise ValueError("formal signal route does not map to one actual regulatory element")
+        if (
+            len(regs) != 1
+            or case.get("source_availability", {}).get("mapped_traffic_light")
+            is not True
+        ):
+            raise ValueError("formal mapped route does not map to one regulatory element")
         reg_id, row = next(iter(regs.items()))
         reg = row["reg"]
         stop_line = reg.stopLine
@@ -677,11 +684,27 @@ def _independent_reconstruct_chain(case: Mapping[str, Any], builder: Any) -> dic
         )
         semantic = _independent_semantic_payload(case, route_world, stop)
         params = reg.parameters
+        formal_phase = str(case["signal"]["phase"])
+        controlled_override = formal_phase in {"green", "yellow", "red"}
         result = {
-            "schema_version": "camp_dp_v25_red_signal_source_chain_v2",
+            "schema_version": MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION,
             "scenario_id": str(case["scenario_id"]),
             "route_identity_sha256": str(case["route_identity_sha256"]),
             "source_map_sha256": str(case["source_map_sha256"]),
+            "phase_authority_mode": (
+                "controlled_same_tick_override"
+                if controlled_override
+                else "observe_same_tick_request"
+            ),
+            "expected_current_phase": formal_phase if controlled_override else None,
+            "formal_phase": formal_phase,
+            "formal_mapped_source_required": case["signal"][
+                "mapped_source_required"
+            ],
+            "formal_route_mapped_traffic_light": case["source_availability"][
+                "mapped_traffic_light"
+            ],
+            "phase_remaining_available": False,
             "regulatory_element_ids": [reg_id],
             "physical_light_ids": sorted(
                 int(value.id) for value in (params["refers"] if "refers" in params else [])
@@ -705,7 +728,6 @@ def _independent_reconstruct_chain(case: Mapping[str, Any], builder: Any) -> dic
             "route_arc_m": arc,
             "route_length_m": length,
             "route_tangent_world": tangent.tolist(),
-            "expected_current_phase": str(case["signal"]["phase"]),
             "semantic_clone_payload": semantic,
             "semantic_clone_sha256": _oracle_sha256(semantic),
             "source_chain_sha256": "",
@@ -817,10 +839,10 @@ def _independent_config_receipts(
 ) -> list[dict[str, Any]]:
     chain_by_id: dict[str, dict[str, Any]] = {}
     for raw_chain in chains:
-        if raw_chain.get("expected_current_phase") is None:
-            chain = validate_no_signal_chain(raw_chain)
+        if raw_chain.get("schema_version") == MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION:
+            chain = validate_mapped_signal_chain(raw_chain)
         else:
-            chain = validate_signal_chain(raw_chain)
+            chain = validate_no_signal_chain(raw_chain)
         scenario_id = str(chain["scenario_id"])
         if scenario_id in chain_by_id:
             raise ValueError("semantic authority contains duplicate identities")
