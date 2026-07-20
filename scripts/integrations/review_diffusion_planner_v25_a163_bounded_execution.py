@@ -1448,7 +1448,11 @@ def _independent_planned_red_cost(candidates: np.ndarray, route: np.ndarray) -> 
 
 
 def _independent_raw_context(
-    *, evidence: Mapping[str, np.ndarray], candidates: np.ndarray, source_valid: list[bool]
+    *,
+    evidence: Mapping[str, np.ndarray],
+    candidates: np.ndarray,
+    source_valid: list[bool],
+    causal_signal_atom_input: Mapping[str, Any] | None = None,
 ) -> tuple[dict[str, float], dict[str, bool]]:
     ego = evidence["ego_current_state"].astype(np.float64)
     speed = max(float(ego[4]), 0.0); accel = float(ego[6]); yaw = float(ego[9])
@@ -1476,6 +1480,40 @@ def _independent_raw_context(
         signal_distance = float(arc[int(known[0])]); phase_known = True
     else:
         phase = "unknown"; signal_distance = float(arc[-1]); phase_known = False
+    if causal_signal_atom_input is not None:
+        signal = causal_signal_atom_input
+        state = signal.get("source_state")
+        if state == "not_applicable":
+            if phase_known:
+                raise ValueError("independent no-signal authority conflicts with route rows")
+        elif state == "available":
+            current_phase = signal.get("current_phase")
+            if current_phase not in {"green", "yellow", "red"}:
+                raise ValueError("independent current signal phase is invalid")
+            if phase_known:
+                if phase != current_phase:
+                    raise ValueError("independent route/current signal phase conflict")
+            else:
+                raw_stop_line = signal.get("stop_line_geometry_ego_m")
+                if type(raw_stop_line) is not list or len(raw_stop_line) < 2:
+                    raise ValueError("independent context certified stop line is absent")
+                stop_line = _native_numeric_array(
+                    raw_stop_line,
+                    (len(raw_stop_line), 2),
+                    label="independent context certified stop line",
+                )
+                tangent = _native_numeric_array(
+                    signal.get("route_tangent_ego"),
+                    (2,),
+                    label="independent context route tangent",
+                )
+                if not np.isclose(np.linalg.norm(tangent), 1.0, rtol=0.0, atol=1e-6):
+                    raise ValueError("independent context route tangent is not unit")
+                phase = str(current_phase)
+                signal_distance = max(float(stop_line.mean(axis=0) @ tangent), 0.0)
+                phase_known = True
+        else:
+            raise ValueError("independent causal signal source state is invalid")
     current = evidence["neighbor_agents_past"].astype(np.float64)[:, -1]
     active = (current[:, 6] > 0.0) & (current[:, 7] > 0.0)
     if active.any():
@@ -1518,9 +1556,13 @@ def _validate_independent_context(
     evidence: Mapping[str, np.ndarray],
     candidates: np.ndarray,
     source_valid: list[bool],
+    causal_signal_atom_input: Mapping[str, Any] | None = None,
 ) -> None:
     expected_raw, expected_complete = _independent_raw_context(
-        evidence=evidence, candidates=candidates, source_valid=source_valid
+        evidence=evidence,
+        candidates=candidates,
+        source_valid=source_valid,
+        causal_signal_atom_input=causal_signal_atom_input,
     )
     if (
         not _strict_equal(feature.get("raw_context"), expected_raw)
@@ -3488,6 +3530,7 @@ def _review_tick(
         evidence=evidence,
         candidates=candidate,
         source_valid=source_valid,
+        causal_signal_atom_input=causal,
     )
     scores = _native_numeric_array(sidecar.get("scores"), (8,), label="scores")
     normalized = np.clip(atoms / scales.reshape(1, 14), 0.0, 10.0)

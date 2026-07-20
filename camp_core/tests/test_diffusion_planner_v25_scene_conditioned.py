@@ -18,6 +18,9 @@ from camp_core.integrations.diffusion_planner_v25_context import (
     context_weights,
     fit_train_context_scaler,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    canonical_json_sha256,
+)
 from camp_core.mapping_heads.linear_head import ComplementLiftedSimplexHead
 
 
@@ -72,6 +75,84 @@ def _candidates() -> np.ndarray:
         candidates[index, :, 1] = 0.05 * index * np.sin(np.linspace(0.0, np.pi, 80))
         candidates[index, :, 2] = 1.0
     return candidates
+
+
+def _mapped_causal_signal(*, phase: str, stop_x_m: float) -> dict:
+    stop = [[stop_x_m, -2.0], [stop_x_m, 2.0]]
+    stop_sha = canonical_json_sha256(stop)
+    receipt = {
+        "source_chain_sha256": "1" * 64,
+        "stop_line_geometry_sha256": stop_sha,
+        "route_geometry_sha256": "2" * 64,
+        "regulatory_element_id": 101,
+        "stop_line_id": 401,
+        "current_phase": phase,
+        "decision_timestamp_s": 0.0,
+    }
+    return {
+        "schema_version": "camp_dp_v25_causal_signal_atom_input_v2",
+        "source_state": "available",
+        "source_valid": True,
+        "applicable": phase == "red",
+        "current_phase": phase,
+        "decision_time_s": 0.0,
+        "ego_position_world_m": [0.0, 0.0],
+        "ego_heading_rad": 0.0,
+        "regulatory_element_id": 101,
+        "stop_line_id": 401,
+        "stop_line_geometry_world_m": stop,
+        "stop_line_geometry_ego_m": stop,
+        "stop_line_geometry_sha256": stop_sha,
+        "route_tangent_world": [1.0, 0.0],
+        "route_tangent_ego": [1.0, 0.0],
+        "route_geometry_sha256": "2" * 64,
+        "route_arc_m": 10.0,
+        "source_chain_sha256": "1" * 64,
+        "runtime_receipt": receipt,
+        "runtime_receipt_sha256": canonical_json_sha256(receipt),
+    }
+
+
+def test_map_only_same_tick_signal_fills_context_without_future_schedule() -> None:
+    causal = _causal_input()
+    causal["route_lanes"][:, :, 8:12] = 0.0
+    record = build_v25_raw_context(
+        causal_input=causal,
+        candidates=_candidates(),
+        source_valid_mask=np.ones(8, dtype=bool),
+        causal_signal_atom_input=_mapped_causal_signal(
+            phase="yellow", stop_x_m=12.5
+        ),
+    )
+    values = record.as_dict()
+    assert values["traffic_phase_yellow"] == 1.0
+    assert values["traffic_phase_unknown"] == 0.0
+    assert values["traffic_signal_distance_m"] == 12.5
+    for name in (
+        "traffic_phase_red",
+        "traffic_phase_yellow",
+        "traffic_phase_green",
+        "traffic_phase_unknown",
+        "traffic_signal_distance_m",
+    ):
+        assert record.source_complete[RAW_FEATURE_NAMES.index(name)] is True
+    assert record.source_receipt == {
+        "mode": "no_v2i",
+        "phase_remaining_available": False,
+        "regulatory_signal_mapped": True,
+    }
+
+
+def test_certified_current_signal_must_agree_with_visible_route_phase() -> None:
+    with pytest.raises(ValueError, match="phases conflict"):
+        build_v25_raw_context(
+            causal_input=_causal_input(),
+            candidates=_candidates(),
+            source_valid_mask=np.ones(8, dtype=bool),
+            causal_signal_atom_input=_mapped_causal_signal(
+                phase="yellow", stop_x_m=12.5
+            ),
+        )
 
 
 def test_raw_context_is_exact_finite_current_request_contract() -> None:

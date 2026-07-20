@@ -2318,6 +2318,36 @@ def test_post_reviewer_independent_context_rejects_safety_speed_contradiction() 
         )
 
 
+def test_post_reviewer_independently_rebuilds_map_only_current_signal_context() -> None:
+    candidate = np.zeros((8, 80, 4), dtype=np.float32)
+    candidate[:, :, 2] = 1.0
+    route = np.zeros((25, 20, 33), dtype=np.float32)
+    route[0, :3, 0] = [0.0, 1.0, 2.0]
+    route[0, :3, 2] = 1.0
+    route[0, :3, 5] = 1.0
+    route[0, :3, 7] = -1.0
+    ego = np.zeros(10, dtype=np.float32)
+    evidence = {
+        "ego_current_state": ego,
+        "neighbor_agents_past": np.zeros((32, 31, 11), dtype=np.float32),
+        "route_lanes": route,
+        "route_lanes_speed_limit": np.ones((25, 1), dtype=np.float32) * 10.0,
+        "route_lanes_has_speed_limit": np.ones((25, 1), dtype=np.bool_),
+    }
+    _, sidecar = _mapped_source_and_tick("red")
+    raw, complete = post_reviewer._independent_raw_context(
+        evidence=evidence,
+        candidates=candidate,
+        source_valid=[True] * 8,
+        causal_signal_atom_input=sidecar["causal_signal_atom_input"],
+    )
+    assert raw["traffic_phase_red"] == 1.0
+    assert raw["traffic_phase_unknown"] == 0.0
+    assert raw["traffic_signal_distance_m"] == 10.0
+    assert complete["traffic_phase_red"] is True
+    assert complete["traffic_signal_distance_m"] is True
+
+
 def test_post_reviewer_causal_evidence_rejects_predecision_speed_contradiction(
     tmp_path: Path,
 ) -> None:

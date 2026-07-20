@@ -750,6 +750,7 @@ class NativeCampPredictBatch:
                     source_valid_mask=np.asarray(
                         receipt["source_valid_mask"], dtype=bool
                     ),
+                    causal_signal_atom_input=causal_signal_atom_input,
                     v2i_signal_timing=self.v25_v2i_signal_timing,
                 )
                 if len(context_record.source_complete) != len(RAW_FEATURE_NAMES):

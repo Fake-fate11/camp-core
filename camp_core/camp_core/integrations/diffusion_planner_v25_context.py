@@ -11,6 +11,9 @@ from camp_core.integrations.diffusion_planner_candidate_set_consensus_payload im
 from camp_core.integrations.diffusion_planner_causal_materializer import (
     validate_causal_dp_input,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    validate_causal_signal_atom_input,
+)
 
 
 CONTEXT_SCHEMA_VERSION = "camp_dp_v25_causal_context_raw_v2"
@@ -98,6 +101,7 @@ def build_v25_raw_context(
     causal_input: Mapping[str, Any],
     candidates: np.ndarray,
     source_valid_mask: np.ndarray,
+    causal_signal_atom_input: Mapping[str, Any] | None = None,
     v2i_signal_timing: Mapping[str, Any] | None = None,
 ) -> V25ContextRecord:
     """Build the frozen V25 context from current request/state and fixed K=8.
@@ -146,7 +150,11 @@ def build_v25_raw_context(
     if available_limits.size == 0 or np.any(available_limits <= 0.0):
         raise ValueError("V25 context requires a current positive route speed limit.")
 
-    phase, signal_distance, phase_known = _route_signal_context(route_rows, route_arc)
+    phase, signal_distance, phase_known = _resolved_signal_context(
+        route_rows,
+        route_arc,
+        causal_signal_atom_input=causal_signal_atom_input,
+    )
     phase_remaining, timing_known, timing_receipt = _v2i_timing_context(
         v2i_signal_timing,
         regulatory_signal_mapped=phase_known,
@@ -446,6 +454,31 @@ def _route_signal_context(
     state_index = int(np.argmax(states[index, :4]))
     phase = ("green", "yellow", "red", "unknown")[state_index]
     return phase, float(route_arc[index]), True
+
+
+def _resolved_signal_context(
+    route_rows: np.ndarray,
+    route_arc: np.ndarray,
+    *,
+    causal_signal_atom_input: Mapping[str, Any] | None,
+) -> tuple[str, float, bool]:
+    phase, distance, known = _route_signal_context(route_rows, route_arc)
+    if causal_signal_atom_input is None:
+        return phase, distance, known
+    signal = validate_causal_signal_atom_input(causal_signal_atom_input)
+    if signal["source_state"] == "not_applicable":
+        if known:
+            raise ValueError("no-signal authority conflicts with route signal rows")
+        return phase, distance, known
+    current_phase = str(signal["current_phase"])
+    if known:
+        if phase != current_phase:
+            raise ValueError("route and certified current signal phases conflict")
+        return phase, distance, known
+    stop_line = np.asarray(signal["stop_line_geometry_ego_m"], dtype=np.float64)
+    tangent = np.asarray(signal["route_tangent_ego"], dtype=np.float64)
+    forward_distance = max(float(stop_line.mean(axis=0) @ tangent), 0.0)
+    return current_phase, forward_distance, True
 
 
 def _neighbor_context(neighbor_history: Any, ego_speed: float) -> tuple[tuple[float, ...], bool]:
