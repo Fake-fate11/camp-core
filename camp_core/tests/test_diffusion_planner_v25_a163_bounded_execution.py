@@ -3249,6 +3249,21 @@ def test_native_terminal_logs_accept_exact_one_ulp_between_fixed_dp_reductions(
         )
 
 
+def test_post_reviewer_uses_frozen_fixed_k8_heading_norm_envelope() -> None:
+    candidate = np.zeros((8, 80, 4), dtype=np.float32)
+    candidate[:, :, 2] = np.linspace(0.5, 1.5, 8, dtype=np.float32)[:, None]
+    norms = post_reviewer._validate_fixed_k8_heading_envelope(candidate)
+    assert float(norms.min()) == 0.5
+    assert float(norms.max()) == 1.5
+
+    for invalid in (np.float32(0.499), np.float32(1.501)):
+        mutated = candidate.copy()
+        mutated[3, 17, 2] = invalid
+        mutated[3, 17, 3] = 0.0
+        with pytest.raises(ValueError, match="heading norm envelope"):
+            post_reviewer._validate_fixed_k8_heading_envelope(mutated)
+
+
 def test_terminal_oracle_uses_pre_rows_and_excludes_post_safety_63(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

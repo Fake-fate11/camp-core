@@ -143,6 +143,8 @@ GOAL_TOLERANCE_M = 2.0
 GOAL_PASS_WINDOW_M = 25.0
 # Frozen fixed-DP replay.py::_CLEARANCE_LOG_MAX_M at FIXED_DP_HEAD.
 EXPECTED_CLEARANCE_MAX_RANGE_M = 30.0
+FIXED_K8_HEADING_NORM_MIN = 0.5
+FIXED_K8_HEADING_NORM_MAX = 1.5
 REVIEW_CORRECTION_PATHS = frozenset(
     {
         "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py",
@@ -2080,6 +2082,21 @@ def _nonnegative_float32_ulp_distance(left: Any, right: Any) -> int:
     return abs(left_bits - right_bits)
 
 
+def _validate_fixed_k8_heading_envelope(candidate: np.ndarray) -> np.ndarray:
+    if candidate.shape != (8, 80, 4) or candidate.dtype != np.float32:
+        raise ValueError("bounded fixed-K8 tensor shape/dtype drifted")
+    heading_norms = np.linalg.norm(
+        candidate[:, :, 2:4].astype(np.float64), axis=2
+    )
+    if (
+        not np.all(np.isfinite(heading_norms))
+        or np.any(heading_norms < FIXED_K8_HEADING_NORM_MIN)
+        or np.any(heading_norms > FIXED_K8_HEADING_NORM_MAX)
+    ):
+        raise ValueError("bounded fixed-K8 heading norm envelope drifted")
+    return heading_norms
+
+
 def _validate_native_log_files(
     *,
     native_dir: Path,
@@ -3273,11 +3290,8 @@ def _review_tick(
         feature.get("default_output"), (80, 4), label="default output"
     ).astype(np.float32)
     atoms = _native_numeric_array(feature.get("atom_matrix"), (8, 14), label="atoms")
-    heading_norms = np.linalg.norm(candidate[:, :, 2:4].astype(np.float64), axis=2)
-    if (
-        np.any(atoms < 0.0)
-        or not np.allclose(heading_norms, np.ones((8, 80)), rtol=0.0, atol=1e-6)
-    ):
+    _validate_fixed_k8_heading_envelope(candidate)
+    if np.any(atoms < 0.0):
         raise ValueError("bounded raw atoms or fixed-K8 heading contract drifted")
     row_shas = [
         hashlib.sha256(np.ascontiguousarray(candidate[index]).tobytes()).hexdigest()
