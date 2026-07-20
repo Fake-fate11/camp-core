@@ -141,7 +141,8 @@ EXPECTED_DP_NATIVE_SOURCE_SHA256 = {
 }
 GOAL_TOLERANCE_M = 2.0
 GOAL_PASS_WINDOW_M = 25.0
-EXPECTED_CLEARANCE_MAX_RANGE_M = 100.0
+# Frozen fixed-DP replay.py::_CLEARANCE_LOG_MAX_M at FIXED_DP_HEAD.
+EXPECTED_CLEARANCE_MAX_RANGE_M = 30.0
 REVIEW_CORRECTION_PATHS = frozenset(
     {
         "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py",

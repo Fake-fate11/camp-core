@@ -2855,7 +2855,7 @@ def _write_native_logs(
         json.dumps(
             {
                 "ego_shape": [2.79, 4.9, 1.9],
-                "max_range_m": 100.0,
+                "max_range_m": 30.0,
                 "png_dir": str(native_dir),
                 "records": clearance,
             }
