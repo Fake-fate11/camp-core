@@ -96,6 +96,14 @@ def _is_sha256(value: Any) -> bool:
     return type(value) is str and _SHA_RE.fullmatch(value) is not None
 
 
+def _is_git_head(value: Any) -> bool:
+    return (
+        type(value) is str
+        and len(value) == 40
+        and re.fullmatch(r"[0-9a-f]{40}", value) is not None
+    )
+
+
 def _reject_constant(value: str) -> None:
     raise ValueError(f"nonfinite JSON constant is forbidden: {value}")
 
@@ -179,7 +187,7 @@ def verify_upstream_chain(
     release = _load_canonical_object(release_path / "decision.json")
     bounded_source_head = release.get("implementation_source_head")
     if (
-        not _is_sha256(bounded_source_head)
+        not _is_git_head(bounded_source_head)
         or release.get("pointer_head_at_release") != bounded_source_head
         or release.get("fixed_dp_head") != FIXED_DP_HEAD
         or release.get("run_count") != 244
@@ -553,6 +561,8 @@ def verify_release(
             raise ValueError(f"A1.7 full-corpus release exact value drifted: {key}")
     if (
         not _is_sha256(decision.get("run_nonce"))
+        or not _is_git_head(decision.get("implementation_source_head"))
+        or not _is_git_head(decision.get("pointer_head_at_release"))
         or decision.get("pointer_head_at_release") != current_pointer_head
         or decision.get("critical_implementation_manifest_sha256")
         != canonical_sha256(decision.get("critical_implementation_manifest"))

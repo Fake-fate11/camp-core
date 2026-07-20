@@ -178,3 +178,10 @@ def test_release_rejects_extra_field_and_noncanonical_output(
             dp_repo=dp,
             probe_template=probe,
         )
+
+
+def test_git_head_and_artifact_sha_contracts_are_not_interchangeable() -> None:
+    assert authority._is_git_head("a" * 40)
+    assert not authority._is_git_head("a" * 64)
+    assert authority._is_sha256("b" * 64)
+    assert not authority._is_sha256("b" * 40)
