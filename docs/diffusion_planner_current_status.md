@@ -783,15 +783,15 @@ the bounded projection leaves 13,942,184,375 bytes after a full corpus, above
 the 10 GiB floor. Confirmed-unused local tar payloads were removed and only
 small receipts remain.
 
-The audit EOF now contains one 10-row failure-signature-to-machine-check
-matrix. Before any execute nonce or worker, one combined production-entry
-preflight must verify the exact 40-char CAMP/fixed-DP heads, real Python 3.12
-imports, mount/quota/allocated-block evidence, literal/resolved writable output
-parent, frozen asset loaders, real create/run zero-data entry, absent execute
-nonce, and zero stale monitors. No full corpus, worker, monitor, training,
-calibration, Scene/V2I, Fresh, or outcome is active.
+The audit EOF contains one 10-row failure-signature-to-machine-check matrix.
+The combined production-entry preflight passed: exact 40-char CAMP/fixed-DP
+heads, Python 3.12 imports, mount/quota/allocated-block evidence, an exact
+write/fsync/read/delete probe, frozen asset loaders, the real create/run
+zero-snapshot artifacts, pointer regressions, absent execute release/nonce,
+and zero stale monitors all passed. Per the user stop point, no full corpus,
+worker, monitor, training, calibration, Scene/V2I, Fresh, or outcome is active.
 
-current_v25_status=v25_a17_failure_regression_matrix_frozen_production_entry_preflight_pending
+current_v25_status=v25_a17_failure_regression_matrix_and_production_entry_preflight_passed_execute_nonce_not_generated
 current_v25_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
 current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_19bcebe6_b2de06d662cf9764
@@ -801,7 +801,8 @@ current_v25_review_artifact_root_sha256=96bd1626eba2be1143eb4ad439ad7b38de90d56d
 current_v25_full_config_preflight_release_root_sha256=323a7326c744d54b410f6b0ace7e1ac648e4c60045569bab77640942398a2687
 current_v25_failed_execute_root_sha256=ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab
 current_v25_failure_regression_matrix_row_count=10
-current_v25_production_entry_preflight_passed=false
+current_v25_production_entry_preflight_passed=true
+current_v25_production_entry_regression_test_result=8_passed
 current_v25_official_execute_nonce_generated=false
 current_v25_corrected_full_corpus_started=false
 current_v25_monitor_started=false
@@ -814,12 +815,12 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=41851711488
+observed_autodl_free_bytes=41835847680
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_projected_full_corpus_peak_bytes=27909527113
-current_v25_projected_post_corpus_free_bytes=13942184375
-current_v25_phase=A1_7_failure_regression_control_before_full_corpus_execute
-next_work_target=A1_7_same_implementation_production_entry_preflight_before_execute_nonce
+current_v25_projected_post_corpus_free_bytes=13926320567
+current_v25_phase=A1_7_production_entry_preflight_passed_before_full_corpus_execute
+next_work_target=A1_7_full_corpus_execute_release_and_unique_worker_after_control_report
 
 ## Current V24 Status
 

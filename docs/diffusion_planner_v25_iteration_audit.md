@@ -4460,3 +4460,56 @@ current_v25_projected_full_corpus_peak_bytes=27909527113
 current_v25_projected_post_corpus_free_bytes=13942184375
 current_v25_phase=A1_7_failure_regression_control_before_full_corpus_execute
 next_work_target=A1_7_same_implementation_production_entry_preflight_before_execute_nonce
+
+## A1.7 production-entry preflight PASS
+
+The single consolidated production-entry preflight passed on the unchanged
+implementation source `19bcebe67f1026f8087505190d11d159d7aa2f1a`. It used
+`/root/autodl-tmp/dp312_venv/bin/python` (Python 3.12.3) and imported the
+frozen pytest/numpy/torch/scipy scope; verified fixed DP `7a1d33da...`; proved
+the exact `/root/autodl-tmp` mount is XFS `rw,prjquota`; performed an exact
+create/fsync/read/delete probe below that literal/resolved parent; opened the
+real frozen probe, weights, checkpoint, arguments, native sources, sealed
+create-entry release, zero-snapshot run-entry preflight, and independent
+review; and passed all three pointer/matrix regressions plus the focused marker
+binding and four full-corpus authority tests. The real create/run artifacts
+remain roots `323a7326...`, `e578642e...`, and `96bd1626...`.
+
+No full-corpus execute release exists for source `19bcebe6...`; therefore no
+official execute nonce has been generated or consumed. Worker/GPU counts are
+zero, the corpus lock is free, the obsolete monitor count is zero, and
+Fresh/outcome remains unopened. Writable free space is 41,835,847,680 bytes;
+after the 27,909,527,113-byte bounded projection, the remaining estimate is
+13,926,320,567 bytes, above 10 GiB. Per the user's stop point, this record does
+not create the execute release or start the full corpus.
+
+current_v25_status=v25_a17_failure_regression_matrix_and_production_entry_preflight_passed_execute_nonce_not_generated
+current_v25_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_19bcebe6_b2de06d662cf9764
+current_v25_artifact_root_sha256=e578642e9478f9021fdcbfb3b683a37db9ff3cf4ac9323bb98d801644181a5cb
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_review_19bcebe6_b2de06d662cf9764
+current_v25_review_artifact_root_sha256=96bd1626eba2be1143eb4ad439ad7b38de90d56d9bbafee76e63d0402f53386e
+current_v25_full_config_preflight_release_root_sha256=323a7326c744d54b410f6b0ace7e1ac648e4c60045569bab77640942398a2687
+current_v25_failed_execute_root_sha256=ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab
+current_v25_failure_regression_matrix_row_count=10
+current_v25_production_entry_preflight_passed=true
+current_v25_production_entry_regression_test_result=8_passed
+current_v25_official_execute_nonce_generated=false
+current_v25_corrected_full_corpus_started=false
+current_v25_monitor_started=false
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=41835847680
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_projected_full_corpus_peak_bytes=27909527113
+current_v25_projected_post_corpus_free_bytes=13926320567
+current_v25_phase=A1_7_production_entry_preflight_passed_before_full_corpus_execute
+next_work_target=A1_7_full_corpus_execute_release_and_unique_worker_after_control_report
