@@ -4387,3 +4387,76 @@ current_v25_full_corpus_storage_root=/autodl-pub
 current_v25_full_corpus_storage_free_bytes=11021925453824
 current_v25_phase=A1_7_bounded_execution_and_independent_review_passed
 next_work_target=A1_7_full_1500x64_corrected_corpus_authority_preflight_execute_and_independent_review
+
+## A1.7 one-time failure-regression control matrix and production-entry hold
+
+The resource cleanup is complete and no full-corpus worker is active. The
+canonical writable corpus parent is `/root/autodl-tmp`: `findmnt` reports the
+project XFS mount as `rw,prjquota`, whereas `/autodl-pub` and
+`/autodl-pub/data` are read-only despite reporting TB-scale parent/AutoFS
+capacity. Removing only confirmed-unused artifacts raised writable free space
+from 37,128,237,056 to 41,851,711,488 bytes; the bounded linear peak estimate
+is 27,909,527,113 bytes, leaving 13,942,184,375 bytes, above the 10 GiB floor.
+The local complete and interrupted tar payloads were deleted after their exact
+paths and roots were recorded, releasing 23,275,442,176 bytes on `F:`; small
+verification/deletion receipts remain.
+
+The first `/root/autodl-tmp` execute attempt after cleanup sealed fail-closed at
+root `ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab`
+with zero accepted runs/snapshots. It exposed a single ordinary harness defect:
+the execute path reconstructed the historical controlled-train preflight nonce
+path instead of consuming the exact sealed A1.7 preflight marker binding.
+Commit `19bcebe67f1026f8087505190d11d159d7aa2f1a` fixes only that binding and
+adds the direct regression. AutoDL passed the focused test and all four A1.7
+full-corpus authority tests. A fresh real-entry full-config preflight and its
+independent review then passed with roots `e578642e...` and `96bd1626...`;
+they executed zero model/candidate/snapshot work. No full-corpus execute nonce
+has been generated after this control hold.
+
+| Failure signature | Current forbidden behavior | Unique machine check | Regression test or command |
+|---|---|---|---|
+| `stale_heartbeat_exited_worker` | Keep or create a monitor before a live worker has valid progress | app automation inventory must report the obsolete monitor absent; creation requires live PID, held lock, first valid `progress.json`, and GPU/model-loaded evidence | `automation_update(view/delete)` plus worker-start receipt check |
+| `readonly_parent_misread_as_capacity` | Select a parent from `df` capacity without proving the exact target mount writable | `findmnt -T <literal-parent>` + `df -B1` + exact create/fsync/remove probe on the resolved parent | A1.7 production-entry storage batch |
+| `logical_vs_allocated_or_hardlink_confusion` | Treat `du -sb`, projected logical bytes, or hard-linked content as actual freed blocks | record both `du -sb` and `du -sB1`, then re-read writable-volume free bytes after exact deletion | `20260721_v25_confirmed_unused_deletion_receipt.json` |
+| `external_legacy_json_forced_canonical` | Apply CAMP compact/sorted/single-LF policy to frozen external JSON | exact path+SHA selects the strict legacy loader; CAMP-authored authority still uses canonical loader | `test_diffusion_planner_v25_a163_bounded_authority.py` legacy-asset cases |
+| `operator_short_sha_or_interpreter_realpath_assertion` | Compare 8-char with 40-char HEAD or require venv launcher realpath/prefix equality | exact 40-hex HEAD equality; record interpreter metadata but require only Python 3.12 and frozen imports | production-entry interpreter/HEAD batch |
+| `formal_nonce_consumed_before_real_entry_pass` | Generate/consume an execute nonce before the real create/run zero-data entry passes | no execute marker exists before/after production-entry preflight; nonce is generated only afterward | real `create_diffusion_planner_v25_a17_full_corpus_release.py` + real corpus `--preflight` |
+| `docs_pointer_vs_live_implementation_drift` | Treat a docs-only pointer HEAD as implementation source or skip the dual-HEAD allowlist | exact implementation manifest at source HEAD plus only current-status/audit/pointer-test delta to pointer HEAD | `test_diffusion_planner_v25_iteration_audit.py` pointer tests |
+| `scenario_family_drives_signal_source` | Infer signal applicability/phase from scenario family | route-level regulatory chain plus same-tick `controlled_same_tick_override` or `observe_same_tick_request` receipt | A1.6 source census/review and full-config review |
+| `confirmed_unused_artifact_archived_locally` | Tar confirmed-unused failed/superseded artifacts by default | authority non-membership + exact deletion receipt; retain only small receipts | exact-path deletion receipt validation |
+| `unchanged_status_visible_polling` | Emit repeated unchanged status or run concurrent/high-frequency polling | one low-frequency read-only monitor only after worker admission; user-visible output only on milestone/error/material progress | heartbeat admission policy in Current V25 status |
+
+This is one control package, not a new scientific gate or A1.7 sub-version.
+The next action is the single same-implementation production-entry preflight;
+until it passes, worker, execute nonce, monitor, training, calibration, Scene,
+V2I, Fresh, and outcome access remain closed.
+
+current_v25_status=v25_a17_failure_regression_matrix_frozen_production_entry_preflight_pending
+current_v25_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_19bcebe6_b2de06d662cf9764
+current_v25_artifact_root_sha256=e578642e9478f9021fdcbfb3b683a37db9ff3cf4ac9323bb98d801644181a5cb
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_review_19bcebe6_b2de06d662cf9764
+current_v25_review_artifact_root_sha256=96bd1626eba2be1143eb4ad439ad7b38de90d56d9bbafee76e63d0402f53386e
+current_v25_full_config_preflight_release_root_sha256=323a7326c744d54b410f6b0ace7e1ac648e4c60045569bab77640942398a2687
+current_v25_failed_execute_root_sha256=ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab
+current_v25_failure_regression_matrix_row_count=10
+current_v25_production_entry_preflight_passed=false
+current_v25_official_execute_nonce_generated=false
+current_v25_corrected_full_corpus_started=false
+current_v25_monitor_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=false_pointer_commit_pending
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=41851711488
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_projected_full_corpus_peak_bytes=27909527113
+current_v25_projected_post_corpus_free_bytes=13942184375
+current_v25_phase=A1_7_failure_regression_control_before_full_corpus_execute
+next_work_target=A1_7_same_implementation_production_entry_preflight_before_execute_nonce

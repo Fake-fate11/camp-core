@@ -768,62 +768,43 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below matches it exactly.
 
-A1.7 keeps the accepted typed, outcome-blind fixed-DP candidate-generation
-capability contract unchanged. A finite fixed-DP K8 tensor whose heading
-channels leave the frozen `[0.5,1.5]` norm envelope terminates the whole
-identity with zero trainable rows and a content-addressed diagnostic receipt.
-It is never normalized, repaired, masked, reduced, or replaced by candidate0;
-fixed DP, trajectories, atoms, scales, weights, simplex/affine scoring,
-eligibility, and tie-breaking remain unchanged.
+A1.7 keeps the accepted typed fixed-DP K8 capability contract unchanged. The
+current full-config preflight and independent review passed at implementation
+source `19bcebe6...` with zero model/candidate/snapshot work. The preceding
+execute attempt sealed fail-closed with zero accepted rows because the harness
+reconstructed an obsolete preflight-marker path; the direct fix now consumes
+the exact marker path/SHA recorded in the sealed A1.7 preflight.
 
-The corrected typed 244-run execution completed and sealed with `run.exit=0`.
-It retained two identities as typed fixed-DP capability failures, emitted zero
-training rows for them, and preserved 15,488 complete snapshots from 241 of
-243 unique identities. All preregistered overall, family, source-mode,
-family-by-tier, red-source, and identity0 repeat gates passed. The immutable
-execution root is `8ee2c25a...`; the release root is `2d1b82bc...`.
+Resource authority is also corrected: `/root/autodl-tmp` is the canonical
+writable XFS `rw,prjquota` parent. `/autodl-pub` and its AutoFS child are
+read-only despite TB-scale reported capacity. Exact deletion of only
+confirmed-unused artifacts raised writable free space to 41,851,711,488 bytes;
+the bounded projection leaves 13,942,184,375 bytes after a full corpus, above
+the 10 GiB floor. Confirmed-unused local tar payloads were removed and only
+small receipts remain.
 
-The first independent-review invocation sealed fail-closed at root
-`bdba1e24...` because the harness incorrectly required a nonempty review-only
-code delta when release source, pointer, and review HEAD were identical. Commit
-`3feee605...` makes the narrow correction: an empty delta is valid, while any
-changed path must remain inside the frozen two-file reviewer/test allowlist.
-AutoDL passed all 188 focused review tests. A fresh independent review then
-reopened 80,863 execution file policies and all candidate/source/atom/context/
-selection/trajectory evidence, passed with `run.exit=0`, and sealed at root
-`44001045...`.
+The audit EOF now contains one 10-row failure-signature-to-machine-check
+matrix. Before any execute nonce or worker, one combined production-entry
+preflight must verify the exact 40-char CAMP/fixed-DP heads, real Python 3.12
+imports, mount/quota/allocated-block evidence, literal/resolved writable output
+parent, frozen asset loaders, real create/run zero-data entry, absent execute
+nonce, and zero stale monitors. No full corpus, worker, monitor, training,
+calibration, Scene/V2I, Fresh, or outcome is active.
 
-The bounded acceptance gate requires 244 terminal rows, complete and repeat-
-equivalent identity0 endpoints, at least 231/243 complete unique identities,
-greater than 90% completion per family and source/mode, greater than 80% per
-family×tier, plus the frozen red 4/7/4 and three-source-map minimum. The later
-full corpus requires 1,500 terminal rows, at least 1,425 complete, the same
-group thresholds, no zero-complete planned stratum, and unchanged red minima.
-No full corpus, training, calibration, Scene/V2I, Fresh, or outcome has started.
-The next action is a new A1.7 full-corpus authority/preflight chain binding the
-passed bounded execution and independent review, followed by a fresh 1,500x64
-sequential fixed-K8 corpus under `/autodl-pub` so the 10 GiB floor remains
-intact. No historical release, nonce, output directory, or failed artifact is
-reused or appended.
-
-current_v25_status=v25_a17_bounded_execution_and_independent_review_passed_full_corpus_authority_next
-current_v25_source_head=3feee6059ec28393bbbd530ff359485fb75c1ede
+current_v25_status=v25_a17_failure_regression_matrix_frozen_production_entry_preflight_pending
+current_v25_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_c7b1cdba_605f8d227d0e83cb
-current_v25_artifact_root_sha256=8ee2c25ab993ad23e5c3d29ecf1940c296f4cead9a4c839be7723959f4e66f3f
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_review_3feee605_20260720T173132CST
-current_v25_review_artifact_root_sha256=4400104508f898b5ef0ad877036bb9f14bd0a0b0012d7ab2b57a4cfe4728fe7b
-current_v25_a17_bounded_release_root_sha256=2d1b82bca3f9d32aaf9069fbc6b017c5cc01ff8aa16e3fcb048b50af1cc97df9
-current_v25_a17_failed_same_head_review_root_sha256=bdba1e2448925b2417a26b4e6c5594d63635c7fe8a4b68507e6b28cb0ad86023
-current_v25_a17_bounded_run_count=244
-current_v25_a17_bounded_unique_identity_count=243
-current_v25_a17_bounded_complete_unique_identity_count=241
-current_v25_a17_bounded_snapshot_count=15488
-current_v25_a17_bounded_retained_fixed_dp_capability_failure_count=2
-current_v25_a17_bounded_identity0_repeat_deterministic=true
-current_v25_a17_bounded_coverage_passed=true
-current_v25_autodl_focused_test_result=188_passed
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_19bcebe6_b2de06d662cf9764
+current_v25_artifact_root_sha256=e578642e9478f9021fdcbfb3b683a37db9ff3cf4ac9323bb98d801644181a5cb
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_review_19bcebe6_b2de06d662cf9764
+current_v25_review_artifact_root_sha256=96bd1626eba2be1143eb4ad439ad7b38de90d56d9bbafee76e63d0402f53386e
+current_v25_full_config_preflight_release_root_sha256=323a7326c744d54b410f6b0ace7e1ac648e4c60045569bab77640942398a2687
+current_v25_failed_execute_root_sha256=ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab
+current_v25_failure_regression_matrix_row_count=10
+current_v25_production_entry_preflight_passed=false
+current_v25_official_execute_nonce_generated=false
 current_v25_corrected_full_corpus_started=false
+current_v25_monitor_started=false
 current_v25_training_started=false
 current_v25_calibration_started=false
 current_v25_worker_count=0
@@ -833,11 +814,12 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=25322827776
-current_v25_full_corpus_storage_root=/autodl-pub
-current_v25_full_corpus_storage_free_bytes=11021925453824
-current_v25_phase=A1_7_bounded_execution_and_independent_review_passed
-next_work_target=A1_7_full_1500x64_corrected_corpus_authority_preflight_execute_and_independent_review
+observed_autodl_free_bytes=41851711488
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_projected_full_corpus_peak_bytes=27909527113
+current_v25_projected_post_corpus_free_bytes=13942184375
+current_v25_phase=A1_7_failure_regression_control_before_full_corpus_execute
+next_work_target=A1_7_same_implementation_production_entry_preflight_before_execute_nonce
 
 ## Current V24 Status
 

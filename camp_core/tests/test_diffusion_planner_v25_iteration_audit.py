@@ -412,24 +412,20 @@ POINTER = (
 # tuple above remains a byte-visible regression record while the active reader
 # contract tracks only the latest A1.7 gate.
 POINTER = (
-    "current_v25_status=v25_a17_bounded_execution_and_independent_review_passed_full_corpus_authority_next",
-    "current_v25_source_head=3feee6059ec28393bbbd530ff359485fb75c1ede",
+    "current_v25_status=v25_a17_failure_regression_matrix_frozen_production_entry_preflight_pending",
+    "current_v25_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_c7b1cdba_605f8d227d0e83cb",
-    "current_v25_artifact_root_sha256=8ee2c25ab993ad23e5c3d29ecf1940c296f4cead9a4c839be7723959f4e66f3f",
-    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_review_3feee605_20260720T173132CST",
-    "current_v25_review_artifact_root_sha256=4400104508f898b5ef0ad877036bb9f14bd0a0b0012d7ab2b57a4cfe4728fe7b",
-    "current_v25_a17_bounded_release_root_sha256=2d1b82bca3f9d32aaf9069fbc6b017c5cc01ff8aa16e3fcb048b50af1cc97df9",
-    "current_v25_a17_failed_same_head_review_root_sha256=bdba1e2448925b2417a26b4e6c5594d63635c7fe8a4b68507e6b28cb0ad86023",
-    "current_v25_a17_bounded_run_count=244",
-    "current_v25_a17_bounded_unique_identity_count=243",
-    "current_v25_a17_bounded_complete_unique_identity_count=241",
-    "current_v25_a17_bounded_snapshot_count=15488",
-    "current_v25_a17_bounded_retained_fixed_dp_capability_failure_count=2",
-    "current_v25_a17_bounded_identity0_repeat_deterministic=true",
-    "current_v25_a17_bounded_coverage_passed=true",
-    "current_v25_autodl_focused_test_result=188_passed",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_19bcebe6_b2de06d662cf9764",
+    "current_v25_artifact_root_sha256=e578642e9478f9021fdcbfb3b683a37db9ff3cf4ac9323bb98d801644181a5cb",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_review_19bcebe6_b2de06d662cf9764",
+    "current_v25_review_artifact_root_sha256=96bd1626eba2be1143eb4ad439ad7b38de90d56d9bbafee76e63d0402f53386e",
+    "current_v25_full_config_preflight_release_root_sha256=323a7326c744d54b410f6b0ace7e1ac648e4c60045569bab77640942398a2687",
+    "current_v25_failed_execute_root_sha256=ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab",
+    "current_v25_failure_regression_matrix_row_count=10",
+    "current_v25_production_entry_preflight_passed=false",
+    "current_v25_official_execute_nonce_generated=false",
     "current_v25_corrected_full_corpus_started=false",
+    "current_v25_monitor_started=false",
     "current_v25_training_started=false",
     "current_v25_calibration_started=false",
     "current_v25_worker_count=0",
@@ -439,11 +435,12 @@ POINTER = (
     "current_v25_fresh_b2_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=25322827776",
-    "current_v25_full_corpus_storage_root=/autodl-pub",
-    "current_v25_full_corpus_storage_free_bytes=11021925453824",
-    "current_v25_phase=A1_7_bounded_execution_and_independent_review_passed",
-    "next_work_target=A1_7_full_1500x64_corrected_corpus_authority_preflight_execute_and_independent_review",
+    "observed_autodl_free_bytes=41851711488",
+    "current_v25_full_corpus_storage_root=/root/autodl-tmp",
+    "current_v25_projected_full_corpus_peak_bytes=27909527113",
+    "current_v25_projected_post_corpus_free_bytes=13942184375",
+    "current_v25_phase=A1_7_failure_regression_control_before_full_corpus_execute",
+    "next_work_target=A1_7_same_implementation_production_entry_preflight_before_execute_nonce",
 )
 
 
@@ -464,6 +461,32 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     )[0]
     for line in POINTER:
         assert section.count(line) == 1
+
+
+def test_v25_a17_failure_regression_matrix_has_all_ten_machine_checks() -> None:
+    text = AUDIT.read_text(encoding="utf-8")
+    assert "## A1.7 one-time failure-regression control matrix" in text
+    signatures = (
+        "stale_heartbeat_exited_worker",
+        "readonly_parent_misread_as_capacity",
+        "logical_vs_allocated_or_hardlink_confusion",
+        "external_legacy_json_forced_canonical",
+        "operator_short_sha_or_interpreter_realpath_assertion",
+        "formal_nonce_consumed_before_real_entry_pass",
+        "docs_pointer_vs_live_implementation_drift",
+        "scenario_family_drives_signal_source",
+        "confirmed_unused_artifact_archived_locally",
+        "unchanged_status_visible_polling",
+    )
+    for signature in signatures:
+        assert text.count(f"`{signature}`") == 1
+    for column in (
+        "Failure signature",
+        "Current forbidden behavior",
+        "Unique machine check",
+        "Regression test or command",
+    ):
+        assert column in text
 
 
 def test_v24_authority_files_remain_byte_frozen() -> None:
