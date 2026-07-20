@@ -3315,6 +3315,32 @@ def test_post_reviewer_uses_frozen_fixed_k8_heading_norm_envelope() -> None:
             post_reviewer._validate_fixed_k8_heading_envelope(mutated)
 
 
+def test_native_red_stop_line_matches_certified_geometry_at_fixed_dp_float32() -> None:
+    certified = [
+        [42.00999999890337, 24.936699999962002],
+        [39.31429999880493, 23.592599998693913],
+    ]
+    safety = {
+        "red_light_at_interval_start": True,
+        "red_stop_lines": [
+            np.asarray(certified, dtype=np.float32).astype(np.float64).tolist()
+        ],
+    }
+    source_row = {
+        "source_class": "mapped_signal",
+        "source_chain": {"stop_line_geometry_m": certified},
+    }
+    post_reviewer._validate_native_red_stop_lines(
+        safety=safety, source_row=source_row
+    )
+
+    safety["red_stop_lines"][0][0][0] += 0.01
+    with pytest.raises(ValueError, match="certified source"):
+        post_reviewer._validate_native_red_stop_lines(
+            safety=safety, source_row=source_row
+        )
+
+
 def test_terminal_oracle_uses_pre_rows_and_excludes_post_safety_63(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

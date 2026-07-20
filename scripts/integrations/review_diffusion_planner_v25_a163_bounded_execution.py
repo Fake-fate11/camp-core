@@ -2079,9 +2079,11 @@ def _validate_native_red_stop_lines(
     certified = chain.get("stop_line_geometry_m") if type(chain) is dict else None
     if type(certified) is not list or len(certified) < 2:
         raise ValueError("bounded native red tick lacks certified stop line")
-    expected = np.asarray([certified[0], certified[-1]], dtype=np.float64)
+    expected = np.asarray(
+        [certified[0], certified[-1]], dtype=np.float32
+    ).astype(np.float64)
     actual = _native_numeric_array(raw, (1, 2, 2), label="native red stop lines")
-    if not np.allclose(actual[0], expected, rtol=0.0, atol=1e-6):
+    if not np.array_equal(actual[0], expected):
         raise ValueError("bounded native red stop line is not the certified source")
 
 
