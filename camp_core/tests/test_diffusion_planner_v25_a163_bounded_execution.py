@@ -1835,6 +1835,48 @@ def test_post_reviewer_independently_validates_mapped_source_chain_and_red_input
     ]
 
 
+@pytest.mark.parametrize("absent_side", ["route", "map"])
+def test_post_reviewer_accepts_one_visible_same_tick_signal_tensor_side(
+    absent_side: str,
+) -> None:
+    source_row, sidecar = _mapped_source_and_tick("red")
+    receipt = sidecar["controlled_signal_source_receipt"]
+    evidence = sidecar["controlled_signal_tensor_evidence"]
+    rows_key = f"{absent_side}_signal_rows"
+    observed_key = f"observed_{absent_side}_lanelet_ids"
+    sha_key = f"{absent_side}_signal_tensor_sha256"
+    evidence[rows_key] = []
+    receipt[observed_key] = []
+    evidence[sha_key] = post_reviewer._sha([])
+    receipt[sha_key] = evidence[sha_key]
+
+    assert (
+        post_reviewer._validate_signal_receipts(
+            sidecar=sidecar, source_row=source_row, tick_index=0
+        )
+        is receipt
+    )
+
+
+def test_post_reviewer_rejects_absent_route_and_map_same_tick_signal_tensors() -> None:
+    source_row, sidecar = _mapped_source_and_tick("red")
+    receipt = sidecar["controlled_signal_source_receipt"]
+    evidence = sidecar["controlled_signal_tensor_evidence"]
+    for side in ("route", "map"):
+        rows_key = f"{side}_signal_rows"
+        observed_key = f"observed_{side}_lanelet_ids"
+        sha_key = f"{side}_signal_tensor_sha256"
+        evidence[rows_key] = []
+        receipt[observed_key] = []
+        evidence[sha_key] = post_reviewer._sha([])
+        receipt[sha_key] = evidence[sha_key]
+
+    with pytest.raises(ValueError, match="current tensor"):
+        post_reviewer._validate_signal_receipts(
+            sidecar=sidecar, source_row=source_row, tick_index=0
+        )
+
+
 def test_post_reviewer_validates_source_only_no_signal_row_without_runtime_receipt() -> None:
     source_row = _no_signal_source_row()
     assert post_reviewer._validate_source_row(source_row) is source_row

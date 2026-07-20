@@ -2496,9 +2496,11 @@ def _validate_source_row(row: Any) -> dict[str, Any]:
     return row
 
 
-def _signal_row_oracle(rows: Any, *, label: str) -> tuple[list[int], str]:
-    if type(rows) is not list or not rows:
-        raise ValueError(f"{label} signal rows are absent")
+def _signal_row_oracle(rows: Any, *, label: str) -> tuple[list[int], str | None]:
+    if type(rows) is not list:
+        raise ValueError(f"{label} signal rows must be a list")
+    if not rows:
+        return [], None
     ids: list[int] = []
     phases: set[str] = set()
     for row in rows:
@@ -2633,9 +2635,11 @@ def _validate_signal_receipts(
             evidence["route_signal_rows"], label="route"
         )
         map_ids, map_phase = _signal_row_oracle(evidence["map_signal_rows"], label="map")
+        observed_phases = {
+            phase for phase in (route_phase, map_phase) if phase is not None
+        }
         if (
-            route_phase != receipt["current_phase"]
-            or map_phase != receipt["current_phase"]
+            observed_phases != {receipt["current_phase"]}
             or route_ids != receipt["observed_route_lanelet_ids"]
             or map_ids != receipt["observed_map_lanelet_ids"]
             or not set(route_ids + map_ids) <= set(chain["controlled_lanelet_ids"])
