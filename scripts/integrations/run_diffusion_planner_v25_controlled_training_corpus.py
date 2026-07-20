@@ -998,22 +998,9 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
             "release_run_nonce": full_r_authority[
                 "preflight_release_run_nonce"
             ],
-            "release_nonce_consumption_marker": {
-                "path": str(
-                    RELEASE_NONCE_LEDGER
-                    / (
-                        "v25_preflight_"
-                        f"{full_r_authority['preflight_release_run_nonce']}.consumed.json"
-                    )
-                ),
-                "sha256": _file_sha256(
-                    RELEASE_NONCE_LEDGER
-                    / (
-                        "v25_preflight_"
-                        f"{full_r_authority['preflight_release_run_nonce']}.consumed.json"
-                    )
-                ),
-            },
+            "release_nonce_consumption_marker": full_r_authority[
+                "preflight_release_nonce_consumption_marker"
+            ],
             "authorized_output_dir": full_r_authority[
                 "preflight_authorized_output_dir"
             ],
@@ -1095,6 +1082,7 @@ def _verify_a17_full_r_authority(
         preflight_release_root = verified["release_root_sha256"]
         preflight_release_nonce = decision["run_nonce"]
         preflight_authorized_output = decision["authorized_output_dir"]
+        preflight_release_nonce_consumption_marker = marker
     else:
         if (
             preflight_artifact is None
@@ -1113,6 +1101,33 @@ def _verify_a17_full_r_authority(
         preflight_release_nonce = decision["preflight_release_run_nonce"]
         preflight_report = _load_json(preflight_artifact / "report.json")
         preflight_authorized_output = preflight_report["authorized_output_dir"]
+        preflight_release_nonce_consumption_marker = preflight_report.get(
+            "release_nonce_consumption_marker"
+        )
+        if (
+            type(preflight_release_nonce_consumption_marker) is not dict
+            or set(preflight_release_nonce_consumption_marker)
+            != {"path", "sha256"}
+            or type(preflight_release_nonce_consumption_marker.get("path"))
+            is not str
+            or not Path(
+                preflight_release_nonce_consumption_marker["path"]
+            ).is_absolute()
+            or type(
+                preflight_release_nonce_consumption_marker.get("sha256")
+            )
+            is not str
+            or not _is_sha256(
+                preflight_release_nonce_consumption_marker["sha256"]
+            )
+            or _file_sha256(
+                Path(preflight_release_nonce_consumption_marker["path"])
+            )
+            != preflight_release_nonce_consumption_marker["sha256"]
+        ):
+            raise ValueError(
+                "A1.7 sealed preflight nonce marker binding is invalid"
+            )
 
     authority = {
         "r0_review_artifact": str(Path(bounded_review["path"]).resolve()),
@@ -1139,6 +1154,9 @@ def _verify_a17_full_r_authority(
         "authorized_output_dir": decision["authorized_output_dir"],
         "preflight_release_run_nonce": preflight_release_nonce,
         "preflight_authorized_output_dir": preflight_authorized_output,
+        "preflight_release_nonce_consumption_marker": (
+            preflight_release_nonce_consumption_marker
+        ),
         "critical_implementation_manifest": dict(
             decision["critical_implementation_manifest"]
         ),

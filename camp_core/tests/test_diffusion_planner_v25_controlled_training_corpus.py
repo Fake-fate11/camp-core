@@ -24,6 +24,9 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     canonical_json_sha256,
 )
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as runner
+from scripts.integrations import (
+    run_diffusion_planner_v25_controlled_training_corpus as corpus,
+)
 from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus import (
     CORPUS_STEPS,
     CORRECTED_GENERATION_SCALES,
@@ -38,6 +41,95 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "configs" / "diffusion_planner_v22_native_capability.json"
+
+
+def test_a17_execute_reuses_sealed_preflight_nonce_marker_binding(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    preflight = tmp_path / "preflight"
+    preflight.mkdir()
+    marker = tmp_path / "a17-preflight.consumed.json"
+    marker.write_bytes(b"{}\n")
+    marker_binding = {
+        "path": str(marker.resolve()),
+        "sha256": hashlib.sha256(marker.read_bytes()).hexdigest(),
+    }
+    (preflight / "report.json").write_text(
+        json.dumps(
+            {
+                "authorized_output_dir": str(preflight.resolve()),
+                "release_nonce_consumption_marker": marker_binding,
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = {
+        "path": "/authority/source",
+        "root_sha256": "1" * 64,
+        "report_file": "report.json",
+    }
+    bounded_review = {
+        "path": "/authority/bounded-review",
+        "root_sha256": "2" * 64,
+        "report_file": "report.json",
+    }
+    roots = {
+        role: {
+            "path": f"/authority/{role}",
+            "root_sha256": f"{index + 3:064x}",
+            "report_file": (
+                "decision.json" if role == "bounded_release" else "report.json"
+            ),
+        }
+        for index, role in enumerate(corpus.A17_UPSTREAM_ROLES)
+    }
+    roots["source"] = source
+    roots["bounded_execution_review"] = bounded_review
+    execute_marker = {
+        "path": str((tmp_path / "execute.consumed.json").resolve()),
+        "sha256": "3" * 64,
+    }
+    monkeypatch.setattr(
+        corpus,
+        "verify_a17_full_corpus_release",
+        lambda **_: {
+            "decision": {
+                "root_artifacts": roots,
+                "preflight_artifact": str(preflight.resolve()),
+                "preflight_review_artifact": str(
+                    (tmp_path / "preflight-review").resolve()
+                ),
+                "preflight_review_root_sha256": "4" * 64,
+                "preflight_release_artifact": "/authority/preflight-release",
+                "preflight_release_root_sha256": "5" * 64,
+                "preflight_release_run_nonce": "6" * 64,
+                "implementation_source_head": "7" * 40,
+                "run_nonce": "8" * 64,
+                "authorized_output_dir": str((tmp_path / "output").resolve()),
+                "critical_implementation_manifest": {"critical.py": "9" * 64},
+            },
+            "release_root_sha256": "a" * 64,
+            "nonce_marker": execute_marker,
+            "upstream": {"bounded_source_head": "b" * 40},
+        },
+    )
+    review = tmp_path / "preflight-review"
+    review.mkdir()
+    authority = corpus._verify_a17_full_r_authority(
+        release_artifact=tmp_path / "release",
+        release_root_sha256="a" * 64,
+        preflight_artifact=preflight,
+        preflight_review_artifact=review,
+        preflight_review_root_sha256="4" * 64,
+        camp_head="c" * 40,
+        mode="execute",
+        output_dir=tmp_path / "output",
+        probe_template=tmp_path / "probe.json",
+        dp_repo=tmp_path / "dp",
+    )
+
+    assert authority["preflight_release_nonce_consumption_marker"] == marker_binding
+    assert authority["release_nonce_consumption_marker"] == execute_marker
 
 
 def _case() -> dict:
