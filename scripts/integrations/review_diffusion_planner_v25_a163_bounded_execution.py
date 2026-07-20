@@ -36,8 +36,12 @@ from camp_core.integrations.diffusion_planner import (  # noqa: E402
     install_lanelet2_projection_fallback,
     require_source_preserving_lanelet2_regulatory_adapter,
 )
-from camp_core.integrations.diffusion_planner_v25_a163_bounded_authority import (  # noqa: E402
-    verify_bounded_release,
+from camp_core.integrations import (  # noqa: E402
+    diffusion_planner_v25_a163_bounded_authority as bounded_authority,
+)
+from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
+    CRITICAL_IMPLEMENTATION_PATHS,
+    POINTER_ONLY_PATHS,
 )
 from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import (  # noqa: E402
     FIXED_DP_FAILURE_CLASS,
@@ -57,7 +61,7 @@ from camp_core.integrations.diffusion_planner_v25_snapshot_review import (  # no
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_a17_bounded_execution_review_v10"
+SCHEMA_VERSION = "camp_dp_v25_a17_bounded_execution_review_v11"
 EXECUTION_SCHEMA_VERSION = "camp_dp_v25_a1610_bounded_execution_v8"
 SNAPSHOT_SCHEMA_VERSION = "camp_dp_v25_a17_bounded_snapshot_v7"
 INDEX_SCHEMA_VERSION = "camp_dp_v25_a163_bounded_snapshot_index_row_v1"
@@ -138,6 +142,12 @@ EXPECTED_DP_NATIVE_SOURCE_SHA256 = {
 GOAL_TOLERANCE_M = 2.0
 GOAL_PASS_WINDOW_M = 25.0
 EXPECTED_CLEARANCE_MAX_RANGE_M = 100.0
+REVIEW_CORRECTION_PATHS = frozenset(
+    {
+        "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py",
+        "camp_core/tests/test_diffusion_planner_v25_a163_bounded_execution.py",
+    }
+)
 SCENE_MATERIALIZATION_EVIDENCE_SCHEMA_VERSION = (
     "camp_dp_v25_a1610_causal_scene_materialization_evidence_v2"
 )
@@ -593,6 +603,194 @@ def _git(repo: Path, *args: str) -> str:
     return subprocess.run(
         ["git", *args], cwd=repo, check=True, capture_output=True, text=True
     ).stdout.strip()
+
+
+def _git_bytes(repo: Path, *args: str) -> bytes:
+    return subprocess.run(
+        ["git", *args], cwd=repo, check=True, capture_output=True
+    ).stdout
+
+
+def _historical_critical_manifest(repo: Path, head: str) -> dict[str, str]:
+    manifest: dict[str, str] = {}
+    for relative_path in CRITICAL_IMPLEMENTATION_PATHS:
+        payload = _git_bytes(repo, "show", f"{head}:{relative_path}")
+        manifest[relative_path] = hashlib.sha256(payload).hexdigest()
+    return manifest
+
+
+def _changed_paths(repo: Path, start: str, end: str) -> list[str]:
+    if start == end:
+        return []
+    return [
+        line.replace("\\", "/")
+        for line in _git(repo, "diff", "--name-only", start, end, "--").splitlines()
+        if line
+    ]
+
+
+def _parse_heads_bytes(path: Path) -> dict[str, str]:
+    try:
+        text = path.read_bytes().decode("ascii", errors="strict")
+    except UnicodeDecodeError as exc:
+        raise ValueError("bounded authority HEADS is not strict ASCII") from exc
+    if not text.endswith("\n") or text.endswith("\n\n"):
+        raise ValueError("bounded authority HEADS framing drifted")
+    fields: dict[str, str] = {}
+    for line in text.splitlines():
+        if "=" not in line:
+            raise ValueError("bounded authority HEADS line drifted")
+        key, value = line.split("=", 1)
+        if not key or not value or key in fields:
+            raise ValueError("bounded authority HEADS key drifted")
+        fields[key] = value
+    expected = (
+        f"camp_source_head={fields.get('camp_source_head', '')}\n"
+        f"camp_pointer_head={fields.get('camp_pointer_head', '')}\n"
+        f"fixed_dp_head={fields.get('fixed_dp_head', '')}\n"
+    ).encode("ascii")
+    if path.read_bytes() != expected:
+        raise ValueError("bounded authority HEADS key set/order drifted")
+    return fields
+
+
+def _verify_archived_bounded_release_for_review(
+    *,
+    repo: Path,
+    review_head: str,
+    release_artifact: Path,
+    release_root_sha256: str,
+    requested_output_dir: str,
+    dp_repo: Path,
+    probe_template: Path,
+) -> dict[str, Any]:
+    """Open an immutable producer release under a later review-only commit.
+
+    The producer implementation remains bound to its historical git blobs.  The
+    only permitted later changes are this independent reviewer and its focused
+    tests; execution authority is never reissued or consumed here.
+    """
+
+    seal = verify_complete_seal(
+        release_artifact,
+        release_root_sha256,
+        label="V25 A1.7 archived bounded release for independent review",
+    )
+    if (
+        seal["manifest_paths"] != bounded_authority.RELEASE_PAYLOADS
+        or (release_artifact / "run.exit").read_bytes() != b"0\n"
+    ):
+        raise ValueError("bounded archived release inventory/run.exit drifted")
+    decision = _load(release_artifact / "decision.json", canonical=True)
+    heads = _parse_heads_bytes(release_artifact / "HEADS")
+    if type(decision) is not dict or set(decision) != bounded_authority.RELEASE_FIELDS:
+        raise ValueError("bounded archived release field set drifted")
+    exact = {
+        "schema_version": bounded_authority.RELEASE_SCHEMA_VERSION,
+        "status": bounded_authority.RELEASE_STATUS,
+        "gate": bounded_authority.RELEASE_GATE,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "seed": EXPECTED_SEED,
+        "unique_identity_count": EXPECTED_UNIQUE_IDENTITIES,
+        "run_count": EXPECTED_RUNS,
+        "snapshot_capacity": EXPECTED_TICKS,
+        "device": EXPECTED_DEVICE,
+        "bounded_execute_authorized": True,
+        "full_config_preflight_authorized": False,
+        "full_r_execute_authorized": False,
+        "monitor_enabled": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "scene_runtime_enabled": False,
+        "v2i_enabled": False,
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    for key, expected_value in exact.items():
+        if not _strict_equal(decision.get(key), expected_value):
+            raise ValueError(f"bounded archived release value drifted: {key}")
+    source_head = decision.get("implementation_source_head")
+    producer_pointer_head = decision.get("pointer_head_at_release")
+    if (
+        type(source_head) is not str
+        or not re.fullmatch(r"[0-9a-f]{40}", source_head)
+        or type(producer_pointer_head) is not str
+        or not re.fullmatch(r"[0-9a-f]{40}", producer_pointer_head)
+        or type(review_head) is not str
+        or not re.fullmatch(r"[0-9a-f]{40}", review_head)
+        or heads
+        != {
+            "camp_source_head": source_head,
+            "camp_pointer_head": producer_pointer_head,
+            "fixed_dp_head": FIXED_DP_HEAD,
+        }
+        or decision.get("critical_implementation_manifest_sha256")
+        != _sha(decision.get("critical_implementation_manifest"))
+        or decision.get("execution_assets_sha256")
+        != _sha(decision.get("execution_assets"))
+        or decision.get("root_artifacts_sha256")
+        != _sha(decision.get("root_artifacts"))
+    ):
+        raise ValueError("bounded archived release hashes/HEADS drifted")
+    historical_manifest = _historical_critical_manifest(repo, source_head)
+    if not _strict_equal(
+        decision.get("critical_implementation_manifest"), historical_manifest
+    ):
+        raise ValueError("bounded archived producer implementation drifted")
+    source_pointer_delta = _changed_paths(repo, source_head, producer_pointer_head)
+    if set(source_pointer_delta) - POINTER_ONLY_PATHS:
+        raise ValueError("bounded archived producer dual-HEAD contract drifted")
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", producer_pointer_head, review_head],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    review_delta = _changed_paths(repo, producer_pointer_head, review_head)
+    if (
+        "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py"
+        not in review_delta
+        or set(review_delta) - REVIEW_CORRECTION_PATHS
+    ):
+        raise ValueError("bounded review HEAD exceeds the frozen review-only delta")
+    assets = bounded_authority.verify_frozen_execution_assets(
+        repo=repo, dp_repo=dp_repo, probe_template=probe_template
+    )
+    if (
+        Path(str(decision.get("dp_repo"))).resolve() != dp_repo.resolve()
+        or decision.get("dp_repo") != str(dp_repo.resolve())
+        or Path(str(decision.get("probe_template"))).resolve()
+        != probe_template.resolve()
+        or decision.get("probe_template") != str(probe_template.resolve())
+        or decision.get("probe_template_sha256")
+        != EXPECTED_PROBE_TEMPLATE_SHA256
+        or not _strict_equal(decision.get("execution_assets"), assets)
+    ):
+        raise ValueError("bounded archived release execution assets drifted")
+    chain = bounded_authority.verify_four_root_chain(
+        bindings=decision["root_artifacts"],
+        implementation_source_head=source_head,
+        fixed_dp_head=decision["fixed_dp_head"],
+    )
+    authorized = Path(str(decision.get("authorized_output_dir")))
+    if (
+        not authorized.is_absolute()
+        or str(authorized.resolve()) != decision.get("authorized_output_dir")
+        or requested_output_dir != decision.get("authorized_output_dir")
+        or Path(requested_output_dir).resolve() != authorized.resolve()
+    ):
+        raise ValueError("bounded archived release output binding drifted")
+    return {
+        "release_artifact": str(release_artifact.resolve()),
+        "release_root_sha256": seal["root_sha256"],
+        "decision": decision,
+        "plan": chain["plan"],
+        "producer_pointer_head": producer_pointer_head,
+        "review_head": review_head,
+        "review_only_changed_paths": review_delta,
+        "nonce_marker": None,
+    }
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -1866,6 +2064,22 @@ def _validate_native_red_stop_lines(
         raise ValueError("bounded native red stop line is not the certified source")
 
 
+def _nonnegative_float32_ulp_distance(left: Any, right: Any) -> int:
+    """Return the exact ULP distance between two nonnegative float32 values."""
+
+    left_value = _native_number(left, label="trajectory ego speed")
+    right_value = _native_number(right, label="post-tracker ego speed")
+    if left_value < 0.0 or right_value < 0.0:
+        raise ValueError("bounded native speed must be nonnegative")
+    left32 = np.float32(left_value)
+    right32 = np.float32(right_value)
+    if float(left32) != left_value:
+        raise ValueError("bounded trajectory speed is not an exact float32 value")
+    left_bits = int(np.asarray([left32], dtype=np.float32).view(np.uint32)[0])
+    right_bits = int(np.asarray([right32], dtype=np.float32).view(np.uint32)[0])
+    return abs(left_bits - right_bits)
+
+
 def _validate_native_log_files(
     *,
     native_dir: Path,
@@ -1953,29 +2167,22 @@ def _validate_native_log_files(
     for index in range(63):
         post_safety = ticks[index]["safety"]
         next_row = trajectory[index + 1]
-        post_speed_as_trajectory_float32 = float(
-            np.float32(
-                _native_number(
-                    post_safety["speed_mps"], label="post-tracker ego speed"
-                )
-            )
-        )
         if not np.allclose(
             [
                 next_row["x"],
                 next_row["y"],
                 next_row["heading"],
-                next_row["speed"],
             ],
             [
                 post_safety["position_xy"][0],
                 post_safety["position_xy"][1],
                 post_safety["ego_heading_rad"],
-                post_speed_as_trajectory_float32,
             ],
             rtol=0.0,
             atol=1e-9,
-        ):
+        ) or _nonnegative_float32_ulp_distance(
+            next_row["speed"], post_safety["speed_mps"]
+        ) > 1:
             raise ValueError("bounded pre/post tracker temporal binding drifted")
     for tick in ticks:
         _validate_native_red_stop_lines(
@@ -3799,22 +4006,20 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         or progress.get("outcome_fields_consumed") != []
     ):
         raise ValueError("bounded execution progress authority drifted")
-    authority = verify_bounded_release(
+    authority = _verify_archived_bounded_release_for_review(
         repo=ROOT,
+        review_head=head,
         release_artifact=args.release_artifact,
         release_root_sha256=args.release_root_sha256,
         requested_output_dir=str(args.execution_artifact),
-        current_pointer_head=head,
         dp_repo=args.dp_repo,
         probe_template=args.probe_template,
-        requested_device=EXPECTED_DEVICE,
-        consume=False,
     )
     decision = authority["decision"]
     plan = authority["plan"]
     expected_execution_heads = (
         f"camp_source_head={decision['implementation_source_head']}\n"
-        f"camp_pointer_head={head}\n"
+        f"camp_pointer_head={decision['pointer_head_at_release']}\n"
         f"fixed_dp_head={FIXED_DP_HEAD}\n"
     ).encode("ascii")
     if (args.execution_artifact / "HEADS").read_bytes() != expected_execution_heads:
@@ -4004,6 +4209,8 @@ def review(args: argparse.Namespace) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "status": "passed_independent_bounded_execution_review",
         "review_head": head,
+        "producer_pointer_head": authority["producer_pointer_head"],
+        "review_only_changed_paths": authority["review_only_changed_paths"],
         "fixed_dp_head": FIXED_DP_HEAD,
         "device": EXPECTED_DEVICE,
         "reviewed_artifact": str(args.execution_artifact.resolve()),

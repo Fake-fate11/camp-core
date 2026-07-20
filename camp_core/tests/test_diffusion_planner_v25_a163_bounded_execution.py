@@ -757,6 +757,79 @@ def test_release_consumption_is_one_shot_and_exact_output(
         )
 
 
+def test_archived_release_review_binds_historical_producer_and_review_only_delta(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, dp_repo, template, output = _decision(tmp_path)
+    decision["probe_template_sha256"] = (
+        post_reviewer.EXPECTED_PROBE_TEMPLATE_SHA256
+    )
+    release = tmp_path / "archived-release"
+    root = _seal_release(release, decision)
+    review_head = "4" * 40
+    monkeypatch.setattr(
+        post_reviewer,
+        "_historical_critical_manifest",
+        lambda repo, head: copy.deepcopy(decision["critical_implementation_manifest"]),
+    )
+    deltas = {
+        (decision["implementation_source_head"], decision["pointer_head_at_release"]): [],
+        (decision["pointer_head_at_release"], review_head): [
+            "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py",
+            "camp_core/tests/test_diffusion_planner_v25_a163_bounded_execution.py",
+        ],
+    }
+    monkeypatch.setattr(
+        post_reviewer,
+        "_changed_paths",
+        lambda repo, start, end: list(deltas[(start, end)]),
+    )
+    monkeypatch.setattr(
+        post_reviewer.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout=b"", stderr=b""),
+    )
+    monkeypatch.setattr(
+        post_reviewer.bounded_authority,
+        "verify_frozen_execution_assets",
+        lambda **kwargs: copy.deepcopy(decision["execution_assets"]),
+    )
+    monkeypatch.setattr(
+        post_reviewer.bounded_authority,
+        "verify_four_root_chain",
+        lambda **kwargs: {"plan": _plan()},
+    )
+
+    verified = post_reviewer._verify_archived_bounded_release_for_review(
+        repo=ROOT,
+        review_head=review_head,
+        release_artifact=release,
+        release_root_sha256=root,
+        requested_output_dir=str(output),
+        dp_repo=dp_repo,
+        probe_template=template,
+    )
+    assert verified["producer_pointer_head"] == decision["pointer_head_at_release"]
+    assert verified["review_head"] == review_head
+    assert verified["review_only_changed_paths"] == deltas[
+        (decision["pointer_head_at_release"], review_head)
+    ]
+
+    deltas[(decision["pointer_head_at_release"], review_head)].append(
+        "scripts/integrations/run_diffusion_planner_v25_a163_bounded_execution.py"
+    )
+    with pytest.raises(ValueError, match="review-only"):
+        post_reviewer._verify_archived_bounded_release_for_review(
+            repo=ROOT,
+            review_head=review_head,
+            release_artifact=release,
+            release_root_sha256=root,
+            requested_output_dir=str(output),
+            dp_repo=dp_repo,
+            probe_template=template,
+        )
+
+
 @pytest.mark.parametrize(
     "raw_builder",
     [
@@ -3119,6 +3192,53 @@ def test_native_terminal_logs_bind_post_speed_with_fixed_dp_float32_log_semantic
     )
 
     receipt["ticks"][0]["safety"]["speed_mps"] = post_speed + 1e-3
+    with pytest.raises(ValueError, match="pre/post tracker temporal"):
+        post_reviewer._validate_native_log_files(
+            native_dir=native_dir,
+            receipt=receipt,
+            formal_case=formal_case,
+            template=template,
+            source_row=source_row,
+            dp_repo=tmp_path / "dp",
+        )
+
+
+def test_native_terminal_logs_accept_exact_one_ulp_between_fixed_dp_reductions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_initial_world_oracle(monkeypatch)
+    receipt = _exact_native_receipt_fixture()
+    native_dir = (tmp_path / "one-ulp-speed").resolve()
+    receipt["native_result"]["trajectory_log_path"] = str(
+        native_dir / "trajectory_log.json"
+    )
+    receipt["native_result"]["clearance_log_path"] = str(
+        native_dir / "clearance_log.json"
+    )
+    _write_native_logs(native_dir, receipt)
+    trajectory = json.loads((native_dir / "trajectory_log.json").read_text())
+    trajectory[1]["speed"] = 3.200817584991455
+    (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
+    receipt["ticks"][0]["safety"]["speed_mps"] = 3.200817346572876
+    formal_case, template, source_row = _native_log_authority_fixture()
+
+    post_reviewer._validate_native_log_files(
+        native_dir=native_dir,
+        receipt=receipt,
+        formal_case=formal_case,
+        template=template,
+        source_row=source_row,
+        dp_repo=tmp_path / "dp",
+    )
+
+    lower = np.float32(receipt["ticks"][0]["safety"]["speed_mps"])
+    two_ulps_higher = np.nextafter(
+        np.nextafter(lower, np.float32(np.inf), dtype=np.float32),
+        np.float32(np.inf),
+        dtype=np.float32,
+    )
+    trajectory[1]["speed"] = float(two_ulps_higher)
+    (native_dir / "trajectory_log.json").write_text(json.dumps(trajectory))
     with pytest.raises(ValueError, match="pre/post tracker temporal"):
         post_reviewer._validate_native_log_files(
             native_dir=native_dir,
