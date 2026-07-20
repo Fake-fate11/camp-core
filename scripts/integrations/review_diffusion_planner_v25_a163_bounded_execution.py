@@ -769,11 +769,7 @@ def _verify_archived_bounded_release_for_review(
         stderr=subprocess.PIPE,
     )
     review_delta = _changed_paths(repo, producer_pointer_head, review_head)
-    if (
-        "scripts/integrations/review_diffusion_planner_v25_a163_bounded_execution.py"
-        not in review_delta
-        or set(review_delta) - REVIEW_CORRECTION_PATHS
-    ):
+    if set(review_delta) - REVIEW_CORRECTION_PATHS:
         raise ValueError("bounded review HEAD exceeds the frozen review-only delta")
     assets = bounded_authority.verify_frozen_execution_assets(
         repo=repo, dp_repo=dp_repo, probe_template=probe_template

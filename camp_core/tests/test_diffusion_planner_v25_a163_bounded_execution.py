@@ -815,6 +815,20 @@ def test_archived_release_review_binds_historical_producer_and_review_only_delta
         (decision["pointer_head_at_release"], review_head)
     ]
 
+    same_head = decision["pointer_head_at_release"]
+    deltas[(same_head, same_head)] = []
+    same_head_verified = post_reviewer._verify_archived_bounded_release_for_review(
+        repo=ROOT,
+        review_head=same_head,
+        release_artifact=release,
+        release_root_sha256=root,
+        requested_output_dir=str(output),
+        dp_repo=dp_repo,
+        probe_template=template,
+    )
+    assert same_head_verified["review_head"] == same_head
+    assert same_head_verified["review_only_changed_paths"] == []
+
     deltas[(decision["pointer_head_at_release"], review_head)].append(
         "scripts/integrations/run_diffusion_planner_v25_a163_bounded_execution.py"
     )
