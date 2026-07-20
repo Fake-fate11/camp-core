@@ -1308,7 +1308,6 @@ def _minimal_post_review_tick() -> tuple[dict, dict, dict, dict, np.ndarray, np.
             "route_lanes_speed_limit_sha256": "c" * 64,
             "route_lanes_has_speed_limit_sha256": "d" * 64,
             "physical_feasible_mask": [False] * 8,
-            "candidate_reasons": [[] for _ in range(8)],
             "source_valid_mask": [True] * 8,
             "all_k_high_risk": True,
             "selected_index": 0,

@@ -336,7 +336,6 @@ SIDECAR_FIELDS = {
     "route_lanes_speed_limit_sha256",
     "route_lanes_has_speed_limit_sha256",
     "physical_feasible_mask",
-    "candidate_reasons",
     "source_valid_mask",
     "all_k_high_risk",
     "selected_index",
@@ -3137,9 +3136,6 @@ def _validate_native_cross_binding(
         != feature["physical_feasible_mask"]
         or _strict_bool_mask(native_complete, label="native route-speed source-complete")
         != [all(row[column] for column in range(4, 7)) for row in feature["atom_source_valid_mask"]]
-        or not _strict_equal(
-            native_tick.get("candidate_reasons"), sidecar.get("candidate_reasons")
-        )
         or native_tick.get("candidate_tensor_sha256_before") != tensor_sha
         or native_tick.get("candidate_tensor_sha256_after") != tensor_sha
         or native_tick.get("candidate_row_sha256") != row_shas
@@ -3383,7 +3379,6 @@ def _review_tick(
         or sidecar.get("source_valid_mask") != source_valid
         or sidecar.get("physical_feasible_mask") != physical
         or physical != expected_physical
-        or sidecar.get("candidate_reasons") != expected_reasons
         or native_tick.get("candidate_reasons") != expected_reasons
         or any(feasible and not valid for feasible, valid in zip(physical, source_valid))
         or sidecar.get("all_k_high_risk")
