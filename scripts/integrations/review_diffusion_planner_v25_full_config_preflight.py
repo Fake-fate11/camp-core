@@ -10,6 +10,7 @@ import json
 import math
 from pathlib import Path
 import pickle
+import re
 import subprocess
 import sys
 from typing import Any, Mapping
@@ -28,6 +29,7 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     verify_complete_seal,
 )
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
+    CRITICAL_IMPLEMENTATION_PATHS,
     FIXED_DP_HEAD,
     PREFLIGHT_RELEASE_SCHEMA_VERSION,
     file_sha256,
@@ -37,6 +39,7 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
 from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority import (  # noqa: E402
     NONCE_LEDGER as A17_NONCE_LEDGER,
     PREFLIGHT_GATE as A17_PREFLIGHT_GATE,
+    PREFLIGHT_RELEASE_FIELDS as A17_PREFLIGHT_RELEASE_FIELDS,
     PREFLIGHT_RELEASE_SCHEMA_VERSION as A17_PREFLIGHT_RELEASE_SCHEMA_VERSION,
     UPSTREAM_ROLES as A17_UPSTREAM_ROLES,
     verify_release as verify_a17_full_corpus_release,
@@ -66,6 +69,19 @@ SUPERSEDED_PARTIAL_CORPUS_ROOT = (
 EXPECTED_TRAIN_LOCK = "/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock"
 EXPECTED_NONCE_LEDGER = Path(
     "/root/autodl-tmp/.camp_dp_v25_controlled_train_release_nonces"
+)
+REVIEW_CORRECTION_PATHS = frozenset(
+    {
+        "scripts/integrations/review_diffusion_planner_v25_full_config_preflight.py",
+        "camp_core/tests/test_diffusion_planner_v25_a13_r03.py",
+    }
+)
+POINTER_ONLY_PATHS = frozenset(
+    {
+        "docs/diffusion_planner_current_status.md",
+        "docs/diffusion_planner_v25_iteration_audit.md",
+        "camp_core/tests/test_diffusion_planner_v25_iteration_audit.py",
+    }
 )
 MINIMUM_FREE_BYTES = 10 * 1024**3
 S01_NATIVE_SOURCE_ROOTS = {
@@ -253,6 +269,85 @@ def _oracle_canonical_json_bytes(payload: Any) -> bytes:
 
 def _oracle_sha256(payload: Any) -> str:
     return hashlib.sha256(_oracle_canonical_json_bytes(payload)).hexdigest()
+
+
+def _git_changed_paths(repo: Path, left: str, right: str) -> set[str]:
+    return {
+        line.replace("\\", "/")
+        for line in subprocess.check_output(
+            ["git", "diff", "--name-only", left, right, "--"],
+            cwd=repo,
+            text=True,
+        ).splitlines()
+        if line
+    }
+
+
+def _historical_manifest(
+    repo: Path, source_head: str, manifest: Mapping[str, Any]
+) -> dict[str, str]:
+    if (
+        type(manifest) is not dict
+        or not manifest
+        or set(manifest) != set(CRITICAL_IMPLEMENTATION_PATHS)
+        or any(
+            type(path) is not str
+            or not path
+            or "\\" in path
+            or path.startswith("/")
+            or ".." in Path(path).parts
+            or _require_sha256_string(value, f"historical manifest {path}")
+            != value
+            for path, value in manifest.items()
+        )
+    ):
+        raise ValueError("historical critical implementation manifest is invalid")
+    return {
+        path: hashlib.sha256(
+            subprocess.check_output(["git", "show", f"{source_head}:{path}"], cwd=repo)
+        ).hexdigest()
+        for path in manifest
+    }
+
+
+def _verify_archived_producer_contract(
+    *,
+    repo: Path,
+    implementation_source_head: Any,
+    producer_pointer_head: Any,
+    live_review_head: str,
+    implementation_manifest: Any,
+) -> list[str]:
+    for label, head in (
+        ("implementation source", implementation_source_head),
+        ("producer pointer", producer_pointer_head),
+        ("live review", live_review_head),
+    ):
+        if type(head) is not str or re.fullmatch(r"[0-9a-f]{40}", head) is None:
+            raise ValueError(f"A1.7 {label} HEAD is invalid")
+    if _historical_manifest(
+        repo, implementation_source_head, implementation_manifest
+    ) != implementation_manifest:
+        raise ValueError("A1.7 archived producer manifest drifted")
+    if implementation_source_head != producer_pointer_head:
+        producer_delta = _git_changed_paths(
+            repo, implementation_source_head, producer_pointer_head
+        )
+        if not producer_delta or producer_delta - POINTER_ONLY_PATHS:
+            raise ValueError("A1.7 producer dual-HEAD diff exceeds pointer allowlist")
+    if producer_pointer_head == live_review_head:
+        return []
+    subprocess.run(
+        ["git", "merge-base", "--is-ancestor", producer_pointer_head, live_review_head],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    review_delta = _git_changed_paths(repo, producer_pointer_head, live_review_head)
+    if not review_delta or review_delta - REVIEW_CORRECTION_PATHS:
+        raise ValueError("full-config review HEAD exceeds review-only delta")
+    return sorted(review_delta)
 
 
 def _strict_json_equal(actual: Any, expected: Any) -> bool:
@@ -857,7 +952,6 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         or report.get("implementation_source_head")
         != report.get("released_camp_source_head")
         or report.get("camp_head") != report.get("current_repo_head_at_run")
-        or report.get("camp_head") != live_camp_head
         or report.get("rejected_roots") != [SUPERSEDED_PARTIAL_CORPUS_ROOT]
         or report.get("corpus_steps") != CORPUS_STEPS
         or report.get("seed") != EXPECTED_SEED
@@ -912,13 +1006,28 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         f"fixed_dp_head={FIXED_DP_HEAD}",
     ] or not (preflight / "COMMAND").read_text(encoding="utf-8").strip():
         raise ValueError("full-config preflight HEADS/COMMAND drifted")
-    verify_dual_head_contract(
-        repo=ROOT,
-        implementation_source_head=str(report["implementation_source_head"]),
-        current_pointer_head=str(report["camp_head"]),
-        implementation_manifest=report["critical_implementation_manifest"],
+    a17_report_authority = set(report["seven_root_bindings"]) == set(
+        A17_UPSTREAM_ROLES
     )
-    if set(report["seven_root_bindings"]) == set(A17_UPSTREAM_ROLES):
+    if a17_report_authority:
+        review_only_changed_paths = _verify_archived_producer_contract(
+            repo=ROOT,
+            implementation_source_head=report["implementation_source_head"],
+            producer_pointer_head=report["camp_head"],
+            live_review_head=live_camp_head,
+            implementation_manifest=report["critical_implementation_manifest"],
+        )
+    else:
+        if report["camp_head"] != live_camp_head:
+            raise ValueError("legacy full-config review requires the producer HEAD")
+        verify_dual_head_contract(
+            repo=ROOT,
+            implementation_source_head=str(report["implementation_source_head"]),
+            current_pointer_head=str(report["camp_head"]),
+            implementation_manifest=report["critical_implementation_manifest"],
+        )
+        review_only_changed_paths = []
+    if a17_report_authority:
         verified_roots = verify_a17_upstream_chain(
             bindings=report["seven_root_bindings"],
             repo=ROOT,
@@ -973,21 +1082,57 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         "full_r_execute_authorized", "fresh_b2_opened", "outcome_fields_consumed",
     }
     if a17_authority:
-        verified_release = verify_a17_full_corpus_release(
+        release_review_delta = _verify_archived_producer_contract(
             repo=ROOT,
-            release_artifact=release_artifact,
-            release_root_sha256=str(
-                report["ultra_full_config_preflight_release_root_sha256"]
-            ),
-            requested_output_dir=str(preflight.resolve()),
-            current_pointer_head=live_camp_head,
-            dp_repo=dp_repo,
-            probe_template=Path(str(report["probe_template"])),
-            mode="preflight",
-            consume=False,
+            implementation_source_head=release.get("implementation_source_head"),
+            producer_pointer_head=release.get("pointer_head_at_release"),
+            live_review_head=live_camp_head,
+            implementation_manifest=release.get("critical_implementation_manifest"),
         )
-        if verified_release["decision"] != release:
-            raise ValueError("A1.7 full-config release reopen drifted")
+        if release_review_delta != review_only_changed_paths:
+            raise ValueError("A1.7 report/release review-only delta drifted")
+        if (
+            set(release) != set(A17_PREFLIGHT_RELEASE_FIELDS)
+            or release.get("gate") != A17_PREFLIGHT_GATE
+            or release.get("seed") != EXPECTED_SEED
+            or release.get("executable_identity_count")
+            != EXPECTED_EXECUTABLE_IDENTITIES
+            or release.get("retained_source_ineligible_count")
+            != EXPECTED_RETAINED_INELIGIBLE
+            or release.get("corpus_steps") != CORPUS_STEPS
+            or release.get("snapshot_capacity")
+            != EXPECTED_EXECUTABLE_IDENTITIES * CORPUS_STEPS
+            or release.get("device") != "cuda"
+            or release.get("monitor_enabled") is not False
+            or release.get("training_executed") is not False
+            or release.get("calibration_executed") is not False
+            or release.get("scene_runtime_enabled") is not False
+            or release.get("v2i_enabled") is not False
+            or release.get("critical_implementation_manifest_sha256")
+            != _oracle_sha256(release.get("critical_implementation_manifest"))
+            or release.get("root_artifacts_sha256")
+            != _oracle_sha256(release.get("root_artifacts"))
+            or not _strict_json_equal(
+                release.get("bounded_prerequisite_summary"), verified_roots
+            )
+        ):
+            raise ValueError("A1.7 full-config release exact contract drifted")
+        if release.get("pointer_head_at_release") == live_camp_head:
+            verified_release = verify_a17_full_corpus_release(
+                repo=ROOT,
+                release_artifact=release_artifact,
+                release_root_sha256=str(
+                    report["ultra_full_config_preflight_release_root_sha256"]
+                ),
+                requested_output_dir=str(preflight.resolve()),
+                current_pointer_head=str(release["pointer_head_at_release"]),
+                dp_repo=dp_repo,
+                probe_template=Path(str(report["probe_template"])),
+                mode="preflight",
+                consume=False,
+            )
+            if verified_release["decision"] != release:
+                raise ValueError("A1.7 full-config release reopen drifted")
     if (
         (release_artifact / "run.exit").read_text(encoding="ascii") != "0\n"
         or (
@@ -1058,12 +1203,13 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
     for relative, expected_sha256 in EXPECTED_DP_NATIVE_SOURCE_SHA256.items():
         if file_sha256(EXPECTED_DP_REPO / relative) != expected_sha256:
             raise ValueError("fixed-DP native source file drifted")
-    verify_dual_head_contract(
-        repo=ROOT,
-        implementation_source_head=str(release["implementation_source_head"]),
-        current_pointer_head=str(release["pointer_head_at_release"]),
-        implementation_manifest=release["critical_implementation_manifest"],
-    )
+    if not a17_authority:
+        verify_dual_head_contract(
+            repo=ROOT,
+            implementation_source_head=str(release["implementation_source_head"]),
+            current_pointer_head=str(release["pointer_head_at_release"]),
+            implementation_manifest=release["critical_implementation_manifest"],
+        )
     marker = report.get("release_nonce_consumption_marker")
     expected_marker_path = (
         A17_NONCE_LEDGER
@@ -1256,7 +1402,7 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "status": "passed_independent_1500_config_preflight_review_execute_closed",
         "implementation_source_head": report["implementation_source_head"],
-        "review_pointer_head": report["camp_head"],
+        "review_pointer_head": live_camp_head,
         "fixed_dp_head": FIXED_DP_HEAD,
         "reviewed_artifact": str(preflight),
         "reviewed_root_sha256": seal["root_sha256"],
@@ -1268,6 +1414,7 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         "config_receipts_root_sha256": _oracle_sha256(expected),
         "retained_ineligible_receipts_root_sha256": _oracle_sha256(ineligible),
         "seven_root_bindings_sha256": report["seven_root_bindings_sha256"],
+        "review_only_changed_paths": review_only_changed_paths,
         "full_r_execute_authorized": False,
         "fresh_b2_opened": False,
         "outcome_fields_consumed": [],

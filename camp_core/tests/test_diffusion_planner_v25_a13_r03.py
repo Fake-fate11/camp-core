@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import pickle
+import subprocess
 
 import numpy as np
 import pytest
@@ -16,11 +17,41 @@ from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (
     ARRAY_CONTRACT,
     LOGICAL_SCHEMA_VERSION,
 )
+from camp_core.integrations.diffusion_planner_v25_full_r_authority import (
+    CRITICAL_IMPLEMENTATION_PATHS,
+)
 from scripts.integrations import (
     review_diffusion_planner_v25_controlled_training_corpus as corpus_reviewer,
     review_diffusion_planner_v25_full_config_preflight as full_config_reviewer,
     run_diffusion_planner_v25_controlled_training_corpus as corpus,
 )
+
+
+def test_a17_archived_preflight_accepts_only_review_correction_delta() -> None:
+    repo = Path(__file__).resolve().parents[2]
+    producer_head = "5fe80f17c6c642c22fd29289738aa21b73df1314"
+    live_head = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=repo, text=True
+    ).strip()
+    manifest = {
+        path: hashlib.sha256(
+            subprocess.check_output(
+                ["git", "show", f"{producer_head}:{path}"], cwd=repo
+            )
+        ).hexdigest()
+        for path in CRITICAL_IMPLEMENTATION_PATHS
+    }
+    changed = full_config_reviewer._verify_archived_producer_contract(
+        repo=repo,
+        implementation_source_head=producer_head,
+        producer_pointer_head=producer_head,
+        live_review_head=live_head,
+        implementation_manifest=manifest,
+    )
+    assert set(changed) == full_config_reviewer._git_changed_paths(
+        repo, producer_head, live_head
+    )
+    assert set(changed) <= full_config_reviewer.REVIEW_CORRECTION_PATHS
 
 
 def test_real_snapshot_writer_one_identity_roundtrip_index_and_seal(
