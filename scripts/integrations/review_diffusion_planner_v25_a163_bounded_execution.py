@@ -2082,8 +2082,15 @@ def _validate_native_red_stop_lines(
     expected = np.asarray(
         [certified[0], certified[-1]], dtype=np.float32
     ).astype(np.float64)
-    actual = _native_numeric_array(raw, (1, 2, 2), label="native red stop lines")
-    if not np.array_equal(actual[0], expected):
+    if not raw:
+        raise ValueError("bounded native red tick lacks a stop-line diagnostic")
+    actual = _native_numeric_array(
+        raw, (len(raw), 2, 2), label="native red stop lines"
+    )
+    certified_matches = sum(
+        np.array_equal(line, expected) for line in actual
+    )
+    if certified_matches != 1:
         raise ValueError("bounded native red stop line is not the certified source")
 
 

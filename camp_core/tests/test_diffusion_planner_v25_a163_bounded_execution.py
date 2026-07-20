@@ -3334,6 +3334,11 @@ def test_native_red_stop_line_matches_certified_geometry_at_fixed_dp_float32() -
         safety=safety, source_row=source_row
     )
 
+    safety["red_stop_lines"].append([[10.0, 10.0], [11.0, 11.0]])
+    post_reviewer._validate_native_red_stop_lines(
+        safety=safety, source_row=source_row
+    )
+
     safety["red_stop_lines"][0][0][0] += 0.01
     with pytest.raises(ValueError, match="certified source"):
         post_reviewer._validate_native_red_stop_lines(
