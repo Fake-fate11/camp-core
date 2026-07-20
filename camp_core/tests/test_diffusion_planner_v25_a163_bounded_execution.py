@@ -1832,6 +1832,45 @@ def test_post_reviewer_validates_source_only_no_signal_row_without_runtime_recei
         post_reviewer._validate_source_row(source_row)
 
 
+def test_post_reviewer_validates_same_tick_no_signal_runtime_receipt() -> None:
+    source_row = _no_signal_source_row()
+    chain = source_row["source_chain"]
+    receipt = {
+        "schema_version": post_reviewer.RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
+        "scenario_id": source_row["scenario_id"],
+        "tick_index": 0,
+        "decision_time_s": 0.0,
+        "source_mode": "same_tick_no_signal_rule_no_v2i",
+        "current_phase": "none",
+        "route_geometry_sha256": chain["route_geometry_sha256"],
+        "route_lanelet_ids": chain["route_lanelet_ids"],
+        "traffic_light_regulatory_element_ids": [],
+        "source_chain_sha256": chain["source_chain_sha256"],
+        "semantic_clone_sha256": chain["semantic_clone_sha256"],
+        "phase_remaining_available": False,
+        "source_valid": True,
+        "applicable": False,
+    }
+    sidecar = {
+        "signal_source_class": "no_signal",
+        "phase_authority_mode": None,
+        "controlled_signal_source_receipt": receipt,
+        "controlled_signal_tensor_evidence": None,
+    }
+    assert (
+        post_reviewer._validate_signal_receipts(
+            sidecar=sidecar, source_row=source_row, tick_index=0
+        )
+        is receipt
+    )
+
+    receipt["schema_version"] = "camp_dp_v25_runtime_signal_receipt_v2"
+    with pytest.raises(ValueError, match="no-signal receipt contract"):
+        post_reviewer._validate_signal_receipts(
+            sidecar=sidecar, source_row=source_row, tick_index=0
+        )
+
+
 def test_post_reviewer_controlled_phase_is_bound_to_frozen_expected_phase() -> None:
     source_row, sidecar = _controlled_source_and_tick(
         expected_phase="red", observed_phase="red"

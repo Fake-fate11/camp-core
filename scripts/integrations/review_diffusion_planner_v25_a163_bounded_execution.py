@@ -59,6 +59,9 @@ from camp_core.integrations.diffusion_planner_v25_snapshot_review import (  # no
     SNAPSHOT_SUFFIX,
     independently_read_snapshot,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION,
+)
 
 
 SCHEMA_VERSION = "camp_dp_v25_a17_bounded_execution_review_v11"
@@ -2602,7 +2605,7 @@ def _validate_signal_receipts(
             phase_mode is not None
             or evidence is not None
             or set(receipt) != NO_SIGNAL_RECEIPT_FIELDS
-            or receipt.get("schema_version") != "camp_dp_v25_runtime_signal_receipt_v2"
+            or receipt.get("schema_version") != RUNTIME_SIGNAL_RECEIPT_SCHEMA_VERSION
             or receipt.get("scenario_id") != source_row["scenario_id"]
             or type(receipt.get("tick_index")) is not int
             or receipt["tick_index"] != tick_index
