@@ -185,3 +185,23 @@ def test_git_head_and_artifact_sha_contracts_are_not_interchangeable() -> None:
     assert not authority._is_git_head("a" * 64)
     assert authority._is_sha256("b" * 64)
     assert not authority._is_sha256("b" * 40)
+
+
+def test_sealed_historical_report_accepts_layout_only_but_rejects_bad_json(
+    tmp_path: Path,
+) -> None:
+    report = tmp_path / "report.json"
+    report.write_text('{\n  "status": "passed",\n  "count": 1500\n}\n', encoding="utf-8")
+    assert authority._load_strict_object(report) == {
+        "status": "passed",
+        "count": 1500,
+    }
+    with pytest.raises(ValueError, match="canonical object bytes"):
+        authority._load_canonical_object(report)
+
+    report.write_text('{"status":"passed","status":"failed"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="strict UTF-8 JSON"):
+        authority._load_strict_object(report)
+    report.write_text('{"value":NaN}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="strict UTF-8 JSON"):
+        authority._load_strict_object(report)

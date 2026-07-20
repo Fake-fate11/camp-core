@@ -132,6 +132,22 @@ def _load_canonical_object(path: Path) -> dict[str, Any]:
     return value
 
 
+def _load_strict_object(path: Path) -> dict[str, Any]:
+    """Load a sealed historical CAMP JSON object without changing its bytes."""
+    data = path.read_bytes()
+    try:
+        value = json.loads(
+            data.decode("utf-8", errors="strict"),
+            object_pairs_hook=_pairs,
+            parse_constant=_reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        raise ValueError(f"sealed JSON is not strict UTF-8 JSON: {path}") from exc
+    if type(value) is not dict:
+        raise ValueError(f"sealed JSON is not an object: {path}")
+    return value
+
+
 def _canonical_output(value: Any, *, label: str) -> str:
     if type(value) is not str or not value:
         raise ValueError(f"{label} must be a native nonempty string")
@@ -424,8 +440,8 @@ def build_execute_release_decision(
         preflight_review_root_sha256,
         label="V25 A1.7 full-config preflight review",
     )
-    preflight_report = _load_canonical_object(preflight_artifact / "report.json")
-    review_report = _load_canonical_object(preflight_review_artifact / "report.json")
+    preflight_report = _load_strict_object(preflight_artifact / "report.json")
+    review_report = _load_strict_object(preflight_review_artifact / "report.json")
     if (
         preflight_report.get("status") != "passed"
         or preflight_report.get("mode") != "preflight"
@@ -636,8 +652,8 @@ def verify_release(
             decision.get("preflight_release_root_sha256"),
             label="V25 A1.7 execute-release preflight-release binding",
         )
-        preflight_report = _load_canonical_object(preflight_artifact / "report.json")
-        review_report = _load_canonical_object(
+        preflight_report = _load_strict_object(preflight_artifact / "report.json")
+        review_report = _load_strict_object(
             preflight_review_artifact / "report.json"
         )
         if (
