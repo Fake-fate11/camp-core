@@ -1703,7 +1703,22 @@ def _mapped_source_and_tick(phase: str = "red") -> tuple[dict, dict]:
         "phase_authority_mode": "observe_same_tick_request",
         "source_chain": chain,
         "runtime_receipt": receipt,
-        "tensor_evidence": evidence,
+        "tensor_evidence": {
+            "schema_version": "camp_dp_v25_same_tick_signal_tensor_evidence_v1",
+            "scenario_id": chain["scenario_id"],
+            "route_lanelet_ids": chain["route_lanelet_ids"],
+            "map_lanelet_ids": chain["route_lanelet_ids"],
+            "route_signal_rows": copy.deepcopy(route_rows),
+            "map_signal_rows": copy.deepcopy(map_rows),
+            "current_phase": phase,
+            "route_signal_tensor_sha256": receipt["route_signal_tensor_sha256"],
+            "map_signal_tensor_sha256": receipt["map_signal_tensor_sha256"],
+            "decision_timestamp_s": 0.0,
+            "source_timestamp_s": 0.0,
+            "traffic_controller_seed": 25001,
+            "future_schedule_consumed": False,
+            "phase_remaining_available": False,
+        },
     }
     causal = {
         "schema_version": "camp_dp_v25_causal_signal_atom_input_v2",
@@ -1798,9 +1813,6 @@ def _controlled_source_and_tick(
     receipt["phase_authority_mode"] = "controlled_same_tick_override"
     receipt["source_chain_sha256"] = chain["source_chain_sha256"]
     source_row["runtime_receipt"] = copy.deepcopy(receipt)
-    source_row["tensor_evidence"] = copy.deepcopy(
-        sidecar["controlled_signal_tensor_evidence"]
-    )
     sidecar["phase_authority_mode"] = "controlled_same_tick_override"
     causal = sidecar["causal_signal_atom_input"]
     causal["source_chain_sha256"] = chain["source_chain_sha256"]

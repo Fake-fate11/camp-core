@@ -466,6 +466,22 @@ SIGNAL_TENSOR_FIELDS = {
     "future_schedule_consumed",
     "phase_remaining_available",
 }
+SOURCE_SIGNAL_TENSOR_FIELDS = {
+    "schema_version",
+    "scenario_id",
+    "route_lanelet_ids",
+    "map_lanelet_ids",
+    "route_signal_rows",
+    "map_signal_rows",
+    "current_phase",
+    "route_signal_tensor_sha256",
+    "map_signal_tensor_sha256",
+    "decision_timestamp_s",
+    "source_timestamp_s",
+    "traffic_controller_seed",
+    "future_schedule_consumed",
+    "phase_remaining_available",
+}
 NO_SIGNAL_RECEIPT_FIELDS = {
     "schema_version",
     "scenario_id",
@@ -2464,6 +2480,7 @@ def _validate_source_row(row: Any) -> dict[str, Any]:
             },
             source_row=row,
             tick_index=0,
+            source_only=True,
         )
     elif row.get("runtime_receipt") is not None or row.get("tensor_evidence") is not None:
         raise ValueError("source-only no-signal runtime evidence must be absent")
@@ -2510,7 +2527,11 @@ def _signal_row_oracle(rows: Any, *, label: str) -> tuple[list[int], str]:
 
 
 def _validate_signal_receipts(
-    *, sidecar: Mapping[str, Any], source_row: Mapping[str, Any], tick_index: int
+    *,
+    sidecar: Mapping[str, Any],
+    source_row: Mapping[str, Any],
+    tick_index: int,
+    source_only: bool = False,
 ) -> dict[str, Any]:
     source_class = sidecar.get("signal_source_class")
     phase_mode = sidecar.get("phase_authority_mode")
@@ -2557,6 +2578,29 @@ def _validate_signal_receipts(
         ):
             raise ValueError("mapped same-tick receipt contract drifted")
         regulatory = chain["regulatory_element_ids"]
+        if source_only:
+            evidence_contract_invalid = (
+                type(evidence) is not dict
+                or set(evidence) != SOURCE_SIGNAL_TENSOR_FIELDS
+                or evidence.get("schema_version")
+                != "camp_dp_v25_same_tick_signal_tensor_evidence_v1"
+                or evidence.get("scenario_id") != source_row["scenario_id"]
+                or evidence.get("route_lanelet_ids") != chain["route_lanelet_ids"]
+                or type(evidence.get("map_lanelet_ids")) is not list
+                or any(type(value) is not int for value in evidence["map_lanelet_ids"])
+                or not set(chain["controlled_lanelet_ids"])
+                <= set(evidence["map_lanelet_ids"])
+                or type(evidence.get("traffic_controller_seed")) is not int
+                or evidence["traffic_controller_seed"] != EXPECTED_SEED
+            )
+        else:
+            evidence_contract_invalid = (
+                type(evidence) is not dict
+                or set(evidence) != SIGNAL_TENSOR_FIELDS
+                or evidence.get("schema_version")
+                != "camp_dp_v25_production_signal_tensor_evidence_v2"
+                or evidence.get("tick_index") != tick_index
+            )
         if (
             receipt.get("regulatory_element_id") != regulatory[0]
             or receipt.get("physical_light_ids") != chain["physical_light_ids"]
@@ -2568,11 +2612,7 @@ def _validate_signal_receipts(
             or receipt.get("route_geometry_sha256") != chain["route_geometry_sha256"]
             or receipt.get("route_arc_m") != chain["route_arc_m"]
             or receipt.get("source_chain_sha256") != chain["source_chain_sha256"]
-            or type(evidence) is not dict
-            or set(evidence) != SIGNAL_TENSOR_FIELDS
-            or evidence.get("schema_version")
-            != "camp_dp_v25_production_signal_tensor_evidence_v2"
-            or evidence.get("tick_index") != tick_index
+            or evidence_contract_invalid
             or evidence.get("decision_timestamp_s") != receipt["decision_timestamp_s"]
             or evidence.get("source_timestamp_s") != receipt["source_timestamp_s"]
             or evidence.get("current_phase") != receipt["current_phase"]
