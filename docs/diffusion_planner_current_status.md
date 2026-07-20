@@ -482,13 +482,22 @@ Fresh/outcome fields still closed. The independent post-run review was not
 started. No retry, alternate nonce/directory, suffix splice, full corpus,
 training, calibration, Scene/V2I, Fresh, or outcome access followed.
 
-current_v25_status=v25_a1611_r3_bounded_execution_failed_closed_ultra_result_review_required
-current_v25_source_head=0a07183913844dd9ab0c1e7c619c42be81c579ab
+current_v25_status=v25_a17_bounded_execution_and_independent_review_passed_full_corpus_authority_next
+current_v25_source_head=3feee6059ec28393bbbd530ff359485fb75c1ede
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_036bee497270ef5c
-current_v25_artifact_root_sha256=872982b9de4404ae1340235b9117dbcee2ef811563a89c699506972413e774fb
-current_v25_review_artifact=none_execution_failed_before_independent_review
-current_v25_review_artifact_root_sha256=none
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_c7b1cdba_605f8d227d0e83cb
+current_v25_artifact_root_sha256=8ee2c25ab993ad23e5c3d29ecf1940c296f4cead9a4c839be7723959f4e66f3f
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_review_3feee605_20260720T173132CST
+current_v25_review_artifact_root_sha256=4400104508f898b5ef0ad877036bb9f14bd0a0b0012d7ab2b57a4cfe4728fe7b
+current_v25_a17_bounded_release_root_sha256=2d1b82bca3f9d32aaf9069fbc6b017c5cc01ff8aa16e3fcb048b50af1cc97df9
+current_v25_a17_failed_same_head_review_root_sha256=bdba1e2448925b2417a26b4e6c5594d63635c7fe8a4b68507e6b28cb0ad86023
+current_v25_a17_bounded_run_count=244
+current_v25_a17_bounded_unique_identity_count=243
+current_v25_a17_bounded_complete_unique_identity_count=241
+current_v25_a17_bounded_snapshot_count=15488
+current_v25_a17_bounded_retained_fixed_dp_capability_failure_count=2
+current_v25_a17_bounded_identity0_repeat_deterministic=true
+current_v25_a17_bounded_coverage_passed=true
 current_v25_a1611_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_plan_0a071839_20260719T001726CST
 current_v25_a1611_bounded_plan_artifact_root_sha256=27bc6cd53da17535ab573016102d26d6d21d26b951bb16739d56bc5c8720b7b8
 current_v25_a1611_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a1611r3_bounded_execution_plan_review_0a071839_20260719T001726CST
@@ -767,25 +776,22 @@ It is never normalized, repaired, masked, reduced, or replaced by candidate0;
 fixed DP, trajectories, atoms, scales, weights, simplex/affine scoring,
 eligibility, and tie-breaking remain unchanged.
 
-The first typed 244-run execution reached all prospective runs and sealed
-fail-closed at root `f78e7993...`: 242 runs completed, two identities were
-retained as typed fixed-DP capability failures, and the complete runs produced
-15,488 snapshots. Both failures had exactly zero trainable rows. Terminal
-acceptance then rejected the artifact because the execution evidence builder
-omitted the already-available validation context and classified complete rows
-as `native_evidence_schema_invalid`. This is an ordinary evidence-wiring defect,
-not a coverage or scientific-contract failure. A read-only in-memory projection
-with the independently validated complete-row class passed every frozen
-coverage gate, but the sealed artifact remains immutable and ineligible.
+The corrected typed 244-run execution completed and sealed with `run.exit=0`.
+It retained two identities as typed fixed-DP capability failures, emitted zero
+training rows for them, and preserved 15,488 complete snapshots from 241 of
+243 unique identities. All preregistered overall, family, source-mode,
+family-by-tier, red-source, and identity0 repeat gates passed. The immutable
+execution root is `8ee2c25a...`; the release root is `2d1b82bc...`.
 
-Implementation source HEAD `11023da5...` passes the exact config, route,
-native-directory, and scene-materialization hashes into complete-row evidence
-derivation. Local focused regression passed 179 tests with five platform skips;
-AutoDL passed all 184 tests. The source census/review and bounded plan/review
-were rebuilt once under that source HEAD. They preserve the 1,653 formal /
-1,500 executable / 153 source-ineligible denominator, 146 mapped / 1,354
-no-signal source split, 21 override / 125 observe modes, zero source failures,
-and the unchanged 243-identity / 244-run / 15,616-tick sequential-K8 plan.
+The first independent-review invocation sealed fail-closed at root
+`bdba1e24...` because the harness incorrectly required a nonempty review-only
+code delta when release source, pointer, and review HEAD were identical. Commit
+`3feee605...` makes the narrow correction: an empty delta is valid, while any
+changed path must remain inside the frozen two-file reviewer/test allowlist.
+AutoDL passed all 188 focused review tests. A fresh independent review then
+reopened 80,863 execution file policies and all candidate/source/atom/context/
+selection/trajectory evidence, passed with `run.exit=0`, and sealed at root
+`44001045...`.
 
 The bounded acceptance gate requires 244 terminal rows, complete and repeat-
 equivalent identity0 endpoints, at least 231/243 complete unique identities,
@@ -793,49 +799,30 @@ greater than 90% completion per family and source/mode, greater than 80% per
 family×tier, plus the frozen red 4/7/4 and three-source-map minimum. The later
 full corpus requires 1,500 terminal rows, at least 1,425 complete, the same
 group thresholds, no zero-complete planned stratum, and unchanged red minima.
-The failed artifact is not reused or appended. No corrected K8, full corpus,
-training, calibration, Scene/V2I, Fresh, or outcome has started yet; the next
-action is a new bounded rerun from identity0 using fresh authority and paths.
+No full corpus, training, calibration, Scene/V2I, Fresh, or outcome has started.
+The next action is a new A1.7 full-corpus authority/preflight chain binding the
+passed bounded execution and independent review, followed by a fresh 1,500x64
+sequential fixed-K8 corpus under `/autodl-pub` so the 10 GiB floor remains
+intact. No historical release, nonce, output directory, or failed artifact is
+reused or appended.
 
-current_v25_status=v25_a17_bounded_terminal_evidence_wiring_corrected_static_authority_passed_bounded_rerun_next
-current_v25_source_head=11023da56125d1c660fb70ab659aab5aa843762f
+current_v25_status=v25_a17_bounded_execution_and_independent_review_passed_full_corpus_authority_next
+current_v25_source_head=3feee6059ec28393bbbd530ff359485fb75c1ede
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST
-current_v25_artifact_root_sha256=c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST
-current_v25_review_artifact_root_sha256=fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98
-current_v25_a17_source_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_census_11023da5_20260719T185301CST
-current_v25_a17_source_root_sha256=52efa827fc6bb6e5c0646ac775f83db0856a69fc635076c05d27a63a460b0848
-current_v25_a17_source_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_route_signal_source_review_11023da5_20260719T185301CST
-current_v25_a17_source_review_root_sha256=5eb497f0b9372ace305ea03c2b720629613e766c906efb07fd7abffa39665b8c
-current_v25_a17_bounded_plan_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_11023da5_20260719T185301CST
-current_v25_a17_bounded_plan_root_sha256=c15d3e71ecfb108ec7103b857ec5a20c9ba813437eaf8dc89b710570ee488e04
-current_v25_a17_bounded_plan_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_plan_review_11023da5_20260719T185301CST
-current_v25_a17_bounded_plan_review_root_sha256=fd6e596a527bf62dfba8a8ce011c8f121d0bc917859fcbab566f547a69ddbb98
-current_v25_a17_heading_diagnostic_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_dfb06e5e_4440c5cd6843f7ca
-current_v25_a17_heading_diagnostic_root_sha256=0c36e621aef55446422f938d67fa9ab40b174cc50be19297c4c9a3f4a69f4bc1
-current_v25_a17_failed_bounded_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_87c3dc9e_8fdd1d562d63d00d
-current_v25_a17_failed_bounded_root_sha256=f78e79939579339a629c5035c83c19aaea4ec7ce6fb8346384521f298c4cdd14
-current_v25_a17_failed_bounded_complete_run_count=242
-current_v25_a17_failed_bounded_retained_fixed_dp_capability_failure_count=2
-current_v25_a17_failed_bounded_snapshot_count=15488
-current_v25_a17_failed_bounded_training_eligible=false
-current_v25_a17_failed_bounded_failure_reason=bounded_run_evidence_schema_content_drifted
-current_v25_a17_failed_bounded_coverage_projection=passed_read_only_not_artifact_authority
-current_v25_a17_diagnostic_run_ordinal=155
-current_v25_a17_diagnostic_failure_tick=32
-current_v25_a17_diagnostic_failure_candidate=5
-current_v25_a17_diagnostic_failure_steps=10,11,12,13,14,15
-current_v25_a17_diagnostic_min_heading_norm=0.06830171230455423
-current_v25_a17_diagnostic_candidate_tensor_sha256=32cb0d033f20d0f51087b81ecaae297220c89757db31bc2456d555449ae9360d
-current_v25_a17_diagnostic_training_eligible=false
-current_v25_fixed_dp_capability_failure_class=fixed_dp_candidate_generation_capability_failure
-current_v25_fixed_dp_capability_failure_reason=invalid_k8_heading_norm_envelope
-current_v25_bounded_execution_plan_schema=camp_dp_v25_a17_route_level_bounded_execution_plan_v3
-current_v25_bounded_min_complete_unique_identity_count=231
-current_v25_full_corpus_min_complete_identity_count=1425
-current_v25_local_focused_test_result=179_passed_5_skipped
-current_v25_autodl_focused_test_result=184_passed
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_c7b1cdba_605f8d227d0e83cb
+current_v25_artifact_root_sha256=8ee2c25ab993ad23e5c3d29ecf1940c296f4cead9a4c839be7723959f4e66f3f
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_review_3feee605_20260720T173132CST
+current_v25_review_artifact_root_sha256=4400104508f898b5ef0ad877036bb9f14bd0a0b0012d7ab2b57a4cfe4728fe7b
+current_v25_a17_bounded_release_root_sha256=2d1b82bca3f9d32aaf9069fbc6b017c5cc01ff8aa16e3fcb048b50af1cc97df9
+current_v25_a17_failed_same_head_review_root_sha256=bdba1e2448925b2417a26b4e6c5594d63635c7fe8a4b68507e6b28cb0ad86023
+current_v25_a17_bounded_run_count=244
+current_v25_a17_bounded_unique_identity_count=243
+current_v25_a17_bounded_complete_unique_identity_count=241
+current_v25_a17_bounded_snapshot_count=15488
+current_v25_a17_bounded_retained_fixed_dp_capability_failure_count=2
+current_v25_a17_bounded_identity0_repeat_deterministic=true
+current_v25_a17_bounded_coverage_passed=true
+current_v25_autodl_focused_test_result=188_passed
 current_v25_corrected_full_corpus_started=false
 current_v25_training_started=false
 current_v25_calibration_started=false
@@ -846,9 +833,11 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=29114728448
-current_v25_phase=A1_7_bounded_terminal_evidence_wiring_corrected_static_authority_passed
-next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_rerun_and_independent_review
+observed_autodl_free_bytes=25322827776
+current_v25_full_corpus_storage_root=/autodl-pub
+current_v25_full_corpus_storage_free_bytes=11021925453824
+current_v25_phase=A1_7_bounded_execution_and_independent_review_passed
+next_work_target=A1_7_full_1500x64_corrected_corpus_authority_preflight_execute_and_independent_review
 
 ## Current V24 Status
 

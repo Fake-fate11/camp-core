@@ -4323,3 +4323,67 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=29114728448
 current_v25_phase=A1_7_bounded_terminal_evidence_wiring_corrected_static_authority_passed
 next_work_target=A1_7_new_244x64_sequential_fixed_k8_bounded_rerun_and_independent_review
+
+## A1.7 corrected bounded execution and independent review PASS
+
+The fresh sequential fixed-K8 bounded artifact completed all 244 ordered runs
+and sealed with `run.exit=0`. It retained the two prospective typed
+`fixed_dp_candidate_generation_capability_failure` identities, emitted zero
+training rows for those identities, and preserved 15,488 complete snapshots
+for 241 of 243 unique identities. All preregistered support ceilings passed:
+overall unique completion was above 95%, every family and source mode was above
+90%, every family-by-tier cell was above 80%, red coverage was 6/10/5 across
+easy/borderline/high-risk with four distinct source maps, and identity0's first
+and final runs matched on all eight frozen repeat checks.
+
+The first post-run review invocation correctly failed closed because the
+archived-release validator required a nonempty review-only code delta even
+when release source, pointer, and review HEAD were identical. That failed
+review remains sealed at root `bdba1e24...`. Commit `3feee605...` makes the
+minimal harness correction: an empty delta is valid, while every changed path
+must still lie in the two-file reviewer/test allowlist. AutoDL then passed all
+188 focused post-run-review tests. A fresh independent review reopened 80,863
+execution file policies, the release and four upstream roots, all route-level
+signal receipts, K8/candidate0/atom/context/selection/trajectory evidence, both
+typed failures, coverage, and the identity0 repeat. It passed with
+`run.exit=0` and root `44001045...`.
+
+No Fresh/outcome, training, calibration, Scene runtime, V2I, full-config, or
+full corpus was opened. The bounded artifact and review are training-input
+authority only after the forthcoming full-corpus denominator independently
+passes. A read-only storage census found `/autodl-pub` has more than 11 TB free,
+so the full corpus will use a fresh canonical path on that filesystem and keep
+the 10 GiB floor without deleting or compressing prior evidence.
+
+current_v25_status=v25_a17_bounded_execution_and_independent_review_passed_full_corpus_authority_next
+current_v25_source_head=3feee6059ec28393bbbd530ff359485fb75c1ede
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_c7b1cdba_605f8d227d0e83cb
+current_v25_artifact_root_sha256=8ee2c25ab993ad23e5c3d29ecf1940c296f4cead9a4c839be7723959f4e66f3f
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_bounded_execution_review_3feee605_20260720T173132CST
+current_v25_review_artifact_root_sha256=4400104508f898b5ef0ad877036bb9f14bd0a0b0012d7ab2b57a4cfe4728fe7b
+current_v25_a17_bounded_release_root_sha256=2d1b82bca3f9d32aaf9069fbc6b017c5cc01ff8aa16e3fcb048b50af1cc97df9
+current_v25_a17_failed_same_head_review_root_sha256=bdba1e2448925b2417a26b4e6c5594d63635c7fe8a4b68507e6b28cb0ad86023
+current_v25_a17_bounded_run_count=244
+current_v25_a17_bounded_unique_identity_count=243
+current_v25_a17_bounded_complete_unique_identity_count=241
+current_v25_a17_bounded_snapshot_count=15488
+current_v25_a17_bounded_retained_fixed_dp_capability_failure_count=2
+current_v25_a17_bounded_identity0_repeat_deterministic=true
+current_v25_a17_bounded_coverage_passed=true
+current_v25_autodl_focused_test_result=188_passed
+current_v25_corrected_full_corpus_started=false
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=25322827776
+current_v25_full_corpus_storage_root=/autodl-pub
+current_v25_full_corpus_storage_free_bytes=11021925453824
+current_v25_phase=A1_7_bounded_execution_and_independent_review_passed
+next_work_target=A1_7_full_1500x64_corrected_corpus_authority_preflight_execute_and_independent_review
