@@ -49,11 +49,11 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
 
 
 SCHEMA_VERSION = "camp_dp_v25_full_config_preflight_review_v4"
-EXECUTION_SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v5"
+EXECUTION_SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_execution_v8"
 CANONICAL_JSON_BYTE_SPEC_VERSION = "camp_dp_v25_canonical_json_utf8_lf_v1"
 SEMANTIC_PAYLOAD_SCHEMA_VERSION = "camp_dp_v25_semantic_clone_payload_v3"
 SEMANTIC_AUTHORITY_SIDECAR_SCHEMA_VERSION = (
-    "camp_dp_v25_full_r_semantic_authority_chains_v2"
+    "camp_dp_v25_full_r_semantic_authority_chains_v3"
 )
 EXPECTED_EXECUTABLE_IDENTITIES = 1500
 EXPECTED_RETAINED_INELIGIBLE = 153
