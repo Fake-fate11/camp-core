@@ -34,6 +34,14 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
     verify_dual_head_contract,
     verify_seven_root_chain,
 )
+from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority import (  # noqa: E402
+    NONCE_LEDGER as A17_NONCE_LEDGER,
+    PREFLIGHT_GATE as A17_PREFLIGHT_GATE,
+    PREFLIGHT_RELEASE_SCHEMA_VERSION as A17_PREFLIGHT_RELEASE_SCHEMA_VERSION,
+    UPSTREAM_ROLES as A17_UPSTREAM_ROLES,
+    verify_release as verify_a17_full_corpus_release,
+    verify_upstream_chain as verify_a17_upstream_chain,
+)
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
     validate_no_signal_chain,
     validate_signal_chain,
@@ -910,21 +918,37 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         current_pointer_head=str(report["camp_head"]),
         implementation_manifest=report["critical_implementation_manifest"],
     )
-    verified_roots = verify_seven_root_chain(
-        bindings=report["seven_root_bindings"],
-        implementation_source_head=str(report["implementation_source_head"]),
-        fixed_dp_head=FIXED_DP_HEAD,
-        rejected_root_sha256=SUPERSEDED_PARTIAL_CORPUS_ROOT,
-    )
+    if set(report["seven_root_bindings"]) == set(A17_UPSTREAM_ROLES):
+        verified_roots = verify_a17_upstream_chain(
+            bindings=report["seven_root_bindings"],
+            repo=ROOT,
+            dp_repo=dp_repo,
+            probe_template=Path(str(report["probe_template"])),
+        )
+        expected_source_root = report["seven_root_bindings"]["source"][
+            "root_sha256"
+        ]
+        expected_review_root = report["seven_root_bindings"][
+            "bounded_execution_review"
+        ]["root_sha256"]
+        a17_authority = True
+    else:
+        verified_roots = verify_seven_root_chain(
+            bindings=report["seven_root_bindings"],
+            implementation_source_head=str(report["implementation_source_head"]),
+            fixed_dp_head=FIXED_DP_HEAD,
+            rejected_root_sha256=SUPERSEDED_PARTIAL_CORPUS_ROOT,
+        )
+        expected_source_root = verified_roots["r01_source"]["root_sha256"]
+        expected_review_root = verified_roots["r01_bounded_review"]["root_sha256"]
+        a17_authority = False
     if (
         report.get("seven_root_bindings_sha256")
         != _oracle_sha256(report["seven_root_bindings"])
-        or report.get("r0_source_root_sha256")
-        != verified_roots["r01_source"]["root_sha256"]
-        or report.get("r0_review_root_sha256")
-        != verified_roots["r01_bounded_review"]["root_sha256"]
+        or report.get("r0_source_root_sha256") != expected_source_root
+        or report.get("r0_review_root_sha256") != expected_review_root
     ):
-        raise ValueError("full-config seven-root machine authority drifted")
+        raise ValueError("full-config prerequisite-root machine authority drifted")
     release_artifact = Path(
         str(report["ultra_full_config_preflight_release_artifact"])
     )
@@ -938,7 +962,7 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
     _require_canonical_absolute_path(
         release.get("authorized_output_dir"), "preflight release output directory"
     )
-    release_fields = {
+    legacy_release_fields = {
         "schema_version", "status", "implementation_source_head",
         "pointer_head_at_release", "fixed_dp_head", "formal_artifact",
         "formal_root_sha256", "probe_template", "probe_template_sha256",
@@ -948,11 +972,40 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         "run_nonce", "authorized_output_dir", "full_config_preflight_authorized",
         "full_r_execute_authorized", "fresh_b2_opened", "outcome_fields_consumed",
     }
+    if a17_authority:
+        verified_release = verify_a17_full_corpus_release(
+            repo=ROOT,
+            release_artifact=release_artifact,
+            release_root_sha256=str(
+                report["ultra_full_config_preflight_release_root_sha256"]
+            ),
+            requested_output_dir=str(preflight.resolve()),
+            current_pointer_head=live_camp_head,
+            dp_repo=dp_repo,
+            probe_template=Path(str(report["probe_template"])),
+            mode="preflight",
+            consume=False,
+        )
+        if verified_release["decision"] != release:
+            raise ValueError("A1.7 full-config release reopen drifted")
     if (
         (release_artifact / "run.exit").read_text(encoding="ascii") != "0\n"
-        or set(release) != release_fields
-        or release.get("schema_version") != PREFLIGHT_RELEASE_SCHEMA_VERSION
-        or release.get("status") != "full_config_preflight_released"
+        or (
+            not a17_authority
+            and set(release) != legacy_release_fields
+        )
+        or release.get("schema_version")
+        != (
+            A17_PREFLIGHT_RELEASE_SCHEMA_VERSION
+            if a17_authority
+            else PREFLIGHT_RELEASE_SCHEMA_VERSION
+        )
+        or release.get("status")
+        != (
+            "a17_full_config_preflight_released"
+            if a17_authority
+            else "full_config_preflight_released"
+        )
         or release.get("implementation_source_head")
         != report["implementation_source_head"]
         or release.get("pointer_head_at_release") != report["camp_head"]
@@ -1012,8 +1065,12 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         implementation_manifest=release["critical_implementation_manifest"],
     )
     marker = report.get("release_nonce_consumption_marker")
-    expected_marker_path = EXPECTED_NONCE_LEDGER / (
-        f"v25_preflight_{report['release_run_nonce']}.consumed.json"
+    expected_marker_path = (
+        A17_NONCE_LEDGER
+        / f"v25_{A17_PREFLIGHT_GATE}_{report['release_run_nonce']}.consumed.json"
+        if a17_authority
+        else EXPECTED_NONCE_LEDGER
+        / f"v25_preflight_{report['release_run_nonce']}.consumed.json"
     )
     if (
         not isinstance(marker, Mapping)
@@ -1023,7 +1080,7 @@ def review(preflight: Path, expected_root: str) -> dict[str, Any]:
         or file_sha256(expected_marker_path) != marker.get("sha256")
         or _load(expected_marker_path)
         != {
-            "gate": "preflight",
+            "gate": A17_PREFLIGHT_GATE if a17_authority else "preflight",
             "nonce": report["release_run_nonce"],
             "authorized_output_dir": str(preflight.resolve()),
         }

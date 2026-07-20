@@ -69,6 +69,10 @@ from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import 
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
     verify_dual_head_contract,
 )
+from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority import (  # noqa: E402
+    UPSTREAM_ROLES as A17_UPSTREAM_ROLES,
+    verify_release as verify_a17_full_corpus_release,
+)
 
 
 SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v7"
@@ -1560,6 +1564,35 @@ def review(
         current_pointer_head=head,
         implementation_manifest=report["critical_implementation_manifest"],
     )
+    if set(report.get("seven_root_bindings") or {}) == set(A17_UPSTREAM_ROLES):
+        release = verify_a17_full_corpus_release(
+            repo=ROOT,
+            release_artifact=Path(
+                str(report["ultra_full_r_execute_release_artifact"])
+            ),
+            release_root_sha256=str(
+                report["ultra_full_r_execute_release_root_sha256"]
+            ),
+            requested_output_dir=str(corpus.resolve()),
+            current_pointer_head=report["camp_head"],
+            dp_repo=Path(str(report["dp_repo"])),
+            probe_template=Path(str(report["probe_template"])),
+            mode="execute",
+            consume=False,
+        )
+        roots = release["decision"]["root_artifacts"]
+        if (
+            report["seven_root_bindings"] != roots
+            or report["seven_root_bindings_sha256"] != _oracle_sha256(roots)
+            or Path(str(roots["source"]["path"])).resolve()
+            != route_source_artifact.resolve()
+            or roots["source"]["root_sha256"] != route_source_root_sha256
+            or Path(str(roots["source_review"]["path"])).resolve()
+            != route_source_review_artifact.resolve()
+            or roots["source_review"]["root_sha256"]
+            != route_source_review_root_sha256
+        ):
+            raise ValueError("A1.7 full-corpus execute/source authority drifted")
     if (
         (corpus / "run.exit").read_text(encoding="ascii") != "0\n"
         or report.get("schema_version") != EXECUTION_SCHEMA_VERSION

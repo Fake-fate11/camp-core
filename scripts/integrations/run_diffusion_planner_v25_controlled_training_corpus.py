@@ -45,6 +45,14 @@ from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import 
     FIXED_DP_FAILURE_CLASS,
     FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
 )
+from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority import (  # noqa: E402
+    EXECUTE_RELEASE_SCHEMA_VERSION as A17_EXECUTE_RELEASE_SCHEMA_VERSION,
+    NONCE_LEDGER as A17_FULL_CORPUS_NONCE_LEDGER,
+    PREFLIGHT_GATE as A17_FULL_CONFIG_PREFLIGHT_GATE,
+    PREFLIGHT_RELEASE_SCHEMA_VERSION as A17_PREFLIGHT_RELEASE_SCHEMA_VERSION,
+    UPSTREAM_ROLES as A17_UPSTREAM_ROLES,
+    verify_release as verify_a17_full_corpus_release,
+)
 from camp_core.integrations.diffusion_planner_v25_causal_evidence_store import (  # noqa: E402
     externalize_causal_evidence,
 )
@@ -717,6 +725,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--preflight-review-root-sha256")
     parser.add_argument("--ultra-full-r-execute-release-artifact", type=Path)
     parser.add_argument("--ultra-full-r-execute-release-root-sha256")
+    parser.add_argument("--a17-full-corpus-release-artifact", type=Path)
+    parser.add_argument("--a17-full-corpus-release-root-sha256")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--preflight", action="store_true")
     mode.add_argument("--execute", action="store_true")
@@ -798,6 +808,8 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         execute_release_root_sha256=(
             args.ultra_full_r_execute_release_root_sha256
         ),
+        a17_release_artifact=args.a17_full_corpus_release_artifact,
+        a17_release_root_sha256=args.a17_full_corpus_release_root_sha256,
         camp_head=camp_head,
         mode="preflight" if args.preflight else "execute",
         output_dir=args.output_dir,
@@ -813,7 +825,10 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         dp_repo=args.dp_repo,
         r0_source_artifact=Path(full_r_authority["r0_source_artifact"]),
         expected_camp_source_head=str(
-            full_r_authority["implementation_source_head"]
+            full_r_authority.get(
+                "route_source_producer_head",
+                full_r_authority["implementation_source_head"],
+            )
         ),
         r0_source_root_sha256=str(full_r_authority["r0_source_root_sha256"]),
     )
@@ -1033,6 +1048,120 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
 
+def _verify_a17_full_r_authority(
+    *,
+    release_artifact: Path,
+    release_root_sha256: str,
+    preflight_artifact: Path | None,
+    preflight_review_artifact: Path | None,
+    preflight_review_root_sha256: str | None,
+    camp_head: str,
+    mode: str,
+    output_dir: Path,
+    probe_template: Path,
+    dp_repo: Path,
+) -> dict[str, Any]:
+    if mode not in {"preflight", "execute"}:
+        raise ValueError("A1.7 full-corpus mode is invalid")
+    verified = verify_a17_full_corpus_release(
+        repo=ROOT,
+        release_artifact=release_artifact,
+        release_root_sha256=release_root_sha256,
+        requested_output_dir=str(output_dir),
+        current_pointer_head=camp_head,
+        dp_repo=dp_repo,
+        probe_template=probe_template,
+        mode=mode,
+        consume=True,
+    )
+    decision = verified["decision"]
+    roots = decision["root_artifacts"]
+    source = roots["source"]
+    bounded_review = roots["bounded_execution_review"]
+    marker = verified["nonce_marker"]
+    if type(marker) is not dict:
+        raise ValueError("A1.7 release nonce was not consumed")
+    if mode == "preflight":
+        if any(
+            value is not None
+            for value in (
+                preflight_artifact,
+                preflight_review_artifact,
+                preflight_review_root_sha256,
+            )
+        ):
+            raise ValueError("A1.7 preflight cannot consume prior preflight evidence")
+        preflight_release_artifact = str(release_artifact.resolve())
+        preflight_release_root = verified["release_root_sha256"]
+        preflight_release_nonce = decision["run_nonce"]
+        preflight_authorized_output = decision["authorized_output_dir"]
+    else:
+        if (
+            preflight_artifact is None
+            or preflight_review_artifact is None
+            or preflight_review_root_sha256 is None
+            or Path(decision["preflight_artifact"]).resolve()
+            != preflight_artifact.resolve()
+            or Path(decision["preflight_review_artifact"]).resolve()
+            != preflight_review_artifact.resolve()
+            or decision["preflight_review_root_sha256"]
+            != preflight_review_root_sha256
+        ):
+            raise ValueError("A1.7 execute CLI preflight bindings drifted")
+        preflight_release_artifact = decision["preflight_release_artifact"]
+        preflight_release_root = decision["preflight_release_root_sha256"]
+        preflight_release_nonce = decision["preflight_release_run_nonce"]
+        preflight_report = _load_json(preflight_artifact / "report.json")
+        preflight_authorized_output = preflight_report["authorized_output_dir"]
+
+    authority = {
+        "r0_review_artifact": str(Path(bounded_review["path"]).resolve()),
+        "r0_review_root_sha256": bounded_review["root_sha256"],
+        "r0_source_artifact": str(Path(source["path"]).resolve()),
+        "r0_source_root_sha256": source["root_sha256"],
+        "preflight_release_artifact": preflight_release_artifact,
+        "preflight_release_root_sha256": preflight_release_root,
+        "preflight_review_artifact": None,
+        "preflight_review_root_sha256": None,
+        "execute_release_artifact": None,
+        "execute_release_root_sha256": None,
+        "implementation_source_head": decision["implementation_source_head"],
+        "seven_root_bindings": {
+            role: {
+                "path": str(roots[role]["path"]),
+                "root_sha256": str(roots[role]["root_sha256"]),
+                "report_file": str(roots[role]["report_file"]),
+            }
+            for role in A17_UPSTREAM_ROLES
+        },
+        "seven_root_bindings_sha256": _canonical_sha256(roots),
+        "release_run_nonce": decision["run_nonce"],
+        "authorized_output_dir": decision["authorized_output_dir"],
+        "preflight_release_run_nonce": preflight_release_nonce,
+        "preflight_authorized_output_dir": preflight_authorized_output,
+        "critical_implementation_manifest": dict(
+            decision["critical_implementation_manifest"]
+        ),
+        "release_nonce_consumption_marker": marker,
+        "a17_full_corpus_authority": True,
+        "route_source_producer_head": verified["upstream"][
+            "bounded_source_head"
+        ],
+    }
+    if mode == "execute":
+        authority.update(
+            {
+                "preflight_review_artifact": str(
+                    preflight_review_artifact.resolve()
+                ),
+                "preflight_review_root_sha256": preflight_review_root_sha256,
+                "execute_release_artifact": str(release_artifact.resolve()),
+                "execute_release_root_sha256": verified["release_root_sha256"],
+            }
+        )
+    return authority
+
+
 def _verify_full_r_authority(
     *,
     r0_review_artifact: Path | None,
@@ -1046,12 +1175,43 @@ def _verify_full_r_authority(
     preflight_review_root_sha256: str | None,
     execute_release_artifact: Path | None,
     execute_release_root_sha256: str | None,
+    a17_release_artifact: Path | None,
+    a17_release_root_sha256: str | None,
     camp_head: str,
     mode: str,
     output_dir: Path,
     probe_template: Path,
     dp_repo: Path,
 ) -> dict[str, Any]:
+    if a17_release_artifact is not None or a17_release_root_sha256 is not None:
+        if a17_release_artifact is None or a17_release_root_sha256 is None:
+            raise ValueError("A1.7 full-corpus release path/root must be paired")
+        if any(
+            value is not None
+            for value in (
+                r0_review_artifact,
+                r0_review_root_sha256,
+                r0_source_artifact,
+                r0_source_root_sha256,
+                preflight_release_artifact,
+                preflight_release_root_sha256,
+                execute_release_artifact,
+                execute_release_root_sha256,
+            )
+        ):
+            raise ValueError("A1.7 authority cannot be mixed with historical releases")
+        return _verify_a17_full_r_authority(
+            release_artifact=a17_release_artifact,
+            release_root_sha256=a17_release_root_sha256,
+            preflight_artifact=preflight_artifact,
+            preflight_review_artifact=preflight_review_artifact,
+            preflight_review_root_sha256=preflight_review_root_sha256,
+            camp_head=camp_head,
+            mode=mode,
+            output_dir=output_dir,
+            probe_template=probe_template,
+            dp_repo=dp_repo,
+        )
     if (
         r0_review_artifact is None
         or r0_review_root_sha256 is None
@@ -1816,8 +1976,12 @@ def _preflight_nonce_marker_matches(
         return False
     if not isinstance(payload, Mapping) or set(payload) != {"path", "sha256"}:
         return False
-    expected = RELEASE_NONCE_LEDGER / f"v25_preflight_{nonce}.consumed.json"
     path = Path(str(payload["path"]))
+    legacy = RELEASE_NONCE_LEDGER / f"v25_preflight_{nonce}.consumed.json"
+    a17 = A17_FULL_CORPUS_NONCE_LEDGER / (
+        f"v25_{A17_FULL_CONFIG_PREFLIGHT_GATE}_{nonce}.consumed.json"
+    )
+    expected = a17 if path.resolve() == a17.resolve() else legacy
     if (
         path.resolve() != expected.resolve()
         or not path.is_file()
@@ -1826,7 +1990,11 @@ def _preflight_nonce_marker_matches(
         return False
     marker = _load_json(path)
     return marker == {
-        "gate": "preflight",
+        "gate": (
+            A17_FULL_CONFIG_PREFLIGHT_GATE
+            if expected == a17
+            else "preflight"
+        ),
         "nonce": nonce,
         "authorized_output_dir": authorized_output_dir,
     }
