@@ -25,6 +25,7 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
 )
 from scripts.integrations import run_diffusion_planner_dp_camp_v21_native as runner
 from scripts.integrations import (
+    review_diffusion_planner_v25_controlled_training_corpus as corpus_reviewer,
     run_diffusion_planner_v25_controlled_training_corpus as corpus,
 )
 from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus import (
@@ -463,6 +464,9 @@ def test_combined_snapshot_keeps_context_causal_and_outcomes_absent() -> None:
     )
 
     assert payload["schema_version"] == SNAPSHOT_SCHEMA_VERSION
+    assert set(payload) == corpus_reviewer.SNAPSHOT_FIELDS
+    assert set(payload["feature_payload"]) == corpus_reviewer.FEATURE_PAYLOAD_FIELDS
+    assert set(payload["sidecar"]) == corpus_reviewer.SIDECAR_FIELDS
     assert tuple(payload["feature_payload"]["raw_context"]) == RAW_FEATURE_NAMES
     assert payload["sidecar"]["outcome_fields_consumed"] == []
     assert payload["sidecar"]["fresh_b_opened"] is False

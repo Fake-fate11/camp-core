@@ -75,7 +75,7 @@ from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority impo
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v7"
+SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v8"
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -120,7 +120,6 @@ SIDECAR_FIELDS = frozenset(
         "route_lanes_speed_limit_sha256",
         "route_lanes_has_speed_limit_sha256",
         "physical_feasible_mask",
-        "candidate_reasons",
         "source_valid_mask",
         "all_k_high_risk",
         "selected_index",
@@ -1300,13 +1299,6 @@ def _validate_snapshot_field_schema(
     _native_bool_list(
         sidecar.get("source_valid_mask"), 8, "sidecar source_valid_mask"
     )
-    reasons = sidecar.get("candidate_reasons")
-    if (
-        type(reasons) is not list
-        or len(reasons) != 8
-        or any(type(row) is not list or any(type(item) is not str for item in row) for row in reasons)
-    ):
-        raise ValueError("candidate_reasons exact schema drifted")
     identity = sidecar.get("default_candidate0_identity")
     if type(identity) is not dict or set(identity) != DEFAULT_CANDIDATE0_IDENTITY_FIELDS:
         raise ValueError("default_candidate0_identity exact field set drifted")

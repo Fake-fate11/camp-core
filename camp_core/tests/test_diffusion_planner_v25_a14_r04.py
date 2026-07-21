@@ -191,7 +191,6 @@ def _snapshot() -> dict[str, object]:
                 np.ascontiguousarray(route_has_speed).tobytes()
             ).hexdigest(),
             "physical_feasible_mask": [True] * 8,
-            "candidate_reasons": [[] for _ in range(8)],
             "source_valid_mask": [True] * 8,
             "all_k_high_risk": False,
             "selected_index": 0,
