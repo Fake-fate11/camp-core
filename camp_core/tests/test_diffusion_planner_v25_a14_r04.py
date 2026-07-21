@@ -307,8 +307,12 @@ def test_snapshot_and_index_schema_reject_extra_future_delete_and_type_drift(
     tmp_path: Path,
 ) -> None:
     snapshot = _externalized_snapshot(_snapshot(), tmp_path)
-    corpus_reviewer._validate_snapshot_field_schema(
+    referenced_shards = corpus_reviewer._validate_snapshot_field_schema(
         snapshot, artifact_root=tmp_path
+    )
+    assert referenced_shards
+    assert all(
+        path.startswith("causal_evidence_shards/") for path in referenced_shards
     )
     corpus_reviewer._validate_snapshot_index_row(
         {

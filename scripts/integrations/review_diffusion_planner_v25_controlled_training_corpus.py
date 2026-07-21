@@ -1522,6 +1522,7 @@ def _validate_snapshot_field_schema(
     ):
         raise ValueError("snapshot candidate0/mask/source/all-K contract drifted")
     _reject_forbidden_nested_fields(snapshot)
+    return referenced_shards
 
 
 def _read_verified_content_addressed_snapshot(
@@ -1663,9 +1664,6 @@ def _validate_route_source_row_binding(
             raise ValueError("snapshot no-signal source-chain binding drifted")
     else:
         raise ValueError("snapshot route-source class drifted")
-    return referenced_shards
-
-
 def review(
     corpus: Path,
     expected_root: str,
