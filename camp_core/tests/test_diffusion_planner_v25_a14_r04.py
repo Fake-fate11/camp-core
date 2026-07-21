@@ -171,6 +171,7 @@ def _snapshot() -> dict[str, object]:
             "candidate0_sha256": candidate_rows[0],
             "default_candidate0_identity": {
                 "elementwise_equal": True,
+                "max_abs_difference": 0.0,
                 "default_output_sha256": default_sha,
                 "candidate0_sha256": candidate_rows[0],
                 "native_ranked_k8": False,
@@ -345,6 +346,11 @@ def test_snapshot_and_index_schema_reject_extra_future_delete_and_type_drift(
     selected_bool = copy.deepcopy(snapshot)
     selected_bool["sidecar"]["selected_index"] = False
     mutations.append(selected_bool)
+    candidate0_difference_int = copy.deepcopy(snapshot)
+    candidate0_difference_int["sidecar"]["default_candidate0_identity"][
+        "max_abs_difference"
+    ] = 0
+    mutations.append(candidate0_difference_int)
 
     for changed in mutations:
         with pytest.raises(ValueError):

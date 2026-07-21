@@ -200,6 +200,7 @@ ROUTE_SOURCE_ROW_FIELDS = frozenset(
 DEFAULT_CANDIDATE0_IDENTITY_FIELDS = frozenset(
     {
         "elementwise_equal",
+        "max_abs_difference",
         "default_output_sha256",
         "candidate0_sha256",
         "native_ranked_k8",
@@ -1448,6 +1449,8 @@ def _validate_snapshot_field_schema(
     if (
         type(identity.get("elementwise_equal")) is not bool
         or type(identity.get("native_ranked_k8")) is not bool
+        or type(identity.get("max_abs_difference")) is not float
+        or identity.get("max_abs_difference") != 0.0
         or not _is_sha256(identity.get("default_output_sha256"))
         or not _is_sha256(identity.get("candidate0_sha256"))
     ):
