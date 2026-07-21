@@ -42,6 +42,8 @@ from scripts.integrations.run_diffusion_planner_v25_controlled_training_corpus i
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE = ROOT / "configs" / "diffusion_planner_v22_native_capability.json"
+CORPUS_IMPLEMENTATION_SOURCE_HEAD = "19bcebe67f1026f8087505190d11d159d7aa2f1a"
+CORPUS_ARTIFACT_POINTER_HEAD = "0b689591dd109ed883e26205dbb289676341716b"
 
 
 def test_a17_execute_reuses_sealed_preflight_nonce_marker_binding(
@@ -131,6 +133,36 @@ def test_a17_execute_reuses_sealed_preflight_nonce_marker_binding(
 
     assert authority["preflight_release_nonce_consumption_marker"] == marker_binding
     assert authority["release_nonce_consumption_marker"] == execute_marker
+
+
+def test_posthoc_corpus_review_binds_historical_producer_manifest() -> None:
+    manifest = corpus_reviewer._critical_manifest_at_head(
+        ROOT, CORPUS_IMPLEMENTATION_SOURCE_HEAD
+    )
+    contract = (
+        corpus_reviewer._verify_historical_producer_and_posthoc_review_contract(
+            repo=ROOT,
+            implementation_source_head=CORPUS_IMPLEMENTATION_SOURCE_HEAD,
+            artifact_pointer_head=CORPUS_ARTIFACT_POINTER_HEAD,
+            current_review_head=corpus._git_head(ROOT),
+            implementation_manifest=manifest,
+        )
+    )
+    assert set(contract["posthoc_review_correction_paths"]) == set(
+        corpus_reviewer.POSTHOC_REVIEW_CORRECTION_PATHS
+    )
+    changed = dict(manifest)
+    changed[
+        "scripts/integrations/review_diffusion_planner_v25_controlled_training_corpus.py"
+    ] = "0" * 64
+    with pytest.raises(ValueError, match="historical producer critical manifest"):
+        corpus_reviewer._verify_historical_producer_and_posthoc_review_contract(
+            repo=ROOT,
+            implementation_source_head=CORPUS_IMPLEMENTATION_SOURCE_HEAD,
+            artifact_pointer_head=CORPUS_ARTIFACT_POINTER_HEAD,
+            current_review_head=corpus._git_head(ROOT),
+            implementation_manifest=changed,
+        )
 
 
 def _case() -> dict:

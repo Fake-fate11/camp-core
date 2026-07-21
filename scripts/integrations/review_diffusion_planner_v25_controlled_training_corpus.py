@@ -8,6 +8,7 @@ import collections
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any, Mapping
 
@@ -67,7 +68,8 @@ from camp_core.integrations.diffusion_planner_v25_a162_bounded_execution import 
     FIXED_DP_FAILURE_RECEIPT_SCHEMA_VERSION,
 )
 from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # noqa: E402
-    verify_dual_head_contract,
+    CRITICAL_IMPLEMENTATION_PATHS,
+    POINTER_ONLY_PATHS,
 )
 from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority import (  # noqa: E402
     UPSTREAM_ROLES as A17_UPSTREAM_ROLES,
@@ -76,6 +78,13 @@ from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority impo
 
 
 SCHEMA_VERSION = "camp_dp_v25_controlled_training_corpus_review_v8"
+POSTHOC_REVIEW_CORRECTION_PATHS = frozenset(
+    {
+        "camp_core/tests/test_diffusion_planner_v25_a14_r04.py",
+        "camp_core/tests/test_diffusion_planner_v25_controlled_training_corpus.py",
+        "scripts/integrations/review_diffusion_planner_v25_controlled_training_corpus.py",
+    }
+)
 SNAPSHOT_INDEX_FIELDS = frozenset(
     {"scenario_id", "tick_index", "relative_path", "sha256"}
 )
@@ -393,6 +402,82 @@ def _canonical_sha256(value: Any) -> str:
         + "\n"
     ).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
+
+
+def _git_changed_paths(repo: Path, start: str, end: str) -> list[str]:
+    completed = subprocess.run(
+        ["git", "diff", "--name-only", start, end, "--"],
+        cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    paths = [line.replace("\\", "/") for line in completed.stdout.splitlines()]
+    if len(paths) != len(set(paths)):
+        raise ValueError("git diff returned duplicate paths")
+    return paths
+
+
+def _critical_manifest_at_head(repo: Path, head: str) -> dict[str, str]:
+    manifest: dict[str, str] = {}
+    for relative in CRITICAL_IMPLEMENTATION_PATHS:
+        completed = subprocess.run(
+            ["git", "show", f"{head}:{relative}"],
+            cwd=repo,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        manifest[relative] = hashlib.sha256(completed.stdout).hexdigest()
+    return manifest
+
+
+def _verify_historical_producer_and_posthoc_review_contract(
+    *,
+    repo: Path,
+    implementation_source_head: Any,
+    artifact_pointer_head: Any,
+    current_review_head: Any,
+    implementation_manifest: Any,
+) -> dict[str, Any]:
+    for label, value in (
+        ("implementation source", implementation_source_head),
+        ("artifact pointer", artifact_pointer_head),
+        ("current review", current_review_head),
+    ):
+        if (
+            type(value) is not str
+            or len(value) != 40
+            or set(value) - set("0123456789abcdef")
+        ):
+            raise ValueError(f"{label} HEAD is invalid")
+    expected_manifest = _critical_manifest_at_head(repo, implementation_source_head)
+    if (
+        type(implementation_manifest) is not dict
+        or set(implementation_manifest) != set(CRITICAL_IMPLEMENTATION_PATHS)
+        or any(not _is_sha256(value) for value in implementation_manifest.values())
+        or implementation_manifest != expected_manifest
+    ):
+        raise ValueError("historical producer critical manifest drifted")
+    pointer_paths = _git_changed_paths(
+        repo, implementation_source_head, artifact_pointer_head
+    )
+    if set(pointer_paths) - set(POINTER_ONLY_PATHS):
+        raise ValueError("artifact source-to-pointer diff exceeds the frozen allowlist")
+    correction_paths = _git_changed_paths(
+        repo, artifact_pointer_head, current_review_head
+    )
+    if set(correction_paths) != set(POSTHOC_REVIEW_CORRECTION_PATHS):
+        raise ValueError("post-hoc independent-review correction path set drifted")
+    return {
+        "implementation_source_head": implementation_source_head,
+        "artifact_pointer_head": artifact_pointer_head,
+        "current_review_head": current_review_head,
+        "producer_manifest_sha256": _canonical_sha256(expected_manifest),
+        "pointer_only_changed_paths": pointer_paths,
+        "posthoc_review_correction_paths": correction_paths,
+    }
 
 
 def _native_int(value: Any, label: str) -> int:
@@ -1544,16 +1629,11 @@ def review(
         source_review_root_sha256=route_source_review_root_sha256,
     )
     _validate_terminal_schemas(report, progress, results)
-    verify_dual_head_contract(
+    producer_review_contract = _verify_historical_producer_and_posthoc_review_contract(
         repo=ROOT,
         implementation_source_head=report["implementation_source_head"],
-        current_pointer_head=report["camp_head"],
-        implementation_manifest=report["critical_implementation_manifest"],
-    )
-    verify_dual_head_contract(
-        repo=ROOT,
-        implementation_source_head=report["implementation_source_head"],
-        current_pointer_head=head,
+        artifact_pointer_head=report["camp_head"],
+        current_review_head=head,
         implementation_manifest=report["critical_implementation_manifest"],
     )
     if set(report.get("seven_root_bindings") or {}) == set(A17_UPSTREAM_ROLES):
@@ -1803,6 +1883,7 @@ def review(
         "schema_version": SCHEMA_VERSION,
         "status": "passed_independent_full_corpus_review",
         "review_head": head,
+        "producer_review_contract": producer_review_contract,
         "fixed_dp_head": FIXED_DP_HEAD,
         "reviewed_artifact": str(corpus),
         "reviewed_root_sha256": seal["root_sha256"],
