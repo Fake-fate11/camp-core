@@ -165,6 +165,83 @@ def test_posthoc_corpus_review_binds_historical_producer_manifest() -> None:
         )
 
 
+def test_historical_execute_release_is_value_exact(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    release = tmp_path / "release"
+    release.mkdir()
+    corpus_path = tmp_path / "corpus"
+    roots = {role: {"path": f"/{role}"} for role in corpus_reviewer.A17_UPSTREAM_ROLES}
+    decision = {key: None for key in corpus_reviewer.A17_EXECUTE_RELEASE_FIELDS}
+    decision.update(
+        {
+            "schema_version": corpus_reviewer.A17_EXECUTE_RELEASE_SCHEMA_VERSION,
+            "status": corpus_reviewer.A17_EXECUTE_RELEASE_STATUS,
+            "gate": corpus_reviewer.A17_EXECUTE_GATE,
+            "implementation_source_head": CORPUS_IMPLEMENTATION_SOURCE_HEAD,
+            "pointer_head_at_release": CORPUS_ARTIFACT_POINTER_HEAD,
+            "fixed_dp_head": corpus_reviewer.FIXED_DP_HEAD,
+            "authorized_output_dir": str(corpus_path.resolve()),
+            "root_artifacts": roots,
+            "root_artifacts_sha256": corpus_reviewer._oracle_sha256(roots),
+            "critical_implementation_manifest": {"x": "1" * 64},
+            "full_r_execute_authorized": True,
+            "full_config_preflight_authorized": False,
+            "monitor_enabled": False,
+            "training_executed": False,
+            "calibration_executed": False,
+            "scene_runtime_enabled": False,
+            "v2i_enabled": False,
+            "fresh_b2_opened": False,
+            "outcome_fields_consumed": [],
+        }
+    )
+    (release / "run.exit").write_bytes(b"0\n")
+    (release / "COMMAND").write_text("create-release\n", encoding="utf-8")
+    (release / "HEADS").write_bytes(
+        (
+            f"camp_source_head={CORPUS_IMPLEMENTATION_SOURCE_HEAD}\n"
+            f"camp_pointer_head={CORPUS_ARTIFACT_POINTER_HEAD}\n"
+            f"fixed_dp_head={corpus_reviewer.FIXED_DP_HEAD}\n"
+        ).encode("ascii")
+    )
+    monkeypatch.setattr(
+        corpus_reviewer,
+        "verify_complete_seal",
+        lambda *_args, **_kwargs: {
+            "manifest_paths": corpus_reviewer.A17_RELEASE_PAYLOADS,
+            "root_sha256": "2" * 64,
+        },
+    )
+    monkeypatch.setattr(
+        corpus_reviewer, "_load_a17_canonical_object", lambda _path: decision
+    )
+    report = {
+        "implementation_source_head": CORPUS_IMPLEMENTATION_SOURCE_HEAD,
+        "camp_head": CORPUS_ARTIFACT_POINTER_HEAD,
+        "seven_root_bindings": roots,
+        "seven_root_bindings_sha256": corpus_reviewer._oracle_sha256(roots),
+        "critical_implementation_manifest": {"x": "1" * 64},
+    }
+    assert (
+        corpus_reviewer._open_historical_a17_execute_release(
+            release_artifact=release,
+            release_root_sha256="2" * 64,
+            corpus=corpus_path,
+            report=report,
+        )
+        == decision
+    )
+    decision["training_executed"] = True
+    with pytest.raises(ValueError, match="historical A1.7 execute release"):
+        corpus_reviewer._open_historical_a17_execute_release(
+            release_artifact=release,
+            release_root_sha256="2" * 64,
+            corpus=corpus_path,
+            report=report,
+        )
+
+
 def _case() -> dict:
     x = np.linspace(0.0, 100.0, 101)
     route = {

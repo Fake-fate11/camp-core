@@ -72,8 +72,13 @@ from camp_core.integrations.diffusion_planner_v25_full_r_authority import (  # n
     POINTER_ONLY_PATHS,
 )
 from camp_core.integrations.diffusion_planner_v25_a17_full_corpus_authority import (  # noqa: E402
+    EXECUTE_GATE as A17_EXECUTE_GATE,
+    EXECUTE_RELEASE_FIELDS as A17_EXECUTE_RELEASE_FIELDS,
+    EXECUTE_RELEASE_SCHEMA_VERSION as A17_EXECUTE_RELEASE_SCHEMA_VERSION,
+    EXECUTE_RELEASE_STATUS as A17_EXECUTE_RELEASE_STATUS,
+    RELEASE_PAYLOADS as A17_RELEASE_PAYLOADS,
     UPSTREAM_ROLES as A17_UPSTREAM_ROLES,
-    verify_release as verify_a17_full_corpus_release,
+    _load_canonical_object as _load_a17_canonical_object,
 )
 
 
@@ -478,6 +483,59 @@ def _verify_historical_producer_and_posthoc_review_contract(
         "pointer_only_changed_paths": pointer_paths,
         "posthoc_review_correction_paths": correction_paths,
     }
+
+
+def _open_historical_a17_execute_release(
+    *,
+    release_artifact: Path,
+    release_root_sha256: str,
+    corpus: Path,
+    report: Mapping[str, Any],
+) -> dict[str, Any]:
+    seal = verify_complete_seal(
+        release_artifact,
+        release_root_sha256,
+        label="V25 historical A1.7 full-corpus execute release",
+    )
+    decision = _load_a17_canonical_object(release_artifact / "decision.json")
+    expected_heads = (
+        f"camp_source_head={decision.get('implementation_source_head')}\n"
+        f"camp_pointer_head={decision.get('pointer_head_at_release')}\n"
+        f"fixed_dp_head={FIXED_DP_HEAD}\n"
+    ).encode("ascii")
+    if (
+        seal["manifest_paths"] != A17_RELEASE_PAYLOADS
+        or (release_artifact / "run.exit").read_bytes() != b"0\n"
+        or (release_artifact / "HEADS").read_bytes() != expected_heads
+        or not (release_artifact / "COMMAND").read_text(
+            encoding="utf-8", errors="strict"
+        ).strip()
+        or set(decision) != set(A17_EXECUTE_RELEASE_FIELDS)
+        or decision.get("schema_version") != A17_EXECUTE_RELEASE_SCHEMA_VERSION
+        or decision.get("status") != A17_EXECUTE_RELEASE_STATUS
+        or decision.get("gate") != A17_EXECUTE_GATE
+        or decision.get("implementation_source_head")
+        != report.get("implementation_source_head")
+        or decision.get("pointer_head_at_release") != report.get("camp_head")
+        or decision.get("fixed_dp_head") != FIXED_DP_HEAD
+        or decision.get("authorized_output_dir") != str(corpus.resolve())
+        or decision.get("root_artifacts") != report.get("seven_root_bindings")
+        or decision.get("root_artifacts_sha256")
+        != report.get("seven_root_bindings_sha256")
+        or decision.get("critical_implementation_manifest")
+        != report.get("critical_implementation_manifest")
+        or decision.get("full_r_execute_authorized") is not True
+        or decision.get("full_config_preflight_authorized") is not False
+        or decision.get("monitor_enabled") is not False
+        or decision.get("training_executed") is not False
+        or decision.get("calibration_executed") is not False
+        or decision.get("scene_runtime_enabled") is not False
+        or decision.get("v2i_enabled") is not False
+        or decision.get("fresh_b2_opened") is not False
+        or decision.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("historical A1.7 execute release binding drifted")
+    return decision
 
 
 def _native_int(value: Any, label: str) -> int:
@@ -1637,22 +1695,17 @@ def review(
         implementation_manifest=report["critical_implementation_manifest"],
     )
     if set(report.get("seven_root_bindings") or {}) == set(A17_UPSTREAM_ROLES):
-        release = verify_a17_full_corpus_release(
-            repo=ROOT,
+        release_decision = _open_historical_a17_execute_release(
             release_artifact=Path(
                 str(report["ultra_full_r_execute_release_artifact"])
             ),
             release_root_sha256=str(
                 report["ultra_full_r_execute_release_root_sha256"]
             ),
-            requested_output_dir=str(corpus.resolve()),
-            current_pointer_head=report["camp_head"],
-            dp_repo=Path(str(report["dp_repo"])),
-            probe_template=Path(str(report["probe_template"])),
-            mode="execute",
-            consume=False,
+            corpus=corpus,
+            report=report,
         )
-        roots = release["decision"]["root_artifacts"]
+        roots = release_decision["root_artifacts"]
         if (
             report["seven_root_bindings"] != roots
             or report["seven_root_bindings_sha256"] != _oracle_sha256(roots)
@@ -1670,7 +1723,8 @@ def review(
         or report.get("schema_version") != EXECUTION_SCHEMA_VERSION
         or report.get("status") != "passed"
         or report.get("mode") != "execute"
-        or report.get("camp_head") != head
+        or report.get("camp_head")
+        != producer_review_contract["artifact_pointer_head"]
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
         or report.get("attempted_identity_count") != EXPECTED_EXECUTABLE_IDENTITIES
         or report.get("retained_identity_count") != EXPECTED_EXECUTABLE_IDENTITIES
