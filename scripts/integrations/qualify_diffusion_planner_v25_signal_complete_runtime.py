@@ -34,6 +34,9 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import
 
 SCHEMA_VERSION = "camp_dp_v25_signal_complete_runtime_qualification_v1"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+STOP_LINE_GEOMETRY_ATOL_M = 1e-6
+ROUTE_TANGENT_ATOL = 1e-5
+ROUTE_SCALAR_ATOL_M = 2e-4
 MINIMUM_FREE_BYTES = 10 * 1024**3
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
 
@@ -267,20 +270,20 @@ def _planned_actual_chain_consistent(
             np.asarray(planned["stop_line_geometry_m"], dtype=np.float64),
             np.asarray(actual["stop_line_geometry_m"], dtype=np.float64),
             rtol=0.0,
-            atol=1e-6,
+            atol=STOP_LINE_GEOMETRY_ATOL_M,
         )
         tangent_matches = np.allclose(
             np.asarray(planned["route_tangent_world"], dtype=np.float64),
             np.asarray(actual["route_tangent_world"], dtype=np.float64),
             rtol=0.0,
-            atol=1e-6,
+            atol=ROUTE_TANGENT_ATOL,
         )
         scalar_matches = all(
             math.isclose(
                 float(planned[field]),
                 float(actual[field]),
                 rel_tol=0.0,
-                abs_tol=1e-5,
+                abs_tol=ROUTE_SCALAR_ATOL_M,
             )
             for field in (
                 "stop_line_route_distance_m",

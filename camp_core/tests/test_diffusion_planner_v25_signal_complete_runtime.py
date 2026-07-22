@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -20,6 +22,24 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import
 )
 
 
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def _module(relative: str, name: str):
+    path = ROOT / relative
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+QUALIFIER = _module(
+    "scripts/integrations/qualify_diffusion_planner_v25_signal_complete_runtime.py",
+    "v25_signal_runtime_qualifier",
+)
+
+
 def _materialize_maps(tmp_path: Path, split: str) -> tuple[Path, dict]:
     suite = build_signal_complete_suite(split)
     for relative, payload in suite["map_payloads"].items():
@@ -27,6 +47,46 @@ def _materialize_maps(tmp_path: Path, split: str) -> tuple[Path, dict]:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(payload)
     return tmp_path, suite
+
+
+def test_fixed_dp_float32_signal_chain_tolerance_is_bounded() -> None:
+    exact = {
+        "scenario_id": "scenario",
+        "route_identity_sha256": "1" * 64,
+        "source_map_sha256": "2" * 64,
+        "phase_authority_mode": "observe_same_tick_request",
+        "expected_current_phase": None,
+        "formal_phase": "none",
+        "formal_mapped_source_required": False,
+        "regulatory_element_ids": [1],
+        "physical_light_ids": [2],
+        "bulb_ids": [3],
+        "controlled_lanelet_ids": [4],
+        "route_lanelet_ids": [4, 5, 6],
+        "stop_line_id": 7,
+        "stop_line_geometry_m": [[10.0, 1.0], [10.0, -1.0]],
+        "route_tangent_world": [1.0, 0.0],
+        "stop_line_route_distance_m": 0.0,
+        "route_arc_m": 10.0,
+        "route_length_m": 100.0,
+    }
+    within = copy.deepcopy(exact)
+    within["stop_line_geometry_m"][0][0] += 0.9e-6
+    within["route_tangent_world"][1] += 0.9e-5
+    within["stop_line_route_distance_m"] += 0.9 * 2e-4
+    assert QUALIFIER._planned_actual_chain_consistent(exact, within)
+
+    for field, delta in (
+        ("stop_line_route_distance_m", 2.1e-4),
+        ("route_arc_m", 2.1e-4),
+        ("route_length_m", 2.1e-4),
+    ):
+        outside = copy.deepcopy(exact)
+        outside[field] += delta
+        assert not QUALIFIER._planned_actual_chain_consistent(exact, outside)
+    outside_tangent = copy.deepcopy(exact)
+    outside_tangent["route_tangent_world"][1] += 1.1e-5
+    assert not QUALIFIER._planned_actual_chain_consistent(exact, outside_tangent)
 
 
 def test_every_calibration_identity_builds_legal_source_only_runtime_case(
