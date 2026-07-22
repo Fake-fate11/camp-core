@@ -43,7 +43,7 @@ CONTRACT = (
     / "integrations"
     / "diffusion_planner_v25_final_delivery_contract_v1.json"
 )
-CONTRACT_SHA256 = "2241c66b74fb1478455630dd3a7295f24608bf14efc8544bbc0e755f8dd990cb"
+CONTRACT_SHA256 = "b0db0c4ea76938658fe4e1f2987073c9ac326dee677004e470836eced111c26f"
 BENCHMARK_A = (
     ROOT
     / "configs"

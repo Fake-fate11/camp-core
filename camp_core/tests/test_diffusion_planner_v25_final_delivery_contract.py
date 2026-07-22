@@ -21,7 +21,7 @@ from camp_core.integrations.diffusion_planner_v25_train_atom_audit import (
     DEFAULT_ABLATION_GROUPS,
     PAPER_9D_INDICES,
 )
-EXPECTED_SHA256 = "2241c66b74fb1478455630dd3a7295f24608bf14efc8544bbc0e755f8dd990cb"
+EXPECTED_SHA256 = "b0db0c4ea76938658fe4e1f2987073c9ac326dee677004e470836eced111c26f"
 
 
 def _root() -> Path:
