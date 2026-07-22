@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from camp_core.integrations.diffusion_planner_v25_context import RAW_FEATURE_COUNT
+from camp_core.integrations.diffusion_planner_v25_context import (
+    RAW_FEATURE_COUNT,
+    fit_train_context_scaler,
+)
 from camp_core.integrations.diffusion_planner_v25_training import (
     MODEL_REGISTRY,
     train_v25_selector_suite,
@@ -16,6 +19,11 @@ from camp_core.integrations.diffusion_planner_v25_train_atom_audit import (
     DEFAULT_LABEL_SEVERITY,
 )
 from camp_core.outer_master.parametric_cvxpy_master import V25ParametricMasterConfig
+from scripts.integrations.review_diffusion_planner_v25_camp_training import (
+    _context_scaler as independently_review_context_scaler,
+    _exact_parameter_arrays,
+    _weighted_quantile as independently_review_weighted_quantile,
+)
 
 
 FROZEN_CONFIG_SHA256 = (
@@ -44,6 +52,85 @@ def _training_inputs() -> tuple[np.ndarray, ...]:
 
 def _clusters() -> tuple[str, ...]:
     return ("corridor-a", "corridor-a", "corridor-b", "corridor-c", "corridor-c")
+
+
+def _empirical_cdf_boundary_fixture() -> tuple[np.ndarray, ...]:
+    values = np.arange(129, dtype=np.float64)
+    weights = np.concatenate(
+        (
+            np.asarray([0.05], dtype=np.float64),
+            np.full(128, 0.95 / 128.0, dtype=np.float64),
+        )
+    )
+    raw = np.repeat(values[:, None], RAW_FEATURE_COUNT, axis=1)
+    source = np.ones(raw.shape, dtype=np.bool_)
+    return values, weights, raw, source
+
+
+def test_training_reviewer_reproduces_frozen_empirical_cdf_boundary() -> None:
+    values, weights, raw, source = _empirical_cdf_boundary_fixture()
+    cumulative = np.cumsum(weights)
+    assert float(cumulative[-1]) == 1.000000000000002
+    assert float(np.sum(weights)) == 1.0
+
+    producer = fit_train_context_scaler(
+        raw,
+        source_complete=source,
+        record_weights=weights,
+    )
+    reviewed_q05, reviewed_q95 = independently_review_context_scaler(
+        raw, source, weights
+    )
+
+    assert independently_review_weighted_quantile(values, weights, 0.05) == values[1]
+    assert np.array_equal(reviewed_q05, producer.q05)
+    assert np.array_equal(reviewed_q95, producer.q95)
+
+
+def test_training_reviewer_weighted_quantile_handles_nonboundary_sample() -> None:
+    values = np.asarray([0.0, 1.0, 2.0], dtype=np.float64)
+    weights = np.asarray([0.2, 0.3, 0.5], dtype=np.float64)
+    assert independently_review_weighted_quantile(values, weights, 0.5) == 1.0
+
+
+def test_training_reviewer_keeps_exact_parameter_drift_rejection() -> None:
+    values, weights, raw, source = _empirical_cdf_boundary_fixture()
+    producer = fit_train_context_scaler(
+        raw,
+        source_complete=source,
+        record_weights=weights,
+    )
+    scales = np.arange(1.0, 15.0, dtype=np.float64)
+    assert _exact_parameter_arrays(
+        producer.q05,
+        producer.q95,
+        scales,
+        producer.q05,
+        producer.q95,
+        scales,
+    )
+
+    adjacent_record = producer.q05.copy()
+    adjacent_record[19] = values[0]
+    assert not _exact_parameter_arrays(
+        adjacent_record,
+        producer.q95,
+        scales,
+        producer.q05,
+        producer.q95,
+        scales,
+    )
+
+    threshold_mutation = producer.q05.copy()
+    threshold_mutation[19] = np.nextafter(threshold_mutation[19], np.inf)
+    assert not _exact_parameter_arrays(
+        threshold_mutation,
+        producer.q95,
+        scales,
+        producer.q05,
+        producer.q95,
+        scales,
+    )
 
 
 def test_training_config_freezes_train_only_scale_and_label_rules() -> None:

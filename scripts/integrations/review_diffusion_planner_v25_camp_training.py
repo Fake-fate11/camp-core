@@ -87,10 +87,26 @@ def _weighted_quantile(values: np.ndarray, weights: np.ndarray, q: float) -> flo
     order = np.argsort(values, kind="mergesort")
     ordered = values[order]
     mass = weights[order]
+    cumulative = np.cumsum(mass)
     index = int(
-        np.searchsorted(np.cumsum(mass), q * float(np.sum(mass)), side="left")
+        np.searchsorted(cumulative, q * float(cumulative[-1]), side="left")
     )
     return float(ordered[min(index, ordered.size - 1)])
+
+
+def _exact_parameter_arrays(
+    stored_q05: np.ndarray,
+    stored_q95: np.ndarray,
+    stored_training_scales: np.ndarray,
+    expected_q05: np.ndarray,
+    expected_q95: np.ndarray,
+    expected_training_scales: np.ndarray,
+) -> bool:
+    return (
+        np.array_equal(stored_q05, expected_q05)
+        and np.array_equal(stored_q95, expected_q95)
+        and np.array_equal(stored_training_scales, expected_training_scales)
+    )
 
 
 def _context_scaler(
@@ -426,9 +442,14 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
         or str(params["schema_version"].item())
         != "camp_dp_v25_trained_model_parameters_v1"
         or params["context_feature_names"].tolist() != list(RAW_FEATURE_NAMES)
-        or not np.array_equal(params["context_q05"], q05)
-        or not np.array_equal(params["context_q95"], q95)
-        or not np.array_equal(params["training_scales_14d"], training_scales)
+        or not _exact_parameter_arrays(
+            params["context_q05"],
+            params["context_q95"],
+            params["training_scales_14d"],
+            q05,
+            q95,
+            training_scales,
+        )
     ):
         raise ValueError("context scaler/training scale parameter drifted")
     runtime_scales = _json(root / "runtime_atom_scales.json")
