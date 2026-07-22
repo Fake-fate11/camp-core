@@ -7,7 +7,7 @@ import math
 from typing import Any, Mapping
 import xml.etree.ElementTree as ET
 
-from pyproj import Transformer
+import lanelet2
 
 SCHEMA_VERSION = "camp_dp_v25_project_authored_signal_complete_suite_v3"
 MAP_SCHEMA_VERSION = "camp_dp_v25_project_authored_lanelet2_signal_map_v3"
@@ -15,10 +15,8 @@ SOURCE_FAMILY = "project_authored_mit_deterministic_lanelet2"
 LICENSE_SPDX = "MIT"
 _GEO_ORIGIN_LAT = 35.0
 _GEO_ORIGIN_LON = 139.0
-_WGS84_TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:32654", always_xy=True)
-_UTM_TO_WGS84 = Transformer.from_crs("EPSG:32654", "EPSG:4326", always_xy=True)
-_GEO_ORIGIN_EASTING, _GEO_ORIGIN_NORTHING = _WGS84_TO_UTM.transform(
-    _GEO_ORIGIN_LON, _GEO_ORIGIN_LAT
+_UTM_PROJECTOR = lanelet2.projection.UtmProjector(
+    lanelet2.io.Origin(_GEO_ORIGIN_LAT, _GEO_ORIGIN_LON), True, False
 )
 SUPPORTED_PHASE_AUTHORITY_MODES = (
     "controlled_same_tick_override",
@@ -658,16 +656,15 @@ def _append_node(
     ele: float,
     tags: Mapping[str, str] | None = None,
 ) -> None:
-    lon, lat = _UTM_TO_WGS84.transform(
-        _GEO_ORIGIN_EASTING + float(point[0]),
-        _GEO_ORIGIN_NORTHING + float(point[1]),
+    gps = _UTM_PROJECTOR.reverse(
+        lanelet2.core.BasicPoint3d(float(point[0]), float(point[1]), float(ele))
     )
     node = _element(
         "node",
         {
             "id": str(node_id),
-            "lat": _geo_float(lat),
-            "lon": _geo_float(lon),
+            "lat": _geo_float(gps.lat),
+            "lon": _geo_float(gps.lon),
             "version": "1",
             "visible": "true",
         },

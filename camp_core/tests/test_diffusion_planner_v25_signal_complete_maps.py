@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 import xml.etree.ElementTree as ET
 
+import lanelet2
 import pytest
-from pyproj import Transformer
 
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (
     SPLIT_PLAN,
@@ -40,21 +40,22 @@ def test_lanelet2_geodetic_nodes_roundtrip_to_frozen_local_metric_geometry() -> 
     assert len(nodes) > 2
     assert nodes[0].attrib["lat"] == "35.000000000000"
     assert nodes[0].attrib["lon"] == "139.000000000000"
-    projector = Transformer.from_crs("EPSG:4326", "EPSG:32654", always_xy=True)
-    origin_easting, origin_northing = projector.transform(139.0, 35.0)
+    projector = lanelet2.projection.UtmProjector(
+        lanelet2.io.Origin(35.0, 139.0), True, False
+    )
     for node in nodes:
         tags = {
             tag.attrib["k"]: tag.attrib["v"] for tag in node.findall("tag")
         }
-        easting, northing = projector.transform(
-            float(node.attrib["lon"]), float(node.attrib["lat"])
+        point = projector.forward(
+            lanelet2.core.GPSPoint(
+                float(node.attrib["lat"]),
+                float(node.attrib["lon"]),
+                float(tags["ele"]),
+            )
         )
-        assert easting - origin_easting == pytest.approx(
-            float(tags["local_x"]), abs=1e-5
-        )
-        assert northing - origin_northing == pytest.approx(
-            float(tags["local_y"]), abs=1e-5
-        )
+        assert float(point.x) == pytest.approx(float(tags["local_x"]), abs=1e-5)
+        assert float(point.y) == pytest.approx(float(tags["local_y"]), abs=1e-5)
 
 
 @pytest.mark.parametrize("split", tuple(SPLIT_PLAN))
