@@ -218,7 +218,7 @@ def _build_map(
 ) -> SignalCompleteMap:
     root = _element(
         "osm",
-        {"generator": "camp-v25-signal-complete-materializer", "version": "0.7"},
+        {"generator": "camp-v25-signal-complete-materializer-v0.7", "version": "0.6"},
     )
     _element(
         "MetaInfo",
