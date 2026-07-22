@@ -4860,6 +4860,18 @@ routes, both-arm failures, source-ineligible rows, retained fixed-DP capability
 failures, and all-K-high-risk cases would remain in the denominator; none
 occurred in these 300 arms.
 
+The frozen paired preregistration and its independent review roots are
+`e6f8cf6cb37c3acd964502f04c12a6e15af1fb3d946048ea4abc18c8741f5d55`
+and `235a99323be75476b7d8d31d9458ddd6f583d6a5d6593901e492addfe40c69e6`.
+The paired plan/review roots are `efaf7f2eeef4cb3d74e74879c81f4ce47bbad4fe30cb87bb8d135158ff64fa8d`
+and `4b8ce3b10b6eefcd342f252981479e193022b2b00f15b7e4d4d36991b0475b8f`.
+The signal map, route/review, and runtime/review roots are respectively
+`f4ab3e93a43bef1486cdc4e8bcd74abe445bd4fb73d4ad770ebeb3ae046d6b15`,
+`62c149f164c617f74a73871c08a56680019725b8e879f674511d2d142cb83259` /
+`3fd602f054c0e8703651306681868e95fb0a4f367b9ce42a1c629508b6a42832`,
+and `0d5b804fe868a7cb3a3f5f6da0178b8c4b0cf6753ec8c09c7d8b46135e8a482c` /
+`61c7c0ba0beee85e806a163fb5fd55be2f962a8911f80feace08a3d4f4890f87`.
+
 ### Primary SafetyCost benchmark
 
 | Method | Mean SafetyCost | Delta vs candidate0 | Corridor-cluster CI95 | Better / tie / worse |
@@ -4982,6 +4994,8 @@ current_v25_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_an
 current_v25_artifact_root_sha256=9d67e57bfa4a96ff3bf318c5aafd17f024207645344f076963fc5f756caa6551
 current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_review_f4a4110b_20260722T153812CST
 current_v25_review_artifact_root_sha256=650e6749bda63f23b073a5491c0f57dd9f97136a644be8ab7c918a48a3f609f7
+current_v25_calibration_preregistration_root_sha256=e6f8cf6cb37c3acd964502f04c12a6e15af1fb3d946048ea4abc18c8741f5d55
+current_v25_calibration_preregistration_review_root_sha256=235a99323be75476b7d8d31d9458ddd6f583d6a5d6593901e492addfe40c69e6
 current_v25_original_calibration_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_execution_325cd486_20260722Tcalibration325cd486CST
 current_v25_original_calibration_root_sha256=5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249
 current_v25_original_calibration_run_exit=1
