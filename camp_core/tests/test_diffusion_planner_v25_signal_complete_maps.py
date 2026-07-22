@@ -4,6 +4,7 @@ import copy
 import xml.etree.ElementTree as ET
 
 import pytest
+from pyproj import Transformer
 
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (
     SPLIT_PLAN,
@@ -29,6 +30,31 @@ def test_signal_complete_suites_are_deterministic_and_zero_overlap() -> None:
     )
     assert validate_signal_complete_suite(calibration)["route_count"] == 50
     assert validate_signal_complete_suite(fresh)["route_count"] == 100
+
+
+def test_lanelet2_geodetic_nodes_roundtrip_to_frozen_local_metric_geometry() -> None:
+    suite = build_signal_complete_suite("calibration")
+    payload = next(iter(suite["map_payloads"].values()))
+    root = ET.fromstring(payload)
+    nodes = root.findall("node")
+    assert len(nodes) > 2
+    assert nodes[0].attrib["lat"] == "35.000000000000"
+    assert nodes[0].attrib["lon"] == "139.000000000000"
+    projector = Transformer.from_crs("EPSG:4326", "EPSG:32654", always_xy=True)
+    origin_easting, origin_northing = projector.transform(139.0, 35.0)
+    for node in nodes:
+        tags = {
+            tag.attrib["k"]: tag.attrib["v"] for tag in node.findall("tag")
+        }
+        easting, northing = projector.transform(
+            float(node.attrib["lon"]), float(node.attrib["lat"])
+        )
+        assert easting - origin_easting == pytest.approx(
+            float(tags["local_x"]), abs=1e-5
+        )
+        assert northing - origin_northing == pytest.approx(
+            float(tags["local_y"]), abs=1e-5
+        )
 
 
 @pytest.mark.parametrize("split", tuple(SPLIT_PLAN))

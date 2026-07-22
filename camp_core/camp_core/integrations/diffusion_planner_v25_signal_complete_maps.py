@@ -7,11 +7,19 @@ import math
 from typing import Any, Mapping
 import xml.etree.ElementTree as ET
 
+from pyproj import Transformer
 
-SCHEMA_VERSION = "camp_dp_v25_project_authored_signal_complete_suite_v2"
-MAP_SCHEMA_VERSION = "camp_dp_v25_project_authored_lanelet2_signal_map_v2"
+SCHEMA_VERSION = "camp_dp_v25_project_authored_signal_complete_suite_v3"
+MAP_SCHEMA_VERSION = "camp_dp_v25_project_authored_lanelet2_signal_map_v3"
 SOURCE_FAMILY = "project_authored_mit_deterministic_lanelet2"
 LICENSE_SPDX = "MIT"
+_GEO_ORIGIN_LAT = 35.0
+_GEO_ORIGIN_LON = 139.0
+_WGS84_TO_UTM = Transformer.from_crs("EPSG:4326", "EPSG:32654", always_xy=True)
+_UTM_TO_WGS84 = Transformer.from_crs("EPSG:32654", "EPSG:4326", always_xy=True)
+_GEO_ORIGIN_EASTING, _GEO_ORIGIN_NORTHING = _WGS84_TO_UTM.transform(
+    _GEO_ORIGIN_LON, _GEO_ORIGIN_LAT
+)
 SUPPORTED_PHASE_AUTHORITY_MODES = (
     "controlled_same_tick_override",
     "observe_same_tick_request",
@@ -212,7 +220,7 @@ def _build_map(
 ) -> SignalCompleteMap:
     root = _element(
         "osm",
-        {"generator": "camp-v25-signal-complete-materializer", "version": "0.6"},
+        {"generator": "camp-v25-signal-complete-materializer", "version": "0.7"},
     )
     _element(
         "MetaInfo",
@@ -220,9 +228,14 @@ def _build_map(
         parent=root,
     )
     rows: list[dict[str, Any]] = []
+    first_physical_index = global_offset + map_index * route_count
+    first_half_width = (3.10 + 0.035 * (first_physical_index % 11)) / 2.0
     for local_index in range(route_count):
         physical_index = global_offset + map_index * route_count + local_index
-        placement = (map_index * 1_500.0, local_index * 240.0)
+        # The no-ROS fixed-DP loader creates its UTM offset from the first OSM
+        # node.  Keep that first boundary point at local (0, 0), then encode
+        # every point geodetically so the DP consumes the intended metric map.
+        placement = (0.0, local_index * 240.0 - first_half_width)
         row = _append_corridor(
             root,
             split=split,
@@ -645,12 +658,16 @@ def _append_node(
     ele: float,
     tags: Mapping[str, str] | None = None,
 ) -> None:
+    lon, lat = _UTM_TO_WGS84.transform(
+        _GEO_ORIGIN_EASTING + float(point[0]),
+        _GEO_ORIGIN_NORTHING + float(point[1]),
+    )
     node = _element(
         "node",
         {
             "id": str(node_id),
-            "lat": "0",
-            "lon": "0",
+            "lat": _geo_float(lat),
+            "lon": _geo_float(lon),
             "version": "1",
             "visible": "true",
         },
@@ -739,6 +756,13 @@ def _float(value: float) -> str:
     rendered = f"{float(value):.6f}"
     if rendered == "-0.000000":
         return "0.000000"
+    return rendered
+
+
+def _geo_float(value: float) -> str:
+    rendered = f"{float(value):.12f}"
+    if rendered == "-0.000000000000":
+        return "0.000000000000"
     return rendered
 
 
