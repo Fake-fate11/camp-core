@@ -4,6 +4,9 @@ from pathlib import Path
 
 import numpy as np
 
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    canonical_normalize_atoms,
+)
 from camp_core.integrations.diffusion_planner_v25_calibration_atoms import (
     analyze_calibration_decision_evidence,
 )
@@ -54,7 +57,9 @@ def _run(plan_arm: str, provider: V25Scene14DWeightProvider) -> dict:
     candidates[..., 2] = 1.0
     atoms = np.arange(8 * 14, dtype=np.float64).reshape(8, 14) / 100.0
     weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
-    scores = atoms @ weights
+    scores = canonical_normalize_atoms(
+        atoms, np.ones(14, dtype=np.float64)
+    ) @ weights
     context = _context()
     scene = provider(context)
     selector = {key: value for key, value in scene.items() if key != "weights"}
