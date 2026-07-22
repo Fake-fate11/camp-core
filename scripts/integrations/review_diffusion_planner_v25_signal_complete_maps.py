@@ -153,7 +153,7 @@ def _review_suite(root: Path, suite: dict[str, Any], plan: dict[str, int]) -> No
     if set(suite) != expected_fields:
         raise ValueError("signal-complete suite receipt field set drifted")
     exact = {
-        "schema_version": "camp_dp_v25_project_authored_signal_complete_suite_v2",
+        "schema_version": "camp_dp_v25_project_authored_signal_complete_suite_v3",
         "status": "outcome_blind_signal_complete_suite_materialized",
         "source_family": "project_authored_mit_deterministic_lanelet2",
         "map_count": plan["map_count"],
@@ -193,7 +193,7 @@ def _review_suite(root: Path, suite: dict[str, Any], plan: dict[str, int]) -> No
         path = root / str(map_receipt.get("relative_path"))
         if (
             map_receipt.get("schema_version")
-            != "camp_dp_v25_project_authored_lanelet2_signal_map_v2"
+            != "camp_dp_v25_project_authored_lanelet2_signal_map_v3"
             or map_receipt.get("map_index") != map_index
             or map_receipt.get("split") != suite["split"]
             or map_receipt.get("map_sha256") != _sha256(path)
