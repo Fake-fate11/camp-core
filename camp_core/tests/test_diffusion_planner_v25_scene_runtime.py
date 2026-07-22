@@ -45,13 +45,16 @@ def _file_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _training_authority(tmp_path: Path):
+def _training_authority(tmp_path: Path, *, static_negative: float = 0.0):
     training = tmp_path / "training"
     training.mkdir()
     theta = np.zeros((14, PHI_DIMENSION), dtype=np.float64)
     for column in range(PHI_DIMENSION):
         theta[column % 14, column] = 1.0
     static_theta = np.full((14, PHI_DIMENSION), 1.0 / 14.0, dtype=np.float64)
+    if static_negative:
+        static_theta[1, :] += static_theta[0, :] + static_negative
+        static_theta[0, :] = -static_negative
     model_reports = {
         "CAMP-Static14D": {
             "mode": "static",
@@ -270,6 +273,38 @@ def test_sealed_runtime_assets_bind_static_and_scene_to_same_authority(
     )
     np.testing.assert_array_equal(assets.atom_scales, np.ones(14, dtype=np.float64))
     assert assets.scene14d_weight_provider.training_root_sha256 == training_root
+
+
+def test_runtime_assets_preserve_solver_feasible_static_weights_without_projection(
+    tmp_path: Path,
+) -> None:
+    training, training_root, review, review_root, _theta = _training_authority(
+        tmp_path, static_negative=5e-18
+    )
+    stored = np.load(training / "static14d_runtime_weights.npy", allow_pickle=False)
+    assets = load_v25_runtime_selector_assets(
+        training_artifact=training,
+        training_root_sha256=training_root,
+        training_review_artifact=review,
+        training_review_root_sha256=review_root,
+    )
+    assert stored[0] == -5e-18
+    np.testing.assert_array_equal(assets.static14d_weights, stored)
+
+
+def test_runtime_assets_reject_static_weights_outside_training_feasibility(
+    tmp_path: Path,
+) -> None:
+    training, training_root, review, review_root, _theta = _training_authority(
+        tmp_path, static_negative=2e-9
+    )
+    with pytest.raises(ValueError, match="violated the simplex"):
+        load_v25_runtime_selector_assets(
+            training_artifact=training,
+            training_root_sha256=training_root,
+            training_review_artifact=review,
+            training_review_root_sha256=review_root,
+        )
 
 
 @pytest.mark.parametrize("artifact_role", ("training", "review"))

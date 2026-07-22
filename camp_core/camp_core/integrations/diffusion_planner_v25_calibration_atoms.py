@@ -18,6 +18,8 @@ from .diffusion_planner_v25_context import (
 )
 from .diffusion_planner_v25_scene_runtime import (
     MODEL_PARAMETER_SCHEMA_VERSION,
+    TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
+    TRAINED_SIMPLEX_SUM_ATOL,
     V25Scene14DWeightProvider,
 )
 
@@ -422,8 +424,8 @@ def _numeric(value: Any, shape: tuple[int, ...], name: str) -> np.ndarray:
 
 def _simplex(value: Any, size: int, name: str) -> np.ndarray:
     result = _numeric(value, (size,), name)
-    if np.any(result < 0.0) or not np.isclose(
-        result.sum(), 1.0, rtol=0.0, atol=1e-10
+    if np.any(result < -TRAINED_SIMPLEX_NONNEGATIVE_ATOL) or not np.isclose(
+        result.sum(), 1.0, rtol=0.0, atol=TRAINED_SIMPLEX_SUM_ATOL
     ):
         raise ValueError(f"{name} must be a nonnegative simplex")
     return result

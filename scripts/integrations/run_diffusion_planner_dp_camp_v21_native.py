@@ -2535,12 +2535,23 @@ def _load_frozen_selector_scales(
     }
 
 
-def _load_frozen_selector_weights(path: str | Path) -> np.ndarray:
+def _load_frozen_selector_weights(
+    path: str | Path,
+    *,
+    nonnegative_atol: float = 0.0,
+) -> np.ndarray:
+    if (
+        isinstance(nonnegative_atol, bool)
+        or not isinstance(nonnegative_atol, (int, float))
+        or not np.isfinite(nonnegative_atol)
+        or nonnegative_atol < 0.0
+    ):
+        raise ValueError("selector nonnegative tolerance must be finite and nonnegative")
     weights = np.load(Path(path), allow_pickle=False)
     if (
         weights.shape != (14,)
         or not np.isfinite(weights).all()
-        or np.any(weights < 0.0)
+        or np.any(weights < -float(nonnegative_atol))
         or not np.isclose(weights.sum(), 1.0, rtol=0.0, atol=1e-8)
     ):
         raise ValueError("frozen selector weights must be a nonnegative simplex [14]")
@@ -3660,13 +3671,20 @@ def build_native_arm_runner(
                 )
 
                 scales = validate_v25_atom_scales(scales)
-            weights = (
-                _load_frozen_selector_weights(
-                    Path(str(config["selector"]["weights"]["path"]))
+            if v25_weight_provider is None:
+                nonnegative_atol = 0.0
+                if signal_complete_paired_calibration or signal_complete_fresh_arm:
+                    from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
+                        TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
+                    )
+
+                    nonnegative_atol = TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+                weights = _load_frozen_selector_weights(
+                    Path(str(config["selector"]["weights"]["path"])),
+                    nonnegative_atol=nonnegative_atol,
                 )
-                if v25_weight_provider is None
-                else None
-            )
+            else:
+                weights = None
             replacement = NativeCampPredictBatch(
                 state=state,
                 to_model_tensors=context["tensor_converter"].to_model_tensors,

@@ -514,6 +514,23 @@ def test_frozen_selector_scale_loader_accepts_exact_legacy_metadata_only(
     np.save(weights_path, np.full(14, 1.0 / 14.0))
     weights = module._load_frozen_selector_weights(weights_path)
     assert weights.shape == (14,)
+    solver_feasible = np.full(14, 1.0 / 14.0)
+    solver_feasible[1] += solver_feasible[0] + 5e-18
+    solver_feasible[0] = -5e-18
+    np.save(weights_path, solver_feasible)
+    with pytest.raises(ValueError, match="simplex"):
+        module._load_frozen_selector_weights(weights_path)
+    accepted = module._load_frozen_selector_weights(
+        weights_path, nonnegative_atol=1e-9
+    )
+    np.testing.assert_array_equal(accepted, solver_feasible)
+    solver_feasible[0] = -2e-9
+    solver_feasible[1] += 2e-9 - 5e-18
+    np.save(weights_path, solver_feasible)
+    with pytest.raises(ValueError, match="simplex"):
+        module._load_frozen_selector_weights(
+            weights_path, nonnegative_atol=1e-9
+        )
     np.save(weights_path, np.array([-1.0] + [2.0 / 13.0] * 13))
     with pytest.raises(ValueError, match="simplex"):
         module._load_frozen_selector_weights(weights_path)

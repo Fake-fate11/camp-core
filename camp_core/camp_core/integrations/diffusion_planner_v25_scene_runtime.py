@@ -32,6 +32,11 @@ TRAINING_REVIEW_SCHEMA_VERSION = "camp_dp_v25_strict_convex_training_review_v1"
 MODEL_PARAMETER_SCHEMA_VERSION = "camp_dp_v25_trained_model_parameters_v1"
 MODEL_NAME = "CAMP-Scene14D"
 MODEL_PARAMETER_PREFIX = "scene14d"
+# The convex producer and its accepted independent review both freeze these
+# feasibility tolerances.  Runtime validation must preserve the stored solver
+# output bit-for-bit; it must not project, clip, or renormalize it.
+TRAINED_SIMPLEX_NONNEGATIVE_ATOL = 1e-9
+TRAINED_SIMPLEX_SUM_ATOL = 1e-8
 _MODEL_ENTRIES = [
     ("CAMP-Static14D", "static14d", "static", 14, True, False),
     ("CAMP-Scene14D", "scene14d", "scene", 14, True, False),
@@ -231,8 +236,10 @@ def load_v25_runtime_selector_assets(
         "Static14D runtime weights",
     )
     if (
-        np.any(weights < 0.0)
-        or not np.isclose(weights.sum(), 1.0, rtol=0.0, atol=1e-10)
+        np.any(weights < -TRAINED_SIMPLEX_NONNEGATIVE_ATOL)
+        or not np.isclose(
+            weights.sum(), 1.0, rtol=0.0, atol=TRAINED_SIMPLEX_SUM_ATOL
+        )
     ):
         raise ValueError("Static14D runtime weights violated the simplex")
     with np.load(training / "model_parameters.npz", allow_pickle=False) as archive:
