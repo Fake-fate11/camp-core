@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -8,8 +10,10 @@ import pytest
 from camp_core.integrations.diffusion_planner_v25_signal_complete_execution import (
     build_candidate0_calibration_config,
     build_fresh_b2_arm_config,
+    build_paired_calibration_arm_config,
     validate_candidate0_calibration_config,
     validate_fresh_b2_arm_config,
+    validate_paired_calibration_arm_config,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_opening import (
     freeze_fresh_b2_opening_consumption,
@@ -143,6 +147,88 @@ def _fresh_config(tmp_path: Path, plan_arm: str) -> dict:
     )
 
 
+def _calibration_selector_authority(tmp_path: Path) -> dict:
+    return {
+        "training_artifact": {
+            "path": str(tmp_path / "training"),
+            "root_sha256": "2" * 64,
+        },
+        "training_review_artifact": {
+            "path": str(tmp_path / "training_review"),
+            "root_sha256": "3" * 64,
+        },
+        "model_registry_sha256": "7" * 64,
+        "training_scale_sha256": "8" * 64,
+        "context_scaler_sha256": "9" * 64,
+        "atom_scales": {
+            "path": str(tmp_path / "runtime_atom_scales.json"),
+            "sha256": "a" * 64,
+        },
+        "static14d_weights": {
+            "path": str(tmp_path / "static14d_runtime_weights.npy"),
+            "sha256": "b" * 64,
+        },
+    }
+
+
+def _paired_calibration_config(tmp_path: Path, plan_arm: str) -> dict:
+    map_root = _materialize_maps(tmp_path / "calibration_maps", "calibration")
+    plan = build_signal_complete_execution_plan("calibration")
+    identity = plan["identities"][0]
+    base = next(
+        row
+        for row in plan["execution_units"]
+        if row["scenario_identity_sha256"]
+        == identity["scenario_identity_sha256"]
+    )
+    ordered_arms = [
+        "candidate0_operational_default",
+        "camp_static14d",
+        "camp_scene14d_no_v2i",
+    ]
+    payload = {
+        "scenario_identity_sha256": base["scenario_identity_sha256"],
+        "seed": base["seed"],
+        "ordered_arms": ordered_arms,
+    }
+    unit = {
+        "unit_ordinal": base["unit_ordinal"],
+        **payload,
+        "unit_sha256": hashlib.sha256(
+            (
+                json.dumps(
+                    payload,
+                    sort_keys=True,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False,
+                )
+                + "\n"
+            ).encode("utf-8")
+        ).hexdigest(),
+    }
+    prepared = build_signal_complete_runtime_case(
+        identity,
+        map_artifact=map_root,
+        seeds=plan["seeds"],
+    )
+    route_path = tmp_path / "calibration_route.pkl"
+    route_path.write_bytes(b"calibration-route-placeholder")
+    return build_paired_calibration_arm_config(
+        probe_template=_probe(tmp_path),
+        prepared_runtime=prepared,
+        execution_unit=unit,
+        plan_arm=plan_arm,
+        route_asset={
+            "name": identity["route_identity_sha256"],
+            "path": str(route_path),
+            "sha256": SHA,
+        },
+        dp_repo=tmp_path / "Diffusion-Planner",
+        runtime_selector_authority=_calibration_selector_authority(tmp_path),
+    )
+
+
 def _opening_authority(config: dict) -> dict:
     selector = config["runtime_selector_authority"]
     release = freeze_fresh_b2_opening_release(
@@ -186,6 +272,67 @@ def test_candidate0_calibration_config_reaches_native_validator(tmp_path: Path) 
     assert config["protocol"]["fixed_k8_candidate0"] is True
     assert config["protocol"]["fresh_b2_opened"] is False
     assert config["signal_complete_runtime"]["outcome_fields_consumed"] == []
+
+
+@pytest.mark.parametrize(
+    ("plan_arm", "native_arm", "fixed_candidate0", "scene_provider"),
+    [
+        ("candidate0_operational_default", "dp", True, False),
+        ("camp_static14d", "camp", False, False),
+        ("camp_scene14d_no_v2i", "camp", False, True),
+    ],
+)
+def test_paired_calibration_primary_arm_configs_bind_training_authority(
+    tmp_path: Path,
+    plan_arm: str,
+    native_arm: str,
+    fixed_candidate0: bool,
+    scene_provider: bool,
+) -> None:
+    config = _paired_calibration_config(tmp_path, plan_arm)
+    assert validate_paired_calibration_arm_config(config) == config
+    protocol = config["protocol"]
+    assert protocol["arm_order"] == [native_arm]
+    assert protocol["fixed_k8_candidate0"] is fixed_candidate0
+    assert protocol["calibration_authorized"] is True
+    assert protocol["camp_method_outcomes_authorized"] is True
+    assert protocol["fresh_b2_opened"] is False
+    assert protocol["fresh_outcome_fields_consumed"] == []
+    assert config["selector"]["scene_weight_provider_required"] is scene_provider
+    assert config["signal_complete_runtime"]["phase_remaining_available"] is False
+    assert config["signal_complete_runtime"]["outcome_fields_consumed"] == []
+
+
+@pytest.mark.parametrize(
+    ("path", "value", "match"),
+    [
+        (("protocol", "fresh_b2_opened"), True, "protocol"),
+        (("protocol", "fixed_k8_candidate0"), False, "protocol"),
+        (("selector", "weights", "sha256"), "c" * 64, "selector"),
+        (
+            ("runtime_selector_authority", "training_scale_sha256"),
+            "d" * 64,
+            "selector",
+        ),
+        (("signal_complete_plan_authority", "arm_order_index"), 1, "plan"),
+        (("signal_complete_plan_authority", "seed"), 25401, "seed"),
+    ],
+)
+def test_paired_calibration_arm_config_mutations_fail_closed(
+    tmp_path: Path,
+    path: tuple[object, ...],
+    value: object,
+    match: str,
+) -> None:
+    mutated = copy.deepcopy(
+        _paired_calibration_config(tmp_path, "candidate0_operational_default")
+    )
+    target: object = mutated
+    for part in path[:-1]:
+        target = target[part]  # type: ignore[index]
+    target[path[-1]] = value  # type: ignore[index]
+    with pytest.raises(ValueError, match=match):
+        validate_paired_calibration_arm_config(mutated)
 
 
 @pytest.mark.parametrize(

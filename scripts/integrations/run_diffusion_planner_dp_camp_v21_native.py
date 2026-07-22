@@ -1888,6 +1888,15 @@ def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
 
 def _validate_native_config(config: Mapping[str, Any]) -> None:
     if config.get("schema_version") == (
+        "camp_dp_v25_signal_complete_paired_calibration_arm_v1"
+    ):
+        from camp_core.integrations.diffusion_planner_v25_signal_complete_execution import (
+            validate_paired_calibration_arm_config,
+        )
+
+        validate_paired_calibration_arm_config(config)
+        return
+    if config.get("schema_version") == (
         "camp_dp_v25_signal_complete_fresh_arm_v1"
     ):
         from camp_core.integrations.diffusion_planner_v25_signal_complete_execution import (
@@ -3247,6 +3256,7 @@ def build_native_arm_runner(
             allow_nan=False,
         )
     )
+    runtime_schema_version = config.get("schema_version")
     runtime: dict[str, Any] = {}
 
     def ensure_runtime() -> Mapping[str, Any]:
@@ -3349,6 +3359,8 @@ def build_native_arm_runner(
         fixed_k8_candidate0: bool = False,
     ) -> Mapping[str, Any]:
         _validate_native_config(config)
+        if config.get("schema_version") != runtime_schema_version:
+            raise ValueError("native runner config family drifted after runtime creation")
         current_signal_complete_fresh = config.get("schema_version") == (
             "camp_dp_v25_signal_complete_fresh_arm_v1"
         )
@@ -3371,6 +3383,9 @@ def build_native_arm_runner(
         signal_complete_calibration = config.get("schema_version") == (
             "camp_dp_v25_signal_complete_candidate0_calibration_v1"
         )
+        signal_complete_paired_calibration = config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_paired_calibration_arm_v1"
+        )
         signal_complete_fresh_arm = config.get("schema_version") == (
             "camp_dp_v25_signal_complete_fresh_arm_v1"
         )
@@ -3391,6 +3406,68 @@ def build_native_arm_runner(
             scene_adapter = build_signal_complete_scene_adapter(
                 _mapping(config, "signal_complete_runtime")
             )
+        elif signal_complete_paired_calibration:
+            plan_arm = protocol["calibration_plan_arm"]
+            expected_modes = {
+                "candidate0_operational_default": ("dp", True),
+                "camp_static14d": ("camp", False),
+                "camp_scene14d_no_v2i": ("camp", False),
+            }
+            if (arm, fixed_k8_candidate0) != expected_modes[plan_arm]:
+                label = {
+                    "candidate0_operational_default": "candidate0",
+                    "camp_static14d": "Static14D",
+                    "camp_scene14d_no_v2i": "Scene14D",
+                }[plan_arm]
+                raise ValueError(f"paired calibration {label} mode drifted")
+            if scene_adapter is not None:
+                raise ValueError("paired calibration signal adapter cannot be injected")
+            from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
+                build_signal_complete_scene_adapter,
+            )
+
+            scene_adapter = build_signal_complete_scene_adapter(
+                _mapping(config, "signal_complete_runtime")
+            )
+            if plan_arm == "camp_scene14d_no_v2i":
+                from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
+                    V25Scene14DWeightProvider,
+                )
+
+                selector_authority = _mapping(
+                    config, "runtime_selector_authority"
+                )
+                training = _mapping(selector_authority, "training_artifact")
+                training_review = _mapping(
+                    selector_authority, "training_review_artifact"
+                )
+                if (
+                    not isinstance(v25_weight_provider, V25Scene14DWeightProvider)
+                    or v25_weight_provider.training_root_sha256
+                    != training["root_sha256"]
+                    or v25_weight_provider.training_review_root_sha256
+                    != training_review["root_sha256"]
+                    or Path(v25_weight_provider.training_artifact).resolve()
+                    != Path(training["path"]).resolve()
+                    or Path(v25_weight_provider.training_review_artifact).resolve()
+                    != Path(training_review["path"]).resolve()
+                    or v25_weight_provider.context_scaler_sha256
+                    != selector_authority["context_scaler_sha256"]
+                ):
+                    raise ValueError(
+                        "paired calibration Scene14D mode requires the sealed "
+                        "no-V2I provider"
+                    )
+            elif v25_weight_provider is not None:
+                label = (
+                    "candidate0"
+                    if plan_arm == "candidate0_operational_default"
+                    else "Static14D"
+                )
+                raise ValueError(
+                    f"paired calibration {label} mode cannot consume a "
+                    "Scene14D provider"
+                )
         elif signal_complete_fresh_arm:
             plan_arm = protocol["fresh_b2_plan_arm"]
             expected_modes = {
@@ -3462,6 +3539,10 @@ def build_native_arm_runner(
             allowed_steps = {int(protocol["corpus_steps"])}
         elif config.get("schema_version") == (
             "camp_dp_v25_signal_complete_candidate0_calibration_v1"
+        ):
+            allowed_steps = {int(protocol["calibration_steps"])}
+        elif config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_paired_calibration_arm_v1"
         ):
             allowed_steps = {int(protocol["calibration_steps"])}
         elif config.get("schema_version") == (
@@ -3633,7 +3714,7 @@ def build_native_arm_runner(
             if v25_weight_provider is not None:
                 raise ValueError("DP candidate0 arm cannot consume a CAMP weight provider")
             candidate0_pool_diagnostics = bool(
-                signal_complete_fresh_arm
+                (signal_complete_fresh_arm or signal_complete_paired_calibration)
                 and protocol.get("candidate0_offline_pool_evidence_required") is True
             )
             replacement = NativeCampPredictBatch(
