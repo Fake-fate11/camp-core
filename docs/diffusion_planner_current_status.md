@@ -1,6 +1,6 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-19, Asia/Shanghai.
+Last verified: 2026-07-22, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
@@ -768,44 +768,43 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below matches it exactly.
 
-A1.7 keeps the accepted typed fixed-DP K8 capability contract unchanged. The
-current full-config preflight and independent review passed at implementation
-source `19bcebe6...` with zero model/candidate/snapshot work. The preceding
-execute attempt sealed fail-closed with zero accepted rows because the harness
-reconstructed an obsolete preflight-marker path; the direct fix now consumes
-the exact marker path/SHA recorded in the sealed A1.7 preflight.
+A1.7 corrected-corpus generation and its independent review are complete. The
+sealed corpus preserves the full 1,500-identity denominator: 1,494 identities
+completed exactly 64 ticks, six identities are retained typed fixed-DP K8
+candidate-generation capability failures with zero training rows, and the
+training projection contains 95,616 complete snapshots and no partial rows.
+The unchanged fixed DP, source-valid eligibility, candidate0 same-forward
+alias, fixed K=8 tensors, atom/context receipts, and full failure accounting
+were independently reopened and verified.
 
-Resource authority is also corrected: `/root/autodl-tmp` is the canonical
-writable XFS `rw,prjquota` parent. `/autodl-pub` and its AutoFS child are
-read-only despite TB-scale reported capacity. Exact deletion of only
-confirmed-unused artifacts raised writable free space to 41,851,711,488 bytes;
-the bounded projection leaves 13,942,184,375 bytes after a full corpus, above
-the 10 GiB floor. Confirmed-unused local tar payloads were removed and only
-small receipts remain.
+The independent review passed with `run.exit=0` and a strict four-file seal.
+It consumed no Fresh or closed-loop outcome fields. CAMP and fixed-DP
+worktrees are clean, no worker or GPU task remains, the corpus lock is free,
+and writable disk remains above the 10 GiB floor. The completed corpus and
+review are now the sole train-input authority for the sealed train-only 14D
+atom empirical audit; atom audit, training, calibration, Scene runtime, V2I,
+Fresh B2, and outcome evaluation have not started.
 
-The audit EOF contains one 10-row failure-signature-to-machine-check matrix.
-The combined production-entry preflight passed: exact 40-char CAMP/fixed-DP
-heads, Python 3.12 imports, mount/quota/allocated-block evidence, an exact
-write/fsync/read/delete probe, frozen asset loaders, the real create/run
-zero-snapshot artifacts, pointer regressions, absent execute release/nonce,
-and zero stale monitors all passed. Per the user stop point, no full corpus,
-worker, monitor, training, calibration, Scene/V2I, Fresh, or outcome is active.
-
-current_v25_status=v25_a17_failure_regression_matrix_and_production_entry_preflight_passed_execute_nonce_not_generated
-current_v25_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
+current_v25_status=v25_a17_corrected_full_corpus_and_independent_review_passed_train_only_atom_audit_next
+current_v25_source_head=709a76c297fc00c87d5852574bc6851fdeffb4bd
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_19bcebe6_b2de06d662cf9764
-current_v25_artifact_root_sha256=e578642e9478f9021fdcbfb3b683a37db9ff3cf4ac9323bb98d801644181a5cb
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_full_config_preflight_review_19bcebe6_b2de06d662cf9764
-current_v25_review_artifact_root_sha256=96bd1626eba2be1143eb4ad439ad7b38de90d56d9bbafee76e63d0402f53386e
-current_v25_full_config_preflight_release_root_sha256=323a7326c744d54b410f6b0ace7e1ac648e4c60045569bab77640942398a2687
-current_v25_failed_execute_root_sha256=ba79db8dd0ae87c9b4614aca09ef75077f316a40bbbc15cc614626d624bdafab
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_corrected_full_corpus_19bcebe6_e591ab98ae575ed6
+current_v25_artifact_root_sha256=97a361b2bbb3544e842c9b6d12b3c17b8f63982db3217e9e360643b0cd7b0ffd
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_corrected_full_corpus_review_shards_709a76c2
+current_v25_review_artifact_root_sha256=548a5468e585bd39bfbb58ecfd4780e6c78ff88cddb7fef985532639d8dd2c4a
+current_v25_corpus_producer_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
+current_v25_corpus_producer_pointer_head=0b689591dd109ed883e26205dbb289676341716b
+current_v25_corpus_identity_denominator=1500
+current_v25_corpus_complete_identity_count=1494
+current_v25_corpus_typed_retained_failure_count=6
+current_v25_corpus_snapshot_count=95616
+current_v25_corpus_partial_snapshot_count=0
+current_v25_corpus_review_passed=true
 current_v25_failure_regression_matrix_row_count=10
-current_v25_production_entry_preflight_passed=true
-current_v25_production_entry_regression_test_result=8_passed
-current_v25_official_execute_nonce_generated=false
-current_v25_corrected_full_corpus_started=false
+current_v25_corrected_full_corpus_started=true
+current_v25_corrected_full_corpus_completed=true
 current_v25_monitor_started=false
+current_v25_train_only_atom_audit_started=false
 current_v25_training_started=false
 current_v25_calibration_started=false
 current_v25_worker_count=0
@@ -815,12 +814,10 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=41835847680
+observed_autodl_free_bytes=19667914752
 current_v25_full_corpus_storage_root=/root/autodl-tmp
-current_v25_projected_full_corpus_peak_bytes=27909527113
-current_v25_projected_post_corpus_free_bytes=13926320567
-current_v25_phase=A1_7_production_entry_preflight_passed_before_full_corpus_execute
-next_work_target=A1_7_full_corpus_execute_release_and_unique_worker_after_control_report
+current_v25_phase=A1_7_corrected_full_corpus_independent_review_passed
+next_work_target=sealed_train_only_14d_atom_empirical_audit_and_independent_review
 
 ## Current V24 Status
 

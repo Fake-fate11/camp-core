@@ -4513,3 +4513,70 @@ current_v25_projected_full_corpus_peak_bytes=27909527113
 current_v25_projected_post_corpus_free_bytes=13926320567
 current_v25_phase=A1_7_production_entry_preflight_passed_before_full_corpus_execute
 next_work_target=A1_7_full_corpus_execute_release_and_unique_worker_after_control_report
+
+## A1.7 corrected 1,500-identity corpus and independent review PASS
+
+The fresh corrected controlled-training corpus completed and sealed without
+changing the fixed DP, K=8 candidate tensors, trajectory contract, atom
+formulas, canonical `[0,10]` normalization, source-valid eligibility, or
+candidate0 same-forward alias. The full planned denominator is retained:
+1,500 terminal identities, 1,494 complete identities with exactly 64 ticks,
+six typed `fixed_dp_candidate_generation_capability_failure` identities with
+zero training rows, 95,616 complete snapshots, and zero partial snapshots.
+The six failures remain in coverage accounting and are ineligible for labels,
+scales, context fitting, training, calibration, or evaluation.
+
+The independent reviewer ran once over the sealed corpus and passed with
+`run.exit=0`. It reopened the corpus, route-level signal source artifacts,
+snapshot shards, native receipts, fixed K8/candidate0 evidence, raw 14D atoms,
+26D causal context, source/applicability/physical masks, selection evidence,
+typed failures, terminal denominator, and exact inventories. The strict review
+seal has four payloads and root
+`548a5468e585bd39bfbb58ecfd4780e6c78ff88cddb7fef985532639d8dd2c4a`.
+The review consumed no Fresh or outcome fields. Its posthoc correction scope is
+limited to the three frozen reviewer/test paths and binds producer source HEAD
+`19bcebe6...`, producer pointer HEAD `0b689591...`, and review HEAD
+`709a76c2...`.
+
+At the terminal check, CAMP and fixed DP were tracked clean, no worker or GPU
+compute process remained, the corpus lock was free, and writable free space
+was 19,667,914,752 bytes, above the 10 GiB floor. The obsolete review heartbeat
+was deleted after terminal evidence appeared. Training, calibration, Scene
+runtime, V2I, Fresh B2, and outcome evaluation remain unopened. The sole next
+stage is a sealed train-only empirical audit of all approved 14 atoms with the
+canonical 9D prefix and preregistered group ablations; it may consume only this
+sealed corpus and its passed review.
+
+current_v25_status=v25_a17_corrected_full_corpus_and_independent_review_passed_train_only_atom_audit_next
+current_v25_source_head=709a76c297fc00c87d5852574bc6851fdeffb4bd
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_a17_corrected_full_corpus_19bcebe6_e591ab98ae575ed6
+current_v25_artifact_root_sha256=97a361b2bbb3544e842c9b6d12b3c17b8f63982db3217e9e360643b0cd7b0ffd
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_a17_corrected_full_corpus_review_shards_709a76c2
+current_v25_review_artifact_root_sha256=548a5468e585bd39bfbb58ecfd4780e6c78ff88cddb7fef985532639d8dd2c4a
+current_v25_corpus_producer_source_head=19bcebe67f1026f8087505190d11d159d7aa2f1a
+current_v25_corpus_producer_pointer_head=0b689591dd109ed883e26205dbb289676341716b
+current_v25_corpus_identity_denominator=1500
+current_v25_corpus_complete_identity_count=1494
+current_v25_corpus_typed_retained_failure_count=6
+current_v25_corpus_snapshot_count=95616
+current_v25_corpus_partial_snapshot_count=0
+current_v25_corpus_review_passed=true
+current_v25_failure_regression_matrix_row_count=10
+current_v25_corrected_full_corpus_started=true
+current_v25_corrected_full_corpus_completed=true
+current_v25_monitor_started=false
+current_v25_train_only_atom_audit_started=false
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=19667914752
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_phase=A1_7_corrected_full_corpus_independent_review_passed
+next_work_target=sealed_train_only_14d_atom_empirical_audit_and_independent_review
