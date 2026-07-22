@@ -88,7 +88,7 @@ def freeze_paired_calibration_preregistration(
         "total_tick_capacity": 19_200,
         "map_count": 5,
         "intersection_count": 5,
-        "corridor_count": 5,
+        "corridor_count": 50,
         "route_count": 50,
         "seed_count": 2,
         "seeds": [25301, 25302],
@@ -291,6 +291,8 @@ def _model_authority(value: Mapping[str, str]) -> dict[str, str]:
     result = dict(value)
     for name, digest in result.items():
         _require_sha(digest, name)
+    if result["training_scale_sha256"] != result["atom_scales_file_sha256"]:
+        raise ValueError("paired calibration training/runtime atom-scale SHA drifted")
     return result
 
 

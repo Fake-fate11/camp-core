@@ -1064,6 +1064,10 @@ def _runtime_selector_authority(value: Mapping[str, Any]) -> dict[str, Any]:
     result["static14d_weights"] = _asset(
         result["static14d_weights"], "static14d_weights"
     )
+    if result["training_scale_sha256"] != result["atom_scales"]["sha256"]:
+        raise ValueError(
+            "paired calibration selector training-scale/atom-scale binding drifted"
+        )
     return result
 
 

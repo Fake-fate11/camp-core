@@ -78,7 +78,7 @@ def _selector_authority(tmp_path: Path) -> dict:
         "training_artifact": {"path": str(tmp_path / "training"), "root_sha256": "2" * 64},
         "training_review_artifact": {"path": str(tmp_path / "review"), "root_sha256": "3" * 64},
         "model_registry_sha256": "4" * 64,
-        "training_scale_sha256": "5" * 64,
+        "training_scale_sha256": "7" * 64,
         "context_scaler_sha256": "6" * 64,
         "atom_scales": {"path": str(tmp_path / "scales.json"), "sha256": "7" * 64},
         "static14d_weights": {"path": str(tmp_path / "weights.npy"), "sha256": "8" * 64},

@@ -8,6 +8,7 @@ from camp_core.integrations.diffusion_planner_v25_calibration_atoms import (
     analyze_calibration_decision_evidence,
 )
 from camp_core.integrations.diffusion_planner_v25_context import (
+    CONTEXT_SCHEMA_VERSION,
     PHI_DIMENSION,
     RAW_FEATURE_NAMES,
     V25ContextScaler,
@@ -37,7 +38,7 @@ def _context() -> dict:
     raw["traffic_signal_phase_remaining_s"] = 0.0
     source["traffic_signal_phase_remaining_s"] = False
     return {
-        "schema_version": "dp_camp_v25_context_v2",
+        "schema_version": CONTEXT_SCHEMA_VERSION,
         "raw_context": raw,
         "source_complete": source,
         "source_receipt": {

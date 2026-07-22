@@ -28,7 +28,7 @@ def test_paired_calibration_plan_lifts_same_calibration_denominator() -> None:
     assert plan["arm_run_count"] == ARM_RUN_COUNT == 300
     assert plan["total_tick_capacity"] == TOTAL_TICK_CAPACITY == 19_200
     assert plan["map_count"] == 5
-    assert plan["corridor_count"] == 5
+    assert plan["corridor_count"] == 50
     assert plan["route_count"] == 50
     assert plan["seeds"] == [25301, 25302]
     assert plan["paired_arms"] == list(ARMS)

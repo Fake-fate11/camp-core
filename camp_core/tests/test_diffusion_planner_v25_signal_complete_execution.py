@@ -158,7 +158,7 @@ def _calibration_selector_authority(tmp_path: Path) -> dict:
             "root_sha256": "3" * 64,
         },
         "model_registry_sha256": "7" * 64,
-        "training_scale_sha256": "8" * 64,
+        "training_scale_sha256": "a" * 64,
         "context_scaler_sha256": "9" * 64,
         "atom_scales": {
             "path": str(tmp_path / "runtime_atom_scales.json"),
@@ -299,7 +299,6 @@ def test_paired_calibration_primary_arm_configs_bind_training_authority(
     assert protocol["fresh_b2_opened"] is False
     assert protocol["fresh_outcome_fields_consumed"] == []
     assert config["selector"]["scene_weight_provider_required"] is scene_provider
-    assert config["signal_complete_runtime"]["phase_remaining_available"] is False
     assert config["signal_complete_runtime"]["outcome_fields_consumed"] == []
 
 

@@ -26,7 +26,7 @@ def _payload() -> dict:
     )
     models = {
         "model_registry_sha256": "2" * 64,
-        "training_scale_sha256": "3" * 64,
+        "training_scale_sha256": "5" * 64,
         "context_scaler_sha256": "4" * 64,
         "atom_scales_file_sha256": "5" * 64,
         "static14d_weights_file_sha256": "6" * 64,
@@ -68,7 +68,7 @@ def test_paired_calibration_preregistration_freezes_fresh_closed_contract() -> N
         (("scene_context", "phase_remaining_available"), True),
         (("coverage", "planned_pair_denominator"), 99),
         (("fresh_b2_opened",), True),
-        (("model_authority", "scene14d_theta_sha256"), "8" * 64),
+        (("paper_subset_ablations",), ["camp_static9d"]),
     ],
 )
 def test_paired_calibration_preregistration_mutations_fail_closed(
