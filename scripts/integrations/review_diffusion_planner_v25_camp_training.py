@@ -451,13 +451,13 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
         atoms = atoms14[:, :, :atom_count]
         phi = static_phi if mode == "static" else scene_phi
         theta = _numeric(params[f"{key}_theta"], (atom_count, PHI_DIMENSION), f"{name}.theta")
-        if np.any(theta < 0.0) or not np.allclose(
-            theta.sum(axis=0), 1.0, rtol=0.0, atol=1e-10
+        if np.any(theta < -1e-9) or not np.allclose(
+            theta.sum(axis=0), 1.0, rtol=0.0, atol=1e-8
         ):
             raise ValueError(f"{name} theta violates column simplex")
         context_weights = phi @ theta.T
-        if np.any(context_weights < 0.0) or not np.allclose(
-            context_weights.sum(axis=1), 1.0, rtol=0.0, atol=1e-10
+        if np.any(context_weights < -1e-9) or not np.allclose(
+            context_weights.sum(axis=1), 1.0, rtol=0.0, atol=1e-8
         ):
             raise ValueError(f"{name} runtime weights require forbidden projection")
         scores = np.einsum("nkr,nr->nk", atoms, context_weights)

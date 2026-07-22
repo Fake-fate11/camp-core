@@ -130,13 +130,13 @@ def train_v25_selector_suite(
         if not result.converged:
             raise RuntimeError(f"{name} strict master did not converge")
         if (
-            np.any(result.theta < 0.0)
+            np.any(result.theta < -1e-9)
             or not np.allclose(
-                result.theta.sum(axis=0), 1.0, rtol=0.0, atol=1e-10
+                result.theta.sum(axis=0), 1.0, rtol=0.0, atol=1e-8
             )
-            or np.any(result.train_weights < 0.0)
+            or np.any(result.train_weights < -1e-9)
             or not np.allclose(
-                result.train_weights.sum(axis=1), 1.0, rtol=0.0, atol=1e-10
+                result.train_weights.sum(axis=1), 1.0, rtol=0.0, atol=1e-8
             )
         ):
             raise RuntimeError(

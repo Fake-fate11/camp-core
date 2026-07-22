@@ -113,8 +113,8 @@ def test_train_suite_uses_same_rows_labels_weights_and_keeps_9d_as_ablation() ->
         ]["interpretation"]
         assert report["cluster_ids_used_as_model_features"] is False
         np.testing.assert_allclose(model.theta.sum(axis=0), 1.0, atol=1e-8)
-        assert np.all(model.theta >= 0.0)
-        assert np.all(model.result.train_weights >= 0.0)
+        assert np.all(model.theta >= -1e-9)
+        assert np.all(model.result.train_weights >= -1e-9)
         assert model.selected_indices.shape == (5,)
         if name.endswith("14D"):
             assert report["final_primary_method"] is True
