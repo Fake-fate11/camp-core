@@ -4708,7 +4708,8 @@ later gate. It found two reviewer-only contract mismatches:
   frozen solver tolerance, although the training contract's reported gap is
   `exact_losses - optimized_master_losses`. CVaR master-loss slack can exceed
   the active-cut envelope without changing the optimized objective, so these
-  are distinct quantities. The envelope remains visible as a non-gating
+  are distinct quantities. The active-cut envelope gap is not the frozen
+  optimized-master-loss gap. The envelope remains visible as a non-gating
   diagnostic rather than being mislabeled as the solver master gap.
 
 With the producer's frozen active-index layout, all stored selected indices,
