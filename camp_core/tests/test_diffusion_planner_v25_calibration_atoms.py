@@ -56,12 +56,16 @@ def _run(plan_arm: str, provider: V25Scene14DWeightProvider) -> dict:
     candidates = np.zeros((8, 80, 4), dtype=np.float32)
     candidates[..., 2] = 1.0
     atoms = np.arange(8 * 14, dtype=np.float64).reshape(8, 14) / 100.0
-    weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
+    context = _context()
+    scene = provider(context)
+    weights = (
+        np.asarray(scene["weights"], dtype=np.float64)
+        if plan_arm == "camp_scene14d_no_v2i"
+        else np.full(14, 1.0 / 14.0, dtype=np.float64)
+    )
     scores = canonical_normalize_atoms(
         atoms, np.ones(14, dtype=np.float64)
     ) @ weights
-    context = _context()
-    scene = provider(context)
     selector = {key: value for key, value in scene.items() if key != "weights"}
     snapshots = []
     native = []
