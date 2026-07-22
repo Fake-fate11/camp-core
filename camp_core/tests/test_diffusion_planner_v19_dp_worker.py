@@ -210,6 +210,49 @@ def test_selector_rejects_non_simplex_and_all_k_fails_closed() -> None:
         )
 
 
+def test_selector_preserves_solver_feasible_weights_only_with_explicit_tolerance() -> None:
+    module = _worker()
+    candidates = _valid_candidate_tensor()
+    weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
+    weights[1] += weights[0] + 5e-18
+    weights[0] = -5e-18
+    materialized = {
+        "canonical_eligible": True,
+        "atom_matrix": np.zeros((8, 14), dtype=np.float64),
+        "source_valid_mask": np.ones(8, dtype=bool),
+        "physical_feasible_mask": np.ones(8, dtype=bool),
+        "candidate_reasons": [tuple() for _ in range(8)],
+    }
+
+    with pytest.raises(ValueError, match="nonnegative simplex"):
+        module.select_camp_candidate(
+            candidates=candidates,
+            materialized=materialized,
+            atom_scales=np.ones(14, dtype=np.float64),
+            weights=weights,
+        )
+    accepted = module.select_camp_candidate(
+        candidates=candidates,
+        materialized=materialized,
+        atom_scales=np.ones(14, dtype=np.float64),
+        weights=weights,
+        simplex_nonnegative_atol=1e-9,
+    )
+    assert accepted["selected_index"] == 0
+
+    outside = weights.copy()
+    outside[1] += 2e-9 - 5e-18
+    outside[0] = -2e-9
+    with pytest.raises(ValueError, match="nonnegative simplex"):
+        module.select_camp_candidate(
+            candidates=candidates,
+            materialized=materialized,
+            atom_scales=np.ones(14, dtype=np.float64),
+            weights=outside,
+            simplex_nonnegative_atol=1e-9,
+        )
+
+
 def test_v22_selector_scores_all_source_valid_candidates_when_all_high_risk() -> None:
     module = _worker()
     candidates = _valid_candidate_tensor()

@@ -298,6 +298,7 @@ class NativeCampPredictBatch:
         ]
         | None = None,
         candidate0_pool_diagnostics: bool = False,
+        selector_nonnegative_atol: float = 0.0,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -352,6 +353,14 @@ class NativeCampPredictBatch:
         if type(candidate0_pool_diagnostics) is not bool:
             raise TypeError("candidate0_pool_diagnostics must be a native bool")
         self.candidate0_pool_diagnostics = candidate0_pool_diagnostics
+        if (
+            not np.isfinite(selector_nonnegative_atol)
+            or selector_nonnegative_atol < 0.0
+        ):
+            raise ValueError(
+                "selector nonnegative tolerance must be finite and nonnegative"
+            )
+        self.selector_nonnegative_atol = float(selector_nonnegative_atol)
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
             or self.atom_scales.shape != (14,)
@@ -878,9 +887,11 @@ class NativeCampPredictBatch:
                     effective_weights = values.astype(np.float64, copy=False)
                     if (
                         not np.all(np.isfinite(effective_weights))
-                        or np.any(effective_weights < 0.0)
+                        or np.any(
+                            effective_weights < -self.selector_nonnegative_atol
+                        )
                         or not np.isclose(
-                            effective_weights.sum(), 1.0, rtol=0.0, atol=1e-10
+                            effective_weights.sum(), 1.0, rtol=0.0, atol=1e-8
                         )
                         or provided.get("runtime_projection") is not False
                         or provided.get("softmax") is not False
@@ -911,17 +922,22 @@ class NativeCampPredictBatch:
                     }
 
             selector_started = time.perf_counter_ns()
-            selection = self.select_candidate(
-                candidates=candidate_tensor,
-                materialized=materialized,
-                atom_scales=self.atom_scales,
-                weights=effective_weights,
-                eligibility_mask_name=(
+            selector_kwargs = {
+                "candidates": candidate_tensor,
+                "materialized": materialized,
+                "atom_scales": self.atom_scales,
+                "weights": effective_weights,
+                "eligibility_mask_name": (
                     "source_valid_mask"
                     if self.selection_policy == V22_SOURCE_VALID_SELECTION
                     else "physical_feasible_mask"
                 ),
-            )
+            }
+            if self.selector_nonnegative_atol > 0.0:
+                selector_kwargs["simplex_nonnegative_atol"] = (
+                    self.selector_nonnegative_atol
+                )
+            selection = self.select_candidate(**selector_kwargs)
             receipt["latency_ms"]["selector"] = _elapsed_ms(selector_started)
             receipt.update(
                 verify_candidate_tensor_immutable(candidate_tensor, before_sha)
@@ -3740,14 +3756,14 @@ def build_native_arm_runner(
                 )
 
                 scales = validate_v25_atom_scales(scales)
-            if v25_weight_provider is None:
-                nonnegative_atol = 0.0
-                if signal_complete_paired_calibration or signal_complete_fresh_arm:
-                    from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
-                        TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
-                    )
+            nonnegative_atol = 0.0
+            if signal_complete_paired_calibration or signal_complete_fresh_arm:
+                from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
+                    TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
+                )
 
-                    nonnegative_atol = TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+                nonnegative_atol = TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+            if v25_weight_provider is None:
                 weights = _load_frozen_selector_weights(
                     Path(str(config["selector"]["weights"]["path"])),
                     nonnegative_atol=nonnegative_atol,
@@ -3793,6 +3809,7 @@ def build_native_arm_runner(
                 causal_input_sink=causal_input_sink,
                 causal_input_receipt_sink=causal_input_receipt_sink,
                 candidate_tensor_sink=candidate_tensor_sink,
+                selector_nonnegative_atol=nonnegative_atol,
             )
         elif (
             config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1"

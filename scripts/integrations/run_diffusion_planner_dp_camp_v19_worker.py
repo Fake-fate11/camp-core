@@ -330,6 +330,7 @@ def select_camp_candidate(
     atom_scales: np.ndarray,
     weights: np.ndarray,
     eligibility_mask_name: str = "physical_feasible_mask",
+    simplex_nonnegative_atol: float = 0.0,
 ) -> dict[str, object]:
     trajectories = validate_fixed_k8_candidate_tensor(candidates)
     scales = np.asarray(atom_scales, dtype=np.float64)
@@ -341,9 +342,14 @@ def select_camp_candidate(
     ):
         raise ValueError("atom scales must be finite positive [14]")
     if (
+        not np.isfinite(simplex_nonnegative_atol)
+        or simplex_nonnegative_atol < 0.0
+    ):
+        raise ValueError("simplex nonnegative tolerance must be finite and nonnegative")
+    if (
         coefficients.shape != (14,)
         or not np.isfinite(coefficients).all()
-        or np.any(coefficients < 0.0)
+        or np.any(coefficients < -float(simplex_nonnegative_atol))
         or not np.isclose(coefficients.sum(), 1.0, rtol=0.0, atol=1e-8)
     ):
         raise ValueError("weights must be a nonnegative simplex [14]")

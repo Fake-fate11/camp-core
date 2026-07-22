@@ -14,11 +14,13 @@ from camp_core.integrations.diffusion_planner_v25_context import (
     PHI_DIMENSION,
     RAW_FEATURE_COUNT,
     RAW_FEATURE_NAMES,
+    V25ContextScaler,
 )
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
     FIXED_DP_HEAD,
     MODEL_NAME,
     SCENE_RECEIPT_SCHEMA_VERSION,
+    V25Scene14DWeightProvider,
     load_v25_runtime_selector_assets,
     load_v25_scene14d_weight_provider,
     training_parameter_array_sha256,
@@ -253,6 +255,31 @@ def test_sealed_scene14d_provider_evaluates_affine_simplex_without_projection(
     assert np.all(weights >= 0.0)
     assert weights.sum() == pytest.approx(1.0, abs=1e-12)
     assert receipt["weights_sha256"] == array_sha256(weights)
+
+
+def test_scene14d_provider_preserves_solver_feasible_weights_without_projection() -> None:
+    theta = np.full((14, PHI_DIMENSION), 1.0 / 14.0, dtype=np.float64)
+    theta[1, :] += theta[0, :] + 5e-18
+    theta[0, :] = -5e-18
+    provider = V25Scene14DWeightProvider(
+        theta=theta,
+        context_scaler=V25ContextScaler(
+            q05=np.zeros(RAW_FEATURE_COUNT, dtype=np.float64),
+            q95=np.ones(RAW_FEATURE_COUNT, dtype=np.float64),
+        ),
+        training_artifact="training",
+        training_root_sha256="a" * 64,
+        training_review_artifact="review",
+        training_review_root_sha256="b" * 64,
+        theta_sha256=array_sha256(theta),
+        context_scaler_sha256="c" * 64,
+    )
+    receipt = provider(_context_payload())
+    weights = np.asarray(receipt["weights"], dtype=np.float64)
+    assert weights[0] == pytest.approx(-5e-18, abs=1e-30)
+    assert weights.min() >= -1e-9
+    assert np.isclose(weights.sum(), 1.0, rtol=0.0, atol=1e-8)
+    assert receipt["runtime_projection"] is False
 
 
 def test_sealed_runtime_assets_bind_static_and_scene_to_same_authority(

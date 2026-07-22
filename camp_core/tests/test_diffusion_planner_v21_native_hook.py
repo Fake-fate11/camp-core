@@ -262,6 +262,8 @@ def _hook(
     v25_context_sink=None,
     v25_weight_provider=None,
     select_candidate=_select,
+    static_weights=None,
+    selector_nonnegative_atol: float = 0.0,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -281,7 +283,11 @@ def _hook(
         "weights": (
             None
             if v25_weight_provider is not None
-            else np.eye(1, 14, dtype=np.float64).reshape(14)
+            else (
+                np.eye(1, 14, dtype=np.float64).reshape(14)
+                if static_weights is None
+                else static_weights
+            )
         ),
         "candidate_seed_root": 3418,
         "route_sha256": "ab" * 32,
@@ -313,8 +319,39 @@ def _hook(
         kwargs["v25_context_sink"] = v25_context_sink
     if v25_weight_provider is not None:
         kwargs["v25_weight_provider"] = v25_weight_provider
+    if selector_nonnegative_atol > 0.0:
+        kwargs["selector_nonnegative_atol"] = selector_nonnegative_atol
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
+
+
+def test_v25_selector_forwards_frozen_solver_feasibility_tolerance() -> None:
+    module = _runner()
+    weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
+    weights[1] += weights[0] + 5e-18
+    weights[0] = -5e-18
+    captured = []
+
+    def select_with_tolerance(**kwargs):
+        captured.append(kwargs.get("simplex_nonnegative_atol"))
+        return _select(**kwargs)
+
+    hook, state = _hook(
+        module,
+        _FakeModel(),
+        static_weights=weights,
+        selector_nonnegative_atol=1e-9,
+        select_candidate=select_with_tolerance,
+    )
+    hook(
+        _FakeModel(),
+        SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+        _Scene(),
+        ["ego"],
+        "cpu",
+    )
+    assert captured == [1e-9]
+    assert state.receipts[-1]["selected_index"] == 0
 
 
 def test_scene_weight_provider_runs_before_affine_selection(monkeypatch) -> None:

@@ -152,8 +152,10 @@ class V25Scene14DWeightProvider:
         if (
             weights.shape != (14,)
             or not np.all(np.isfinite(weights))
-            or np.any(weights < 0.0)
-            or not np.isclose(weights.sum(), 1.0, rtol=0.0, atol=1e-10)
+            or np.any(weights < -TRAINED_SIMPLEX_NONNEGATIVE_ATOL)
+            or not np.isclose(
+                weights.sum(), 1.0, rtol=0.0, atol=TRAINED_SIMPLEX_SUM_ATOL
+            )
         ):
             raise ValueError("Scene14D affine head violated the runtime simplex")
         return {
