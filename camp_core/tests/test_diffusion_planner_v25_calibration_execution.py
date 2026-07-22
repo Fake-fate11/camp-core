@@ -276,6 +276,61 @@ def test_candidate0_calibration_binds_reviewed_runtime_rows_before_execution(
         row["scenario_identity_sha256"] for row in plan["identities"]
     }
 
+    planned_chain = prepared[plan["identities"][0]["scenario_identity_sha256"]][
+        "mapped_signal_authority"
+    ]
+    within_chain = receipts[0]["source_chain"]
+    within_chain["stop_line_geometry_m"][0][0] = (
+        planned_chain["stop_line_geometry_m"][0][0] + 0.9e-6
+    )
+    within_chain["route_tangent_world"][1] = (
+        planned_chain["route_tangent_world"][1] + 0.9e-5
+    )
+    within_chain["stop_line_route_distance_m"] = (
+        planned_chain["stop_line_route_distance_m"] + 0.9 * 2e-4
+    )
+    without_hash = {
+        key: value for key, value in within_chain.items() if key != "source_chain_sha256"
+    }
+    within_chain["source_chain_sha256"] = hashlib.sha256(
+        _canonical_bytes(without_hash)
+    ).hexdigest()
+    receipts[0]["source_chain_sha256"] = within_chain["source_chain_sha256"]
+    receipt_path.write_bytes(_canonical_bytes(receipts))
+    assert _production_runtime_bindings(
+        plan=plan,
+        prepared_runtime_by_scenario=prepared,
+        runtime_artifact=runtime_artifact,
+    ) == _review_runtime_bindings(
+        plan=plan,
+        prepared_runtime_by_scenario=prepared,
+        runtime_artifact=runtime_artifact,
+    )
+
+    within_chain["stop_line_route_distance_m"] = (
+        planned_chain["stop_line_route_distance_m"] + 2.1e-4
+    )
+    without_hash = {
+        key: value for key, value in within_chain.items() if key != "source_chain_sha256"
+    }
+    within_chain["source_chain_sha256"] = hashlib.sha256(
+        _canonical_bytes(without_hash)
+    ).hexdigest()
+    receipts[0]["source_chain_sha256"] = within_chain["source_chain_sha256"]
+    receipt_path.write_bytes(_canonical_bytes(receipts))
+    with pytest.raises(ValueError, match="runtime chain drifted"):
+        _production_runtime_bindings(
+            plan=plan,
+            prepared_runtime_by_scenario=prepared,
+            runtime_artifact=runtime_artifact,
+        )
+    with pytest.raises(ValueError, match="runtime chain drifted"):
+        _review_runtime_bindings(
+            plan=plan,
+            prepared_runtime_by_scenario=prepared,
+            runtime_artifact=runtime_artifact,
+        )
+
     receipts[0]["route_identity_sha256"] = "f" * 64
     receipt_path.write_bytes(_canonical_bytes(receipts))
     with pytest.raises(ValueError, match="metadata drifted"):

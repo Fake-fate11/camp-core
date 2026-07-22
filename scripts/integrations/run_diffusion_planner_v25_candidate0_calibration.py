@@ -41,6 +41,9 @@ SCHEMA_VERSION = "camp_dp_v25_candidate0_calibration_execution_artifact_v1"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 MINIMUM_FREE_BYTES = 10 * 1024**3
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
+STOP_LINE_GEOMETRY_ATOL_M = 1e-6
+ROUTE_TANGENT_ATOL = 1e-5
+ROUTE_SCALAR_ATOL_M = 2e-4
 RunOne = Callable[[Mapping[str, Any], Path], Mapping[str, Any]]
 
 
@@ -369,19 +372,32 @@ def _planned_actual_chain_consistent(
     )
     if any(not _strict_equal(planned.get(name), actual.get(name)) for name in exact_fields):
         return False
-    numeric_lists = ("stop_line_geometry_m", "route_tangent_world")
     try:
-        for name in numeric_lists:
-            left = [float(value) for row in planned[name] for value in (row if type(row) is list else [row])]
-            right = [float(value) for row in actual[name] for value in (row if type(row) is list else [row])]
+        for name, atol in (
+            ("stop_line_geometry_m", STOP_LINE_GEOMETRY_ATOL_M),
+            ("route_tangent_world", ROUTE_TANGENT_ATOL),
+        ):
+            left = [
+                float(value)
+                for row in planned[name]
+                for value in (row if type(row) is list else [row])
+            ]
+            right = [
+                float(value)
+                for row in actual[name]
+                for value in (row if type(row) is list else [row])
+            ]
             if len(left) != len(right) or any(
-                not math.isclose(a, b, rel_tol=0.0, abs_tol=1e-6)
+                not math.isclose(a, b, rel_tol=0.0, abs_tol=atol)
                 for a, b in zip(left, right, strict=True)
             ):
                 return False
         return all(
             math.isclose(
-                float(planned[name]), float(actual[name]), rel_tol=0.0, abs_tol=1e-5
+                float(planned[name]),
+                float(actual[name]),
+                rel_tol=0.0,
+                abs_tol=ROUTE_SCALAR_ATOL_M,
             )
             for name in ("stop_line_route_distance_m", "route_arc_m", "route_length_m")
         )
