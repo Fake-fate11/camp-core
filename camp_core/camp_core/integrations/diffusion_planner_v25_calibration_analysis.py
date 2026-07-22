@@ -22,6 +22,7 @@ from .diffusion_planner_v25_statistics import (
 
 
 SCHEMA_VERSION = "camp_dp_v25_paired_calibration_analysis_v1"
+SUPPLEMENTARY_LATENCY_FIELDS = ("input_materialization",)
 ARMS = (
     "candidate0_operational_default",
     "camp_static14d",
@@ -201,6 +202,11 @@ def analyze_paired_calibration_outcomes(
         "paired_comparisons": comparisons,
         "strata": strata,
         "latency": _latency_summary(projected, eligible),
+        "latency_field_registry": {
+            "preregistered_primary_fields": list(LATENCY_FIELDS),
+            "supplementary_runtime_fields": list(SUPPLEMENTARY_LATENCY_FIELDS),
+            "supplementary_fields_do_not_change_claim_margins_or_models": True,
+        },
         "fresh_b2_power_sensitivity": power,
         "coverage": {
             key: corpus[key]
@@ -324,7 +330,8 @@ def _latency_summary(
                 for name, value in tick.items():
                     grouped[str(name)].append(_finite(value, f"latency.{name}"))
         result[arm] = {}
-        for name in LATENCY_FIELDS:
+        registered = (*LATENCY_FIELDS, *SUPPLEMENTARY_LATENCY_FIELDS)
+        for name in registered:
             values = grouped.get(name, [])
             result[arm][name] = (
                 {
@@ -339,7 +346,7 @@ def _latency_summary(
                 if not values
                 else {"available": True, **_distribution(values)}
             )
-        unknown = set(grouped) - set(LATENCY_FIELDS)
+        unknown = set(grouped) - set(registered)
         if unknown:
             raise ValueError(f"unregistered calibration latency fields: {sorted(unknown)}")
     result["selector_and_k8_system_overhead_reported_separately"] = True

@@ -5,7 +5,11 @@ import copy
 import pytest
 
 from camp_core.integrations.diffusion_planner_v25_calibration_analysis import (
+    SUPPLEMENTARY_LATENCY_FIELDS,
     analyze_paired_calibration_outcomes,
+)
+from camp_core.integrations.diffusion_planner_v25_calibration_preregistration import (
+    LATENCY_FIELDS,
 )
 from camp_core.integrations.diffusion_planner_v25_calibration import (
     SAFETY_COMPONENT_NATIVE_FIELDS,
@@ -37,6 +41,7 @@ def _corpus() -> dict:
                     "physical_feasible_mask": [True] * 8,
                     "source_valid_mask": [True] * 8,
                     "latency_ms": {
+                        "input_materialization": 0.25,
                         "default_inference": 1.0,
                         "candidate_inference": float(arm_index),
                         "selector": 0.01 * arm_index,
@@ -159,6 +164,20 @@ def test_paired_calibration_analysis_reports_primary_ni_latency_and_power() -> N
             "wrong_way",
         }
     assert report["latency"]["camp_static14d"]["selector"]["count"] == 6400
+    assert report["latency"]["camp_static14d"]["input_materialization"] == {
+        "available": True,
+        "count": 6400,
+        "mean": 0.25,
+        "median": 0.25,
+        "p95": 0.25,
+        "p99": 0.25,
+        "max": 0.25,
+    }
+    assert report["latency_field_registry"] == {
+        "preregistered_primary_fields": list(LATENCY_FIELDS),
+        "supplementary_runtime_fields": list(SUPPLEMENTARY_LATENCY_FIELDS),
+        "supplementary_fields_do_not_change_claim_margins_or_models": True,
+    }
     assert report["latency"]["candidate0_operational_default"]["selector"][
         "available"
     ] is True
@@ -173,4 +192,20 @@ def test_paired_calibration_analysis_rejects_terminal_denominator_drift() -> Non
     corpus = copy.deepcopy(_corpus())
     corpus["arm_results"].pop()
     with pytest.raises(ValueError, match="300 terminal rows"):
+        analyze_paired_calibration_outcomes(corpus)
+
+
+def test_paired_calibration_analysis_rejects_unknown_or_nonfinite_latency() -> None:
+    corpus = _corpus()
+    corpus["arm_results"][0]["native_receipt"]["ticks"][0]["latency_ms"][
+        "future_latency"
+    ] = 1.0
+    with pytest.raises(ValueError, match="unregistered calibration latency fields"):
+        analyze_paired_calibration_outcomes(corpus)
+
+    corpus = _corpus()
+    corpus["arm_results"][0]["native_receipt"]["ticks"][0]["latency_ms"][
+        "input_materialization"
+    ] = float("nan")
+    with pytest.raises(ValueError, match="latency.input_materialization must be finite"):
         analyze_paired_calibration_outcomes(corpus)
