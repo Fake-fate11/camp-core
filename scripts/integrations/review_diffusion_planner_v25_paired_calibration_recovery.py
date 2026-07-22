@@ -244,7 +244,7 @@ def review_recovery(
     independent_analysis = analyze_paired_calibration_outcomes(reconstructed)
     if not rev._strict_equal(
         rev._canonical_json(recovery / "calibration_analysis.json"),
-        independent_analysis,
+        _canonical_json_native(independent_analysis),
     ):
         raise ValueError("recovery analysis differs from independent reconstruction")
     independent_atoms = analyze_calibration_decision_evidence(
@@ -255,7 +255,8 @@ def review_recovery(
         training_artifact=Path(roots["training_artifact"]),
     )
     if not rev._strict_equal(
-        rev._canonical_json(recovery / "atom_calibration.json"), independent_atoms
+        rev._canonical_json(recovery / "atom_calibration.json"),
+        _canonical_json_native(independent_atoms),
     ):
         raise ValueError("recovery atom evidence differs from reconstruction")
     if latency_count != 19_200:
@@ -307,6 +308,19 @@ def _validate_original_heads(path: Path) -> None:
         rows[key] = value
     if rows != {"camp_head": ORIGINAL_CAMP_HEAD, "fixed_dp_head": FIXED_DP_HEAD}:
         raise ValueError("original calibration HEADS drifted")
+
+
+def _canonical_json_native(value: Any) -> Any:
+    """Apply the frozen JSON value contract before exact reviewer comparison."""
+    return json.loads(
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+    )
 
 
 def _validate_recovery_report(

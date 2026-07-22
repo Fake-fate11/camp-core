@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 
+import numpy as np
 import pytest
 
 from camp_core.integrations.diffusion_planner_v25_calibration_analysis import (
@@ -13,6 +14,9 @@ from camp_core.integrations.diffusion_planner_v25_calibration_preregistration im
 )
 from camp_core.integrations.diffusion_planner_v25_calibration import (
     SAFETY_COMPONENT_NATIVE_FIELDS,
+)
+from scripts.integrations.review_diffusion_planner_v25_paired_calibration_recovery import (
+    _canonical_json_native,
 )
 
 
@@ -209,3 +213,13 @@ def test_paired_calibration_analysis_rejects_unknown_or_nonfinite_latency() -> N
     ] = float("nan")
     with pytest.raises(ValueError, match="latency.input_materialization must be finite"):
         analyze_paired_calibration_outcomes(corpus)
+
+
+def test_recovery_reviewer_compares_frozen_json_values_without_tolerance() -> None:
+    value = _canonical_json_native({"metric": np.float64(0.125)})
+    assert value == {"metric": 0.125}
+    assert type(value["metric"]) is float
+    changed = _canonical_json_native(
+        {"metric": np.nextafter(np.float64(0.125), np.float64(1.0))}
+    )
+    assert changed != value
