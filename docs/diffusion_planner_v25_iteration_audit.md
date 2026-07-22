@@ -4672,3 +4672,106 @@ observed_autodl_free_bytes=19532099584
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_phase=train_only_atom_audit_and_independent_review_passed
 next_work_target=fair_static14d_scene14d_training_with_9d_subset_ablations
+
+## Fair Static/Scene 14D Training and Independent Review PASS
+
+The fair training suite consumed only the sealed train-only atom-audit rows and
+the reviewed no-V2I causal context. Static14D and Scene14D are the two primary
+methods; Static9D and Scene9D are paper-subset ablations. All four used the same
+95,616 rows, causal-policy-distillation labels, 14D training scales, source-valid
+eligibility, hierarchical record weights, and solver contract. V24 rows without
+raw context were excluded from the primary 2x2 comparison.
+
+The training artifact sealed successfully at root
+`8d2d9ee3ed83fbe4270cb96b7bc6ef6619e5180f11ebc348b9bdea136bac4da9`.
+The first independent review failed at the context-scaler gate and remains
+immutable diagnostic root
+`298f223626f54317f538a122b00af3dd7c6716afd8e9f16eaf7db4aa037c39d7`.
+Read-only localization proved all 14 scales were bit-exact and isolated one
+reviewer-only empirical-CDF boundary mismatch at
+`context_q05[19]=neighbor_closing_speed_mps`: stored/frozen-producer
+`-10.138996566652708` versus reviewer `-10.139556013866958`. The producer used
+`q*cumulative[-1]`; the reviewer had used `q*np.sum(mass)`. No tolerance or
+stored value changed.
+
+After that reviewer fix, the second full review failed at the Static14D
+score/cut/selection gate and remains immutable diagnostic root
+`a79d090a4acf38fc355963ddc8172c076ffcdf4dd272001c957bf9081d5668e2`.
+The authorized merged dry-run continued through all four models and every
+later gate. It found two reviewer-only contract mismatches:
+
+- the producer forms active atoms with advanced indexing, while the reviewer
+  used a numerically equal contiguous slice; different `einsum` accumulation
+  order at machine-precision ties caused 34 Static14D, 16 Scene14D, 40
+  Static9D, and one Scene9D selected-index differences;
+- the reviewer compared the maximum full-versus-active-cut envelope gap to the
+  frozen solver tolerance, although the training contract's reported gap is
+  `exact_losses - optimized_master_losses`. CVaR master-loss slack can exceed
+  the active-cut envelope without changing the optimized objective, so these
+  are distinct quantities. The envelope remains visible as a non-gating
+  diagnostic rather than being mislabeled as the solver master gap.
+
+With the producer's frozen active-index layout, all stored selected indices,
+selection margins, train violations, Theta/runtime weights, q05/q95 arrays,
+14D scales, summaries, and leave-corridor diagnostics reproduced bit-exact for
+all four models. Every active-cut mask had at least one cut per row; cut hashes,
+counts and min/median/max summaries matched. The sealed histories matched their
+iteration counts, final cut totals and solver statuses, ended with zero new
+cuts, and reported final gaps within the frozen `1e-6` tolerance:
+
+| Model | Iterations | Reported final master gap | Active-cut envelope diagnostic |
+|---|---:|---:|---:|
+| CAMP-Static14D | 4 | 0 | 0.38570803769146317 |
+| CAMP-Scene14D | 4 | 8.045300603498617e-7 | 0.3301689654054084 |
+| CAMP-Static9D | 2 | 0 | 0.36978180193253846 |
+| CAMP-Scene9D | 3 | 8.934973414476133e-7 | 0.36696802551998947 |
+
+Commit `8fecda47e93412ff9659168088c84feb8dc93ab1` contains only the merged
+reviewer consistency fix and its dedicated regressions. AutoDL passed all 38
+focused scene/training tests. The final independent review then ran from the
+beginning, passed every gate over 95,616 snapshots, reported zero available
+no-V2I `phase_remaining_s` rows, and sealed at root
+`ef2e9748a9ba0fff5b35f010cba6efd1b16d8e1dc0d562f5a7960c8dcb3d9be9`.
+
+No producer, model parameter, scale, Theta, runtime weight, training row,
+fixed-DP/K8 candidate, trajectory, atom formula, clip, simplex, affine score,
+or convex objective changed. No closed-loop outcome or Fresh field was read.
+Training is accepted only inside this fixed controlled support domain; it is
+not safety evidence and does not establish broad unseen-map generalization.
+Calibration, Scene runtime, V2I, Fresh B2, and outcome evaluation remain
+closed. The next stage is the preregistered calibration freeze and independent
+review before any Fresh B2 pre-open action.
+
+current_v25_status=v25_training_and_independent_review_passed_calibration_freeze_next
+current_v25_source_head=8fecda47e93412ff9659168088c84feb8dc93ab1
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_camp_training_863e28da_20260722T103219CST
+current_v25_artifact_root_sha256=8d2d9ee3ed83fbe4270cb96b7bc6ef6619e5180f11ebc348b9bdea136bac4da9
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_camp_training_review_8fecda47_20260722T122701CST
+current_v25_review_artifact_root_sha256=ef2e9748a9ba0fff5b35f010cba6efd1b16d8e1dc0d562f5a7960c8dcb3d9be9
+current_v25_training_snapshot_count=95616
+current_v25_training_model_count=4
+current_v25_training_primary_models=CAMP-Static14D,CAMP-Scene14D
+current_v25_training_ablation_models=CAMP-Static9D,CAMP-Scene9D
+current_v25_training_solver=CLARABEL
+current_v25_training_review_passed=true
+current_v25_training_context_q05_q95_exact=true
+current_v25_training_scales_14d_exact=true
+current_v25_training_phase_remaining_available_count=0
+current_v25_training_failed_review_root_1=298f223626f54317f538a122b00af3dd7c6716afd8e9f16eaf7db4aa037c39d7
+current_v25_training_failed_review_root_2=a79d090a4acf38fc355963ddc8172c076ffcdf4dd272001c957bf9081d5668e2
+current_v25_monitor_started=false
+current_v25_training_started=true
+current_v25_training_completed=true
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=19524542464
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_phase=fair_four_model_training_and_independent_review_passed
+next_work_target=calibration_freeze_and_independent_review_before_fresh_b2_preopen

@@ -412,33 +412,27 @@ POINTER = (
 # tuple above remains a byte-visible regression record while the active reader
 # contract tracks only the latest A1.7 gate.
 POINTER = (
-    "current_v25_status=v25_train_only_atom_audit_and_independent_review_passed_training_next",
-    "current_v25_source_head=2e6432456efd5f542d174977e4212aab51d4b82a",
+    "current_v25_status=v25_training_and_independent_review_passed_calibration_freeze_next",
+    "current_v25_source_head=8fecda47e93412ff9659168088c84feb8dc93ab1",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_train_only_atom_audit_2e643245_20260722T094825CST",
-    "current_v25_artifact_root_sha256=4dc98d9a812403148f30e2041358fbd79c967e3c8581a9d8569dc362f71d8e7e",
-    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_train_only_atom_audit_review_2e643245_20260722T100733CST",
-    "current_v25_review_artifact_root_sha256=149995eacbcdf21201934bbf428ca5d8871f6c3085b4ab5e90db1d8ef78753bc",
-    "current_v25_atom_audit_snapshot_count=95616",
-    "current_v25_atom_audit_candidate_count=764928",
-    "current_v25_atom_audit_pass_warn_fail=14,0,0",
-    "current_v25_training_scale_pass_warn_fail=14,0,0",
-    "current_v25_atom_delta_numerical_rank=14",
-    "current_v25_atom_delta_effective_rank=3.1832077907871783",
-    "current_v25_paper_9d_selected_index_flip_count=32204",
-    "current_v25_paper_9d_selected_index_flip_weight=0.34094138781638783",
-    "current_v25_train_unique_route_count=222",
-    "current_v25_train_unique_semantic_block_count=1387",
-    "current_v25_train_unique_corridor_count=1",
-    "current_v25_train_unique_map_family_count=1",
-    "current_v25_phase_remaining_available_count=0",
-    "current_v25_failure_regression_matrix_row_count=10",
-    "current_v25_corrected_full_corpus_started=true",
-    "current_v25_corrected_full_corpus_completed=true",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_camp_training_863e28da_20260722T103219CST",
+    "current_v25_artifact_root_sha256=8d2d9ee3ed83fbe4270cb96b7bc6ef6619e5180f11ebc348b9bdea136bac4da9",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_camp_training_review_8fecda47_20260722T122701CST",
+    "current_v25_review_artifact_root_sha256=ef2e9748a9ba0fff5b35f010cba6efd1b16d8e1dc0d562f5a7960c8dcb3d9be9",
+    "current_v25_training_snapshot_count=95616",
+    "current_v25_training_model_count=4",
+    "current_v25_training_primary_models=CAMP-Static14D,CAMP-Scene14D",
+    "current_v25_training_ablation_models=CAMP-Static9D,CAMP-Scene9D",
+    "current_v25_training_solver=CLARABEL",
+    "current_v25_training_review_passed=true",
+    "current_v25_training_context_q05_q95_exact=true",
+    "current_v25_training_scales_14d_exact=true",
+    "current_v25_training_phase_remaining_available_count=0",
+    "current_v25_training_failed_review_root_1=298f223626f54317f538a122b00af3dd7c6716afd8e9f16eaf7db4aa037c39d7",
+    "current_v25_training_failed_review_root_2=a79d090a4acf38fc355963ddc8172c076ffcdf4dd272001c957bf9081d5668e2",
     "current_v25_monitor_started=false",
-    "current_v25_train_only_atom_audit_started=true",
-    "current_v25_train_only_atom_audit_completed=true",
-    "current_v25_training_started=false",
+    "current_v25_training_started=true",
+    "current_v25_training_completed=true",
     "current_v25_calibration_started=false",
     "current_v25_worker_count=0",
     "current_v25_gpu_compute_count=0",
@@ -447,10 +441,10 @@ POINTER = (
     "current_v25_fresh_b2_opened=false",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=19532099584",
+    "observed_autodl_free_bytes=19524542464",
     "current_v25_full_corpus_storage_root=/root/autodl-tmp",
-    "current_v25_phase=train_only_atom_audit_and_independent_review_passed",
-    "next_work_target=fair_static14d_scene14d_training_with_9d_subset_ablations",
+    "current_v25_phase=fair_four_model_training_and_independent_review_passed",
+    "next_work_target=calibration_freeze_and_independent_review_before_fresh_b2_preopen",
 )
 
 
@@ -471,6 +465,23 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     )[0]
     for line in POINTER:
         assert section.count(line) == 1
+
+
+def test_v25_training_and_independent_review_are_accepted_before_calibration() -> None:
+    text = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    for phrase in (
+        "## Fair Static/Scene 14D Training and Independent Review PASS",
+        "same 95,616 rows",
+        "Static14D and Scene14D are the two primary methods",
+        "Static9D and Scene9D are paper-subset ablations",
+        "context_q05[19]=neighbor_closing_speed_mps",
+        "34 Static14D, 16 Scene14D, 40 Static9D, and one Scene9D",
+        "active-cut envelope gap is not the frozen optimized-master-loss gap",
+        "all 38 focused scene/training tests",
+        "ef2e9748a9ba0fff5b35f010cba6efd1b16d8e1dc0d562f5a7960c8dcb3d9be9",
+        "Calibration, Scene runtime, V2I, Fresh B2, and outcome evaluation remain closed",
+    ):
+        assert phrase in text
 
 
 def test_v25_a17_failure_regression_matrix_has_all_ten_machine_checks() -> None:
