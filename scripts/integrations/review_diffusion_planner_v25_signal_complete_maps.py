@@ -75,7 +75,7 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
         "camp_head": report.get("camp_head"),
         "fixed_dp_head": FIXED_DP_HEAD,
         "split": split,
-        "suite_schema_version": "camp_dp_v25_project_authored_signal_complete_suite_v2",
+        "suite_schema_version": "camp_dp_v25_project_authored_signal_complete_suite_v3",
         "suite_sha256": _sha256(root / "signal_complete_suite.json"),
         "map_count": plan["map_count"],
         "corridor_count": plan["map_count"] * plan["routes_per_map"],
