@@ -150,6 +150,7 @@ def test_selector_is_affine_simplex_feasible_only_and_nonmutating() -> None:
         "canonical_eligible": True,
         "atom_matrix": atoms,
         "physical_feasible_mask": feasible,
+        "source_valid_mask": np.ones(8, dtype=bool),
         "candidate_reasons": [tuple() for _ in range(8)],
     }
     scales = np.ones(14, dtype=np.float64)
@@ -182,6 +183,7 @@ def test_selector_rejects_non_simplex_and_all_k_fails_closed() -> None:
         "exclusion_reason": "all_candidates_physically_infeasible",
         "atom_matrix": None,
         "physical_feasible_mask": np.zeros(8, dtype=bool),
+        "source_valid_mask": np.ones(8, dtype=bool),
         "candidate_reasons": [("obb_collision",) for _ in range(8)],
     }
     scales = np.ones(14, dtype=np.float64)
@@ -449,6 +451,7 @@ def test_process_camp_tick_writes_k8_selection_without_mutation(tmp_path) -> Non
             "canonical_eligible": True,
             "atom_matrix": atoms,
             "physical_feasible_mask": np.ones(8, dtype=bool),
+            "source_valid_mask": np.ones(8, dtype=bool),
             "candidate_reasons": [tuple() for _ in range(8)],
         }
 

@@ -314,13 +314,20 @@ def canonical_score_atoms(
     atom_matrix: np.ndarray,
     atom_scales: np.ndarray,
     weights: np.ndarray,
+    *,
+    simplex_nonnegative_atol: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return shared canonical normalized atoms and affine candidate scores."""
     coefficients = np.asarray(weights, dtype=np.float64).reshape(-1)
     if (
+        not np.isfinite(simplex_nonnegative_atol)
+        or simplex_nonnegative_atol < 0.0
+    ):
+        raise ValueError("simplex nonnegative tolerance must be finite and nonnegative")
+    if (
         coefficients.shape != (14,)
         or not np.isfinite(coefficients).all()
-        or np.any(coefficients < 0.0)
+        or np.any(coefficients < -float(simplex_nonnegative_atol))
         or not np.isclose(
             coefficients.sum(), 1.0, rtol=0.0, atol=1e-8
         )

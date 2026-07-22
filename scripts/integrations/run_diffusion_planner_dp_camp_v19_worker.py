@@ -411,7 +411,12 @@ def select_camp_candidate(
         }
 
     atoms = np.asarray(materialized["atom_matrix"], dtype=np.float64)
-    normalized, scores = canonical_score_atoms(atoms, scales, coefficients)
+    normalized, scores = canonical_score_atoms(
+        atoms,
+        scales,
+        coefficients,
+        simplex_nonnegative_atol=simplex_nonnegative_atol,
+    )
     masked_scores = np.where(eligible, scores, np.inf)
     selected = int(np.argmin(masked_scores))
     after = array_sha256(trajectories)
