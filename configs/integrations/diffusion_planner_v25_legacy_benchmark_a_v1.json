@@ -1,0 +1,145 @@
+{
+  "schema_version": "camp_dp_v25_legacy_benchmark_a_freeze_v1",
+  "benchmark_name": "Legacy Benchmark A",
+  "source_version": "V24",
+  "role": "read_only_legacy_regression_evidence_not_fresh_confirmation",
+  "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+  "candidate0_semantics": "dp_operational_default_alias_not_native_ranked_top1",
+  "holdout_open_count": 1,
+  "holdout_rerun_authorized": false,
+  "v25_weight_threshold_margin_or_sample_tuning_authorized": false,
+  "pair_count": 120,
+  "independent_route_count": 24,
+  "independent_corridor_count": 3,
+  "seed_count_per_route": 5,
+  "arm_order_counts": {
+    "AB": 60,
+    "BA": 60
+  },
+  "methods": {
+    "candidate0": {
+      "role": "paired_baseline",
+      "evaluated": true
+    },
+    "static14d_v24": {
+      "role": "legacy_static_selector",
+      "evaluated": true,
+      "safety_cost_delta_mean": -0.014322916666666666,
+      "safety_cost_clustered_ci95": [
+        -0.06380208333333333,
+        0.01953125
+      ],
+      "better_tie_worse": [
+        4,
+        113,
+        3
+      ],
+      "claim_decision": "honest_no_claim",
+      "failed_claim_gate": "clustered_ci95_upper_below_zero"
+    },
+    "scene14d": {
+      "role": "not_available_in_v24",
+      "evaluated": false,
+      "reason": "V24_has_no_compatible_raw_context_rows_or_scene_model"
+    }
+  },
+  "safety_components": {
+    "collision": {
+      "mean_delta": 0.0,
+      "clustered_ci95": [0.0, 0.0]
+    },
+    "near_miss": {
+      "mean_delta": -0.0014322916666666666,
+      "clustered_ci95": [
+        -0.006380208333333333,
+        0.001953125
+      ]
+    },
+    "offroad": {
+      "mean_delta": 0.0,
+      "clustered_ci95": [0.0, 0.0]
+    },
+    "red_light": {
+      "mean_delta": 0.0,
+      "clustered_ci95": [0.0, 0.0]
+    },
+    "speed": {
+      "mean_delta": 0.0,
+      "clustered_ci95": [0.0, 0.0]
+    },
+    "wrong_way": {
+      "mean_delta": 0.0,
+      "clustered_ci95": [0.0, 0.0]
+    }
+  },
+  "secondary_descriptive": {
+    "route_progress_delta_mean_m": 0.364734965469757,
+    "route_completion_rate_delta_mean": 0.003145734239238509,
+    "mean_absolute_jerk_delta_mps3": 1.6769951260259433,
+    "mean_absolute_lateral_acceleration_delta_mps2": 0.016587421040750772,
+    "candidate0_selected_tick_count": 1401,
+    "nonzero_candidate_selected_tick_count": 6279,
+    "all_k_high_risk_pair_count": 8,
+    "all_k_high_risk_tick_count": 36
+  },
+  "latency_descriptive_only_ms": {
+    "candidate0_total": {
+      "mean": 457.4357747832031,
+      "median": 462.5174525,
+      "p95": 477.0015715,
+      "p99": 485.63159656,
+      "max": 595.693139
+    },
+    "static14d_v24_total": {
+      "mean": 483.4904904895833,
+      "median": 489.5165385,
+      "p95": 505.53022885,
+      "p99": 518.79447055,
+      "max": 937.932746
+    },
+    "comparative_latency_claim_authorized": false
+  },
+  "failure_accounting": {
+    "planned_pairs": 120,
+    "retained_pairs": 120,
+    "complete_pairs": 120,
+    "source_invalid_pairs": 0,
+    "execution_invalid_pairs": 0,
+    "failed_pairs_dropped": false,
+    "replacement_or_resampling_used": false
+  },
+  "evidence": {
+    "training_review": {
+      "path": "/root/autodl-tmp/camp_dp_v24_convex_selector_training_execution_independent_review_084a71c8_20260717T003628CST",
+      "root_sha256": "0b2539ef6c8fa195dfefac6f330775cdc8cb6c0ec7a7ca3aec96d19d0e0b5e6c"
+    },
+    "paired_holdout_review": {
+      "path": "/root/autodl-tmp/camp_dp_v24_paired_holdout_main_once_execution_independent_review_aff69dfc_20260717T052311CST",
+      "root_sha256": "43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf"
+    },
+    "evidence_claim_package": {
+      "path": "/root/autodl-tmp/camp_dp_v24_evidence_package_and_claim_decision_f5907606a2e1e9c68b9211fb8aa4b588f2c0c90a_43e165aad29a614835430d90f53d0c906079ba01826f1f49d73dbe5de4f3e5bf",
+      "root_sha256": "044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808"
+    },
+    "final_independent_review": {
+      "path": "/root/autodl-tmp/camp_dp_v24_evidence_package_claim_decision_independent_review_f65ce1cbd31cee02f8f3b38f76149b8f4e79e376_044defd7e6a0fb03893b7c676182d79587d0bfe8ed9f5638687cc1093fed6808",
+      "root_sha256": "6203712edf374433ab948781da72c30a399e1cb77e332b15beb7e4f97e883895"
+    },
+    "holdout_state_sha256": "f40ae944de12078e5d8f169f7c3b6b451cd0c48a1d0819a165e2cdc1260c1633"
+  },
+  "evidence_limits": {
+    "raw_candidate_tensor_and_atom_bytes_available": false,
+    "independent_raw_A_dot_w_recomputation_supported": false,
+    "broad_unseen_map_generalization_supported": false,
+    "real_world_safety_supported": false
+  },
+  "forbidden_claims": [
+    "fresh_confirmation",
+    "real_world_safety",
+    "broad_unseen_map_generalization",
+    "native_ranked_top1",
+    "promotion",
+    "deployment",
+    "online_activation"
+  ]
+}

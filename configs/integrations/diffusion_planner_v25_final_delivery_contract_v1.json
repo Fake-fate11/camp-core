@@ -38,7 +38,7 @@
     },
     "fresh_b2_preregistration": {
       "path": "configs/integrations/diffusion_planner_v25_fresh_b2_preregistration_draft_v1.json",
-      "sha256": "1c280332dfab3d9078bb4240dd8d378961cbd17eabb586d55bb46713b6eeec70"
+      "sha256": "edb047da8e0e3fe935af919f7e2bce32c4b6b2b2d376335da77fc8b33f4e5ac1"
     },
     "legacy_benchmark_a": {
       "path": "configs/integrations/diffusion_planner_v25_legacy_benchmark_a_v1.json",
