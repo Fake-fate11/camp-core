@@ -4580,3 +4580,95 @@ observed_autodl_free_bytes=19667914752
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_phase=A1_7_corrected_full_corpus_independent_review_passed
 next_work_target=sealed_train_only_14d_atom_empirical_audit_and_independent_review
+
+## Train-only 14D atom empirical audit and independent review PASS
+
+The audit consumed only the sealed corrected corpus and its passed independent
+review. It used 95,616 complete snapshots and 764,928 fixed-DP candidates;
+the six typed fixed-DP capability failures contributed zero rows. Route,
+semantic-block, seed, and tick identifiers were used only for hierarchical
+offline weighting, never as model/context features. The 26D no-V2I context has
+zero available `phase_remaining_s` entries. No closed-loop outcome, Fresh,
+calibration, or future field was consumed.
+
+The producer and independent reviewer both report 14 PASS, zero WARN, and zero
+FAIL under the explicitly narrow train-support/candidate-distinction scope.
+This does not erase the earlier static formula/source ledger, and it is not a
+safety or cross-map claim. Numerical rank is 14 but effective atom-delta rank
+is only 3.1832. The canonical 9D subset changes 32,204 selected indices with
+weighted flip rate 0.34094 relative to the 14D causal-label reference, so the
+extension is empirically consequential and remains the primary representation.
+
+| # | Atom | Status | positive rows / blocks | K8 distinguishing weight | clip saturation | label-minus-atom Spearman | train scale |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 0 | jerk_early | PASS | 764928 / 1387 | 1.0000 | 0.000059 | 0.2234 | 1315.8699 |
+| 1 | jerk_late | PASS | 764928 / 1387 | 1.0000 | 0.000318 | 0.1076 | 5202.7992 |
+| 2 | jerk_full | PASS | 764928 / 1387 | 1.0000 | 0.000282 | 0.1076 | 6271.8155 |
+| 3 | rms_acceleration | PASS | 764928 / 1387 | 1.0000 | 0 | 0.0897 | 1.8198 |
+| 4 | speed_limit_margin_0_0 | PASS | 691749 / 1387 | 0.9302 | 0 | -0.1884 | 93.9869 |
+| 5 | speed_limit_margin_0_5 | PASS | 736206 / 1387 | 0.9785 | 0 | 0.4742 | 118.1000 |
+| 6 | speed_limit_margin_1_0 | PASS | 755421 / 1387 | 0.9963 | 0 | 0.4639 | 147.7588 |
+| 7 | lane_deviation | PASS | 67730 / 659 | 0.1074 | 0 | 0.1744 | 2902.5946 |
+| 8 | clearance | PASS | 299745 / 1107 | 0.4326 | 0 | 0.5340 | 56.4167 |
+| 9 | progress_shortfall | PASS | 664569 / 1387 | 0.9937 | 0 | 0.0707 | 8.7528 |
+| 10 | planned_red_light_cost | PASS | 27453 / 119 | 0.4761 | 0 | 0.3707 | 40.5000 |
+| 11 | planned_lateral_acceleration_cost | PASS | 764928 / 1387 | 1.0000 | 0 | -0.0784 | 1.0534 |
+| 12 | red_stopping_margin_cost | PASS | 6259 / 74 | 0.1923 | 0 | 0.2336 | 28.2274 |
+| 13 | dp_prior_jerk_excess_cost | PASS | 379186 / 1387 | 0.9935 | 0.000176 | 0.0655 | 2.6082 |
+
+The low effective rank, sparse lane/red distinction, and weak or negative
+label-minus-atom associations are retained as redundancy/trade-off evidence;
+no atom is silently removed. The sealed train inventory contains 222 route
+hashes and 1,387 semantic blocks but only one map family and one corridor.
+Consequently, training may continue for the fixed controlled support domain,
+but final claims cannot imply broad unseen-map generalization. Fresh B2 must
+establish its own independent map/intersection/corridor ceiling and power.
+
+The atom audit sealed at root
+`4dc98d9a812403148f30e2041358fbd79c967e3c8581a9d8569dc362f71d8e7e`;
+its independent review sealed at root
+`149995eacbcdf21201934bbf428ca5d8871f6c3085b4ab5e90db1d8ef78753bc`.
+Strict re-open verified eight producer payloads and four review payloads.
+Training, calibration, Scene runtime, V2I, Fresh B2, and outcome evaluation
+remain closed. The next stage is the fair four-model training suite using the
+same reviewed rows, train-only labels/scales, and block weights.
+
+current_v25_status=v25_train_only_atom_audit_and_independent_review_passed_training_next
+current_v25_source_head=2e6432456efd5f542d174977e4212aab51d4b82a
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_train_only_atom_audit_2e643245_20260722T094825CST
+current_v25_artifact_root_sha256=4dc98d9a812403148f30e2041358fbd79c967e3c8581a9d8569dc362f71d8e7e
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_train_only_atom_audit_review_2e643245_20260722T100733CST
+current_v25_review_artifact_root_sha256=149995eacbcdf21201934bbf428ca5d8871f6c3085b4ab5e90db1d8ef78753bc
+current_v25_atom_audit_snapshot_count=95616
+current_v25_atom_audit_candidate_count=764928
+current_v25_atom_audit_pass_warn_fail=14,0,0
+current_v25_training_scale_pass_warn_fail=14,0,0
+current_v25_atom_delta_numerical_rank=14
+current_v25_atom_delta_effective_rank=3.1832077907871783
+current_v25_paper_9d_selected_index_flip_count=32204
+current_v25_paper_9d_selected_index_flip_weight=0.34094138781638783
+current_v25_train_unique_route_count=222
+current_v25_train_unique_semantic_block_count=1387
+current_v25_train_unique_corridor_count=1
+current_v25_train_unique_map_family_count=1
+current_v25_phase_remaining_available_count=0
+current_v25_failure_regression_matrix_row_count=10
+current_v25_corrected_full_corpus_started=true
+current_v25_corrected_full_corpus_completed=true
+current_v25_monitor_started=false
+current_v25_train_only_atom_audit_started=true
+current_v25_train_only_atom_audit_completed=true
+current_v25_training_started=false
+current_v25_calibration_started=false
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=19532099584
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_phase=train_only_atom_audit_and_independent_review_passed
+next_work_target=fair_static14d_scene14d_training_with_9d_subset_ablations
