@@ -21,6 +21,7 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
     SCENE_RECEIPT_SCHEMA_VERSION,
     load_v25_runtime_selector_assets,
     load_v25_scene14d_weight_provider,
+    training_parameter_array_sha256,
 )
 from camp_core.integrations.diffusion_planner_v25_train_atom_audit import ATOM_NAMES
 
@@ -59,7 +60,7 @@ def _training_authority(tmp_path: Path):
             "runtime_projection": False,
             "softmax": False,
             "outcome_or_fresh_consumed": False,
-            "theta_sha256": array_sha256(static_theta),
+            "theta_sha256": training_parameter_array_sha256(static_theta),
         },
         "CAMP-Scene14D": {
             "mode": "scene",
@@ -68,7 +69,7 @@ def _training_authority(tmp_path: Path):
             "runtime_projection": False,
             "softmax": False,
             "outcome_or_fresh_consumed": False,
-            "theta_sha256": array_sha256(theta),
+            "theta_sha256": training_parameter_array_sha256(theta),
         },
         "CAMP-Static9D": {},
         "CAMP-Scene9D": {},

@@ -261,7 +261,8 @@ def load_v25_runtime_selector_assets(
         or model_report.get("runtime_projection") is not False
         or model_report.get("softmax") is not False
         or model_report.get("outcome_or_fresh_consumed") is not False
-        or model_report.get("theta_sha256") != array_sha256(static_theta)
+        or model_report.get("theta_sha256")
+        != training_parameter_array_sha256(static_theta)
     ):
         raise ValueError("Static14D reviewed model contract drifted")
     return V25RuntimeSelectorAssets(
@@ -420,7 +421,7 @@ def load_v25_scene14d_weight_provider(
     theta = validate_column_simplex_theta(theta, num_atoms=14, atol=1e-10)
     if np.any(theta < 0.0):
         raise ValueError("V25 Scene14D runtime Theta must be exactly nonnegative")
-    if model_report.get("theta_sha256") != array_sha256(theta):
+    if model_report.get("theta_sha256") != training_parameter_array_sha256(theta):
         raise ValueError("V25 Scene14D Theta SHA drifted")
     scaler = V25ContextScaler(q05=q05, q95=q95)
     return V25Scene14DWeightProvider(
@@ -444,6 +445,19 @@ def _context_scaler_sha256(q05: np.ndarray, q95: np.ndarray) -> str:
     for value in (q05, q95):
         array = np.ascontiguousarray(value, dtype=np.float64)
         digest.update(array.tobytes())
+    return digest.hexdigest()
+
+
+def training_parameter_array_sha256(value: np.ndarray) -> str:
+    """Reproduce the frozen producer SHA for stored training parameters."""
+
+    array = np.ascontiguousarray(value)
+    digest = hashlib.sha256()
+    digest.update(str(array.dtype).encode("ascii"))
+    digest.update(b"\0")
+    digest.update(",".join(str(item) for item in array.shape).encode("ascii"))
+    digest.update(b"\0")
+    digest.update(array.tobytes())
     return digest.hexdigest()
 
 
