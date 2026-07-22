@@ -20,8 +20,11 @@ from camp_core.integrations.diffusion_planner_v25_train_atom_audit import (
 )
 from camp_core.outer_master.parametric_cvxpy_master import V25ParametricMasterConfig
 from scripts.integrations.review_diffusion_planner_v25_camp_training import (
+    _active_atom_view,
+    _array_sha as independently_review_array_sha,
     _context_scaler as independently_review_context_scaler,
     _exact_parameter_arrays,
+    _solver_evidence_contract,
     _weighted_quantile as independently_review_weighted_quantile,
 )
 
@@ -131,6 +134,82 @@ def test_training_reviewer_keeps_exact_parameter_drift_rejection() -> None:
         producer.q95,
         scales,
     )
+
+
+def test_training_reviewer_preserves_producer_active_atom_layout() -> None:
+    rng = np.random.default_rng(25001)
+    for trial in range(99):
+        atoms = rng.random((1, 8, 14), dtype=np.float64)
+        weights = rng.random(14)
+        weights /= weights.sum()
+        atoms[:, 1, :] = atoms[:, 0, :]
+        atom_index = trial % 14
+        atoms[:, 1, atom_index] = np.nextafter(
+            atoms[:, 1, atom_index],
+            np.inf if trial % 2 else 0.0,
+        )
+
+    producer_layout = _active_atom_view(atoms, 14)
+    contiguous_slice = atoms[:, :, :14]
+    row_weights = np.broadcast_to(weights, (1, 14))
+    producer_scores = np.einsum("nkr,nr->nk", producer_layout, row_weights)
+    sliced_scores = np.einsum("nkr,nr->nk", contiguous_slice, row_weights)
+
+    assert producer_layout.strides == (64, 8, 64)
+    assert contiguous_slice.strides == (896, 112, 8)
+    assert int(np.argmin(producer_scores, axis=1)[0]) == 0
+    assert int(np.argmin(sliced_scores, axis=1)[0]) == 1
+
+
+def _valid_solver_report(cuts: np.ndarray) -> dict[str, object]:
+    total = int(np.sum(cuts))
+    counts = np.sum(cuts, axis=1)
+    history = {
+        "iteration": 1,
+        "master_objective": 0.5,
+        "exact_cvar": 0.4,
+        "mean_violation": 0.3,
+        "max_violation": 0.6,
+        "max_master_gap": 8.0e-7,
+        "new_cuts": 0,
+        "total_cuts": total,
+        "solver_status": "optimal",
+        "solver_name": "CLARABEL",
+    }
+    return {
+        "iterations": 1,
+        "final_master_gap": 8.0e-7,
+        "master_learning_curve": [history],
+        "total_cuts": total,
+        "cuts_per_scene_min_median_max": [
+            int(np.min(counts)),
+            float(np.median(counts)),
+            int(np.max(counts)),
+        ],
+        "cut_index_sha256": independently_review_array_sha(cuts),
+        "solver_status": "optimal",
+        "solver_name": "CLARABEL",
+    }
+
+
+def test_training_reviewer_uses_frozen_solver_gap_evidence_contract() -> None:
+    cuts = np.zeros((3, 8), dtype=np.bool_)
+    cuts[:, 0] = True
+    report = _valid_solver_report(cuts)
+    assert _solver_evidence_contract(report, cuts, tolerance=1e-6)
+
+    outside_tolerance = json.loads(json.dumps(report))
+    outside_tolerance["final_master_gap"] = 1.1e-6
+    outside_tolerance["master_learning_curve"][-1]["max_master_gap"] = 1.1e-6
+    assert not _solver_evidence_contract(outside_tolerance, cuts, tolerance=1e-6)
+
+    drifted_history = json.loads(json.dumps(report))
+    drifted_history["master_learning_curve"][-1]["total_cuts"] += 1
+    assert not _solver_evidence_contract(drifted_history, cuts, tolerance=1e-6)
+
+    drifted_cut = cuts.copy()
+    drifted_cut[0, 1] = True
+    assert not _solver_evidence_contract(report, drifted_cut, tolerance=1e-6)
 
 
 def test_training_config_freezes_train_only_scale_and_label_rules() -> None:

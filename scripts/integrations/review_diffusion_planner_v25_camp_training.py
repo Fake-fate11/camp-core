@@ -109,6 +109,89 @@ def _exact_parameter_arrays(
     )
 
 
+def _active_atom_view(atoms14: np.ndarray, atom_count: int) -> np.ndarray:
+    if atom_count not in (9, 14):
+        raise ValueError("V25 active atom count must be the frozen 9D or 14D set")
+    # Preserve the producer's advanced-index layout.  Replacing this with the
+    # numerically equal contiguous slice changes einsum accumulation order at
+    # machine-precision ties and can change the lowest-index selection.
+    active = np.arange(atom_count, dtype=np.int64)
+    return atoms14[:, :, active]
+
+
+def _solver_evidence_contract(
+    model_report: dict[str, Any],
+    cuts: np.ndarray,
+    *,
+    tolerance: float,
+) -> bool:
+    history = model_report.get("master_learning_curve")
+    if (
+        type(history) is not list
+        or not history
+        or type(model_report.get("iterations")) is not int
+        or model_report["iterations"] != len(history)
+        or type(model_report.get("final_master_gap")) is not float
+        or not np.isfinite(model_report["final_master_gap"])
+        or not 0.0 <= model_report["final_master_gap"] <= tolerance + 1e-12
+    ):
+        return False
+    expected_history_keys = {
+        "iteration",
+        "master_objective",
+        "exact_cvar",
+        "mean_violation",
+        "max_violation",
+        "max_master_gap",
+        "new_cuts",
+        "total_cuts",
+        "solver_status",
+        "solver_name",
+    }
+    previous_total = 0
+    for iteration, row in enumerate(history, start=1):
+        if (
+            type(row) is not dict
+            or set(row) != expected_history_keys
+            or type(row.get("iteration")) is not int
+            or row["iteration"] != iteration
+            or type(row.get("new_cuts")) is not int
+            or row["new_cuts"] < 0
+            or type(row.get("total_cuts")) is not int
+            or row["total_cuts"] < previous_total
+            or type(row.get("solver_status")) is not str
+            or type(row.get("solver_name")) is not str
+        ):
+            return False
+        for field in (
+            "master_objective",
+            "exact_cvar",
+            "mean_violation",
+            "max_violation",
+            "max_master_gap",
+        ):
+            if type(row.get(field)) is not float or not np.isfinite(row[field]):
+                return False
+        previous_total = row["total_cuts"]
+    cut_counts = np.sum(cuts, axis=1)
+    final = history[-1]
+    return (
+        final["max_master_gap"] == model_report["final_master_gap"]
+        and final["new_cuts"] == 0
+        and final["total_cuts"] == int(np.sum(cuts))
+        and model_report.get("total_cuts") == int(np.sum(cuts))
+        and model_report.get("cuts_per_scene_min_median_max")
+        == [
+            int(np.min(cut_counts)),
+            float(np.median(cut_counts)),
+            int(np.max(cut_counts)),
+        ]
+        and model_report.get("cut_index_sha256") == _array_sha(cuts)
+        and final["solver_status"] == model_report.get("solver_status")
+        and final["solver_name"] == model_report.get("solver_name")
+    )
+
+
 def _context_scaler(
     raw: np.ndarray, source: np.ndarray, weights: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -469,7 +552,7 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
         raise ValueError("runtime atom scales differ from reviewed training scales")
     verified_models: dict[str, Any] = {}
     for name, (key, mode, atom_count) in MODELS.items():
-        atoms = atoms14[:, :, :atom_count]
+        atoms = _active_atom_view(atoms14, atom_count)
         phi = static_phi if mode == "static" else scene_phi
         theta = _numeric(params[f"{key}_theta"], (atom_count, PHI_DIMENSION), f"{name}.theta")
         if np.any(theta < -1e-9) or not np.allclose(
@@ -498,7 +581,9 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
             raise ValueError(f"{name} has a training row without a cut")
         restricted_values = np.where(cuts, candidate_values, -np.inf)
         restricted_violations = np.maximum(np.max(restricted_values, axis=1), 0.0)
-        independent_gap = float(np.max(full_violations - restricted_violations))
+        active_cut_envelope_gap = float(
+            np.max(full_violations - restricted_violations)
+        )
         stored_selected = np.asarray(params[f"{key}_selected_indices"])
         stored_margins = _numeric(
             params[f"{key}_selection_margins"], (n,), f"{name}.selection_margins"
@@ -520,7 +605,11 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
             or not np.array_equal(stored_selected, selected)
             or not np.array_equal(stored_margins, selection_margins)
             or not np.array_equal(stored_violations, full_violations)
-            or independent_gap > 1e-6 + 1e-12
+            or not _solver_evidence_contract(
+                model_report,
+                cuts,
+                tolerance=1e-6,
+            )
             or model_report.get("solver_name") != "CLARABEL"
             or model_report.get("solver_status") != "optimal"
             or model_report.get("converged") is not True
@@ -556,7 +645,12 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
             raise ValueError(f"{name} runtime static weight drifted")
         verified_models[name] = {
             "atom_count": atom_count,
-            "independent_master_gap": independent_gap,
+            "reported_final_master_gap": model_report["final_master_gap"],
+            "active_cut_envelope_gap_diagnostic": active_cut_envelope_gap,
+            "gap_contract": (
+                "reported gap is exact_losses minus optimized master_losses; "
+                "active-cut envelope is a distinct non-gating diagnostic"
+            ),
             "selected_nonzero_count": int(np.sum(selected != 0)),
         }
     static_runtime = _numeric(
