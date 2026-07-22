@@ -42,6 +42,15 @@ from camp_core.integrations.diffusion_planner_v21_native import (
 from camp_core.integrations.diffusion_planner_v22_native import (
     summarize_safety_cost_native_v22,
 )
+from camp_core.integrations.diffusion_planner_causal_atoms import (
+    FixedDpCandidateGenerationCapabilityFailure,
+)
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    validate_causal_signal_atom_input,
+)
+from camp_core.integrations.diffusion_planner_v25_signal_safety import (
+    summarize_certified_signal_safety,
+)
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
@@ -267,6 +276,10 @@ class NativeCampPredictBatch:
         ]
         | None = None,
         v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
+        v25_weight_provider: Callable[
+            [Mapping[str, Any]], Mapping[str, Any]
+        ]
+        | None = None,
         v25_v2i_signal_timing: Mapping[str, Any] | None = None,
         causal_signal_atom_input_provider: Callable[
             [Any, int], Mapping[str, Any]
@@ -284,6 +297,7 @@ class NativeCampPredictBatch:
             [int, np.ndarray, Mapping[str, Any]], None
         ]
         | None = None,
+        candidate0_pool_diagnostics: bool = False,
     ) -> None:
         self.state = state
         self.to_model_tensors = to_model_tensors
@@ -329,16 +343,20 @@ class NativeCampPredictBatch:
         self.scene_adapter = scene_adapter
         self.scene_adapter_model_input_sync = scene_adapter_model_input_sync
         self.v25_context_sink = v25_context_sink
+        self.v25_weight_provider = v25_weight_provider
         self.v25_v2i_signal_timing = v25_v2i_signal_timing
         self.causal_signal_atom_input_provider = causal_signal_atom_input_provider
         self.causal_input_sink = causal_input_sink
         self.causal_input_receipt_sink = causal_input_receipt_sink
         self.candidate_tensor_sink = candidate_tensor_sink
+        if type(candidate0_pool_diagnostics) is not bool:
+            raise TypeError("candidate0_pool_diagnostics must be a native bool")
+        self.candidate0_pool_diagnostics = candidate0_pool_diagnostics
         if operational_mode == "camp_selector" and (
             self.atom_scales is None
-            or self.weights is None
             or self.atom_scales.shape != (14,)
-            or self.weights.shape != (14,)
+            or (self.weights is None) == (self.v25_weight_provider is None)
+            or (self.weights is not None and self.weights.shape != (14,))
             or self.materialize is None
             or self.select_candidate is None
             or self.signal_mask is None
@@ -348,7 +366,21 @@ class NativeCampPredictBatch:
                 and self.causal_signal_atom_input_provider is None
             )
         ):
-            raise ValueError("atom scales and weights must each have shape [14]")
+            raise ValueError(
+                "atom scales plus exactly one static-weight or V25 scene-weight "
+                "provider are required"
+            )
+        if candidate0_pool_diagnostics and (
+            operational_mode != "dp_candidate0"
+            or self.materialize is None
+            or self.signal_mask is None
+            or self.planned_red_cost is None
+            or self.causal_signal_atom_input_provider is None
+        ):
+            raise ValueError(
+                "candidate0 offline pool diagnostics require the canonical atom "
+                "materialization sources"
+            )
 
     def __call__(
         self,
@@ -566,7 +598,10 @@ class NativeCampPredictBatch:
                 ],
             )
 
-            if self.operational_mode == "dp_candidate0":
+            if (
+                self.operational_mode == "dp_candidate0"
+                and not self.candidate0_pool_diagnostics
+            ):
                 receipt.update(
                     verify_candidate_tensor_immutable(candidate_tensor, before_sha)
                 )
@@ -680,7 +715,11 @@ class NativeCampPredictBatch:
                 planned_red_light_cost=red_cost,
                 causal_signal_atom_input=causal_signal_atom_input,
                 dt=float(scene.dt),
-                eligibility_policy=self.selection_policy,
+                eligibility_policy=(
+                    V22_SOURCE_VALID_SELECTION
+                    if self.operational_mode == "dp_candidate0"
+                    else self.selection_policy
+                ),
             )
             receipt["latency_ms"]["atom_materialization"] = _elapsed_ms(
                 atom_started
@@ -690,12 +729,193 @@ class NativeCampPredictBatch:
             )
             receipt.update(immutable)
 
+            if self.operational_mode == "dp_candidate0":
+                physical = np.asarray(materialized.get("physical_feasible_mask"))
+                source = np.asarray(materialized.get("source_valid_mask"))
+                source_complete = np.asarray(
+                    materialized.get("route_speed_source_eligible_mask")
+                )
+                if (
+                    physical.dtype != np.bool_
+                    or source.dtype != np.bool_
+                    or source_complete.dtype != np.bool_
+                    or physical.shape != (8,)
+                    or source.shape != (8,)
+                    or source_complete.shape != (8,)
+                    or np.any(physical & ~source)
+                    or not source.any()
+                ):
+                    raise ValueError(
+                        "candidate0 offline pool masks violate the source contract"
+                    )
+                receipt.update(
+                    {
+                        "physical_feasible_mask": physical.tolist(),
+                        "source_valid_mask": source.tolist(),
+                        "source_complete_mask": source_complete.tolist(),
+                        "all_k_high_risk": bool(source.all() and not physical.any()),
+                        "candidate_reasons": [
+                            list(value)
+                            for value in materialized.get(
+                                "candidate_reasons", [[] for _ in range(8)]
+                            )
+                        ],
+                    }
+                )
+                atom_matrix = np.asarray(materialized.get("atom_matrix"))
+                if atom_matrix.shape != (8, 14) or not np.isfinite(atom_matrix).all():
+                    raise ValueError(
+                        "candidate0 offline pool atom matrix must be finite [8,14]"
+                    )
+                receipt["atom_matrix_sha256"] = array_sha256(atom_matrix)
+                receipt.update(
+                    verify_candidate_tensor_immutable(candidate_tensor, before_sha)
+                )
+                selected = candidate_tensor[0].copy()
+                if (
+                    not np.array_equal(selected, default_ego)
+                    or array_sha256(selected) != receipt["default_output_sha256"]
+                ):
+                    raise ValueError("DP candidate 0 differs from operational default")
+                direct_predictions[ego_id] = selected
+                npc_after_sha = {
+                    agent_id: array_sha256(value)
+                    for agent_id, value in direct_predictions.items()
+                    if agent_id != ego_id
+                }
+                if npc_after_sha != direct_npc_sha:
+                    raise ValueError("native NPC operational outputs changed")
+                receipt.update(
+                    {
+                        "status": "ok",
+                        "selected_index": 0,
+                        "selected_trajectory_sha256": array_sha256(selected),
+                        "score_contract": "candidate0_operational_default",
+                        "eligibility_mask_name": "candidate0_operational_default",
+                        "candidate0_operational_default": True,
+                        "npc_operational_outputs_unchanged": True,
+                        "default_turn_indicators_retained": True,
+                        "post_divergence_cross_arm_tensor_identity_required": False,
+                    }
+                )
+                receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
+                return (
+                    (direct_predictions, turns)
+                    if return_turn_indicators
+                    else direct_predictions
+                )
+
+            context_payload = None
+            effective_weights = self.weights
+            if (
+                self.v25_context_sink is not None
+                or self.v25_weight_provider is not None
+            ):
+                context_started = time.perf_counter_ns()
+                from camp_core.integrations.diffusion_planner_v25_context import (
+                    CONTEXT_SCHEMA_VERSION,
+                    RAW_FEATURE_NAMES,
+                    build_v25_raw_context,
+                )
+
+                context_record = build_v25_raw_context(
+                    causal_input=causal_input,
+                    candidates=candidate_tensor,
+                    source_valid_mask=np.asarray(
+                        materialized["source_valid_mask"], dtype=bool
+                    ),
+                    causal_signal_atom_input=causal_signal_atom_input,
+                    v2i_signal_timing=self.v25_v2i_signal_timing,
+                )
+                if len(context_record.source_complete) != len(RAW_FEATURE_NAMES):
+                    raise ValueError("V25 context source-complete dimension drifted")
+                context_payload = {
+                    "schema_version": CONTEXT_SCHEMA_VERSION,
+                    "raw_context": context_record.as_dict(),
+                    "source_complete": {
+                        name: bool(value)
+                        for name, value in zip(
+                            RAW_FEATURE_NAMES,
+                            context_record.source_complete,
+                        )
+                    },
+                    "source_receipt": dict(context_record.source_receipt),
+                }
+                receipt["v25_context"] = context_payload
+                if self.v25_context_sink is not None:
+                    self.v25_context_sink(context_payload)
+                receipt["latency_ms"]["context"] = _elapsed_ms(context_started)
+                if self.v25_weight_provider is not None:
+                    weight_started = time.perf_counter_ns()
+                    provided = self.v25_weight_provider(context_payload)
+                    receipt["latency_ms"]["scene_weight"] = _elapsed_ms(
+                        weight_started
+                    )
+                    if type(provided) is not dict or set(provided) != {
+                        "schema_version",
+                        "model_name",
+                        "fixed_dp_head",
+                        "training_root_sha256",
+                        "training_review_root_sha256",
+                        "theta_sha256",
+                        "context_scaler_sha256",
+                        "phi_sha256",
+                        "weights_sha256",
+                        "weights",
+                        "runtime_projection",
+                        "softmax",
+                    }:
+                        raise ValueError("V25 scene weight receipt exact schema drifted")
+                    raw_weights = provided.get("weights")
+                    values = np.asarray(raw_weights)
+                    if (
+                        type(raw_weights) is not list
+                        or values.shape != (14,)
+                        or values.dtype.kind not in "fiu"
+                        or values.dtype.kind == "b"
+                    ):
+                        raise ValueError("V25 scene weights must be native numeric [14]")
+                    effective_weights = values.astype(np.float64, copy=False)
+                    if (
+                        not np.all(np.isfinite(effective_weights))
+                        or np.any(effective_weights < 0.0)
+                        or not np.isclose(
+                            effective_weights.sum(), 1.0, rtol=0.0, atol=1e-10
+                        )
+                        or provided.get("runtime_projection") is not False
+                        or provided.get("softmax") is not False
+                        or provided.get("schema_version")
+                        != "camp_dp_v25_scene_weight_receipt_v3"
+                        or provided.get("model_name") != "CAMP-Scene14D"
+                        or provided.get("fixed_dp_head") != FIXED_DP_HEAD
+                        or any(
+                            type(provided.get(field)) is not str
+                            or len(provided[field]) != 64
+                            or set(provided[field])
+                            - set("0123456789abcdef")
+                            for field in (
+                                "training_root_sha256",
+                                "training_review_root_sha256",
+                                "theta_sha256",
+                                "context_scaler_sha256",
+                                "phi_sha256",
+                                "weights_sha256",
+                            )
+                        )
+                        or provided["weights_sha256"]
+                        != array_sha256(effective_weights)
+                    ):
+                        raise ValueError("V25 scene weight receipt value contract drifted")
+                    receipt["v25_scene_selector"] = {
+                        key: value for key, value in provided.items() if key != "weights"
+                    }
+
             selector_started = time.perf_counter_ns()
             selection = self.select_candidate(
                 candidates=candidate_tensor,
                 materialized=materialized,
                 atom_scales=self.atom_scales,
-                weights=self.weights,
+                weights=effective_weights,
                 eligibility_mask_name=(
                     "source_valid_mask"
                     if self.selection_policy == V22_SOURCE_VALID_SELECTION
@@ -737,38 +957,6 @@ class NativeCampPredictBatch:
                 ),
             }
             receipt.update(selector_diagnostics)
-            if self.v25_context_sink is not None:
-                from camp_core.integrations.diffusion_planner_v25_context import (
-                    CONTEXT_SCHEMA_VERSION,
-                    RAW_FEATURE_NAMES,
-                    build_v25_raw_context,
-                )
-
-                context_record = build_v25_raw_context(
-                    causal_input=causal_input,
-                    candidates=candidate_tensor,
-                    source_valid_mask=np.asarray(
-                        receipt["source_valid_mask"], dtype=bool
-                    ),
-                    causal_signal_atom_input=causal_signal_atom_input,
-                    v2i_signal_timing=self.v25_v2i_signal_timing,
-                )
-                if len(context_record.source_complete) != len(RAW_FEATURE_NAMES):
-                    raise ValueError("V25 context source-complete dimension drifted")
-                context_payload = {
-                    "schema_version": CONTEXT_SCHEMA_VERSION,
-                    "raw_context": context_record.as_dict(),
-                    "source_complete": {
-                        name: bool(value)
-                        for name, value in zip(
-                            RAW_FEATURE_NAMES,
-                            context_record.source_complete,
-                        )
-                    },
-                    "source_receipt": dict(context_record.source_receipt),
-                }
-                receipt["v25_context"] = context_payload
-                self.v25_context_sink(context_payload)
             if selection.get("status") != "ok":
                 reason = str(selection.get("failure_reason") or "selector_failed")
                 raise RuntimeError(
@@ -1699,6 +1887,24 @@ def validate_v25_controlled_train_config(config: Mapping[str, Any]) -> None:
 
 
 def _validate_native_config(config: Mapping[str, Any]) -> None:
+    if config.get("schema_version") == (
+        "camp_dp_v25_signal_complete_fresh_arm_v1"
+    ):
+        from camp_core.integrations.diffusion_planner_v25_signal_complete_execution import (
+            validate_fresh_b2_arm_config,
+        )
+
+        validate_fresh_b2_arm_config(config)
+        return
+    if config.get("schema_version") == (
+        "camp_dp_v25_signal_complete_candidate0_calibration_v1"
+    ):
+        from camp_core.integrations.diffusion_planner_v25_signal_complete_execution import (
+            validate_candidate0_calibration_config,
+        )
+
+        validate_candidate0_calibration_config(config)
+        return
     if config.get("schema_version") == "camp_dp_v25_controlled_train_v2":
         validate_v25_controlled_train_config(config)
         return
@@ -2420,6 +2626,57 @@ def _validate_arm_receipt(
             number = float(value)
             if not np.isfinite(number) or number < 0.0:
                 raise ValueError("latency must be finite and nonnegative")
+        if arm == "dp" and "candidate_tensor_sha256_before" in tick:
+            row_sha256 = tick.get("candidate_row_sha256")
+            identity = _mapping(tick, "default_candidate0_identity")
+            if (
+                tick.get("candidate0_operational_default") is not True
+                or tick.get("selected_index") != 0
+                or tick.get("selection_policy")
+                != "candidate0_operational_default"
+                or tick.get("score_contract") != "candidate0_operational_default"
+                or tick.get("eligibility_mask_name")
+                != "candidate0_operational_default"
+                or not isinstance(row_sha256, list)
+                or len(row_sha256) != 8
+                or any(not _is_sha256(value) for value in row_sha256)
+                or any(
+                    not _is_sha256(tick.get(name))
+                    for name in (
+                        "candidate_tensor_sha256_before",
+                        "candidate_tensor_sha256_after",
+                        "candidate_neighbor_sha256",
+                        "selected_trajectory_sha256",
+                        "global_rng_sha256_before",
+                        "global_rng_sha256_after",
+                    )
+                )
+                or tick["candidate_tensor_sha256_before"]
+                != tick["candidate_tensor_sha256_after"]
+                or tick["selected_trajectory_sha256"] != row_sha256[0]
+                or tick["selected_trajectory_sha256"]
+                != tick["default_output_sha256"]
+                or identity.get("elementwise_equal") is not True
+                or float(identity.get("max_abs_difference", float("nan"))) != 0.0
+                or identity.get("native_ranked_k8") is not False
+                or identity.get("default_output_sha256")
+                != tick["default_output_sha256"]
+                or identity.get("candidate0_sha256")
+                != tick["default_output_sha256"]
+                or any(
+                    field in tick
+                    for field in (
+                        "atom_matrix_sha256",
+                        "normalized_atom_matrix_sha256",
+                        "scores",
+                        "source_valid_mask",
+                        "physical_feasible_mask",
+                        "v25_context",
+                        "v25_scene_selector",
+                    )
+                )
+            ):
+                raise ValueError("DP operational-default fixed-K8 receipt is invalid")
         if arm == "camp":
             for name in (
                 "candidate_tensor_sha256_before",
@@ -2510,6 +2767,51 @@ def _validate_arm_receipt(
                     or tick["all_k_high_risk"] != expected_high_risk
                 ):
                     raise ValueError("all_k_high_risk receipt mismatch")
+                scene_selector = tick.get("v25_scene_selector")
+                if scene_selector is None:
+                    if "scene_weight" in latency:
+                        raise ValueError(
+                            "Scene14D latency exists without a selector receipt"
+                        )
+                else:
+                    expected_scene_fields = {
+                        "schema_version",
+                        "model_name",
+                        "fixed_dp_head",
+                        "training_root_sha256",
+                        "training_review_root_sha256",
+                        "theta_sha256",
+                        "context_scaler_sha256",
+                        "phi_sha256",
+                        "weights_sha256",
+                        "runtime_projection",
+                        "softmax",
+                    }
+                    if (
+                        type(scene_selector) is not dict
+                        or set(scene_selector) != expected_scene_fields
+                        or scene_selector.get("schema_version")
+                        != "camp_dp_v25_scene_weight_receipt_v3"
+                        or scene_selector.get("model_name") != "CAMP-Scene14D"
+                        or scene_selector.get("fixed_dp_head") != FIXED_DP_HEAD
+                        or scene_selector.get("runtime_projection") is not False
+                        or scene_selector.get("softmax") is not False
+                        or any(
+                            not _is_sha256(scene_selector.get(field))
+                            for field in (
+                                "training_root_sha256",
+                                "training_review_root_sha256",
+                                "theta_sha256",
+                                "context_scaler_sha256",
+                                "phi_sha256",
+                                "weights_sha256",
+                            )
+                        )
+                        or type(tick.get("v25_context")) is not dict
+                        or "context" not in latency
+                        or "scene_weight" not in latency
+                    ):
+                        raise ValueError("Scene14D selector receipt is invalid")
 
     if not require_summary:
         return
@@ -2530,6 +2832,12 @@ def _validate_arm_receipt(
             or float(speed.get("operational_tolerance_mps", float("nan"))) != 0.1
         ):
             raise ValueError("v22 operational speed protocol mismatch")
+    if "signal_safety" in receipt:
+        expected_signal = summarize_certified_signal_safety(
+            [_mapping(tick, "safety") for tick in ticks]
+        )
+        if receipt["signal_safety"] != expected_signal:
+            raise ValueError("certified signal safety summary mismatch")
     _mapping(receipt, "secondary")
     _mapping(receipt, "latency")
 
@@ -2563,6 +2871,65 @@ def canonical_spawn_config_sha256(
             separators=(",", ":"),
         ).encode("utf-8")
     ).hexdigest()
+
+
+def _bind_fresh_fixed_dp_failure_authority(
+    failure: FixedDpCandidateGenerationCapabilityFailure,
+    *,
+    config: Mapping[str, Any],
+    route: Mapping[str, Any],
+    max_steps: int,
+    state: NativeHookState,
+) -> None:
+    """Bind only causal/reset evidence already observed before K8 validation."""
+
+    metadata = failure.canonical_metadata()
+    receipts = state.receipts
+    if (
+        not receipts
+        or type(receipts[0]) is not dict
+        or receipts[0].get("tick_index") != 0
+        or type(receipts[0].get("causal_input")) is not dict
+    ):
+        raise ValueError("Fresh fixed-DP failure lacks tick-0 causal authority")
+    failing = next(
+        (
+            receipt
+            for receipt in reversed(receipts)
+            if type(receipt) is dict
+            and receipt.get("tick_index") == metadata["tick_index"]
+        ),
+        None,
+    )
+    if type(failing) is not dict or type(failing.get("_safety_pre")) is not dict:
+        raise ValueError("Fresh fixed-DP failure lacks same-tick signal authority")
+    first_input = receipts[0]["causal_input"].get("input_sha256")
+    signal_phase = failing["_safety_pre"].get("signal_phase_at_interval_start")
+    plan_authority = config.get("signal_complete_plan_authority")
+    if (
+        not _is_sha256(first_input)
+        or signal_phase not in {"green", "yellow", "red", "mixed"}
+        or type(plan_authority) is not dict
+    ):
+        raise ValueError("Fresh fixed-DP failure causal authority drifted")
+    initial_state_sha256 = hashlib.sha256(
+        ("v21_native_scene_context_v1\0" + first_input).encode("ascii")
+    ).hexdigest()
+    failure.bind_fresh_failure_authority(
+        pair_authority={
+            "route_identity_sha256": plan_authority["route_identity_sha256"],
+            "semantic_parameter_block_sha256": plan_authority[
+                "semantic_parameter_block_sha256"
+            ],
+            "native_route_sha256": str(route["sha256"]),
+            "logical_map_sha256": str(config["map"]["sha256"]),
+            "scenario_seed": int(config["seeds"]["scenario"]),
+            "spawn_config_sha256": canonical_spawn_config_sha256(config, max_steps),
+            "initial_state_sha256": initial_state_sha256,
+            "initial_input_sha256": first_input,
+        },
+        signal_phase=signal_phase,
+    )
 
 
 def _padding_stratum(padded_frames: int) -> str:
@@ -2791,12 +3158,95 @@ def _derive_run_summaries_for_config(config: Mapping[str, Any]) -> bool:
     return config.get("schema_version") != "camp_dp_v25_controlled_train_v2"
 
 
+def _validate_fresh_b2_opening_authority(
+    config: Mapping[str, Any],
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Require the externally released one-shot authority before model setup."""
+
+    if type(value) is not dict or set(value) != {
+        "opening_release",
+        "opening_release_root_sha256",
+        "opening_consumption",
+    }:
+        raise ValueError(
+            "Fresh B2 one-time opening release and consumption are required"
+        )
+    from camp_core.integrations.diffusion_planner_v25_fresh_opening import (
+        validate_fresh_b2_opening_consumption,
+        validate_fresh_b2_opening_release,
+    )
+
+    release = validate_fresh_b2_opening_release(value["opening_release"])
+    release_root = value["opening_release_root_sha256"]
+    if not _is_sha256(release_root):
+        raise ValueError("Fresh B2 opening release root is invalid")
+    consumption = validate_fresh_b2_opening_consumption(
+        value["opening_consumption"],
+        opening_release=release,
+        release_root_sha256=release_root,
+    )
+    selector = _mapping(config, "runtime_selector_authority")
+    expected = {
+        "calibration_contract_root_sha256": release[
+            "calibration_contract_root_sha256"
+        ],
+        "preopen_qualification_root_sha256": release[
+            "preopen_qualification_root_sha256"
+        ],
+        "scenario_manifest_root_sha256": release[
+            "scenario_manifest_root_sha256"
+        ],
+        "model_registry_sha256": release["model_registry_sha256"],
+        "training_scale_sha256": release["training_scale_sha256"],
+        "context_scaler_sha256": release["context_scaler_sha256"],
+    }
+    if (
+        release["fixed_dp_head"] != FIXED_DP_HEAD
+        or any(selector.get(name) != expected_value for name, expected_value in expected.items())
+        or consumption["fresh_b2_opened_once"] is not True
+        or consumption["consumed_before_outcome_capable_operation"] is not True
+        or consumption["outcome_fields_consumed_before_nonce"] != []
+        or consumption["second_consumption_allowed"] is not False
+    ):
+        raise ValueError("Fresh B2 opening authority differs from the arm config")
+    return {
+        "opening_release": release,
+        "opening_release_root_sha256": release_root,
+        "opening_consumption": consumption,
+    }
+
+
 def build_native_arm_runner(
-    config: Mapping[str, Any], *, device: str
+    config: Mapping[str, Any],
+    *,
+    device: str,
+    fresh_b2_opening_authority: Mapping[str, Any] | None = None,
 ) -> Callable[..., Mapping[str, Any]]:
     _validate_native_config(config)
     if device not in {"cpu", "cuda"}:
         raise ValueError("device must be cpu or cuda")
+    signal_complete_fresh = config.get("schema_version") == (
+        "camp_dp_v25_signal_complete_fresh_arm_v1"
+    )
+    if signal_complete_fresh:
+        if device != "cuda":
+            raise ValueError("Fresh B2 native execution requires the frozen CUDA device")
+        _validate_fresh_b2_opening_authority(
+            config,
+            fresh_b2_opening_authority,
+        )
+    elif fresh_b2_opening_authority is not None:
+        raise ValueError("Fresh B2 opening authority is invalid outside Fresh execution")
+    runtime_fixed_dp_authority = json.loads(
+        json.dumps(
+            config["fixed_dp"],
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    )
     runtime: dict[str, Any] = {}
 
     def ensure_runtime() -> Mapping[str, Any]:
@@ -2880,6 +3330,10 @@ def build_native_arm_runner(
         decision_sink: Callable[[Mapping[str, Any]], None] | None = None,
         scene_adapter: Callable[[Any, int], Mapping[str, Any]] | None = None,
         v25_context_sink: Callable[[Mapping[str, Any]], None] | None = None,
+        v25_weight_provider: Callable[
+            [Mapping[str, Any]], Mapping[str, Any]
+        ]
+        | None = None,
         causal_input_sink: Callable[
             [int, Mapping[str, Any]], None
         ]
@@ -2892,10 +3346,113 @@ def build_native_arm_runner(
             [int, np.ndarray, Mapping[str, Any]], None
         ]
         | None = None,
+        fixed_k8_candidate0: bool = False,
     ) -> Mapping[str, Any]:
+        _validate_native_config(config)
+        current_signal_complete_fresh = config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_fresh_arm_v1"
+        )
+        if current_signal_complete_fresh is not signal_complete_fresh:
+            raise ValueError("native runner config family drifted after runtime creation")
+        if config.get("fixed_dp") != runtime_fixed_dp_authority:
+            raise ValueError("fixed-DP runtime authority drifted after model creation")
+        if current_signal_complete_fresh:
+            _validate_fresh_b2_opening_authority(
+                config,
+                fresh_b2_opening_authority,
+            )
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
+        if type(fixed_k8_candidate0) is not bool:
+            raise TypeError("fixed_k8_candidate0 must be a native bool")
+        if arm == "camp" and fixed_k8_candidate0:
+            raise ValueError("fixed_k8_candidate0 is only valid for the DP arm")
         protocol = _mapping(config, "protocol")
+        signal_complete_calibration = config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_candidate0_calibration_v1"
+        )
+        signal_complete_fresh_arm = config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_fresh_arm_v1"
+        )
+        if signal_complete_calibration:
+            if arm != "dp" or fixed_k8_candidate0 is not True:
+                raise ValueError(
+                    "signal-complete calibration requires the same-forward fixed-K8 "
+                    "candidate0 DP arm"
+                )
+            if scene_adapter is not None or v25_weight_provider is not None:
+                raise ValueError(
+                    "signal-complete calibration runtime authority cannot be injected"
+                )
+            from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
+                build_signal_complete_scene_adapter,
+            )
+
+            scene_adapter = build_signal_complete_scene_adapter(
+                _mapping(config, "signal_complete_runtime")
+            )
+        elif signal_complete_fresh_arm:
+            plan_arm = protocol["fresh_b2_plan_arm"]
+            expected_modes = {
+                "candidate0_operational_default": ("dp", True),
+                "camp_static14d": ("camp", False),
+                "camp_scene14d_no_v2i": ("camp", False),
+            }
+            if (arm, fixed_k8_candidate0) != expected_modes[plan_arm]:
+                label = {
+                    "candidate0_operational_default": "candidate0",
+                    "camp_static14d": "Static14D",
+                    "camp_scene14d_no_v2i": "Scene14D",
+                }[plan_arm]
+                raise ValueError(f"Fresh B2 {label} mode drifted")
+            if scene_adapter is not None:
+                raise ValueError("Fresh B2 signal adapter cannot be injected")
+            from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
+                build_signal_complete_scene_adapter,
+            )
+
+            scene_adapter = build_signal_complete_scene_adapter(
+                _mapping(config, "signal_complete_runtime")
+            )
+            if plan_arm == "camp_scene14d_no_v2i":
+                from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
+                    V25Scene14DWeightProvider,
+                )
+
+                selector_authority = _mapping(
+                    config, "runtime_selector_authority"
+                )
+                training = _mapping(selector_authority, "training_artifact")
+                training_review = _mapping(
+                    selector_authority, "training_review_artifact"
+                )
+                if (
+                    not isinstance(
+                        v25_weight_provider, V25Scene14DWeightProvider
+                    )
+                    or v25_weight_provider.training_root_sha256
+                    != training["root_sha256"]
+                    or v25_weight_provider.training_review_root_sha256
+                    != training_review["root_sha256"]
+                    or Path(v25_weight_provider.training_artifact).resolve()
+                    != Path(training["path"]).resolve()
+                    or Path(v25_weight_provider.training_review_artifact).resolve()
+                    != Path(training_review["path"]).resolve()
+                    or v25_weight_provider.context_scaler_sha256
+                    != selector_authority["context_scaler_sha256"]
+                ):
+                    raise ValueError(
+                        "Fresh B2 Scene14D mode requires the sealed no-V2I provider"
+                    )
+            elif v25_weight_provider is not None:
+                label = (
+                    "candidate0"
+                    if plan_arm == "candidate0_operational_default"
+                    else "Static14D"
+                )
+                raise ValueError(
+                    f"Fresh B2 {label} mode cannot consume a Scene14D provider"
+                )
         if config.get("schema_version") in {
             "camp_dp_v24_single_record_source_probe_v1",
             "camp_dp_v25_controlled_capability_v1",
@@ -2903,6 +3460,14 @@ def build_native_arm_runner(
             allowed_steps = {1}
         elif config.get("schema_version") == "camp_dp_v25_controlled_train_v2":
             allowed_steps = {int(protocol["corpus_steps"])}
+        elif config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_candidate0_calibration_v1"
+        ):
+            allowed_steps = {int(protocol["calibration_steps"])}
+        elif config.get("schema_version") == (
+            "camp_dp_v25_signal_complete_fresh_arm_v1"
+        ):
+            allowed_steps = {int(protocol["fresh_b2_steps"])}
         elif config.get("schema_version") in {
             "camp_dp_v22_native_corpus_run_v1",
             "camp_dp_v24_native_corpus_run_v1",
@@ -2939,8 +3504,45 @@ def build_native_arm_runner(
         if not route_ids:
             raise ValueError("frozen smoke route is unresolved")
 
+        causal_signal_atom_input_provider = None
+        causal_signal_atom_input_cache: dict[int, dict[str, Any]] = {}
+        if scene_adapter is not None and hasattr(
+            scene_adapter, "causal_signal_atom_input"
+        ):
+            def causal_signal_atom_input_provider(
+                scene: Any, tick_index: int
+            ) -> Mapping[str, Any]:
+                if tick_index not in causal_signal_atom_input_cache:
+                    causal_signal_atom_input_cache[tick_index] = (
+                        validate_causal_signal_atom_input(
+                            scene_adapter.causal_signal_atom_input(scene, tick_index)
+                        )
+                    )
+                return causal_signal_atom_input_cache[tick_index]
+
         def pre_safety(receipt: dict[str, Any], scene: Any) -> None:
-            _capture_pre_safety(receipt, scene, builder, route_ids, replay)
+            certified_signal_atom_input = (
+                causal_signal_atom_input_provider(
+                    scene, int(receipt["tick_index"])
+                )
+                if causal_signal_atom_input_provider is not None
+                else None
+            )
+            if (
+                protocol.get("certified_signal_safety_source_required") is True
+                and certified_signal_atom_input is None
+            ):
+                raise ValueError(
+                    "certified route-level signal source is required for safety capture"
+                )
+            _capture_pre_safety(
+                receipt,
+                scene,
+                builder,
+                route_ids,
+                replay,
+                certified_signal_atom_input=certified_signal_atom_input,
+            )
 
         def after_tracker(receipt: dict[str, Any], scene: Any) -> None:
             _capture_post_safety(receipt, scene, builder, route_ids, replay)
@@ -2977,8 +3579,12 @@ def build_native_arm_runner(
                 )
 
                 scales = validate_v25_atom_scales(scales)
-            weights = _load_frozen_selector_weights(
-                Path(str(config["selector"]["weights"]["path"]))
+            weights = (
+                _load_frozen_selector_weights(
+                    Path(str(config["selector"]["weights"]["path"]))
+                )
+                if v25_weight_provider is None
+                else None
             )
             replacement = NativeCampPredictBatch(
                 state=state,
@@ -3011,27 +3617,51 @@ def build_native_arm_runner(
                     else None
                 ),
                 v25_context_sink=v25_context_sink,
+                v25_weight_provider=v25_weight_provider,
                 v25_v2i_signal_timing=None,
                 causal_signal_atom_input_provider=(
-                    scene_adapter.causal_signal_atom_input
-                    if scene_adapter is not None
-                    and hasattr(scene_adapter, "causal_signal_atom_input")
-                    else None
+                    causal_signal_atom_input_provider
                 ),
                 causal_input_sink=causal_input_sink,
                 causal_input_receipt_sink=causal_input_receipt_sink,
                 candidate_tensor_sink=candidate_tensor_sink,
             )
-        elif config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1":
+        elif (
+            config.get("schema_version") == "camp_dp_v24_native_evaluation_run_v1"
+            or fixed_k8_candidate0
+        ):
+            if v25_weight_provider is not None:
+                raise ValueError("DP candidate0 arm cannot consume a CAMP weight provider")
+            candidate0_pool_diagnostics = bool(
+                signal_complete_fresh_arm
+                and protocol.get("candidate0_offline_pool_evidence_required") is True
+            )
             replacement = NativeCampPredictBatch(
                 state=state,
                 to_model_tensors=context["tensor_converter"].to_model_tensors,
                 dump_step_npz=context["tensor_converter"].dump_step_npz,
                 validate_candidates=context["validate_candidates"],
-                materialize=None,
+                materialize=(
+                    context["materialize"] if candidate0_pool_diagnostics else None
+                ),
                 select_candidate=None,
-                signal_mask=None,
-                planned_red_cost=None,
+                signal_mask=(
+                    (lambda candidates, causal, _scene: context["signal_mask"](
+                        candidates, causal["route_lanes"]
+                    ))
+                    if candidate0_pool_diagnostics
+                    else None
+                ),
+                planned_red_cost=(
+                    (lambda candidates, causal, scene: context["red_cost"](
+                        candidates,
+                        causal,
+                        Path(str(config["fixed_dp"]["repo"])),
+                        scene.dt,
+                    ))
+                    if candidate0_pool_diagnostics
+                    else None
+                ),
                 atom_scales=None,
                 weights=None,
                 candidate_seed_root=int(config["seeds"]["candidate"]),
@@ -3047,8 +3677,19 @@ def build_native_arm_runner(
                 ),
                 v25_context_sink=v25_context_sink,
                 v25_v2i_signal_timing=None,
+                causal_input_sink=causal_input_sink,
+                causal_input_receipt_sink=causal_input_receipt_sink,
+                candidate_tensor_sink=candidate_tensor_sink,
+                causal_signal_atom_input_provider=(
+                    causal_signal_atom_input_provider
+                    if candidate0_pool_diagnostics
+                    else None
+                ),
+                candidate0_pool_diagnostics=candidate0_pool_diagnostics,
             )
         else:
+            if v25_weight_provider is not None:
+                raise ValueError("DP arm cannot consume a CAMP weight provider")
             replacement = NativeDpObserveBatch(
                 original_predict_batch=replay._predict_batch,
                 state=state,
@@ -3089,6 +3730,16 @@ def build_native_arm_runner(
                         spawn_config=spawn_config,
                         device=device,
                     )
+        except FixedDpCandidateGenerationCapabilityFailure as failure:
+            if signal_complete_fresh_arm:
+                _bind_fresh_fixed_dp_failure_authority(
+                    failure,
+                    config=config,
+                    route=route,
+                    max_steps=max_steps,
+                    state=state,
+                )
+            raise
         finally:
             if prior_no_png is None:
                 os.environ.pop("REPLAY_NO_PNG", None)
@@ -3127,6 +3778,8 @@ def _capture_pre_safety(
     builder: Any,
     route_ids: list[int],
     replay: Any,
+    *,
+    certified_signal_atom_input: Mapping[str, Any] | None = None,
 ) -> None:
     ego = scene.ego_agent
     corners = replay._ego_obb_corners(
@@ -3137,25 +3790,51 @@ def _capture_pre_safety(
         float(ego.width),
         wheelbase=float(ego.wheelbase),
     )
-    forward_ids = builder.select_route_segment_indices(
-        route_ids, ego.current_position, max_segments=25
-    ) or route_ids[:25]
-    red_ids = [
-        lanelet_id
-        for index, lanelet_id in enumerate(forward_ids)
-        if index < ego.route_lanes.shape[0]
-        and bool(np.any(ego.route_lanes[index, :, 10] > 0.5))
-    ]
-    stop_lines = _matching_red_stop_lines(scene, builder, red_ids)
+    signal_phase = None
+    certified_signal_stop_lines = np.empty((0, 2, 2), dtype=np.float64)
+    if certified_signal_atom_input is not None:
+        signal_phase, certified_signal_stop_lines = _certified_signal_safety_source(
+            certified_signal_atom_input
+        )
+        red_light = signal_phase == "red"
+        stop_lines = (
+            certified_signal_stop_lines
+            if red_light
+            else np.empty((0, 2, 2), dtype=np.float64)
+        )
+        red_source_complete = True
+    else:
+        # Historical V21/V24 compatibility only.  V25 calibration/Fresh configs
+        # must require the route-level certified source above and never use this
+        # 10 m line-string proximity heuristic.
+        forward_ids = builder.select_route_segment_indices(
+            route_ids, ego.current_position, max_segments=25
+        ) or route_ids[:25]
+        red_ids = [
+            lanelet_id
+            for index, lanelet_id in enumerate(forward_ids)
+            if index < ego.route_lanes.shape[0]
+            and bool(np.any(ego.route_lanes[index, :, 10] > 0.5))
+        ]
+        stop_lines = _legacy_matching_red_stop_lines(scene, builder, red_ids)
+        red_light = bool(red_ids)
+        red_source_complete = not red_ids or bool(stop_lines.size)
     receipt["_safety_pre"] = {
         "pre_decision_speed_mps": float(
             np.linalg.norm(np.asarray(ego.current_velocity, dtype=np.float64))
         ),
         "front_center_prev_xy": corners[[1, 2]].mean(axis=0).tolist(),
-        "red_light_at_interval_start": bool(red_ids),
+        "red_light_at_interval_start": red_light,
         "red_stop_lines": stop_lines.tolist(),
-        "red_source_complete": not red_ids or bool(stop_lines.size),
+        "red_source_complete": red_source_complete,
     }
+    if signal_phase is not None:
+        receipt["_safety_pre"].update(
+            {
+                "signal_phase_at_interval_start": signal_phase,
+                "certified_signal_stop_lines": certified_signal_stop_lines.tolist(),
+            }
+        )
 
 
 def _capture_post_safety(
@@ -3226,9 +3905,38 @@ def _capture_post_safety(
         ),
         "source_complete": source_complete,
     }
+    if "signal_phase_at_interval_start" in pre:
+        receipt["_safety_record"].update(
+            {
+                "signal_phase_at_interval_start": str(
+                    pre["signal_phase_at_interval_start"]
+                ),
+                "certified_signal_stop_lines": list(
+                    pre["certified_signal_stop_lines"]
+                ),
+                "pre_decision_speed_mps": float(pre["pre_decision_speed_mps"]),
+            }
+        )
 
 
-def _matching_red_stop_lines(
+def _certified_signal_safety_source(
+    causal_signal_atom_input: Mapping[str, Any],
+) -> tuple[str, np.ndarray]:
+    """Resolve same-tick phase and the exact route-certified stop line."""
+
+    signal = validate_causal_signal_atom_input(causal_signal_atom_input)
+    if signal["source_state"] == "not_applicable":
+        return "none", np.empty((0, 2, 2), dtype=np.float64)
+    phase = str(signal["current_phase"])
+    stop_line = np.asarray(
+        signal["stop_line_geometry_world_m"], dtype=np.float64
+    )
+    if stop_line.shape != (2, 2) or not np.all(np.isfinite(stop_line)):
+        raise ValueError("certified signal safety stop line must be finite [2,2]")
+    return phase, stop_line.reshape(1, 2, 2)
+
+
+def _legacy_matching_red_stop_lines(
     scene: Any, builder: Any, red_lanelet_ids: list[int]
 ) -> np.ndarray:
     if not red_lanelet_ids:
@@ -3381,6 +4089,8 @@ def _build_native_arm_receipt(
         result["safety"] = _summarize_safety_records(
             records, str(config["protocol"]["safety_schema"])
         )
+        if config["protocol"].get("certified_signal_safety_source_required") is True:
+            result["signal_safety"] = summarize_certified_signal_safety(records)
         result["secondary"] = summarize_route_comfort_native(
             records,
             dt=0.1,
@@ -3435,10 +4145,6 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             "selected_trajectory_sha256",
             "global_rng_sha256_before",
             "global_rng_sha256_after",
-            "causal_evidence_sha256",
-            "route_lanes_sha256",
-            "route_lanes_speed_limit_sha256",
-            "route_lanes_has_speed_limit_sha256",
         ):
             tick[name] = str(receipt[name])
         tick["candidate_row_sha256"] = list(receipt["candidate_row_sha256"])
@@ -3446,7 +4152,6 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             {
                 "selection_policy": str(receipt["selection_policy"]),
                 "score_contract": str(receipt["score_contract"]),
-                "tie_break_contract": str(receipt["tie_break_contract"]),
                 "eligibility_mask_name": str(receipt["eligibility_mask_name"]),
                 "selected_index": int(receipt["selected_index"]),
                 "default_candidate0_identity": dict(
@@ -3454,6 +4159,15 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
                 ),
             }
         )
+        for name in (
+            "tie_break_contract",
+            "causal_evidence_sha256",
+            "route_lanes_sha256",
+            "route_lanes_speed_limit_sha256",
+            "route_lanes_has_speed_limit_sha256",
+        ):
+            if name in receipt:
+                tick[name] = str(receipt[name])
         for name in (
             "atom_matrix_sha256",
             "normalized_atom_matrix_sha256",
@@ -3484,6 +4198,10 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
         if "v25_context" in receipt:
             tick["v25_context"] = json.loads(
                 json.dumps(receipt["v25_context"], allow_nan=False)
+            )
+        if "v25_scene_selector" in receipt:
+            tick["v25_scene_selector"] = json.loads(
+                json.dumps(receipt["v25_scene_selector"], allow_nan=False)
             )
     return tick
 

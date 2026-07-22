@@ -55,6 +55,18 @@ FIXED_DP_CAPABILITY_FAILURE_CLASS = (
     "fixed_dp_candidate_generation_capability_failure"
 )
 INVALID_K8_HEADING_NORM_REASON = "invalid_k8_heading_norm_envelope"
+_FRESH_FAILURE_PAIR_AUTHORITY_FIELDS = frozenset(
+    {
+        "route_identity_sha256",
+        "semantic_parameter_block_sha256",
+        "native_route_sha256",
+        "logical_map_sha256",
+        "scenario_seed",
+        "spawn_config_sha256",
+        "initial_state_sha256",
+        "initial_input_sha256",
+    }
+)
 
 
 class FixedDpCandidateGenerationCapabilityFailure(ValueError):
@@ -104,6 +116,8 @@ class FixedDpCandidateGenerationCapabilityFailure(ValueError):
         self.tick_index: int | None = None
         self.default_output_sha256: str | None = None
         self.default_candidate0_identity: dict[str, Any] | None = None
+        self._fresh_failure_pair_authority: dict[str, Any] | None = None
+        self._fresh_failure_signal_phase: str | None = None
         super().__init__(
             f"{self.reason}: invalid_count={self.invalid_count}, "
             f"minimum_norm={self.minimum_heading_norm:.9g}, "
@@ -148,6 +162,50 @@ class FixedDpCandidateGenerationCapabilityFailure(ValueError):
         self.tick_index = tick_index
         self.default_output_sha256 = default_output_sha256
         self.default_candidate0_identity = dict(default_candidate0_identity)
+
+    def bind_fresh_failure_authority(
+        self,
+        *,
+        pair_authority: Mapping[str, Any],
+        signal_phase: str,
+    ) -> None:
+        """Bind outcome-blind reset/source authority for a retained Fresh failure."""
+
+        if (
+            self._fresh_failure_pair_authority is not None
+            or self._fresh_failure_signal_phase is not None
+        ):
+            raise ValueError("Fresh fixed-DP failure authority was already bound")
+        if (
+            type(pair_authority) is not dict
+            or set(pair_authority) != _FRESH_FAILURE_PAIR_AUTHORITY_FIELDS
+            or type(pair_authority.get("scenario_seed")) is not int
+            or pair_authority["scenario_seed"] < 0
+        ):
+            raise ValueError("Fresh fixed-DP failure pair authority is malformed")
+        for name in _FRESH_FAILURE_PAIR_AUTHORITY_FIELDS - {"scenario_seed"}:
+            value = pair_authority[name]
+            if (
+                type(value) is not str
+                or len(value) != 64
+                or set(value) - set("0123456789abcdef")
+            ):
+                raise ValueError("Fresh fixed-DP failure pair authority SHA drifted")
+        if signal_phase not in {"green", "yellow", "red", "mixed"}:
+            raise ValueError("Fresh fixed-DP failure signal phase is invalid")
+        self._fresh_failure_pair_authority = dict(pair_authority)
+        self._fresh_failure_signal_phase = signal_phase
+
+    def canonical_fresh_failure_authority(self) -> dict[str, Any]:
+        if (
+            self._fresh_failure_pair_authority is None
+            or self._fresh_failure_signal_phase is None
+        ):
+            raise ValueError("Fresh fixed-DP failure lacks reset/source authority")
+        return {
+            "pair_authority": dict(self._fresh_failure_pair_authority),
+            "signal_phase": self._fresh_failure_signal_phase,
+        }
 
     def candidate_tensor_copy(self) -> np.ndarray:
         return np.array(self._candidate_tensor, copy=True, order="C")

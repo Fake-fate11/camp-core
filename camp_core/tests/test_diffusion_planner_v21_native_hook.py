@@ -13,12 +13,83 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
     INVALID_K8_HEADING_NORM_REASON,
     validate_fixed_k8_candidate_tensor,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+    canonical_json_sha256,
+)
 
 
 def _runner():
     from scripts.integrations import run_diffusion_planner_dp_camp_v21_native
 
     return run_diffusion_planner_dp_camp_v21_native
+
+
+def _mapped_signal_input(phase: str, stop_x_m: float = 12.0) -> dict:
+    stop = [[stop_x_m, -2.0], [stop_x_m, 2.0]]
+    stop_sha = canonical_json_sha256(stop)
+    runtime = {
+        "source_chain_sha256": "1" * 64,
+        "stop_line_geometry_sha256": stop_sha,
+        "route_geometry_sha256": "2" * 64,
+        "regulatory_element_id": 101,
+        "stop_line_id": 401,
+        "current_phase": phase,
+        "decision_timestamp_s": 0.0,
+    }
+    return {
+        "schema_version": "camp_dp_v25_causal_signal_atom_input_v2",
+        "source_state": "available",
+        "source_valid": True,
+        "applicable": phase == "red",
+        "current_phase": phase,
+        "decision_time_s": 0.0,
+        "ego_position_world_m": [0.0, 0.0],
+        "ego_heading_rad": 0.0,
+        "regulatory_element_id": 101,
+        "stop_line_id": 401,
+        "stop_line_geometry_world_m": stop,
+        "stop_line_geometry_ego_m": stop,
+        "stop_line_geometry_sha256": stop_sha,
+        "route_tangent_world": [1.0, 0.0],
+        "route_tangent_ego": [1.0, 0.0],
+        "route_geometry_sha256": "2" * 64,
+        "route_arc_m": 10.0,
+        "source_chain_sha256": "1" * 64,
+        "runtime_receipt": runtime,
+        "runtime_receipt_sha256": canonical_json_sha256(runtime),
+    }
+
+
+def _no_signal_input() -> dict:
+    runtime = {
+        "source_mode": "same_tick_no_signal_rule_no_v2i",
+        "current_phase": "none",
+        "source_chain_sha256": "3" * 64,
+        "route_geometry_sha256": "4" * 64,
+        "decision_time_s": 0.0,
+    }
+    return {
+        "schema_version": "camp_dp_v25_causal_signal_atom_input_v2",
+        "source_state": "not_applicable",
+        "source_valid": True,
+        "applicable": False,
+        "current_phase": "none",
+        "decision_time_s": 0.0,
+        "ego_position_world_m": None,
+        "ego_heading_rad": None,
+        "regulatory_element_id": None,
+        "stop_line_id": None,
+        "stop_line_geometry_world_m": None,
+        "stop_line_geometry_ego_m": None,
+        "stop_line_geometry_sha256": None,
+        "route_tangent_world": None,
+        "route_tangent_ego": None,
+        "route_geometry_sha256": "4" * 64,
+        "route_arc_m": None,
+        "source_chain_sha256": "3" * 64,
+        "runtime_receipt": runtime,
+        "runtime_receipt_sha256": canonical_json_sha256(runtime),
+    }
 
 
 class _Agent:
@@ -188,6 +259,9 @@ def _hook(
     causal_input_sink=None,
     causal_input_receipt_sink=None,
     candidate_tensor_sink=None,
+    v25_context_sink=None,
+    v25_weight_provider=None,
+    select_candidate=_select,
 ):
     state = module.NativeHookState()
     kwargs = {
@@ -196,7 +270,7 @@ def _hook(
         "dump_step_npz": _dump_step_npz,
         "validate_candidates": validate_fixed_k8_candidate_tensor,
         "materialize": materialize,
-        "select_candidate": _select,
+        "select_candidate": select_candidate,
         "signal_mask": lambda candidates, causal_input, scene: np.ones(
             8, dtype=bool
         ),
@@ -204,7 +278,11 @@ def _hook(
             8, dtype=np.float64
         ),
         "atom_scales": np.ones(14, dtype=np.float64),
-        "weights": np.eye(1, 14, dtype=np.float64).reshape(14),
+        "weights": (
+            None
+            if v25_weight_provider is not None
+            else np.eye(1, 14, dtype=np.float64).reshape(14)
+        ),
         "candidate_seed_root": 3418,
         "route_sha256": "ab" * 32,
     }
@@ -231,8 +309,102 @@ def _hook(
         kwargs["causal_input_receipt_sink"] = causal_input_receipt_sink
     if candidate_tensor_sink is not None:
         kwargs["candidate_tensor_sink"] = candidate_tensor_sink
+    if v25_context_sink is not None:
+        kwargs["v25_context_sink"] = v25_context_sink
+    if v25_weight_provider is not None:
+        kwargs["v25_weight_provider"] = v25_weight_provider
     hook = module.NativeCampPredictBatch(**kwargs)
     return hook, state
+
+
+def test_scene_weight_provider_runs_before_affine_selection(monkeypatch) -> None:
+    module = _runner()
+    from camp_core.integrations import diffusion_planner_v25_context as context_module
+
+    timing_index = context_module.RAW_FEATURE_NAMES.index(
+        "traffic_signal_phase_remaining_s"
+    )
+    source_complete = [True] * context_module.RAW_FEATURE_COUNT
+    source_complete[timing_index] = False
+    record = context_module.V25ContextRecord(
+        raw=np.zeros(context_module.RAW_FEATURE_COUNT, dtype=np.float64),
+        source_complete=tuple(source_complete),
+        source_receipt={
+            "mode": "no_v2i",
+            "phase_remaining_available": False,
+            "regulatory_signal_mapped": False,
+        },
+    )
+    monkeypatch.setattr(
+        context_module,
+        "build_v25_raw_context",
+        lambda **_kwargs: record,
+    )
+    events = []
+
+    def provider(payload):
+        events.append(("provider", payload))
+        weights = np.zeros(14, dtype=np.float64)
+        weights[1] = 1.0
+        return {
+            "schema_version": "camp_dp_v25_scene_weight_receipt_v3",
+            "model_name": "CAMP-Scene14D",
+            "fixed_dp_head": module.FIXED_DP_HEAD,
+            "training_root_sha256": "4" * 64,
+            "training_review_root_sha256": "5" * 64,
+            "theta_sha256": "1" * 64,
+            "context_scaler_sha256": "2" * 64,
+            "phi_sha256": "3" * 64,
+            "weights_sha256": module.array_sha256(weights),
+            "weights": weights.tolist(),
+            "runtime_projection": False,
+            "softmax": False,
+        }
+
+    def select_after_provider(**kwargs):
+        assert events and events[-1][0] == "provider"
+        events.append(("select", np.asarray(kwargs["weights"]).copy()))
+        return _select(**kwargs)
+
+    contexts = []
+    hook, state = _hook(
+        module,
+        _FakeModel(),
+        v25_context_sink=contexts.append,
+        v25_weight_provider=provider,
+        select_candidate=select_after_provider,
+    )
+    hook(
+        _FakeModel(),
+        SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+        _Scene(),
+        ["ego"],
+        "cpu",
+    )
+    receipt = state.receipts[-1]
+    assert [event[0] for event in events] == ["provider", "select"]
+    assert receipt["selected_index"] == 0
+    assert receipt["v25_context"] == contexts[0]
+    assert receipt["v25_scene_selector"] == {
+        "schema_version": "camp_dp_v25_scene_weight_receipt_v3",
+        "model_name": "CAMP-Scene14D",
+        "fixed_dp_head": module.FIXED_DP_HEAD,
+        "training_root_sha256": "4" * 64,
+        "training_review_root_sha256": "5" * 64,
+        "theta_sha256": "1" * 64,
+        "context_scaler_sha256": "2" * 64,
+        "phi_sha256": "3" * 64,
+        "weights_sha256": module.array_sha256(events[1][1]),
+        "runtime_projection": False,
+        "softmax": False,
+    }
+    assert receipt["latency_ms"]["context"] >= 0.0
+    assert receipt["latency_ms"]["scene_weight"] >= 0.0
+    receipt["_safety_record"] = {"source_complete": True}
+    receipt["_safety_pre"] = {"pre_decision_speed_mps": 0.0}
+    receipt["tracker"] = {"status": "ok"}
+    public = module._public_tick_receipt(receipt, "camp")
+    assert public["v25_scene_selector"] == receipt["v25_scene_selector"]
 
 
 def test_same_forward_known_heading_failure_is_typed_before_materialization() -> None:
@@ -283,6 +455,64 @@ def test_same_forward_known_heading_failure_is_typed_before_materialization() ->
     assert materialized == []
     assert state.receipts[-1]["status"] == "failed"
     assert state.receipts[-1]["default_candidate0_identity"]["elementwise_equal"] is True
+
+
+def test_fresh_heading_failure_binds_actual_reset_and_same_tick_signal_authority() -> None:
+    module = _runner()
+
+    class InvalidHeadingModel(_FakeModel):
+        def __call__(self, data):
+            result = super().__call__(data)
+            if len(self.calls) == 2:
+                result[1]["prediction"][0, 0, 3, 2:4] = np.float32(0.0)
+            return result
+
+    hook, state = _hook(module, InvalidHeadingModel())
+    with pytest.raises(FixedDpCandidateGenerationCapabilityFailure) as caught:
+        hook(
+            InvalidHeadingModel(),
+            SimpleNamespace(predicted_neighbor_num=320, future_len=80),
+            _Scene(),
+            ["ego"],
+            "cpu",
+        )
+    failure = caught.value
+    state.receipts[0]["_safety_pre"] = {
+        "signal_phase_at_interval_start": "red"
+    }
+    config = {
+        "signal_complete_plan_authority": {
+            "route_identity_sha256": "a" * 64,
+            "semantic_parameter_block_sha256": "b" * 64,
+        },
+        "map": {"sha256": "c" * 64},
+        "seeds": {"scenario": 25401},
+        "spawn_config": {"seed": 25401},
+    }
+    module._bind_fresh_fixed_dp_failure_authority(
+        failure,
+        config=config,
+        route={"sha256": "d" * 64},
+        max_steps=64,
+        state=state,
+    )
+    authority = failure.canonical_fresh_failure_authority()
+    assert authority["signal_phase"] == "red"
+    assert authority["pair_authority"]["initial_input_sha256"] == state.receipts[0][
+        "causal_input"
+    ]["input_sha256"]
+    assert authority["pair_authority"]["route_identity_sha256"] == "a" * 64
+
+    unbound = copy.deepcopy(state)
+    unbound.receipts[0]["_safety_pre"].pop("signal_phase_at_interval_start")
+    with pytest.raises(ValueError, match="causal authority drifted"):
+        module._bind_fresh_fixed_dp_failure_authority(
+            failure,
+            config=config,
+            route={"sha256": "d" * 64},
+            max_steps=64,
+            state=unbound,
+        )
 
 
 def test_v25_sink_captures_scene_materialization_not_batched_forward_input() -> None:
@@ -542,6 +772,89 @@ def test_v24_dp_candidate0_mode_generates_immutable_k8_and_returns_default() -> 
     assert receipt["selected_trajectory_sha256"] == receipt["default_output_sha256"]
     assert receipt["selection_policy"] == "candidate0_operational_default"
     assert "atom_matrix_sha256" not in receipt
+    receipt["_safety_record"] = {"source_complete": True}
+    receipt["_safety_pre"] = {"pre_decision_speed_mps": 0.0}
+    receipt["tracker"] = {"status": "ok"}
+    public = module._public_tick_receipt(receipt, "dp")
+    assert public["candidate_row_sha256"][0] == public["default_output_sha256"]
+    assert "tie_break_contract" not in public
+    assert "causal_evidence_sha256" not in public
+    module._validate_arm_receipt(
+        {
+            "status": "ok",
+            "arm": "dp",
+            "route_name": "candidate0-test",
+            "route_sha256": "a" * 64,
+            "initial_state_sha256": "b" * 64,
+            "initial_input_sha256": public["input_sha256"],
+            "claim_authorized": False,
+            "ticks": [public],
+        },
+        "dp",
+        expected_ticks=1,
+        require_summary=False,
+    )
+
+
+def test_fresh_candidate0_pool_diagnostics_preserve_default_and_expose_masks() -> None:
+    module = _runner()
+    scene = _Scene()
+    args = SimpleNamespace(predicted_neighbor_num=320, future_len=80)
+    agent_ids = ["npc", "ego"]
+    native_model = _FakeModel()
+    native_predictions = _native_predict_batch(
+        native_model, args, scene, agent_ids, "cpu"
+    )
+    state = module.NativeHookState()
+    source = np.asarray([True] * 8, dtype=np.bool_)
+    physical = np.asarray([True] + [False] * 7, dtype=np.bool_)
+
+    def materialize(**_kwargs):
+        return {
+            "atom_matrix": np.zeros((8, 14), dtype=np.float64),
+            "physical_feasible_mask": physical,
+            "source_valid_mask": source,
+            "route_speed_source_eligible_mask": source,
+            "candidate_reasons": [[] for _ in range(8)],
+        }
+
+    model = _FakeModel()
+    hook = module.NativeCampPredictBatch(
+        state=state,
+        to_model_tensors=_to_model_tensors,
+        dump_step_npz=_dump_step_npz,
+        validate_candidates=validate_fixed_k8_candidate_tensor,
+        materialize=materialize,
+        select_candidate=None,
+        signal_mask=lambda candidates, _causal, _scene: np.zeros(
+            len(candidates), dtype=np.bool_
+        ),
+        planned_red_cost=lambda candidates, _causal, _scene: np.zeros(
+            len(candidates), dtype=np.float64
+        ),
+        atom_scales=None,
+        weights=None,
+        candidate_seed_root=3418,
+        route_sha256="ab" * 32,
+        operational_mode="dp_candidate0",
+        causal_signal_atom_input_provider=lambda _scene, _tick: {
+            "schema_version": "test_same_tick_signal_v1"
+        },
+        candidate0_pool_diagnostics=True,
+    )
+    predictions = hook(model, args, scene, agent_ids, "cpu")
+    receipt = state.receipts[-1]
+    np.testing.assert_array_equal(predictions["ego"], native_predictions["ego"])
+    np.testing.assert_array_equal(predictions["npc"], native_predictions["npc"])
+    assert receipt["selected_index"] == 0
+    assert receipt["candidate0_operational_default"] is True
+    assert receipt["source_valid_mask"] == source.tolist()
+    assert receipt["physical_feasible_mask"] == physical.tolist()
+    assert receipt["all_k_high_risk"] is False
+    assert receipt["candidate_tensor_sha256_before"] == receipt[
+        "candidate_tensor_sha256_after"
+    ]
+    assert "atom_matrix_sha256" in receipt
 
 
 def test_hook_matches_native_default_and_changes_only_selected_ego() -> None:
@@ -885,3 +1198,106 @@ def test_patch_restores_predictor_and_tracker_on_success_and_exception() -> None
             raise RuntimeError("boom")
     assert replay._predict_batch is original_predict
     assert replay.advance_scene_mpc is original_tracker
+
+
+def test_v25_safety_capture_uses_exact_certified_stop_line_not_legacy_proximity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _runner()
+    ego = SimpleNamespace(
+        current_position=np.array([0.0, 0.0], dtype=np.float64),
+        current_heading=0.0,
+        current_velocity=np.array([2.0, 0.0], dtype=np.float64),
+        length=4.5,
+        width=1.8,
+        wheelbase=2.7,
+        route_lanes=np.zeros((1, 20, 12), dtype=np.float32),
+    )
+    ego.route_lanes[0, :, 10] = 1.0
+    scene = SimpleNamespace(ego_agent=ego)
+    builder = SimpleNamespace(
+        select_route_segment_indices=lambda *_args, **_kwargs: [101]
+    )
+    replay = SimpleNamespace(
+        _ego_obb_corners=lambda *_args, **_kwargs: np.array(
+            [[-2.0, -1.0], [2.0, -1.0], [2.0, 1.0], [-2.0, 1.0]],
+            dtype=np.float64,
+        )
+    )
+    wrong_nearby = np.array([[[3.0, -3.0], [3.0, 3.0]]], dtype=np.float64)
+    monkeypatch.setattr(
+        module,
+        "_legacy_matching_red_stop_lines",
+        lambda *_args, **_kwargs: wrong_nearby,
+    )
+    legacy_receipt = {"tick_index": 0}
+    module._capture_pre_safety(
+        legacy_receipt, scene, builder, [101], replay
+    )
+    assert legacy_receipt["_safety_pre"]["red_stop_lines"] == wrong_nearby.tolist()
+
+    monkeypatch.setattr(
+        module,
+        "_legacy_matching_red_stop_lines",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("legacy proximity matching must not run")
+        ),
+    )
+    certified_receipt = {"tick_index": 0}
+    module._capture_pre_safety(
+        certified_receipt,
+        scene,
+        builder,
+        [101],
+        replay,
+        certified_signal_atom_input=_mapped_signal_input("red", 12.0),
+    )
+    assert certified_receipt["_safety_pre"] == {
+        "pre_decision_speed_mps": 2.0,
+        "front_center_prev_xy": [2.0, 0.0],
+        "red_light_at_interval_start": True,
+        "red_stop_lines": [[[12.0, -2.0], [12.0, 2.0]]],
+        "red_source_complete": True,
+        "signal_phase_at_interval_start": "red",
+        "certified_signal_stop_lines": [[[12.0, -2.0], [12.0, 2.0]]],
+    }
+
+    green_receipt = {"tick_index": 1}
+    module._capture_pre_safety(
+        green_receipt,
+        scene,
+        builder,
+        [101],
+        replay,
+        certified_signal_atom_input=_mapped_signal_input("green", 12.0),
+    )
+    assert green_receipt["_safety_pre"]["signal_phase_at_interval_start"] == "green"
+    assert green_receipt["_safety_pre"]["red_stop_lines"] == []
+    assert green_receipt["_safety_pre"]["certified_signal_stop_lines"] == [
+        [[12.0, -2.0], [12.0, 2.0]]
+    ]
+
+
+@pytest.mark.parametrize("phase", ["green", "yellow"])
+def test_certified_nonred_phase_has_complete_zero_red_event(phase: str) -> None:
+    module = _runner()
+    actual_phase, stop_lines = module._certified_signal_safety_source(
+        _mapped_signal_input(phase)
+    )
+    assert actual_phase == phase
+    assert stop_lines.tolist() == [[[12.0, -2.0], [12.0, 2.0]]]
+
+
+def test_certified_no_signal_is_complete_not_applicable_zero_event() -> None:
+    module = _runner()
+    phase, stop_lines = module._certified_signal_safety_source(_no_signal_input())
+    assert phase == "none"
+    assert stop_lines.shape == (0, 2, 2)
+
+
+def test_invalid_mapped_signal_source_fails_closed() -> None:
+    module = _runner()
+    invalid = _mapped_signal_input("red")
+    invalid["source_valid"] = False
+    with pytest.raises(ValueError, match="source state"):
+        module._certified_signal_safety_source(invalid)
