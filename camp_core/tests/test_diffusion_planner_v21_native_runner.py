@@ -534,3 +534,43 @@ def test_frozen_selector_scale_loader_accepts_exact_legacy_metadata_only(
     np.save(weights_path, np.array([-1.0] + [2.0 / 13.0] * 13))
     with pytest.raises(ValueError, match="simplex"):
         module._load_frozen_selector_weights(weights_path)
+
+
+def test_candidate0_pool_diagnostic_schema_is_strict_and_source_valid() -> None:
+    module = _runner()
+    tick = {
+        "atom_matrix_sha256": "a" * 64,
+        "physical_feasible_mask": [True] + [False] * 7,
+        "source_valid_mask": [True] * 8,
+        "source_complete_mask": [True] * 8,
+        "candidate_reasons": [[] for _ in range(8)],
+        "all_k_high_risk": False,
+    }
+    module._validate_candidate0_pool_diagnostics_tick(tick)
+    all_bad = dict(tick)
+    all_bad["physical_feasible_mask"] = [False] * 8
+    all_bad["all_k_high_risk"] = True
+    module._validate_candidate0_pool_diagnostics_tick(all_bad)
+
+    mutations = []
+    missing = dict(tick)
+    del missing["source_valid_mask"]
+    mutations.append(missing)
+    empty_source = dict(tick)
+    empty_source["source_valid_mask"] = [False] * 8
+    mutations.append(empty_source)
+    bad_subset = dict(tick)
+    bad_subset["source_valid_mask"] = [False] + [True] * 7
+    mutations.append(bad_subset)
+    wrong_all_k = dict(tick)
+    wrong_all_k["all_k_high_risk"] = True
+    mutations.append(wrong_all_k)
+    numeric_mask = dict(tick)
+    numeric_mask["source_complete_mask"] = [1] * 8
+    mutations.append(numeric_mask)
+    forbidden = dict(tick)
+    forbidden["scores"] = [0.0] * 8
+    mutations.append(forbidden)
+    for mutation in mutations:
+        with pytest.raises(ValueError):
+            module._validate_candidate0_pool_diagnostics_tick(mutation)

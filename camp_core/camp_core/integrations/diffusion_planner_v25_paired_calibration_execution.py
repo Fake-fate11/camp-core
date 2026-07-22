@@ -341,6 +341,9 @@ def _complete_result(
         expected_ticks=TICKS_PER_ARM_RUN,
         expected_selection_policy=("v22_source_valid" if native_arm == "camp" else None),
         expected_safety_schema="safety_cost_native_v22",
+        expected_candidate0_pool_diagnostics=(
+            plan_arm == "candidate0_operational_default"
+        ),
     )
     if (
         native.get("fixed_dp_head") != FIXED_DP_HEAD

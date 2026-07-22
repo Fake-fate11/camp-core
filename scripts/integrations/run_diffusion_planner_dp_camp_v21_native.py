@@ -2589,7 +2589,12 @@ def _validate_arm_receipt(
     require_summary: bool = True,
     expected_selection_policy: str | None = None,
     expected_safety_schema: str = "safety_cost_native_v1",
+    expected_candidate0_pool_diagnostics: bool = False,
 ) -> None:
+    if type(expected_candidate0_pool_diagnostics) is not bool:
+        raise TypeError("candidate0 pool-diagnostics expectation must be a native bool")
+    if expected_candidate0_pool_diagnostics and arm != "dp":
+        raise ValueError("candidate0 pool diagnostics are only valid for the DP arm")
     if receipt.get("status") != "ok":
         raise ValueError(f"{arm} arm failed")
     if receipt.get("arm") != arm:
@@ -2646,6 +2651,12 @@ def _validate_arm_receipt(
             number = float(value)
             if not np.isfinite(number) or number < 0.0:
                 raise ValueError("latency must be finite and nonnegative")
+        if (
+            arm == "dp"
+            and expected_candidate0_pool_diagnostics
+            and "candidate_tensor_sha256_before" not in tick
+        ):
+            raise ValueError("DP candidate0 pool diagnostics are missing")
         if arm == "dp" and "candidate_tensor_sha256_before" in tick:
             row_sha256 = tick.get("candidate_row_sha256")
             identity = _mapping(tick, "default_candidate0_identity")
@@ -2683,20 +2694,26 @@ def _validate_arm_receipt(
                 != tick["default_output_sha256"]
                 or identity.get("candidate0_sha256")
                 != tick["default_output_sha256"]
-                or any(
-                    field in tick
-                    for field in (
-                        "atom_matrix_sha256",
-                        "normalized_atom_matrix_sha256",
-                        "scores",
-                        "source_valid_mask",
-                        "physical_feasible_mask",
-                        "v25_context",
-                        "v25_scene_selector",
-                    )
-                )
             ):
                 raise ValueError("DP operational-default fixed-K8 receipt is invalid")
+            if expected_candidate0_pool_diagnostics:
+                _validate_candidate0_pool_diagnostics_tick(tick)
+            elif any(
+                field in tick
+                for field in (
+                    "atom_matrix_sha256",
+                    "normalized_atom_matrix_sha256",
+                    "scores",
+                    "source_valid_mask",
+                    "physical_feasible_mask",
+                    "source_complete_mask",
+                    "candidate_reasons",
+                    "all_k_high_risk",
+                    "v25_context",
+                    "v25_scene_selector",
+                )
+            ):
+                raise ValueError("unexpected DP candidate0 pool diagnostics")
         if arm == "camp":
             for name in (
                 "candidate_tensor_sha256_before",
@@ -2870,6 +2887,7 @@ def validate_native_arm_receipt(
     require_summary: bool = True,
     expected_selection_policy: str | None = None,
     expected_safety_schema: str = "safety_cost_native_v22",
+    expected_candidate0_pool_diagnostics: bool = False,
 ) -> None:
     _validate_arm_receipt(
         receipt,
@@ -2878,7 +2896,58 @@ def validate_native_arm_receipt(
         require_summary=require_summary,
         expected_selection_policy=expected_selection_policy,
         expected_safety_schema=expected_safety_schema,
+        expected_candidate0_pool_diagnostics=expected_candidate0_pool_diagnostics,
     )
+
+
+def _validate_candidate0_pool_diagnostics_tick(tick: Mapping[str, Any]) -> None:
+    required = {
+        "atom_matrix_sha256",
+        "physical_feasible_mask",
+        "source_valid_mask",
+        "source_complete_mask",
+        "candidate_reasons",
+        "all_k_high_risk",
+    }
+    forbidden = {
+        "normalized_atom_matrix_sha256",
+        "scores",
+        "v25_context",
+        "v25_scene_selector",
+    }
+    if not required.issubset(tick) or forbidden.intersection(tick):
+        raise ValueError("candidate0 offline pool diagnostic schema drifted")
+    masks: dict[str, np.ndarray] = {}
+    for name in (
+        "physical_feasible_mask",
+        "source_valid_mask",
+        "source_complete_mask",
+    ):
+        raw = tick[name]
+        if type(raw) is not list or len(raw) != 8 or any(type(value) is not bool for value in raw):
+            raise ValueError("candidate0 offline pool masks must be native bool [8]")
+        masks[name] = np.asarray(raw, dtype=np.bool_)
+    physical = masks["physical_feasible_mask"]
+    source = masks["source_valid_mask"]
+    if np.any(physical & ~source) or not source.any():
+        raise ValueError("candidate0 offline pool masks violate source eligibility")
+    reasons = tick["candidate_reasons"]
+    if (
+        type(reasons) is not list
+        or len(reasons) != 8
+        or any(
+            type(row) is not list or any(type(value) is not str for value in row)
+            for row in reasons
+        )
+    ):
+        raise ValueError("candidate0 offline pool reasons must be string lists [8]")
+    expected_all_k = bool(source.all() and not physical.any())
+    if (
+        type(tick["all_k_high_risk"]) is not bool
+        or tick["all_k_high_risk"] is not expected_all_k
+        or not _is_sha256(tick["atom_matrix_sha256"])
+    ):
+        raise ValueError("candidate0 offline pool evidence value drifted")
 
 
 def canonical_spawn_config_sha256(

@@ -590,6 +590,7 @@ def _review_complete(
         expected_ticks=64,
         expected_selection_policy=("v22_source_valid" if native_arm == "camp" else None),
         expected_safety_schema="safety_cost_native_v22",
+        expected_candidate0_pool_diagnostics=(plan_arm == ARMS[0]),
     )
     if (
         native.get("fixed_dp_head") != FIXED_DP_HEAD
