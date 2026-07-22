@@ -251,6 +251,7 @@ class V25ParametricMasterResult:
     converged: bool
     iterations: int
     cuts_per_scene: tuple[int, ...]
+    cut_indices_per_scene: tuple[tuple[int, ...], ...]
     history: tuple[dict[str, Any], ...]
     solver_status: str
     solver_name: str
@@ -262,8 +263,9 @@ def v25_bradley_terry_warmup(
     normalized_atoms: np.ndarray,
     phi: np.ndarray,
     oracle_indices: np.ndarray,
-    feasible_mask: np.ndarray,
+    source_valid_mask: np.ndarray,
     *,
+    record_weights: Optional[np.ndarray] = None,
     iterations: int = 80,
     learning_rate: float = 0.5,
     l2_reg: float = 1e-4,
@@ -276,21 +278,28 @@ def v25_bradley_terry_warmup(
     convex simplex feasible set used by the authoritative master. The warmup
     never consumes GT futures, closed-loop outcomes, holdout fields, or IDs.
     """
-    atoms, phi_values, oracle, feasible, num_atoms = _validate_v25_problem(
-        normalized_atoms, phi, oracle_indices, feasible_mask, margins=None
+    atoms, phi_values, oracle, source_valid, num_atoms = _validate_v25_problem(
+        normalized_atoms, phi, oracle_indices, source_valid_mask, margins=None
     )
+    record_mass = _validate_v25_record_weights(record_weights, atoms.shape[0])
     if iterations < 1 or learning_rate <= 0.0 or l2_reg < 0.0 or max_pairs < 1:
         raise ValueError("invalid Bradley-Terry optimizer settings.")
-    pair_mask = feasible.copy()
+    pair_mask = source_valid.copy()
     pair_mask[np.arange(atoms.shape[0]), oracle] = False
     records, candidates = np.nonzero(pair_mask)
     available = int(records.size)
     if available == 0:
-        raise ValueError("Bradley-Terry warmup requires a non-oracle feasible pair.")
+        raise ValueError(
+            "Bradley-Terry warmup requires a non-oracle source-valid pair."
+        )
+    pair_counts = np.sum(pair_mask, axis=1)
+    pair_weights = record_mass[records] / pair_counts[records]
     if available > int(max_pairs):
         sample = np.linspace(0, available - 1, num=int(max_pairs), dtype=np.int64)
         records = records[sample]
         candidates = candidates[sample]
+        pair_weights = pair_weights[sample]
+    pair_weights = pair_weights / np.sum(pair_weights)
     pair_phi = phi_values[records]
     deltas = (
         atoms[records, oracle[records], :] - atoms[records, candidates, :]
@@ -303,7 +312,7 @@ def v25_bradley_terry_warmup(
     def objective(values: np.ndarray) -> float:
         logits = np.einsum("mr,rp,mp->m", deltas, values, pair_phi)
         return float(
-            np.mean(np.logaddexp(0.0, logits))
+            np.sum(pair_weights * np.logaddexp(0.0, logits))
             + float(l2_reg) * np.sum((values - uniform) ** 2)
         )
 
@@ -313,7 +322,9 @@ def v25_bradley_terry_warmup(
         current_loss = objective(theta)
         logits = np.einsum("mr,rp,mp->m", deltas, theta, pair_phi)
         sigmoid = 1.0 / (1.0 + np.exp(-np.clip(logits, -50.0, 50.0)))
-        gradient = deltas.T @ (sigmoid[:, None] * pair_phi) / float(records.size)
+        gradient = deltas.T @ (
+            (pair_weights * sigmoid)[:, None] * pair_phi
+        )
         gradient += 2.0 * float(l2_reg) * (theta - uniform)
         step = float(learning_rate) / np.sqrt(float(iteration))
         updated = _project_columns_to_simplex(theta - step * gradient)
@@ -356,22 +367,25 @@ def solve_v25_parametric_cutting_plane(
     phi: np.ndarray,
     oracle_indices: np.ndarray,
     margins: np.ndarray,
-    feasible_mask: np.ndarray,
+    source_valid_mask: np.ndarray,
     *,
+    record_weights: Optional[np.ndarray] = None,
     config: V25ParametricMasterConfig = V25ParametricMasterConfig(),
 ) -> V25ParametricMasterResult:
     """Solve the V25 finite-candidate CVaR/L2 master with exact gap checks."""
     start = time.perf_counter()
     config.validate()
-    atoms, phi_values, oracle, feasible, num_atoms = _validate_v25_problem(
-        normalized_atoms, phi, oracle_indices, feasible_mask, margins=margins
+    atoms, phi_values, oracle, source_valid, num_atoms = _validate_v25_problem(
+        normalized_atoms, phi, oracle_indices, source_valid_mask, margins=margins
     )
+    record_mass = _validate_v25_record_weights(record_weights, atoms.shape[0])
     margin_values = np.asarray(margins, dtype=np.float64)
     bt = v25_bradley_terry_warmup(
         atoms,
         phi_values,
         oracle,
-        feasible,
+        source_valid,
+        record_weights=record_mass,
         iterations=config.bt_iterations,
         learning_rate=config.bt_learning_rate,
         l2_reg=config.bt_l2_reg,
@@ -380,7 +394,7 @@ def solve_v25_parametric_cutting_plane(
     cuts: list[set[int]] = [set() for _ in range(atoms.shape[0])]
     train_weights = context_weights(bt.theta, phi_values)
     _, _, initial_worst = candidate_ranking_violations(
-        atoms, train_weights, oracle, margin_values, feasible
+        atoms, train_weights, oracle, margin_values, source_valid
     )
     for record_index, candidate_index in enumerate(initial_worst):
         cuts[record_index].add(int(candidate_index))
@@ -402,11 +416,12 @@ def solve_v25_parametric_cutting_plane(
                 cuts=cuts,
                 config=config,
                 bt_theta=bt.theta,
+                record_weights=record_mass,
             )
         )
         train_weights = context_weights(theta, phi_values)
         _, exact_losses, worst = candidate_ranking_violations(
-            atoms, train_weights, oracle, margin_values, feasible
+            atoms, train_weights, oracle, margin_values, source_valid
         )
         gaps = np.maximum(exact_losses - master_losses, 0.0)
         final_gap = float(np.max(gaps))
@@ -420,8 +435,10 @@ def solve_v25_parametric_cutting_plane(
             {
                 "iteration": iteration,
                 "master_objective": float(master_objective),
-                "exact_cvar": float(empirical_cvar(exact_losses, config.alpha)[0]),
-                "mean_violation": float(np.mean(exact_losses)),
+                "exact_cvar": _weighted_empirical_cvar(
+                    exact_losses, record_mass, config.alpha
+                ),
+                "mean_violation": float(np.sum(record_mass * exact_losses)),
                 "max_violation": float(np.max(exact_losses)),
                 "max_master_gap": final_gap,
                 "new_cuts": int(new_cuts),
@@ -446,17 +463,18 @@ def solve_v25_parametric_cutting_plane(
                 cuts=cuts,
                 config=config,
                 bt_theta=bt.theta,
+                record_weights=record_mass,
             )
         )
         train_weights = context_weights(theta, phi_values)
         _, exact_losses, _ = candidate_ranking_violations(
-            atoms, train_weights, oracle, margin_values, feasible
+            atoms, train_weights, oracle, margin_values, source_valid
         )
         final_gap = float(np.max(np.maximum(exact_losses - master_losses, 0.0)))
         converged = final_gap <= config.tolerance
     else:
         _, exact_losses, _ = candidate_ranking_violations(
-            atoms, train_weights, oracle, margin_values, feasible
+            atoms, train_weights, oracle, margin_values, source_valid
         )
     return V25ParametricMasterResult(
         theta=theta,
@@ -466,6 +484,9 @@ def solve_v25_parametric_cutting_plane(
         converged=bool(converged),
         iterations=len(history),
         cuts_per_scene=tuple(len(values) for values in cuts),
+        cut_indices_per_scene=tuple(
+            tuple(sorted(values)) for values in cuts
+        ),
         history=tuple(history),
         solver_status=solver_status,
         solver_name=solver_name,
@@ -478,13 +499,24 @@ def _validate_v25_problem(
     normalized_atoms: np.ndarray,
     phi: np.ndarray,
     oracle_indices: np.ndarray,
-    feasible_mask: np.ndarray,
+    source_valid_mask: np.ndarray,
     margins: Optional[np.ndarray],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, int]:
-    atoms = np.asarray(normalized_atoms, dtype=np.float64)
-    phi_values = np.asarray(phi, dtype=np.float64)
-    oracle = np.asarray(oracle_indices, dtype=np.int64).reshape(-1)
-    feasible = np.asarray(feasible_mask, dtype=bool)
+    raw_atoms = np.asarray(normalized_atoms)
+    raw_phi = np.asarray(phi)
+    raw_oracle = np.asarray(oracle_indices)
+    source_valid = np.asarray(source_valid_mask)
+    if raw_atoms.dtype.kind not in "fiu" or raw_atoms.dtype.kind == "b":
+        raise ValueError("normalized_atoms must be native numeric [N,K,R].")
+    if raw_phi.dtype.kind not in "fiu" or raw_phi.dtype.kind == "b":
+        raise ValueError("phi must be native numeric [N,P].")
+    if raw_oracle.dtype.kind not in "iu" or raw_oracle.dtype.kind == "b":
+        raise ValueError("oracle_indices must be native integers [N].")
+    if source_valid.dtype != np.bool_:
+        raise ValueError("source_valid_mask must contain native booleans.")
+    atoms = raw_atoms.astype(np.float64, copy=False)
+    phi_values = raw_phi.astype(np.float64, copy=False)
+    oracle = raw_oracle.astype(np.int64, copy=False).reshape(-1)
     if atoms.ndim != 3 or min(atoms.shape) < 1:
         raise ValueError("normalized_atoms must have nonempty shape [N,K,R].")
     if not np.all(np.isfinite(atoms)) or np.any(atoms < 0.0):
@@ -496,21 +528,24 @@ def _validate_v25_problem(
     validate_phi(phi_values)
     if phi_values.ndim != 2 or phi_values.shape[0] != atoms.shape[0]:
         raise ValueError("phi must have one row per training record.")
-    if feasible.shape != atoms.shape[:2]:
-        raise ValueError("feasible_mask must match atoms [N,K].")
+    if source_valid.shape != atoms.shape[:2]:
+        raise ValueError("source_valid_mask must match atoms [N,K].")
     if oracle.shape != (atoms.shape[0],) or np.any(oracle < 0) or np.any(
         oracle >= atoms.shape[1]
     ):
         raise ValueError("oracle_indices must identify one candidate per record.")
-    if not feasible[np.arange(atoms.shape[0]), oracle].all():
-        raise ValueError("every causal oracle candidate must be feasible.")
+    if not source_valid[np.arange(atoms.shape[0]), oracle].all():
+        raise ValueError("every causal oracle candidate must be source-valid.")
     if margins is not None:
-        margin_values = np.asarray(margins, dtype=np.float64)
+        raw_margins = np.asarray(margins)
+        if raw_margins.dtype.kind not in "fiu" or raw_margins.dtype.kind == "b":
+            raise ValueError("margins must be native numeric [N,K].")
+        margin_values = raw_margins.astype(np.float64, copy=False)
         if margin_values.shape != atoms.shape[:2] or not np.all(
             np.isfinite(margin_values)
         ) or np.any(margin_values < 0.0):
             raise ValueError("margins must be finite nonnegative [N,K].")
-    return atoms, phi_values, oracle, feasible, int(atoms.shape[2])
+    return atoms, phi_values, oracle, source_valid, int(atoms.shape[2])
 
 
 def _solve_v25_restricted_master(
@@ -522,27 +557,44 @@ def _solve_v25_restricted_master(
     cuts: list[set[int]],
     config: V25ParametricMasterConfig,
     bt_theta: np.ndarray,
+    record_weights: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray, str, str, float]:
     num_records, _candidate_count, num_atoms = atoms.shape
     theta = cp.Variable((num_atoms, PHI_DIMENSION))
     losses = cp.Variable(num_records, nonneg=True)
-    weights = theta @ phi.T
     constraints = [theta >= 0.0, cp.sum(theta, axis=0) == 1.0]
     oracle_atoms = atoms[np.arange(num_records), oracle]
-    for record_index, candidate_indices in enumerate(cuts):
-        for candidate_index in candidate_indices:
-            if not np.isfinite(margins[record_index, candidate_index]):
-                raise ValueError("cut margin must be finite.")
-            atom_delta = oracle_atoms[record_index] - atoms[record_index, candidate_index]
-            constraints.append(
-                losses[record_index]
-                >= margins[record_index, candidate_index]
-                + atom_delta @ weights[:, record_index]
-            )
+    # K is frozen at eight, while the train corpus can contain O(1e5) rows.
+    # Grouping scalar cuts by candidate index preserves the exact affine
+    # inequalities but keeps CVXPY construction to at most K vector blocks.
+    for candidate_index in range(atoms.shape[1]):
+        record_indices = np.asarray(
+            [
+                record_index
+                for record_index, candidate_indices in enumerate(cuts)
+                if candidate_index in candidate_indices
+            ],
+            dtype=np.int64,
+        )
+        if record_indices.size == 0:
+            continue
+        cut_margins = margins[record_indices, candidate_index]
+        if not np.all(np.isfinite(cut_margins)):
+            raise ValueError("cut margin must be finite.")
+        atom_delta = (
+            oracle_atoms[record_indices] - atoms[record_indices, candidate_index]
+        )
+        local_weights = theta @ phi[record_indices].T
+        affine_delta = cp.sum(
+            cp.multiply(atom_delta.T, local_weights), axis=0
+        )
+        constraints.append(
+            losses[record_indices] >= cut_margins + affine_delta
+        )
     eta = cp.Variable(nonneg=True)
     excess = cp.Variable(num_records, nonneg=True)
     constraints.append(excess >= losses - eta)
-    risk = eta + cp.sum(excess) / ((1.0 - config.alpha) * num_records)
+    risk = eta + record_weights @ excess / (1.0 - config.alpha)
     uniform = np.full(
         (num_atoms, PHI_DIMENSION), 1.0 / num_atoms, dtype=np.float64
     )
@@ -576,6 +628,65 @@ def _solve_v25_restricted_master(
         str(problem.solver_stats.solver_name or "CLARABEL").upper(),
         float(problem.value),
     )
+
+
+def _validate_v25_record_weights(
+    record_weights: Optional[np.ndarray], num_records: int
+) -> np.ndarray:
+    if record_weights is None:
+        return np.full(num_records, 1.0 / num_records, dtype=np.float64)
+    values = np.asarray(record_weights)
+    if (
+        values.shape != (num_records,)
+        or values.dtype.kind not in "fiu"
+        or values.dtype.kind == "b"
+    ):
+        raise ValueError("record_weights must be native numeric [N].")
+    values = values.astype(np.float64, copy=False)
+    if not np.all(np.isfinite(values)) or np.any(values <= 0.0):
+        raise ValueError("record_weights must be finite and strictly positive.")
+    total = float(np.sum(values))
+    if not np.isfinite(total) or total <= 0.0:
+        raise ValueError("record_weights must have finite positive total mass.")
+    return values / total
+
+
+def _weighted_empirical_cvar(
+    losses: np.ndarray,
+    record_weights: np.ndarray,
+    alpha: float,
+) -> float:
+    """Evaluate weighted empirical CVaR by the same eta formulation as CVXPY."""
+
+    values = np.asarray(losses, dtype=np.float64).reshape(-1)
+    weights = _validate_v25_record_weights(record_weights, values.size)
+    if not np.all(np.isfinite(values)) or np.any(values < 0.0):
+        raise ValueError("losses must be finite nonnegative.")
+    if not 0.0 <= alpha < 1.0:
+        raise ValueError("alpha must lie in [0,1).")
+    order = np.argsort(values, kind="mergesort")
+    ordered = values[order]
+    mass = weights[order]
+    unique, counts = np.unique(ordered, return_counts=True)
+    group_ends = np.cumsum(counts) - 1
+    cumulative_mass = np.cumsum(mass)
+    cumulative_value_mass = np.cumsum(mass * ordered)
+    tail_mass = 1.0 - cumulative_mass[group_ends]
+    tail_value_mass = cumulative_value_mass[-1] - cumulative_value_mass[group_ends]
+    objectives = unique + (
+        tail_value_mass - unique * tail_mass
+    ) / (1.0 - alpha)
+    if unique[0] > 0.0:
+        objectives = np.concatenate(
+            (
+                np.asarray(
+                    [cumulative_value_mass[-1] / (1.0 - alpha)],
+                    dtype=np.float64,
+                ),
+                objectives,
+            )
+        )
+    return float(np.min(objectives))
 
 
 def _project_columns_to_simplex(values: np.ndarray) -> np.ndarray:

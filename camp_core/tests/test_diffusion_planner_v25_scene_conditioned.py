@@ -17,6 +17,7 @@ from camp_core.integrations.diffusion_planner_v25_context import (
     complement_lift,
     context_weights,
     fit_train_context_scaler,
+    masked_complement_lift,
 )
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     canonical_json_sha256,
@@ -189,6 +190,56 @@ def test_raw_context_is_exact_finite_current_request_contract() -> None:
     assert all(record.source_complete)
 
 
+@pytest.mark.parametrize(
+    "source_valid_mask",
+    [
+        np.ones(8, dtype=np.int64),
+        np.asarray(["true"] * 8),
+        np.zeros(8, dtype=np.bool_),
+    ],
+)
+def test_raw_context_rejects_coerced_or_empty_source_valid_mask(
+    source_valid_mask: np.ndarray,
+) -> None:
+    with pytest.raises(ValueError, match="source_valid_mask"):
+        build_v25_raw_context(
+            causal_input=_causal_input(),
+            candidates=_candidates(),
+            source_valid_mask=source_valid_mask,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "bad_value"),
+    [
+        ("phase_remaining_s", "4.5"),
+        ("decision_timestamp_s", True),
+        ("source_timestamp_s", "9.9"),
+        ("maximum_age_s", False),
+    ],
+)
+def test_v2i_timing_rejects_numeric_type_smuggling(
+    field: str,
+    bad_value: object,
+) -> None:
+    timing = {
+        "source_id": "unit-test-v2i",
+        "phase_remaining_s": 4.5,
+        "decision_timestamp_s": 10.0,
+        "source_timestamp_s": 9.9,
+        "maximum_age_s": 0.5,
+        "valid": True,
+    }
+    timing[field] = bad_value
+    with pytest.raises(ValueError, match="native numbers"):
+        build_v25_raw_context(
+            causal_input=_causal_input(),
+            candidates=_candidates(),
+            source_valid_mask=np.ones(8, dtype=np.bool_),
+            v2i_signal_timing=timing,
+        )
+
+
 def test_train_only_scaler_complement_lift_and_universal_simplex() -> None:
     raw = np.vstack(
         [
@@ -214,6 +265,41 @@ def test_train_only_scaler_complement_lift_and_universal_simplex() -> None:
     np.testing.assert_allclose(weights.sum(axis=1), 1.0)
 
 
+def test_no_v2i_masked_lift_removes_unavailable_feature_pair() -> None:
+    raw = np.vstack(
+        [
+            np.linspace(0.0, 1.0, RAW_FEATURE_COUNT),
+            np.linspace(1.0, 2.0, RAW_FEATURE_COUNT),
+            np.linspace(2.0, 3.0, RAW_FEATURE_COUNT),
+        ]
+    )
+    available = np.ones(raw.shape, dtype=np.bool_)
+    timing_index = RAW_FEATURE_NAMES.index("traffic_signal_phase_remaining_s")
+    available[:, timing_index] = False
+    raw[:, timing_index] = [0.0, 999.0, -999.0]
+    scaler = fit_train_context_scaler(
+        raw,
+        source_complete=available,
+        record_weights=np.asarray([0.6, 0.3, 0.1], dtype=np.float64),
+    )
+    phi = scaler.lift(raw, source_complete=available)
+    pair = phi[:, [1 + 2 * timing_index, 2 + 2 * timing_index]]
+    np.testing.assert_array_equal(pair, np.zeros((3, 2), dtype=np.float64))
+    np.testing.assert_allclose(phi.sum(axis=1), 1.0, rtol=0.0, atol=1e-12)
+    assert scaler.q05[timing_index] == 0.0
+    assert scaler.q95[timing_index] == 1.0
+
+
+def test_masked_lift_matches_original_when_every_source_is_available() -> None:
+    unit = np.linspace(0.0, 1.0, RAW_FEATURE_COUNT)
+    np.testing.assert_array_equal(
+        masked_complement_lift(unit, np.ones(RAW_FEATURE_COUNT, dtype=np.bool_)),
+        complement_lift(unit),
+    )
+    with pytest.raises(ValueError, match="native booleans"):
+        masked_complement_lift(unit, np.ones(RAW_FEATURE_COUNT, dtype=np.int64))
+
+
 def test_strict_head_and_selector_use_no_softmax_or_runtime_projection() -> None:
     theta = np.full((2, PHI_DIMENSION), 0.5, dtype=np.float64)
     phi = complement_lift(np.linspace(0.0, 1.0, RAW_FEATURE_COUNT))
@@ -233,9 +319,14 @@ def test_strict_head_and_selector_use_no_softmax_or_runtime_projection() -> None
         mode="context_simplex",
     )
     np.testing.assert_allclose(
-        selector.weights_for(raw_context=np.linspace(0.0, 1.0, RAW_FEATURE_COUNT)),
+        selector.weights_for(
+            raw_context=np.linspace(0.0, 1.0, RAW_FEATURE_COUNT),
+            context_source_complete=np.ones(RAW_FEATURE_COUNT, dtype=np.bool_),
+        ),
         [0.5, 0.5],
     )
+    with pytest.raises(ValueError, match="context_source_complete"):
+        selector.weights_for(raw_context=np.linspace(0.0, 1.0, RAW_FEATURE_COUNT))
     with pytest.raises(ValueError, match="rejects scene_embedding"):
         selector.weights_for(np.zeros(RAW_FEATURE_COUNT))
     with pytest.raises(ValueError, match="column must sum to one"):
@@ -266,7 +357,7 @@ def test_train_only_bt_and_strict_cvar_master_converge() -> None:
     )
     phi = complement_lift(raw)
     oracle = np.zeros(record_count, dtype=np.int64)
-    feasible = np.ones((record_count, 3), dtype=bool)
+    source_valid = np.ones((record_count, 3), dtype=bool)
     margins = np.zeros((record_count, 3), dtype=np.float64)
     margins[:, 1:] = 0.2
 
@@ -274,7 +365,7 @@ def test_train_only_bt_and_strict_cvar_master_converge() -> None:
         atoms,
         phi,
         oracle,
-        feasible,
+        source_valid,
         iterations=20,
         max_pairs=128,
     )
@@ -288,7 +379,7 @@ def test_train_only_bt_and_strict_cvar_master_converge() -> None:
         phi,
         oracle,
         margins,
-        feasible,
+        source_valid,
         config=V25ParametricMasterConfig(
             max_iter=5,
             tolerance=1e-6,
@@ -307,6 +398,122 @@ def test_train_only_bt_and_strict_cvar_master_converge() -> None:
     assert sum(result.cuts_per_scene) >= record_count
 
 
+def test_v25_bt_uses_record_mass_and_divides_it_across_pairs() -> None:
+    pytest.importorskip("cvxpy")
+    from camp_core.integrations.diffusion_planner_v25_context import context_weights
+    from camp_core.outer_master.parametric_cvxpy_master import (
+        v25_bradley_terry_warmup,
+    )
+
+    atoms = np.zeros((2, 2, 2), dtype=np.float64)
+    atoms[0, 1, 0] = 1.0
+    atoms[1, 1, 1] = 1.0
+    phi = complement_lift(np.zeros((2, RAW_FEATURE_COUNT), dtype=np.float64))
+    oracle = np.zeros(2, dtype=np.int64)
+    source_valid = np.ones((2, 2), dtype=bool)
+    weighted = v25_bradley_terry_warmup(
+        atoms,
+        phi,
+        oracle,
+        source_valid,
+        record_weights=np.asarray([0.9, 0.1], dtype=np.float64),
+        iterations=80,
+        max_pairs=128,
+    )
+    weights = context_weights(weighted.theta, phi)
+    assert np.all(weights[:, 0] > weights[:, 1])
+    np.testing.assert_allclose(weighted.theta.sum(axis=0), 1.0, atol=1e-10)
+
+
+def test_v25_master_uniform_record_mass_matches_default() -> None:
+    pytest.importorskip("cvxpy")
+    from camp_core.outer_master.parametric_cvxpy_master import (
+        V25ParametricMasterConfig,
+        solve_v25_parametric_cutting_plane,
+    )
+
+    records = 4
+    atoms = np.zeros((records, 3, 2), dtype=np.float64)
+    atoms[:, 1, 0] = np.linspace(0.5, 1.0, records)
+    atoms[:, 2, 1] = np.linspace(1.0, 0.5, records)
+    phi = complement_lift(np.zeros((records, RAW_FEATURE_COUNT), dtype=np.float64))
+    oracle = np.zeros(records, dtype=np.int64)
+    source_valid = np.ones((records, 3), dtype=bool)
+    margins = np.zeros((records, 3), dtype=np.float64)
+    margins[:, 1:] = 0.1
+    config = V25ParametricMasterConfig(
+        alpha=0.5,
+        max_iter=5,
+        tolerance=1e-6,
+        bt_iterations=20,
+        bt_max_pairs=128,
+    )
+    default = solve_v25_parametric_cutting_plane(
+        atoms, phi, oracle, margins, source_valid, config=config
+    )
+    explicit = solve_v25_parametric_cutting_plane(
+        atoms,
+        phi,
+        oracle,
+        margins,
+        source_valid,
+        record_weights=np.full(records, 1.0 / records, dtype=np.float64),
+        config=config,
+    )
+    np.testing.assert_allclose(default.theta, explicit.theta, rtol=0.0, atol=1e-9)
+    assert default.final_master_gap == pytest.approx(explicit.final_master_gap, abs=1e-12)
+
+
+def test_weighted_empirical_cvar_matches_direct_eta_enumeration() -> None:
+    from camp_core.outer_master.parametric_cvxpy_master import (
+        _weighted_empirical_cvar,
+    )
+
+    losses = np.asarray([0.0, 0.2, 0.2, 0.7, 1.4], dtype=np.float64)
+    weights = np.asarray([0.05, 0.15, 0.20, 0.25, 0.35], dtype=np.float64)
+    for alpha in (0.0, 0.5, 0.9):
+        candidates = np.unique(np.concatenate((np.asarray([0.0]), losses)))
+        direct = min(
+            float(
+                eta
+                + np.sum(weights * np.maximum(losses - eta, 0.0))
+                / (1.0 - alpha)
+            )
+            for eta in candidates
+        )
+        assert _weighted_empirical_cvar(losses, weights, alpha) == pytest.approx(
+            direct, abs=1e-15
+        )
+
+
+@pytest.mark.parametrize(
+    "record_weights",
+    [
+        np.asarray([True, False]),
+        np.asarray([1.0, 0.0]),
+        np.asarray([1.0, np.nan]),
+        np.asarray([1.0]),
+    ],
+)
+def test_v25_bt_rejects_invalid_record_mass(record_weights: np.ndarray) -> None:
+    pytest.importorskip("cvxpy")
+    from camp_core.outer_master.parametric_cvxpy_master import (
+        v25_bradley_terry_warmup,
+    )
+
+    atoms = np.zeros((2, 2, 2), dtype=np.float64)
+    atoms[:, 1, 0] = 1.0
+    phi = complement_lift(np.zeros((2, RAW_FEATURE_COUNT), dtype=np.float64))
+    with pytest.raises(ValueError, match="record_weights"):
+        v25_bradley_terry_warmup(
+            atoms,
+            phi,
+            np.zeros(2, dtype=np.int64),
+            np.ones((2, 2), dtype=bool),
+            record_weights=record_weights,
+        )
+
+
 def test_v25_master_rejects_non_clarabel_or_non_simplex_phi() -> None:
     pytest.importorskip("cvxpy")
     from camp_core.outer_master.parametric_cvxpy_master import (
@@ -317,3 +524,63 @@ def test_v25_master_rejects_non_clarabel_or_non_simplex_phi() -> None:
         V25ParametricMasterConfig(solver="SCS").validate()
     with pytest.raises(ValueError, match=r"\[0,1\]"):
         complement_lift(np.full(RAW_FEATURE_COUNT, 1.1))
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("source_valid", np.ones((2, 2), dtype=np.int64), "native booleans"),
+        ("oracle", np.zeros(2, dtype=np.float64), "native integers"),
+        ("margins", np.zeros((2, 2), dtype=np.bool_), "native numeric"),
+    ],
+)
+def test_v25_master_rejects_type_smuggling(
+    field: str, value: np.ndarray, message: str
+) -> None:
+    pytest.importorskip("cvxpy")
+    from camp_core.outer_master.parametric_cvxpy_master import (
+        V25ParametricMasterConfig,
+        solve_v25_parametric_cutting_plane,
+    )
+
+    atoms = np.zeros((2, 2, 2), dtype=np.float64)
+    atoms[:, 1, 0] = 1.0
+    phi = complement_lift(np.zeros((2, RAW_FEATURE_COUNT), dtype=np.float64))
+    oracle = np.zeros(2, dtype=np.int64)
+    margins = np.zeros((2, 2), dtype=np.float64)
+    source_valid = np.ones((2, 2), dtype=np.bool_)
+    arguments = {
+        "oracle_indices": oracle,
+        "margins": margins,
+        "source_valid_mask": source_valid,
+    }
+    arguments[
+        {
+            "source_valid": "source_valid_mask",
+            "oracle": "oracle_indices",
+            "margins": "margins",
+        }[field]
+    ] = value
+    with pytest.raises(ValueError, match=message):
+        solve_v25_parametric_cutting_plane(
+            atoms,
+            phi,
+            arguments["oracle_indices"],
+            arguments["margins"],
+            arguments["source_valid_mask"],
+            config=V25ParametricMasterConfig(max_iter=1, bt_iterations=1),
+        )
+
+
+def test_context_scaler_rejects_record_weight_overflow() -> None:
+    raw = np.vstack(
+        [
+            np.zeros(RAW_FEATURE_COUNT, dtype=np.float64),
+            np.ones(RAW_FEATURE_COUNT, dtype=np.float64),
+        ]
+    )
+    with pytest.raises(ValueError, match="finite positive total"):
+        fit_train_context_scaler(
+            raw,
+            record_weights=np.asarray([np.finfo(np.float64).max] * 2),
+        )

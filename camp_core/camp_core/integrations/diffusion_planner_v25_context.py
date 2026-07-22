@@ -92,8 +92,16 @@ class V25ContextScaler:
         unit = np.clip((values - self.q05) / (self.q95 - self.q05), 0.0, 1.0)
         return unit[0] if np.asarray(raw).ndim == 1 else unit
 
-    def lift(self, raw: np.ndarray) -> np.ndarray:
-        return complement_lift(self.normalize(raw))
+    def lift(
+        self,
+        raw: np.ndarray,
+        *,
+        source_complete: np.ndarray | None = None,
+    ) -> np.ndarray:
+        unit = self.normalize(raw)
+        if source_complete is None:
+            return complement_lift(unit)
+        return masked_complement_lift(unit, source_complete)
 
 
 def build_v25_raw_context(
@@ -120,9 +128,12 @@ def build_v25_raw_context(
     trajectories = np.asarray(candidates, dtype=np.float64)
     if trajectories.shape != (8, 80, 4) or not np.all(np.isfinite(trajectories)):
         raise ValueError("candidates must be finite with shape [8,80,4].")
-    source_valid = np.asarray(source_valid_mask, dtype=bool).reshape(-1)
-    if source_valid.shape != (8,):
-        raise ValueError("source_valid_mask must have shape [8].")
+    source_valid = np.asarray(source_valid_mask)
+    if source_valid.shape != (8,) or source_valid.dtype != np.bool_:
+        raise ValueError("source_valid_mask must be native bool with shape [8].")
+    if not np.any(source_valid):
+        raise ValueError("source_valid_mask must contain at least one valid candidate.")
+    source_valid = source_valid.copy()
 
     ego = np.asarray(causal_input["ego_current_state"], dtype=np.float64).reshape(-1)
     if ego.shape != (10,) or not np.all(np.isfinite(ego)):
@@ -249,15 +260,15 @@ def _v2i_timing_context(
         raise ValueError("V2I timing source_id must be a nonempty receipt string")
     if payload["valid"] is not True:
         raise ValueError("V2I timing receipt is invalid")
-    values = np.asarray(
-        [
-            payload["phase_remaining_s"],
-            payload["decision_timestamp_s"],
-            payload["source_timestamp_s"],
-            payload["maximum_age_s"],
-        ],
-        dtype=np.float64,
+    numeric_fields = (
+        "phase_remaining_s",
+        "decision_timestamp_s",
+        "source_timestamp_s",
+        "maximum_age_s",
     )
+    if any(type(payload[name]) not in (int, float) for name in numeric_fields):
+        raise ValueError("V2I timing receipt numeric fields must be native numbers")
+    values = np.asarray([payload[name] for name in numeric_fields], dtype=np.float64)
     if not np.isfinite(values).all():
         raise ValueError("V2I timing receipt must be finite")
     phase_remaining, decision_timestamp, source_timestamp, maximum_age = (
@@ -289,6 +300,8 @@ def _v2i_timing_context(
 def fit_train_context_scaler(
     raw_contexts: np.ndarray,
     *,
+    source_complete: np.ndarray | None = None,
+    record_weights: np.ndarray | None = None,
     lower_quantile: float = 0.05,
     upper_quantile: float = 0.95,
     minimum_span: float = 1e-6,
@@ -300,8 +313,28 @@ def fit_train_context_scaler(
         raise ValueError("context scaler quantiles must satisfy 0<=low<high<=1.")
     if not np.isfinite(minimum_span) or minimum_span <= 0.0:
         raise ValueError("minimum_span must be finite and positive.")
-    q05 = np.quantile(values, lower_quantile, axis=0)
-    q95 = np.quantile(values, upper_quantile, axis=0)
+    if source_complete is None:
+        available = np.ones(values.shape, dtype=np.bool_)
+    else:
+        available = _strict_context_source_complete(source_complete, values.shape)
+    weights = _context_record_weights(record_weights, values.shape[0])
+    q05 = np.empty(RAW_FEATURE_COUNT, dtype=np.float64)
+    q95 = np.empty(RAW_FEATURE_COUNT, dtype=np.float64)
+    for feature_index in range(RAW_FEATURE_COUNT):
+        mask = available[:, feature_index]
+        if not np.any(mask):
+            # This span is never consumed because the availability-aware lift
+            # zeros both columns.  Keeping a fixed [0,1] span avoids treating
+            # an unavailable no-V2I feature as observed zero support.
+            q05[feature_index] = 0.0
+            q95[feature_index] = 1.0
+            continue
+        q05[feature_index] = _weighted_context_quantile(
+            values[mask, feature_index], weights[mask], lower_quantile
+        )
+        q95[feature_index] = _weighted_context_quantile(
+            values[mask, feature_index], weights[mask], upper_quantile
+        )
     q95 = np.maximum(q95, q05 + float(minimum_span))
     return V25ContextScaler(q05=q05, q95=q95)
 
@@ -316,6 +349,33 @@ def complement_lift(unit_context: np.ndarray) -> np.ndarray:
     lifted[:, 1::2] = clipped
     lifted[:, 2::2] = 1.0 - clipped
     lifted /= float(1 + RAW_FEATURE_COUNT)
+    validate_phi(lifted)
+    return lifted[0] if np.asarray(unit_context).ndim == 1 else lifted
+
+
+def masked_complement_lift(
+    unit_context: np.ndarray,
+    source_complete: np.ndarray,
+) -> np.ndarray:
+    """Lift only source-complete current-tick context onto the simplex.
+
+    Unavailable features contribute neither ``x`` nor ``1-x``.  The intercept
+    and each available complement pair contribute one unit before row-wise
+    normalization, so ``phi`` remains a simplex without softmax or runtime
+    projection.  With all features available this is exactly
+    :func:`complement_lift`.
+    """
+
+    values = _raw_matrix(unit_context)
+    if np.any(values < -1e-12) or np.any(values > 1.0 + 1e-12):
+        raise ValueError("normalized V25 context must lie in [0,1].")
+    available = _strict_context_source_complete(source_complete, values.shape)
+    clipped = np.clip(values, 0.0, 1.0)
+    lifted = np.zeros((values.shape[0], PHI_DIMENSION), dtype=np.float64)
+    lifted[:, 0] = 1.0
+    lifted[:, 1::2] = np.where(available, clipped, 0.0)
+    lifted[:, 2::2] = np.where(available, 1.0 - clipped, 0.0)
+    lifted /= (1.0 + np.sum(available, axis=1, keepdims=True))
     validate_phi(lifted)
     return lifted[0] if np.asarray(unit_context).ndim == 1 else lifted
 
@@ -376,6 +436,56 @@ def _raw_matrix(raw: np.ndarray) -> np.ndarray:
     if not np.all(np.isfinite(values)):
         raise ValueError("raw context must contain only finite values.")
     return values
+
+
+def _strict_context_source_complete(
+    source_complete: np.ndarray,
+    shape: tuple[int, int],
+) -> np.ndarray:
+    available = np.asarray(source_complete)
+    if available.dtype != np.bool_:
+        raise ValueError("context source_complete must contain native booleans")
+    if available.ndim == 1:
+        available = available.reshape(1, -1)
+    if available.shape != shape:
+        raise ValueError(f"context source_complete must have shape {shape}")
+    return available
+
+
+def _context_record_weights(
+    record_weights: np.ndarray | None,
+    size: int,
+) -> np.ndarray:
+    if record_weights is None:
+        return np.full(size, 1.0 / size, dtype=np.float64)
+    values = np.asarray(record_weights)
+    if (
+        values.shape != (size,)
+        or values.dtype.kind not in "fiu"
+        or values.dtype.kind == "b"
+    ):
+        raise ValueError("context record_weights must be native numeric [N]")
+    values = values.astype(np.float64, copy=False)
+    if not np.all(np.isfinite(values)) or np.any(values <= 0.0):
+        raise ValueError("context record_weights must be finite strictly positive")
+    total = float(values.sum())
+    if not np.isfinite(total) or total <= 0.0:
+        raise ValueError("context record_weights must have finite positive total")
+    return values / total
+
+
+def _weighted_context_quantile(
+    values: np.ndarray,
+    weights: np.ndarray,
+    quantile: float,
+) -> float:
+    order = np.argsort(values, kind="mergesort")
+    ordered = np.asarray(values, dtype=np.float64)[order]
+    mass = np.asarray(weights, dtype=np.float64)[order]
+    cumulative = np.cumsum(mass)
+    threshold = float(quantile) * float(cumulative[-1])
+    index = int(np.searchsorted(cumulative, threshold, side="left"))
+    return float(ordered[min(index, ordered.size - 1)])
 
 
 def _ordered_route_rows(route_lanes: Any) -> tuple[np.ndarray, np.ndarray]:

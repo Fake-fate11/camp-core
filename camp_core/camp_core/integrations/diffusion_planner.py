@@ -3037,6 +3037,7 @@ class CAMPSelector:
         scene_embedding: Optional[np.ndarray] = None,
         *,
         raw_context: Optional[np.ndarray] = None,
+        context_source_complete: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         if self.mode == "static":
             return self.static_weights.copy()
@@ -3049,8 +3050,13 @@ class CAMPSelector:
                 )
             if raw_context is None:
                 raise ValueError("V25 context-simplex selection requires raw_context.")
+            if context_source_complete is None:
+                raise ValueError(
+                    "V25 context-simplex selection requires context_source_complete."
+                )
             phi = self.context_scaler.lift(
-                np.asarray(raw_context, dtype=np.float64).reshape(-1)
+                np.asarray(raw_context, dtype=np.float64).reshape(-1),
+                source_complete=np.asarray(context_source_complete),
             )
             return v25_context_weights(self.theta, phi)
 
@@ -3088,6 +3094,7 @@ class CAMPSelector:
         *,
         scene_embedding: Optional[np.ndarray] = None,
         raw_context: Optional[np.ndarray] = None,
+        context_source_complete: Optional[np.ndarray] = None,
         candidate_obstacles: Optional[np.ndarray] = None,
         candidate_progress: Optional[np.ndarray] = None,
         candidate_planned_red_light_cost: Optional[np.ndarray] = None,
@@ -3472,7 +3479,11 @@ class CAMPSelector:
             if self.atom_clip > 0:
                 normalized = np.clip(normalized, 0.0, self.atom_clip)
 
-        weights = self.weights_for(scene_embedding, raw_context=raw_context)
+        weights = self.weights_for(
+            scene_embedding,
+            raw_context=raw_context,
+            context_source_complete=context_source_complete,
+        )
         scores = normalized @ weights
         eligibility_mask = (
             source_valid_mask if self.num_atoms == len(DP_CAMP_ATOM_NAMES_V10)
