@@ -1,0 +1,542 @@
+from __future__ import annotations
+
+import hashlib
+import gzip
+import json
+from pathlib import Path
+from typing import Any, Mapping, Sequence
+
+import numpy as np
+
+from .diffusion_planner_causal_atoms import (
+    FixedDpCandidateGenerationCapabilityFailure,
+    validate_fixed_k8_candidate_tensor,
+)
+from .diffusion_planner_v25_fresh_b2 import validate_fresh_b2_manifest_row
+from .diffusion_planner_v25_fresh_execution import (
+    EVALUATION_ARMS,
+    RUN_SCHEMA_VERSION,
+    SCHEMA_VERSION as EXECUTION_SCHEMA_VERSION,
+    _paired_coverage,
+)
+from .diffusion_planner_v25_fresh_opening import (
+    validate_fresh_b2_opening_consumption,
+    validate_fresh_b2_opening_release,
+)
+from .diffusion_planner_v25_fresh_receipt import (
+    build_candidate0_pool_evidence,
+    build_fresh_b2_complete_row,
+    build_fresh_b2_failure_row,
+)
+from .diffusion_planner_v25_evaluation import PAIR_AUTHORITY_FIELDS
+from .diffusion_planner_v25_signal_complete_execution import (
+    FRESH_PLAN_ARMS,
+    build_fresh_b2_arm_config,
+)
+from .diffusion_planner_v25_signal_complete_plan import (
+    validate_signal_complete_execution_plan,
+)
+
+
+SCHEMA_VERSION = "camp_dp_v25_fresh_b2_three_arm_execution_review_v1"
+
+
+def review_fresh_b2_three_arm_execution(
+    *,
+    artifact: Path,
+    plan: Mapping[str, Any],
+    qualification_rows: Sequence[Mapping[str, Any]],
+    probe_template: Mapping[str, Any],
+    prepared_runtime_by_scenario: Mapping[str, Mapping[str, Any]],
+    route_asset_by_identity: Mapping[str, Mapping[str, Any]],
+    dp_repo: Path,
+    runtime_selector_authority: Mapping[str, Any],
+    opening_release: Mapping[str, Any],
+    opening_release_root_sha256: str,
+    opening_consumption: Mapping[str, Any],
+) -> dict[str, Any]:
+    execution = Path(artifact).resolve()
+    validated = validate_signal_complete_execution_plan(plan)
+    if (
+        validated.get("split") != "fresh_b2"
+        or validated.get("identity_count") != 100
+        or validated.get("execution_unit_count") != 500
+        or validated.get("planned_arm_run_count") != 1500
+        or validated.get("ticks_per_arm_run") != 64
+    ):
+        raise ValueError("Fresh B2 review denominator drifted")
+    release = validate_fresh_b2_opening_release(opening_release)
+    validate_fresh_b2_opening_consumption(
+        opening_consumption,
+        opening_release=release,
+        release_root_sha256=opening_release_root_sha256,
+    )
+    identities = {
+        row["scenario_identity_sha256"]: row for row in validated["identities"]
+    }
+    qualifications: dict[str, dict[str, Any]] = {}
+    for index, raw in enumerate(qualification_rows):
+        row = validate_fresh_b2_manifest_row(raw, index=index)
+        route = row["route_identity_sha256"]
+        if route in qualifications:
+            raise ValueError("Fresh B2 review qualification route is duplicated")
+        qualifications[route] = row
+    expected_routes = {
+        row["route_identity_sha256"] for row in validated["identities"]
+    }
+    if (
+        set(qualifications) != expected_routes
+        or set(route_asset_by_identity) != expected_routes
+        or set(prepared_runtime_by_scenario) != set(identities)
+    ):
+        raise ValueError("Fresh B2 review authority inventory drifted")
+
+    recorded_rows = _canonical_json_list(execution / "evaluation_rows.json")
+    recorded_terminals = _canonical_json_list(execution / "run_terminals.json")
+    report = _canonical_json(execution / "report.json")
+    expected_count = len(validated["execution_units"]) * 3
+    run_dirs = sorted((execution / "runs").iterdir())
+    if (
+        len(recorded_rows) != expected_count
+        or len(recorded_terminals) != expected_count
+        or len(run_dirs) != expected_count
+        or any(not path.is_dir() for path in run_dirs)
+    ):
+        raise ValueError("Fresh B2 review run inventory drifted")
+
+    rebuilt_rows: list[dict[str, Any]] = []
+    rebuilt_terminals: list[dict[str, Any]] = []
+    offset = 0
+    for unit in validated["execution_units"]:
+        identity = identities[unit["scenario_identity_sha256"]]
+        manifest = qualifications[identity["route_identity_sha256"]]
+        for arm_order_index, plan_arm in enumerate(unit["ordered_arms"]):
+            evaluation_arm = EVALUATION_ARMS[plan_arm]
+            expected_name = (
+                f"{unit['unit_ordinal']:04d}_{arm_order_index}_"
+                f"{unit['unit_sha256'][:16]}_{evaluation_arm}"
+            )
+            run_dir = run_dirs[offset]
+            offset += 1
+            if run_dir.name != expected_name:
+                raise ValueError("Fresh B2 review run order drifted")
+            expected_config = build_fresh_b2_arm_config(
+                probe_template=probe_template,
+                prepared_runtime=prepared_runtime_by_scenario[
+                    unit["scenario_identity_sha256"]
+                ],
+                execution_unit=unit,
+                plan_arm=plan_arm,
+                route_asset=route_asset_by_identity[
+                    identity["route_identity_sha256"]
+                ],
+                dp_repo=dp_repo,
+                runtime_selector_authority=runtime_selector_authority,
+            )
+            if not _strict_equal(
+                _canonical_json(run_dir / "run_config.json"), expected_config
+            ):
+                raise ValueError("Fresh B2 review run config drifted")
+            terminal = _canonical_json(run_dir / "terminal.json")
+            if terminal.get("schema_version") != RUN_SCHEMA_VERSION:
+                raise ValueError("Fresh B2 terminal schema drifted")
+            if terminal.get("status") == "complete":
+                native = _canonical_json(run_dir / "native_receipt.json")
+                _review_logical_decision_evidence(
+                    run_dir, native=native, evaluation_arm=evaluation_arm
+                )
+                pool = (
+                    build_candidate0_pool_evidence(native)
+                    if evaluation_arm == "candidate0"
+                    else None
+                )
+                row = build_fresh_b2_complete_row(
+                    qualification_row=manifest,
+                    pair_key=unit["unit_sha256"],
+                    arm=evaluation_arm,
+                    arm_order_index=arm_order_index,
+                    native_receipt=native,
+                    candidate0_pool_evidence=pool,
+                )
+                expected_terminal = {
+                    "schema_version": RUN_SCHEMA_VERSION,
+                    "status": "complete",
+                    "unit_ordinal": unit["unit_ordinal"],
+                    "unit_sha256": unit["unit_sha256"],
+                    "plan_arm": plan_arm,
+                    "evaluation_arm": evaluation_arm,
+                    "arm_order_index": arm_order_index,
+                    "native_receipt_sha256": _canonical_sha(native),
+                    "candidate0_pool_evidence_sha256": (
+                        _canonical_sha(pool) if pool is not None else None
+                    ),
+                    "fixed_dp_failure_receipt_sha256": None,
+                    "evaluation_row": row,
+                }
+            elif terminal.get("status") == "retained_fixed_dp_capability_failure":
+                evidence = _canonical_json(
+                    run_dir / "fixed_dp_failure_receipt.json"
+                )
+                metadata = _recompute_fixed_dp_failure(run_dir, evidence)
+                _review_failure_pair_authority(
+                    evidence,
+                    expected_config=expected_config,
+                    qualification_row=manifest,
+                )
+                row = build_fresh_b2_failure_row(
+                    qualification_row=manifest,
+                    pair_key=unit["unit_sha256"],
+                    arm=evaluation_arm,
+                    arm_order_index=arm_order_index,
+                    status="fixed_dp_candidate_generation_capability_failure",
+                    failure_class=metadata["reason"],
+                    signal_phase=evidence["signal_phase"],
+                    pair_authority=evidence["pair_authority"],
+                )
+                expected_terminal = {
+                    "schema_version": RUN_SCHEMA_VERSION,
+                    "status": "retained_fixed_dp_capability_failure",
+                    "unit_ordinal": unit["unit_ordinal"],
+                    "unit_sha256": unit["unit_sha256"],
+                    "plan_arm": plan_arm,
+                    "evaluation_arm": evaluation_arm,
+                    "arm_order_index": arm_order_index,
+                    "native_receipt_sha256": None,
+                    "candidate0_pool_evidence_sha256": None,
+                    "fixed_dp_failure_receipt_sha256": _canonical_sha(evidence),
+                    "evaluation_row": row,
+                }
+            else:
+                raise ValueError("Fresh B2 terminal status drifted")
+            if not _strict_equal(terminal, expected_terminal):
+                raise ValueError("Fresh B2 terminal differs from independent rebuild")
+            rebuilt_rows.append(row)
+            rebuilt_terminals.append(expected_terminal)
+
+    if (
+        not _strict_equal(recorded_rows, rebuilt_rows)
+        or not _strict_equal(recorded_terminals, rebuilt_terminals)
+    ):
+        raise ValueError("Fresh B2 recorded rows differ from independent rebuild")
+    _validate_cross_arm_pair_authority(rebuilt_rows)
+    coverage = _paired_coverage(validated, rebuilt_rows)
+    expected_report = {
+        "schema_version": EXECUTION_SCHEMA_VERSION,
+        "status": (
+            "passed_fresh_b2_three_arm_execution"
+            if coverage["coverage_gate_passed"]
+            else "fresh_b2_three_arm_execution_scientifically_ineligible"
+        ),
+        "planned_pair_count": len(validated["execution_units"]),
+        "planned_arm_run_count": expected_count,
+        "terminal_arm_run_count": expected_count,
+        "complete_arm_run_count": sum(
+            row["status"] == "complete" for row in rebuilt_rows
+        ),
+        "retained_fixed_dp_capability_failure_count": sum(
+            row["status"] == "fixed_dp_candidate_generation_capability_failure"
+            for row in rebuilt_rows
+        ),
+        "paired_coverage": coverage,
+        "evaluation_rows_sha256": _canonical_sha(rebuilt_rows),
+        "run_terminals_sha256": _canonical_sha(rebuilt_terminals),
+        "candidate_tensor_modified": False,
+        "fixed_dp_head": release["fixed_dp_head"],
+        "opening_release_root_sha256": opening_release_root_sha256,
+        "opening_run_nonce": release["run_nonce"],
+        "fresh_b2_opened_once": True,
+        "fresh_outcome_used_to_change_protocol": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "claim_authorized_by_execution": False,
+    }
+    if not _strict_equal(report, expected_report):
+        raise ValueError("Fresh B2 execution report differs from independent rebuild")
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "status": "passed_independent_fresh_b2_three_arm_execution_review",
+        "reviewed_artifact": str(execution),
+        "planned_pair_count": len(validated["execution_units"]),
+        "reviewed_arm_run_count": expected_count,
+        "complete_arm_run_count": expected_report["complete_arm_run_count"],
+        "retained_fixed_dp_capability_failure_count": expected_report[
+            "retained_fixed_dp_capability_failure_count"
+        ],
+        "paired_coverage": coverage,
+        "all_configs_independently_rebuilt": True,
+        "all_complete_rows_reprojected": True,
+        "all_fixed_dp_failure_preimages_recomputed": True,
+        "candidate_tensor_modified": False,
+        "fresh_b2_opened_once": True,
+        "fresh_outcome_used_to_change_protocol": False,
+        "training_executed": False,
+        "calibration_executed": False,
+        "claim_authorized_by_review": False,
+    }
+
+
+def _recompute_fixed_dp_failure(
+    run_dir: Path, evidence: Mapping[str, Any]
+) -> dict[str, Any]:
+    if type(evidence) is not dict or set(evidence) != {
+        "schema_version",
+        "fixed_dp_failure_metadata",
+        "signal_phase",
+        "pair_authority",
+        "raw_failure_preimage",
+        "outcome_fields_consumed",
+        "fresh_protocol_changed",
+    }:
+        raise ValueError("Fresh B2 reviewed fixed-DP failure schema drifted")
+    metadata = evidence.get("fixed_dp_failure_metadata")
+    raw_info = evidence.get("raw_failure_preimage")
+    if type(metadata) is not dict or type(raw_info) is not dict or set(raw_info) != {
+        "relative_path",
+        "file_sha256",
+        "dtype",
+        "shape",
+    }:
+        raise ValueError("Fresh B2 reviewed fixed-DP failure evidence drifted")
+    relative = raw_info.get("relative_path")
+    root = Path(run_dir).resolve()
+    if type(relative) is not str or not relative or Path(relative).is_absolute():
+        raise ValueError("Fresh B2 reviewed raw K8 path is invalid")
+    raw_path = (root / relative).resolve()
+    if root not in raw_path.parents or not raw_path.is_file():
+        raise ValueError("Fresh B2 reviewed raw K8 preimage escaped or is missing")
+    raw = raw_path.read_bytes()
+    if (
+        raw_info.get("dtype") != "float32"
+        or raw_info.get("shape") != [8, 80, 4]
+        or len(raw) != 8 * 80 * 4 * 4
+        or _file_sha256(raw_path) != raw_info.get("file_sha256")
+    ):
+        raise ValueError("Fresh B2 reviewed raw K8 preimage drifted")
+    candidates = np.frombuffer(raw, dtype=np.float32).copy().reshape(8, 80, 4)
+    try:
+        validate_fixed_k8_candidate_tensor(
+            candidates,
+            tick_index=metadata["tick_index"],
+            default_output_sha256=metadata["default_output_sha256"],
+            default_candidate0_identity=metadata["default_candidate0_identity"],
+        )
+    except FixedDpCandidateGenerationCapabilityFailure as failure:
+        rebuilt = failure.canonical_metadata()
+    else:
+        raise ValueError("Fresh B2 reviewed raw K8 no longer reproduces failure")
+    if (
+        not _strict_equal(rebuilt, metadata)
+        or evidence.get("schema_version")
+        != "camp_dp_v25_fresh_b2_fixed_dp_capability_failure_v1"
+        or evidence.get("outcome_fields_consumed") != []
+        or evidence.get("fresh_protocol_changed") is not False
+    ):
+        raise ValueError("Fresh B2 reviewed fixed-DP failure metadata drifted")
+    return rebuilt
+
+
+def _review_failure_pair_authority(
+    evidence: Mapping[str, Any],
+    *,
+    expected_config: Mapping[str, Any],
+    qualification_row: Mapping[str, Any],
+) -> None:
+    authority = evidence.get("pair_authority")
+    plan = expected_config.get("signal_complete_plan_authority")
+    routes = expected_config.get("routes")
+    spawn = expected_config.get("spawn_config")
+    if (
+        type(authority) is not dict
+        or set(authority) != PAIR_AUTHORITY_FIELDS
+        or type(plan) is not dict
+        or type(routes) is not list
+        or len(routes) != 1
+        or type(routes[0]) is not dict
+        or type(spawn) is not dict
+    ):
+        raise ValueError("Fresh B2 reviewed failure pair authority schema drifted")
+    spawn_sha = hashlib.sha256(
+        json.dumps(
+            {**spawn, "max_steps": 64},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    initial_input = authority.get("initial_input_sha256")
+    expected_state = (
+        hashlib.sha256(
+            ("v21_native_scene_context_v1\0" + initial_input).encode("ascii")
+        ).hexdigest()
+        if _sha256(initial_input)
+        else None
+    )
+    expected = {
+        "route_identity_sha256": qualification_row["route_identity_sha256"],
+        "semantic_parameter_block_sha256": qualification_row[
+            "semantic_parameter_block_sha256"
+        ],
+        "native_route_sha256": routes[0]["sha256"],
+        "logical_map_sha256": expected_config["map"]["sha256"],
+        "scenario_seed": expected_config["seeds"]["scenario"],
+        "spawn_config_sha256": spawn_sha,
+        "initial_state_sha256": expected_state,
+        "initial_input_sha256": initial_input,
+    }
+    if not _strict_equal(authority, expected):
+        raise ValueError("Fresh B2 reviewed failure pair authority drifted")
+
+
+def _validate_cross_arm_pair_authority(rows: Sequence[Mapping[str, Any]]) -> None:
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
+    for row in rows:
+        grouped.setdefault(str(row["pair_key"]), []).append(row)
+    for group in grouped.values():
+        if len(group) != 3:
+            raise ValueError("Fresh B2 cross-arm pair denominator drifted")
+        baseline = group[0]
+        if any(
+            any(row[field] != baseline[field] for field in PAIR_AUTHORITY_FIELDS)
+            for row in group[1:]
+        ):
+            raise ValueError("Fresh B2 cross-arm pair authority drifted")
+
+
+def _review_logical_decision_evidence(
+    run_dir: Path, *, native: Mapping[str, Any], evaluation_arm: str
+) -> None:
+    reference_path = run_dir / "decision_evidence.ref.json"
+    storage_path = run_dir / "decision_evidence.json.gz"
+    if (run_dir / "decision_evidence.json").exists():
+        raise ValueError("Fresh decision evidence was not stored as a logical shard")
+    reference = _canonical_json(reference_path)
+    fields = {
+        "schema_version",
+        "relative_path",
+        "codec",
+        "logical_sha256",
+        "logical_nbytes",
+        "storage_sha256",
+        "storage_nbytes",
+        "retained_regression_shard",
+    }
+    if (
+        set(reference) != fields
+        or reference.get("schema_version")
+        != "camp_dp_v25_fresh_logical_file_reference_v1"
+        or reference.get("relative_path") != "decision_evidence.json"
+        or reference.get("codec") != "gzip_rfc1952_level6_mtime0"
+        or reference.get("retained_regression_shard")
+        != "decision_evidence.json.gz"
+        or native.get("fresh_decision_evidence_reference") != reference
+    ):
+        raise ValueError("Fresh decision-evidence logical reference drifted")
+    storage_raw = storage_path.read_bytes()
+    logical_raw = gzip.decompress(storage_raw)
+    if (
+        hashlib.sha256(storage_raw).hexdigest() != reference["storage_sha256"]
+        or len(storage_raw) != reference["storage_nbytes"]
+        or hashlib.sha256(logical_raw).hexdigest() != reference["logical_sha256"]
+        or len(logical_raw) != reference["logical_nbytes"]
+    ):
+        raise ValueError("Fresh decision-evidence logical bytes drifted")
+    evidence = _strict_json(logical_raw)
+    if logical_raw != _canonical_bytes(evidence) or type(evidence) is not list:
+        raise ValueError("Fresh decision-evidence logical JSON drifted")
+    expected_count = 0 if evaluation_arm == "candidate0" else 64
+    if (
+        native.get("fresh_decision_evidence_count") != expected_count
+        or len(evidence) != expected_count
+        or (
+            evidence
+            and [row.get("sidecar", {}).get("tick_index") for row in evidence]
+            != list(range(64))
+        )
+    ):
+        raise ValueError("Fresh decision-evidence logical denominator drifted")
+
+
+def _canonical_json(path: Path) -> dict[str, Any]:
+    value = _canonical_value(path)
+    if type(value) is not dict:
+        raise ValueError(f"Fresh B2 authority JSON must be a mapping: {path}")
+    return value
+
+
+def _canonical_json_list(path: Path) -> list[dict[str, Any]]:
+    value = _canonical_value(path)
+    if type(value) is not list or any(type(row) is not dict for row in value):
+        raise ValueError(f"Fresh B2 authority JSON must be a list: {path}")
+    return value
+
+
+def _canonical_value(path: Path) -> Any:
+    raw = Path(path).read_bytes()
+    value = _strict_json(raw)
+    if raw != _canonical_bytes(value):
+        raise ValueError(f"Fresh B2 authority JSON is not canonical: {path}")
+    return value
+
+
+def _sha256(value: Any) -> bool:
+    return bool(
+        type(value) is str
+        and len(value) == 64
+        and not (set(value) - set("0123456789abcdef"))
+    )
+
+
+def _strict_json(raw: bytes) -> Any:
+    def pairs(values: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in values:
+            if key in result:
+                raise ValueError("Fresh B2 authority JSON contains a duplicate key")
+            result[key] = value
+        return result
+
+    return json.loads(
+        raw.decode("utf-8"),
+        object_pairs_hook=pairs,
+        parse_constant=lambda token: (_ for _ in ()).throw(
+            ValueError(f"nonfinite JSON token: {token}")
+        ),
+    )
+
+
+def _canonical_bytes(value: Any) -> bytes:
+    return (
+        json.dumps(
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
+def _canonical_sha(value: Any) -> str:
+    return hashlib.sha256(_canonical_bytes(value)).hexdigest()
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _strict_equal(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return set(left) == set(right) and all(
+            _strict_equal(left[key], right[key]) for key in left
+        )
+    if type(left) is list:
+        return len(left) == len(right) and all(
+            _strict_equal(a, b) for a, b in zip(left, right, strict=True)
+        )
+    return bool(left == right)

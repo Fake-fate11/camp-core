@@ -1,0 +1,394 @@
+{
+  "schema_version": "camp_dp_v25_final_delivery_contract_v1",
+  "status": "outcome_blind_frozen_before_fresh_b2_opening",
+  "final_package_generated": false,
+  "fresh_b2_opened": false,
+  "outcome_fields_consumed": [],
+  "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+  "candidate_contract": {
+    "candidate_count": 8,
+    "candidate0_semantics": "dp_operational_default_same_forward_alias_not_native_ranked_top1",
+    "camp_role": "rerank_and_select_only",
+    "candidate_tensor_modified": false,
+    "trajectory_generation_repair_blend_or_postprocess_allowed": false,
+    "normalized_atom_transform": "clip(raw_atom/training_scale,0,10)",
+    "per_tick_score": "score_k=a_k^T*w(x)",
+    "tie_break": "lowest_source_valid_candidate_index",
+    "fixed_dp_capability_failure_scope": "unchanged_fixed_dp_valid_k8_support_domain"
+  },
+  "method_tables": {
+    "primary": [
+      "DP operational default/candidate0",
+      "CAMP-Static14D",
+      "CAMP-Scene14D"
+    ],
+    "paper_subset_ablation_separate": [
+      "CAMP-Static9D",
+      "CAMP-Scene9D"
+    ],
+    "auxiliary_separate": [
+      "CAMP-Static14D-full"
+    ],
+    "auxiliary_not_primary_runtime_calibration_fresh_or_claim_eligible": true
+  },
+  "frozen_input_contracts": {
+    "training_config": {
+      "path": "configs/integrations/diffusion_planner_v25_training_v1.json",
+      "sha256": "939a4cf4275daa205cad0aaf5aef25cfb65e5f9cc412e389191cae14d5044422"
+    },
+    "fresh_b2_preregistration": {
+      "path": "configs/integrations/diffusion_planner_v25_fresh_b2_preregistration_draft_v1.json",
+      "sha256": "1c280332dfab3d9078bb4240dd8d378961cbd17eabb586d55bb46713b6eeec70"
+    },
+    "legacy_benchmark_a": {
+      "path": "configs/integrations/diffusion_planner_v25_legacy_benchmark_a_v1.json",
+      "sha256": "7adf068a1b3df6b7ff94bee3e4b14819b29f877b3f1c3d7ace64fdef47d58b72"
+    },
+    "auxiliary_static14d_full": {
+      "path": "configs/integrations/diffusion_planner_v25_auxiliary_static14d_full_v1.json",
+      "sha256": "ad0710c2f2fa64e4a1858b32c9e54a05228d88d91a3698caf768b4a45b44d11c"
+    }
+  },
+  "required_sections": [
+    "executive_claim_decision",
+    "fixed_candidate_and_mathematical_contract",
+    "fourteen_atom_scientific_audit_table",
+    "causal_context_v2_schema_and_source_availability",
+    "controlled_scenario_source_split_and_denominator",
+    "training_scales_models_convergence_stability_and_wall_clock",
+    "paper_9d_and_group_ablations",
+    "legacy_benchmark_a_table",
+    "fresh_benchmark_b_primary_three_arm_table",
+    "fresh_benchmark_b_signal_safety_table",
+    "performance_and_comfort_noninferiority",
+    "coverage_failure_and_candidate_pool_accounting",
+    "latency_by_stage",
+    "artifact_roots_heads_and_reproducibility",
+    "limitations_and_forbidden_claims"
+  ],
+  "atom_audit_table": {
+    "atom_schema_version": "dp_camp_v10_14d",
+    "ordered_atom_names": [
+      "jerk_early",
+      "jerk_late",
+      "jerk_full",
+      "rms_acceleration",
+      "speed_limit_margin_0_0",
+      "speed_limit_margin_0_5",
+      "speed_limit_margin_1_0",
+      "lane_deviation",
+      "clearance",
+      "progress_shortfall",
+      "planned_red_light_cost",
+      "planned_lateral_acceleration_cost",
+      "red_stopping_margin_cost",
+      "dp_prior_jerk_excess_cost"
+    ],
+    "paper_9d_indices": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+    "required_columns": [
+      "index",
+      "name",
+      "paper_9d_or_14d_extension",
+      "formula",
+      "unit",
+      "dt_contract",
+      "causal_source",
+      "source_state_and_mask_policy",
+      "finite_nonnegative_raw_bounds",
+      "generation_scale_provenance",
+      "train_only_scale_and_support",
+      "legal_zero_positive_and_k8_distinguishing_support",
+      "zero_positive_quantiles_tail_and_clip_saturation",
+      "family_tier_route_drift",
+      "correlation_redundancy_and_effective_dimension",
+      "label_and_label_minus_atom_alignment",
+      "leave_one_and_leave_group_effect",
+      "monotonicity_domain",
+      "pass_warn_fail",
+      "warning_or_failure_rationale"
+    ],
+    "required_ablation_groups": [
+      "jerk3",
+      "rms_acceleration",
+      "speed3",
+      "lane_clearance",
+      "progress",
+      "signal2",
+      "lateral_acceleration",
+      "dp_prior"
+    ],
+    "silent_atom_removal_allowed": false
+  },
+  "causal_context_table": {
+    "schema_version": "camp_dp_v25_causal_context_raw_v2",
+    "raw_feature_count": 26,
+    "ordered_raw_features": [
+      "ego_speed_mps",
+      "ego_longitudinal_acceleration_mps2",
+      "ego_lateral_acceleration_mps2",
+      "ego_yaw_rate_radps",
+      "route_curvature_mean_abs_radpm",
+      "route_curvature_max_abs_radpm",
+      "route_lane_width_min_m",
+      "route_lane_width_p50_m",
+      "route_speed_limit_min_mps",
+      "route_speed_limit_current_mps",
+      "traffic_phase_red",
+      "traffic_phase_yellow",
+      "traffic_phase_green",
+      "traffic_phase_unknown",
+      "traffic_signal_distance_m",
+      "traffic_signal_phase_remaining_s",
+      "neighbor_count",
+      "neighbor_min_distance_m",
+      "neighbor_min_ttc_s",
+      "neighbor_closing_speed_mps",
+      "neighbor_lateral_gap_min_m",
+      "candidate_consensus_rms_median_m",
+      "candidate_consensus_rms_mad_m",
+      "candidate_endpoint_xy_std_m",
+      "candidate_progress_std_m",
+      "candidate_source_valid_fraction"
+    ],
+    "no_v2i_phase_remaining_available": false,
+    "same_tick_current_signal_phase_allowed": true,
+    "future_phase_schedule_allowed": false,
+    "identity_or_proxy_feature_allowed": false,
+    "required_reporting": [
+      "feature_name",
+      "unit",
+      "causal_source",
+      "available_not_applicable_unavailable_invalid_policy",
+      "source_complete_rate",
+      "train_distribution_and_scaler",
+      "context_weight_and_selection_stability"
+    ]
+  },
+  "data_and_scenario_reporting": {
+    "required_event_families": [
+      "lead_vehicle_hard_brake",
+      "cut_in_merge",
+      "pedestrian_cyclist_crossing",
+      "unprotected_turn_oncoming_conflict",
+      "red_light_phase_timing",
+      "blocked_lane_static_obstacle",
+      "narrow_encounter"
+    ],
+    "required_tiers": [
+      "easy",
+      "borderline",
+      "high_risk"
+    ],
+    "required_counts": [
+      "formal_planned_identities",
+      "complete_identities",
+      "retained_source_ineligible",
+      "retained_fixed_dp_candidate_generation_capability_failure",
+      "execution_failures",
+      "complete_snapshots",
+      "unique_geometry_deduplicated_maps",
+      "intersections",
+      "corridors",
+      "route_families",
+      "semantic_parameter_blocks",
+      "seeds_as_repeated_measurements"
+    ],
+    "required_split_proof": "source_family_to_map_to_intersection_or_corridor_to_route_family_to_parameter_block_to_seed_zero_overlap",
+    "naturalistic_and_controlled_stress_must_be_separate": true,
+    "artificial_mixture_frequency_claim_allowed": false
+  },
+  "training_reporting": {
+    "main_fair_2x2_models": [
+      "CAMP-Static14D",
+      "CAMP-Scene14D",
+      "CAMP-Static9D",
+      "CAMP-Scene9D"
+    ],
+    "same_rows_labels_scales_and_hierarchical_weights_required": true,
+    "required_fields_per_model": [
+      "active_atom_indices",
+      "train_row_block_route_corridor_counts",
+      "training_scale_root",
+      "context_scaler_root",
+      "selection_eligibility",
+      "physical_feasible_mask_consumed_by_training",
+      "solver_status",
+      "converged",
+      "iterations",
+      "cuts",
+      "objective",
+      "gap",
+      "learning_curve",
+      "theta_or_static_weight_simplex_checks",
+      "weight_context_score_and_selected_index_stability",
+      "leave_cluster_stability",
+      "offline_total_wall_clock",
+      "solver_wall_clock",
+      "model_artifact_and_review_root"
+    ],
+    "scene_contract": "Theta_column_simplex_w_of_x_equals_Theta_phi_no_runtime_projection_no_softmax",
+    "auxiliary_static14d_full_reported_in_separate_nonprimary_table": true
+  },
+  "benchmark_a": {
+    "role": "read_only_legacy_regression_not_fresh_confirmation",
+    "methods": [
+      "candidate0",
+      "static14d_v24"
+    ],
+    "scene14d_fabrication_allowed": false,
+    "pair_count": 120,
+    "required_result": "honest_no_claim",
+    "safety_cost_mean_delta": -0.014322916666666666,
+    "clustered_ci95": [-0.06380208333333333, 0.01953125],
+    "better_tie_worse": [4, 113, 3]
+  },
+  "benchmark_b": {
+    "role": "only_primary_fresh_confirmation_if_opened_once_after_external_release",
+    "paired_arms": [
+      "candidate0",
+      "static14d",
+      "scene14d"
+    ],
+    "statuses": [
+      "complete",
+      "fixed_dp_candidate_generation_capability_failure",
+      "source_ineligible",
+      "execution_failure"
+    ],
+    "primary_metrics": [
+      "SafetyCost_total",
+      "collision",
+      "near_miss",
+      "offroad",
+      "red_light",
+      "speed",
+      "wrong_way"
+    ],
+    "required_paired_statistics": [
+      "planned_denominator",
+      "shared_three_arm_eligible_denominator",
+      "independent_cluster_count",
+      "mean_delta",
+      "clustered_ci95_lower",
+      "clustered_ci95_upper",
+      "better",
+      "tie",
+      "worse",
+      "claim_gate_passed"
+    ],
+    "signal_safety_metrics": [
+      "red_light_violation_rate",
+      "stop_line_crossing_rate",
+      "stop_line_margin_m",
+      "crossing_speed_mps",
+      "false_stop_on_green_rate"
+    ],
+    "performance_and_comfort_metrics": [
+      "progress",
+      "completion",
+      "mean_jerk",
+      "max_jerk",
+      "mean_lateral_acceleration",
+      "max_lateral_acceleration",
+      "maximum_deceleration"
+    ],
+    "coverage_and_pool_metrics": [
+      "arm_status_counts",
+      "failure_class_counts",
+      "candidate0_selected_tick_count_and_rate",
+      "nonzero_candidate_selected_tick_count_and_rate",
+      "all_k_high_risk_tick_count_and_rate",
+      "candidate_pool_at_least_one_safe_candidate_tick_count_and_rate"
+    ],
+    "required_strata": [
+      "naturalistic",
+      "controlled_stress",
+      "event_family",
+      "signal_complete_red",
+      "no_v2i",
+      "v2i_if_separately_authorized"
+    ],
+    "cluster_hierarchy": [
+      "source_family",
+      "geometry_sha_deduplicated_map",
+      "intersection",
+      "corridor",
+      "route_family",
+      "semantic_parameter_block"
+    ],
+    "seeds_and_ticks_are_independent_units": false
+  },
+  "latency_reporting": {
+    "stages": [
+      "dp_operational_default",
+      "additional_k8_generation",
+      "atoms",
+      "context",
+      "scene_weight",
+      "selector",
+      "tracker",
+      "total_planning"
+    ],
+    "statistics": [
+      "run_count",
+      "tick_count",
+      "mean",
+      "median",
+      "p95",
+      "p99",
+      "max"
+    ],
+    "selector_and_k8_system_overhead_must_be_distinguished": true,
+    "fixed_arm_order_comparative_claim_allowed": false
+  },
+  "claim_decision": {
+    "total_safety_improvement_minimum_gates": [
+      "SafetyCost_mean_delta_lt_0",
+      "clustered_ci95_upper_lt_0",
+      "better_gt_worse",
+      "key_component_guardrails_pass",
+      "all_performance_and_comfort_noninferiority_pass",
+      "coverage_immutability_zero_overlap_and_failure_denominator_pass"
+    ],
+    "red_light_claim_additional_gate": "red_light_component_clustered_ci95_upper_lt_0",
+    "fixed_dp_support_coverage_minima": {
+      "overall": 0.95,
+      "per_family_and_source_mode": 0.9,
+      "per_family_tier": 0.8
+    },
+    "failed_any_required_gate_decision": "honest_no_claim",
+    "claim_scope_if_all_gates_pass": "specific_frozen_fixed_dp_k8_signal_complete_benchmark_within_unchanged_fixed_dp_valid_k8_support_domain",
+    "missing_required_section_policy": "evidence_package_incomplete_and_no_claim"
+  },
+  "artifact_and_head_reporting": {
+    "required_artifact_fields": [
+      "literal_path",
+      "root_sha256",
+      "report_schema_and_status",
+      "run_exit",
+      "HEADS",
+      "COMMAND",
+      "SHA256SUMS",
+      "independent_review_path_and_root"
+    ],
+    "required_camp_heads": [
+      "local",
+      "origin_main",
+      "fresh_github_main",
+      "autodl"
+    ],
+    "fixed_dp_head_required": true,
+    "rejected_and_superseded_roots_must_be_listed": true,
+    "fresh_open_count_and_consumed_nonce_must_be_listed": true
+  },
+  "forbidden_claims": [
+    "real_world_road_safety",
+    "broad_all_map_generalization",
+    "native_ranked_top1",
+    "promotion",
+    "deployment",
+    "online_activation",
+    "diagnostic_or_training_ticks_as_fresh_confirmation",
+    "seeds_or_ticks_as_independent_maps"
+  ]
+}

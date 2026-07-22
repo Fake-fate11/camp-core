@@ -1,0 +1,240 @@
+{
+  "schema_version": "camp_dp_v25_fresh_b2_preregistration_draft_v1",
+  "status": "superseded_draft_not_machine_authority",
+  "authority_eligible": false,
+  "fresh_b_v1_disposition": "superseded_before_opening_original_manifest_machine_root_unavailable",
+  "fresh_b2_opened": false,
+  "outcome_fields_consumed": [],
+  "paired_arms": [
+    "DP operational default/candidate0 same-forward alias",
+    "CAMP-Static14D",
+    "CAMP-Scene14D"
+  ],
+  "evaluation_schema": "camp_dp_v25_fresh_b2_three_arm_evaluation_v2",
+  "arm_order_policy": "balanced_three_position_rotation_overall_stratum_family_and_independent_cluster_frozen_before_opening",
+  "failed_pair_policy": "retain_full_denominator_no_safetycost_imputation_shared_all_three_arms_complete_paired_eligibility",
+  "paper_subset_ablations_reported_separately": [
+    "CAMP-Static9D",
+    "CAMP-Scene9D"
+  ],
+  "operational_overspeed_tolerance_mps": 0.1,
+  "primary": {
+    "metric": "SafetyCost_total",
+    "components": [
+      "collision",
+      "near_miss",
+      "offroad",
+      "red_light",
+      "speed",
+      "wrong_way"
+    ],
+    "paired_delta": "CAMP_minus_candidate0_negative_is_safer",
+    "cluster_estimator": "equal_mass_cluster_mean_student_t",
+    "two_sided_confidence": 0.95,
+    "claim_gate": [
+      "mean_delta_lt_0",
+      "two_sided_cluster_ci_upper_lt_0",
+      "better_gt_worse",
+      "no_unacceptable_key_component_regression",
+      "all_performance_comfort_noninferiority_pass",
+      "coverage_immutability_and_zero_overlap_pass"
+    ]
+  },
+  "red_light_claim": {
+    "additional_gate": "red_light_component_two_sided_cluster_ci_upper_lt_0",
+    "certified_signal_safety_source_required": true,
+    "outcome_source_contract": "route_level_regulatory_chain_and_same_tick_phase_with_exact_certified_stop_line_no_proximity_heuristic",
+    "metrics": [
+      "red_light_violation_rate",
+      "stop_line_crossing_rate",
+      "stop_line_margin_m",
+      "crossing_speed_mps",
+      "false_stop_on_green_rate"
+    ],
+    "metric_phase_contract": {
+      "red_light_violation_rate": "red_same_tick_phase_only",
+      "stop_line_crossing_rate": "red_same_tick_phase_only",
+      "stop_line_margin_m": "red_same_tick_phase_only_signed_margin",
+      "crossing_speed_mps": "red_same_tick_phase_only",
+      "false_stop_on_green_rate": "green_same_tick_phase_only"
+    },
+    "metric_definition_contract": {
+      "schema_version": "camp_dp_v25_certified_signal_safety_v1",
+      "red_crossing_minimum_speed_mps": 0.5,
+      "stop_line_crossing": "exact_front_bumper_motion_segment_intersection",
+      "stop_line_margin_m": "minimum_post_interval_front_bumper_signed_normal_distance_m",
+      "crossing_speed_mps": "post_interval_ego_speed_mps",
+      "false_stop_green_maximum_speed_mps": 0.5,
+      "false_stop_green_approach_distance_m": 5.0,
+      "false_stop_green_minimum_obb_clearance_m": 3.0,
+      "false_stop_green_denominator": "green_same_tick_intervals_with_pre_front_signed_margin_in_[0,5]m_and_observable_minimum_obb_clearance_gt_3m",
+      "false_stop_obstruction_proxy": "same_tick_minimum_obb_surface_clearance",
+      "mixed_phase_run_contract": "aggregate_each_metric_only_over_its_positive_same_tick_phase_denominator",
+      "future_phase_schedule_consumed": false,
+      "phase_remaining_consumed": false
+    },
+    "no_signal_metric_contract": "all_five_signal_metrics_exact_zero_and_excluded_from_signal_summary",
+    "scope": "specific_signal_complete_controlled_benchmark_only"
+  },
+  "secondary": [
+    "progress",
+    "completion",
+    "mean_jerk",
+    "max_jerk",
+    "mean_lateral_acceleration",
+    "max_lateral_acceleration",
+    "maximum_deceleration",
+    "coverage_failures",
+    "candidate0_non0_tick_count_and_rate",
+    "all_k_high_risk_tick_count",
+    "candidate_pool_at_least_one_safe_candidate_tick_rate"
+  ],
+  "noninferiority": {
+    "calibration_freeze_schema": "camp_dp_v25_calibration_freeze_v1",
+    "minimum_calibration_corridors": 5,
+    "minimum_calibration_routes": 50,
+    "minimum_calibration_paired_eligible_rate": 0.95,
+    "estimator": "one_sided_95_percent_upper_equal_mass_cluster_mean_student_t",
+    "decision": "upper_harm_bound_lte_preregistered_margin",
+    "intersection_union_all_metrics_must_pass": true,
+    "multiplicity_adjustment": "none_required_for_intersection_union_noninferiority_gate",
+    "numeric_margins": {
+      "progress": 1.0,
+      "completion": 0.02,
+      "mean_jerk": 0.2,
+      "max_jerk": 1.0,
+      "mean_lateral_acceleration": 0.1,
+      "max_lateral_acceleration": 0.3,
+      "maximum_deceleration": 0.5
+    },
+    "numeric_margin_units": {
+      "progress": "m",
+      "completion": "fraction",
+      "mean_jerk": "m_per_s3",
+      "max_jerk": "m_per_s3",
+      "mean_lateral_acceleration": "m_per_s2",
+      "max_lateral_acceleration": "m_per_s2",
+      "maximum_deceleration": "m_per_s2"
+    },
+    "numeric_margin_source": "preregistered_engineering_acceptability_not_outcome_tuned",
+    "calibration_resolvability": {
+      "arm": "candidate0_operational_default_only",
+      "estimator": "equal_cluster_equal_within_cluster_absolute_deviation_from_cluster_median",
+      "quantile": 0.95,
+      "minimum_independent_clusters": 5,
+      "minimum_measurements_per_cluster": 2,
+      "policy": "calibration_variability_may_block_opening_but_never_enlarge_margins"
+    }
+  },
+  "component_guardrails": {
+    "regression_margins": {
+      "collision": 0.0,
+      "near_miss": 0.0,
+      "offroad": 0.0,
+      "red_light": 0.0,
+      "speed": 0.0,
+      "wrong_way": 0.0
+    },
+    "policy": "one_sided_cluster_upper_bound_must_not_exceed_zero"
+  },
+  "multiplicity": {
+    "total_safety_claim": "single_primary_no_adjustment",
+    "red_claim": "hierarchical_closed_test_only_after_total_safety_claim_passes",
+    "components": "guardrails_and_descriptive_intervals_no_separate_improvement_claim",
+    "strata": "prespecified_scope_descriptions_not_independent_confirmatory_claims"
+  },
+  "cluster_hierarchy": [
+    "source_family",
+    "geometry_sha_deduplicated_map",
+    "intersection",
+    "corridor",
+    "route_family",
+    "semantic_parameter_block"
+  ],
+  "preopen_qualification": {
+    "schema": "camp_dp_v25_fresh_b2_preopen_qualification_v1",
+    "target_minimum_independent_corridors": 25,
+    "target_minimum_route_identities": 100,
+    "inventory_ceiling_policy": "freeze_real_ceiling_and_MDE_then_limit_claim_never_repeat_seeds_as_independence",
+    "required_event_families": [
+      "lead_vehicle_hard_brake",
+      "cut_in_merge",
+      "pedestrian_cyclist_crossing",
+      "unprotected_turn_oncoming_conflict",
+      "red_light_phase_timing",
+      "blocked_lane_static_obstacle",
+      "narrow_encounter"
+    ],
+    "required_parameter_tiers": [
+      "easy",
+      "borderline",
+      "high_risk"
+    ],
+    "red_family_source_requirement": "mapped_signal_with_certified_regulatory_chain_and_exact_stop_line",
+    "power_variance_source": "sealed_train_or_calibration_pilot_candidate0_equal_mass_cluster_standard_deviation_proxy",
+    "power_variance_limitation": "proxy_is_not_a_paired_CAMP_delta_and_is_used_only_for_prospective_MDE_sensitivity_not_model_or_threshold_tuning",
+    "power_pilot_root_required": true
+  },
+  "repeated_measurements_not_independent": [
+    "seed",
+    "tick"
+  ],
+  "required_strata": [
+    "naturalistic",
+    "controlled_stress",
+    "event_family",
+    "signal_complete_red",
+    "no_v2i",
+    "v2i_if_separately_authorized"
+  ],
+  "fixed_dp_capability_failure": {
+    "full_plan_denominator_retained": true,
+    "no_safetycost_imputation": true,
+    "paired_safetycost_shared_all_three_arms_complete_pairs_only": true,
+    "minimum_overall_eligible_rate": 0.95,
+    "minimum_family_and_source_rate": 0.9,
+    "minimum_family_tier_rate": 0.8,
+    "claim_scope": "unchanged_fixed_dp_valid_k8_support_domain"
+  },
+  "latency_stages": [
+    "dp_operational_default",
+    "additional_k8_generation",
+    "atoms",
+    "context",
+    "scene_weight",
+    "selector",
+    "tracker",
+    "total_planning"
+  ],
+  "latency_statistics": [
+    "run_count",
+    "tick_count",
+    "mean",
+    "median",
+    "p95",
+    "p99",
+    "max"
+  ],
+  "freeze_requirements_before_opening": [
+    "numeric_noninferiority_margins",
+    "SafetyCost_formula_and_component_weights",
+    "Fresh_B2_versioned_manifest_and_license_source_SHA",
+    "zero_overlap_receipt",
+    "cluster_denominators_and_strata",
+    "prospective_power_MDE_and_expected_CI_width",
+    "models_scales_context_and_threshold_roots",
+    "camp_dp_v25_calibration_freeze_v1_root",
+    "camp_dp_v25_power_pilot_variance_receipt_v1_root",
+    "camp_dp_v25_fresh_b2_preopen_qualification_v1_root",
+    "one_shot_state",
+    "external_one_time_opening_release_after_Ultra_review"
+  ],
+  "forbidden_claims": [
+    "real_world_road_safety",
+    "broad_all_map_generalization",
+    "native_ranked_Top1",
+    "promotion",
+    "deployment",
+    "online_activation"
+  ]
+}
