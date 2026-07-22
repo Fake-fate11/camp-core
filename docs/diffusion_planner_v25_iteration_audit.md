@@ -4776,3 +4776,243 @@ observed_autodl_free_bytes=19524542464
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_phase=fair_four_model_training_and_independent_review_passed
 next_work_target=calibration_freeze_and_independent_review_before_fresh_b2_preopen
+
+## Paired Calibration Recovery and Independent Review PASS
+
+The Fresh-closed calibration contract compared the DP operational default
+(candidate0 from the same fixed-DP forward), CAMP-Static14D, and no-V2I
+CAMP-Scene14D. Static9D and Scene9D remain subset ablations and are not promoted
+to primary methods. All arms used the unchanged fixed DP at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, sequential K=8 candidate
+semantics, the frozen 14D atom/scale/clip contract, the accepted trained
+parameters, source-valid eligibility, and lowest-index tie break.
+
+### Immutable raw evidence and analyzer-only recovery
+
+The original execution completed all 300/300 arms before its terminal analyzer
+failed closed. It remains immutable with `run.exit=1` at:
+
+`/root/autodl-tmp/camp_dp_v25_paired_calibration_execution_325cd486_20260722Tcalibration325cd486CST`
+
+root
+`5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249`.
+The failure was a registry omission for the already-recorded latency field
+`input_materialization`; it occurred after 100 pairs, 300 terminal arms, and
+19,200 ticks were written and sealed. No arm was rerun.
+
+The detached read-only localization receipt
+`/root/autodl-tmp/camp_dp_v25_calibration_localization_receipt_5cd071b6.json`
+(SHA256
+`bb63ac5bf02d84d8d4a2fc256325b8efd2cbb673f43845774ab986be5780d8a7`)
+independently revalidated all configs, terminal rows, native receipts, paired
+resets, corpus rows, atom evidence, and latency records. All 19,200
+`input_materialization` values are finite nonnegative milliseconds measured by
+`time.perf_counter_ns`. Static source inspection and receipt reconstruction
+confirmed that the field never enters DP/K8 generation, atoms, context,
+weights, scores, selection, trajectory, SafetyCost, thresholds, NI margins, or
+sample retention. It is supplementary runtime timing, not a post-outcome
+protocol change.
+
+Commit `7d924b6491a8ebe4f8e2f858989659c71b3def60` added only the missing
+analyzer latency classification and the recovery producer/reviewer. The
+corrected detached focused suite passed 54 tests. Commit
+`f4a4110b234d1204ef0b46d6db753896995a3bb8` made the independent reviewer
+compare the same canonicalized exact values while retaining adjacent-value
+drift rejection; its affected suite passed four tests. No producer, raw
+artifact, model, threshold, margin, DP/K8, trajectory, atom, score, selection,
+or outcome changed.
+
+The analyzer-only recovery sealed with `run.exit=0` at:
+
+`/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_analysis_7d924b64_20260722T145211CST`
+
+root
+`9d67e57bfa4a96ff3bf318c5aafd17f024207645344f076963fc5f756caa6551`.
+The final from-scratch independent recovery review re-opened the original seal,
+rebuilt all 300 configs and terminal rows, revalidated all native receipts and
+initial paired resets, rederived the analysis, scores, selections and atom
+tables, and confirmed that the original raw bytes were unchanged. It sealed
+with `run.exit=0` at:
+
+`/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_review_f4a4110b_20260722T153812CST`
+
+root
+`650e6749bda63f23b073a5491c0f57dd9f97136a644be8ab7c918a48a3f609f7`.
+The chain receipt SHA256 is
+`b4439eea4ff4f3891d39458c4125fa55ba7169d81346407576ae11793812c41c`.
+
+### Split, denominator, and source coverage
+
+The reviewed denominator is 100 paired units and 300/300 complete arms, with
+zero retained failures and 19,200 ticks. It contains 5 maps, 50 intersections,
+50 corridors, 50 routes, 50 semantic blocks, and 2 seeds. Every planned arm,
+family, family-by-tier, and mapped-signal source-mode completion rate is 1.0;
+all seven scenario families are represented. Ticks and seeds remain repeated
+measurements, while corridor is the 50-unit cluster level used below.
+
+The entire calibration set is controlled mapped-signal stress evidence. It is
+not mixed with natural-road strata and is not reported as a real-world event
+frequency. Signal receipts use the certified regulatory element -> physical
+light/bulbs -> controlled lanelet -> stop line -> route arc -> same-tick phase
+chain. The legacy nearest-line heuristic is not used, future schedules are not
+read, and no-V2I `phase_remaining_s` availability is exactly zero. All bad
+routes, both-arm failures, source-ineligible rows, retained fixed-DP capability
+failures, and all-K-high-risk cases would remain in the denominator; none
+occurred in these 300 arms.
+
+### Primary SafetyCost benchmark
+
+| Method | Mean SafetyCost | Delta vs candidate0 | Corridor-cluster CI95 | Better / tie / worse |
+|---|---:|---:|---:|---:|
+| DP operational default / candidate0 | 19.2212599512 | 0 | reference | reference |
+| CAMP-Static14D | 17.6921953923 | -1.5290645589 | [-2.8613315699, -0.1967975478] | 52 / 10 / 38 |
+| CAMP-Scene14D no-V2I | 18.4856536131 | -0.7356063381 | [-2.3272034503, 0.8559907741] | 48 / 17 / 35 |
+
+The Static14D one-sided SafetyCost upper bound is `-0.4175792035`; the
+Scene14D one-sided upper bound is `0.5922332520`. These are calibration results,
+not Fresh confirmatory evidence.
+
+Component deltas below are CAMP minus candidate0:
+
+| Component | Static14D delta / CI95 / B-T-W | Scene14D delta / CI95 / B-T-W |
+|---|---|---|
+| collision | 0 / [0, 0] / 0-100-0 | 0 / [0, 0] / 0-100-0 |
+| near-miss | -0.015 / [-0.025009, -0.004991] / 42-52-6 | -0.005781 / [-0.010395, -0.001167] / 26-65-9 |
+| offroad | +0.009688 / [-0.002185, 0.021560] / 37-20-43 | +0.013281 / [0.003461, 0.023101] / 32-33-35 |
+| red-light | -0.05 / [-0.093062, -0.006938] / 5-95-0 | -0.03 / [-0.083013, 0.023013] / 5-93-2 |
+| speed | -0.007281 / [-0.021526, 0.006963] / 9-84-7 | -0.004342 / [-0.010736, 0.002052] / 10-84-6 |
+| wrong-way | 0 / [0, 0] / 0-100-0 | 0 / [0, 0] / 0-100-0 |
+
+Static14D passes collision, near-miss, red-light and wrong-way component
+guardrails but not offroad or speed. Scene14D does not pass the offroad,
+red-light, or speed guardrails; its offroad CI is entirely above zero.
+
+Certified-stop-line red-light counts/rates were `31 / 0.01030585` for
+candidate0, `26 / 0.00864362` for Static14D, and `28 / 0.00930851` for
+Scene14D. False-stop-on-green was zero in all three arms.
+
+### Performance and comfort noninferiority
+
+| Metric | candidate0 mean | Static14D mean | Scene14D mean |
+|---|---:|---:|---:|
+| completion | 0.278433 | 0.273877 | 0.278366 |
+| progress | 35.232873 | 34.659026 | 35.219464 |
+| mean jerk | 6.586002 | 9.418703 | 9.437160 |
+| max jerk | 56.222370 | 55.706420 | 56.326970 |
+| mean lateral acceleration | 0.287976 | 0.294197 | 0.301885 |
+| max lateral acceleration | 1.164940 | 1.250779 | 1.273734 |
+| max deceleration | 4.247885 | 4.247885 | 4.247885 |
+
+The preregistered one-sided NI results were:
+
+| Metric (margin) | Static upper / pass | Scene upper / pass |
+|---|---:|---:|
+| completion (0.02) | 0.008536 / PASS | PASS |
+| progress (1.0) | 1.081425 / FAIL | PASS |
+| mean jerk (0.2) | 3.078369 / FAIL | 3.136 / FAIL |
+| max jerk (1.0) | 0.871316 / PASS | 1.145 / FAIL |
+| mean lateral acceleration (0.1) | 0.016438 / PASS | PASS |
+| max lateral acceleration (0.3) | 0.202414 / PASS | PASS |
+| max deceleration (0.5) | 5.62e-7 / PASS | PASS |
+
+Accordingly, the all-NI gate is false for both primary CAMP methods. The frozen
+0.1 m/s operational overspeed tolerance remains an evaluation tolerance and is
+not substituted for the 0/0.5/1.0 speed-margin atom definitions.
+
+### Atom, selection, and numerical-layout audit
+
+All 14 approved atoms are PASS with zero WARN and zero FAIL. Source coverage is
+1.0 for every atom; signal atom applicability is 0.47 and all other atoms are
+1.0. Only `dp_prior_jerk_excess_cost` shows nonzero clip saturation
+(`1.953125e-05`). No weak or redundant atom was silently removed.
+
+Across 12,800 official selection ticks there was one lowest-index tie. The
+frozen producer accumulation layout versus the diagnostic mathematically
+equivalent layout produced zero selected-index flips. Score-margin q05/q50/q95
+was `3.3308421603e-17 / 0.0007283336 / 0.0339509477`. The 9D subset changed 720
+Static selections and 3,836 Scene selections relative to 14D. Leave-group flip
+counts were: dp-prior 2,901; jerk3 1,577; lane+clearance 505; lateral 306;
+progress 2,713; signal2 810; speed3 336. These are mechanism/ablation evidence,
+not independent safety claims.
+
+### Online latency and prospective power
+
+Each latency cell is mean / median / p95 / p99 / max milliseconds:
+
+| Stage | candidate0 | Static14D | Scene14D |
+|---|---|---|---|
+| input materialization (supplementary) | 6.518 / 6.465 / 7.075 / 8.226 / 112.002 | 6.522 / 6.481 / 7.095 / 7.886 / 16.616 | 6.503 / 6.459 / 7.078 / 8.217 / 25.917 |
+| DP default | 52.893 / 52.473 / 55.174 / 57.215 / 427.844 | 52.922 / 52.545 / 55.224 / 57.884 / 106.477 | 52.975 / 52.546 / 55.522 / 57.856 / 117.504 |
+| additional K8 candidate inference | 364.513 / 363.612 / 371.279 / 390.143 / 714.781 | 364.738 / 363.980 / 371.533 / 391.557 / 503.197 | 364.748 / 363.902 / 372.275 / 387.185 / 616.889 |
+| atom | 39.626 / 26.181 / 109.307 / 163.696 / 232.962 | 39.151 / 26.111 / 107.211 / 162.297 / 234.801 | 39.674 / 26.151 / 109.120 / 161.207 / 240.939 |
+| context | n/a | n/a | 3.167 / 3.147 / 3.318 / 3.736 / 7.831 |
+| Scene weight | n/a | n/a | 0.275 / 0.273 / 0.289 / 0.339 / 1.566 |
+| selector | n/a | 0.194 / 0.192 / 0.205 / 0.231 / 1.687 | 0.186 / 0.185 / 0.196 / 0.224 / 1.020 |
+| tracker | 5.768 / 5.953 / 6.477 / 7.569 / 17.249 | 5.793 / 5.987 / 6.511 / 7.461 / 19.077 | 5.828 / 6.004 / 6.522 / 8.072 / 15.787 |
+| total planning | 535.842 / 521.737 / 615.220 / 702.048 / 1411.673 | 550.964 / 522.500 / 637.378 / 1312.534 / 1916.648 | 552.661 / 526.704 / 638.132 / 1254.223 / 1806.725 |
+
+This separates the small selector cost from the much larger system cost of
+obtaining the additional fixed-DP candidates. No microbatch/cache/sharding
+optimization was mixed into the scientific run.
+
+At 50 corridor clusters, the prospective SafetyCost CI half-width / MDE is
+`1.332267 / 1.857338` for Static14D and `1.591597 / 2.218874` for Scene14D.
+The red-light component half-width / MDE is `0.043062 / 0.060034` for
+Static14D and `0.053013 / 0.073907` for Scene14D. Seeds and ticks are not counted
+as independent maps or corridors.
+
+### Honest calibration boundary and next gate
+
+Calibration is accepted as complete, immutable, and independently reviewed.
+It does not authorize a V25 safety claim. Static14D has a negative clustered
+SafetyCost CI but fails progress and mean-jerk NI and two component guardrails.
+Scene14D's SafetyCost CI crosses zero, its offroad component significantly
+regresses, and max/mean jerk NI fails. Neither result supports promotion,
+deployment, native-ranked-Top1 language, real-road safety, broad-map
+generalization, or model/threshold changes.
+
+Fresh B v1 remains superseded-before-opening. Fresh B2 and all Fresh outcomes
+remain unopened. The next gate is Ultra's one-time Fresh B2 pre-open review;
+no evaluation may start before that explicit release.
+
+current_v25_status=v25_calibration_recovery_and_independent_review_passed_fresh_b2_preopen_review_required
+current_v25_source_head=f4a4110b234d1204ef0b46d6db753896995a3bb8
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_analysis_7d924b64_20260722T145211CST
+current_v25_artifact_root_sha256=9d67e57bfa4a96ff3bf318c5aafd17f024207645344f076963fc5f756caa6551
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_review_f4a4110b_20260722T153812CST
+current_v25_review_artifact_root_sha256=650e6749bda63f23b073a5491c0f57dd9f97136a644be8ab7c918a48a3f609f7
+current_v25_original_calibration_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_execution_325cd486_20260722Tcalibration325cd486CST
+current_v25_original_calibration_root_sha256=5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249
+current_v25_original_calibration_run_exit=1
+current_v25_calibration_recovery_review_passed=true
+current_v25_calibration_pair_count=100
+current_v25_calibration_arm_count=300
+current_v25_calibration_complete_arm_count=300
+current_v25_calibration_retained_failure_count=0
+current_v25_calibration_tick_count=19200
+current_v25_calibration_independent_corridor_count=50
+current_v25_static14d_safetycost_delta=-1.5290645588752225
+current_v25_static14d_safetycost_ci95_upper=-0.19679754782883419
+current_v25_static14d_all_noninferiority_passed=false
+current_v25_scene14d_safetycost_delta=-0.7356063380674055
+current_v25_scene14d_safetycost_ci95_upper=0.8559907741462941
+current_v25_scene14d_all_noninferiority_passed=false
+current_v25_calibration_claim_authorized=false
+current_v25_atom_calibration_pass_warn_fail=14,0,0
+current_v25_phase_remaining_available_count=0
+current_v25_monitor_started=false
+current_v25_training_completed=true
+current_v25_calibration_started=true
+current_v25_calibration_completed=true
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=24659705856
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_phase=paired_calibration_recovery_and_independent_review_passed
+next_work_target=ultra_fresh_b2_preopen_review_required_before_one_time_opening

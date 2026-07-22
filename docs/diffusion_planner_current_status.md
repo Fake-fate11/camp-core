@@ -768,57 +768,68 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below matches it exactly.
 
-A1.7 fair four-model training and its complete independent review are now
-accepted. The immutable training artifact contains Static14D and Scene14D as
-the primary methods and Static9D/Scene9D only as paper-subset ablations, all on
-the same 95,616 reviewed rows, causal labels, train-only scales, and hierarchical
-record weights. No V24 rows without raw context entered the primary 2x2.
+The preregistered 100-pair, three-arm calibration completed all 300 sequential
+fixed-K8 runs and all 19,200 ticks with zero retained failures. Its original
+execution root remains immutable with `run.exit=1`: after every arm was
+complete, the terminal analyzer rejected the already-recorded latency field
+`input_materialization` because it was missing from the analyzer registry.
+Read-only localization proved that field is finite `perf_counter` timing in
+milliseconds and does not enter DP/K8 generation, atoms, context, model
+weights, scores, selection, trajectory, SafetyCost, thresholds, NI, or sample
+retention. The analyzer-only recovery therefore rederived the complete result
+from the sealed raw evidence without rerunning an arm or changing a scientific
+value. The recovery and its from-scratch independent review both sealed with
+exit zero.
 
-The first two independent-review attempts remain immutable failed diagnostics.
-The first exposed a reviewer-only weighted-quantile accumulation mismatch; the
-second exposed reviewer-only active-atom layout and solver-gap proxy mismatches.
-The merged outcome-blind dry-run then reproduced all stored q05/q95 values, all
-14 training scales, every model's selected indices, margins, violations,
-Theta/runtime weights, cut masks, summaries, and solver history. The final
-review ran from the beginning and passed at root `ef2e9748...`.
+Calibration covers 100 pairs across 5 maps, 50 intersections/corridors/routes/
+semantic blocks, 2 seeds and all seven families. All planned arm, family,
+family-by-tier, and mapped-signal source coverage rates are 1.0. It is a
+controlled mapped-signal calibration benchmark, not a natural-road frequency
+estimate; no-V2I `phase_remaining_s` availability remains zero.
 
-CLARABEL convergence was 4 iterations / gap 0 for Static14D, 4 /
-8.0453e-7 for Scene14D, 2 / 0 for Static9D, and 3 / 8.9350e-7 for
-Scene9D. The separately reported active-cut envelope gap is not the frozen
-optimized-master-loss gap and remains a non-gating diagnostic. No tolerance was
-relaxed and no producer, model parameter, scale, Theta, training row, DP/K8,
-trajectory, atom, or convex objective changed. The no-V2I context still has
-zero available `phase_remaining_s` rows.
+Static14D reduced mean SafetyCost by `-1.5291` versus candidate0 (cluster CI95
+`[-2.8613,-0.1968]`, better/tie/worse `52/10/38`), but fails preregistered
+noninferiority for progress and mean jerk and does not pass the offroad/speed
+component guardrails. Scene14D's delta is `-0.7356` (CI95
+`[-2.3272,0.8560]`, `48/17/35`); its interval crosses zero, offroad regresses
+significantly, and max/mean jerk NI fails. All 14 atoms pass their calibration
+audit, but these safety/performance results do not authorize a safety,
+promotion, deployment, native-ranked-Top1, or real-road claim.
 
-Training is therefore accepted only for this fixed controlled support domain;
-it is not closed-loop safety evidence or a broad unseen-map claim. Calibration,
-Scene runtime, V2I, Fresh B2, and all outcome access remain closed. The next
-stage is the preregistered calibration freeze, including the 0.1 m/s operational
-speed tolerance, numerical noninferiority margins, estimators, thresholds,
-failure denominators, and Fresh B2 claim rules.
+Fresh B2 and every Fresh outcome remain unopened. The next and only authorized
+action is Ultra's Fresh B2 pre-open review; no one-time opening may occur before
+that decision.
 
-current_v25_status=v25_training_and_independent_review_passed_calibration_freeze_next
-current_v25_source_head=8fecda47e93412ff9659168088c84feb8dc93ab1
+current_v25_status=v25_calibration_recovery_and_independent_review_passed_fresh_b2_preopen_review_required
+current_v25_source_head=f4a4110b234d1204ef0b46d6db753896995a3bb8
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_camp_training_863e28da_20260722T103219CST
-current_v25_artifact_root_sha256=8d2d9ee3ed83fbe4270cb96b7bc6ef6619e5180f11ebc348b9bdea136bac4da9
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_camp_training_review_8fecda47_20260722T122701CST
-current_v25_review_artifact_root_sha256=ef2e9748a9ba0fff5b35f010cba6efd1b16d8e1dc0d562f5a7960c8dcb3d9be9
-current_v25_training_snapshot_count=95616
-current_v25_training_model_count=4
-current_v25_training_primary_models=CAMP-Static14D,CAMP-Scene14D
-current_v25_training_ablation_models=CAMP-Static9D,CAMP-Scene9D
-current_v25_training_solver=CLARABEL
-current_v25_training_review_passed=true
-current_v25_training_context_q05_q95_exact=true
-current_v25_training_scales_14d_exact=true
-current_v25_training_phase_remaining_available_count=0
-current_v25_training_failed_review_root_1=298f223626f54317f538a122b00af3dd7c6716afd8e9f16eaf7db4aa037c39d7
-current_v25_training_failed_review_root_2=a79d090a4acf38fc355963ddc8172c076ffcdf4dd272001c957bf9081d5668e2
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_analysis_7d924b64_20260722T145211CST
+current_v25_artifact_root_sha256=9d67e57bfa4a96ff3bf318c5aafd17f024207645344f076963fc5f756caa6551
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_recovery_review_f4a4110b_20260722T153812CST
+current_v25_review_artifact_root_sha256=650e6749bda63f23b073a5491c0f57dd9f97136a644be8ab7c918a48a3f609f7
+current_v25_original_calibration_artifact=/root/autodl-tmp/camp_dp_v25_paired_calibration_execution_325cd486_20260722Tcalibration325cd486CST
+current_v25_original_calibration_root_sha256=5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249
+current_v25_original_calibration_run_exit=1
+current_v25_calibration_recovery_review_passed=true
+current_v25_calibration_pair_count=100
+current_v25_calibration_arm_count=300
+current_v25_calibration_complete_arm_count=300
+current_v25_calibration_retained_failure_count=0
+current_v25_calibration_tick_count=19200
+current_v25_calibration_independent_corridor_count=50
+current_v25_static14d_safetycost_delta=-1.5290645588752225
+current_v25_static14d_safetycost_ci95_upper=-0.19679754782883419
+current_v25_static14d_all_noninferiority_passed=false
+current_v25_scene14d_safetycost_delta=-0.7356063380674055
+current_v25_scene14d_safetycost_ci95_upper=0.8559907741462941
+current_v25_scene14d_all_noninferiority_passed=false
+current_v25_calibration_claim_authorized=false
+current_v25_atom_calibration_pass_warn_fail=14,0,0
+current_v25_phase_remaining_available_count=0
 current_v25_monitor_started=false
-current_v25_training_started=true
 current_v25_training_completed=true
-current_v25_calibration_started=false
+current_v25_calibration_started=true
+current_v25_calibration_completed=true
 current_v25_worker_count=0
 current_v25_gpu_compute_count=0
 current_v25_lock_state=free
@@ -826,10 +837,10 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=19524542464
+observed_autodl_free_bytes=24659705856
 current_v25_full_corpus_storage_root=/root/autodl-tmp
-current_v25_phase=fair_four_model_training_and_independent_review_passed
-next_work_target=calibration_freeze_and_independent_review_before_fresh_b2_preopen
+current_v25_phase=paired_calibration_recovery_and_independent_review_passed
+next_work_target=ultra_fresh_b2_preopen_review_required_before_one_time_opening
 
 ## Current V24 Status
 
