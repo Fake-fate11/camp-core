@@ -5030,3 +5030,161 @@ observed_autodl_free_bytes=24659705856
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_phase=paired_calibration_recovery_and_independent_review_passed
 next_work_target=ultra_fresh_b2_preopen_review_required_before_one_time_opening
+
+## Fresh B2 Consolidated Outcome-Blind Pre-Open Authority and Independent Review PASS
+
+The accepted calibration no-claim result was not used to change a model,
+threshold, noninferiority margin, claim rule, split, or Fresh composition.
+Instead, the pre-open stage froze and independently reviewed the actual Fresh
+B2 authority before any nonce, execution directory, DP forward, or outcome
+read. CAMP implementation HEAD
+`14781cc4e9ccc0b7f992cc4860f840ef1c8a7673` and fixed-DP HEAD
+`7a1d33da277a1992ec474b5383a0c963c72e04e4` were clean on AutoDL. The
+focused pre-open suite passed all 29 tests.
+
+The consolidated authority sealed with `run.exit=0` at:
+
+`/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_14781cc4_20260723TpreopenCST`
+
+root
+`38cf4d4837cd018b463e4044f34020bd57c1eefb176a11e565d6b1ef3594228d`.
+Its independent reviewer strictly reopened the 34 authority payloads,
+independently reconstructed the tracked implementation manifest, plans, maps,
+licenses, split and evaluation contracts, and sealed with `run.exit=0` at:
+
+`/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_14781cc4_20260723TpreopenCST`
+
+root
+`09f67b804bb880a861682b87f2a577fad658505a26ba65005b3a9c074a3fd802`.
+The reviewed critical implementation manifest SHA256 is
+`7a56fd39fad771c779a7ef5d7dbdc8382998cec01525a9739061762de90c1b16`.
+The frozen execution plan and map-suite SHA256 values are
+`6ad99d7dc2cb37a2c33b19af256431e271a2d14b85d6bb228eee0c569400cb5f`
+and `2e238c7d4ea2bac5fd5efd8092de8f1e470941a406c898fcf3e36ac7f5a07f72`.
+
+### Actual materialized benchmark, license, source, and overlap
+
+The authority contains 25 immutable project-authored MIT Lanelet2 maps and
+exactly 100 intersections, corridors, routes, and ID-free semantic blocks. The
+five frozen seeds yield 500 paired units, 1,500 balanced three-arm runs, and
+96,000 prospective ticks. All 100 static regulatory-element -> physical
+light/bulbs -> controlled lanelet -> certified stop-line -> route-arc chains
+qualified. Runtime same-tick phase/timestamp/freshness and actual fixed-K8
+support remain required fail-closed execution receipts; pre-open performed no
+DP forward and consumed no outcome.
+
+The sealed zero-overlap receipt contains 1,500 train, 50 calibration, and 100
+Fresh route rows. It deduplicates map exports by geometry SHA and semantic
+clones independently of source/ID wrappers. Independent-unit counts are
+train/calibration/Fresh `222/50/100` corridors and routes, `222/5/25` maps,
+and `1,392/50/100` semantic blocks. Five Fresh seeds are repeated
+measurements and do not increase the 100-corridor independent ceiling.
+
+Coverage was frozen prospectively rather than inferred from outcomes. All
+seven scenario families and easy/borderline/high-risk cells are present.
+The 100 routes include 21 all-K-bad-eligible stress cases, 4 dilemma-zone
+cases, 7 occlusions, 21 lead-stop cases, 16 straight movements, 84 turns,
+and controlled phase fixtures for 4 green, 4 yellow, and 3 red cases. No
+stratum is dropped from the denominator.
+
+### Storage, power, evaluation, and atom-mechanism boundaries
+
+The accepted storage qualification/review roots are
+`38cebcf597d4e49ec8f06011e0d8077eb1630c6e8a33676346c7d43bec1e8e25`
+and `8ec1c2bdfbeb95ef36bf551e29104577f874bb8a3ffe3123f2d11f9930c2a25c`.
+The reviewed conservative 1,500-arm increment is `69,991,287,914` bytes.
+From `103,463,915,520` bytes free at authority construction, projected free
+space is `33,472,627,606` bytes, leaving `22,735,209,366` bytes beyond the
+10 GiB floor. The logical storage tree SHA256 is
+`ba938abb8ff2c379c5b1a20baf048ff41be05c7652c7b65057e4a2d8fe983101`.
+
+At the real 100-corridor ceiling, Static14D SafetyCost prospective CI
+half-width/MDE are `0.9301675005 / 1.3133359826`; Scene14D values are
+`1.1112276258 / 1.5689810976`. The corresponding red-light component values
+are `0.0300654270 / 0.0424504266` and
+`0.0370129165 / 0.0522598296`. Scene underpower risk is explicitly recorded;
+seeds and ticks are not counted as independent corridors. Any eventual claim
+is restricted to this project-authored controlled benchmark.
+
+The accepted atom-mechanism producer/reviewer roots are
+`79c733159594ce31e204127802971e47f9461187f420c1bf90f29467ce931c07`
+and `214550b755fe520d601ed97138202eb1ba772a8bd851062bb14eb54a2bd87073`.
+They cover 12,800 accepted calibration decision ticks, the frozen 9D-vs-14D
+comparison, 14 leave-one-contribution diagnostics, and the six preregistered
+groups: jerk, speed margin, red signal, geometry, progress/default-prior, and
+lateral dynamics. The analysis reuses references to sharded evidence, copies
+no raw K8 payload, and changes no model or primary Fresh design. Associations
+with SafetyCost, jerk, offroad, and progress are mechanism diagnostics, not
+single-atom closed-loop causal effects.
+
+The evaluation root remains bit-exact with the accepted preregistration:
+candidate0 operational default, Static14D, and Scene14D no-V2I are the three
+primary arms; 9D remains an ablation. SafetyCost and six components, 0.1 m/s
+operational tolerance, NI margins, cluster CI/multiplicity, better/tie/worse,
+guardrails, failure denominator, and claim taxonomy are unchanged.
+Calibration remains accepted with `claim_authorized=false`.
+
+### Fresh remains unopened
+
+Fresh B v1 remains honestly superseded before opening with no fabricated
+machine root. For Fresh B2, `fresh_open_authorized=false`,
+`nonce_created=false`, `nonce_marker_created=false`,
+`execution_output_created=false`, `fresh_b2_opened=false`, and
+`outcome_fields_consumed=[]`. Worker/GPU counts are zero, the shared lock is
+free, and the final read-only verification observed `103,460,167,680` bytes
+free. No deployment, promotion, native-ranked-Top1, broad-map, real-road, or
+safety claim is authorized. The next gate is Ultra's final one-time Fresh B2
+opening release review.
+
+current_v25_status=v25_fresh_b2_consolidated_preopen_authority_and_independent_review_passed_ultra_one_time_opening_review_required
+current_v25_source_head=14781cc4e9ccc0b7f992cc4860f840ef1c8a7673
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_14781cc4_20260723TpreopenCST
+current_v25_artifact_root_sha256=38cf4d4837cd018b463e4044f34020bd57c1eefb176a11e565d6b1ef3594228d
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_14781cc4_20260723TpreopenCST
+current_v25_review_artifact_root_sha256=09f67b804bb880a861682b87f2a577fad658505a26ba65005b3a9c074a3fd802
+current_v25_calibration_preregistration_root_sha256=e6f8cf6cb37c3acd964502f04c12a6e15af1fb3d946048ea4abc18c8741f5d55
+current_v25_calibration_preregistration_review_root_sha256=235a99323be75476b7d8d31d9458ddd6f583d6a5d6593901e492addfe40c69e6
+current_v25_original_calibration_root_sha256=5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249
+current_v25_calibration_recovery_root_sha256=9d67e57bfa4a96ff3bf318c5aafd17f024207645344f076963fc5f756caa6551
+current_v25_calibration_recovery_review_root_sha256=650e6749bda63f23b073a5491c0f57dd9f97136a644be8ab7c918a48a3f609f7
+current_v25_calibration_claim_authorized=false
+current_v25_storage_artifact_root_sha256=38cebcf597d4e49ec8f06011e0d8077eb1630c6e8a33676346c7d43bec1e8e25
+current_v25_storage_review_root_sha256=8ec1c2bdfbeb95ef36bf551e29104577f874bb8a3ffe3123f2d11f9930c2a25c
+current_v25_atom_mechanism_root_sha256=79c733159594ce31e204127802971e47f9461187f420c1bf90f29467ce931c07
+current_v25_atom_mechanism_review_root_sha256=214550b755fe520d601ed97138202eb1ba772a8bd851062bb14eb54a2bd87073
+current_v25_fresh_b2_map_count=25
+current_v25_fresh_b2_intersection_count=100
+current_v25_fresh_b2_corridor_count=100
+current_v25_fresh_b2_route_count=100
+current_v25_fresh_b2_semantic_block_count=100
+current_v25_fresh_b2_seed_count=5
+current_v25_fresh_b2_paired_unit_count=500
+current_v25_fresh_b2_arm_run_count=1500
+current_v25_fresh_b2_tick_capacity=96000
+current_v25_fresh_b2_static_signal_chain_qualified_count=100
+current_v25_fresh_b2_zero_overlap_status=passed
+current_v25_fresh_b2_projected_increment_bytes=69991287914
+current_v25_fresh_b2_projected_free_after_bytes=33472627606
+current_v25_fresh_b2_reserve_beyond_10gib_floor_bytes=22735209366
+current_v25_atom_mechanism_decision_tick_count=12800
+current_v25_atom_mechanism_primary_design_changed=false
+current_v25_atom_mechanism_single_atom_closed_loop_causal_claim=false
+current_v25_fresh_open_authorized=false
+current_v25_fresh_nonce_created=false
+current_v25_fresh_execution_output_created=false
+current_v25_fresh_outcome_fields_consumed=[]
+current_v25_monitor_started=false
+current_v25_training_completed=true
+current_v25_calibration_completed=true
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=103460167680
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_phase=fresh_b2_consolidated_preopen_authority_and_independent_review_passed
+next_work_target=ultra_fresh_b2_one_time_opening_release_review
