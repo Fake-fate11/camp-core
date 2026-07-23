@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -206,7 +207,9 @@ def review(
         decision_evidence=decision_evidence,
     )
     independent = _independent_review(
-        payload, source_root_sha256=source_root_sha256
+        payload,
+        source_root_sha256=source_root_sha256,
+        callback_oracle="real_native",
     )
     report = _canonical_object(source / "report.json")
     if (
@@ -334,6 +337,14 @@ def _review_actual_native_composition(
             ):
                 raise ValueError(f"{arm} forward binding drifted")
             latency = validate_latency_namespaces(row["latency_namespaces"])
+            if arm == "candidate0":
+                expected_latency = _independent_candidate0_latency(
+                    tick, diagnostic_ticks[tick_index]
+                )
+            else:
+                expected_latency = _independent_camp_latency(arm, tick)
+            if not strict_equal(latency, expected_latency):
+                raise ValueError(f"{arm} native latency projection drifted")
             online = latency["online_operational_latency_ms"]
             supplementary = latency["supplementary_evidence_latency_ms"]
             if arm == "candidate0":
@@ -351,7 +362,7 @@ def _review_actual_native_composition(
                     or supplementary["candidate_pool_generation"] <= 0.0
                     or supplementary["atoms"] <= 0.0
                     or latency["supplementary_started_timestamp_ns"]
-                    < latency["action_available_timestamp_ns"]
+                    <= latency["action_available_timestamp_ns"]
                 ):
                     raise ValueError(
                         "candidate0 latency namespace projection drifted"
@@ -369,6 +380,164 @@ def _review_actual_native_composition(
                 or any(value != 0.0 for value in supplementary.values())
             ):
                 raise ValueError("Scene14D latency matrix drifted")
+
+
+def _independent_candidate0_latency(
+    primary: dict[str, Any], diagnostic: dict[str, Any]
+) -> dict[str, Any]:
+    primary_latency = _native_latency(primary, "candidate0 primary")
+    diagnostic_latency = _native_latency(
+        diagnostic, "candidate0 supplementary"
+    )
+    online_total = _finite_nonnegative_latency(
+        primary_latency, "hook_total"
+    )
+    diagnostic_hook = _finite_nonnegative_latency(
+        diagnostic_latency, "hook_total"
+    )
+    diagnostic_atoms = _finite_nonnegative_latency(
+        diagnostic_latency, "atom_materialization"
+    )
+    candidate_pool = diagnostic_hook - diagnostic_atoms
+    runtime_total = _finite_nonnegative_latency(
+        primary_latency, "total_planning"
+    ) + _finite_nonnegative_latency(diagnostic_latency, "total_planning")
+    overhead = runtime_total - online_total - diagnostic_hook
+    if candidate_pool < 0.0 or overhead < 0.0:
+        raise ValueError("candidate0 native latency decomposition drifted")
+    return _freeze_independent_latency(
+        arm="candidate0",
+        online={
+            "dp_operational_default": online_total,
+            "additional_k8_generation": 0.0,
+            "atoms": 0.0,
+            "context": 0.0,
+            "scene_weight": 0.0,
+            "selector": 0.0,
+        },
+        supplementary={
+            "candidate_pool_generation": candidate_pool,
+            "atoms": diagnostic_atoms,
+            "context": 0.0,
+            "scene_weight": 0.0,
+            "receipt_hashing": 0.0,
+        },
+        runtime_total=runtime_total,
+        overhead=overhead,
+        action_timestamp=_native_timestamp(
+            primary, "action_available_ns"
+        ),
+        supplementary_timestamp=_native_timestamp(
+            diagnostic, "planning_started_ns"
+        ),
+    )
+
+
+def _independent_camp_latency(
+    arm: str, tick: dict[str, Any]
+) -> dict[str, Any]:
+    latency = _native_latency(tick, arm)
+    hook_total = _finite_nonnegative_latency(latency, "hook_total")
+    components = {
+        "additional_k8_generation": _finite_nonnegative_latency(
+            latency, "candidate_inference"
+        ),
+        "atoms": _finite_nonnegative_latency(
+            latency, "atom_materialization"
+        ),
+        "context": (
+            _finite_nonnegative_latency(latency, "context")
+            if arm == "scene14d"
+            else 0.0
+        ),
+        "scene_weight": (
+            _finite_nonnegative_latency(latency, "scene_weight")
+            if arm == "scene14d"
+            else 0.0
+        ),
+        "selector": _finite_nonnegative_latency(latency, "selector"),
+    }
+    dp_default = hook_total - sum(components.values())
+    runtime_total = _finite_nonnegative_latency(latency, "total_planning")
+    overhead = runtime_total - hook_total
+    if dp_default < 0.0 or overhead < 0.0:
+        raise ValueError(f"{arm} native latency decomposition drifted")
+    return _freeze_independent_latency(
+        arm=arm,
+        online={
+            "dp_operational_default": dp_default,
+            **components,
+        },
+        supplementary={
+            "candidate_pool_generation": 0.0,
+            "atoms": 0.0,
+            "context": 0.0,
+            "scene_weight": 0.0,
+            "receipt_hashing": 0.0,
+        },
+        runtime_total=runtime_total,
+        overhead=overhead,
+        action_timestamp=_native_timestamp(tick, "action_available_ns"),
+        supplementary_timestamp=_native_timestamp(
+            tick, "receipt_projected_ns"
+        ),
+    )
+
+
+def _freeze_independent_latency(
+    *,
+    arm: str,
+    online: dict[str, float],
+    supplementary: dict[str, float],
+    runtime_total: float,
+    overhead: float,
+    action_timestamp: int,
+    supplementary_timestamp: int,
+) -> dict[str, Any]:
+    component_sum = float(
+        sum(online.values()) + sum(supplementary.values()) + overhead
+    )
+    return {
+        "schema_version": "camp_dp_v25_holdout_latency_namespaces_v1",
+        "arm": arm,
+        "online_operational_latency_ms": online,
+        "supplementary_evidence_latency_ms": supplementary,
+        "runtime_total_observed_ms": runtime_total,
+        "runtime_nondecision_overhead_ms": overhead,
+        "action_available_timestamp_ns": action_timestamp,
+        "supplementary_started_timestamp_ns": supplementary_timestamp,
+        "namespace_component_sum_ms": component_sum,
+        "total_reconciliation_residual_ms": float(
+            runtime_total - component_sum
+        ),
+        "fields_double_counted": [],
+    }
+
+
+def _native_latency(tick: dict[str, Any], label: str) -> dict[str, Any]:
+    value = tick.get("latency_ms")
+    if type(value) is not dict:
+        raise ValueError(f"{label} native latency is missing")
+    return value
+
+
+def _finite_nonnegative_latency(
+    value: dict[str, Any], field: str
+) -> float:
+    raw = value.get(field)
+    if type(raw) not in {int, float} or type(raw) is bool:
+        raise ValueError(f"native latency {field} type drifted")
+    result = float(raw)
+    if not math.isfinite(result) or result < 0.0:
+        raise ValueError(f"native latency {field} value drifted")
+    return result
+
+
+def _native_timestamp(tick: dict[str, Any], field: str) -> int:
+    value = tick.get(field)
+    if type(value) is not int or value < 0:
+        raise ValueError(f"native timestamp {field} drifted")
+    return value
 
 
 def _review_decision_evidence(

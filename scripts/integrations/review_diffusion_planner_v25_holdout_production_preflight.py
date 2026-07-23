@@ -31,7 +31,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
     strict_equal,
     validate_experiment_protocol,
     validate_fatal_artifact,
+    validate_forward_binding,
     validate_holdout_identity,
+    validate_latency_namespaces,
     validate_unit_terminal,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
@@ -93,8 +95,13 @@ def review_artifact(
 
 
 def _independent_review(
-    value: Mapping[str, Any], *, source_root_sha256: str
+    value: Mapping[str, Any],
+    *,
+    source_root_sha256: str,
+    callback_oracle: str = "synthetic",
 ) -> dict[str, Any]:
+    if callback_oracle not in {"synthetic", "real_native"}:
+        raise ValueError("production preflight callback oracle mode drifted")
     if type(value) is not dict or set(value) != PREFLIGHT_FIELDS:
         raise ValueError("production preflight field set drifted")
     identity = validate_holdout_identity(value["holdout_identity"])
@@ -121,12 +128,23 @@ def _independent_review(
         rows = value["native_callback_receipts"].get(arm)
         if type(rows) is not list or len(rows) != TICKS_PER_ARM:
             raise ValueError("production preflight callback denominator drifted")
-        expected_rows = [
-            _independent_callback(config, arm=arm, tick_index=tick_index)
-            for tick_index in range(TICKS_PER_ARM)
-        ]
-        if not strict_equal(rows, expected_rows):
-            raise ValueError("production preflight native callback receipt drifted")
+        if callback_oracle == "synthetic":
+            expected_rows = [
+                _independent_callback(config, arm=arm, tick_index=tick_index)
+                for tick_index in range(TICKS_PER_ARM)
+            ]
+            if not strict_equal(rows, expected_rows):
+                raise ValueError(
+                    "production preflight native callback receipt drifted"
+                )
+        else:
+            for tick_index, row in enumerate(rows):
+                _independent_real_native_callback(
+                    row,
+                    config=config,
+                    arm=arm,
+                    tick_index=tick_index,
+                )
         callback_hashes[arm] = canonical_sha256(rows)
         terminal = validate_unit_terminal(value["arm_terminals"].get(arm))
         if not strict_equal(
@@ -167,6 +185,7 @@ def _independent_review(
         "experiment_protocol_sha256": protocol["experiment_protocol_sha256"],
         "config_sha256": config_hashes,
         "callback_receipt_sha256": callback_hashes,
+        "callback_oracle": callback_oracle,
         "paired_unit_count": 1,
         "arm_run_count": 3,
         "tick_count": 192,
@@ -176,6 +195,96 @@ def _independent_review(
         "fresh_opened": False,
         "outcome_fields_consumed": [],
     }
+
+
+def _independent_real_native_callback(
+    value: Mapping[str, Any],
+    *,
+    config: Mapping[str, Any],
+    arm: str,
+    tick_index: int,
+) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != CALLBACK_FIELDS:
+        raise ValueError("real native callback field set drifted")
+    row = dict(value)
+    expected_model_sha = canonical_sha256(
+        {
+            "fixed_dp_head": config["fixed_dp"]["head"],
+            "checkpoint_sha256": config["fixed_dp"]["checkpoint"]["sha256"],
+            "args_sha256": config["fixed_dp"]["args_json"]["sha256"],
+            "model_registry_sha256": config["runtime_selector_authority"][
+                "model_registry_sha256"
+            ],
+        }
+    )
+    for name in (
+        "input_sha256",
+        "model_sha256",
+        "action_sha256",
+        "candidate_pool_sha256",
+        "selected_action_sha256",
+    ):
+        _require_sha256(row.get(name), f"real native callback {name}")
+    exact = {
+        "schema_version": CALLBACK_SCHEMA_VERSION,
+        "arm": arm,
+        "tick_index": tick_index,
+        "model_sha256": expected_model_sha,
+        "candidate0_pool_evidence_composed": arm == "candidate0",
+        "receipt_projection_completed": True,
+        "action_committed_before_supplementary_evidence": True,
+        "selected_action_sha256": row["action_sha256"],
+    }
+    for name, expected in exact.items():
+        if not strict_equal(row.get(name), expected):
+            raise ValueError(f"real native callback {name} drifted")
+    binding = validate_forward_binding(row["forward_binding"])
+    if not strict_equal(
+        binding,
+        freeze_forward_binding(
+            tick_index=tick_index,
+            input_sha256=row["input_sha256"],
+            model_sha256=expected_model_sha,
+            action_sha256=row["action_sha256"],
+            candidate_pool_sha256=row["candidate_pool_sha256"],
+        ),
+    ):
+        raise ValueError("real native callback forward binding drifted")
+    latency = validate_latency_namespaces(row["latency_namespaces"])
+    online = latency["online_operational_latency_ms"]
+    supplementary = latency["supplementary_evidence_latency_ms"]
+    if arm == "candidate0":
+        if (
+            any(
+                online[name] != 0.0
+                for name in (
+                    "additional_k8_generation",
+                    "atoms",
+                    "context",
+                    "scene_weight",
+                    "selector",
+                )
+            )
+            or supplementary["candidate_pool_generation"] <= 0.0
+            or supplementary["atoms"] <= 0.0
+            or latency["supplementary_started_timestamp_ns"]
+            <= latency["action_available_timestamp_ns"]
+        ):
+            raise ValueError("real candidate0 callback latency matrix drifted")
+    elif arm == "static14d":
+        if (
+            online["context"] != 0.0
+            or online["scene_weight"] != 0.0
+            or any(component != 0.0 for component in supplementary.values())
+        ):
+            raise ValueError("real Static14D callback latency matrix drifted")
+    elif (
+        online["context"] <= 0.0
+        or online["scene_weight"] <= 0.0
+        or any(component != 0.0 for component in supplementary.values())
+    ):
+        raise ValueError("real Scene14D callback latency matrix drifted")
+    return row
 
 
 def _independent_callback(
@@ -358,6 +467,16 @@ def _canonical_object(path: Path) -> dict[str, Any]:
 
 def _digest(*values: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(list(values))).hexdigest()
+
+
+def _require_sha256(value: Any, label: str) -> str:
+    if (
+        type(value) is not str
+        or len(value) != 64
+        or any(character not in "0123456789abcdef" for character in value)
+    ):
+        raise ValueError(f"{label} must be lowercase SHA-256")
+    return value
 
 
 def _git_head(repo: Path) -> str:

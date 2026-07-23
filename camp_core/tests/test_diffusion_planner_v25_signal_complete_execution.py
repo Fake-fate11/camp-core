@@ -17,8 +17,11 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_execution impo
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
     canonical_json_bytes,
+    canonical_sha256,
     freeze_experiment_protocol,
+    freeze_forward_binding,
     freeze_holdout_identity,
+    freeze_latency_namespaces,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
     freeze_holdout_arm_config_from_legacy,
@@ -40,7 +43,12 @@ from scripts.integrations.freeze_diffusion_planner_v25_b3_production_preflight i
     _fresh_runtime_selector_authority,
 )
 from scripts.integrations.review_diffusion_planner_v25_holdout_production_preflight import (
+    _independent_real_native_callback,
+    _independent_review,
     review_artifact as review_holdout_preflight_artifact,
+)
+from scripts.integrations.review_diffusion_planner_v25_b3_production_preflight import (
+    _review_actual_native_composition,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_opening import (
     freeze_fresh_b2_opening_consumption,
@@ -555,6 +563,302 @@ def test_exact_production_preflight_artifact_is_sealed_and_independently_reviewe
         report["status"]
         == "passed_independent_production_composition_preflight_review"
     )
+
+
+def test_real_native_callback_oracle_does_not_require_synthetic_measurements(
+    tmp_path: Path,
+) -> None:
+    identity, protocol = _holdout_identity_and_protocol()
+    configs = {
+        arm: freeze_holdout_arm_config_from_legacy(
+            legacy_config=_fresh_config(tmp_path / arm, plan_arm),
+            holdout_identity=identity,
+            experiment_protocol=protocol,
+        )
+        for arm, plan_arm in {
+            "candidate0": "candidate0_operational_default",
+            "static14d": "camp_static14d",
+            "scene14d": "camp_scene14d_no_v2i",
+        }.items()
+    }
+    payload = run_production_composition_preflight(
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+        nonfresh_preflight_authority=_nonfresh_preflight_authority(
+            identity, protocol
+        ),
+        fixture_root_sha256="f" * 64,
+        config_payloads=configs,
+        native_callback=deterministic_nonfresh_callback,
+    )
+    payload["native_callback_receipts"]["candidate0"][0][
+        "latency_namespaces"
+    ] = _latency("candidate0")
+    unsigned = dict(payload)
+    unsigned.pop("preflight_payload_sha256")
+    payload["preflight_payload_sha256"] = canonical_sha256(unsigned)
+
+    reviewed = _independent_review(
+        payload,
+        source_root_sha256="f" * 64,
+        callback_oracle="real_native",
+    )
+    assert reviewed["callback_oracle"] == "real_native"
+    with pytest.raises(ValueError, match="native callback receipt"):
+        _independent_review(
+            payload,
+            source_root_sha256="f" * 64,
+            callback_oracle="synthetic",
+        )
+
+
+def test_real_native_callback_oracle_rejects_digest_timestamp_and_matrix_drift(
+    tmp_path: Path,
+) -> None:
+    identity, protocol = _holdout_identity_and_protocol()
+    configs = {
+        arm: freeze_holdout_arm_config_from_legacy(
+            legacy_config=_fresh_config(tmp_path / arm, plan_arm),
+            holdout_identity=identity,
+            experiment_protocol=protocol,
+        )
+        for arm, plan_arm in {
+            "candidate0": "candidate0_operational_default",
+            "static14d": "camp_static14d",
+            "scene14d": "camp_scene14d_no_v2i",
+        }.items()
+    }
+    candidate0 = deterministic_nonfresh_callback(configs["candidate0"], 0)
+    _independent_real_native_callback(
+        candidate0,
+        config=configs["candidate0"],
+        arm="candidate0",
+        tick_index=0,
+    )
+    changed = copy.deepcopy(candidate0)
+    changed["action_sha256"] = "f" * 64
+    with pytest.raises(ValueError, match="selected_action_sha256"):
+        _independent_real_native_callback(
+            changed,
+            config=configs["candidate0"],
+            arm="candidate0",
+            tick_index=0,
+        )
+
+    changed = copy.deepcopy(candidate0)
+    latency = changed["latency_namespaces"]
+    latency["supplementary_started_timestamp_ns"] = latency[
+        "action_available_timestamp_ns"
+    ]
+    with pytest.raises(ValueError, match="latency matrix"):
+        _independent_real_native_callback(
+            changed,
+            config=configs["candidate0"],
+            arm="candidate0",
+            tick_index=0,
+        )
+
+    static = deterministic_nonfresh_callback(configs["static14d"], 0)
+    changed = copy.deepcopy(static)
+    latency = changed["latency_namespaces"]
+    latency["online_operational_latency_ms"]["context"] = 0.1
+    latency["runtime_total_observed_ms"] += 0.1
+    latency["namespace_component_sum_ms"] += 0.1
+    with pytest.raises(ValueError, match="forbidden"):
+        _independent_real_native_callback(
+            changed,
+            config=configs["static14d"],
+            arm="static14d",
+            tick_index=0,
+        )
+
+
+def _native_preflight_fixture(
+    tmp_path: Path,
+) -> tuple[
+    dict[str, dict],
+    dict[str, dict],
+    dict,
+    dict[str, list[dict]],
+    dict[str, list[dict]],
+]:
+    identity, protocol = _holdout_identity_and_protocol()
+    configs = {
+        arm: freeze_holdout_arm_config_from_legacy(
+            legacy_config=_fresh_config(tmp_path / arm, plan_arm),
+            holdout_identity=identity,
+            experiment_protocol=protocol,
+        )
+        for arm, plan_arm in {
+            "candidate0": "candidate0_operational_default",
+            "static14d": "camp_static14d",
+            "scene14d": "camp_scene14d_no_v2i",
+        }.items()
+    }
+
+    def tick(arm: str, index: int, *, diagnostic: bool = False) -> dict:
+        base_arm = "candidate0" if diagnostic else arm
+        input_sha = hashlib.sha256(
+            f"{base_arm}-input-{index}".encode()
+        ).hexdigest()
+        action_sha = hashlib.sha256(
+            f"{base_arm}-action-{index}".encode()
+        ).hexdigest()
+        pool_sha = hashlib.sha256(
+            f"{base_arm}-pool-{index}".encode()
+        ).hexdigest()
+        latency = {
+            "input_materialization": 0.25,
+            "default_inference": 0.75,
+            "hook_total": 1.0,
+            "tracker": 0.25,
+            "total_planning": 1.25,
+        }
+        if diagnostic:
+            latency.update(
+                {
+                    "candidate_inference": 4.0,
+                    "atom_materialization": 0.3,
+                    "selector": 0.0,
+                    "hook_total": 4.3,
+                    "total_planning": 4.5,
+                }
+            )
+        elif arm != "candidate0":
+            latency.update(
+                {
+                    "candidate_inference": 4.0,
+                    "atom_materialization": 0.3,
+                    "selector": 0.1,
+                    "hook_total": 5.0,
+                    "total_planning": 5.25,
+                }
+            )
+        if arm == "scene14d" and not diagnostic:
+            latency.update({"context": 0.2, "scene_weight": 0.05})
+        row = {
+            "tick_index": index,
+            "input_sha256": input_sha,
+            "default_output_sha256": action_sha,
+            "selected_trajectory_sha256": action_sha,
+            "selected_index": 0,
+            "latency_ms": latency,
+            "planning_started_ns": 1_000 + index * 100,
+            "action_available_ns": 1_050 + index * 100,
+            "receipt_projected_ns": 1_060 + index * 100,
+        }
+        if diagnostic or arm != "candidate0":
+            row["candidate_tensor_sha256_before"] = pool_sha
+        if arm != "candidate0" and not diagnostic:
+            row["candidate_tensor_sha256_after"] = pool_sha
+        if arm == "candidate0" and not diagnostic:
+            row.update(
+                {
+                    "candidate0_action_first": True,
+                    "same_forward_claimed": False,
+                }
+            )
+        if diagnostic:
+            row["planning_started_ns"] = 100_000 + index * 100
+        return row
+
+    primary = {
+        arm: {
+            "status": "ok",
+            "fixed_dp_head": (
+                "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+            ),
+            "ticks": [tick(arm, index) for index in range(64)],
+        }
+        for arm in ("candidate0", "static14d", "scene14d")
+    }
+    diagnostic = {
+        "status": "ok",
+        "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "ticks": [
+            tick("candidate0", index, diagnostic=True)
+            for index in range(64)
+        ],
+    }
+    callbacks = project_actual_native_preflight_callbacks(
+        config_payloads=configs,
+        primary_native_receipts=primary,
+        candidate0_supplementary_native_receipt=diagnostic,
+    )
+    decision_evidence = {"candidate0": []}
+    for arm in ("static14d", "scene14d"):
+        decision_evidence[arm] = [
+            {
+                "sidecar": {
+                    "tick_index": index,
+                    "default_output_sha256": primary[arm]["ticks"][index][
+                        "default_output_sha256"
+                    ],
+                    "candidate_tensor_sha256_before": primary[arm]["ticks"][
+                        index
+                    ]["candidate_tensor_sha256_before"],
+                    "candidate_tensor_sha256_after": primary[arm]["ticks"][
+                        index
+                    ]["candidate_tensor_sha256_before"],
+                    "selected_index": 0,
+                    "selected_trajectory_sha256": primary[arm]["ticks"][
+                        index
+                    ]["selected_trajectory_sha256"],
+                    "causal_input_sha256": primary[arm]["ticks"][index][
+                        "input_sha256"
+                    ],
+                }
+            }
+            for index in range(0, 64, 5)
+        ]
+    return configs, primary, diagnostic, callbacks, decision_evidence
+
+
+@pytest.mark.parametrize("mutation", ("input", "action", "pool", "latency"))
+def test_b3_native_reviewer_rejects_coordinated_callback_drift(
+    tmp_path: Path, mutation: str
+) -> None:
+    configs, primary, diagnostic, callbacks, decision_evidence = (
+        _native_preflight_fixture(tmp_path)
+    )
+    _review_actual_native_composition(
+        payload={"native_callback_receipts": callbacks},
+        configs=configs,
+        primary=primary,
+        diagnostic=diagnostic,
+        decision_evidence=decision_evidence,
+    )
+    changed = copy.deepcopy(callbacks)
+    row = changed["candidate0"][0]
+    if mutation == "input":
+        row["input_sha256"] = "f" * 64
+    elif mutation == "action":
+        row["action_sha256"] = "f" * 64
+        row["selected_action_sha256"] = "f" * 64
+    elif mutation == "pool":
+        row["candidate_pool_sha256"] = "f" * 64
+    else:
+        latency = row["latency_namespaces"]
+        latency["online_operational_latency_ms"][
+            "dp_operational_default"
+        ] += 0.1
+        latency["runtime_nondecision_overhead_ms"] -= 0.1
+    if mutation != "latency":
+        row["forward_binding"] = freeze_forward_binding(
+            tick_index=0,
+            input_sha256=row["input_sha256"],
+            model_sha256=row["model_sha256"],
+            action_sha256=row["action_sha256"],
+            candidate_pool_sha256=row["candidate_pool_sha256"],
+        )
+    with pytest.raises(ValueError, match="drifted"):
+        _review_actual_native_composition(
+            payload={"native_callback_receipts": changed},
+            configs=configs,
+            primary=primary,
+            diagnostic=diagnostic,
+            decision_evidence=decision_evidence,
+        )
 
 
 def _paired_calibration_config(tmp_path: Path, plan_arm: str) -> dict:
