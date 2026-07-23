@@ -935,6 +935,7 @@ def test_fresh_candidate0_pool_diagnostics_preserve_default_and_expose_masks() -
         "candidate_tensor_sha256_after"
     ]
     assert "atom_matrix_sha256" in receipt
+    assert type(receipt["action_available_ns"]) is int
 
 
 def test_hook_matches_native_default_and_changes_only_selected_ego() -> None:

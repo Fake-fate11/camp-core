@@ -873,6 +873,7 @@ class NativeCampPredictBatch:
                     }
                 )
                 receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
+                receipt["action_available_ns"] = time.perf_counter_ns()
                 return (
                     (direct_predictions, turns)
                     if return_turn_indicators
