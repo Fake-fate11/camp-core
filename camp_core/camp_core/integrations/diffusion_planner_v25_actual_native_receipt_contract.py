@@ -96,7 +96,6 @@ _K8_COMMON_TICK = frozenset(
         "route_lanes_has_speed_limit_sha256",
         "atom_matrix_sha256",
         "candidate0_operational_default",
-        "post_divergence_cross_arm_tensor_identity_required",
         "npc_operational_outputs_unchanged",
         "physical_feasible_mask",
         "source_valid_mask",
@@ -106,7 +105,12 @@ _K8_COMMON_TICK = frozenset(
         "controlled_scene",
     }
 )
-_CANDIDATE0_SUPPLEMENTARY_TICK = frozenset(_K8_COMMON_TICK)
+_CANDIDATE0_SUPPLEMENTARY_TICK = frozenset(
+    {
+        *_K8_COMMON_TICK,
+        "post_divergence_cross_arm_tensor_identity_required",
+    }
+)
 _STATIC_TICK = frozenset(
     {
         *_K8_COMMON_TICK,
@@ -732,11 +736,15 @@ def validate_actual_native_tick(
         "candidate_tensor_sha256_after"
     ]:
         raise ValueError(f"{branch} candidate tensor was modified")
-    for name in (
-        "post_divergence_cross_arm_tensor_identity_required",
+    bool_names = [
         "npc_operational_outputs_unchanged",
         "all_k_high_risk",
-    ):
+    ]
+    if branch == "candidate0_supplementary":
+        bool_names.append(
+            "post_divergence_cross_arm_tensor_identity_required"
+        )
+    for name in bool_names:
         if type(value[name]) is not bool:
             raise ValueError(f"{branch} native bool drifted: {name}")
     if branch == "candidate0_supplementary":

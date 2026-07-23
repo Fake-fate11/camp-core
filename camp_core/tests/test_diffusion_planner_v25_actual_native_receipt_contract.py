@@ -363,6 +363,7 @@ def _candidate0_receipts() -> tuple[dict, dict]:
 def _method_tick(index: int, branch: str) -> dict:
     value = _supplementary_tick(index)
     value.pop("candidate0_operational_default")
+    value.pop("post_divergence_cross_arm_tensor_identity_required")
     value["latency_ms"] = {
         name: 0.25 for name in LATENCY_FIELDS_BY_BRANCH[branch]
     }
@@ -548,6 +549,21 @@ def test_execution_enrichment_is_separate_from_actual_native_abi() -> None:
     wrong_type["fresh_decision_evidence_count"] = False
     with pytest.raises(ValueError, match="enrichment type"):
         _native_receipt(wrong_type, "candidate0")
+
+
+def test_post_divergence_identity_flag_is_supplementary_only() -> None:
+    assert (
+        "post_divergence_cross_arm_tensor_identity_required"
+        in TICK_FIELDS_BY_BRANCH["candidate0_supplementary"]
+    )
+    assert (
+        "post_divergence_cross_arm_tensor_identity_required"
+        not in TICK_FIELDS_BY_BRANCH["static14d"]
+    )
+    assert (
+        "post_divergence_cross_arm_tensor_identity_required"
+        not in TICK_FIELDS_BY_BRANCH["scene14d"]
+    )
 
 
 @pytest.mark.parametrize("branch", ["static14d", "scene14d"])
