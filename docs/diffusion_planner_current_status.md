@@ -787,13 +787,21 @@ Calibration remains accepted with `claim_authorized=false`; the final claim
 still depends only on the frozen Fresh paired outcome/NI rules.
 
 Under implementation HEAD
-`bffbcfcf4714bb5b80f4baac718783d93b32a38a`, the consolidated outcome-blind
-Fresh B2 pre-open authority and its independent review were rebuilt and passed
-at roots `ab6ab903...` and `7d61339e...`. They bind the new calibration
-freeze/review, accepted corrected corpus, training, calibration recovery,
-storage, and atom-mechanism chains. The critical implementation manifest is
-`b38fd874...`; the execution-plan and map-suite SHAs remain bit-exact at
-`6ad99d7d...` and `2e238c7d...`.
+`a52c1717a471202005c16a0c6777f81ee3bd01e4`, the production authority chain
+was rebuilt from identity zero. The consolidated outcome-blind Fresh B2
+pre-open authority and its independent review passed at roots `854883f4...`
+and `0f1a5e3e...`. The externally materialized map and plan roots
+`186c01ff...` and `60cf5df7...` are now each bound to independent reviews
+`cede11e2...` and `828f6857...`, then byte-cross-checked against the sealed
+pre-open map-suite and execution-plan payloads before any nonce or runtime
+operation. Route/runtime and their reviews were likewise rebuilt at
+`d2c696ae...` / `a3d5fb86...` and `08b806de...` / `3c390a97...`.
+
+The production calibration freeze/review roots are `295e22ad...` and
+`8d11c679...`; they preserve the 100 unique exact-unit rows, zero exact
+duplicate groups, and not-estimable repeatability result. The critical
+implementation manifest is `f9027c01...`; the execution-plan and map-suite
+SHAs remain bit-exact at `6ad99d7d...` and `2e238c7d...`.
 
 The materialized benchmark remains 25 project-authored MIT Lanelet2 maps, 100
 intersections/corridors/routes/semantic blocks, five seeds, 500 paired units,
@@ -803,25 +811,25 @@ repeated measurements, not additional independent corridors. Runtime
 same-tick source/timestamp/freshness and unchanged fixed-K8 support remain
 fail-closed execution checks.
 
-At independent pre-open review, free space was `103,451,566,080` bytes. Against
+At production pre-open materialization, free space was `103,446,487,040` bytes. Against
 the accepted `69,991,287,914`-byte upper bound, projected free space is
-`33,460,278,166` bytes, leaving `22,722,859,926` bytes beyond the 10 GiB floor.
+`33,455,199,126` bytes, leaving `22,717,780,886` bytes beyond the 10 GiB floor.
 No model or DP forward ran, and Fresh B2, nonce/marker, execution output, and
 all Fresh outcomes remain absent. The next action is the same-HEAD production
 entry preflight followed, only if it passes, by one all-new nonce and the
 already frozen 1,500-run Fresh execution/review/evaluation chain.
 
-current_v25_status=v25_repeatability_estimand_corrected_freeze_and_consolidated_preopen_independent_reviews_passed_fresh_production_entry_next
-current_v25_source_head=bffbcfcf4714bb5b80f4baac718783d93b32a38a
+current_v25_status=v25_production_authority_chain_and_independent_reviews_passed_fresh_zero_data_preflight_next
+current_v25_source_head=a52c1717a471202005c16a0c6777f81ee3bd01e4
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_bffbcfcf_20260723TrepeatabilityCST
-current_v25_artifact_root_sha256=ab6ab90379d8749e23121ab8cb7ae699689be90509874d9f38f850f02903ef08
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_bffbcfcf_20260723TrepeatabilityCST
-current_v25_review_artifact_root_sha256=7d61339e7e5674ca764016097dda922fb4beb4d0208c106d94415d562061cf24
-current_v25_calibration_freeze_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_bffbcfcf_20260723TrepeatabilityCST
-current_v25_calibration_freeze_artifact_root_sha256=7aaf92fa4909a4e8b29bab47b5d3b8bdaa8793970a60c1a49a36f092dff35f4d
-current_v25_calibration_freeze_review_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_review_bffbcfcf_20260723TrepeatabilityCST
-current_v25_calibration_freeze_review_artifact_root_sha256=8d20d038092950d7aaf577b89c9681e0f9ce9d70e06402f0ca06b6803a399c68
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_a52c1717_20260723TproductionCST
+current_v25_artifact_root_sha256=854883f466835897af2659be04f37b9fa9ad434e1cab223467ccee12f374f7b1
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_a52c1717_20260723TproductionCST
+current_v25_review_artifact_root_sha256=0f1a5e3eb8e7fb7214ad0344e244165133c84929cade2e7fe74f14b2f2a59bac
+current_v25_calibration_freeze_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_a52c1717_20260723TproductionCST
+current_v25_calibration_freeze_artifact_root_sha256=295e22adcb6c4840c678f0e1d6ea7725a9786519bf7a856285a008ee0ce4fa80
+current_v25_calibration_freeze_review_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_review_a52c1717_20260723TproductionCST
+current_v25_calibration_freeze_review_artifact_root_sha256=8d11c6794925fa99cb24183e0291c4e46f324f5a5ae8460f1bfd8aa8821eb5eb
 current_v25_calibration_candidate0_row_count=100
 current_v25_calibration_candidate0_rows_sha256=8afeb83f2e1bd5759d645cfabac721f4c3141db60f656e6faac03151d7e187f8
 current_v25_calibration_exact_repeatability_status=not_estimable_no_exact_candidate0_duplicates
@@ -851,8 +859,8 @@ current_v25_fresh_b2_tick_capacity=96000
 current_v25_fresh_b2_static_signal_chain_qualified_count=100
 current_v25_fresh_b2_zero_overlap_status=passed
 current_v25_fresh_b2_projected_increment_bytes=69991287914
-current_v25_fresh_b2_projected_free_after_bytes=33460278166
-current_v25_fresh_b2_reserve_beyond_10gib_floor_bytes=22722859926
+current_v25_fresh_b2_projected_free_after_bytes=33455199126
+current_v25_fresh_b2_reserve_beyond_10gib_floor_bytes=22717780886
 current_v25_atom_mechanism_decision_tick_count=12800
 current_v25_atom_mechanism_primary_design_changed=false
 current_v25_atom_mechanism_single_atom_closed_loop_causal_claim=false
@@ -870,9 +878,9 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=103451566080
+observed_autodl_free_bytes=103446487040
 current_v25_full_corpus_storage_root=/root/autodl-tmp
-current_v25_phase=repeatability_estimand_corrected_freeze_and_consolidated_preopen_reviews_passed
+current_v25_phase=fresh_b2_production_authority_chain_and_reviews_passed
 next_work_target=fresh_b2_production_entry_preflight_then_unique_opening_release_and_execution
 
 ## Current V24 Status
