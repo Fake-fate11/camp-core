@@ -72,6 +72,7 @@ TRACKED_AUTHORITY_FILES = (
     "configs/integrations/diffusion_planner_v25_fresh_b2_preopen_authority_v1.json",
     "configs/integrations/diffusion_planner_v25_fresh_b2_preregistration_draft_v1.json",
     "scripts/integrations/build_diffusion_planner_v25_final_evidence.py",
+    "scripts/integrations/create_diffusion_planner_v25_fresh_b2_opening.py",
     "scripts/integrations/freeze_diffusion_planner_v25_atom_mechanism.py",
     "scripts/integrations/freeze_diffusion_planner_v25_calibration_from_paired.py",
     "scripts/integrations/evaluate_diffusion_planner_v25_fresh_b2.py",

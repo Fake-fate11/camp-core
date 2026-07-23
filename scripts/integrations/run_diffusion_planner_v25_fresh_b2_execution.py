@@ -31,7 +31,11 @@ from camp_core.integrations.diffusion_planner_v25_fresh_execution import (  # no
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_opening import (  # noqa: E402
     freeze_fresh_b2_opening_consumption,
+    validate_fresh_b2_controller_decision,
     validate_fresh_b2_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (  # noqa: E402
+    tracked_implementation_manifest,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_storage import (  # noqa: E402
     compress_logical_json_file,
@@ -48,7 +52,7 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_fresh_b2_execution_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_fresh_b2_execution_artifact_v2"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 MINIMUM_FREE_BYTES = 10 * 1024**3
 TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
@@ -75,11 +79,14 @@ def run(
     roots: Mapping[str, str],
     probe_template: Path,
     probe_template_sha256: str,
+    controller_decision_artifact: Path,
+    controller_decision_root_sha256: str,
     opening_release_artifact: Path,
     opening_release_root_sha256: str,
     dp_repo: Path,
     output_dir: Path,
     device: str,
+    preflight_only: bool = False,
     run_one: RunOne | None = None,
     marker_root: Path = NONCE_ROOT,
 ) -> str:
@@ -109,6 +116,16 @@ def run(
         raise ValueError("Fresh B2 opening release did not exit successfully")
     release = validate_fresh_b2_opening_release(
         _canonical_json(release_root / "decision.json")
+    )
+    controller_root, controller = _verify_controller_decision(
+        artifact=Path(controller_decision_artifact).resolve(),
+        expected_root_sha256=controller_decision_root_sha256,
+        release=release,
+        artifacts=canonical_artifacts,
+        roots=verified_roots,
+        probe_template=Path(probe_template).resolve(),
+        probe_template_sha256=probe_template_sha256,
+        dp_repo=dp_root,
     )
     if str(output) != release["authorized_output_dir"]:
         raise ValueError("Fresh B2 output differs from the external release")
@@ -147,6 +164,23 @@ def run(
         roots=verified_roots,
         release=release,
     )
+    if preflight_only:
+        return _canonical_sha(
+            {
+                "schema_version": "camp_dp_v25_fresh_b2_production_entry_preflight_v1",
+                "status": "passed_before_nonce_consumption",
+                "controller_decision_root_sha256": controller_root,
+                "opening_release_root_sha256": opening_release_root_sha256,
+                "pointer_head": release["pointer_head_at_release"],
+                "fixed_dp_head": FIXED_DP_HEAD,
+                "input_roots": verified_roots,
+                "model_registry_sha256": controller["model_registry_sha256"],
+                "training_scale_sha256": controller["training_scale_sha256"],
+                "context_scaler_sha256": controller["context_scaler_sha256"],
+                "fresh_b2_opened": False,
+                "outcome_fields_consumed": [],
+            }
+        )
 
     marker_path = _marker_path(release["run_nonce"], marker_root=marker_root)
     with _exclusive_lock(TRAIN_LOCK):
@@ -198,6 +232,8 @@ def run(
                 "input_roots": verified_roots,
                 "probe_template": str(probe_template.resolve()),
                 "probe_template_sha256": probe_template_sha256,
+                "controller_decision_artifact": str(controller_decision_artifact.resolve()),
+                "controller_decision_root_sha256": controller_root,
                 "opening_release_artifact": str(release_root),
                 "opening_release_root_sha256": opening_release_root_sha256,
                 "opening_consumption": consumption,
@@ -229,6 +265,72 @@ def run(
             _write_control_files(output, exit_code=1)
             seal_artifact(output, label="failed V25 Fresh B2 execution")
             raise
+
+
+def _verify_controller_decision(
+    *,
+    artifact: Path,
+    expected_root_sha256: str,
+    release: Mapping[str, Any],
+    artifacts: Mapping[str, Path],
+    roots: Mapping[str, str],
+    probe_template: Path,
+    probe_template_sha256: str,
+    dp_repo: Path,
+) -> tuple[str, dict[str, Any]]:
+    seal = verify_complete_seal(
+        artifact,
+        expected_root_sha256,
+        label="Fresh B2 controller decision",
+    )
+    if (artifact / "run.exit").read_bytes() != b"0\n":
+        raise ValueError("Fresh B2 controller decision did not exit successfully")
+    decision = validate_fresh_b2_controller_decision(
+        _canonical_json(artifact / "decision.json")
+    )
+    expected_inputs = {
+        role: {"path": str(artifacts[role]), "root_sha256": roots[role]}
+        for role in INPUT_ROLES
+    }
+    preopen = _canonical_json(artifacts["preopen"] / "preopen_authority.json")
+    expected_manifest = tracked_implementation_manifest(ROOT)
+    exact = {
+        "implementation_source_head": release["implementation_source_head"],
+        "pointer_head_at_release": release["pointer_head_at_release"],
+        "critical_implementation_manifest_sha256": expected_manifest[
+            "manifest_sha256"
+        ],
+        "input_artifacts": expected_inputs,
+        "probe_template": {
+            "path": str(probe_template),
+            "sha256": probe_template_sha256,
+        },
+        "dp_repo": {"path": str(dp_repo), "head": FIXED_DP_HEAD},
+        "calibration_contract_root_sha256": release[
+            "calibration_contract_root_sha256"
+        ],
+        "preopen_qualification_root_sha256": release[
+            "preopen_qualification_root_sha256"
+        ],
+        "model_registry_sha256": release["model_registry_sha256"],
+        "training_scale_sha256": release["training_scale_sha256"],
+        "context_scaler_sha256": release["context_scaler_sha256"],
+        "scenario_manifest_root_sha256": release[
+            "scenario_manifest_root_sha256"
+        ],
+        "run_nonce": release["run_nonce"],
+        "authorized_output_dir": release["authorized_output_dir"],
+    }
+    if (
+        seal["root_sha256"] != release["controller_decision_root_sha256"]
+        or any(
+            not _strict_json_equal(decision.get(name), value)
+            for name, value in exact.items()
+        )
+        or preopen.get("critical_implementation_manifest") != expected_manifest
+    ):
+        raise ValueError("Fresh B2 controller/release/input authority drifted")
+    return seal["root_sha256"], decision
 
 
 def _native_run_one(
@@ -545,6 +647,20 @@ def _strict_json_value(raw: bytes) -> Any:
     )
 
 
+def _strict_json_equal(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return set(left) == set(right) and all(
+            _strict_json_equal(left[key], right[key]) for key in left
+        )
+    if type(left) is list:
+        return len(left) == len(right) and all(
+            _strict_json_equal(a, b) for a, b in zip(left, right, strict=True)
+        )
+    return bool(left == right)
+
+
 def _canonical_bytes(value: Any) -> bytes:
     return (
         json.dumps(
@@ -624,19 +740,24 @@ def _arguments() -> argparse.Namespace:
         parser.add_argument(f"--{option}-root-sha256", required=True)
     parser.add_argument("--probe-template", type=Path, required=True)
     parser.add_argument("--probe-template-sha256", required=True)
+    parser.add_argument("--controller-decision-artifact", type=Path, required=True)
+    parser.add_argument("--controller-decision-root-sha256", required=True)
     parser.add_argument("--opening-release-artifact", type=Path, required=True)
     parser.add_argument("--opening-release-root-sha256", required=True)
     parser.add_argument("--dp-repo", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", choices=("cuda",), required=True)
     parser.add_argument("--fresh-b2-one-time-open", action="store_true")
+    parser.add_argument("--preflight-only", action="store_true")
     return parser.parse_args()
 
 
 def main() -> int:
     args = _arguments()
-    if args.fresh_b2_one_time_open is not True:
-        raise ValueError("Fresh B2 production entry requires explicit one-time open mode")
+    if args.fresh_b2_one_time_open == args.preflight_only:
+        raise ValueError(
+            "Fresh B2 production entry requires exactly one of one-time open or preflight"
+        )
     artifacts = {
         role: getattr(args, f"{role}_artifact") for role in INPUT_ROLES
     }
@@ -648,11 +769,14 @@ def main() -> int:
         roots=roots,
         probe_template=args.probe_template,
         probe_template_sha256=args.probe_template_sha256,
+        controller_decision_artifact=args.controller_decision_artifact,
+        controller_decision_root_sha256=args.controller_decision_root_sha256,
         opening_release_artifact=args.opening_release_artifact,
         opening_release_root_sha256=args.opening_release_root_sha256,
         dp_repo=args.dp_repo,
         output_dir=args.output_dir,
         device=args.device,
+        preflight_only=args.preflight_only,
     )
     print(digest)
     return 0

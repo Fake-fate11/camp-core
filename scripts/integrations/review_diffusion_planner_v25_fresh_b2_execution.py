@@ -50,12 +50,13 @@ from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import ( 
     _route_assets,
     _runtime_selector_authority,
     _tracked_dirty,
+    _verify_controller_decision,
     _verify_inputs,
     _write_json,
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_fresh_b2_execution_review_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_fresh_b2_execution_review_artifact_v2"
 
 
 def review(
@@ -66,6 +67,8 @@ def review(
     roots: Mapping[str, str],
     probe_template: Path,
     probe_template_sha256: str,
+    controller_decision_artifact: Path,
+    controller_decision_root_sha256: str,
     opening_release_artifact: Path,
     opening_release_root_sha256: str,
     dp_repo: Path,
@@ -101,11 +104,23 @@ def review(
     release = validate_fresh_b2_opening_release(
         _canonical_json(release_root / "decision.json")
     )
+    controller_root, _controller = _verify_controller_decision(
+        artifact=Path(controller_decision_artifact).resolve(),
+        expected_root_sha256=controller_decision_root_sha256,
+        release=release,
+        artifacts=canonical_artifacts,
+        roots=verified_roots,
+        probe_template=probe_template.resolve(),
+        probe_template_sha256=probe_template_sha256,
+        dp_repo=dp_root,
+    )
     artifact_report = _canonical_json(execution / "artifact_report.json")
     _validate_artifact_report(
         artifact_report,
         execution=execution,
         release=release,
+        controller_artifact=Path(controller_decision_artifact).resolve(),
+        controller_root_sha256=controller_root,
         release_artifact=release_root,
         release_root_sha256=opening_release_root_sha256,
         artifacts=canonical_artifacts,
@@ -182,6 +197,10 @@ def review(
             "camp_head": _git_head(ROOT),
             "fixed_dp_head": FIXED_DP_HEAD,
             "reviewed_root_sha256": execution_seal["root_sha256"],
+            "controller_decision_artifact": str(
+                Path(controller_decision_artifact).resolve()
+            ),
+            "controller_decision_root_sha256": controller_root,
             "opening_release_artifact": str(release_root),
             "opening_release_root_sha256": opening_release_root_sha256,
             "opening_marker_reopened": True,
@@ -205,6 +224,8 @@ def _validate_artifact_report(
     *,
     execution: Path,
     release: Mapping[str, Any],
+    controller_artifact: Path,
+    controller_root_sha256: str,
     release_artifact: Path,
     release_root_sha256: str,
     artifacts: Mapping[str, Path],
@@ -222,6 +243,8 @@ def _validate_artifact_report(
         "input_roots",
         "probe_template",
         "probe_template_sha256",
+        "controller_decision_artifact",
+        "controller_decision_root_sha256",
         "opening_release_artifact",
         "opening_release_root_sha256",
         "opening_consumption",
@@ -242,6 +265,8 @@ def _validate_artifact_report(
         "input_roots": dict(roots),
         "probe_template": str(probe_template),
         "probe_template_sha256": probe_template_sha256,
+        "controller_decision_artifact": str(controller_artifact),
+        "controller_decision_root_sha256": controller_root_sha256,
         "opening_release_root_sha256": release_root_sha256,
         "opening_release_artifact": str(release_artifact),
         "fresh_b2_opened_once": True,
@@ -308,6 +333,8 @@ def _arguments() -> argparse.Namespace:
         parser.add_argument(f"--{option}-root-sha256", required=True)
     parser.add_argument("--probe-template", type=Path, required=True)
     parser.add_argument("--probe-template-sha256", required=True)
+    parser.add_argument("--controller-decision-artifact", type=Path, required=True)
+    parser.add_argument("--controller-decision-root-sha256", required=True)
     parser.add_argument("--opening-release-artifact", type=Path, required=True)
     parser.add_argument("--opening-release-root-sha256", required=True)
     parser.add_argument("--dp-repo", type=Path, required=True)
@@ -330,6 +357,8 @@ def main() -> int:
         roots=roots,
         probe_template=args.probe_template,
         probe_template_sha256=args.probe_template_sha256,
+        controller_decision_artifact=args.controller_decision_artifact,
+        controller_decision_root_sha256=args.controller_decision_root_sha256,
         opening_release_artifact=args.opening_release_artifact,
         opening_release_root_sha256=args.opening_release_root_sha256,
         dp_repo=args.dp_repo,

@@ -57,11 +57,12 @@ def test_fresh_nonce_consumption_is_atomic_and_strictly_reopenable(
 
 def test_production_entry_validates_assets_before_nonce_and_runtime() -> None:
     source = inspect.getsource(runner.run)
+    controller = source.index("_verify_controller_decision(")
     assets = source.index("load_v25_runtime_selector_assets(")
     consume = source.index("_consume_opening_nonce(")
     native = source.index("_native_run_one(")
     execute = source.index("execute_fresh_b2_three_arm_units(")
-    assert assets < consume < native < execute
+    assert controller < assets < consume < native < execute
 
 
 def test_fresh_native_callback_reuses_runtime_and_dispatches_frozen_arms(
