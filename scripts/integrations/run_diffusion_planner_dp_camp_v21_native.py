@@ -3412,20 +3412,57 @@ def _validate_holdout_opening_authority(
         raise ValueError(
             "holdout one-time opening release and consumption are required"
         )
-    from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
-        validate_holdout_opening_consumption,
-        validate_holdout_opening_release,
-    )
-
-    release = validate_holdout_opening_release(value["opening_release"])
     release_root = value["opening_release_root_sha256"]
     if not _is_sha256(release_root):
         raise ValueError("holdout opening release root is invalid")
-    consumption = validate_holdout_opening_consumption(
-        value["opening_consumption"],
-        opening_release=release,
-        opening_release_root_sha256=release_root,
-    )
+    release_value = value["opening_release"]
+    if (
+        type(release_value) is dict
+        and release_value.get("schema_version")
+        == (
+            "camp_dp_v25_holdout_one_time_opening_release_"
+            "production_rc_v2"
+        )
+    ):
+        from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (
+            validate_production_rc_opening_release,
+            validate_scientific_exposure_receipt,
+        )
+
+        release = validate_production_rc_opening_release(release_value)
+        consumption = validate_scientific_exposure_receipt(
+            value["opening_consumption"],
+            opening_release=release,
+            opening_release_root_sha256=release_root,
+        )
+        consumed_before_operation = consumption[
+            "scientific_exposure_started_before_first_forward"
+        ]
+        second_opening_allowed = consumption["second_exposure_allowed"]
+        new_nonce_allowed = consumption["new_nonce_allowed_after_exposure"]
+        outcome_fields_consumed_before_opening = consumption[
+            "outcome_fields_consumed_before_exposure"
+        ]
+    else:
+        from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
+            validate_holdout_opening_consumption,
+            validate_holdout_opening_release,
+        )
+
+        release = validate_holdout_opening_release(release_value)
+        consumption = validate_holdout_opening_consumption(
+            value["opening_consumption"],
+            opening_release=release,
+            opening_release_root_sha256=release_root,
+        )
+        consumed_before_operation = consumption[
+            "consumed_before_outcome_capable_operation"
+        ]
+        second_opening_allowed = consumption["second_opening_allowed"]
+        new_nonce_allowed = consumption["new_nonce_allowed"]
+        outcome_fields_consumed_before_opening = consumption[
+            "outcome_fields_consumed_before_opening"
+        ]
     authority = _mapping(config, "holdout_authority")
     selector = _mapping(config, "runtime_selector_authority")
     if (
@@ -3441,11 +3478,11 @@ def _validate_holdout_opening_authority(
         != selector["training_scale_sha256"]
         or release["experiment_protocol"]["context_scaler_sha256"]
         != selector["context_scaler_sha256"]
-        or consumption["consumed_before_outcome_capable_operation"] is not True
-        or consumption["second_opening_allowed"] is not False
-        or consumption["new_nonce_allowed"] is not False
+        or consumed_before_operation is not True
+        or second_opening_allowed is not False
+        or new_nonce_allowed is not False
         or consumption["suffix_allowed"] is not False
-        or consumption["outcome_fields_consumed_before_opening"] != []
+        or outcome_fields_consumed_before_opening != []
     ):
         raise ValueError("holdout opening authority differs from the arm config")
     return {

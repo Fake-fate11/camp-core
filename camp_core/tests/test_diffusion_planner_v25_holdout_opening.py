@@ -19,6 +19,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
     validate_holdout_opening_release,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (
+    freeze_scientific_exposure_receipt,
     freeze_production_rc_controller_decision,
     freeze_production_rc_opening_release,
     validate_production_rc_controller_decision,
@@ -27,7 +28,10 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (
     operational_attempt_path,
     operational_identity_path,
+    reserve_operational_attempt,
+    seal_operational_release,
     scientific_identity_path,
+    start_scientific_exposure,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (
     TRACKED_AUTHORITY_FILES,
@@ -228,6 +232,97 @@ def test_production_rc_binds_an_independent_nonfresh_canary_cas(
     assert release["scientific_ledger_path"] == controller[
         "scientific_ledger_path"
     ]
+
+
+def test_native_runner_accepts_production_rc_exposure_receipt(
+    tmp_path: Path,
+) -> None:
+    identity = _identity()
+    protocol = _protocol()
+    cas_root = tmp_path / "native-production-rc-cas"
+    release_root = "f" * 64
+    controller_root = "d" * 64
+    common = {
+        "implementation_source_head": "a" * 40,
+        "pointer_head_at_release": "b" * 40,
+        "critical_implementation_manifest_sha256": "c" * 64,
+        "preopen_authority": _binding("preopen", "1"),
+        "preopen_review": _binding("preopen-review", "2"),
+        "production_composition_preflight": _binding("preflight", "3"),
+        "production_composition_preflight_review": _binding(
+            "preflight-review", "4"
+        ),
+        "b2_tombstone": _binding("b2-tombstone", "5"),
+        "b2_failure_review": _binding("b2-failure-review", "6"),
+        "holdout_identity": identity,
+        "experiment_protocol": protocol,
+        "run_nonce": "e" * 64,
+        "authorized_output_dir": "/root/autodl-tmp/nonfresh-native-output",
+        "cas_root": cas_root,
+    }
+    release = freeze_production_rc_opening_release(
+        **common,
+        controller_decision_root_sha256=controller_root,
+    )
+    operational_path = reserve_operational_attempt(
+        cas_root,
+        holdout_identity_sha256=identity["holdout_identity_sha256"],
+        experiment_protocol_sha256=protocol["experiment_protocol_sha256"],
+        run_nonce="e" * 64,
+        authorized_output_dir="/root/autodl-tmp/nonfresh-native-output",
+        controller_root_sha256=controller_root,
+    )
+    seal_operational_release(
+        operational_path,
+        opening_release_root_sha256=release_root,
+    )
+    operational, scientific = start_scientific_exposure(
+        cas_root,
+        operational_attempt=operational_path,
+        first_unit_ordinal=0,
+        first_arm="candidate0_operational_default",
+    )
+    exposure = freeze_scientific_exposure_receipt(
+        opening_release=release,
+        opening_release_root_sha256=release_root,
+        operational_attempt=operational,
+        scientific_ledger=scientific,
+    )
+    from scripts.integrations import (
+        run_diffusion_planner_dp_camp_v21_native as native,
+    )
+
+    result = native._validate_holdout_opening_authority(
+        {
+            "holdout_authority": {
+                "holdout_identity_sha256": identity[
+                    "holdout_identity_sha256"
+                ],
+                "experiment_protocol_sha256": protocol[
+                    "experiment_protocol_sha256"
+                ],
+                "split": "fresh_b3",
+            },
+            "runtime_selector_authority": {
+                "model_registry_sha256": protocol[
+                    "model_registry_sha256"
+                ],
+                "training_scale_sha256": protocol[
+                    "training_scale_sha256"
+                ],
+                "context_scaler_sha256": protocol[
+                    "context_scaler_sha256"
+                ],
+            },
+        },
+        {
+            "opening_release": release,
+            "opening_release_root_sha256": release_root,
+            "opening_consumption": exposure,
+        },
+    )
+    assert result["opening_release"] == release
+    assert result["opening_consumption"] == exposure
 
 
 def test_pre_marker_failure_is_unconsumed_and_post_marker_is_permanent(
