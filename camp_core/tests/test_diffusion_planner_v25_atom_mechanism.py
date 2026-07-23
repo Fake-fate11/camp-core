@@ -219,6 +219,24 @@ def test_sealed_calibration_evidence_allows_legacy_layout_but_rejects_invalid_js
             "v25_atom_mechanism_reviewer",
         ),
     )
+    references_path = tmp_path / "evidence_references.json"
+    references = [{"logical_sha256": "1" * 64, "unit_ordinal": 0}]
+    references_path.write_bytes(
+        (
+            json.dumps(
+                references,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    )
+    assert modules[1]._canonical_json_list(references_path) == references
+    with pytest.raises(ValueError, match="not canonical"):
+        modules[1]._canonical_json(references_path)
+
     path = tmp_path / "decision_evidence.json"
     for module in modules:
         path.write_bytes(b'[\n  {"tick_index": 0, "score": 1.0}\n]\n')

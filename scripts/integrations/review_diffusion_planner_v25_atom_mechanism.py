@@ -35,6 +35,7 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa
 )
 from scripts.integrations.run_diffusion_planner_v25_candidate0_calibration import (  # noqa: E402
     _canonical_json,
+    _canonical_json_list,
     _sha256,
     _write_json,
 )
@@ -100,7 +101,9 @@ def review(*, artifact: Path, root_sha256: str, output_dir: Path) -> str:
     )
     if not _strict_equal(_canonical_json(source / "calibration_atom_mechanism.json"), _json_native(independent)):
         raise ValueError("atom-mechanism analysis differs from independent reconstruction")
-    if not _strict_equal(_canonical_json(source / "evidence_references.json"), references):
+    if not _strict_equal(
+        _canonical_json_list(source / "evidence_references.json"), references
+    ):
         raise ValueError("atom-mechanism evidence references drifted")
     storage = _canonical_json(bindings["storage_qualification"] / "report.json")
     storage_review = _canonical_json(bindings["storage_review"] / "report.json")
