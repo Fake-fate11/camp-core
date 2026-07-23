@@ -412,18 +412,18 @@ POINTER = (
 # tuple above remains a byte-visible regression record while the active reader
 # contract tracks only the latest Fresh B3 gate.
 POINTER = (
-    "current_v25_status=v25_fresh_b3_consolidated_preopen_and_independent_review_passed_opening_not_authorized",
-    "current_v25_source_head=39c678e64759b60541184034282cbbe0c980a05c",
+    "current_v25_status=v25_fresh_b3_generic_production_chain_and_consolidated_preopen_review_passed_opening_not_authorized",
+    "current_v25_source_head=47886f7e3ea4bc093172d0d59ee238604afc2799",
     "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
-    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_authority_39c678e6_20260723TcontractCST",
-    "current_v25_artifact_root_sha256=459790427cf394e1e31601f839d4e8834adf9997684d7cf3c094065e32fbf6b8",
-    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_review_39c678e6_20260723TcontractCST",
-    "current_v25_review_artifact_root_sha256=1b6c70b2570ba8acf07c9b6e2a5991c5457acf618287c7d94e06d810d5385858",
-    "current_v25_b3_production_preflight_root_sha256=6da4f89ea2d46513b02934ae08982e38204b177e68334add196f351874036089",
-    "current_v25_b3_production_preflight_review_root_sha256=50284a2b5640a37dfcc7736db03461b0350c5eb09e3243ac0f23204d11fbde51",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_authority_47886f7e_20260723TgenericChainCST",
+    "current_v25_artifact_root_sha256=bfd11ba6b3e7e2b79990c42fa57067b176bb71a81ef6c007fda8848676e4bb3d",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_review_47886f7e_20260723TgenericChainCST",
+    "current_v25_review_artifact_root_sha256=a1130ee4950b34b69d79261990dea169667b04913c48912a03144f940b7957b2",
+    "current_v25_b3_production_preflight_root_sha256=b96a41200fab2917723a13cb3bdbb1e26a484163d3c4ae39cf36de6419fcb014",
+    "current_v25_b3_production_preflight_review_root_sha256=9b21d2276b28d1370b9b26bc45beb78b360722502d723a49f3c959813be3b7ce",
     "current_v25_holdout_identity_sha256=84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b",
     "current_v25_experiment_protocol_sha256=686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e",
-    "current_v25_critical_implementation_manifest_sha256=3223a54af9d6c4ba55080a653a7226a75ebc8f79bcc07387a6a144326f29a021",
+    "current_v25_critical_implementation_manifest_sha256=1cabd138b9da9af90ec595cfa1f5c306f58ba5fa19cd79f977b1f8bd384405fc",
     "current_v25_fresh_b3_map_count=25",
     "current_v25_fresh_b3_intersection_count=100",
     "current_v25_fresh_b3_corridor_count=100",
@@ -450,8 +450,8 @@ POINTER = (
     "current_v25_lock_state=free",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=103334260736",
-    "current_v25_phase=fresh_b3_consolidated_preopen_review_passed",
+    "observed_autodl_free_bytes=103283118080",
+    "current_v25_phase=fresh_b3_generic_production_chain_and_consolidated_preopen_review_passed",
     "next_work_target=ultra_read_only_fresh_b3_one_time_opening_review",
 )
 
