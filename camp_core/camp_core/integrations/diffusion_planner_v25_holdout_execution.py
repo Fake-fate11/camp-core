@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 from .diffusion_planner_v25_holdout_contract import (
     ARMS,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_holdout_identity,
 )
 from .diffusion_planner_v25_signal_complete_execution import (
@@ -45,7 +45,9 @@ def build_holdout_arm_config(
     runtime_selector_authority: Mapping[str, Any],
 ) -> dict[str, Any]:
     identity = validate_holdout_identity(holdout_identity)
-    protocol_authority = validate_experiment_protocol(experiment_protocol)
+    protocol_authority = validate_holdout_experiment_protocol(
+        experiment_protocol
+    )
     legacy = build_fresh_b2_arm_config(
         probe_template=probe_template,
         prepared_runtime=prepared_runtime,
@@ -69,7 +71,9 @@ def freeze_holdout_arm_config_from_legacy(
     experiment_protocol: Mapping[str, Any],
 ) -> dict[str, Any]:
     identity = validate_holdout_identity(holdout_identity)
-    protocol_authority = validate_experiment_protocol(experiment_protocol)
+    protocol_authority = validate_holdout_experiment_protocol(
+        experiment_protocol
+    )
     legacy = validate_fresh_b2_arm_config(legacy_config)
     result = copy.deepcopy(legacy)
     result["schema_version"] = HOLDOUT_ARM_CONFIG_SCHEMA_VERSION

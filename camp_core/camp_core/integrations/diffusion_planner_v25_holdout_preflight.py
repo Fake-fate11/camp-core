@@ -14,7 +14,7 @@ from .diffusion_planner_v25_holdout_contract import (
     freeze_latency_namespaces,
     freeze_unit_terminal,
     strict_equal,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_fatal_artifact,
     validate_forward_binding,
     validate_holdout_identity,
@@ -174,7 +174,7 @@ def run_production_composition_preflight(
     native_callback: NativeCallback,
 ) -> dict[str, Any]:
     identity = validate_holdout_identity(holdout_identity)
-    protocol = validate_experiment_protocol(experiment_protocol)
+    protocol = validate_holdout_experiment_protocol(experiment_protocol)
     authority = validate_nonfresh_preflight_authority(
         nonfresh_preflight_authority,
         holdout_identity_sha256=identity["holdout_identity_sha256"],
@@ -230,7 +230,9 @@ def validate_production_composition_preflight(
         raise ValueError("production preflight field set drifted")
     result = json.loads(canonical_json_bytes(value))
     identity = validate_holdout_identity(result["holdout_identity"])
-    protocol = validate_experiment_protocol(result["experiment_protocol"])
+    protocol = validate_holdout_experiment_protocol(
+        result["experiment_protocol"]
+    )
     validate_nonfresh_preflight_authority(
         result["nonfresh_preflight_authority"],
         holdout_identity_sha256=identity["holdout_identity_sha256"],

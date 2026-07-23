@@ -49,6 +49,12 @@ SPLIT_CONTRACT = {
         "expected_maps": 25,
         "arms": ARMS,
     },
+    "fresh_b4": {
+        "seeds": (25601, 25602, 25603, 25604, 25605),
+        "expected_routes": 100,
+        "expected_maps": 25,
+        "arms": ARMS,
+    },
 }
 
 _TIER_PARAMETERS = {
@@ -175,7 +181,7 @@ def _build_from_suite(split: str, suite: Mapping[str, Any]) -> dict[str, Any]:
     for identity in identities:
         for seed_index, seed in enumerate(contract["seeds"]):
             arms = list(contract["arms"])
-            if split in {"fresh_b2", "fresh_b3"}:
+            if split in {"fresh_b2", "fresh_b3", "fresh_b4"}:
                 offset = (identity["identity_ordinal"] + seed_index) % len(arms)
                 arms = arms[offset:] + arms[:offset]
             unit_payload = {
@@ -230,7 +236,9 @@ def _build_from_suite(split: str, suite: Mapping[str, Any]) -> dict[str, Any]:
             for family_name in EVENT_FAMILIES
             for tier_name in RISK_TIERS
         },
-        "paired_arms": list(ARMS) if split in {"fresh_b2", "fresh_b3"} else [],
+        "paired_arms": (
+            list(ARMS) if split in {"fresh_b2", "fresh_b3", "fresh_b4"} else []
+        ),
         "paper_subset_ablations": list(PAPER_SUBSET_ABLATIONS),
         "candidate_count": 8,
         "candidate0_semantics": "same_forward_operational_default_alias",
@@ -261,7 +269,7 @@ def _build_from_suite(split: str, suite: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _identity(*, split: str, route: Mapping[str, Any], ordinal: int) -> dict[str, Any]:
-    naturalistic = split in {"fresh_b2", "fresh_b3"} and ordinal % 4 == 0
+    naturalistic = split in {"fresh_b2", "fresh_b3", "fresh_b4"} and ordinal % 4 == 0
     if naturalistic:
         family = NATURALISTIC_SCENARIO_FAMILY
         tier = NATURALISTIC_TIER
@@ -276,7 +284,7 @@ def _identity(*, split: str, route: Mapping[str, Any], ordinal: int) -> dict[str
     else:
         controlled_ordinal = (
             ordinal
-            if split not in {"fresh_b2", "fresh_b3"}
+            if split not in {"fresh_b2", "fresh_b3", "fresh_b4"}
             else ordinal - (ordinal // 4 + 1)
         )
         family = EVENT_FAMILIES[controlled_ordinal % len(EVENT_FAMILIES)]
@@ -410,6 +418,14 @@ def _parameters_for_split(tier: str, split: str) -> dict[str, float]:
             "trigger_time_s": 0.19,
             "lateral_offset_m": 0.23,
             "crossing_speed_mps": 0.11,
+        },
+        "fresh_b4": {
+            "headway_m": 0.97,
+            "ego_speed_mps": 0.37,
+            "other_speed_mps": 0.27,
+            "trigger_time_s": 0.31,
+            "lateral_offset_m": 0.29,
+            "crossing_speed_mps": 0.17,
         },
     }[split]
     for name, delta in offsets.items():

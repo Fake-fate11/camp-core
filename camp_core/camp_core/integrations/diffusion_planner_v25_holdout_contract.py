@@ -10,6 +10,9 @@ from typing import Any, Mapping, Sequence
 
 HOLDOUT_IDENTITY_SCHEMA_VERSION = "camp_dp_v25_holdout_identity_v1"
 EXPERIMENT_PROTOCOL_SCHEMA_VERSION = "camp_dp_v25_holdout_experiment_protocol_v1"
+REPLACEMENT_EXPERIMENT_PROTOCOL_SCHEMA_VERSION = (
+    "camp_dp_v25_replacement_holdout_experiment_protocol_v2"
+)
 FORWARD_BINDING_SCHEMA_VERSION = "camp_dp_v25_holdout_forward_binding_v1"
 LATENCY_SCHEMA_VERSION = "camp_dp_v25_holdout_latency_namespaces_v1"
 TERMINAL_SCHEMA_VERSION = "camp_dp_v25_holdout_unit_terminal_v1"
@@ -32,8 +35,8 @@ CAS_STATES = (
 
 def normative_holdout_contract() -> dict[str, Any]:
     return {
-        "schema_version": "camp_dp_v25_holdout_normative_contract_v1",
-        "status": "frozen_before_fresh_b3_opening",
+        "schema_version": "camp_dp_v25_holdout_normative_contract_v2",
+        "status": "frozen_before_fresh_b4_opening",
         "candidate0_semantics": (
             "action_equivalent_operational_default_first_default_output_alias"
         ),
@@ -49,7 +52,27 @@ def normative_holdout_contract() -> dict[str, Any]:
             "output_path",
             "artifact_repackaging",
         ],
-        "cas_states": list(CAS_STATES),
+        "legacy_b2_b3_cas_states": list(CAS_STATES),
+        "operational_attempt_states": [
+            "release_reserved",
+            "release_sealed",
+            "pre_exposure_failure",
+            "exposure_started",
+        ],
+        "scientific_ledger_states": [
+            "unopened",
+            "exposure_started",
+            "full_denominator_formed",
+            "evaluated",
+            "terminal_success",
+            "terminal_failure",
+        ],
+        "scientific_identity_consumed_at_release": False,
+        "scientific_exposure_atomic_boundary": (
+            "immediately_before_first_real_simulator_native_dp_forward"
+        ),
+        "pre_exposure_operational_failure_consumes_scientific_identity": False,
+        "post_exposure_failure_consumes_scientific_identity": True,
         "scientific_unit_statuses": list(SCIENTIFIC_TERMINAL_STATUSES),
         "artifact_integrity_failure_scope": "artifact_fatal_not_scientific_row",
         "terminal_truth_table": (
@@ -76,6 +99,16 @@ def normative_holdout_contract() -> dict[str, Any]:
         "b2_complete_paired_row_count": 0,
         "b2_pooling_into_future_experiment_allowed": False,
         "b3_requires_exact_production_preflight": True,
+        "b3_disposition": (
+            "post_exposure_engineering_fatal_consumed_no_fresh_evaluation"
+        ),
+        "b3_raw_run_count": 1,
+        "b3_complete_paired_row_count": 0,
+        "b3_pooling_into_future_experiment_allowed": False,
+        "b4_requires_exact_actual_native_production_preflight": True,
+        "b4_candidate0_pool_contract": (
+            "action_first_primary_plus_separate_supplementary_actual_native_v1"
+        ),
         "fresh_open_authorized_by_contract": False,
         "outcome_fields_consumed": [],
     }
@@ -157,6 +190,17 @@ EXPERIMENT_PROTOCOL_FIELDS = frozenset(
     {
         "schema_version",
         *_EXPERIMENT_PROTOCOL_CORE_FIELDS,
+        "experiment_protocol_sha256",
+    }
+)
+REPLACEMENT_EXPERIMENT_PROTOCOL_FIELDS = frozenset(
+    {
+        "schema_version",
+        *_EXPERIMENT_PROTOCOL_CORE_FIELDS,
+        "prior_experiment_protocol_sha256",
+        "holdout_generation_rule_sha256",
+        "protocol_revision",
+        "scientific_rules_unchanged_from_prior",
         "experiment_protocol_sha256",
     }
 )
@@ -365,6 +409,90 @@ def validate_experiment_protocol(value: Mapping[str, Any]) -> dict[str, Any]:
     if not strict_equal(value, expected):
         raise ValueError("experiment protocol exact value drifted")
     return expected
+
+
+def freeze_replacement_experiment_protocol(
+    *,
+    prior_experiment_protocol: Mapping[str, Any],
+    holdout_generation_rule_sha256: str,
+    protocol_revision: str,
+) -> dict[str, Any]:
+    """Freeze a new holdout protocol identity without changing science rules.
+
+    B4 uses a prospectively generated, clone-disjoint holdout.  Its protocol
+    hash must therefore differ from the consumed B3 protocol even though every
+    model, atom, margin, multiplicity, failure, and claim rule is unchanged.
+    """
+
+    prior = validate_experiment_protocol(prior_experiment_protocol)
+    _require_sha(holdout_generation_rule_sha256, "holdout_generation_rule_sha256")
+    if protocol_revision != "fresh_b4_outcome_blind_extension_v1":
+        raise ValueError("replacement holdout protocol revision drifted")
+    payload = {
+        "schema_version": REPLACEMENT_EXPERIMENT_PROTOCOL_SCHEMA_VERSION,
+        **{
+            name: prior[name]
+            for name in sorted(_EXPERIMENT_PROTOCOL_CORE_FIELDS)
+        },
+        "prior_experiment_protocol_sha256": prior[
+            "experiment_protocol_sha256"
+        ],
+        "holdout_generation_rule_sha256": holdout_generation_rule_sha256,
+        "protocol_revision": protocol_revision,
+        "scientific_rules_unchanged_from_prior": True,
+    }
+    payload["experiment_protocol_sha256"] = canonical_sha256(payload)
+    if (
+        payload["experiment_protocol_sha256"]
+        == prior["experiment_protocol_sha256"]
+    ):
+        raise ValueError("replacement holdout protocol hash was reused")
+    return payload
+
+
+def validate_replacement_experiment_protocol(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != REPLACEMENT_EXPERIMENT_PROTOCOL_FIELDS:
+        raise ValueError("replacement experiment protocol field set drifted")
+    prior = {
+        "schema_version": EXPERIMENT_PROTOCOL_SCHEMA_VERSION,
+        **{
+            name: value[name]
+            for name in sorted(_EXPERIMENT_PROTOCOL_CORE_FIELDS)
+        },
+    }
+    prior["experiment_protocol_sha256"] = canonical_sha256(prior)
+    if (
+        prior["experiment_protocol_sha256"]
+        != value["prior_experiment_protocol_sha256"]
+    ):
+        raise ValueError("replacement protocol prior-science binding drifted")
+    expected = freeze_replacement_experiment_protocol(
+        prior_experiment_protocol=prior,
+        holdout_generation_rule_sha256=value[
+            "holdout_generation_rule_sha256"
+        ],
+        protocol_revision=value["protocol_revision"],
+    )
+    if not strict_equal(value, expected):
+        raise ValueError("replacement experiment protocol exact value drifted")
+    return expected
+
+
+def validate_holdout_experiment_protocol(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    if type(value) is not dict:
+        raise ValueError("holdout experiment protocol must be an object")
+    if value.get("schema_version") == EXPERIMENT_PROTOCOL_SCHEMA_VERSION:
+        return validate_experiment_protocol(value)
+    if (
+        value.get("schema_version")
+        == REPLACEMENT_EXPERIMENT_PROTOCOL_SCHEMA_VERSION
+    ):
+        return validate_replacement_experiment_protocol(value)
+    raise ValueError("holdout experiment protocol schema drifted")
 
 
 def freeze_forward_binding(

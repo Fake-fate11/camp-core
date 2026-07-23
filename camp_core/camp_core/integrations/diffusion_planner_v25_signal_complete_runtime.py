@@ -18,7 +18,8 @@ from .diffusion_planner_v25_route_signal_authority import (
     MAPPED_SIGNAL_CHAIN_SCHEMA_VERSION,
     validate_mapped_signal_chain,
 )
-from .diffusion_planner_v25_signal_complete_plan import (
+from .diffusion_planner_v25_semantic_authority import validate_no_signal_chain
+from .diffusion_planner_v25_evaluation import (
     NATURALISTIC_SCENARIO_FAMILY,
     NATURALISTIC_TIER,
 )
@@ -74,13 +75,28 @@ def build_signal_complete_scene_adapter(
         raise ValueError("signal-complete prepared runtime authority drifted")
     case = prepared.get("case")
     mapped = prepared.get("mapped_signal_authority")
-    if type(case) is not dict or type(mapped) is not dict:
+    no_signal = prepared.get("no_signal_authority")
+    if type(case) is not dict:
         raise ValueError("signal-complete prepared runtime source is missing")
+    if (type(mapped) is dict) == (type(no_signal) is dict):
+        raise ValueError(
+            "signal-complete prepared runtime signal authority is ambiguous"
+        )
     if case.get("family") == NATURALISTIC_SCENARIO_FAMILY:
+        if type(mapped) is not dict:
+            raise ValueError(
+                "naturalistic background requires mapped signal authority"
+            )
         return V25SignalCompleteBackgroundAdapter(
             case, mapped_signal_authority=mapped
         )
-    return V25ControlledSceneAdapter(case, mapped_signal_authority=mapped)
+    if type(mapped) is dict:
+        return V25ControlledSceneAdapter(
+            case, mapped_signal_authority=validate_mapped_signal_chain(mapped)
+        )
+    return V25ControlledSceneAdapter(
+        case, no_signal_authority=validate_no_signal_chain(no_signal)
+    )
 
 
 def build_signal_complete_runtime_case(
@@ -233,7 +249,7 @@ def _validate_naturalistic_background_case(case: Mapping[str, Any]) -> None:
     if case.get("schema_version") != CONTROLLED_CASE_SCHEMA_VERSION:
         raise ValueError("naturalistic background schema mismatch")
     if (
-        case.get("split") not in {"fresh_b2", "fresh_b3"}
+        case.get("split") not in {"fresh_b2", "fresh_b3", "fresh_b4"}
         or case.get("family") != NATURALISTIC_SCENARIO_FAMILY
         or case.get("tier") != NATURALISTIC_TIER
         or case.get("actors") != []

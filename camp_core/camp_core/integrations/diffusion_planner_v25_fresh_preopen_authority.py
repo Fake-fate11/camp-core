@@ -49,6 +49,7 @@ EXPECTED_COUNTS = {
 TRACKED_AUTHORITY_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_atom_mechanism.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_b3_preopen.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_b4_preopen.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_calibration.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_calibration_artifact.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_calibration_corpus.py",
@@ -61,10 +62,46 @@ TRACKED_AUTHORITY_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_preopen_authority.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_receipt.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_storage.py",
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_actual_native_receipt_contract.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_actual_native_receipt_review.py"
+    ),
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_contract.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_execution.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_failure_closeout.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_opening.py",
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_holdout_opening_rc.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_holdout_preopen_dispatch.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_holdout_plan_dispatch.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_production_equivalence_authority.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_production_equivalence_certificate.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_production_equivalence_fixture.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_holdout_state.py"
+    ),
     (
         "camp_core/camp_core/integrations/"
         "diffusion_planner_v25_holdout_lifecycle_preflight.py"
@@ -83,18 +120,28 @@ TRACKED_AUTHORITY_FILES = (
     "configs/integrations/diffusion_planner_v25_fresh_b2_preopen_authority_v1.json",
     "configs/integrations/diffusion_planner_v25_fresh_b2_preregistration_draft_v1.json",
     "configs/integrations/diffusion_planner_v25_holdout_normative_contract_v1.json",
+    "configs/integrations/diffusion_planner_v25_holdout_normative_contract_v2.json",
     "scripts/integrations/build_diffusion_planner_v25_final_evidence.py",
     "scripts/integrations/create_diffusion_planner_v25_fresh_b2_opening.py",
     "scripts/integrations/create_diffusion_planner_v25_holdout_opening.py",
     "scripts/integrations/freeze_diffusion_planner_v25_b2_consumed_failure_closeout.py",
     "scripts/integrations/freeze_diffusion_planner_v25_b3_production_preflight.py",
     "scripts/integrations/freeze_diffusion_planner_v25_b3_preopen.py",
+    "scripts/integrations/freeze_diffusion_planner_v25_b4_preopen.py",
     "scripts/integrations/freeze_diffusion_planner_v25_atom_mechanism.py",
     "scripts/integrations/freeze_diffusion_planner_v25_calibration_from_paired.py",
     "scripts/integrations/evaluate_diffusion_planner_v25_fresh_b2.py",
     "scripts/integrations/evaluate_diffusion_planner_v25_holdout.py",
     "scripts/integrations/freeze_diffusion_planner_v25_fresh_b2_preopen.py",
     "scripts/integrations/freeze_diffusion_planner_v25_holdout_production_preflight.py",
+    (
+        "scripts/integrations/"
+        "freeze_diffusion_planner_v25_production_equivalence_certificate.py"
+    ),
+    (
+        "scripts/integrations/"
+        "materialize_diffusion_planner_v25_production_equivalence_authority.py"
+    ),
     "scripts/integrations/materialize_diffusion_planner_v25_signal_complete_maps.py",
     "scripts/integrations/materialize_diffusion_planner_v25_signal_complete_plan.py",
     "scripts/integrations/materialize_diffusion_planner_v25_signal_complete_routes.py",
@@ -110,6 +157,7 @@ TRACKED_AUTHORITY_FILES = (
     "scripts/integrations/review_diffusion_planner_v25_b2_consumed_failure_closeout.py",
     "scripts/integrations/review_diffusion_planner_v25_b3_production_preflight.py",
     "scripts/integrations/review_diffusion_planner_v25_b3_preopen.py",
+    "scripts/integrations/review_diffusion_planner_v25_b4_preopen.py",
     "scripts/integrations/review_diffusion_planner_v25_final_evidence.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_storage.py",
     "scripts/integrations/review_diffusion_planner_v25_signal_complete_maps.py",
@@ -117,7 +165,19 @@ TRACKED_AUTHORITY_FILES = (
     "scripts/integrations/review_diffusion_planner_v25_signal_complete_routes.py",
     "scripts/integrations/review_diffusion_planner_v25_signal_complete_runtime.py",
     "scripts/integrations/review_diffusion_planner_v25_holdout_production_preflight.py",
+    (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_production_equivalence_authority.py"
+    ),
+    (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_production_equivalence_certificate.py"
+    ),
     "scripts/integrations/run_diffusion_planner_dp_camp_v21_native.py",
+    (
+        "scripts/integrations/"
+        "run_diffusion_planner_v25_b4_production_rc_focused_tests.py"
+    ),
     "scripts/integrations/run_diffusion_planner_v25_fresh_b2_execution.py",
     "scripts/integrations/run_diffusion_planner_v25_holdout_execution.py",
 )

@@ -22,6 +22,10 @@ from .diffusion_planner_v25_holdout_contract import (
     SCIENTIFIC_TERMINAL_STATUSES,
 )
 from .diffusion_planner_v25_signal_safety import SIGNAL_SAFETY_SCHEMA_VERSION
+from .diffusion_planner_v25_actual_native_receipt_contract import (
+    actual_native_receipt_contract_sha256,
+    validate_actual_native_receipt,
+)
 
 
 CANDIDATE0_POOL_SCHEMA_VERSION = (
@@ -78,6 +82,7 @@ _SUPPLEMENTARY_NATIVE_FIELDS = {
     "ticks",
     "claim_authorized",
     "outcome_fields_consumed",
+    "actual_native_receipt_contract_sha256",
 }
 _SUPPLEMENTARY_NATIVE_TICK_FIELDS = {
     "tick_index",
@@ -203,6 +208,11 @@ def project_candidate0_supplementary_native_receipt(
         or native_receipt.get("claim_authorized") is not False
     ):
         raise ValueError("supplementary candidate0 native receipt authority drifted")
+    validate_actual_native_receipt(
+        native_receipt,
+        branch="candidate0_supplementary",
+        expected_ticks=FRESH_TICK_COUNT,
+    )
     header_names = (
         "route_sha256",
         "logical_map_sha256",
@@ -239,6 +249,9 @@ def project_candidate0_supplementary_native_receipt(
         "ticks": projected_ticks,
         "claim_authorized": False,
         "outcome_fields_consumed": [],
+        "actual_native_receipt_contract_sha256": (
+            actual_native_receipt_contract_sha256()
+        ),
     }
     _supplementary_candidate0_native(result)
     return result
@@ -619,6 +632,26 @@ def _native_receipt(value: Mapping[str, Any], arm: str) -> dict[str, Any]:
     expected_native_arm = "dp" if arm == "candidate0" else "camp"
     if value.get("arm") != expected_native_arm:
         raise ValueError("native arm identity drifted")
+    # Historical B2/B3 receipts predate the versioned actual-native ABI and
+    # remain independently reopenable under their frozen schemas.  Every B4
+    # receipt carries the ABI hash and must pass the current production
+    # validator; absence is not backfilled.
+    if "actual_native_receipt_contract_sha256" in value:
+        if (
+            value["actual_native_receipt_contract_sha256"]
+            != actual_native_receipt_contract_sha256()
+        ):
+            raise ValueError("Fresh actual-native ABI hash drifted")
+        branch = {
+            "candidate0": "candidate0_primary",
+            "static14d": "static14d",
+            "scene14d": "scene14d",
+        }[arm]
+        value = validate_actual_native_receipt(
+            value,
+            branch=branch,
+            expected_ticks=FRESH_TICK_COUNT,
+        )
     ticks = value.get("ticks")
     if type(ticks) is not list or len(ticks) != FRESH_TICK_COUNT:
         raise ValueError("Fresh native receipt must contain exactly 64 ticks")
@@ -953,6 +986,8 @@ def _supplementary_candidate0_native(
         or value.get("fixed_dp_head") != FIXED_DP_HEAD
         or value.get("claim_authorized") is not False
         or value.get("outcome_fields_consumed") != []
+        or value.get("actual_native_receipt_contract_sha256")
+        != actual_native_receipt_contract_sha256()
         or type(value.get("scenario_seed")) is not int
     ):
         raise ValueError(

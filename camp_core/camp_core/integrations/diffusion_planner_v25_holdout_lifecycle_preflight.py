@@ -11,7 +11,7 @@ from .diffusion_planner_v25_holdout_contract import (
     reserve_holdout_identity,
     strict_equal,
     transition_holdout_identity,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_holdout_identity,
     validate_tombstone,
 )
@@ -71,7 +71,9 @@ def run_nonfresh_entrypoint_lifecycle(
         production_preflight
     )
     full_identity = validate_holdout_identity(preflight["holdout_identity"])
-    protocol = validate_experiment_protocol(preflight["experiment_protocol"])
+    protocol = validate_holdout_experiment_protocol(
+        preflight["experiment_protocol"]
+    )
     _require_head(implementation_head)
     mini_identity = _mini_identity(
         full_identity=full_identity,
@@ -253,7 +255,9 @@ def validate_nonfresh_entrypoint_lifecycle(
         implementation_head=result["implementation_head"],
         preflight=preflight,
     )
-    protocol = validate_experiment_protocol(preflight["experiment_protocol"])
+    protocol = validate_holdout_experiment_protocol(
+        preflight["experiment_protocol"]
+    )
     expected_base = (
         f"{_canonical_artifact_path(artifact_path)}/nonfresh_entrypoint_"
         f"{expected_identity['holdout_identity_sha256'][:16]}"

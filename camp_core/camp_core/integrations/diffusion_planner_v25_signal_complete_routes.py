@@ -6,8 +6,8 @@ from typing import Any, Mapping, Sequence, Type
 
 import numpy as np
 
-from .diffusion_planner_v25_signal_complete_plan import (
-    validate_signal_complete_execution_plan,
+from .diffusion_planner_v25_holdout_plan_dispatch import (
+    validate_holdout_execution_plan,
 )
 
 
@@ -23,7 +23,7 @@ def materialize_signal_complete_route_assets(
 ) -> dict[str, Any]:
     """Materialize exact fixed-DP ``Route`` assets from a frozen V25 plan."""
 
-    validated = validate_signal_complete_execution_plan(plan)
+    validated = validate_holdout_execution_plan(plan)
     map_root = Path(map_artifact).resolve()
     output = Path(output_dir).resolve()
     if not map_root.is_dir():
@@ -115,7 +115,7 @@ def validate_signal_complete_route_assets(
     map_artifact: Path,
     route_class: Type[Any],
 ) -> dict[str, Any]:
-    validated_plan = validate_signal_complete_execution_plan(plan)
+    validated_plan = validate_holdout_execution_plan(plan)
     fields = {
         "schema_version",
         "status",

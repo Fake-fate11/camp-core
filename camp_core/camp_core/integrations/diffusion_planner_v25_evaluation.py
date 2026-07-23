@@ -12,7 +12,7 @@ from .diffusion_planner_v25_fresh_opening import (
 )
 from .diffusion_planner_v25_holdout_contract import (
     SCIENTIFIC_TERMINAL_STATUSES,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_holdout_identity,
 )
 from .diffusion_planner_v25_holdout_opening import (
@@ -151,7 +151,9 @@ def evaluate_fresh_b2_three_arm(
     if _holdout_mode:
         release = validate_holdout_opening_release(opening_release)
         identity = validate_holdout_identity(release["holdout_identity"])
-        protocol = validate_experiment_protocol(release["experiment_protocol"])
+        protocol = validate_holdout_experiment_protocol(
+            release["experiment_protocol"]
+        )
         if (
             release["preopen_authority"]["root_sha256"]
             != preopen_qualification_root_sha256

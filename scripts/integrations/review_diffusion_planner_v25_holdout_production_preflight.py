@@ -29,7 +29,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
     freeze_latency_namespaces,
     freeze_unit_terminal,
     strict_equal,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_fatal_artifact,
     validate_forward_binding,
     validate_holdout_identity,
@@ -105,7 +105,9 @@ def _independent_review(
     if type(value) is not dict or set(value) != PREFLIGHT_FIELDS:
         raise ValueError("production preflight field set drifted")
     identity = validate_holdout_identity(value["holdout_identity"])
-    protocol = validate_experiment_protocol(value["experiment_protocol"])
+    protocol = validate_holdout_experiment_protocol(
+        value["experiment_protocol"]
+    )
     configs = value["config_payloads"]
     if type(configs) is not dict or set(configs) != set(ARMS):
         raise ValueError("production preflight config arm set drifted")

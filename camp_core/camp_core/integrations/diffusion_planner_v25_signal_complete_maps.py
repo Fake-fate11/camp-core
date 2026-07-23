@@ -12,10 +12,13 @@ import lanelet2
 SCHEMA_VERSION = "camp_dp_v25_project_authored_signal_complete_suite_v3"
 MAP_SCHEMA_VERSION = "camp_dp_v25_project_authored_lanelet2_signal_map_v3"
 SOURCE_FAMILY = "project_authored_mit_deterministic_lanelet2"
+GENERATOR_FAMILY = "camp_v25_project_authored_lanelet2_generator"
+GENERATOR_PROVENANCE = "project_authored_from_first_principles"
 SOURCE_FAMILY_BY_SPLIT = {
     "calibration": SOURCE_FAMILY,
     "fresh_b2": SOURCE_FAMILY,
     "fresh_b3": "project_authored_mit_deterministic_lanelet2_b3",
+    "fresh_b4": "project_authored_mit_deterministic_lanelet2_b4",
 }
 LICENSE_SPDX = "MIT"
 _GEO_ORIGIN_LAT = 35.0
@@ -31,6 +34,7 @@ SPLIT_PLAN = {
     "calibration": {"map_count": 5, "routes_per_map": 10},
     "fresh_b2": {"map_count": 25, "routes_per_map": 4},
     "fresh_b3": {"map_count": 25, "routes_per_map": 4},
+    "fresh_b4": {"map_count": 25, "routes_per_map": 4},
 }
 
 
@@ -60,6 +64,7 @@ def build_signal_complete_suite(split: str) -> dict[str, Any]:
         "calibration": 0,
         "fresh_b2": 10_000,
         "fresh_b3": 20_000,
+        "fresh_b4": 30_000,
     }[split]
     for map_index in range(plan["map_count"]):
         maps.append(
@@ -75,6 +80,8 @@ def build_signal_complete_suite(split: str) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "status": "outcome_blind_signal_complete_suite_materialized",
         "source_family": SOURCE_FAMILY_BY_SPLIT[split],
+        "generator_family": GENERATOR_FAMILY,
+        "generator_provenance": GENERATOR_PROVENANCE,
         "license": {
             "spdx": LICENSE_SPDX,
             "provenance": "project_authored_from_first_principles",
@@ -114,6 +121,8 @@ def validate_signal_complete_suite(value: Mapping[str, Any]) -> dict[str, Any]:
         "schema_version",
         "status",
         "source_family",
+        "generator_family",
+        "generator_provenance",
         "license",
         "split",
         "map_count",
@@ -141,6 +150,8 @@ def validate_signal_complete_suite(value: Mapping[str, Any]) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "status": "outcome_blind_signal_complete_suite_materialized",
         "source_family": SOURCE_FAMILY_BY_SPLIT[split],
+        "generator_family": GENERATOR_FAMILY,
+        "generator_provenance": GENERATOR_PROVENANCE,
         "map_count": plan["map_count"],
         "corridor_count": plan["map_count"] * plan["routes_per_map"],
         "route_count": plan["map_count"] * plan["routes_per_map"],
@@ -310,6 +321,7 @@ def _append_corridor(
         "calibration": 0,
         "fresh_b2": 50_000_000,
         "fresh_b3": 100_000_000,
+        "fresh_b4": 150_000_000,
     }[split]
     base += map_index * 100_000 + local_index * 1_000
     lengths = (

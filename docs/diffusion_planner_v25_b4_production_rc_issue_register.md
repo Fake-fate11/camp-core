@@ -1,0 +1,20 @@
+# V25 B4 production RC issue register
+
+This register is frozen for the single B4 production-RC engineering stage.  It
+does not add a scientific gate or change the fixed DP, K8, trajectory, atom,
+model, threshold, NI, multiplicity, evaluation, or claim contracts.
+
+| ID | Priority | Failure signature | Required closure | Status |
+| --- | --- | --- | --- | --- |
+| B4-RC-001 | P0 | `validate_v25_zero_overlap()` body became unreachable after the B3 validator definition | Restore independent function bodies and direct/caller tests | implementation and local regression complete; AutoDL suite pending |
+| B4-RC-002 | P0 | Real candidate0 native receipt and pool consumer disagree on required K8 fields | One versioned actual-native ABI with distinct candidate0 primary/supplementary branches | implementation and ABI mutations complete; production canary pending |
+| B4-RC-003 | P0 | Producer and reviewer share a projector/helper and can self-confirm the same defect | Reviewer reads the ABI declaration but independently parses and recomputes evidence | independent parser/recompute implemented; production canary pending |
+| B4-RC-004 | P0 | Prior production preflight did not instantiate every real native branch | Same production entrypoints, raw callback, three scenario classes, 3 arms x 64 ticks | authority/plan/certificate implemented; production canary pending |
+| B4-RC-005 | P0 | Release reservation and first scientific exposure are conflated | Separate operational-attempt and scientific-exposure ledgers with atomic transitions | implementation and state-machine mutations complete; production canary pending |
+| B4-RC-006 | P1 | A renamed source family can be mistaken for independent provenance | Record common generator provenance; prove independence using geometry/export/semantic clone hashes | implementation and local regression complete; B4 pre-open review pending |
+| B4-RC-007 | P1 | Native field access can outgrow the ABI without a failing test | Static consumer inventory plus required/extra/type/shape/cross-branch mutations | implementation and local ABI regression complete; AutoDL suite pending |
+| B4-RC-008 | P1 | Raw receipt or tensor evidence can be lost before projection failure | Persist and seal raw/preprojection evidence before comparison/projection | implementation and independent mutation regression complete; production canary pending |
+
+The production-equivalence certificate is created only after all critical
+implementation work is complete.  After the certificate, critical code is
+frozen; only the existing pointer/audit documentation allowlist may change.

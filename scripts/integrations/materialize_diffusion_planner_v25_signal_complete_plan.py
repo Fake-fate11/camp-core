@@ -175,7 +175,9 @@ def _write_json(path: Path, value: Any) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--split", choices=("calibration", "fresh_b2", "fresh_b3"), required=True
+        "--split",
+        choices=("calibration", "fresh_b2", "fresh_b3", "fresh_b4"),
+        required=True,
     )
     parser.add_argument("--map-artifact", type=Path, required=True)
     parser.add_argument("--map-root-sha256", required=True)

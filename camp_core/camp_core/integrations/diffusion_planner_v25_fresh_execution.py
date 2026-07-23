@@ -28,13 +28,21 @@ from .diffusion_planner_v25_signal_complete_execution import (
 )
 from .diffusion_planner_v25_holdout_contract import (
     freeze_unit_terminal,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_holdout_identity,
+)
+from .diffusion_planner_v25_holdout_plan_dispatch import (
+    validate_holdout_execution_plan,
 )
 from .diffusion_planner_v25_holdout_execution import build_holdout_arm_config
 from .diffusion_planner_v25_holdout_opening import (
     validate_holdout_opening_consumption,
     validate_holdout_opening_release,
+)
+from .diffusion_planner_v25_holdout_opening_rc import (
+    RELEASE_SCHEMA_VERSION as PRODUCTION_RC_RELEASE_SCHEMA_VERSION,
+    validate_production_rc_opening_release,
+    validate_scientific_exposure_receipt,
 )
 from .diffusion_planner_v25_signal_complete_plan import (
     validate_signal_complete_execution_plan,
@@ -67,6 +75,7 @@ SourceFailureEvidence = Callable[
     ],
     Mapping[str, Any],
 ]
+ExposureStarter = Callable[[], Mapping[str, Any]]
 
 
 def materialize_fixed_dp_failure_evidence(
@@ -180,11 +189,12 @@ def execute_fresh_b2_three_arm_units(
     runtime_selector_authority: Mapping[str, Any],
     opening_release: Mapping[str, Any],
     opening_release_root_sha256: str,
-    opening_consumption: Mapping[str, Any],
+    opening_consumption: Mapping[str, Any] | None,
     authorized_output_dir: str,
     output_dir: Path,
     run_one: RunOne,
     failure_evidence: FailureEvidence,
+    start_exposure: ExposureStarter | None = None,
 ) -> dict[str, Any]:
     """Execute the frozen 500-pair denominator after one-time opening.
 
@@ -234,7 +244,7 @@ def execute_holdout_three_arm_units(
     runtime_selector_authority: Mapping[str, Any],
     opening_release: Mapping[str, Any],
     opening_release_root_sha256: str,
-    opening_consumption: Mapping[str, Any],
+    opening_consumption: Mapping[str, Any] | None,
     authorized_output_dir: str,
     output_dir: Path,
     run_one: RunOne,
@@ -242,13 +252,22 @@ def execute_holdout_three_arm_units(
     source_failure_evidence: SourceFailureEvidence = (
         materialize_source_ineligible_evidence
     ),
+    start_exposure: ExposureStarter | None = None,
 ) -> dict[str, Any]:
     """Execute one sealed generic holdout denominator after CAS consumption."""
 
-    validated = validate_signal_complete_execution_plan(plan)
-    release = validate_holdout_opening_release(opening_release)
+    validated = validate_holdout_execution_plan(plan)
+    if (
+        opening_release.get("schema_version")
+        == PRODUCTION_RC_RELEASE_SCHEMA_VERSION
+    ):
+        release = validate_production_rc_opening_release(opening_release)
+    else:
+        release = validate_holdout_opening_release(opening_release)
     identity = validate_holdout_identity(release["holdout_identity"])
-    protocol = validate_experiment_protocol(release["experiment_protocol"])
+    protocol = validate_holdout_experiment_protocol(
+        release["experiment_protocol"]
+    )
     if (
         validated.get("split") != identity["split"]
         or validated.get("execution_unit_count") != identity["paired_unit_count"]
@@ -280,6 +299,7 @@ def execute_holdout_three_arm_units(
         failure_evidence=failure_evidence,
         source_failure_evidence=source_failure_evidence,
         holdout_mode=True,
+        start_exposure=start_exposure,
     )
 
 
@@ -294,21 +314,39 @@ def _execute_validated_fresh_units(
     runtime_selector_authority: Mapping[str, Any],
     opening_release: Mapping[str, Any],
     opening_release_root_sha256: str,
-    opening_consumption: Mapping[str, Any],
+    opening_consumption: Mapping[str, Any] | None,
     authorized_output_dir: str,
     output_dir: Path,
     run_one: RunOne,
     failure_evidence: FailureEvidence,
     source_failure_evidence: SourceFailureEvidence | None = None,
     holdout_mode: bool = False,
+    start_exposure: ExposureStarter | None = None,
 ) -> dict[str, Any]:
+    consumption = opening_consumption
     if holdout_mode:
-        release = validate_holdout_opening_release(opening_release)
-        validate_holdout_opening_consumption(
-            opening_consumption,
-            opening_release=release,
-            opening_release_root_sha256=opening_release_root_sha256,
-        )
+        if (
+            opening_release.get("schema_version")
+            == PRODUCTION_RC_RELEASE_SCHEMA_VERSION
+        ):
+            release = validate_production_rc_opening_release(opening_release)
+            if consumption is not None:
+                validate_scientific_exposure_receipt(
+                    consumption,
+                    opening_release=release,
+                    opening_release_root_sha256=opening_release_root_sha256,
+                )
+            elif start_exposure is None:
+                raise ValueError(
+                    "production RC execution requires deferred exposure starter"
+                )
+        else:
+            release = validate_holdout_opening_release(opening_release)
+            validate_holdout_opening_consumption(
+                consumption,
+                opening_release=release,
+                opening_release_root_sha256=opening_release_root_sha256,
+            )
         identity = release["holdout_identity"]
         protocol_authority = release["experiment_protocol"]
         run_schema_version = HOLDOUT_RUN_SCHEMA_VERSION
@@ -405,6 +443,19 @@ def _execute_validated_fresh_units(
             _write_json(run_dir / "run_config.json", config)
             unit_configs[plan_arm] = (config, run_dir)
             try:
+                if consumption is None:
+                    if not holdout_mode or start_exposure is None:
+                        raise ValueError(
+                            "holdout scientific exposure starter is missing"
+                        )
+                    consumption = dict(start_exposure())
+                    validate_scientific_exposure_receipt(
+                        consumption,
+                        opening_release=release,
+                        opening_release_root_sha256=(
+                            opening_release_root_sha256
+                        ),
+                    )
                 native = dict(run_one(config, run_dir))
                 supplementary_native = native.pop(
                     "_candidate0_supplementary_native_receipt", None

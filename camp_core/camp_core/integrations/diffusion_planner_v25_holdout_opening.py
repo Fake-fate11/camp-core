@@ -7,7 +7,7 @@ from .diffusion_planner_v25_holdout_contract import (
     canonical_sha256,
     strict_equal,
     transition_holdout_identity,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_holdout_identity,
     validate_tombstone,
 )
@@ -106,7 +106,7 @@ def freeze_holdout_controller_decision(
     cas_tombstone_path: str,
 ) -> dict[str, Any]:
     identity = validate_holdout_identity(holdout_identity)
-    protocol = validate_experiment_protocol(experiment_protocol)
+    protocol = validate_holdout_experiment_protocol(experiment_protocol)
     _require_git_head(implementation_source_head, "implementation_source_head")
     _require_git_head(pointer_head_at_release, "pointer_head_at_release")
     _require_sha(
@@ -245,7 +245,7 @@ def freeze_holdout_opening_release(
     cas_tombstone_path: str,
 ) -> dict[str, Any]:
     identity = validate_holdout_identity(holdout_identity)
-    protocol = validate_experiment_protocol(experiment_protocol)
+    protocol = validate_holdout_experiment_protocol(experiment_protocol)
     for name, value in {
         "critical_implementation_manifest_sha256": (
             critical_implementation_manifest_sha256

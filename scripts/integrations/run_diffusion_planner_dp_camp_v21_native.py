@@ -51,6 +51,10 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
 from camp_core.integrations.diffusion_planner_v25_signal_safety import (
     summarize_certified_signal_safety,
 )
+from camp_core.integrations.diffusion_planner_v25_actual_native_receipt_contract import (
+    actual_native_receipt_contract_sha256,
+    validate_actual_native_receipt,
+)
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
@@ -4189,6 +4193,25 @@ def build_native_arm_runner(
         receipt["runtime_annotation_compatibility"] = context[
             "annotation_compatibility"
         ]
+        if signal_complete_holdout_arm:
+            opening_arm = config["protocol"]["holdout_opening_arm"]
+            branch = (
+                "candidate0_supplementary"
+                if candidate0_supplementary_pool_diagnostic
+                else (
+                    "candidate0_primary"
+                    if opening_arm == "candidate0"
+                    else opening_arm
+                )
+            )
+            receipt["actual_native_receipt_contract_sha256"] = (
+                actual_native_receipt_contract_sha256()
+            )
+            validate_actual_native_receipt(
+                receipt,
+                branch=branch,
+                expected_ticks=max_steps,
+            )
         return receipt
 
     return run_arm

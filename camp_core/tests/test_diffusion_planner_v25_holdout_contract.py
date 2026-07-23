@@ -137,7 +137,7 @@ def test_tracked_normative_contract_matches_runtime_exactly() -> None:
         Path(__file__).resolve().parents[2]
         / "configs"
         / "integrations"
-        / "diffusion_planner_v25_holdout_normative_contract_v1.json"
+        / "diffusion_planner_v25_holdout_normative_contract_v2.json"
     )
     expected = normative_holdout_contract()
     assert path.read_bytes() == canonical_json_bytes(expected)

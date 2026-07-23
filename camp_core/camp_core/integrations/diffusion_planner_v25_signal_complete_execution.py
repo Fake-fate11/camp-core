@@ -112,6 +112,13 @@ def build_fresh_b2_arm_config(
     if type(case) is not dict or prepared.get("schema_version") != RUNTIME_SCHEMA_VERSION:
         raise ValueError("Fresh B2 runtime authority drifted")
     build_signal_complete_scene_adapter(prepared)
+    semantic_parameter_block_sha256 = prepared.get(
+        "semantic_parameter_block_sha256", case.get("parameter_block_id")
+    )
+    _require_sha(
+        semantic_parameter_block_sha256,
+        "semantic_parameter_block_sha256",
+    )
     unit = _fresh_execution_unit(execution_unit, prepared)
     arm_index = unit["ordered_arms"].index(plan_arm)
     route = _asset(route_asset, "route_asset")
@@ -220,7 +227,9 @@ def build_fresh_b2_arm_config(
             "unit_sha256": unit["unit_sha256"],
             "scenario_identity_sha256": unit["scenario_identity_sha256"],
             "route_identity_sha256": case["route_identity_sha256"],
-            "semantic_parameter_block_sha256": case["parameter_block_id"],
+            "semantic_parameter_block_sha256": (
+                semantic_parameter_block_sha256
+            ),
             "seed": seed,
             "ordered_arms": list(unit["ordered_arms"]),
             "plan_arm": plan_arm,
@@ -321,7 +330,10 @@ def validate_fresh_b2_arm_config(value: Mapping[str, Any]) -> dict[str, Any]:
         != runtime["scenario_identity_sha256"]
         or plan_authority["route_identity_sha256"] != case["route_identity_sha256"]
         or plan_authority["semantic_parameter_block_sha256"]
-        != case["parameter_block_id"]
+        != runtime.get(
+            "semantic_parameter_block_sha256",
+            case["parameter_block_id"],
+        )
         or plan_authority["plan_arm"] != plan_arm
         or plan_authority["ordered_arms"] is None
         or type(plan_authority["ordered_arms"]) is not list

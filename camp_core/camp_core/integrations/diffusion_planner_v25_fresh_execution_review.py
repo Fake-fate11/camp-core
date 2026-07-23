@@ -28,8 +28,13 @@ from .diffusion_planner_v25_fresh_opening import (
     validate_fresh_b2_opening_consumption,
     validate_fresh_b2_opening_release,
 )
+from .diffusion_planner_v25_actual_native_receipt_review import (
+    independent_candidate0_pool_evidence,
+    independent_historical_candidate0_pool_evidence,
+    independent_project_candidate0_supplementary,
+    independent_validate_actual_native_receipt,
+)
 from .diffusion_planner_v25_fresh_receipt import (
-    build_candidate0_pool_evidence,
     build_fresh_b2_complete_row,
     build_fresh_b2_failure_row,
 )
@@ -40,13 +45,21 @@ from .diffusion_planner_v25_signal_complete_execution import (
 )
 from .diffusion_planner_v25_holdout_contract import (
     freeze_unit_terminal,
-    validate_experiment_protocol,
+    validate_holdout_experiment_protocol,
     validate_holdout_identity,
+)
+from .diffusion_planner_v25_holdout_plan_dispatch import (
+    validate_holdout_execution_plan,
 )
 from .diffusion_planner_v25_holdout_execution import build_holdout_arm_config
 from .diffusion_planner_v25_holdout_opening import (
     validate_holdout_opening_consumption,
     validate_holdout_opening_release,
+)
+from .diffusion_planner_v25_holdout_opening_rc import (
+    RELEASE_SCHEMA_VERSION as PRODUCTION_RC_RELEASE_SCHEMA_VERSION,
+    validate_production_rc_opening_release,
+    validate_scientific_exposure_receipt,
 )
 from .diffusion_planner_v25_signal_complete_plan import (
     validate_signal_complete_execution_plan,
@@ -133,13 +146,23 @@ def _review_three_arm_execution(
     holdout_mode: bool,
 ) -> dict[str, Any]:
     execution = Path(artifact).resolve()
-    validated = validate_signal_complete_execution_plan(plan)
+    validated = (
+        validate_holdout_execution_plan(plan)
+        if holdout_mode
+        else validate_signal_complete_execution_plan(plan)
+    )
     if holdout_mode:
-        release = validate_holdout_opening_release(opening_release)
+        if (
+            opening_release.get("schema_version")
+            == PRODUCTION_RC_RELEASE_SCHEMA_VERSION
+        ):
+            release = validate_production_rc_opening_release(opening_release)
+        else:
+            release = validate_holdout_opening_release(opening_release)
         identity_authority = validate_holdout_identity(
             release["holdout_identity"]
         )
-        validate_experiment_protocol(release["experiment_protocol"])
+        validate_holdout_experiment_protocol(release["experiment_protocol"])
         if (
             validated.get("split") != identity_authority["split"]
             or validated.get("execution_unit_count")
@@ -152,11 +175,21 @@ def _review_three_arm_execution(
             or validated.get("ticks_per_arm_run") != 64
         ):
             raise ValueError("holdout review denominator drifted")
-        validate_holdout_opening_consumption(
-            opening_consumption,
-            opening_release=release,
-            opening_release_root_sha256=opening_release_root_sha256,
-        )
+        if (
+            release["schema_version"]
+            == PRODUCTION_RC_RELEASE_SCHEMA_VERSION
+        ):
+            validate_scientific_exposure_receipt(
+                opening_consumption,
+                opening_release=release,
+                opening_release_root_sha256=opening_release_root_sha256,
+            )
+        else:
+            validate_holdout_opening_consumption(
+                opening_consumption,
+                opening_release=release,
+                opening_release_root_sha256=opening_release_root_sha256,
+            )
         run_schema_version = HOLDOUT_RUN_SCHEMA_VERSION
         execution_schema_version = HOLDOUT_EXECUTION_SCHEMA_VERSION
     else:
@@ -256,6 +289,50 @@ def _review_three_arm_execution(
                 raise ValueError("Fresh B2 terminal schema drifted")
             if terminal.get("status") == "complete":
                 native = _canonical_json(run_dir / "native_receipt.json")
+                production_rc = (
+                    holdout_mode
+                    and release["schema_version"]
+                    == PRODUCTION_RC_RELEASE_SCHEMA_VERSION
+                )
+                raw_native = native
+                if production_rc:
+                    raw_native = _canonical_json(
+                        run_dir / "actual_native_receipt_raw.json"
+                    )
+                    independent_validate_actual_native_receipt(
+                        raw_native,
+                        branch=(
+                            "candidate0_primary"
+                            if evaluation_arm == "candidate0"
+                            else (
+                                "static14d"
+                                if evaluation_arm == "static14d"
+                                else "scene14d"
+                            )
+                        ),
+                    )
+                    if evaluation_arm == "candidate0":
+                        if (
+                            run_dir / "candidate_tensor_preimages_primary"
+                        ).exists():
+                            raise ValueError(
+                                "candidate0 primary exposed online K8 preimages"
+                            )
+                    else:
+                        _independent_candidate_tensor_preimages(
+                            run_dir / "candidate_tensor_preimages_primary",
+                            raw_ticks=raw_native["ticks"],
+                        )
+                    enriched_native = dict(native)
+                    enriched_native.pop(
+                        "fresh_decision_evidence_reference", None
+                    )
+                    enriched_native.pop("fresh_decision_evidence_count", None)
+                    if not _strict_equal(raw_native, enriched_native):
+                        raise ValueError(
+                            "stored native receipt differs from preprojection "
+                            "raw receipt"
+                        )
                 _review_logical_decision_evidence(
                     run_dir, native=native, evaluation_arm=evaluation_arm
                 )
@@ -265,9 +342,41 @@ def _review_three_arm_execution(
                         run_dir
                         / "candidate0_supplementary_native_receipt.json"
                     )
+                    if production_rc:
+                        raw_supplementary = _canonical_json(
+                            run_dir
+                            / "candidate0_supplementary_actual_native_raw.json"
+                        )
+                        independent_validate_actual_native_receipt(
+                            raw_supplementary,
+                            branch="candidate0_supplementary",
+                        )
+                        _independent_candidate_tensor_preimages(
+                            run_dir
+                            / "candidate_tensor_preimages_supplementary",
+                            raw_ticks=raw_supplementary["ticks"],
+                        )
+                        independent_projected = (
+                            independent_project_candidate0_supplementary(
+                                raw_supplementary
+                            )
+                        )
+                        if not _strict_equal(
+                            supplementary_native, independent_projected
+                        ):
+                            raise ValueError(
+                                "candidate0 supplementary projection differs "
+                                "from independently rebuilt raw receipt"
+                            )
                 pool = (
-                    build_candidate0_pool_evidence(
-                        native, supplementary_native
+                    (
+                        independent_candidate0_pool_evidence(
+                            raw_native, supplementary_native
+                        )
+                        if production_rc
+                        else independent_historical_candidate0_pool_evidence(
+                            native, supplementary_native
+                        )
                     )
                     if evaluation_arm == "candidate0"
                     else None
@@ -286,6 +395,7 @@ def _review_three_arm_execution(
                     (run_dir / name).exists()
                     for name in (
                         "candidate0_supplementary_native_receipt.json",
+                        "candidate0_supplementary_actual_native_raw.json",
                         "candidate0_pool_evidence.json",
                     )
                 ):
@@ -907,6 +1017,88 @@ def _canonical_bytes(value: Any) -> bytes:
 
 def _canonical_sha(value: Any) -> str:
     return hashlib.sha256(_canonical_bytes(value)).hexdigest()
+
+
+def _independent_candidate_tensor_preimages(
+    root: Path, *, raw_ticks: Sequence[Mapping[str, Any]]
+) -> None:
+    if not root.is_dir() or root.is_symlink() or len(raw_ticks) != 64:
+        raise ValueError("candidate tensor preimage root drifted")
+    manifest = _canonical_json(root / "manifest.json")
+    if (
+        set(manifest)
+        != {
+            "schema_version",
+            "status",
+            "tick_count",
+            "dtype",
+            "shape",
+            "rows",
+        }
+        or manifest["schema_version"]
+        != "camp_dp_v25_candidate_tensor_preimage_manifest_v1"
+        or manifest["status"] != "persisted_before_projection"
+        or manifest["tick_count"] != 64
+        or manifest["dtype"] != "<f4"
+        or manifest["shape"] != [8, 80, 4]
+        or type(manifest["rows"]) is not list
+        or len(manifest["rows"]) != 64
+    ):
+        raise ValueError("candidate tensor preimage manifest drifted")
+    expected_files = {"manifest.json"}
+    for tick_index, (row, raw_tick) in enumerate(
+        zip(manifest["rows"], raw_ticks, strict=True)
+    ):
+        binary_name = f"tick_{tick_index:02d}.float32.bin"
+        receipt_name = f"tick_{tick_index:02d}.json"
+        expected_files.update({binary_name, receipt_name})
+        if row != {
+            "tick_index": tick_index,
+            "candidate_tensor_sha256": raw_tick[
+                "candidate_tensor_sha256_before"
+            ],
+            "binary_relative_path": binary_name,
+            "receipt_relative_path": receipt_name,
+        }:
+            raise ValueError("candidate tensor preimage manifest row drifted")
+        receipt = _canonical_json(root / receipt_name)
+        raw = (root / binary_name).read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if (
+            set(receipt)
+            != {
+                "schema_version",
+                "tick_index",
+                "dtype",
+                "shape",
+                "nbytes",
+                "candidate_tensor_sha256",
+                "native_metadata",
+                "persisted_before_projection",
+            }
+            or receipt["schema_version"]
+            != "camp_dp_v25_candidate_tensor_preimage_v1"
+            or receipt["tick_index"] != tick_index
+            or receipt["dtype"] != "<f4"
+            or receipt["shape"] != [8, 80, 4]
+            or receipt["nbytes"] != 8 * 80 * 4 * 4
+            or receipt["candidate_tensor_sha256"] != digest
+            or digest != raw_tick["candidate_tensor_sha256_before"]
+            or receipt["native_metadata"].get("candidate_tensor_sha256")
+            != digest
+            or receipt["persisted_before_projection"] is not True
+            or len(raw) != receipt["nbytes"]
+        ):
+            raise ValueError("candidate tensor preimage receipt drifted")
+        candidates = np.frombuffer(raw, dtype="<f4").reshape(8, 80, 4)
+        validate_fixed_k8_candidate_tensor(candidates)
+    actual_files = {
+        path.name
+        for path in root.iterdir()
+        if path.is_file() and not path.is_symlink()
+    }
+    if actual_files != expected_files:
+        raise ValueError("candidate tensor preimage inventory drifted")
 
 
 def _file_sha256(path: Path) -> str:

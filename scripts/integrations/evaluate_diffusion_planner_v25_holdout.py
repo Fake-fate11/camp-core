@@ -27,12 +27,18 @@ from camp_core.integrations.diffusion_planner_v25_calibration_artifact import ( 
 from camp_core.integrations.diffusion_planner_v25_evaluation import (  # noqa: E402
     evaluate_holdout_three_arm,
 )
-from camp_core.integrations.diffusion_planner_v25_holdout_opening import (  # noqa: E402
-    validate_holdout_opening_release,
+from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  # noqa: E402
+    validate_production_rc_opening_release,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # noqa: E402
     _strict_canonical_json,
-    validate_tombstone,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
+    validate_scientific_ledger,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
+    holdout_zero_overlap_passed,
+    validate_holdout_preopen_authority,
 )
 from scripts.integrations.run_diffusion_planner_v25_holdout_execution import (  # noqa: E402
     SCHEMA_VERSION as EXECUTION_ARTIFACT_SCHEMA_VERSION,
@@ -83,7 +89,7 @@ def evaluate(
         verify_complete_seal(path, root, label=f"holdout {label}")
         if (path / "run.exit").read_bytes() != b"0\n":
             raise ValueError(f"holdout {label} did not pass")
-    release = validate_holdout_opening_release(
+    release = validate_production_rc_opening_release(
         _canonical_json(release_root / "decision.json")
     )
     execution_review_report = _canonical_json(
@@ -104,9 +110,10 @@ def evaluate(
         release["preopen_authority"]["root_sha256"],
         label="holdout preopen",
     )
-    preopen_authority = _canonical_json(
-        preopen / "preopen_authority.json"
+    preopen_authority = validate_holdout_preopen_authority(
+        _canonical_json(preopen / "preopen_authority.json")
     )
+    split = release["holdout_identity"]["split"]
     calibration_binding = preopen_authority["upstream_bindings"][
         "calibration_freeze"
     ]
@@ -142,17 +149,16 @@ def evaluate(
         or artifact_report["claim_authorized_by_artifact"] is not False
     ):
         raise ValueError("holdout execution artifact report drifted")
-    tombstone = validate_tombstone(
-        _strict_canonical_json(Path(release["cas_tombstone_path"]))
+    scientific = validate_scientific_ledger(
+        _strict_canonical_json(Path(release["scientific_ledger_path"]))
     )
     if (
-        tombstone["state"] != "opened_consumed"
-        or tombstone["opening_release_root_sha256"]
+        scientific["state"] != "full_denominator_formed"
+        or scientific["opening_release_root_sha256"]
         != opening_release_root_sha256
-        or tombstone["marker_sha256"]
-        != artifact_report["opening_consumption"]["marker_sha256"]
-        or tombstone["terminal_artifact_root_sha256"] is not None
-        or tombstone["outcome_evaluation_completed"] is not False
+        or scientific["holdout_identity_sha256"]
+        != release["holdout_identity"]["holdout_identity_sha256"]
+        or scientific["terminal_artifact_root_sha256"] is not None
     ):
         raise ValueError("holdout evaluation CAS state drifted")
     rows = _canonical_value(execution / "evaluation_rows.json")
@@ -163,9 +169,8 @@ def evaluate(
             execution_review_report["full_denominator_formed"] is True
         ),
         "immutability_passed": True,
-        "zero_overlap_passed": (
-            preopen_authority["zero_overlap"]["status"]
-            == "passed_train_calibration_b2_b3_zero_overlap"
+        "zero_overlap_passed": holdout_zero_overlap_passed(
+            preopen_authority, split=split
         ),
     }
     result = evaluate_holdout_three_arm(

@@ -21,26 +21,31 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     seal_artifact,
     verify_complete_seal,
 )
-from camp_core.integrations.diffusion_planner_v25_b3_preopen import (  # noqa: E402
-    validate_b3_preopen_authority,
-)
 from camp_core.integrations.diffusion_planner_v25_fresh_execution_review import (  # noqa: E402
     review_holdout_three_arm_execution,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # noqa: E402
     _strict_canonical_json,
     validate_fatal_artifact,
-    validate_tombstone,
 )
-from camp_core.integrations.diffusion_planner_v25_holdout_opening import (  # noqa: E402
-    validate_holdout_controller_decision,
-    validate_holdout_opening_release,
+from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  # noqa: E402
+    validate_production_rc_controller_decision,
+    validate_production_rc_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
+    validate_operational_attempt,
+    validate_scientific_ledger,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
+    holdout_preopen_files,
+    validate_holdout_preopen_authority,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_plan_dispatch import (  # noqa: E402
+    NONFRESH_CANARY_SPLIT,
+    validate_holdout_execution_plan,
 )
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa: E402
     load_v25_runtime_selector_assets,
-)
-from camp_core.integrations.diffusion_planner_v25_signal_complete_plan import (  # noqa: E402
-    validate_signal_complete_execution_plan,
 )
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCHEMA_VERSION = "camp_dp_v25_holdout_execution_review_artifact_v1"
@@ -83,10 +88,10 @@ def review(
         or (controller_root / "run.exit").read_bytes() != b"0\n"
     ):
         raise ValueError("holdout reviewed controller/release did not pass")
-    release = validate_holdout_opening_release(
+    release = validate_production_rc_opening_release(
         _canonical_json(release_root / "decision.json")
     )
-    controller = validate_holdout_controller_decision(
+    controller = validate_production_rc_controller_decision(
         _canonical_json(controller_root / "decision.json")
     )
     if (
@@ -96,8 +101,16 @@ def review(
         or controller["experiment_protocol"] != release["experiment_protocol"]
     ):
         raise ValueError("holdout reviewed controller/release drifted")
-    tombstone = validate_tombstone(
-        _strict_canonical_json(Path(release["cas_tombstone_path"]))
+    operational = validate_operational_attempt(
+        _strict_canonical_json(Path(release["operational_attempt_path"]))
+    )
+    scientific_path = Path(release["scientific_ledger_path"])
+    scientific = (
+        validate_scientific_ledger(
+            _strict_canonical_json(scientific_path)
+        )
+        if scientific_path.exists()
+        else None
     )
     run_exit = (execution / "run.exit").read_bytes()
     if run_exit == b"1\n":
@@ -105,9 +118,18 @@ def review(
             _canonical_json(execution / "fatal.json")
         )
         if (
-            tombstone["state"] != "terminal_failure"
-            or tombstone["terminal_artifact_root_sha256"]
-            != execution_root_sha256
+            (
+                scientific is not None
+                and (
+                    scientific["state"] != "terminal_failure"
+                    or scientific["terminal_artifact_root_sha256"]
+                    != execution_root_sha256
+                )
+            )
+            or (
+                scientific is None
+                and operational["state"] != "pre_exposure_failure"
+            )
             or fatal["opening_release_root_sha256"]
             != opening_release_root_sha256
             or fatal["holdout_identity_sha256"]
@@ -136,9 +158,9 @@ def review(
         }
     elif run_exit == b"0\n":
         if (
-            tombstone["state"] != "opened_consumed"
-            or tombstone["terminal_artifact_root_sha256"] is not None
-            or tombstone["outcome_evaluation_completed"] is not False
+            scientific is None
+            or scientific["state"] != "full_denominator_formed"
+            or scientific["terminal_artifact_root_sha256"] is not None
         ):
             raise ValueError("holdout success execution/tombstone drifted")
         preopen_root = Path(release["preopen_authority"]["path"]).resolve()
@@ -149,20 +171,35 @@ def review(
         )
         if (preopen_root / "run.exit").read_bytes() != b"0\n":
             raise ValueError("holdout reviewed preopen did not pass")
-        preopen = validate_b3_preopen_authority(
+        preopen = validate_holdout_preopen_authority(
             _canonical_json(preopen_root / "preopen_authority.json")
         )
-        plan = validate_signal_complete_execution_plan(
-            _canonical_json(preopen_root / "fresh_b3_execution_plan.json")
+        sealed_bindings = dict(preopen["upstream_bindings"])
+        if preopen["holdout_identity"]["split"] == NONFRESH_CANARY_SPLIT:
+            sealed_bindings.update(preopen["source_fixture_bindings"])
+        for role, binding in sealed_bindings.items():
+            upstream = Path(binding["path"]).resolve()
+            verify_complete_seal(
+                upstream,
+                binding["root_sha256"],
+                label=f"reviewed holdout upstream {role}",
+            )
+            if (upstream / "run.exit").read_bytes() != b"0\n":
+                raise ValueError(f"reviewed holdout upstream failed: {role}")
+        preopen_files = holdout_preopen_files(
+            preopen["holdout_identity"]["split"]
+        )
+        plan = validate_holdout_execution_plan(
+            _canonical_json(preopen_root / preopen_files["plan"])
         )
         prepared_rows = _canonical_value(
-            preopen_root / "fresh_b3_prepared_runtime_cases.json"
+            preopen_root / preopen_files["prepared_runtime"]
         )
         prepared = {
             row["scenario_identity_sha256"]: row for row in prepared_rows
         }
         route_manifest = _canonical_json(
-            preopen_root / "fresh_b3_route_assets.json"
+            preopen_root / preopen_files["route_assets"]
         )
         route_by_identity = {
             row["route_identity_sha256"]: row["route_asset"]

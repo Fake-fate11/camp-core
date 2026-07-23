@@ -51,7 +51,9 @@ def test_fresh_plan_has_five_repeats_and_balanced_three_arm_order() -> None:
         assert max(counts.values()) - min(counts.values()) <= 1
 
 
-@pytest.mark.parametrize("split", ("calibration", "fresh_b2", "fresh_b3"))
+@pytest.mark.parametrize(
+    "split", ("calibration", "fresh_b2", "fresh_b3", "fresh_b4")
+)
 def test_all_family_tier_cells_and_same_tick_signal_modes_are_frozen(split: str) -> None:
     plan = build_signal_complete_execution_plan(split)
     assert set(plan["family_tier_counts"]) == {
@@ -114,6 +116,30 @@ def test_fresh_b3_is_zero_overlap_from_calibration_and_consumed_b2() -> None:
         assert set(prior["seeds"]).isdisjoint(fresh_b3["seeds"])
     assert fresh_b3["execution_unit_count"] == 500
     assert fresh_b3["planned_arm_run_count"] == 1500
+
+
+def test_fresh_b4_is_clone_aware_zero_overlap_from_all_prior_holdouts() -> None:
+    fresh_b4 = build_signal_complete_execution_plan("fresh_b4")
+    independent_fields = (
+        "map_sha256",
+        "map_geometry_sha256",
+        "corridor_sha256",
+        "intersection_sha256",
+        "route_identity_sha256",
+        "route_family_sha256",
+        "source_independent_geometry_sha256",
+        "scenario_identity_sha256",
+        "semantic_parameter_block_sha256",
+    )
+    for split in ("calibration", "fresh_b2", "fresh_b3"):
+        prior = build_signal_complete_execution_plan(split)
+        for field in independent_fields:
+            assert {
+                row[field] for row in prior["identities"]
+            }.isdisjoint({row[field] for row in fresh_b4["identities"]})
+        assert set(prior["seeds"]).isdisjoint(fresh_b4["seeds"])
+    assert fresh_b4["execution_unit_count"] == 500
+    assert fresh_b4["planned_arm_run_count"] == 1500
 
 
 def test_plan_is_deterministic_and_reconstructable() -> None:

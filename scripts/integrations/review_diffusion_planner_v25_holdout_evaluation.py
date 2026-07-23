@@ -28,10 +28,17 @@ from camp_core.integrations.diffusion_planner_v25_evaluation import (  # noqa: E
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # noqa: E402
     strict_equal,
-    transition_holdout_identity,
 )
-from camp_core.integrations.diffusion_planner_v25_holdout_opening import (  # noqa: E402
-    validate_holdout_opening_release,
+from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  # noqa: E402
+    validate_production_rc_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
+    holdout_zero_overlap_passed,
+    validate_holdout_preopen_authority,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
+    mark_scientific_evaluated,
+    terminate_scientific_identity,
 )
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCHEMA_VERSION = "camp_dp_v25_holdout_evaluation_review_artifact_v1"
@@ -75,7 +82,7 @@ def review(
         verify_complete_seal(path, root, label=f"holdout {label}")
         if (path / "run.exit").read_bytes() != b"0\n":
             raise ValueError(f"holdout {label} did not pass")
-    release = validate_holdout_opening_release(
+    release = validate_production_rc_opening_release(
         _canonical_json(release_root / "decision.json")
     )
     report = _canonical_json(evaluation_root / "report.json")
@@ -107,9 +114,10 @@ def review(
     )
     if (preopen / "run.exit").read_bytes() != b"0\n":
         raise ValueError("reviewed holdout preopen did not pass")
-    preopen_authority = _canonical_json(
-        preopen / "preopen_authority.json"
+    preopen_authority = validate_holdout_preopen_authority(
+        _canonical_json(preopen / "preopen_authority.json")
     )
+    split = release["holdout_identity"]["split"]
     calibration_binding = preopen_authority["upstream_bindings"][
         "calibration_freeze"
     ]
@@ -143,9 +151,8 @@ def review(
                 execution_review_report["full_denominator_formed"] is True
             ),
             "immutability_passed": True,
-            "zero_overlap_passed": (
-                preopen_authority["zero_overlap"]["status"]
-                == "passed_train_calibration_b2_b3_zero_overlap"
+            "zero_overlap_passed": holdout_zero_overlap_passed(
+                preopen_authority, split=split
             ),
         },
     )
@@ -202,13 +209,14 @@ def review(
     root = seal_artifact(
         output, label="independent V25 holdout evaluation review"
     )
-    transition_holdout_identity(
-        Path(release["cas_tombstone_path"]),
-        expected_state="opened_consumed",
-        next_state="terminal_success",
+    scientific_path = Path(release["scientific_ledger_path"])
+    mark_scientific_evaluated(scientific_path)
+    terminate_scientific_identity(
+        scientific_path,
+        expected_state="evaluated",
+        success=True,
         terminal_artifact_root_sha256=root,
         terminal_reason="passed_independent_holdout_evaluation_review",
-        outcome_evaluation_completed=True,
     )
     return root
 
