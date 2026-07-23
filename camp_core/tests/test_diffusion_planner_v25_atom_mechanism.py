@@ -89,10 +89,18 @@ def _run(arm: str, provider: V25Scene14DWeightProvider, weights: np.ndarray) -> 
     atoms[0, 1] = 1.0
     atoms[1] = 0.0
     atoms[1, 0] = 10.0
-    scores = canonical_normalize_atoms(atoms, np.ones(14, dtype=np.float64)) @ weights
-    assert int(np.argmin(scores)) == 0
     context = _context()
     scene = provider(context)
+    official_weights = (
+        np.asarray(scene["weights"], dtype=np.float64)
+        if arm == "camp_scene14d_no_v2i"
+        else weights
+    )
+    scores = (
+        canonical_normalize_atoms(atoms, np.ones(14, dtype=np.float64))
+        @ official_weights
+    )
+    assert int(np.argmin(scores)) == 0
     selector = {key: value for key, value in scene.items() if key != "weights"}
     snapshots = []
     native_ticks = []
