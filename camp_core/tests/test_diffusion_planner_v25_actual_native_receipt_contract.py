@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 import inspect
+import json
 from pathlib import Path
 
 import pytest
@@ -237,6 +239,93 @@ def _controlled_scene(index: int) -> dict:
     }
 
 
+def _canonical_sha(value: object) -> str:
+    return hashlib.sha256(
+        (
+            json.dumps(
+                value,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def _mapped_controlled_scene(
+    index: int,
+    *,
+    route_rows: list[dict],
+    map_rows: list[dict],
+) -> dict:
+    value = _controlled_scene(index)
+    scenario = value["scenario_id"]
+    route_ids = [row["lanelet_id"] for row in route_rows]
+    map_ids = [row["lanelet_id"] for row in map_rows]
+    route_sha = _canonical_sha(route_rows)
+    map_sha = _canonical_sha(map_rows)
+    value["signal"] = {
+        "phase": "yellow",
+        "source_row_count": len(route_rows) + len(map_rows),
+        "applied": True,
+        "source_receipt": {
+            "schema_version": (
+                "camp_dp_v25_family_independent_current_signal_receipt_v1"
+            ),
+            "scenario_id": scenario,
+            "tick_index": index,
+            "phase_authority_mode": "controlled_same_tick_override",
+            "current_phase": "yellow",
+            "decision_timestamp_s": float(index) * 0.1,
+            "source_timestamp_s": float(index) * 0.1,
+            "source_age_s": 0.0,
+            "freshness": "same_tick",
+            "source_id": "fixed_dp_current_request_route_map_signal_one_hot",
+            "regulatory_element_id": 101,
+            "physical_light_ids": [102],
+            "bulb_ids": [103],
+            "controlled_lanelet_ids": sorted(set(route_ids + map_ids)),
+            "stop_line_id": 104,
+            "stop_line_geometry_sha256": "1" * 64,
+            "route_geometry_sha256": "2" * 64,
+            "route_arc_m": 1.0,
+            "source_chain_sha256": "3" * 64,
+            "observed_route_lanelet_ids": route_ids,
+            "observed_map_lanelet_ids": map_ids,
+            "route_signal_tensor_sha256": route_sha,
+            "map_signal_tensor_sha256": map_sha,
+            "phase_remaining_available": False,
+            "source_valid": True,
+            "applicable": False,
+        },
+        "tensor_evidence": {
+            "schema_version": (
+                "camp_dp_v25_production_signal_tensor_evidence_v2"
+            ),
+            "tick_index": index,
+            "decision_timestamp_s": float(index) * 0.1,
+            "source_timestamp_s": float(index) * 0.1,
+            "route_signal_rows": route_rows,
+            "map_signal_rows": map_rows,
+            "current_phase": "yellow",
+            "route_signal_tensor_sha256": route_sha,
+            "map_signal_tensor_sha256": map_sha,
+            "future_schedule_consumed": False,
+            "phase_remaining_available": False,
+        },
+    }
+    value["model_input_cache"].update(
+        {
+            "signal_source_class": "mapped_signal",
+            "phase_authority_mode": "controlled_same_tick_override",
+            "observe_cache_unchanged": False,
+        }
+    )
+    return value
+
+
 def _candidate0_receipts() -> tuple[dict, dict]:
     primary_ticks = [_primary_tick(index) for index in range(64)]
     supplementary_ticks = [
@@ -355,6 +444,88 @@ def test_real_candidate0_primary_and_supplementary_contract_round_trip() -> None
     producer = _build_supplementary_candidate0_pool(primary, projected)
     independent = independent_candidate0_pool_evidence(primary, projected)
     assert independent == producer
+
+
+def test_mapped_signal_rows_allow_one_empty_tensor_but_bind_authority() -> None:
+    _, supplementary = _candidate0_receipts()
+    yellow = [0.0, 1.0, 0.0, 0.0, 0.0]
+    map_rows = [
+        {
+            "lanelet_id": 11,
+            "signal_channels_8_12": [yellow] + [[0.0] * 5] * 19,
+        }
+    ]
+    supplementary["ticks"][0]["controlled_scene"] = (
+        _mapped_controlled_scene(0, route_rows=[], map_rows=map_rows)
+    )
+    assert (
+        validate_actual_native_receipt(
+            supplementary, branch="candidate0_supplementary"
+        )
+        == supplementary
+    )
+    assert (
+        independent_validate_actual_native_receipt(
+            supplementary, branch="candidate0_supplementary"
+        )
+        == supplementary
+    )
+
+    for mutation in ("both_empty", "id", "payload"):
+        changed = copy.deepcopy(supplementary)
+        signal = changed["ticks"][0]["controlled_scene"]["signal"]
+        if mutation == "both_empty":
+            signal["tensor_evidence"]["map_signal_rows"] = []
+            signal["source_receipt"]["observed_map_lanelet_ids"] = []
+            signal["source_row_count"] = 0
+            empty_sha = _canonical_sha([])
+            signal["tensor_evidence"]["map_signal_tensor_sha256"] = empty_sha
+            signal["source_receipt"]["map_signal_tensor_sha256"] = empty_sha
+        elif mutation == "id":
+            signal["source_receipt"]["observed_map_lanelet_ids"] = [12]
+        else:
+            signal["tensor_evidence"]["map_signal_rows"][0][
+                "signal_channels_8_12"
+            ][0] = [0.0, 0.0, 1.0, 0.0, 0.0]
+        with pytest.raises(ValueError):
+            validate_actual_native_receipt(
+                changed, branch="candidate0_supplementary"
+            )
+        with pytest.raises(ValueError):
+            independent_validate_actual_native_receipt(
+                changed, branch="candidate0_supplementary"
+            )
+
+
+def test_actual_native_sink_precedes_production_validation_and_projection() -> None:
+    native_source = (
+        Path(__file__).resolve().parents[2]
+        / "scripts"
+        / "integrations"
+        / "run_diffusion_planner_dp_camp_v21_native.py"
+    ).read_text(encoding="utf-8")
+    receipt_boundary = native_source.index(
+        "actual_native_receipt_sink(copy.deepcopy(receipt))"
+    )
+    validation = native_source.index(
+        "validate_actual_native_receipt(",
+        receipt_boundary,
+    )
+    assert receipt_boundary < validation
+
+    execution_source = (
+        Path(__file__).resolve().parents[2]
+        / "scripts"
+        / "integrations"
+        / "run_diffusion_planner_v25_holdout_execution.py"
+    ).read_text(encoding="utf-8")
+    sink = execution_source.index(
+        '"candidate0_supplementary_actual_native_raw.json"'
+    )
+    projection = execution_source.index(
+        "project_candidate0_supplementary_native_receipt(diagnostic)"
+    )
+    assert sink < projection
 
 
 @pytest.mark.parametrize("branch", ["static14d", "scene14d"])

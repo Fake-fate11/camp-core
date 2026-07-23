@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import __future__
+import copy
 import hashlib
 import io
 import importlib.abc
@@ -3670,6 +3671,10 @@ def build_native_arm_runner(
             [int, np.ndarray, Mapping[str, Any]], None
         ]
         | None = None,
+        actual_native_receipt_sink: Callable[
+            [Mapping[str, Any]], None
+        ]
+        | None = None,
         fixed_k8_candidate0: bool = False,
         candidate0_supplementary_pool_diagnostic: bool = False,
     ) -> Mapping[str, Any]:
@@ -3712,6 +3717,11 @@ def build_native_arm_runner(
             raise TypeError(
                 "candidate0_supplementary_pool_diagnostic must be a native bool"
             )
+        if (
+            actual_native_receipt_sink is not None
+            and not callable(actual_native_receipt_sink)
+        ):
+            raise TypeError("actual_native_receipt_sink must be callable")
         if arm == "camp" and fixed_k8_candidate0:
             raise ValueError("fixed_k8_candidate0 is only valid for the DP arm")
         protocol = _mapping(config, "protocol")
@@ -4244,6 +4254,11 @@ def build_native_arm_runner(
             receipt["actual_native_receipt_contract_sha256"] = (
                 actual_native_receipt_contract_sha256()
             )
+            if actual_native_receipt_sink is not None:
+                # Persist a strict copy at the producer boundary before the
+                # ABI validator can reject it. This sink is diagnostic-only:
+                # mutating the supplied copy cannot alter the native receipt.
+                actual_native_receipt_sink(copy.deepcopy(receipt))
             validate_actual_native_receipt(
                 receipt,
                 branch=branch,

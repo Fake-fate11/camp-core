@@ -460,6 +460,11 @@ _NESTED_SCHEMAS: dict[str, dict[str, Any]] = {
         "no_signal_source_fields": sorted(_NO_SIGNAL_SOURCE_FIELDS),
         "mapped_signal_source_fields": sorted(_MAPPED_SIGNAL_SOURCE_FIELDS),
         "tensor_evidence_fields": sorted(_TENSOR_EVIDENCE_FIELDS),
+        "signal_row_semantics": (
+            "route_and_map_lists_may_individually_be_empty; combined rows must "
+            "be nonempty, content-addressed, ID-bound, and encode one uniform "
+            "current phase in finite Nx5 channel vectors"
+        ),
         "model_input_cache_fields": sorted(_MODEL_INPUT_CACHE_FIELDS),
     },
 }
@@ -860,7 +865,7 @@ def _sha(value: Any) -> bool:
     )
 
 
-def _canonical_sha(value: Mapping[str, Any]) -> str:
+def _canonical_sha(value: Any) -> str:
     return hashlib.sha256(
         (
             json.dumps(
@@ -1216,8 +1221,28 @@ def _validate_controlled_signal(
         != source["map_signal_tensor_sha256"]
     ):
         raise ValueError("actual-native signal tensor evidence drifted")
-    _signal_rows(evidence["route_signal_rows"], "route signal rows")
-    _signal_rows(evidence["map_signal_rows"], "map signal rows")
+    route_ids, route_phase = _signal_rows(
+        evidence["route_signal_rows"], "route signal rows"
+    )
+    map_ids, map_phase = _signal_rows(
+        evidence["map_signal_rows"], "map signal rows"
+    )
+    observed_phases = {
+        phase for phase in (route_phase, map_phase) if phase is not None
+    }
+    if (
+        not route_ids
+        and not map_ids
+        or route_ids != source["observed_route_lanelet_ids"]
+        or map_ids != source["observed_map_lanelet_ids"]
+        or value["source_row_count"] != len(route_ids) + len(map_ids)
+        or observed_phases != {source["current_phase"]}
+        or _canonical_sha(evidence["route_signal_rows"])
+        != source["route_signal_tensor_sha256"]
+        or _canonical_sha(evidence["map_signal_rows"])
+        != source["map_signal_tensor_sha256"]
+    ):
+        raise ValueError("actual-native signal row authority drifted")
 
 
 def _validate_source_common(
@@ -1319,9 +1344,11 @@ def _native_int_or_string_list(value: Any, label: str) -> None:
         raise ValueError(f"actual-native {label} drifted")
 
 
-def _signal_rows(value: Any, label: str) -> None:
-    if type(value) is not list or not value:
+def _signal_rows(value: Any, label: str) -> tuple[list[int], str | None]:
+    if type(value) is not list:
         raise ValueError(f"actual-native {label} drifted")
+    ids: list[int] = []
+    phases: set[str] = set()
     for row in value:
         if (
             type(row) is not dict
@@ -1331,8 +1358,29 @@ def _signal_rows(value: Any, label: str) -> None:
             or not row["signal_channels_8_12"]
         ):
             raise ValueError(f"actual-native {label} drifted")
+        row_phases: set[str] = set()
+        active_count = 0
         for channel_row in row["signal_channels_8_12"]:
             _finite_vector(channel_row, length=5, label=label)
+            if all(item == 0.0 for item in channel_row):
+                continue
+            active_count += 1
+            matches = []
+            for phase, column in (("green", 0), ("yellow", 1), ("red", 2)):
+                expected = [0.0] * 5
+                expected[column] = 1.0
+                if channel_row == expected:
+                    matches.append(phase)
+            if len(matches) != 1:
+                raise ValueError(f"actual-native {label} phase drifted")
+            row_phases.add(matches[0])
+        if active_count == 0 or len(row_phases) != 1:
+            raise ValueError(f"actual-native {label} phase drifted")
+        ids.append(row["lanelet_id"])
+        phases.update(row_phases)
+    if len(ids) != len(set(ids)) or len(phases) > 1:
+        raise ValueError(f"actual-native {label} authority drifted")
+    return ids, next(iter(phases)) if phases else None
 
 
 def _validate_native_result(value: Any, *, branch: str) -> None:

@@ -1204,8 +1204,28 @@ def _independent_controlled_signal(
         or evidence["phase_remaining_available"] is not False
     ):
         raise ValueError("independent tensor evidence drifted")
-    for name in ("route_signal_rows", "map_signal_rows"):
-        _independent_signal_rows(evidence[name], name)
+    route_ids, route_phase = _independent_signal_rows(
+        evidence["route_signal_rows"], "route_signal_rows"
+    )
+    map_ids, map_phase = _independent_signal_rows(
+        evidence["map_signal_rows"], "map_signal_rows"
+    )
+    observed_phases = {
+        phase for phase in (route_phase, map_phase) if phase is not None
+    }
+    if (
+        not route_ids
+        and not map_ids
+        or route_ids != source["observed_route_lanelet_ids"]
+        or map_ids != source["observed_map_lanelet_ids"]
+        or value["source_row_count"] != len(route_ids) + len(map_ids)
+        or observed_phases != {source["current_phase"]}
+        or _independent_canonical_sha(evidence["route_signal_rows"])
+        != source["route_signal_tensor_sha256"]
+        or _independent_canonical_sha(evidence["map_signal_rows"])
+        != source["map_signal_tensor_sha256"]
+    ):
+        raise ValueError("independent signal row authority drifted")
 
 
 def _independent_vector(value: Any, length: int, label: str) -> None:
@@ -1227,9 +1247,13 @@ def _independent_stop_lines(value: Any, label: str) -> None:
             _independent_vector(point, 2, label)
 
 
-def _independent_signal_rows(value: Any, label: str) -> None:
-    if type(value) is not list or not value:
+def _independent_signal_rows(
+    value: Any, label: str
+) -> tuple[list[int], str | None]:
+    if type(value) is not list:
         raise ValueError(f"independent {label} drifted")
+    ids: list[int] = []
+    phases: set[str] = set()
     for row in value:
         if (
             type(row) is not dict
@@ -1239,8 +1263,44 @@ def _independent_signal_rows(value: Any, label: str) -> None:
             or not row["signal_channels_8_12"]
         ):
             raise ValueError(f"independent {label} drifted")
+        row_phases: set[str] = set()
+        active_count = 0
         for channels in row["signal_channels_8_12"]:
             _independent_vector(channels, 5, label)
+            if all(item == 0.0 for item in channels):
+                continue
+            active_count += 1
+            matches = []
+            for phase, column in (("green", 0), ("yellow", 1), ("red", 2)):
+                expected = [0.0] * 5
+                expected[column] = 1.0
+                if channels == expected:
+                    matches.append(phase)
+            if len(matches) != 1:
+                raise ValueError(f"independent {label} phase drifted")
+            row_phases.add(matches[0])
+        if active_count == 0 or len(row_phases) != 1:
+            raise ValueError(f"independent {label} phase drifted")
+        ids.append(row["lanelet_id"])
+        phases.update(row_phases)
+    if len(ids) != len(set(ids)) or len(phases) > 1:
+        raise ValueError(f"independent {label} authority drifted")
+    return ids, next(iter(phases)) if phases else None
+
+
+def _independent_canonical_sha(value: Any) -> str:
+    return hashlib.sha256(
+        (
+            json.dumps(
+                value,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _exact_native_log_paths(value: Mapping[str, Any]) -> bool:

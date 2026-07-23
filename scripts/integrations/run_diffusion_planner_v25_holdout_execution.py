@@ -557,6 +557,10 @@ def _native_run_one(
                     else None
                 ),
                 candidate_tensor_sink=primary_tensor_sink,
+                actual_native_receipt_sink=lambda raw: _write_json(
+                    run_dir / "actual_native_receipt_raw.json",
+                    raw,
+                ),
             )
         )
         expected = (
@@ -596,6 +600,11 @@ def _native_run_one(
                     candidate0_supplementary_pool_diagnostic=True,
                     candidate_tensor_sink=_candidate_tensor_preimage_sink(
                         supplementary_tensor_root
+                    ),
+                    actual_native_receipt_sink=lambda raw: _write_json(
+                        run_dir
+                        / "candidate0_supplementary_actual_native_raw.json",
+                        raw,
                     ),
                 )
             )
