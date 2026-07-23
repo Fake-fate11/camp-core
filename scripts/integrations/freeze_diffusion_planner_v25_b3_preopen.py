@@ -49,6 +49,13 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_plan import (
 from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
     build_signal_complete_runtime_case,
 )
+from camp_core.integrations.diffusion_planner_v25_signal_complete_routes import (
+    materialize_signal_complete_route_assets,
+    validate_signal_complete_route_assets,
+)
+from scripts.integrations.materialize_diffusion_planner_v25_signal_complete_routes import (
+    _route_class,
+)
 from scripts.integrations.freeze_diffusion_planner_v25_fresh_b2_preopen import (
     _canonical_json,
     _open_atom_mechanism,
@@ -185,6 +192,23 @@ def build(
             path = maps_root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(payload)
+        route_class, _route_source = _route_class(
+            Path("/root/autodl-tmp/Diffusion-Planner")
+        )
+        route_root = output / "route_materialization"
+        route_manifest = materialize_signal_complete_route_assets(
+            plan=plan,
+            map_artifact=maps_root,
+            output_dir=route_root,
+            route_class=route_class,
+        )
+        route_manifest = validate_signal_complete_route_assets(
+            route_manifest,
+            plan=plan,
+            map_artifact=maps_root,
+            route_class=route_class,
+        )
+        _write(route_root / "route_assets.json", route_manifest)
         prepared = [
             build_signal_complete_runtime_case(
                 identity,
@@ -247,6 +271,7 @@ def build(
             b3_suite=suite_full,
             b3_plan=plan,
             b3_map_artifact=maps_root,
+            route_asset_manifest=route_manifest,
             license_sha256=_sha256(ROOT / "LICENSE"),
             prepared_runtime_cases=prepared,
             protocol_assets=protocol_assets,
@@ -269,6 +294,7 @@ def build(
         )
         _write(output / "fresh_b3_map_suite.json", suite_receipt)
         _write(output / "fresh_b3_execution_plan.json", plan)
+        _write(output / "fresh_b3_route_assets.json", route_manifest)
         _write(output / "fresh_b3_prepared_runtime_cases.json", prepared)
         _write(output / "preopen_authority.json", authority)
         (output / "accepted_evaluation_preregistration.json").write_bytes(

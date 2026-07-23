@@ -14,6 +14,7 @@ from .diffusion_planner_v25_holdout_contract import (
 
 
 SCHEMA_VERSION = "camp_dp_v25_holdout_one_time_opening_release_v1"
+CONTROLLER_SCHEMA_VERSION = "camp_dp_v25_holdout_controller_decision_v1"
 CONSUMPTION_SCHEMA_VERSION = "camp_dp_v25_holdout_opening_consumption_v1"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 
@@ -52,6 +53,143 @@ RELEASE_FIELDS = frozenset(
         "outcome_fields_consumed",
     }
 )
+CONTROLLER_FIELDS = frozenset(
+    {
+        "schema_version",
+        "status",
+        "implementation_source_head",
+        "pointer_head_at_release",
+        "fixed_dp_head",
+        "critical_implementation_manifest_sha256",
+        "preopen_authority",
+        "preopen_review",
+        "production_composition_preflight",
+        "production_composition_preflight_review",
+        "b2_tombstone",
+        "b2_failure_review",
+        "holdout_identity",
+        "experiment_protocol",
+        "run_nonce",
+        "authorized_output_dir",
+        "cas_tombstone_path",
+        "device",
+        "paired_unit_count",
+        "arm_run_count",
+        "tick_capacity",
+        "holdout_open_authorized",
+        "full_config_authorized",
+        "full_r_authorized",
+        "training_authorized",
+        "calibration_authorized",
+        "fresh_outcome_consumed",
+        "claim_authorized",
+        "outcome_fields_consumed",
+    }
+)
+
+
+def freeze_holdout_controller_decision(
+    *,
+    implementation_source_head: str,
+    pointer_head_at_release: str,
+    critical_implementation_manifest_sha256: str,
+    preopen_authority: Mapping[str, Any],
+    preopen_review: Mapping[str, Any],
+    production_composition_preflight: Mapping[str, Any],
+    production_composition_preflight_review: Mapping[str, Any],
+    b2_tombstone: Mapping[str, Any],
+    b2_failure_review: Mapping[str, Any],
+    holdout_identity: Mapping[str, Any],
+    experiment_protocol: Mapping[str, Any],
+    run_nonce: str,
+    authorized_output_dir: str,
+    cas_tombstone_path: str,
+) -> dict[str, Any]:
+    identity = validate_holdout_identity(holdout_identity)
+    protocol = validate_experiment_protocol(experiment_protocol)
+    _require_git_head(implementation_source_head, "implementation_source_head")
+    _require_git_head(pointer_head_at_release, "pointer_head_at_release")
+    _require_sha(
+        critical_implementation_manifest_sha256,
+        "critical_implementation_manifest_sha256",
+    )
+    _require_sha(run_nonce, "run_nonce")
+    bindings = {
+        "preopen_authority": _binding(preopen_authority, "preopen_authority"),
+        "preopen_review": _binding(preopen_review, "preopen_review"),
+        "production_composition_preflight": _binding(
+            production_composition_preflight,
+            "production_composition_preflight",
+        ),
+        "production_composition_preflight_review": _binding(
+            production_composition_preflight_review,
+            "production_composition_preflight_review",
+        ),
+        "b2_tombstone": _binding(b2_tombstone, "b2_tombstone"),
+        "b2_failure_review": _binding(b2_failure_review, "b2_failure_review"),
+    }
+    return {
+        "schema_version": CONTROLLER_SCHEMA_VERSION,
+        "status": "holdout_one_time_opening_authorized",
+        "implementation_source_head": implementation_source_head,
+        "pointer_head_at_release": pointer_head_at_release,
+        "fixed_dp_head": FIXED_DP_HEAD,
+        "critical_implementation_manifest_sha256": (
+            critical_implementation_manifest_sha256
+        ),
+        **bindings,
+        "holdout_identity": identity,
+        "experiment_protocol": protocol,
+        "run_nonce": run_nonce,
+        "authorized_output_dir": _canonical_output(authorized_output_dir),
+        "cas_tombstone_path": _canonical_cas_path(
+            cas_tombstone_path, identity["holdout_identity_sha256"]
+        ),
+        "device": "cuda",
+        "paired_unit_count": identity["paired_unit_count"],
+        "arm_run_count": identity["arm_run_count"],
+        "tick_capacity": identity["tick_capacity"],
+        "holdout_open_authorized": True,
+        "full_config_authorized": False,
+        "full_r_authorized": False,
+        "training_authorized": False,
+        "calibration_authorized": False,
+        "fresh_outcome_consumed": False,
+        "claim_authorized": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def validate_holdout_controller_decision(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != CONTROLLER_FIELDS:
+        raise ValueError("holdout controller decision field set drifted")
+    expected = freeze_holdout_controller_decision(
+        implementation_source_head=value["implementation_source_head"],
+        pointer_head_at_release=value["pointer_head_at_release"],
+        critical_implementation_manifest_sha256=value[
+            "critical_implementation_manifest_sha256"
+        ],
+        preopen_authority=value["preopen_authority"],
+        preopen_review=value["preopen_review"],
+        production_composition_preflight=value[
+            "production_composition_preflight"
+        ],
+        production_composition_preflight_review=value[
+            "production_composition_preflight_review"
+        ],
+        b2_tombstone=value["b2_tombstone"],
+        b2_failure_review=value["b2_failure_review"],
+        holdout_identity=value["holdout_identity"],
+        experiment_protocol=value["experiment_protocol"],
+        run_nonce=value["run_nonce"],
+        authorized_output_dir=value["authorized_output_dir"],
+        cas_tombstone_path=value["cas_tombstone_path"],
+    )
+    if not strict_equal(value, expected):
+        raise ValueError("holdout controller decision exact value drifted")
+    return expected
 
 
 def freeze_opening_commitment(

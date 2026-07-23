@@ -697,6 +697,11 @@ def _path_matrix(
             failure_class="invalid_k8_heading_norm_envelope",
             all_k_bad=False,
         ),
+        "typed_source_ineligible": freeze_unit_terminal(
+            status="source_ineligible",
+            failure_class="preregistered_source_ineligible",
+            all_k_bad=False,
+        ),
         "artifact_fatal": {
             "before_nonce": freeze_fatal_artifact(
                 block_class="synthetic_preflight_crash_injection",
@@ -758,6 +763,7 @@ def _validate_path_matrix(
     if type(value) is not dict or set(value) != {
         "success",
         "typed_scientific_failure",
+        "typed_source_ineligible",
         "artifact_fatal",
     }:
         raise ValueError("production preflight path matrix drifted")
@@ -765,6 +771,9 @@ def _validate_path_matrix(
     typed = validate_unit_terminal(value["typed_scientific_failure"])
     if typed["status"] != "fixed_dp_candidate_generation_capability_failure":
         raise ValueError("production preflight typed path drifted")
+    typed_source = validate_unit_terminal(value["typed_source_ineligible"])
+    if typed_source["status"] != "source_ineligible":
+        raise ValueError("production preflight source-ineligible path drifted")
     fatal = value["artifact_fatal"]
     if type(fatal) is not dict or set(fatal) != {
         "before_nonce",

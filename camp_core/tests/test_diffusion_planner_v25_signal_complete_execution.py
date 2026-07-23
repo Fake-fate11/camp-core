@@ -27,6 +27,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
     freeze_holdout_arm_config_from_legacy,
     validate_holdout_arm_config,
 )
+from camp_core.integrations import (
+    diffusion_planner_v25_holdout_lifecycle_preflight as lifecycle_preflight,
+)
 from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
     deterministic_nonfresh_callback,
     freeze_nonfresh_preflight_authority,
@@ -410,6 +413,61 @@ def test_exact_production_preflight_runs_three_real_configs_and_callback(
     ] = False
     with pytest.raises(ValueError, match="action_committed"):
         validate_production_composition_preflight(changed)
+
+
+def test_nonfresh_entrypoint_lifecycle_reserves_consumes_and_reviews_once(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    identity, protocol = _holdout_identity_and_protocol()
+    configs = {
+        arm: freeze_holdout_arm_config_from_legacy(
+            legacy_config=_fresh_config(tmp_path / arm, plan_arm),
+            holdout_identity=identity,
+            experiment_protocol=protocol,
+        )
+        for arm, plan_arm in {
+            "candidate0": "candidate0_operational_default",
+            "static14d": "camp_static14d",
+            "scene14d": "camp_scene14d_no_v2i",
+        }.items()
+    }
+    preflight = run_production_composition_preflight(
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+        nonfresh_preflight_authority=_nonfresh_preflight_authority(
+            identity, protocol
+        ),
+        fixture_root_sha256="f" * 64,
+        config_payloads=configs,
+        native_callback=deterministic_nonfresh_callback,
+    )
+    cas_root = tmp_path / "nonfresh-cas"
+    monkeypatch.setattr(lifecycle_preflight, "CAS_ROOT", cas_root)
+    receipt = lifecycle_preflight.run_nonfresh_entrypoint_lifecycle(
+        production_preflight=preflight,
+        implementation_head="a" * 40,
+        artifact_path="/root/autodl-tmp/nonfresh-holdout-preflight",
+    )
+    assert lifecycle_preflight.validate_nonfresh_entrypoint_lifecycle(
+        receipt,
+        production_preflight=preflight,
+        artifact_path="/root/autodl-tmp/nonfresh-holdout-preflight",
+    ) == receipt
+    assert receipt["cas_tombstone"]["state"] == "terminal_success"
+    assert receipt["real_native_callback_tick_count"] == 192
+    assert receipt["fresh_identity_cas_created"] is False
+    assert receipt["fresh_outcome_consumed"] is False
+    assert (
+        receipt["nonfresh_holdout_identity"]["holdout_identity_sha256"]
+        != identity["holdout_identity_sha256"]
+    )
+    with pytest.raises(FileExistsError):
+        lifecycle_preflight.run_nonfresh_entrypoint_lifecycle(
+            production_preflight=preflight,
+            implementation_head="a" * 40,
+            artifact_path="/root/autodl-tmp/nonfresh-holdout-preflight",
+        )
 
 
 def test_actual_native_projection_separates_candidate0_action_and_pool(

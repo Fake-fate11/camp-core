@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -31,6 +32,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
     freeze_holdout_arm_config_from_legacy,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_lifecycle_preflight import (
+    run_nonfresh_entrypoint_lifecycle,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
     freeze_nonfresh_preflight_authority,
@@ -60,7 +64,7 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_fresh_b3_production_preflight_artifact_v2"
+SCHEMA_VERSION = "camp_dp_v25_fresh_b3_production_preflight_artifact_v3"
 PLAN_ARMS = {
     "candidate0": "candidate0_operational_default",
     "static14d": "camp_static14d",
@@ -239,6 +243,12 @@ def build(
             native_callback=callback,
         )
         _write(output / "preflight.json", preflight)
+        lifecycle = run_nonfresh_entrypoint_lifecycle(
+            production_preflight=preflight,
+            implementation_head=_git_head(),
+            artifact_path=output.as_posix(),
+        )
+        _write(output / "entrypoint_lifecycle.json", lifecycle)
         report = {
             "schema_version": SCHEMA_VERSION,
             "status": "passed_fresh_b3_nonfresh_exact_production_preflight",
@@ -257,6 +267,11 @@ def build(
             "same_forward_claimed_for_supplementary_pool": False,
             "real_native_callback_executed": True,
             "fixed_dp_forward_executed_on_nonfresh_fixture": True,
+            "release_reserve_consume_execution_review_evaluation_path_passed": True,
+            "entrypoint_lifecycle_sha256": hashlib.sha256(
+                canonical_json_bytes(lifecycle)
+            ).hexdigest(),
+            "nonfresh_entrypoint_cas_terminal_state": "terminal_success",
             "fresh_b3_opened": False,
             "outcome_fields_consumed": [],
         }

@@ -389,6 +389,11 @@ def _independent_path_matrix(
             failure_class="invalid_k8_heading_norm_envelope",
             all_k_bad=False,
         ),
+        "typed_source_ineligible": freeze_unit_terminal(
+            status="source_ineligible",
+            failure_class="preregistered_source_ineligible",
+            all_k_bad=False,
+        ),
         "artifact_fatal": {
             "before_nonce": freeze_fatal_artifact(
                 reason="before_nonce_consumption",

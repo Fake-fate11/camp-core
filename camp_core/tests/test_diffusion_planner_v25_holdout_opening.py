@@ -12,9 +12,14 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
     validate_tombstone,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
+    freeze_holdout_controller_decision,
     freeze_holdout_opening_release,
     freeze_opening_commitment,
+    validate_holdout_controller_decision,
     validate_holdout_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (
+    TRACKED_AUTHORITY_FILES,
 )
 
 
@@ -84,6 +89,55 @@ def _release(identity: dict, protocol: dict, cas_path: str) -> dict:
         authorized_output_dir="/root/autodl-tmp/fresh_b3_exact_output",
         cas_tombstone_path=cas_path,
     )
+
+
+def test_controller_decision_is_exact_and_does_not_reserve_cas() -> None:
+    identity = _identity()
+    protocol = _protocol()
+    cas_path = (
+        "/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas/"
+        f"{identity['holdout_identity_sha256']}.json"
+    )
+    controller = freeze_holdout_controller_decision(
+        implementation_source_head="a" * 40,
+        pointer_head_at_release="b" * 40,
+        critical_implementation_manifest_sha256="c" * 64,
+        preopen_authority=_binding("preopen", "1"),
+        preopen_review=_binding("preopen-review", "2"),
+        production_composition_preflight=_binding("preflight", "3"),
+        production_composition_preflight_review=_binding(
+            "preflight-review", "4"
+        ),
+        b2_tombstone=_binding("b2-tombstone", "5"),
+        b2_failure_review=_binding("b2-failure-review", "6"),
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+        run_nonce="e" * 64,
+        authorized_output_dir="/root/autodl-tmp/fresh_b3_exact_output",
+        cas_tombstone_path=cas_path,
+    )
+    assert validate_holdout_controller_decision(controller) == controller
+    assert controller["holdout_open_authorized"] is True
+    assert controller["fresh_outcome_consumed"] is False
+    changed = copy.deepcopy(controller)
+    changed["full_r_authorized"] = True
+    with pytest.raises(ValueError, match="exact value"):
+        validate_holdout_controller_decision(changed)
+
+
+def test_generic_holdout_production_chain_is_frozen_in_critical_manifest() -> None:
+    required = {
+        (
+            "camp_core/camp_core/integrations/"
+            "diffusion_planner_v25_holdout_lifecycle_preflight.py"
+        ),
+        "scripts/integrations/create_diffusion_planner_v25_holdout_opening.py",
+        "scripts/integrations/run_diffusion_planner_v25_holdout_execution.py",
+        "scripts/integrations/review_diffusion_planner_v25_holdout_execution.py",
+        "scripts/integrations/evaluate_diffusion_planner_v25_holdout.py",
+        "scripts/integrations/review_diffusion_planner_v25_holdout_evaluation.py",
+    }
+    assert required.issubset(set(TRACKED_AUTHORITY_FILES))
 
 
 def test_release_requires_preflight_and_one_identity_commitment(tmp_path: Path) -> None:

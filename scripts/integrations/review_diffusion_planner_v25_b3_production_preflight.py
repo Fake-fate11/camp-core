@@ -37,6 +37,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
 from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
     validate_holdout_arm_config,
 )
+from camp_core.integrations.diffusion_planner_v25_holdout_lifecycle_preflight import (
+    validate_nonfresh_entrypoint_lifecycle,
+)
 from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
     validate_nonfresh_preflight_authority,
 )
@@ -57,7 +60,7 @@ from scripts.integrations.review_diffusion_planner_v25_holdout_production_prefli
 
 
 SCHEMA_VERSION = (
-    "camp_dp_v25_fresh_b3_production_preflight_independent_review_v1"
+    "camp_dp_v25_fresh_b3_production_preflight_independent_review_v2"
 )
 
 
@@ -82,6 +85,7 @@ def review(
         "experiment_protocol.json",
         "holdout_identity.json",
         "preflight.json",
+        "entrypoint_lifecycle.json",
         "protocol_assets.json",
         "protocol_assets_receipt.json",
         "nonfresh_preflight_authority.json",
@@ -211,6 +215,11 @@ def review(
         source_root_sha256=source_root_sha256,
         callback_oracle="real_native",
     )
+    lifecycle = validate_nonfresh_entrypoint_lifecycle(
+        _canonical_object(source / "entrypoint_lifecycle.json"),
+        production_preflight=payload,
+        artifact_path=source.as_posix(),
+    )
     report = _canonical_object(source / "report.json")
     if (
         report.get("status")
@@ -225,6 +234,14 @@ def review(
         or report.get("real_native_callback_executed") is not True
         or report.get("fixed_dp_forward_executed_on_nonfresh_fixture")
         is not True
+        or report.get(
+            "release_reserve_consume_execution_review_evaluation_path_passed"
+        )
+        is not True
+        or report.get("entrypoint_lifecycle_sha256")
+        != canonical_sha256(lifecycle)
+        or report.get("nonfresh_entrypoint_cas_terminal_state")
+        != "terminal_success"
         or report.get("fresh_b3_opened") is not False
         or report.get("outcome_fields_consumed") != []
     ):
@@ -237,6 +254,8 @@ def review(
         "holdout_identity_sha256": identity["holdout_identity_sha256"],
         "experiment_protocol_sha256": protocol["experiment_protocol_sha256"],
         "native_composition_review": independent,
+        "entrypoint_lifecycle_reviewed": True,
+        "entrypoint_lifecycle_sha256": canonical_sha256(lifecycle),
         "paired_unit_count": 1,
         "arm_run_count": 3,
         "tick_count": 192,

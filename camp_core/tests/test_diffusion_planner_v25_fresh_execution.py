@@ -14,7 +14,19 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
 from camp_core.integrations.diffusion_planner_v25_fresh_execution import (
     _execute_validated_fresh_units,
     execute_fresh_b2_three_arm_units,
+    materialize_source_ineligible_evidence,
     materialize_fixed_dp_failure_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_controlled_scenarios import (
+    RetainedScenarioCapabilityFailure,
+    ScenarioCapabilityReason,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
+    freeze_experiment_protocol,
+    freeze_holdout_identity,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
+    freeze_holdout_opening_release,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_opening import (
     freeze_fresh_b2_opening_consumption,
@@ -54,6 +66,100 @@ def _opening() -> tuple[dict, str, dict, dict]:
         marker_sha256="c" * 64,
     )
     return release, release_root, consumption, roots
+
+
+def _holdout_opening() -> tuple[dict, str, dict, dict]:
+    identity = freeze_holdout_identity(
+        split="fresh_b3_nonfresh_test",
+        scenario_manifest_sha256="1" * 64,
+        map_suite_payload_sha256="2" * 64,
+        route_census_sha256="3" * 64,
+        corridor_census_sha256="4" * 64,
+        semantic_census_sha256="5" * 64,
+        execution_plan_sha256="6" * 64,
+        seeds=[25401],
+        arm_order_commit_sha256="7" * 64,
+        paired_unit_count=1,
+        arm_run_count=3,
+        tick_capacity=192,
+    )
+    protocol = freeze_experiment_protocol(
+        model_registry_sha256="8" * 64,
+        training_scale_sha256="9" * 64,
+        context_scaler_sha256="a" * 64,
+        atom_contract_sha256="b" * 64,
+        threshold_contract_sha256="c" * 64,
+        noninferiority_contract_sha256="d" * 64,
+        multiplicity_contract_sha256="e" * 64,
+        claim_contract_sha256="f" * 64,
+        failure_contract_sha256="0" * 64,
+        candidate0_semantics=(
+            "action_equivalent_operational_default_first_default_output_alias"
+        ),
+        same_forward_contract=(
+            "forward_execution_id_plus_input_model_action_digest"
+        ),
+        latency_contract=(
+            "online_operational_plus_supplementary_evidence_plus_runtime_total_v1"
+        ),
+        terminal_truth_table=(
+            "exclusive_scientific_terminal_or_artifact_fatal_v1"
+        ),
+    )
+    binding = lambda name, char: {
+        "path": f"/root/autodl-tmp/{name}",
+        "root_sha256": char * 64,
+    }
+    cas_path = (
+        "/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas/"
+        f"{identity['holdout_identity_sha256']}.json"
+    )
+    release = freeze_holdout_opening_release(
+        implementation_source_head="a" * 40,
+        pointer_head_at_release="b" * 40,
+        critical_implementation_manifest_sha256="c" * 64,
+        controller_decision_root_sha256="d" * 64,
+        preopen_authority=binding("preopen", "1"),
+        preopen_review=binding("preopen-review", "2"),
+        production_composition_preflight=binding("preflight", "3"),
+        production_composition_preflight_review=binding(
+            "preflight-review", "4"
+        ),
+        b2_tombstone=binding("b2-tombstone", "5"),
+        b2_failure_review=binding("b2-failure-review", "6"),
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+        run_nonce="7" * 64,
+        authorized_output_dir="/root/autodl-tmp/fresh_b3_nonfresh_test",
+        cas_tombstone_path=cas_path,
+    )
+    release_root = "8" * 64
+    consumption = {
+        "schema_version": "camp_dp_v25_holdout_opening_consumption_v1",
+        "status": "holdout_opened_consumed",
+        "opening_release_root_sha256": release_root,
+        "holdout_identity_sha256": identity["holdout_identity_sha256"],
+        "experiment_protocol_sha256": protocol[
+            "experiment_protocol_sha256"
+        ],
+        "reservation_commitment_sha256": release[
+            "reservation_commitment_sha256"
+        ],
+        "cas_tombstone_path": cas_path,
+        "marker_sha256": "9" * 64,
+        "consumed_before_outcome_capable_operation": True,
+        "second_opening_allowed": False,
+        "new_nonce_allowed": False,
+        "suffix_allowed": False,
+        "outcome_fields_consumed_before_opening": [],
+    }
+    selector = {
+        "preopen_qualification_root_sha256": "1" * 64,
+        "model_registry_sha256": "8" * 64,
+        "training_scale_sha256": "9" * 64,
+        "context_scaler_sha256": "a" * 64,
+    }
+    return release, release_root, consumption, selector
 
 
 def _mini_plan() -> dict:
@@ -142,6 +248,31 @@ def _patch_projection(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(
         module,
+        "build_holdout_arm_config",
+        lambda **kwargs: {
+            "plan_arm": kwargs["plan_arm"],
+            "unit": kwargs["execution_unit"]["unit_sha256"],
+            "signal_complete_plan_authority": {
+                "route_identity_sha256": "e" * 64,
+                "semantic_parameter_block_sha256": "f" * 64,
+                "scenario_identity_sha256": "d" * 64,
+            },
+            "routes": [{"sha256": "1" * 64}],
+            "map": {"sha256": "2" * 64},
+            "seeds": {"scenario": 25401},
+            "spawn_config": {"seed": 25401},
+            "signal_complete_runtime": {
+                "case": {
+                    "scenario_id": "scenario-0",
+                    "family": "lead_vehicle_hard_brake",
+                    "signal_source_class": "mapped_signal",
+                    "phase_authority_mode": "observe_same_tick_request",
+                }
+            },
+        },
+    )
+    monkeypatch.setattr(
+        module,
         "build_candidate0_pool_evidence",
         lambda native: {"native": native["arm"]},
     )
@@ -160,7 +291,7 @@ def _patch_projection(monkeypatch: pytest.MonkeyPatch) -> None:
         lambda **kwargs: {
             "pair_key": kwargs["pair_key"],
             "arm": kwargs["arm"],
-            "status": "fixed_dp_candidate_generation_capability_failure",
+            "status": kwargs["status"],
         },
     )
 
@@ -229,6 +360,103 @@ def test_fixed_dp_failure_evidence_requires_bound_pair_and_signal_authority(
     second = _fixed_dp_failure(bind_fresh=False)
     with pytest.raises(ValueError, match="lacks reset/source authority"):
         materialize_fixed_dp_failure_evidence({}, tmp_path / "missing", second)
+
+
+def test_generic_holdout_fixed_dp_failure_terminates_whole_unit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_projection(monkeypatch)
+    release, release_root, consumption, selector = _holdout_opening()
+    seen: list[str] = []
+
+    def run_one(config: dict, _run_dir: Path) -> dict:
+        seen.append(config["plan_arm"])
+        if config["plan_arm"] == "camp_static14d":
+            raise _fixed_dp_failure()
+        return {"arm": "dp"}
+
+    report = _execute_validated_fresh_units(
+        plan=_mini_plan(),
+        qualification_rows=[{"route_identity_sha256": "e" * 64}],
+        probe_template={},
+        prepared_runtime_by_scenario={"d" * 64: {}},
+        route_asset_by_identity={"e" * 64: {}},
+        dp_repo=tmp_path / "dp",
+        runtime_selector_authority=selector,
+        opening_release=release,
+        opening_release_root_sha256=release_root,
+        opening_consumption=consumption,
+        authorized_output_dir=release["authorized_output_dir"],
+        output_dir=tmp_path / "holdout-fixed",
+        run_one=run_one,
+        failure_evidence=materialize_fixed_dp_failure_evidence,
+        source_failure_evidence=materialize_source_ineligible_evidence,
+        holdout_mode=True,
+    )
+    assert seen == list(FRESH_PLAN_ARMS[:2])
+    assert report["complete_arm_run_count"] == 0
+    assert report["retained_fixed_dp_capability_failure_count"] == 3
+    terminals = json.loads(
+        (tmp_path / "holdout-fixed" / "run_terminals.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert {
+        terminal["scientific_terminal"]["status"] for terminal in terminals
+    } == {"fixed_dp_candidate_generation_capability_failure"}
+    for run_dir in (tmp_path / "holdout-fixed" / "runs").iterdir():
+        assert (run_dir / "fixed_dp_failure_receipt.json").is_file()
+
+
+def test_generic_holdout_source_failure_terminates_before_other_arms(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _patch_projection(monkeypatch)
+    release, release_root, consumption, selector = _holdout_opening()
+    failure = RetainedScenarioCapabilityFailure(
+        scenario_id="scenario-0",
+        family="lead_vehicle_hard_brake",
+        source_class="mapped_signal",
+        phase_authority_mode="observe_same_tick_request",
+        reason=(
+            ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE
+        ),
+    )
+    seen: list[str] = []
+
+    def run_one(config: dict, _run_dir: Path) -> dict:
+        seen.append(config["plan_arm"])
+        raise failure
+
+    report = _execute_validated_fresh_units(
+        plan=_mini_plan(),
+        qualification_rows=[{"route_identity_sha256": "e" * 64}],
+        probe_template={},
+        prepared_runtime_by_scenario={"d" * 64: {}},
+        route_asset_by_identity={"e" * 64: {}},
+        dp_repo=tmp_path / "dp",
+        runtime_selector_authority=selector,
+        opening_release=release,
+        opening_release_root_sha256=release_root,
+        opening_consumption=consumption,
+        authorized_output_dir=release["authorized_output_dir"],
+        output_dir=tmp_path / "holdout-source",
+        run_one=run_one,
+        failure_evidence=materialize_fixed_dp_failure_evidence,
+        source_failure_evidence=materialize_source_ineligible_evidence,
+        holdout_mode=True,
+    )
+    assert seen == [FRESH_PLAN_ARMS[0]]
+    assert report["complete_arm_run_count"] == 0
+    assert report["retained_source_ineligible_count"] == 3
+    terminals = json.loads(
+        (tmp_path / "holdout-source" / "run_terminals.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert {
+        terminal["scientific_terminal"]["status"] for terminal in terminals
+    } == {"source_ineligible"}
 
 
 def test_independent_failure_pair_authority_binds_config_and_cross_arm_reset() -> None:

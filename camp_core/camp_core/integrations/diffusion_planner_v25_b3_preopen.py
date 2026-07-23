@@ -89,6 +89,7 @@ AUTHORITY_FIELDS = frozenset(
         "materialized_inventory",
         "map_suite",
         "map_license_rows",
+        "route_assets",
         "execution_plan",
         "runtime_qualification_rows",
         "coverage",
@@ -121,6 +122,7 @@ def build_b3_preopen_authority(
     b3_suite: Mapping[str, Any],
     b3_plan: Mapping[str, Any],
     b3_map_artifact: Path,
+    route_asset_manifest: Mapping[str, Any],
     license_sha256: str,
     prepared_runtime_cases: Sequence[Mapping[str, Any]],
     protocol_assets: Mapping[str, str],
@@ -214,6 +216,26 @@ def build_b3_preopen_authority(
         map_artifact=b3_map_artifact,
         license_sha256=license_sha256,
     )
+    route_assets = json.loads(json.dumps(route_asset_manifest))
+    if (
+        type(route_assets) is not dict
+        or route_assets.get("schema_version")
+        != "camp_dp_v25_signal_complete_route_assets_v1"
+        or route_assets.get("status")
+        != "materialized_signal_complete_fixed_dp_routes"
+        or route_assets.get("split") != "fresh_b3"
+        or route_assets.get("route_count") != counts["route_count"]
+        or route_assets.get("map_count") != counts["map_count"]
+        or type(route_assets.get("route_assets")) is not list
+        or len(route_assets["route_assets"]) != counts["route_count"]
+        or route_assets.get("fixed_dp_modified") is not False
+        or route_assets.get("map_semantics_modified") is not False
+        or route_assets.get("model_loaded") is not False
+        or route_assets.get("candidate_generation_executed") is not False
+        or route_assets.get("fresh_b2_opened") is not False
+        or route_assets.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("Fresh B3 route asset manifest drifted")
     storage = validate_storage_manifest(storage_manifest)
     capacity = _capacity(
         storage,
@@ -268,6 +290,7 @@ def build_b3_preopen_authority(
         },
         "map_suite": suite,
         "map_license_rows": license_rows,
+        "route_assets": route_assets,
         "execution_plan": plan,
         "runtime_qualification_rows": qualification_rows,
         "coverage": coverage,
@@ -446,6 +469,7 @@ def validate_b3_preopen_authority(value: Mapping[str, Any]) -> dict[str, Any]:
     license_receipt = validate_signal_complete_map_license(
         value["map_license_rows"]
     )
+    route_assets = value["route_assets"]
     if (
         license_receipt["map_file_count"] != 25
         or license_receipt["unique_geometry_count"] != 25
@@ -461,6 +485,25 @@ def validate_b3_preopen_authority(value: Mapping[str, Any]) -> dict[str, Any]:
         or inventory.get("project_authored") is not True
     ):
         raise ValueError("Fresh B3 map/license inventory drifted")
+    if (
+        type(route_assets) is not dict
+        or route_assets.get("schema_version")
+        != "camp_dp_v25_signal_complete_route_assets_v1"
+        or route_assets.get("status")
+        != "materialized_signal_complete_fixed_dp_routes"
+        or route_assets.get("split") != "fresh_b3"
+        or route_assets.get("route_count") != counts["route_count"]
+        or route_assets.get("map_count") != counts["map_count"]
+        or type(route_assets.get("route_assets")) is not list
+        or len(route_assets["route_assets"]) != counts["route_count"]
+        or route_assets.get("fixed_dp_modified") is not False
+        or route_assets.get("map_semantics_modified") is not False
+        or route_assets.get("model_loaded") is not False
+        or route_assets.get("candidate_generation_executed") is not False
+        or route_assets.get("fresh_b2_opened") is not False
+        or route_assets.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("Fresh B3 route asset authority drifted")
     qualification = value["runtime_qualification_rows"]
     if (
         type(qualification) is not list

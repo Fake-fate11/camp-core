@@ -12,9 +12,14 @@ from .diffusion_planner_causal_atoms import (
     FixedDpCandidateGenerationCapabilityFailure,
     validate_fixed_k8_candidate_tensor,
 )
+from .diffusion_planner_v25_controlled_scenarios import (
+    ScenarioCapabilityReason,
+)
 from .diffusion_planner_v25_fresh_b2 import validate_fresh_b2_manifest_row
 from .diffusion_planner_v25_fresh_execution import (
     EVALUATION_ARMS,
+    HOLDOUT_RUN_SCHEMA_VERSION,
+    HOLDOUT_SCHEMA_VERSION as HOLDOUT_EXECUTION_SCHEMA_VERSION,
     RUN_SCHEMA_VERSION,
     SCHEMA_VERSION as EXECUTION_SCHEMA_VERSION,
     _paired_coverage,
@@ -33,12 +38,23 @@ from .diffusion_planner_v25_signal_complete_execution import (
     FRESH_PLAN_ARMS,
     build_fresh_b2_arm_config,
 )
+from .diffusion_planner_v25_holdout_contract import (
+    freeze_unit_terminal,
+    validate_experiment_protocol,
+    validate_holdout_identity,
+)
+from .diffusion_planner_v25_holdout_execution import build_holdout_arm_config
+from .diffusion_planner_v25_holdout_opening import (
+    validate_holdout_opening_consumption,
+    validate_holdout_opening_release,
+)
 from .diffusion_planner_v25_signal_complete_plan import (
     validate_signal_complete_execution_plan,
 )
 
 
 SCHEMA_VERSION = "camp_dp_v25_fresh_b2_three_arm_execution_review_v1"
+HOLDOUT_SCHEMA_VERSION = "camp_dp_v25_holdout_three_arm_execution_review_v1"
 
 
 def review_fresh_b2_three_arm_execution(
@@ -55,22 +71,111 @@ def review_fresh_b2_three_arm_execution(
     opening_release_root_sha256: str,
     opening_consumption: Mapping[str, Any],
 ) -> dict[str, Any]:
+    return _review_three_arm_execution(
+        artifact=artifact,
+        plan=plan,
+        qualification_rows=qualification_rows,
+        probe_template=probe_template,
+        prepared_runtime_by_scenario=prepared_runtime_by_scenario,
+        route_asset_by_identity=route_asset_by_identity,
+        dp_repo=dp_repo,
+        runtime_selector_authority=runtime_selector_authority,
+        opening_release=opening_release,
+        opening_release_root_sha256=opening_release_root_sha256,
+        opening_consumption=opening_consumption,
+        holdout_mode=False,
+    )
+
+
+def review_holdout_three_arm_execution(
+    *,
+    artifact: Path,
+    plan: Mapping[str, Any],
+    qualification_rows: Sequence[Mapping[str, Any]],
+    probe_template: Mapping[str, Any],
+    prepared_runtime_by_scenario: Mapping[str, Mapping[str, Any]],
+    route_asset_by_identity: Mapping[str, Mapping[str, Any]],
+    dp_repo: Path,
+    runtime_selector_authority: Mapping[str, Any],
+    opening_release: Mapping[str, Any],
+    opening_release_root_sha256: str,
+    opening_consumption: Mapping[str, Any],
+) -> dict[str, Any]:
+    return _review_three_arm_execution(
+        artifact=artifact,
+        plan=plan,
+        qualification_rows=qualification_rows,
+        probe_template=probe_template,
+        prepared_runtime_by_scenario=prepared_runtime_by_scenario,
+        route_asset_by_identity=route_asset_by_identity,
+        dp_repo=dp_repo,
+        runtime_selector_authority=runtime_selector_authority,
+        opening_release=opening_release,
+        opening_release_root_sha256=opening_release_root_sha256,
+        opening_consumption=opening_consumption,
+        holdout_mode=True,
+    )
+
+
+def _review_three_arm_execution(
+    *,
+    artifact: Path,
+    plan: Mapping[str, Any],
+    qualification_rows: Sequence[Mapping[str, Any]],
+    probe_template: Mapping[str, Any],
+    prepared_runtime_by_scenario: Mapping[str, Mapping[str, Any]],
+    route_asset_by_identity: Mapping[str, Mapping[str, Any]],
+    dp_repo: Path,
+    runtime_selector_authority: Mapping[str, Any],
+    opening_release: Mapping[str, Any],
+    opening_release_root_sha256: str,
+    opening_consumption: Mapping[str, Any],
+    holdout_mode: bool,
+) -> dict[str, Any]:
     execution = Path(artifact).resolve()
     validated = validate_signal_complete_execution_plan(plan)
-    if (
-        validated.get("split") != "fresh_b2"
-        or validated.get("identity_count") != 100
-        or validated.get("execution_unit_count") != 500
-        or validated.get("planned_arm_run_count") != 1500
-        or validated.get("ticks_per_arm_run") != 64
-    ):
-        raise ValueError("Fresh B2 review denominator drifted")
-    release = validate_fresh_b2_opening_release(opening_release)
-    validate_fresh_b2_opening_consumption(
-        opening_consumption,
-        opening_release=release,
-        release_root_sha256=opening_release_root_sha256,
-    )
+    if holdout_mode:
+        release = validate_holdout_opening_release(opening_release)
+        identity_authority = validate_holdout_identity(
+            release["holdout_identity"]
+        )
+        validate_experiment_protocol(release["experiment_protocol"])
+        if (
+            validated.get("split") != identity_authority["split"]
+            or validated.get("execution_unit_count")
+            != identity_authority["paired_unit_count"]
+            or validated.get("planned_arm_run_count")
+            != identity_authority["arm_run_count"]
+            or validated.get("planned_arm_run_count")
+            * validated.get("ticks_per_arm_run")
+            != identity_authority["tick_capacity"]
+            or validated.get("ticks_per_arm_run") != 64
+        ):
+            raise ValueError("holdout review denominator drifted")
+        validate_holdout_opening_consumption(
+            opening_consumption,
+            opening_release=release,
+            opening_release_root_sha256=opening_release_root_sha256,
+        )
+        run_schema_version = HOLDOUT_RUN_SCHEMA_VERSION
+        execution_schema_version = HOLDOUT_EXECUTION_SCHEMA_VERSION
+    else:
+        if (
+            validated.get("split") != "fresh_b2"
+            or validated.get("identity_count") != 100
+            or validated.get("execution_unit_count") != 500
+            or validated.get("planned_arm_run_count") != 1500
+            or validated.get("ticks_per_arm_run") != 64
+        ):
+            raise ValueError("Fresh B2 review denominator drifted")
+        release = validate_fresh_b2_opening_release(opening_release)
+        validate_fresh_b2_opening_consumption(
+            opening_consumption,
+            opening_release=release,
+            release_root_sha256=opening_release_root_sha256,
+        )
+        run_schema_version = RUN_SCHEMA_VERSION
+        execution_schema_version = EXECUTION_SCHEMA_VERSION
     identities = {
         row["scenario_identity_sha256"]: row for row in validated["identities"]
     }
@@ -120,25 +225,34 @@ def review_fresh_b2_three_arm_execution(
             offset += 1
             if run_dir.name != expected_name:
                 raise ValueError("Fresh B2 review run order drifted")
-            expected_config = build_fresh_b2_arm_config(
-                probe_template=probe_template,
-                prepared_runtime=prepared_runtime_by_scenario[
+            config_args = {
+                "probe_template": probe_template,
+                "prepared_runtime": prepared_runtime_by_scenario[
                     unit["scenario_identity_sha256"]
                 ],
-                execution_unit=unit,
-                plan_arm=plan_arm,
-                route_asset=route_asset_by_identity[
+                "execution_unit": unit,
+                "plan_arm": plan_arm,
+                "route_asset": route_asset_by_identity[
                     identity["route_identity_sha256"]
                 ],
-                dp_repo=dp_repo,
-                runtime_selector_authority=runtime_selector_authority,
+                "dp_repo": dp_repo,
+                "runtime_selector_authority": runtime_selector_authority,
+            }
+            expected_config = (
+                build_holdout_arm_config(
+                    holdout_identity=release["holdout_identity"],
+                    experiment_protocol=release["experiment_protocol"],
+                    **config_args,
+                )
+                if holdout_mode
+                else build_fresh_b2_arm_config(**config_args)
             )
             if not _strict_equal(
                 _canonical_json(run_dir / "run_config.json"), expected_config
             ):
                 raise ValueError("Fresh B2 review run config drifted")
             terminal = _canonical_json(run_dir / "terminal.json")
-            if terminal.get("schema_version") != RUN_SCHEMA_VERSION:
+            if terminal.get("schema_version") != run_schema_version:
                 raise ValueError("Fresh B2 terminal schema drifted")
             if terminal.get("status") == "complete":
                 native = _canonical_json(run_dir / "native_receipt.json")
@@ -159,8 +273,21 @@ def review_fresh_b2_three_arm_execution(
                     candidate0_pool_evidence=pool,
                 )
                 expected_terminal = {
-                    "schema_version": RUN_SCHEMA_VERSION,
+                    "schema_version": run_schema_version,
                     "status": "complete",
+                    **(
+                        {
+                            "scientific_terminal": freeze_unit_terminal(
+                                status="complete",
+                                failure_class=None,
+                                all_k_bad=bool(
+                                    row["all_k_high_risk_tick_count"] == 64
+                                ),
+                            )
+                        }
+                        if holdout_mode
+                        else {}
+                    ),
                     "unit_ordinal": unit["unit_ordinal"],
                     "unit_sha256": unit["unit_sha256"],
                     "plan_arm": plan_arm,
@@ -194,8 +321,23 @@ def review_fresh_b2_three_arm_execution(
                     pair_authority=evidence["pair_authority"],
                 )
                 expected_terminal = {
-                    "schema_version": RUN_SCHEMA_VERSION,
+                    "schema_version": run_schema_version,
                     "status": "retained_fixed_dp_capability_failure",
+                    **(
+                        {
+                            "scientific_terminal": freeze_unit_terminal(
+                                status=(
+                                    "fixed_dp_candidate_generation_capability_failure"
+                                ),
+                                failure_class=(
+                                    "invalid_k8_heading_norm_envelope"
+                                ),
+                                all_k_bad=False,
+                            )
+                        }
+                        if holdout_mode
+                        else {}
+                    ),
                     "unit_ordinal": unit["unit_ordinal"],
                     "unit_sha256": unit["unit_sha256"],
                     "plan_arm": plan_arm,
@@ -204,6 +346,48 @@ def review_fresh_b2_three_arm_execution(
                     "native_receipt_sha256": None,
                     "candidate0_pool_evidence_sha256": None,
                     "fixed_dp_failure_receipt_sha256": _canonical_sha(evidence),
+                    "evaluation_row": row,
+                }
+            elif (
+                holdout_mode
+                and terminal.get("status") == "retained_source_ineligible"
+            ):
+                evidence = _canonical_json(
+                    run_dir / "source_ineligible_receipt.json"
+                )
+                _review_source_ineligible(
+                    evidence,
+                    expected_config=expected_config,
+                )
+                row = build_fresh_b2_failure_row(
+                    qualification_row=manifest,
+                    pair_key=unit["unit_sha256"],
+                    arm=evaluation_arm,
+                    arm_order_index=arm_order_index,
+                    status="source_ineligible",
+                    failure_class="preregistered_source_ineligible",
+                    signal_phase="unavailable",
+                    pair_authority=evidence["pair_authority"],
+                )
+                expected_terminal = {
+                    "schema_version": run_schema_version,
+                    "status": "retained_source_ineligible",
+                    "scientific_terminal": freeze_unit_terminal(
+                        status="source_ineligible",
+                        failure_class="preregistered_source_ineligible",
+                        all_k_bad=False,
+                    ),
+                    "unit_ordinal": unit["unit_ordinal"],
+                    "unit_sha256": unit["unit_sha256"],
+                    "plan_arm": plan_arm,
+                    "evaluation_arm": evaluation_arm,
+                    "arm_order_index": arm_order_index,
+                    "native_receipt_sha256": None,
+                    "candidate0_pool_evidence_sha256": None,
+                    "fixed_dp_failure_receipt_sha256": None,
+                    "source_ineligible_receipt_sha256": _canonical_sha(
+                        evidence
+                    ),
                     "evaluation_row": row,
                 }
             else:
@@ -218,14 +402,66 @@ def review_fresh_b2_three_arm_execution(
         or not _strict_equal(recorded_terminals, rebuilt_terminals)
     ):
         raise ValueError("Fresh B2 recorded rows differ from independent rebuild")
+    if holdout_mode:
+        by_pair: dict[str, list[dict[str, Any]]] = {}
+        for row in rebuilt_rows:
+            by_pair.setdefault(row["pair_key"], []).append(row)
+        if any(
+            any(row["status"] == "source_ineligible" for row in group)
+            and not all(
+                row["status"] == "source_ineligible" for row in group
+            )
+            for group in by_pair.values()
+        ):
+            raise ValueError(
+                "holdout source-ineligible status must terminate the whole unit"
+            )
+        if any(
+            any(
+                row["status"]
+                == "fixed_dp_candidate_generation_capability_failure"
+                for row in group
+            )
+            and not all(
+                row["status"]
+                == "fixed_dp_candidate_generation_capability_failure"
+                for row in group
+            )
+            for group in by_pair.values()
+        ):
+            raise ValueError(
+                "holdout fixed-DP capability failure must terminate the whole unit"
+            )
     _validate_cross_arm_pair_authority(rebuilt_rows)
     coverage = _paired_coverage(validated, rebuilt_rows)
     expected_report = {
-        "schema_version": EXECUTION_SCHEMA_VERSION,
+        "schema_version": execution_schema_version,
         "status": (
-            "passed_fresh_b2_three_arm_execution"
+            (
+                "passed_holdout_three_arm_execution"
+                if holdout_mode
+                else "passed_fresh_b2_three_arm_execution"
+            )
             if coverage["coverage_gate_passed"]
-            else "fresh_b2_three_arm_execution_scientifically_ineligible"
+            else (
+                "holdout_three_arm_execution_scientifically_ineligible"
+                if holdout_mode
+                else "fresh_b2_three_arm_execution_scientifically_ineligible"
+            )
+        ),
+        **(
+            {
+                "holdout_identity_sha256": release["holdout_identity"][
+                    "holdout_identity_sha256"
+                ],
+                "experiment_protocol_sha256": release[
+                    "experiment_protocol"
+                ]["experiment_protocol_sha256"],
+                "holdout_split": release["holdout_identity"]["split"],
+                "holdout_opened_once": True,
+            }
+            if holdout_mode
+            else {}
         ),
         "planned_pair_count": len(validated["execution_units"]),
         "planned_arm_run_count": expected_count,
@@ -237,6 +473,16 @@ def review_fresh_b2_three_arm_execution(
             row["status"] == "fixed_dp_candidate_generation_capability_failure"
             for row in rebuilt_rows
         ),
+        **(
+            {
+                "retained_source_ineligible_count": sum(
+                    row["status"] == "source_ineligible"
+                    for row in rebuilt_rows
+                )
+            }
+            if holdout_mode
+            else {}
+        ),
         "paired_coverage": coverage,
         "evaluation_rows_sha256": _canonical_sha(rebuilt_rows),
         "run_terminals_sha256": _canonical_sha(rebuilt_terminals),
@@ -244,7 +490,7 @@ def review_fresh_b2_three_arm_execution(
         "fixed_dp_head": release["fixed_dp_head"],
         "opening_release_root_sha256": opening_release_root_sha256,
         "opening_run_nonce": release["run_nonce"],
-        "fresh_b2_opened_once": True,
+        **({"fresh_b2_opened_once": True} if not holdout_mode else {}),
         "fresh_outcome_used_to_change_protocol": False,
         "training_executed": False,
         "calibration_executed": False,
@@ -253,8 +499,27 @@ def review_fresh_b2_three_arm_execution(
     if not _strict_equal(report, expected_report):
         raise ValueError("Fresh B2 execution report differs from independent rebuild")
     return {
-        "schema_version": SCHEMA_VERSION,
-        "status": "passed_independent_fresh_b2_three_arm_execution_review",
+        "schema_version": (
+            HOLDOUT_SCHEMA_VERSION if holdout_mode else SCHEMA_VERSION
+        ),
+        "status": (
+            "passed_independent_holdout_three_arm_execution_review"
+            if holdout_mode
+            else "passed_independent_fresh_b2_three_arm_execution_review"
+        ),
+        **(
+            {
+                "holdout_identity_sha256": release["holdout_identity"][
+                    "holdout_identity_sha256"
+                ],
+                "experiment_protocol_sha256": release[
+                    "experiment_protocol"
+                ]["experiment_protocol_sha256"],
+                "holdout_opened_once": True,
+            }
+            if holdout_mode
+            else {}
+        ),
         "reviewed_artifact": str(execution),
         "planned_pair_count": len(validated["execution_units"]),
         "reviewed_arm_run_count": expected_count,
@@ -262,12 +527,21 @@ def review_fresh_b2_three_arm_execution(
         "retained_fixed_dp_capability_failure_count": expected_report[
             "retained_fixed_dp_capability_failure_count"
         ],
+        **(
+            {
+                "retained_source_ineligible_count": expected_report[
+                    "retained_source_ineligible_count"
+                ]
+            }
+            if holdout_mode
+            else {}
+        ),
         "paired_coverage": coverage,
         "all_configs_independently_rebuilt": True,
         "all_complete_rows_reprojected": True,
         "all_fixed_dp_failure_preimages_recomputed": True,
         "candidate_tensor_modified": False,
-        "fresh_b2_opened_once": True,
+        **({"fresh_b2_opened_once": True} if not holdout_mode else {}),
         "fresh_outcome_used_to_change_protocol": False,
         "training_executed": False,
         "calibration_executed": False,
@@ -333,6 +607,86 @@ def _recompute_fixed_dp_failure(
     ):
         raise ValueError("Fresh B2 reviewed fixed-DP failure metadata drifted")
     return rebuilt
+
+
+def _review_source_ineligible(
+    evidence: Mapping[str, Any],
+    *,
+    expected_config: Mapping[str, Any],
+) -> None:
+    fields = {
+        "schema_version",
+        "status",
+        "failure_class",
+        "typed_failure",
+        "pair_authority",
+        "signal_phase",
+        "source_evidence_materialized_before_model_input",
+        "outcome_fields_consumed",
+        "training_eligible",
+        "calibration_eligible",
+        "evaluation_eligible",
+    }
+    plan = expected_config["signal_complete_plan_authority"]
+    case = expected_config["signal_complete_runtime"]["case"]
+    seed = expected_config["seeds"]["scenario"]
+    expected_pair = {
+        "route_identity_sha256": plan["route_identity_sha256"],
+        "semantic_parameter_block_sha256": plan[
+            "semantic_parameter_block_sha256"
+        ],
+        "native_route_sha256": expected_config["routes"][0]["sha256"],
+        "logical_map_sha256": expected_config["map"]["sha256"],
+        "scenario_seed": seed,
+        "spawn_config_sha256": _canonical_sha(
+            expected_config["spawn_config"]
+        ),
+        "initial_state_sha256": _canonical_sha(
+            {
+                "route_identity_sha256": plan["route_identity_sha256"],
+                "scenario_seed": seed,
+                "reset_contract": (
+                    "same_route_scenario_semantic_seed_initial_state_schedule"
+                ),
+            }
+        ),
+        "initial_input_sha256": _canonical_sha(
+            {
+                "status": "not_materialized_preregistered_source_ineligible",
+                "scenario_identity_sha256": plan[
+                    "scenario_identity_sha256"
+                ],
+                "scenario_seed": seed,
+            }
+        ),
+    }
+    expected_typed = {
+        "scenario_id": case["scenario_id"],
+        "family": case["family"],
+        "source_class": case["signal_source_class"],
+        "phase_authority_mode": case["phase_authority_mode"],
+        "reason": (
+            ScenarioCapabilityReason.MAPPED_CURRENT_SIGNAL_SOURCE_UNAVAILABLE.value
+        ),
+    }
+    if (
+        type(evidence) is not dict
+        or set(evidence) != fields
+        or evidence["schema_version"]
+        != "camp_dp_v25_holdout_source_ineligible_failure_v1"
+        or evidence["status"] != "source_ineligible"
+        or evidence["failure_class"] != "preregistered_source_ineligible"
+        or not _strict_equal(evidence["typed_failure"], expected_typed)
+        or not _strict_equal(evidence["pair_authority"], expected_pair)
+        or evidence["signal_phase"] != "unavailable"
+        or evidence["source_evidence_materialized_before_model_input"]
+        is not True
+        or evidence["outcome_fields_consumed"] != []
+        or evidence["training_eligible"] is not False
+        or evidence["calibration_eligible"] is not False
+        or evidence["evaluation_eligible"] is not False
+    ):
+        raise ValueError("holdout source-ineligible evidence drifted")
 
 
 def _review_failure_pair_authority(

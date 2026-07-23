@@ -342,3 +342,42 @@ def test_failure_row_retains_denominator_without_outcome_imputation() -> None:
                 "initial_input_sha256": "d" * 64,
             },
         )
+
+
+def test_mapped_source_ineligible_row_is_retained_without_outcome_values() -> None:
+    manifest = _manifest()
+    manifest.update(
+        benchmark_stratum="controlled_stress",
+        scenario_family="red_light_phase_timing",
+        tier="borderline",
+        signal_source_class="mapped_signal",
+        phase_authority_mode="observe_same_tick_request",
+    )
+    row = build_fresh_b2_failure_row(
+        qualification_row=manifest,
+        pair_key="pair-source",
+        arm="candidate0",
+        arm_order_index=0,
+        status="source_ineligible",
+        failure_class="preregistered_source_ineligible",
+        signal_phase="unavailable",
+        pair_authority={
+            "route_identity_sha256": "6" * 64,
+            "semantic_parameter_block_sha256": "5" * 64,
+            "native_route_sha256": "8" * 64,
+            "logical_map_sha256": "2" * 64,
+            "scenario_seed": 25001,
+            "spawn_config_sha256": "b" * 64,
+            "initial_state_sha256": "c" * 64,
+            "initial_input_sha256": "d" * 64,
+        },
+    )
+    validated = validate_fresh_b2_evaluation_row(row)
+    assert validated["status"] == "source_ineligible"
+    assert validated["signal_phase"] == "unavailable"
+    assert validated["safety"] is None
+
+    wrong = copy.deepcopy(row)
+    wrong["failure_class"] = "generic_source_failure"
+    with pytest.raises(ValueError, match="evidence contract"):
+        validate_fresh_b2_evaluation_row(wrong)

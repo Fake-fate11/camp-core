@@ -49,6 +49,12 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_plan import (
 from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
     build_signal_complete_runtime_case,
 )
+from camp_core.integrations.diffusion_planner_v25_signal_complete_routes import (
+    validate_signal_complete_route_assets,
+)
+from scripts.integrations.materialize_diffusion_planner_v25_signal_complete_routes import (
+    _route_class,
+)
 
 
 SCHEMA_VERSION = "camp_dp_v25_fresh_b3_preopen_independent_review_v1"
@@ -73,6 +79,7 @@ def review(
         "HEADS",
         "accepted_evaluation_preregistration.json",
         "fresh_b3_execution_plan.json",
+        "fresh_b3_route_assets.json",
         "fresh_b3_map_suite.json",
         "fresh_b3_prepared_runtime_cases.json",
         "preopen_authority.json",
@@ -80,7 +87,10 @@ def review(
         "run.exit",
     }
     maps = {path for path in paths if path.startswith("maps/")}
-    if paths != fixed | maps or len(maps) != 25:
+    route_files = {
+        path for path in paths if path.startswith("route_materialization/")
+    }
+    if paths != fixed | maps | route_files or len(maps) != 25:
         raise ValueError("Fresh B3 pre-open inventory drifted")
     if (source / "run.exit").read_bytes() != b"0\n":
         raise ValueError("Fresh B3 pre-open did not pass")
@@ -103,6 +113,26 @@ def review(
         _canonical_object(source / "fresh_b3_execution_plan.json"), plan
     ):
         raise ValueError("Fresh B3 execution plan drifted")
+    route_class, _route_source = _route_class(
+        Path("/root/autodl-tmp/Diffusion-Planner")
+    )
+    route_manifest = validate_signal_complete_route_assets(
+        _canonical_object(source / "fresh_b3_route_assets.json"),
+        plan=plan,
+        map_artifact=source / "maps",
+        route_class=route_class,
+    )
+    if (
+        not route_files
+        or not strict_equal(
+            _canonical_object(
+                source / "route_materialization" / "route_assets.json"
+            ),
+            route_manifest,
+        )
+        or not strict_equal(stored["route_assets"], route_manifest)
+    ):
+        raise ValueError("Fresh B3 route materialization drifted")
     prepared = [
         build_signal_complete_runtime_case(
             identity,
@@ -198,6 +228,7 @@ def review(
         b3_suite=suite_full,
         b3_plan=plan,
         b3_map_artifact=source / "maps",
+        route_asset_manifest=route_manifest,
         license_sha256=_sha256(ROOT / "LICENSE"),
         prepared_runtime_cases=prepared,
         protocol_assets=protocol_assets,

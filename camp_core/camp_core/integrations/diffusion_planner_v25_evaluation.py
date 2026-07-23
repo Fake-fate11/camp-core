@@ -12,6 +12,12 @@ from .diffusion_planner_v25_fresh_opening import (
 )
 from .diffusion_planner_v25_holdout_contract import (
     SCIENTIFIC_TERMINAL_STATUSES,
+    validate_experiment_protocol,
+    validate_holdout_identity,
+)
+from .diffusion_planner_v25_holdout_opening import (
+    validate_holdout_opening_consumption,
+    validate_holdout_opening_release,
 )
 from .diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
@@ -40,7 +46,7 @@ LATENCY_STAGES = (
     "total_planning",
 )
 FRESH_TICK_COUNT = 64
-SIGNAL_PHASES = ("none", "green", "yellow", "red", "mixed")
+SIGNAL_PHASES = ("none", "green", "yellow", "red", "mixed", "unavailable")
 SIGNAL_SAFETY_METRICS = (
     "red_light_violation_rate",
     "stop_line_crossing_rate",
@@ -126,6 +132,7 @@ def evaluate_fresh_b2_three_arm(
     opening_release_root_sha256: str,
     opening_consumption_receipt: Mapping[str, Any],
     root_gates: Mapping[str, bool],
+    _holdout_mode: bool = False,
 ) -> dict[str, Any]:
     """Evaluate the frozen candidate0/Static14D/Scene14D paired benchmark."""
 
@@ -141,23 +148,48 @@ def evaluate_fresh_b2_three_arm(
     _require_sha(calibration_contract_root_sha256, "calibration contract root")
     _require_sha(preopen_qualification_root_sha256, "preopen qualification root")
     _require_sha(opening_release_root_sha256, "opening release root")
-    release = validate_fresh_b2_opening_release(opening_release)
-    if (
-        release["calibration_contract_root_sha256"]
-        != calibration_contract_root_sha256
-        or release["preopen_qualification_root_sha256"]
-        != preopen_qualification_root_sha256
-        or release["model_registry_sha256"]
-        != calibration["frozen_model_registry_sha256"]
-        or release["training_scale_sha256"] != calibration["training_scale_sha256"]
-        or release["context_scaler_sha256"] != calibration["context_scaler_sha256"]
-    ):
-        raise ValueError("Fresh B2 opening release/calibration authority drifted")
-    consumption = validate_fresh_b2_opening_consumption(
-        opening_consumption_receipt,
-        opening_release=release,
-        release_root_sha256=opening_release_root_sha256,
-    )
+    if _holdout_mode:
+        release = validate_holdout_opening_release(opening_release)
+        identity = validate_holdout_identity(release["holdout_identity"])
+        protocol = validate_experiment_protocol(release["experiment_protocol"])
+        if (
+            release["preopen_authority"]["root_sha256"]
+            != preopen_qualification_root_sha256
+            or protocol["model_registry_sha256"]
+            != calibration["frozen_model_registry_sha256"]
+            or protocol["training_scale_sha256"]
+            != calibration["training_scale_sha256"]
+            or protocol["context_scaler_sha256"]
+            != calibration["context_scaler_sha256"]
+        ):
+            raise ValueError("holdout opening release/calibration authority drifted")
+        consumption = validate_holdout_opening_consumption(
+            opening_consumption_receipt,
+            opening_release=release,
+            opening_release_root_sha256=opening_release_root_sha256,
+        )
+    else:
+        release = validate_fresh_b2_opening_release(opening_release)
+        identity = None
+        protocol = None
+        if (
+            release["calibration_contract_root_sha256"]
+            != calibration_contract_root_sha256
+            or release["preopen_qualification_root_sha256"]
+            != preopen_qualification_root_sha256
+            or release["model_registry_sha256"]
+            != calibration["frozen_model_registry_sha256"]
+            or release["training_scale_sha256"]
+            != calibration["training_scale_sha256"]
+            or release["context_scaler_sha256"]
+            != calibration["context_scaler_sha256"]
+        ):
+            raise ValueError("Fresh B2 opening release/calibration authority drifted")
+        consumption = validate_fresh_b2_opening_consumption(
+            opening_consumption_receipt,
+            opening_release=release,
+            release_root_sha256=opening_release_root_sha256,
+        )
     component_regression_margins = calibration["component_guardrails"]["margins"]
     noninferiority_margins = calibration["noninferiority"]["margins"]
     gates = _root_gates(root_gates)
@@ -245,7 +277,25 @@ def evaluate_fresh_b2_three_arm(
             "signal_safety": _signal_safety_summary(eligible_pairs, method),
         }
     return {
-        "schema_version": "camp_dp_v25_fresh_b2_three_arm_evaluation_v2",
+        "schema_version": (
+            "camp_dp_v25_holdout_three_arm_evaluation_v1"
+            if _holdout_mode
+            else "camp_dp_v25_fresh_b2_three_arm_evaluation_v2"
+        ),
+        **(
+            {
+                "holdout_identity_sha256": identity[
+                    "holdout_identity_sha256"
+                ],
+                "experiment_protocol_sha256": protocol[
+                    "experiment_protocol_sha256"
+                ],
+                "holdout_split": identity["split"],
+                "holdout_opened_once_after_cas_consumption": True,
+            }
+            if _holdout_mode
+            else {}
+        ),
         "calibration_contract_root_sha256": calibration_contract_root_sha256,
         "preopen_qualification_root_sha256": preopen_qualification_root_sha256,
         "opening_release_root_sha256": opening_release_root_sha256,
@@ -253,7 +303,11 @@ def evaluate_fresh_b2_three_arm(
             "controller_decision_root_sha256"
         ],
         "opening_release_consumption_marker_sha256": consumption["marker_sha256"],
-        "fresh_b2_opened_once_after_nonce_consumption": True,
+        **(
+            {"fresh_b2_opened_once_after_nonce_consumption": True}
+            if not _holdout_mode
+            else {}
+        ),
         "calibration_model_registry_sha256": calibration[
             "frozen_model_registry_sha256"
         ],
@@ -294,6 +348,32 @@ def evaluate_fresh_b2_three_arm(
         "fresh_outcome_used_to_change_protocol": False,
         "promotion_deployment_activation_authorized": False,
     }
+
+
+def evaluate_holdout_three_arm(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    calibration_contract: Mapping[str, Any],
+    calibration_contract_root_sha256: str,
+    preopen_qualification_root_sha256: str,
+    opening_release: Mapping[str, Any],
+    opening_release_root_sha256: str,
+    opening_consumption_receipt: Mapping[str, Any],
+    root_gates: Mapping[str, bool],
+) -> dict[str, Any]:
+    """Evaluate a generic Fresh holdout under the unchanged V25 claim rules."""
+
+    return evaluate_fresh_b2_three_arm(
+        rows,
+        calibration_contract=calibration_contract,
+        calibration_contract_root_sha256=calibration_contract_root_sha256,
+        preopen_qualification_root_sha256=preopen_qualification_root_sha256,
+        opening_release=opening_release,
+        opening_release_root_sha256=opening_release_root_sha256,
+        opening_consumption_receipt=opening_consumption_receipt,
+        root_gates=root_gates,
+        _holdout_mode=True,
+    )
 
 
 def _require_sha(value: Any, label: str) -> None:
@@ -376,7 +456,14 @@ def _row(value: Mapping[str, Any], index: int) -> dict[str, Any]:
         raise ValueError("Fresh B2 signal phase is invalid")
     if row["source_class"] == "mapped_signal":
         if (
-            row["signal_phase"] == "none"
+            (
+                row["status"] == "source_ineligible"
+                and row["signal_phase"] != "unavailable"
+            )
+            or (
+                row["status"] != "source_ineligible"
+                and row["signal_phase"] in {"none", "unavailable"}
+            )
             or row["phase_authority_mode"]
             not in {"controlled_same_tick_override", "observe_same_tick_request"}
         ):
@@ -456,6 +543,11 @@ def _row(value: Mapping[str, Any], index: int) -> dict[str, Any]:
                 == "fixed_dp_candidate_generation_capability_failure"
                 and row["failure_class"]
                 != "invalid_k8_heading_norm_envelope"
+            )
+            or (
+                row["status"] == "source_ineligible"
+                and row["failure_class"]
+                != "preregistered_source_ineligible"
             )
             or row["safety"] is not None
             or row["performance"] is not None

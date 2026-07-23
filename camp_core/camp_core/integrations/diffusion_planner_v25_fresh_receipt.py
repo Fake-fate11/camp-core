@@ -282,12 +282,24 @@ def build_fresh_b2_failure_row(
         and failure_class != "invalid_k8_heading_norm_envelope"
     ):
         raise ValueError("Fresh fixed-DP capability failure taxonomy drifted")
+    if (
+        status == "source_ineligible"
+        and failure_class != "preregistered_source_ineligible"
+    ):
+        raise ValueError("Fresh source-ineligible taxonomy drifted")
     authority = _validate_pair_authority(pair_authority, metadata)
     if metadata["signal_source_class"] == "no_signal":
         if signal_phase != "none":
             raise ValueError("no-signal failure row must use phase none")
+    elif status == "source_ineligible":
+        if signal_phase != "unavailable":
+            raise ValueError(
+                "mapped source-ineligible row must use unavailable phase"
+            )
     elif signal_phase not in {"green", "yellow", "red", "mixed"}:
-        raise ValueError("mapped-signal failure row requires a frozen phase summary")
+        raise ValueError(
+            "mapped-signal failure row requires a frozen phase summary"
+        )
     row = {
         "pair_key": pair_key,
         "arm": arm,

@@ -17,10 +17,18 @@ from camp_core.integrations.diffusion_planner_v25_evaluation import (
     LATENCY_STAGES,
     SIGNAL_SAFETY_METRICS,
     evaluate_fresh_b2_three_arm,
+    evaluate_holdout_three_arm,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_opening import (
     freeze_fresh_b2_opening_consumption,
     freeze_fresh_b2_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
+    freeze_experiment_protocol,
+    freeze_holdout_identity,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
+    freeze_holdout_opening_release,
 )
 from camp_core.integrations.diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
@@ -241,6 +249,109 @@ def _evaluate(rows):
     )
 
 
+def _evaluate_holdout(rows):
+    calibration = _calibration_contract()
+    pair_count = len(rows) // 3
+    identity = freeze_holdout_identity(
+        split="fresh_b3_nonfresh_evaluation_test",
+        scenario_manifest_sha256="1" * 64,
+        map_suite_payload_sha256="2" * 64,
+        route_census_sha256="3" * 64,
+        corridor_census_sha256="4" * 64,
+        semantic_census_sha256="5" * 64,
+        execution_plan_sha256="6" * 64,
+        seeds=[25501],
+        arm_order_commit_sha256="7" * 64,
+        paired_unit_count=pair_count,
+        arm_run_count=len(rows),
+        tick_capacity=len(rows) * 64,
+    )
+    protocol = freeze_experiment_protocol(
+        model_registry_sha256="b" * 64,
+        training_scale_sha256="c" * 64,
+        context_scaler_sha256="d" * 64,
+        atom_contract_sha256="4" * 64,
+        threshold_contract_sha256="5" * 64,
+        noninferiority_contract_sha256="6" * 64,
+        multiplicity_contract_sha256="7" * 64,
+        claim_contract_sha256="8" * 64,
+        failure_contract_sha256="9" * 64,
+        candidate0_semantics=(
+            "action_equivalent_operational_default_first_default_output_alias"
+        ),
+        same_forward_contract=(
+            "forward_execution_id_plus_input_model_action_digest"
+        ),
+        latency_contract=(
+            "online_operational_plus_supplementary_evidence_plus_runtime_total_v1"
+        ),
+        terminal_truth_table=(
+            "exclusive_scientific_terminal_or_artifact_fatal_v1"
+        ),
+    )
+    binding = lambda name, char: {
+        "path": f"/root/autodl-tmp/{name}",
+        "root_sha256": char * 64,
+    }
+    cas_path = (
+        "/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas/"
+        f"{identity['holdout_identity_sha256']}.json"
+    )
+    release = freeze_holdout_opening_release(
+        implementation_source_head="6" * 40,
+        pointer_head_at_release="7" * 40,
+        critical_implementation_manifest_sha256="a" * 64,
+        controller_decision_root_sha256="4" * 64,
+        preopen_authority=binding("preopen", "1"),
+        preopen_review=binding("preopen-review", "2"),
+        production_composition_preflight=binding("preflight", "3"),
+        production_composition_preflight_review=binding(
+            "preflight-review", "4"
+        ),
+        b2_tombstone=binding("b2-tombstone", "5"),
+        b2_failure_review=binding("b2-failure-review", "6"),
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+        run_nonce="8" * 64,
+        authorized_output_dir="/root/autodl-tmp/fresh_b3_test",
+        cas_tombstone_path=cas_path,
+    )
+    release_root = "2" * 64
+    consumption = {
+        "schema_version": "camp_dp_v25_holdout_opening_consumption_v1",
+        "status": "holdout_opened_consumed",
+        "opening_release_root_sha256": release_root,
+        "holdout_identity_sha256": identity["holdout_identity_sha256"],
+        "experiment_protocol_sha256": protocol[
+            "experiment_protocol_sha256"
+        ],
+        "reservation_commitment_sha256": release[
+            "reservation_commitment_sha256"
+        ],
+        "cas_tombstone_path": cas_path,
+        "marker_sha256": "3" * 64,
+        "consumed_before_outcome_capable_operation": True,
+        "second_opening_allowed": False,
+        "new_nonce_allowed": False,
+        "suffix_allowed": False,
+        "outcome_fields_consumed_before_opening": [],
+    }
+    return evaluate_holdout_three_arm(
+        rows,
+        calibration_contract=calibration,
+        calibration_contract_root_sha256="e" * 64,
+        preopen_qualification_root_sha256="1" * 64,
+        opening_release=release,
+        opening_release_root_sha256=release_root,
+        opening_consumption_receipt=consumption,
+        root_gates={
+            "failure_denominator_complete": True,
+            "immutability_passed": True,
+            "zero_overlap_passed": True,
+        },
+    )
+
+
 def test_three_arm_evaluation_preserves_denominator_claims_and_latency() -> None:
     rows = _rows()
     result = _evaluate(rows)
@@ -307,6 +418,18 @@ def test_three_arm_evaluation_preserves_denominator_claims_and_latency() -> None
     assert result["noninferiority_margins_from_calibration_contract"] is True
 
 
+def test_generic_holdout_evaluation_uses_generic_identity_and_schema() -> None:
+    rows = _rows()
+    result = _evaluate_holdout(rows)
+    assert result["schema_version"] == (
+        "camp_dp_v25_holdout_three_arm_evaluation_v1"
+    )
+    assert result["holdout_split"] == "fresh_b3_nonfresh_evaluation_test"
+    assert result["holdout_opened_once_after_cas_consumption"] is True
+    assert result["full_plan_arm_run_count"] == len(rows)
+    assert result["fresh_outcome_used_to_change_protocol"] is False
+
+
 def test_three_arm_evaluation_rejects_calibration_contract_drift() -> None:
     calibration = _calibration_contract()
     calibration["noninferiority"]["margins"]["progress"] = 99.0
@@ -360,11 +483,43 @@ def test_three_arm_evaluation_retains_fixed_dp_failure_without_imputation() -> N
         "complete": result["full_plan_arm_run_count"] - 1,
         "fixed_dp_candidate_generation_capability_failure": 1,
         "source_ineligible": 0,
-        "execution_failure": 0,
     }
     assert result["failure_accounting"]["by_arm"]["scene14d"][
         "fixed_dp_candidate_generation_capability_failure"
     ] == 1
+    assert result["failure_accounting"]["failed_rows_retained"] is True
+    assert result["safetycost_imputed_for_failed_pairs"] is False
+
+
+def test_generic_holdout_evaluation_retains_unit_source_ineligible() -> None:
+    rows = _rows()
+    pair_key = rows[0]["pair_key"]
+    for row in rows:
+        if row["pair_key"] != pair_key:
+            continue
+        row.update(
+            status="source_ineligible",
+            failure_class="preregistered_source_ineligible",
+            safety=None,
+            performance=None,
+            signal_safety=None,
+            signal_safety_counts=None,
+            signal_safety_denominators=None,
+            latency_ms=None,
+            selected_index_sequence=None,
+            source_valid_candidate_count_sequence=None,
+            all_k_high_risk_tick_count=None,
+            candidate_pool_has_safe_candidate_tick_count=None,
+        )
+        if row["source_class"] == "mapped_signal":
+            row["signal_phase"] = "unavailable"
+    result = _evaluate_holdout(rows)
+    assert result["shared_three_arm_paired_eligible_count"] == (
+        result["full_plan_pair_count"] - 1
+    )
+    assert result["failure_accounting"]["all_status_counts"][
+        "source_ineligible"
+    ] == 3
     assert result["failure_accounting"]["failed_rows_retained"] is True
     assert result["safetycost_imputed_for_failed_pairs"] is False
 
