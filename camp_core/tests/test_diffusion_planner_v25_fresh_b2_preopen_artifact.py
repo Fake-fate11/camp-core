@@ -114,6 +114,15 @@ def test_preopen_config_is_unopened_and_rejects_nonce_mutation() -> None:
         + "\n"
     ).encode("utf-8")
     assert PRODUCER._validate_config(value)["one_time_state"]["nonce_created"] is False
+    assert PRODUCER.UPSTREAM_REPORT_ROLES == {
+        "corrected_corpus",
+        "corrected_corpus_review",
+        "training",
+        "training_review",
+        "calibration_recovery",
+        "calibration_recovery_review",
+    }
+    assert "calibration_raw" not in PRODUCER.UPSTREAM_REPORT_ROLES
     assert (
         value["upstream_artifacts"]["corrected_corpus"]["root_sha256"]
         == "97a361b2bbb3544e842c9b6d12b3c17b8f63982db3217e9e360643b0cd7b0ffd"

@@ -48,6 +48,16 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import
 
 SCHEMA_VERSION = "camp_dp_v25_fresh_b2_preopen_materialization_v1"
 CONFIG_SCHEMA_VERSION = "camp_dp_v25_fresh_b2_preopen_authority_config_v1"
+UPSTREAM_REPORT_ROLES = frozenset(
+    {
+        "corrected_corpus",
+        "corrected_corpus_review",
+        "training",
+        "training_review",
+        "calibration_recovery",
+        "calibration_recovery_review",
+    }
+)
 
 
 def build(
@@ -198,7 +208,8 @@ def _open_upstream(config: Mapping[str, Any]) -> dict[str, Any]:
         path = Path(item["path"])
         verify_bound_artifact(path, item["root_sha256"], exit_code=item["run_exit"])
         bindings[role] = {"path": str(path), "root_sha256": item["root_sha256"]}
-        reports[role] = _canonical_json(path / "report.json")
+        if role in UPSTREAM_REPORT_ROLES:
+            reports[role] = _canonical_json(path / "report.json")
     if (
         reports["training"].get("status") != "passed_strict_convex_training"
         or reports["training_review"].get("status")
