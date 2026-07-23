@@ -32,6 +32,10 @@ PRODUCER = _module(
     "scripts/integrations/freeze_diffusion_planner_v25_fresh_b2_preopen.py",
     "v25_fresh_b2_preopen_producer",
 )
+REVIEWER = _module(
+    "scripts/integrations/review_diffusion_planner_v25_fresh_b2_preopen.py",
+    "v25_fresh_b2_preopen_reviewer",
+)
 
 
 def _power_source() -> dict:
@@ -135,3 +139,28 @@ def test_preopen_config_is_unopened_and_rejects_nonce_mutation() -> None:
     mutated["one_time_state"]["nonce_created"] = True
     with pytest.raises(ValueError, match="closed-state"):
         PRODUCER._validate_config(mutated)
+
+
+@pytest.mark.parametrize("module", [PRODUCER, REVIEWER])
+def test_historical_upstream_json_uses_strict_external_policy(
+    module, tmp_path: Path
+) -> None:
+    path = tmp_path / "report.json"
+    path.write_bytes(b'{\n  "status": "accepted", "count": 300\n}\n')
+    assert module._strict_sealed_external_json_object(path) == {
+        "status": "accepted",
+        "count": 300,
+    }
+    with pytest.raises(ValueError, match="canonical"):
+        module._canonical_json(path)
+
+    for invalid in (
+        b'{"status":"a","status":"b"}\n',
+        b'{"value":NaN}\n',
+        b'{"value":1e309}\n',
+        b'[]\n',
+        b'{"value":"\xff"}\n',
+    ):
+        path.write_bytes(invalid)
+        with pytest.raises((UnicodeDecodeError, ValueError)):
+            module._strict_sealed_external_json_object(path)

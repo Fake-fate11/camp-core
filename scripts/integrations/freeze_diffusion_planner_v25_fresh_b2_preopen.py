@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import subprocess
@@ -133,7 +134,9 @@ def build(
         _write_json(output / "fresh_b2_map_suite.json", suite_receipt)
         _write_json(output / "fresh_b2_execution_plan.json", plan)
         _write_json(output / "fresh_b2_prepared_runtime_cases.json", prepared)
-        _write_json(output / "accepted_evaluation_preregistration.json", upstream["preregistration"])
+        (output / "accepted_evaluation_preregistration.json").write_bytes(
+            upstream["preregistration_bytes"]
+        )
         _write_json(output / "preopen_authority.json", authority)
         report = {
             "schema_version": SCHEMA_VERSION,
@@ -209,7 +212,7 @@ def _open_upstream(config: Mapping[str, Any]) -> dict[str, Any]:
         verify_bound_artifact(path, item["root_sha256"], exit_code=item["run_exit"])
         bindings[role] = {"path": str(path), "root_sha256": item["root_sha256"]}
         if role in UPSTREAM_REPORT_ROLES:
-            reports[role] = _canonical_json(path / "report.json")
+            reports[role] = _strict_sealed_external_json_object(path / "report.json")
     if (
         reports["training"].get("status") != "passed_strict_convex_training"
         or reports["training_review"].get("status")
@@ -233,7 +236,9 @@ def _open_upstream(config: Mapping[str, Any]) -> dict[str, Any]:
     source_path = Path(str(corpus_report["r0_source_artifact"])).resolve()
     source_root = str(corpus_report["r0_source_root_sha256"])
     verify_complete_seal(source_path, source_root, label="Fresh B2 train route-source authority")
-    source_payload = _canonical_json(source_path / "route_signal_source_receipts.json")
+    source_payload = _strict_sealed_external_json_object(
+        source_path / "route_signal_source_receipts.json"
+    )
     if source_payload.get("source_failures") != [] or len(source_payload.get("cases", [])) != 1653:
         raise ValueError("Fresh B2 train route-source denominator drifted")
     bindings["train_route_source"] = {"path": str(source_path), "root_sha256": source_root}
@@ -247,7 +252,9 @@ def _open_upstream(config: Mapping[str, Any]) -> dict[str, Any]:
     prereg_review_root = str(input_roots["preregistration_review_root_sha256"])
     verify_bound_artifact(prereg_path, prereg_root, exit_code=0)
     verify_bound_artifact(prereg_review_path, prereg_review_root, exit_code=0)
-    prereg_review = _canonical_json(prereg_review_path / "report.json")
+    prereg_review = _strict_sealed_external_json_object(
+        prereg_review_path / "report.json"
+    )
     if prereg_review.get("reviewed_root_sha256") != prereg_root:
         raise ValueError("Fresh B2 accepted preregistration review drifted")
     bindings["calibration_preregistration"] = {"path": str(prereg_path), "root_sha256": prereg_root}
@@ -255,13 +262,16 @@ def _open_upstream(config: Mapping[str, Any]) -> dict[str, Any]:
         "path": str(prereg_review_path),
         "root_sha256": prereg_review_root,
     }
-    preregistration = _canonical_json(prereg_path / "preregistration.json")
+    preregistration = _strict_sealed_external_json_object(
+        prereg_path / "preregistration.json"
+    )
     return {
         "bindings": bindings,
         "train_source_rows": source_payload["cases"],
         "preregistration": preregistration,
+        "preregistration_bytes": (prereg_path / "preregistration.json").read_bytes(),
         "preregistration_sha256": _sha256(prereg_path / "preregistration.json"),
-        "calibration_analysis": _canonical_json(
+        "calibration_analysis": _strict_sealed_external_json_object(
             Path(bindings["calibration_recovery"]["path"]) / "calibration_analysis.json"
         ),
     }
@@ -387,6 +397,29 @@ def _canonical_json(path: Path) -> dict[str, Any]:
     if type(value) is not dict or raw != canonical_json_bytes(value):
         raise ValueError(f"authority JSON is not canonical: {path}")
     return value
+
+
+def _strict_sealed_external_json_object(path: Path) -> dict[str, Any]:
+    value = json.loads(
+        path.read_bytes().decode("utf-8", "strict"),
+        object_pairs_hook=_no_duplicate_pairs,
+        parse_constant=lambda token: (_ for _ in ()).throw(ValueError(token)),
+    )
+    if type(value) is not dict:
+        raise ValueError(f"sealed external JSON object expected: {path}")
+    _require_finite_json(value, path=path)
+    return value
+
+
+def _require_finite_json(value: Any, *, path: Path) -> None:
+    if type(value) is float and not math.isfinite(value):
+        raise ValueError(f"nonfinite sealed external JSON value: {path}")
+    if type(value) is list:
+        for item in value:
+            _require_finite_json(item, path=path)
+    elif type(value) is dict:
+        for item in value.values():
+            _require_finite_json(item, path=path)
 
 
 def _no_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:

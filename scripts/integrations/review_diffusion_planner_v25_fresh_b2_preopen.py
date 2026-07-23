@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import shutil
 import sys
@@ -137,7 +138,7 @@ def review(artifact: Path, root_sha256: str) -> dict[str, Any]:
     for role, binding in bindings.items():
         path = Path(binding["path"])
         verify_complete_seal(path, binding["root_sha256"], label=f"Fresh B2 review {role}")
-    source = _canonical_json(
+    source = _strict_sealed_external_json_object(
         Path(bindings["train_route_source"]["path"]) / "route_signal_source_receipts.json"
     )
     train_rows = project_train_split_rows(source["cases"])
@@ -156,13 +157,15 @@ def review(artifact: Path, root_sha256: str) -> dict[str, Any]:
     prereg_copy = (root / "accepted_evaluation_preregistration.json").read_bytes()
     if prereg_copy != prereg_raw:
         raise ValueError("Fresh B2 evaluation preregistration is not byte-exact")
-    prereg = validate_paired_calibration_preregistration(_canonical_json(prereg_source))
+    prereg = validate_paired_calibration_preregistration(
+        _strict_sealed_external_json_object(prereg_source)
+    )
     if authority["evaluation"]["accepted_preregistration_sha256"] != _sha256(prereg_source):
         raise ValueError("Fresh B2 evaluation root differs from accepted preregistration")
     if prereg["calibration_result_driven_protocol_change_authorized"] is not False:
         raise ValueError("Fresh B2 evaluation was changed from calibration results")
 
-    calibration_analysis = _canonical_json(
+    calibration_analysis = _strict_sealed_external_json_object(
         Path(bindings["calibration_recovery"]["path"]) / "calibration_analysis.json"
     )
     expected_power = fresh_power_at_corridor_ceiling(calibration_analysis, corridor_count=100)
@@ -271,6 +274,29 @@ def _canonical_json(path: Path) -> dict[str, Any]:
     if type(value) is not dict:
         raise ValueError(f"authority JSON object expected: {path}")
     return value
+
+
+def _strict_sealed_external_json_object(path: Path) -> dict[str, Any]:
+    value = json.loads(
+        path.read_bytes().decode("utf-8", "strict"),
+        object_pairs_hook=_no_duplicate_pairs,
+        parse_constant=lambda token: (_ for _ in ()).throw(ValueError(token)),
+    )
+    if type(value) is not dict:
+        raise ValueError(f"sealed external JSON object expected: {path}")
+    _require_finite_json(value, path=path)
+    return value
+
+
+def _require_finite_json(value: Any, *, path: Path) -> None:
+    if type(value) is float and not math.isfinite(value):
+        raise ValueError(f"nonfinite sealed external JSON value: {path}")
+    if type(value) is list:
+        for item in value:
+            _require_finite_json(item, path=path)
+    elif type(value) is dict:
+        for item in value.values():
+            _require_finite_json(item, path=path)
 
 
 def _no_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
