@@ -172,6 +172,44 @@ def review(artifact: Path, root_sha256: str) -> dict[str, Any]:
     if not _strict_equal(authority["critical_implementation_manifest"], expected_manifest):
         raise ValueError("Fresh B2 tracked implementation manifest drifted")
 
+    mechanism = authority["atom_mechanism"]
+    mechanism_artifact = Path(mechanism["artifact_path"])
+    mechanism_review_artifact = Path(mechanism["review_artifact_path"])
+    verify_complete_seal(
+        mechanism_artifact,
+        mechanism["artifact_root_sha256"],
+        label="Fresh B2 atom-mechanism authority",
+    )
+    verify_complete_seal(
+        mechanism_review_artifact,
+        mechanism["review_root_sha256"],
+        label="Fresh B2 atom-mechanism independent review",
+    )
+    if (
+        (mechanism_artifact / "run.exit").read_bytes() != b"0\n"
+        or (mechanism_review_artifact / "run.exit").read_bytes() != b"0\n"
+    ):
+        raise ValueError("Fresh B2 atom-mechanism terminal state drifted")
+    mechanism_report = _canonical_json(mechanism_artifact / "report.json")
+    mechanism_review = _canonical_json(mechanism_review_artifact / "report.json")
+    if (
+        mechanism_report.get("status")
+        != "frozen_atom_mechanism_ready_before_fresh_b2_opening"
+        or mechanism_report.get("contract_sha256") != mechanism["contract_sha256"]
+        or mechanism_report.get("calibration_atom_mechanism_sha256")
+        != mechanism["analysis_sha256"]
+        or mechanism_review.get("status")
+        != "passed_independent_atom_mechanism_preopen_review"
+        or mechanism_review.get("reviewed_root_sha256")
+        != mechanism["artifact_root_sha256"]
+        or mechanism_review.get("single_atom_closed_loop_causal_effect_claimed")
+        is not False
+        or mechanism_review.get("primary_fresh_design_changed") is not False
+        or mechanism_review.get("fresh_b2_opened") is not False
+        or mechanism_review.get("fresh_outcome_fields_consumed") != []
+    ):
+        raise ValueError("Fresh B2 atom-mechanism cross-binding drifted")
+
     storage = validate_storage_manifest(authority["storage"])
     capacity = authority["capacity"]
     free_now = shutil.disk_usage(Path(capacity["canonical_output_parent"])).free
@@ -195,6 +233,11 @@ def review(artifact: Path, root_sha256: str) -> dict[str, Any]:
         "storage_logical_tree_sha256": storage["logical_tree_sha256"],
         "projected_1500_arm_upper_bound_nbytes": storage["metrics"]["projected_1500_arm_upper_bound_nbytes"],
         "free_bytes_at_review": free_now,
+        "atom_mechanism_artifact_root_sha256": mechanism["artifact_root_sha256"],
+        "atom_mechanism_review_root_sha256": mechanism["review_root_sha256"],
+        "atom_mechanism_decision_tick_count": mechanism["decision_tick_count"],
+        "atom_mechanism_primary_fresh_design_changed": False,
+        "atom_mechanism_single_atom_closed_loop_causal_effect_claimed": False,
         "fresh_open_authorized": False,
         "one_time_opening_release_required": True,
         "nonce_created": False,

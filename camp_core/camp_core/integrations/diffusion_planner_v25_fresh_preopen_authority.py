@@ -15,6 +15,7 @@ from .diffusion_planner_v25_fresh_coverage import (
     validate_fresh_b2_explicit_coverage,
 )
 from .diffusion_planner_v25_fresh_storage import validate_storage_manifest
+from .diffusion_planner_v25_atom_mechanism import validate_atom_mechanism_binding
 from .diffusion_planner_v25_signal_complete_maps import (
     SOURCE_FAMILY,
     validate_signal_complete_suite,
@@ -46,6 +47,7 @@ EXPECTED_COUNTS = {
     "tick_capacity": 96_000,
 }
 TRACKED_AUTHORITY_FILES = (
+    "camp_core/camp_core/integrations/diffusion_planner_v25_atom_mechanism.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_final_delivery.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_b2.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_coverage.py",
@@ -62,9 +64,11 @@ TRACKED_AUTHORITY_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_signal_complete_routes.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_signal_complete_runtime.py",
     "configs/integrations/diffusion_planner_v25_final_delivery_contract_v1.json",
+    "configs/integrations/diffusion_planner_v25_atom_mechanism_v1.json",
     "configs/integrations/diffusion_planner_v25_fresh_b2_preopen_authority_v1.json",
     "configs/integrations/diffusion_planner_v25_fresh_b2_preregistration_draft_v1.json",
     "scripts/integrations/build_diffusion_planner_v25_final_evidence.py",
+    "scripts/integrations/freeze_diffusion_planner_v25_atom_mechanism.py",
     "scripts/integrations/evaluate_diffusion_planner_v25_fresh_b2.py",
     "scripts/integrations/freeze_diffusion_planner_v25_fresh_b2_preopen.py",
     "scripts/integrations/materialize_diffusion_planner_v25_signal_complete_maps.py",
@@ -73,6 +77,7 @@ TRACKED_AUTHORITY_FILES = (
     "scripts/integrations/qualify_diffusion_planner_v25_fresh_storage.py",
     "scripts/integrations/qualify_diffusion_planner_v25_signal_complete_runtime.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_b2_evaluation.py",
+    "scripts/integrations/review_diffusion_planner_v25_atom_mechanism.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_b2_execution.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_b2_preopen.py",
     "scripts/integrations/review_diffusion_planner_v25_final_evidence.py",
@@ -100,6 +105,7 @@ def build_preopen_authority(
     prepared_runtime_cases: Sequence[Mapping[str, Any]],
     storage_manifest: Mapping[str, Any],
     storage_review_status: str,
+    atom_mechanism_binding: Mapping[str, Any],
     free_bytes_before: int,
     output_parent: Path,
 ) -> dict[str, Any]:
@@ -163,6 +169,7 @@ def build_preopen_authority(
         prereg,
         preregistration_sha256=calibration_preregistration_sha256,
     )
+    mechanism = validate_atom_mechanism_binding(atom_mechanism_binding)
     state = {
         "schema_version": "camp_dp_v25_fresh_b2_unopened_state_v1",
         "fresh_b_v1_disposition": "superseded_before_opening_original_manifest_machine_root_unavailable",
@@ -202,6 +209,7 @@ def build_preopen_authority(
         "storage": storage,
         "capacity": capacity,
         "evaluation": evaluation,
+        "atom_mechanism": mechanism,
         "one_time_state": state,
         "preopen_model_loaded": False,
         "preopen_dp_forward_executed": False,
@@ -233,6 +241,7 @@ def validate_preopen_authority(value: Mapping[str, Any]) -> dict[str, Any]:
         "storage",
         "capacity",
         "evaluation",
+        "atom_mechanism",
         "one_time_state",
         "preopen_model_loaded",
         "preopen_dp_forward_executed",
@@ -268,6 +277,7 @@ def validate_preopen_authority(value: Mapping[str, Any]) -> dict[str, Any]:
     if coverage["census"]["static_signal_chain_qualified_count"] != 100:
         raise ValueError("Fresh B2 static signal-chain coverage is incomplete")
     validate_storage_manifest(value["storage"])
+    validate_atom_mechanism_binding(value["atom_mechanism"])
     capacity = value["capacity"]
     if (
         type(capacity) is not dict

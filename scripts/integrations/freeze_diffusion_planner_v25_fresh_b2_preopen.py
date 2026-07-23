@@ -29,6 +29,11 @@ from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import
     canonical_json_bytes,
     verify_bound_artifact,
 )
+from camp_core.integrations.diffusion_planner_v25_atom_mechanism import (  # noqa: E402
+    BINDING_SCHEMA_VERSION as ATOM_MECHANISM_BINDING_SCHEMA_VERSION,
+    mechanism_names,
+    validate_atom_mechanism_binding,
+)
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (  # noqa: E402
     build_signal_complete_suite,
     validate_signal_complete_suite,
@@ -52,6 +57,10 @@ def build(
     storage_root_sha256: str,
     storage_review_artifact: Path,
     storage_review_root_sha256: str,
+    atom_mechanism_artifact: Path,
+    atom_mechanism_root_sha256: str,
+    atom_mechanism_review_artifact: Path,
+    atom_mechanism_review_root_sha256: str,
     output_dir: Path,
 ) -> str:
     if _tracked_dirty():
@@ -67,6 +76,12 @@ def build(
         storage_root_sha256=storage_root_sha256,
         storage_review_artifact=storage_review_artifact,
         storage_review_root_sha256=storage_review_root_sha256,
+    )
+    atom_mechanism = _open_atom_mechanism(
+        artifact=atom_mechanism_artifact,
+        root_sha256=atom_mechanism_root_sha256,
+        review_artifact=atom_mechanism_review_artifact,
+        review_root_sha256=atom_mechanism_review_root_sha256,
     )
     suite = build_signal_complete_suite("fresh_b2")
     plan = build_signal_complete_execution_plan("fresh_b2")
@@ -101,6 +116,7 @@ def build(
             prepared_runtime_cases=prepared,
             storage_manifest=storage["manifest"],
             storage_review_status=storage["review_status"],
+            atom_mechanism_binding=atom_mechanism,
             free_bytes_before=shutil.disk_usage(output.parent).free,
             output_parent=output.parent,
         )
@@ -124,6 +140,14 @@ def build(
             "storage_review_artifact": {
                 "path": str(storage_review_artifact.resolve()),
                 "root_sha256": storage_review_root_sha256,
+            },
+            "atom_mechanism_artifact": {
+                "path": str(atom_mechanism_artifact.resolve()),
+                "root_sha256": atom_mechanism_root_sha256,
+            },
+            "atom_mechanism_review_artifact": {
+                "path": str(atom_mechanism_review_artifact.resolve()),
+                "root_sha256": atom_mechanism_review_root_sha256,
             },
             "preopen_authority_sha256": _sha256(output / "preopen_authority.json"),
             "map_suite_sha256": _sha256(output / "fresh_b2_map_suite.json"),
@@ -254,6 +278,59 @@ def _open_storage(
     }
 
 
+def _open_atom_mechanism(
+    *,
+    artifact: Path,
+    root_sha256: str,
+    review_artifact: Path,
+    review_root_sha256: str,
+) -> dict[str, Any]:
+    verify_bound_artifact(artifact, root_sha256, exit_code=0)
+    verify_bound_artifact(review_artifact, review_root_sha256, exit_code=0)
+    report = _canonical_json(artifact / "report.json")
+    review = _canonical_json(review_artifact / "report.json")
+    if (
+        report.get("status") != "frozen_atom_mechanism_ready_before_fresh_b2_opening"
+        or report.get("fresh_storage_capacity_gate_passed") is not True
+        or report.get("raw_k8_payload_copied") is not False
+        or report.get("primary_fresh_design_changed") is not False
+        or report.get("model_or_weight_changed") is not False
+        or report.get("single_atom_closed_loop_causal_effect_claimed") is not False
+        or report.get("fresh_b2_opened") is not False
+        or report.get("fresh_outcome_fields_consumed") != []
+        or review.get("status") != "passed_independent_atom_mechanism_preopen_review"
+        or review.get("reviewed_root_sha256") != root_sha256
+        or review.get("fresh_storage_capacity_gate_passed") is not True
+        or review.get("fresh_b2_opened") is not False
+        or review.get("fresh_outcome_fields_consumed") != []
+    ):
+        raise ValueError("Fresh B2 atom-mechanism authority drifted")
+    return validate_atom_mechanism_binding(
+        {
+            "schema_version": ATOM_MECHANISM_BINDING_SCHEMA_VERSION,
+            "status": "passed_independent_atom_mechanism_preopen_review",
+            "artifact_path": str(artifact.resolve()),
+            "artifact_root_sha256": root_sha256,
+            "review_artifact_path": str(review_artifact.resolve()),
+            "review_root_sha256": review_root_sha256,
+            "contract_sha256": report["contract_sha256"],
+            "analysis_sha256": report["calibration_atom_mechanism_sha256"],
+            "decision_tick_count": report["decision_tick_count"],
+            "mechanism_names": mechanism_names(),
+            "raw_k8_payload_copied": False,
+            "primary_fresh_design_changed": False,
+            "model_or_weight_changed": False,
+            "single_atom_closed_loop_causal_effect_claimed": False,
+            "fresh_storage_capacity_gate_passed": True,
+            "storage_projected_1500_arm_upper_bound_nbytes_with_mechanism": report[
+                "storage_projected_1500_arm_upper_bound_nbytes_with_mechanism"
+            ],
+            "fresh_b2_opened": False,
+            "fresh_outcome_fields_consumed": [],
+        }
+    )
+
+
 def _validate_config(value: Mapping[str, Any]) -> dict[str, Any]:
     if type(value) is not dict or value.get("schema_version") != CONFIG_SCHEMA_VERSION:
         raise ValueError("Fresh B2 pre-open config schema drifted")
@@ -342,6 +419,10 @@ def main() -> None:
     parser.add_argument("--storage-root-sha256", required=True)
     parser.add_argument("--storage-review-artifact", type=Path, required=True)
     parser.add_argument("--storage-review-root-sha256", required=True)
+    parser.add_argument("--atom-mechanism-artifact", type=Path, required=True)
+    parser.add_argument("--atom-mechanism-root-sha256", required=True)
+    parser.add_argument("--atom-mechanism-review-artifact", type=Path, required=True)
+    parser.add_argument("--atom-mechanism-review-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     root = build(
@@ -350,6 +431,10 @@ def main() -> None:
         storage_root_sha256=args.storage_root_sha256,
         storage_review_artifact=args.storage_review_artifact,
         storage_review_root_sha256=args.storage_review_root_sha256,
+        atom_mechanism_artifact=args.atom_mechanism_artifact,
+        atom_mechanism_root_sha256=args.atom_mechanism_root_sha256,
+        atom_mechanism_review_artifact=args.atom_mechanism_review_artifact,
+        atom_mechanism_review_root_sha256=args.atom_mechanism_review_root_sha256,
         output_dir=args.output_dir,
     )
     print(json.dumps({"status": "sealed", "root_sha256": root}, sort_keys=True))
