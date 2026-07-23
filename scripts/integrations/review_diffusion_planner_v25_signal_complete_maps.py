@@ -29,6 +29,7 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 PLAN = {
     "calibration": {"map_count": 5, "routes_per_map": 10},
     "fresh_b2": {"map_count": 25, "routes_per_map": 4},
+    "fresh_b3": {"map_count": 25, "routes_per_map": 4},
 }
 GENERATOR_SOURCE = (
     PACKAGE_ROOT

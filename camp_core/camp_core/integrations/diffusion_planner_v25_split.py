@@ -5,6 +5,7 @@ from typing import Any, Mapping, Sequence
 
 
 SPLIT_ROLES = ("train", "calibration", "fresh_b2")
+HOLDOUT_SPLIT_ROLES = ("train", "calibration", "fresh_b2", "fresh_b3")
 REQUIRED_FIELDS = frozenset(
     {
         "split",
@@ -30,6 +31,93 @@ def validate_v25_zero_overlap(rows: Sequence[Mapping[str, Any]]) -> dict[str, An
     by_split = {
         split: [row for row in normalized if row["split"] == split]
         for split in SPLIT_ROLES
+    }
+
+
+def validate_v25_holdout_zero_overlap(
+    rows: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Validate B3 against every materialized train/calibration/B2 unit.
+
+    Fresh B1 is not included because it was superseded before any reopenable
+    machine manifest or materialized unit existed.  B3 authority must bind that
+    disposition separately and may not fabricate B1 rows.
+    """
+
+    if not rows:
+        raise ValueError("holdout split manifest must be nonempty")
+    normalized = [
+        _validate_row_for_roles(row, index, HOLDOUT_SPLIT_ROLES)
+        for index, row in enumerate(rows)
+    ]
+    by_split = {
+        split: [row for row in normalized if row["split"] == split]
+        for split in HOLDOUT_SPLIT_ROLES
+    }
+    if any(not by_split[split] for split in HOLDOUT_SPLIT_ROLES):
+        raise ValueError("train, calibration, Fresh B2, and Fresh B3 must be nonempty")
+    key_contracts = {
+        "source_family": lambda row: row["source_family"],
+        "map_geometry_export_clone": lambda row: row["map_geometry_sha256"],
+        "intersection": lambda row: (
+            row["map_geometry_sha256"],
+            row["intersection_sha256"],
+        ),
+        "corridor": lambda row: (
+            row["map_geometry_sha256"],
+            row["corridor_sha256"],
+        ),
+        "route_family": lambda row: (
+            row["map_geometry_sha256"],
+            row["route_family_sha256"],
+        ),
+        "semantic_source_clone": lambda row: row[
+            "semantic_parameter_block_sha256"
+        ],
+        "seed_namespace": lambda row: row["seed_namespace"],
+        "route_identity": lambda row: row["route_identity_sha256"],
+    }
+    counts: dict[str, dict[str, int]] = {}
+    overlaps: dict[str, dict[str, list[Any]]] = {}
+    for name, key_function in key_contracts.items():
+        sets = {
+            split: {
+                key_function(row)
+                for row in split_rows
+                if not (
+                    name == "intersection"
+                    and row["intersection_sha256"] is None
+                )
+            }
+            for split, split_rows in by_split.items()
+        }
+        counts[name] = {split: len(values) for split, values in sets.items()}
+        for prior in HOLDOUT_SPLIT_ROLES[:-1]:
+            shared = sets[prior] & sets["fresh_b3"]
+            if shared:
+                overlaps.setdefault(name, {})[
+                    f"{prior}__fresh_b3"
+                ] = sorted(shared, key=str)
+    if overlaps:
+        raise ValueError(f"V25 B3 split zero-overlap failed: {overlaps}")
+    return {
+        "schema_version": "camp_dp_v25_b3_zero_overlap_receipt_v1",
+        "status": "passed_train_calibration_b2_b3_zero_overlap",
+        "row_count": len(normalized),
+        "split_row_counts": {
+            split: len(by_split[split]) for split in HOLDOUT_SPLIT_ROLES
+        },
+        "independent_unit_counts": counts,
+        "fresh_b1_disposition": (
+            "superseded_before_opening_no_reopenable_manifest_or_materialized_rows"
+        ),
+        "fresh_b1_root_reconstructed_or_fabricated": False,
+        "same_route_all_seeds_one_split": True,
+        "map_export_clones_deduplicated_by_geometry_sha": True,
+        "semantic_source_clones_deduplicated_independent_of_ids": True,
+        "identity_fields_used_as_model_features": False,
+        "b2_outcome_values_consumed": False,
+        "b3_outcome_fields_consumed": [],
     }
     if any(not values for values in by_split.values()):
         raise ValueError("train, calibration, and fresh_b2 must all be nonempty")
@@ -175,10 +263,16 @@ def validate_signal_complete_map_license(rows: Sequence[Mapping[str, Any]]) -> d
 
 
 def _validate_row(row: Mapping[str, Any], index: int) -> dict[str, Any]:
+    return _validate_row_for_roles(row, index, SPLIT_ROLES)
+
+
+def _validate_row_for_roles(
+    row: Mapping[str, Any], index: int, roles: Sequence[str]
+) -> dict[str, Any]:
     if type(row) is not dict or set(row) != REQUIRED_FIELDS:
         raise ValueError(f"split row {index} exact field set drifted")
     result = dict(row)
-    if result["split"] not in SPLIT_ROLES:
+    if result["split"] not in roles:
         raise ValueError(f"split row {index} has an invalid role")
     for field in (
         "source_family",

@@ -10,6 +10,9 @@ from .diffusion_planner_v25_fresh_opening import (
     validate_fresh_b2_opening_consumption,
     validate_fresh_b2_opening_release,
 )
+from .diffusion_planner_v25_holdout_contract import (
+    SCIENTIFIC_TERMINAL_STATUSES,
+)
 from .diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
     REQUIRED_CONTROLLED_EVENT_FAMILIES,
@@ -21,12 +24,7 @@ from .diffusion_planner_v25_statistics import (
 
 ARMS = ("candidate0", "static14d", "scene14d")
 METHOD_ARMS = ("static14d", "scene14d")
-STATUSES = (
-    "complete",
-    "fixed_dp_candidate_generation_capability_failure",
-    "source_ineligible",
-    "execution_failure",
-)
+STATUSES = SCIENTIFIC_TERMINAL_STATUSES
 BENCHMARK_STRATA = ("naturalistic", "controlled_stress")
 CONTROLLED_TIERS = ("easy", "borderline", "high_risk")
 NATURALISTIC_SCENARIO_FAMILY = "naturalistic_background"

@@ -53,8 +53,8 @@ def project_signal_complete_split_rows(
 def project_signal_complete_license_rows(
     suite_receipt: Mapping[str, Any], *, map_artifact: Path, license_sha256: str
 ) -> list[dict[str, Any]]:
-    if suite_receipt.get("split") != "fresh_b2":
-        raise ValueError("Fresh B2 map license projection requires the fresh suite")
+    if suite_receipt.get("split") not in {"fresh_b2", "fresh_b3"}:
+        raise ValueError("holdout map license projection requires a Fresh suite")
     _require_sha(license_sha256, "license_sha256")
     root = map_artifact.resolve()
     rows = []
@@ -80,9 +80,24 @@ def project_fresh_b2_qualification_rows(
     *,
     prepared_runtime_cases: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
+    return project_holdout_qualification_rows(
+        plan,
+        prepared_runtime_cases=prepared_runtime_cases,
+        expected_split="fresh_b2",
+    )
+
+
+def project_holdout_qualification_rows(
+    plan: Mapping[str, Any],
+    *,
+    prepared_runtime_cases: Sequence[Mapping[str, Any]],
+    expected_split: str,
+) -> list[dict[str, Any]]:
     validated = validate_signal_complete_execution_plan(plan)
-    if validated["split"] != "fresh_b2":
-        raise ValueError("Fresh B2 row projection requires the fresh plan")
+    if expected_split not in {"fresh_b2", "fresh_b3"}:
+        raise ValueError("holdout qualification split drifted")
+    if validated["split"] != expected_split:
+        raise ValueError("holdout row projection received the wrong plan")
     runtime = _unique_by_route(
         (
             {

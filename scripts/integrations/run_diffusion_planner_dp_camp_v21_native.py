@@ -73,6 +73,25 @@ NATIVE_SOURCE_SHA256 = {
 }
 
 
+def build_holdout_production_preflight_callback_receipt(
+    config: Mapping[str, Any], tick_index: int
+) -> dict[str, Any]:
+    """Exercise the production holdout callback composition without DP/GPU work.
+
+    The fixture deliberately lives in the native production module so the
+    preflight cannot substitute a second mock-only receipt layout.  It validates
+    the full arm config, then emits the same normative forward/latency namespace
+    boundary consumed by the sealed production-composition reviewer.  No model,
+    simulator, Fresh state, or outcome source is opened.
+    """
+
+    from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
+        deterministic_nonfresh_callback,
+    )
+
+    return deterministic_nonfresh_callback(config, tick_index)
+
+
 def _v25_causal_evidence_sha256(value: Mapping[str, Any]) -> str:
     payload = (
         json.dumps(
@@ -298,6 +317,7 @@ class NativeCampPredictBatch:
         ]
         | None = None,
         candidate0_pool_diagnostics: bool = False,
+        candidate0_action_first: bool = False,
         selector_nonnegative_atol: float = 0.0,
     ) -> None:
         self.state = state
@@ -352,7 +372,17 @@ class NativeCampPredictBatch:
         self.candidate_tensor_sink = candidate_tensor_sink
         if type(candidate0_pool_diagnostics) is not bool:
             raise TypeError("candidate0_pool_diagnostics must be a native bool")
+        if type(candidate0_action_first) is not bool:
+            raise TypeError("candidate0_action_first must be a native bool")
+        if candidate0_action_first and (
+            operational_mode != "dp_candidate0" or candidate0_pool_diagnostics
+        ):
+            raise ValueError(
+                "candidate0 action-first mode requires the DP default arm and "
+                "cannot run synchronous pool diagnostics"
+            )
         self.candidate0_pool_diagnostics = candidate0_pool_diagnostics
+        self.candidate0_action_first = candidate0_action_first
         if (
             not np.isfinite(selector_nonnegative_atol)
             or selector_nonnegative_atol < 0.0
@@ -521,6 +551,40 @@ class NativeCampPredictBatch:
 
             default_ego = direct_predictions[ego_id]
             receipt["default_output_sha256"] = array_sha256(default_ego)
+            if self.candidate0_action_first:
+                selected = default_ego.copy()
+                direct_predictions[ego_id] = selected
+                npc_after_sha = {
+                    agent_id: array_sha256(value)
+                    for agent_id, value in direct_predictions.items()
+                    if agent_id != ego_id
+                }
+                if npc_after_sha != direct_npc_sha:
+                    raise ValueError("native NPC operational outputs changed")
+                receipt.update(
+                    {
+                        "status": "ok",
+                        "selected_index": 0,
+                        "selected_trajectory_sha256": array_sha256(selected),
+                        "score_contract": "candidate0_operational_default",
+                        "eligibility_mask_name": "candidate0_operational_default",
+                        "candidate0_operational_default": True,
+                        "candidate0_action_first": True,
+                        "candidate0_pool_evidence_collected_online": False,
+                        "candidate0_pool_evidence_required_post_action": True,
+                        "same_forward_claimed": False,
+                        "npc_operational_outputs_unchanged": True,
+                        "default_turn_indicators_retained": True,
+                        "post_divergence_cross_arm_tensor_identity_required": False,
+                    }
+                )
+                receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
+                receipt["action_available_ns"] = time.perf_counter_ns()
+                return (
+                    (direct_predictions, turns)
+                    if return_turn_indicators
+                    else direct_predictions
+                )
             seed = candidate_seed(
                 self.candidate_seed_root, self.route_sha256, tick_index
             )
@@ -642,6 +706,7 @@ class NativeCampPredictBatch:
                     }
                 )
                 receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
+                receipt["action_available_ns"] = time.perf_counter_ns()
                 return (
                     (direct_predictions, turns)
                     if return_turn_indicators
@@ -1145,6 +1210,7 @@ class NativeCampPredictBatch:
                 self.decision_sink(snapshot)
                 receipt["decision_snapshot_emitted"] = True
             receipt["latency_ms"]["hook_total"] = _elapsed_ms(started_ns)
+            receipt["action_available_ns"] = time.perf_counter_ns()
             return (
                 (direct_predictions, turns)
                 if return_turn_indicators
@@ -1920,6 +1986,13 @@ def _validate_native_config(config: Mapping[str, Any]) -> None:
         )
 
         validate_fresh_b2_arm_config(config)
+        return
+    if config.get("schema_version") == "camp_dp_v25_holdout_arm_config_v1":
+        from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
+            validate_holdout_arm_config,
+        )
+
+        validate_holdout_arm_config(config)
         return
     if config.get("schema_version") == (
         "camp_dp_v25_signal_complete_candidate0_calibration_v1"
@@ -3322,11 +3395,86 @@ def _validate_fresh_b2_opening_authority(
     }
 
 
+def _validate_holdout_opening_authority(
+    config: Mapping[str, Any],
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != {
+        "opening_release",
+        "opening_release_root_sha256",
+        "opening_consumption",
+    }:
+        raise ValueError(
+            "holdout one-time opening release and consumption are required"
+        )
+    from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
+        validate_holdout_opening_consumption,
+        validate_holdout_opening_release,
+    )
+
+    release = validate_holdout_opening_release(value["opening_release"])
+    release_root = value["opening_release_root_sha256"]
+    if not _is_sha256(release_root):
+        raise ValueError("holdout opening release root is invalid")
+    consumption = validate_holdout_opening_consumption(
+        value["opening_consumption"],
+        opening_release=release,
+        opening_release_root_sha256=release_root,
+    )
+    authority = _mapping(config, "holdout_authority")
+    selector = _mapping(config, "runtime_selector_authority")
+    if (
+        release["fixed_dp_head"] != FIXED_DP_HEAD
+        or release["holdout_identity"]["holdout_identity_sha256"]
+        != authority["holdout_identity_sha256"]
+        or release["experiment_protocol"]["experiment_protocol_sha256"]
+        != authority["experiment_protocol_sha256"]
+        or release["holdout_identity"]["split"] != authority["split"]
+        or release["experiment_protocol"]["model_registry_sha256"]
+        != selector["model_registry_sha256"]
+        or release["experiment_protocol"]["training_scale_sha256"]
+        != selector["training_scale_sha256"]
+        or release["experiment_protocol"]["context_scaler_sha256"]
+        != selector["context_scaler_sha256"]
+        or consumption["consumed_before_outcome_capable_operation"] is not True
+        or consumption["second_opening_allowed"] is not False
+        or consumption["new_nonce_allowed"] is not False
+        or consumption["suffix_allowed"] is not False
+        or consumption["outcome_fields_consumed_before_opening"] != []
+    ):
+        raise ValueError("holdout opening authority differs from the arm config")
+    return {
+        "opening_release": release,
+        "opening_release_root_sha256": release_root,
+        "opening_consumption": consumption,
+    }
+
+
+def _validate_holdout_preflight_authority(
+    config: Mapping[str, Any],
+    value: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
+        validate_nonfresh_preflight_authority,
+    )
+
+    authority = _mapping(config, "holdout_authority")
+    return validate_nonfresh_preflight_authority(
+        value,
+        holdout_identity_sha256=authority["holdout_identity_sha256"],
+        experiment_protocol_sha256=authority[
+            "experiment_protocol_sha256"
+        ],
+    )
+
+
 def build_native_arm_runner(
     config: Mapping[str, Any],
     *,
     device: str,
     fresh_b2_opening_authority: Mapping[str, Any] | None = None,
+    holdout_opening_authority: Mapping[str, Any] | None = None,
+    holdout_preflight_authority: Mapping[str, Any] | None = None,
 ) -> Callable[..., Mapping[str, Any]]:
     _validate_native_config(config)
     if device not in {"cpu", "cuda"}:
@@ -3334,6 +3482,11 @@ def build_native_arm_runner(
     signal_complete_fresh = config.get("schema_version") == (
         "camp_dp_v25_signal_complete_fresh_arm_v1"
     )
+    signal_complete_holdout = config.get("schema_version") == (
+        "camp_dp_v25_holdout_arm_config_v1"
+    )
+    if signal_complete_fresh and signal_complete_holdout:
+        raise ValueError("native config cannot be both legacy Fresh and holdout")
     if signal_complete_fresh:
         if device != "cuda":
             raise ValueError("Fresh B2 native execution requires the frozen CUDA device")
@@ -3343,6 +3496,29 @@ def build_native_arm_runner(
         )
     elif fresh_b2_opening_authority is not None:
         raise ValueError("Fresh B2 opening authority is invalid outside Fresh execution")
+    if signal_complete_holdout:
+        if device != "cuda":
+            raise ValueError("holdout native execution requires the frozen CUDA device")
+        if (holdout_opening_authority is None) == (
+            holdout_preflight_authority is None
+        ):
+            raise ValueError(
+                "holdout execution requires exactly one opening or non-Fresh "
+                "preflight authority"
+            )
+        if holdout_opening_authority is not None:
+            _validate_holdout_opening_authority(
+                config, holdout_opening_authority
+            )
+        else:
+            _validate_holdout_preflight_authority(
+                config, holdout_preflight_authority
+            )
+    elif (
+        holdout_opening_authority is not None
+        or holdout_preflight_authority is not None
+    ):
+        raise ValueError("holdout opening authority is invalid outside holdout execution")
     runtime_fixed_dp_authority = json.loads(
         json.dumps(
             config["fixed_dp"],
@@ -3460,6 +3636,9 @@ def build_native_arm_runner(
         current_signal_complete_fresh = config.get("schema_version") == (
             "camp_dp_v25_signal_complete_fresh_arm_v1"
         )
+        current_signal_complete_holdout = config.get("schema_version") == (
+            "camp_dp_v25_holdout_arm_config_v1"
+        )
         if current_signal_complete_fresh is not signal_complete_fresh:
             raise ValueError("native runner config family drifted after runtime creation")
         if config.get("fixed_dp") != runtime_fixed_dp_authority:
@@ -3469,6 +3648,19 @@ def build_native_arm_runner(
                 config,
                 fresh_b2_opening_authority,
             )
+        if current_signal_complete_holdout is not signal_complete_holdout:
+            raise ValueError("native holdout config family drifted after runtime creation")
+        if current_signal_complete_holdout:
+            if holdout_opening_authority is not None:
+                _validate_holdout_opening_authority(
+                    config,
+                    holdout_opening_authority,
+                )
+            else:
+                _validate_holdout_preflight_authority(
+                    config,
+                    holdout_preflight_authority,
+                )
         if arm not in {"dp", "camp"}:
             raise ValueError("arm must be dp or camp")
         if type(fixed_k8_candidate0) is not bool:
@@ -3484,6 +3676,9 @@ def build_native_arm_runner(
         )
         signal_complete_fresh_arm = config.get("schema_version") == (
             "camp_dp_v25_signal_complete_fresh_arm_v1"
+        )
+        signal_complete_holdout_arm = config.get("schema_version") == (
+            "camp_dp_v25_holdout_arm_config_v1"
         )
         if signal_complete_calibration:
             if arm != "dp" or fixed_k8_candidate0 is not True:
@@ -3564,8 +3759,12 @@ def build_native_arm_runner(
                     f"paired calibration {label} mode cannot consume a "
                     "Scene14D provider"
                 )
-        elif signal_complete_fresh_arm:
-            plan_arm = protocol["fresh_b2_plan_arm"]
+        elif signal_complete_fresh_arm or signal_complete_holdout_arm:
+            plan_arm = protocol[
+                "fresh_b2_plan_arm"
+                if signal_complete_fresh_arm
+                else "holdout_plan_arm"
+            ]
             expected_modes = {
                 "candidate0_operational_default": ("dp", True),
                 "camp_static14d": ("camp", False),
@@ -3577,9 +3776,9 @@ def build_native_arm_runner(
                     "camp_static14d": "Static14D",
                     "camp_scene14d_no_v2i": "Scene14D",
                 }[plan_arm]
-                raise ValueError(f"Fresh B2 {label} mode drifted")
+                raise ValueError(f"holdout {label} mode drifted")
             if scene_adapter is not None:
-                raise ValueError("Fresh B2 signal adapter cannot be injected")
+                raise ValueError("holdout signal adapter cannot be injected")
             from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
                 build_signal_complete_scene_adapter,
             )
@@ -3615,7 +3814,7 @@ def build_native_arm_runner(
                     != selector_authority["context_scaler_sha256"]
                 ):
                     raise ValueError(
-                        "Fresh B2 Scene14D mode requires the sealed no-V2I provider"
+                        "holdout Scene14D mode requires the sealed no-V2I provider"
                     )
             elif v25_weight_provider is not None:
                 label = (
@@ -3624,7 +3823,7 @@ def build_native_arm_runner(
                     else "Static14D"
                 )
                 raise ValueError(
-                    f"Fresh B2 {label} mode cannot consume a Scene14D provider"
+                    f"holdout {label} mode cannot consume a Scene14D provider"
                 )
         if config.get("schema_version") in {
             "camp_dp_v24_single_record_source_probe_v1",
@@ -3645,6 +3844,8 @@ def build_native_arm_runner(
             "camp_dp_v25_signal_complete_fresh_arm_v1"
         ):
             allowed_steps = {int(protocol["fresh_b2_steps"])}
+        elif config.get("schema_version") == "camp_dp_v25_holdout_arm_config_v1":
+            allowed_steps = {int(protocol["holdout_steps"])}
         elif config.get("schema_version") in {
             "camp_dp_v22_native_corpus_run_v1",
             "camp_dp_v24_native_corpus_run_v1",
@@ -3757,7 +3958,11 @@ def build_native_arm_runner(
 
                 scales = validate_v25_atom_scales(scales)
             nonnegative_atol = 0.0
-            if signal_complete_paired_calibration or signal_complete_fresh_arm:
+            if (
+                signal_complete_paired_calibration
+                or signal_complete_fresh_arm
+                or signal_complete_holdout_arm
+            ):
                 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
                     TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
                 )
@@ -3821,6 +4026,7 @@ def build_native_arm_runner(
                 (signal_complete_fresh_arm or signal_complete_paired_calibration)
                 and protocol.get("candidate0_offline_pool_evidence_required") is True
             )
+            candidate0_action_first = bool(signal_complete_holdout_arm)
             replacement = NativeCampPredictBatch(
                 state=state,
                 to_model_tensors=context["tensor_converter"].to_model_tensors,
@@ -3871,6 +4077,7 @@ def build_native_arm_runner(
                     else None
                 ),
                 candidate0_pool_diagnostics=candidate0_pool_diagnostics,
+                candidate0_action_first=candidate0_action_first,
             )
         else:
             if v25_weight_provider is not None:
@@ -4321,7 +4528,28 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
             _mapping(receipt, "_safety_pre")["pre_decision_speed_mps"]
         ),
         "default_output_sha256": str(receipt["default_output_sha256"]),
+        "planning_started_ns": int(receipt["_planning_started_ns"]),
+        "action_available_ns": int(receipt["action_available_ns"]),
+        "receipt_projected_ns": time.perf_counter_ns(),
     }
+    if receipt.get("candidate0_action_first") is True:
+        tick.update(
+            {
+                "candidate0_action_first": True,
+                "selected_index": int(receipt["selected_index"]),
+                "selected_trajectory_sha256": str(
+                    receipt["selected_trajectory_sha256"]
+                ),
+                "score_contract": str(receipt["score_contract"]),
+                "eligibility_mask_name": str(
+                    receipt["eligibility_mask_name"]
+                ),
+                "candidate0_operational_default": True,
+                "candidate0_pool_evidence_collected_online": False,
+                "candidate0_pool_evidence_required_post_action": True,
+                "same_forward_claimed": False,
+            }
+        )
     if "candidate_tensor_sha256_before" in receipt:
         for name in (
             "candidate_tensor_sha256_before",

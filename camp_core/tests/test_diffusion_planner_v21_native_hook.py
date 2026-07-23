@@ -833,6 +833,49 @@ def test_v24_dp_candidate0_mode_generates_immutable_k8_and_returns_default() -> 
     )
 
 
+def test_holdout_candidate0_action_first_returns_before_pool_generation() -> None:
+    module = _runner()
+    scene = _Scene()
+    args = SimpleNamespace(predicted_neighbor_num=320, future_len=80)
+    agent_ids = ["npc", "ego"]
+    native_model = _FakeModel()
+    native_predictions = _native_predict_batch(
+        native_model, args, scene, agent_ids, "cpu"
+    )
+    state = module.NativeHookState()
+    model = _FakeModel()
+    hook = module.NativeCampPredictBatch(
+        state=state,
+        to_model_tensors=_to_model_tensors,
+        dump_step_npz=_dump_step_npz,
+        validate_candidates=validate_fixed_k8_candidate_tensor,
+        materialize=None,
+        select_candidate=None,
+        signal_mask=None,
+        planned_red_cost=None,
+        atom_scales=None,
+        weights=None,
+        candidate_seed_root=3418,
+        route_sha256="ab" * 32,
+        operational_mode="dp_candidate0",
+        candidate0_action_first=True,
+    )
+    predictions = hook(model, args, scene, agent_ids, "cpu")
+    receipt = state.receipts[-1]
+    np.testing.assert_array_equal(predictions["ego"], native_predictions["ego"])
+    np.testing.assert_array_equal(predictions["npc"], native_predictions["npc"])
+    assert len(model.calls) == 1
+    assert receipt["selected_index"] == 0
+    assert receipt["candidate0_operational_default"] is True
+    assert receipt["candidate0_pool_evidence_collected_online"] is False
+    assert receipt["candidate0_pool_evidence_required_post_action"] is True
+    assert receipt["same_forward_claimed"] is False
+    assert type(receipt["action_available_ns"]) is int
+    assert "candidate_tensor_sha256_before" not in receipt
+    assert "candidate_seed" not in receipt
+    assert "candidate_inference" not in receipt["latency_ms"]
+
+
 def test_fresh_candidate0_pool_diagnostics_preserve_default_and_expose_masks() -> None:
     module = _runner()
     scene = _Scene()

@@ -18,6 +18,9 @@ from .diffusion_planner_v25_fresh_b2 import (
     FIXED_DP_HEAD,
     validate_fresh_b2_manifest_row,
 )
+from .diffusion_planner_v25_holdout_contract import (
+    SCIENTIFIC_TERMINAL_STATUSES,
+)
 from .diffusion_planner_v25_signal_safety import SIGNAL_SAFETY_SCHEMA_VERSION
 
 
@@ -270,11 +273,7 @@ def build_fresh_b2_failure_row(
 ) -> dict[str, Any]:
     metadata = validate_fresh_b2_manifest_row(qualification_row)
     _pair_arm(pair_key, arm, arm_order_index)
-    if status not in {
-        "fixed_dp_candidate_generation_capability_failure",
-        "source_ineligible",
-        "execution_failure",
-    }:
+    if status not in set(SCIENTIFIC_TERMINAL_STATUSES) - {"complete"}:
         raise ValueError("Fresh failure status is invalid")
     if type(failure_class) is not str or not failure_class:
         raise ValueError("Fresh failure class must be nonempty")

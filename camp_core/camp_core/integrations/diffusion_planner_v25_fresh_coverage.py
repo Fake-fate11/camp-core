@@ -68,8 +68,8 @@ def build_fresh_b2_explicit_coverage(
     """Freeze outcome-blind coverage from physical plan/runtime inputs only."""
 
     frozen = validate_signal_complete_execution_plan(plan)
-    if frozen["split"] != "fresh_b2":
-        raise ValueError("Fresh B2 coverage requires the unopened Fresh plan")
+    if frozen["split"] not in {"fresh_b2", "fresh_b3"}:
+        raise ValueError("holdout coverage requires an unopened Fresh plan")
     by_scenario = _runtime_cases(prepared_runtime_cases)
     expected = {row["scenario_identity_sha256"] for row in frozen["identities"]}
     if set(by_scenario) != expected:

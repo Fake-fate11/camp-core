@@ -51,7 +51,7 @@ def test_fresh_plan_has_five_repeats_and_balanced_three_arm_order() -> None:
         assert max(counts.values()) - min(counts.values()) <= 1
 
 
-@pytest.mark.parametrize("split", ("calibration", "fresh_b2"))
+@pytest.mark.parametrize("split", ("calibration", "fresh_b2", "fresh_b3"))
 def test_all_family_tier_cells_and_same_tick_signal_modes_are_frozen(split: str) -> None:
     plan = build_signal_complete_execution_plan(split)
     assert set(plan["family_tier_counts"]) == {
@@ -88,6 +88,32 @@ def test_calibration_and_fresh_are_zero_overlap_at_every_independent_layer() -> 
     assert all(receipt["checks"].values())
     assert receipt["checks"]["semantic_parameter_block_sha256"] is True
     assert receipt["fresh_b2_opened"] is False
+
+
+def test_fresh_b3_is_zero_overlap_from_calibration_and_consumed_b2() -> None:
+    calibration = build_signal_complete_execution_plan("calibration")
+    fresh_b2 = build_signal_complete_execution_plan("fresh_b2")
+    fresh_b3 = build_signal_complete_execution_plan("fresh_b3")
+    independent_fields = (
+        "map_sha256",
+        "map_geometry_sha256",
+        "corridor_sha256",
+        "intersection_sha256",
+        "route_identity_sha256",
+        "route_family_sha256",
+        "source_independent_geometry_sha256",
+        "scenario_identity_sha256",
+        "semantic_parameter_block_sha256",
+    )
+    for prior in (calibration, fresh_b2):
+        assert prior["source_family"] != fresh_b3["source_family"]
+        for field in independent_fields:
+            assert {
+                row[field] for row in prior["identities"]
+            }.isdisjoint({row[field] for row in fresh_b3["identities"]})
+        assert set(prior["seeds"]).isdisjoint(fresh_b3["seeds"])
+    assert fresh_b3["execution_unit_count"] == 500
+    assert fresh_b3["planned_arm_run_count"] == 1500
 
 
 def test_plan_is_deterministic_and_reconstructable() -> None:

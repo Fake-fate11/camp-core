@@ -141,7 +141,9 @@ def _write_json(path: Path, value: Any) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--split", choices=("calibration", "fresh_b2"), required=True)
+    parser.add_argument(
+        "--split", choices=("calibration", "fresh_b2", "fresh_b3"), required=True
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     root = build(split=args.split, output_dir=args.output_dir)

@@ -158,7 +158,7 @@ def _review_plan_semantics(plan: dict[str, Any]) -> None:
             or row.get("controlled_current_phase") is not None
         ):
             raise ValueError("signal-complete observed phase contract drifted")
-    if plan["split"] == "fresh_b2":
+    if plan["split"] in {"fresh_b2", "fresh_b3"}:
         for unit in plan["execution_units"]:
             if set(unit.get("ordered_arms", [])) != set(ARMS):
                 raise ValueError("Fresh B2 three-arm order drifted")
