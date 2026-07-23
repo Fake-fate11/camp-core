@@ -108,6 +108,7 @@ def build(
     fresh_selector = _fresh_runtime_selector_authority(
         accepted_preopen=accepted_preopen,
         accepted_preopen_root_sha256=accepted_preopen_root_sha256,
+        b3_execution_plan_sha256=identity["execution_plan_sha256"],
         calibration_selector=legacy_fixture_configs["candidate0"][
             "runtime_selector_authority"
         ],
@@ -363,6 +364,7 @@ def _fresh_runtime_selector_authority(
     *,
     accepted_preopen: Mapping[str, Any],
     accepted_preopen_root_sha256: str,
+    b3_execution_plan_sha256: str,
     calibration_selector: Mapping[str, Any],
 ) -> dict[str, Any]:
     result = dict(calibration_selector)
@@ -372,9 +374,13 @@ def _fresh_runtime_selector_authority(
     result["preopen_qualification_root_sha256"] = (
         accepted_preopen_root_sha256
     )
-    result["scenario_manifest_root_sha256"] = _binding(
-        accepted_preopen["upstream_bindings"], "scenario_manifest"
-    )["root_sha256"]
+    if (
+        type(b3_execution_plan_sha256) is not str
+        or len(b3_execution_plan_sha256) != 64
+        or set(b3_execution_plan_sha256) - set("0123456789abcdef")
+    ):
+        raise ValueError("Fresh B3 execution-plan SHA drifted")
+    result["scenario_manifest_root_sha256"] = b3_execution_plan_sha256
     return result
 
 

@@ -34,6 +34,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
 from scripts.integrations.freeze_diffusion_planner_v25_holdout_production_preflight import (
     build_artifact as build_holdout_preflight_artifact,
 )
+from scripts.integrations.freeze_diffusion_planner_v25_b3_production_preflight import (
+    _fresh_runtime_selector_authority,
+)
 from scripts.integrations.review_diffusion_planner_v25_holdout_production_preflight import (
     review_artifact as review_holdout_preflight_artifact,
 )
@@ -270,6 +273,30 @@ def test_fresh_b3_holdout_arm_upgrade_preserves_production_config(
     mutated["protocol"]["candidate0_semantics"] = "native-ranked Top1"
     with pytest.raises(ValueError, match="protocol drifted"):
         validate_holdout_arm_config(mutated)
+
+
+def test_b3_preflight_selector_binds_b3_plan_not_legacy_role_guess(
+    tmp_path: Path,
+) -> None:
+    calibration = _fresh_config(
+        tmp_path, "candidate0_operational_default"
+    )["runtime_selector_authority"]
+    result = _fresh_runtime_selector_authority(
+        accepted_preopen={
+            "upstream_bindings": {
+                "calibration_freeze": {
+                    "path": "/root/autodl-tmp/calibration-freeze",
+                    "root_sha256": "8" * 64,
+                }
+            }
+        },
+        accepted_preopen_root_sha256="9" * 64,
+        b3_execution_plan_sha256="a" * 64,
+        calibration_selector=calibration,
+    )
+    assert result["calibration_contract_root_sha256"] == "8" * 64
+    assert result["preopen_qualification_root_sha256"] == "9" * 64
+    assert result["scenario_manifest_root_sha256"] == "a" * 64
 
 
 def test_exact_production_preflight_runs_three_real_configs_and_callback(
