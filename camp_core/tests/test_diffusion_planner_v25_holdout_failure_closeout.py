@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
@@ -13,6 +14,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_failure_closeout impor
     independent_failure_review,
     validate_consumed_holdout_failure_closeout,
 )
+from camp_core.integrations import diffusion_planner_v25_holdout_protocol as protocol
 
 
 def _identity() -> dict:
@@ -92,3 +94,55 @@ def test_b2_consumed_failure_is_tombstoned_without_outcome_use() -> None:
         mutation(changed)
         with pytest.raises(ValueError):
             validate_consumed_holdout_failure_closeout(changed)
+
+
+def test_accepted_b2_review_uses_exact_live_outcome_blind_status(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    preopen = tmp_path / "preopen"
+    review = tmp_path / "review"
+    preopen.mkdir()
+    review.mkdir()
+    authority = {
+        "status": "passed_outcome_blind_fresh_b2_preopen_authority",
+        "fresh_b2_opened": False,
+        "outcome_fields_consumed": [],
+    }
+    (preopen / "preopen_authority.json").write_bytes(
+        protocol.canonical_json_bytes(authority)
+    )
+    report = {
+        "status": (
+            "passed_independent_outcome_blind_fresh_b2_preopen_review"
+        ),
+        "reviewed_root_sha256": "1" * 64,
+    }
+    (review / "report.json").write_bytes(
+        protocol.canonical_json_bytes(report)
+    )
+    monkeypatch.setattr(
+        protocol, "_verify_successful_artifact", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(
+        protocol, "validate_preopen_authority", lambda value: value
+    )
+    loaded, loaded_review = protocol.load_accepted_preopen_authority(
+        preopen_artifact=preopen,
+        preopen_root_sha256="1" * 64,
+        preopen_review_artifact=review,
+        preopen_review_root_sha256="2" * 64,
+    )
+    assert loaded == authority
+    assert loaded_review == report
+
+    report["status"] = "passed_independent_fresh_b2_preopen_review"
+    (review / "report.json").write_bytes(
+        protocol.canonical_json_bytes(report)
+    )
+    with pytest.raises(ValueError, match="chain drifted"):
+        protocol.load_accepted_preopen_authority(
+            preopen_artifact=preopen,
+            preopen_root_sha256="1" * 64,
+            preopen_review_artifact=review,
+            preopen_review_root_sha256="2" * 64,
+        )

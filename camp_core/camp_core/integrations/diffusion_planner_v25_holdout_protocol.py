@@ -192,7 +192,7 @@ def load_accepted_preopen_authority(
     if (
         authority["status"] != "passed_outcome_blind_fresh_b2_preopen_authority"
         or review_report.get("status")
-        != "passed_independent_fresh_b2_preopen_review"
+        != "passed_independent_outcome_blind_fresh_b2_preopen_review"
         or review_report.get("reviewed_root_sha256") != preopen_root_sha256
         or authority["fresh_b2_opened"] is not False
         or authority["outcome_fields_consumed"] != []

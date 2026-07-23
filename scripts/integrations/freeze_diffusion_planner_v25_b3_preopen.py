@@ -348,7 +348,7 @@ def _open_accepted_b2_preopen(
     review = _canonical_json(review_artifact / "report.json")
     if (
         review.get("status")
-        != "passed_independent_fresh_b2_preopen_review"
+        != "passed_independent_outcome_blind_fresh_b2_preopen_review"
         or review.get("reviewed_root_sha256") != root_sha256
     ):
         raise ValueError("accepted B2 preopen review binding drifted")
