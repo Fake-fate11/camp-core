@@ -65,6 +65,89 @@ def test_production_entry_validates_assets_before_nonce_and_runtime() -> None:
     assert controller < assets < consume < native < execute
 
 
+def test_production_inputs_bind_independently_reviewed_map_and_plan_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifacts = {
+        role: (tmp_path / role).resolve() for role in runner.INPUT_ROLES
+    }
+    roots = {
+        role: hashlib.sha256(role.encode("ascii")).hexdigest()
+        for role in runner.INPUT_ROLES
+    }
+    for artifact in artifacts.values():
+        artifact.mkdir()
+        (artifact / "run.exit").write_bytes(b"0\n")
+
+    (artifacts["map"] / "signal_complete_suite.json").write_bytes(
+        runner._canonical_bytes({"maps": 25})
+    )
+    (artifacts["plan"] / "execution_plan.json").write_bytes(
+        runner._canonical_bytes({"runs": 1500})
+    )
+    for role, reviewed_role in (
+        ("map", "map_review"),
+        ("plan", "plan_review"),
+        ("route", "route_review"),
+        ("runtime", "runtime_review"),
+    ):
+        (artifacts[reviewed_role] / "report.json").write_bytes(
+            runner._canonical_bytes(
+                {"reviewed_root_sha256": roots[role]}
+            )
+        )
+    (artifacts["preopen"] / "report.json").write_bytes(
+        runner._canonical_bytes(
+            {
+                "status": "passed_outcome_blind_fresh_b2_preopen_materialization",
+                "fresh_b2_opened": False,
+                "outcome_fields_consumed": [],
+                "map_suite_sha256": runner._file_sha256(
+                    artifacts["map"] / "signal_complete_suite.json"
+                ),
+                "execution_plan_sha256": runner._file_sha256(
+                    artifacts["plan"] / "execution_plan.json"
+                ),
+            }
+        )
+    )
+    (artifacts["preopen_review"] / "report.json").write_bytes(
+        runner._canonical_bytes(
+            {
+                "status": "passed_independent_outcome_blind_fresh_b2_preopen_review",
+                "reviewed_root_sha256": roots["preopen"],
+            }
+        )
+    )
+    (artifacts["preopen"] / "preopen_authority.json").write_bytes(
+        runner._canonical_bytes(
+            {
+                "upstream_bindings": {
+                    "training": {"root_sha256": roots["training"]},
+                    "training_review": {
+                        "root_sha256": roots["training_review"]
+                    },
+                }
+            }
+        )
+    )
+
+    monkeypatch.setattr(
+        runner,
+        "verify_complete_seal",
+        lambda artifact, expected_root, **_: {
+            "root_sha256": expected_root
+        },
+    )
+    assert runner._verify_inputs(artifacts, roots) == roots
+
+    (artifacts["plan"] / "execution_plan.json").write_bytes(
+        runner._canonical_bytes({"runs": 1499})
+    )
+    with pytest.raises(ValueError, match="preopen frozen-root binding drifted"):
+        runner._verify_inputs(artifacts, roots)
+
+
 def test_fresh_native_callback_reuses_runtime_and_dispatches_frozen_arms(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

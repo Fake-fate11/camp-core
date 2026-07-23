@@ -59,7 +59,9 @@ TRAIN_LOCK = Path("/root/autodl-tmp/.camp_dp_v25_controlled_train_corpus.lock")
 NONCE_ROOT = Path("/root/autodl-tmp/.camp_dp_v25_fresh_b2_open_nonces")
 INPUT_ROLES = (
     "plan",
+    "plan_review",
     "map",
+    "map_review",
     "route",
     "route_review",
     "runtime",
@@ -453,6 +455,8 @@ def _verify_inputs(
             raise ValueError(f"Fresh B2 {role} run.exit drifted")
         verified[role] = seal["root_sha256"]
     for role, reviewed_role in (
+        ("map", "map_review"),
+        ("plan", "plan_review"),
         ("route", "route_review"),
         ("runtime", "runtime_review"),
         ("preopen", "preopen_review"),
@@ -474,6 +478,10 @@ def _verify_inputs(
         or preopen_review.get("status")
         != "passed_independent_outcome_blind_fresh_b2_preopen_review"
         or preopen_review.get("reviewed_root_sha256") != verified["preopen"]
+        or preopen_report.get("map_suite_sha256")
+        != _file_sha256(artifacts["map"] / "signal_complete_suite.json")
+        or preopen_report.get("execution_plan_sha256")
+        != _file_sha256(artifacts["plan"] / "execution_plan.json")
         or type(frozen) is not dict
         or any(
             frozen.get(name, {}).get("root_sha256") != value

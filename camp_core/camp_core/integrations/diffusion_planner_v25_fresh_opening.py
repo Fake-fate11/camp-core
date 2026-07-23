@@ -8,7 +8,9 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 FRESH_B2_ARMS = ("candidate0", "static14d", "scene14d")
 FRESH_B2_CONTROLLER_ROLES = (
     "plan",
+    "plan_review",
     "map",
+    "map_review",
     "route",
     "route_review",
     "runtime",
