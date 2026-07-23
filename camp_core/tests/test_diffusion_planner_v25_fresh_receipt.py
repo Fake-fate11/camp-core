@@ -352,6 +352,7 @@ def test_mapped_source_ineligible_row_is_retained_without_outcome_values() -> No
         tier="borderline",
         signal_source_class="mapped_signal",
         phase_authority_mode="observe_same_tick_request",
+        intersection_sha256="9" * 64,
     )
     row = build_fresh_b2_failure_row(
         qualification_row=manifest,

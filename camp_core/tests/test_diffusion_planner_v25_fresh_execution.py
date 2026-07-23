@@ -283,6 +283,7 @@ def _patch_projection(monkeypatch: pytest.MonkeyPatch) -> None:
             "pair_key": kwargs["pair_key"],
             "arm": kwargs["arm"],
             "status": "complete",
+            "all_k_high_risk_tick_count": 0,
         },
     )
     monkeypatch.setattr(

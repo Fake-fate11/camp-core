@@ -29,6 +29,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_execution import (
 )
 from camp_core.integrations import (
     diffusion_planner_v25_holdout_lifecycle_preflight as lifecycle_preflight,
+    diffusion_planner_v25_holdout_opening as holdout_opening,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_preflight import (
     deterministic_nonfresh_callback,
@@ -444,6 +445,15 @@ def test_nonfresh_entrypoint_lifecycle_reserves_consumes_and_reviews_once(
     )
     cas_root = tmp_path / "nonfresh-cas"
     monkeypatch.setattr(lifecycle_preflight, "CAS_ROOT", cas_root)
+    monkeypatch.setattr(
+        holdout_opening,
+        "_canonical_cas_path",
+        lambda value, identity_sha256: str(
+            cas_root / f"{identity_sha256}.json"
+        )
+        if value == str(cas_root / f"{identity_sha256}.json")
+        else (_ for _ in ()).throw(ValueError("test CAS path drifted")),
+    )
     receipt = lifecycle_preflight.run_nonfresh_entrypoint_lifecycle(
         production_preflight=preflight,
         implementation_head="a" * 40,
