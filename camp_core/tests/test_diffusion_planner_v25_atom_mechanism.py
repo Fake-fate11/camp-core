@@ -175,6 +175,16 @@ def _outcome(arm: str) -> dict:
 
 def test_contract_freezes_groups_nonrenormalized_removal_and_no_causal_claim() -> None:
     value = json.loads(CONTRACT.read_text(encoding="utf-8"))
+    assert CONTRACT.read_bytes() == (
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
     assert validate_atom_mechanism_contract(value) == value
     assert set(index for indices in GROUPS.values() for index in indices) == set(range(14))
     assert value["runtime_projection_or_renormalization_used"] is False

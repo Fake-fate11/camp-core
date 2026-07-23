@@ -103,6 +103,16 @@ def test_capacity_preserves_floor_and_reserve_from_bit_exact_measurement(
 def test_preopen_config_is_unopened_and_rejects_nonce_mutation() -> None:
     path = ROOT / "configs/integrations/diffusion_planner_v25_fresh_b2_preopen_authority_v1.json"
     value = json.loads(path.read_text(encoding="utf-8"))
+    assert path.read_bytes() == (
+        json.dumps(
+            value,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
     assert PRODUCER._validate_config(value)["one_time_state"]["nonce_created"] is False
     mutated = copy.deepcopy(value)
     mutated["one_time_state"]["nonce_created"] = True
