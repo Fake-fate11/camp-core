@@ -37,6 +37,12 @@ LEGACY_CANDIDATE0_POOL_SCHEMA_VERSION = (
 CANDIDATE0_SUPPLEMENTARY_NATIVE_SCHEMA_VERSION = (
     "camp_dp_v25_candidate0_supplementary_native_receipt_v1"
 )
+_EXECUTION_EVIDENCE_ENRICHMENT_FIELDS = frozenset(
+    {
+        "fresh_decision_evidence_reference",
+        "fresh_decision_evidence_count",
+    }
+)
 _LEGACY_POOL_FIELDS = {
     "schema_version",
     "candidate_tensor_source",
@@ -647,8 +653,34 @@ def _native_receipt(value: Mapping[str, Any], arm: str) -> dict[str, Any]:
             "static14d": "static14d",
             "scene14d": "scene14d",
         }[arm]
+        actual_native = dict(value)
+        present_enrichment = (
+            set(actual_native) & _EXECUTION_EVIDENCE_ENRICHMENT_FIELDS
+        )
+        if present_enrichment not in (
+            set(),
+            set(_EXECUTION_EVIDENCE_ENRICHMENT_FIELDS),
+        ):
+            raise ValueError(
+                "Fresh execution evidence enrichment field set drifted"
+            )
+        if present_enrichment:
+            if (
+                type(
+                    actual_native["fresh_decision_evidence_reference"]
+                )
+                is not dict
+                or type(actual_native["fresh_decision_evidence_count"])
+                is not int
+                or actual_native["fresh_decision_evidence_count"] < 0
+            ):
+                raise ValueError(
+                    "Fresh execution evidence enrichment type drifted"
+                )
+            for name in _EXECUTION_EVIDENCE_ENRICHMENT_FIELDS:
+                actual_native.pop(name)
         value = validate_actual_native_receipt(
-            value,
+            actual_native,
             branch=branch,
             expected_ticks=FRESH_TICK_COUNT,
         )

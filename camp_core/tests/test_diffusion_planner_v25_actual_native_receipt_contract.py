@@ -528,6 +528,28 @@ def test_actual_native_sink_precedes_production_validation_and_projection() -> N
     assert sink < projection
 
 
+def test_execution_enrichment_is_separate_from_actual_native_abi() -> None:
+    primary, _ = _candidate0_receipts()
+    enriched = copy.deepcopy(primary)
+    enriched["fresh_decision_evidence_reference"] = {
+        "schema_version": "camp_dp_v25_fresh_logical_file_reference_v1"
+    }
+    enriched["fresh_decision_evidence_count"] = 0
+    projected = _native_receipt(enriched, "candidate0")
+    assert set(projected) == set(primary)
+    assert projected == primary
+
+    missing = copy.deepcopy(enriched)
+    missing.pop("fresh_decision_evidence_count")
+    with pytest.raises(ValueError, match="enrichment field set"):
+        _native_receipt(missing, "candidate0")
+
+    wrong_type = copy.deepcopy(enriched)
+    wrong_type["fresh_decision_evidence_count"] = False
+    with pytest.raises(ValueError, match="enrichment type"):
+        _native_receipt(wrong_type, "candidate0")
+
+
 @pytest.mark.parametrize("branch", ["static14d", "scene14d"])
 def test_method_actual_native_contract_round_trip(branch: str) -> None:
     value = _header(
