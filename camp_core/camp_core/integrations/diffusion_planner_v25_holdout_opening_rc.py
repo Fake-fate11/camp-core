@@ -56,6 +56,10 @@ def freeze_production_rc_controller_decision(
     identity_reservation_path = operational_identity_path(
         cas_root, identity_sha
     )
+    legacy_scientific_path = (
+        Path("/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas")
+        / f"{identity_sha}.json"
+    )
     legacy = freeze_holdout_controller_decision(
         implementation_source_head=implementation_source_head,
         pointer_head_at_release=pointer_head_at_release,
@@ -74,7 +78,7 @@ def freeze_production_rc_controller_decision(
         experiment_protocol=experiment_protocol,
         run_nonce=run_nonce,
         authorized_output_dir=authorized_output_dir,
-        cas_tombstone_path=str(scientific_path),
+        cas_tombstone_path=str(legacy_scientific_path),
     )
     legacy.pop("cas_tombstone_path")
     legacy["schema_version"] = CONTROLLER_SCHEMA_VERSION
@@ -155,6 +159,10 @@ def freeze_production_rc_opening_release(
     identity_reservation_path = operational_identity_path(
         cas_root, identity_sha
     )
+    legacy_scientific_path = (
+        Path("/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas")
+        / f"{identity_sha}.json"
+    )
     legacy = freeze_holdout_opening_release(
         implementation_source_head=implementation_source_head,
         pointer_head_at_release=pointer_head_at_release,
@@ -174,7 +182,7 @@ def freeze_production_rc_opening_release(
         experiment_protocol=experiment_protocol,
         run_nonce=run_nonce,
         authorized_output_dir=authorized_output_dir,
-        cas_tombstone_path=str(scientific_path),
+        cas_tombstone_path=str(legacy_scientific_path),
     )
     legacy.pop("cas_tombstone_path")
     legacy["schema_version"] = RELEASE_SCHEMA_VERSION

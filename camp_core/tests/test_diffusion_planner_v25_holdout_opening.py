@@ -18,6 +18,17 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
     validate_holdout_controller_decision,
     validate_holdout_opening_release,
 )
+from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (
+    freeze_production_rc_controller_decision,
+    freeze_production_rc_opening_release,
+    validate_production_rc_controller_decision,
+    validate_production_rc_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_state import (
+    operational_attempt_path,
+    operational_identity_path,
+    scientific_identity_path,
+)
 from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (
     TRACKED_AUTHORITY_FILES,
 )
@@ -167,6 +178,56 @@ def test_release_requires_preflight_and_one_identity_commitment(tmp_path: Path) 
         changed[field] = replacement
         with pytest.raises(ValueError, match="exact value"):
             validate_holdout_opening_release(changed)
+
+
+def test_production_rc_binds_an_independent_nonfresh_canary_cas(
+    tmp_path: Path,
+) -> None:
+    identity = _identity()
+    protocol = _protocol()
+    cas_root = tmp_path / "nonfresh-canary-cas"
+    common = {
+        "implementation_source_head": "a" * 40,
+        "pointer_head_at_release": "b" * 40,
+        "critical_implementation_manifest_sha256": "c" * 64,
+        "preopen_authority": _binding("preopen", "1"),
+        "preopen_review": _binding("preopen-review", "2"),
+        "production_composition_preflight": _binding("preflight", "3"),
+        "production_composition_preflight_review": _binding(
+            "preflight-review", "4"
+        ),
+        "b2_tombstone": _binding("b2-tombstone", "5"),
+        "b2_failure_review": _binding("b2-failure-review", "6"),
+        "holdout_identity": identity,
+        "experiment_protocol": protocol,
+        "run_nonce": "e" * 64,
+        "authorized_output_dir": "/root/autodl-tmp/nonfresh-canary-output",
+        "cas_root": cas_root,
+    }
+    controller = freeze_production_rc_controller_decision(**common)
+    assert validate_production_rc_controller_decision(controller) == controller
+    assert controller["scientific_ledger_path"] == str(
+        scientific_identity_path(
+            cas_root, identity["holdout_identity_sha256"]
+        )
+    )
+    assert controller["operational_attempt_path"] == str(
+        operational_attempt_path(cas_root, "e" * 64)
+    )
+    assert controller["operational_identity_reservation_path"] == str(
+        operational_identity_path(
+            cas_root, identity["holdout_identity_sha256"]
+        )
+    )
+
+    release = freeze_production_rc_opening_release(
+        **common,
+        controller_decision_root_sha256="d" * 64,
+    )
+    assert validate_production_rc_opening_release(release) == release
+    assert release["scientific_ledger_path"] == controller[
+        "scientific_ledger_path"
+    ]
 
 
 def test_pre_marker_failure_is_unconsumed_and_post_marker_is_permanent(
