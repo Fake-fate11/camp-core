@@ -591,9 +591,15 @@ def test_real_native_callback_oracle_does_not_require_synthetic_measurements(
         config_payloads=configs,
         native_callback=deterministic_nonfresh_callback,
     )
-    payload["native_callback_receipts"]["candidate0"][0][
-        "latency_namespaces"
-    ] = _latency("candidate0")
+    (
+        native_configs,
+        _primary,
+        _diagnostic,
+        native_callbacks,
+        _decision_evidence,
+    ) = _native_preflight_fixture(tmp_path)
+    assert native_configs == configs
+    payload["native_callback_receipts"] = native_callbacks
     unsigned = dict(payload)
     unsigned.pop("preflight_payload_sha256")
     payload["preflight_payload_sha256"] = canonical_sha256(unsigned)
@@ -628,7 +634,15 @@ def test_real_native_callback_oracle_rejects_digest_timestamp_and_matrix_drift(
             "scene14d": "camp_scene14d_no_v2i",
         }.items()
     }
-    candidate0 = deterministic_nonfresh_callback(configs["candidate0"], 0)
+    (
+        native_configs,
+        _primary,
+        _diagnostic,
+        native_callbacks,
+        _decision_evidence,
+    ) = _native_preflight_fixture(tmp_path)
+    assert native_configs == configs
+    candidate0 = native_callbacks["candidate0"][0]
     _independent_real_native_callback(
         candidate0,
         config=configs["candidate0"],
@@ -658,7 +672,7 @@ def test_real_native_callback_oracle_rejects_digest_timestamp_and_matrix_drift(
             tick_index=0,
         )
 
-    static = deterministic_nonfresh_callback(configs["static14d"], 0)
+    static = native_callbacks["static14d"][0]
     changed = copy.deepcopy(static)
     latency = changed["latency_namespaces"]
     latency["online_operational_latency_ms"]["context"] = 0.1
