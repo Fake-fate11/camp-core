@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import importlib.util
 import json
 from pathlib import Path
 
@@ -30,6 +31,15 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACT = ROOT / "configs" / "integrations" / "diffusion_planner_v25_atom_mechanism_v1.json"
+
+
+def _module(relative: str, name: str):
+    path = ROOT / relative
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _context() -> dict:
@@ -193,6 +203,39 @@ def test_contract_freezes_groups_nonrenormalized_removal_and_no_causal_claim() -
     mutated["runtime_projection_or_renormalization_used"] = True
     with pytest.raises(ValueError, match="value drifted"):
         validate_atom_mechanism_contract(mutated)
+
+
+def test_sealed_calibration_evidence_allows_legacy_layout_but_rejects_invalid_json(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("lanelet2")
+    modules = (
+        _module(
+            "scripts/integrations/freeze_diffusion_planner_v25_atom_mechanism.py",
+            "v25_atom_mechanism_producer",
+        ),
+        _module(
+            "scripts/integrations/review_diffusion_planner_v25_atom_mechanism.py",
+            "v25_atom_mechanism_reviewer",
+        ),
+    )
+    path = tmp_path / "decision_evidence.json"
+    for module in modules:
+        path.write_bytes(b'[\n  {"tick_index": 0, "score": 1.0}\n]\n')
+        assert module._strict_sealed_external_json_array(path) == [
+            {"tick_index": 0, "score": 1.0}
+        ]
+
+        for invalid in (
+            b'[{"tick_index":0,"tick_index":1}]\n',
+            b'[{"score":NaN}]\n',
+            b'[{"score":1e309}]\n',
+            b'{"tick_index":0}\n',
+            b'["\xff"]\n',
+        ):
+            path.write_bytes(invalid)
+            with pytest.raises((UnicodeDecodeError, ValueError)):
+                module._strict_sealed_external_json_array(path)
 
 
 def test_preopen_binding_is_exact_capacity_passed_and_fresh_closed(tmp_path: Path) -> None:

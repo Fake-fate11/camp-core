@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -190,7 +191,7 @@ def _review_runs(calibration: Path, corpus: Mapping[str, Any]) -> tuple[list[dic
             f"{row['arm_order_index']}_{row['plan_arm']}/decision_evidence.json"
         )
         evidence_path = calibration / relative
-        evidence = _canonical_json(evidence_path)
+        evidence = _strict_sealed_external_json_array(evidence_path)
         evidence_sha = _sha256(evidence_path)
         native = row["native_receipt"]
         if type(evidence) is not list or len(evidence) != 64 or native.get("calibration_decision_evidence_sha256") != evidence_sha or native.get("calibration_decision_evidence_count") != 64:
@@ -215,6 +216,39 @@ def _review_runs(calibration: Path, corpus: Mapping[str, Any]) -> tuple[list[dic
             "raw_payload_copied": False,
         })
     return result, references
+
+
+def _strict_sealed_external_json_array(path: Path) -> list[Any]:
+    """Independently open immutable accepted raw evidence with strict JSON semantics."""
+    value = json.loads(
+        path.read_bytes().decode("utf-8", "strict"),
+        object_pairs_hook=_no_duplicate_pairs,
+        parse_constant=lambda token: (_ for _ in ()).throw(ValueError(token)),
+    )
+    if type(value) is not list:
+        raise ValueError(f"sealed external JSON array expected: {path}")
+    _require_finite_json(value, path=path)
+    return value
+
+
+def _no_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def _require_finite_json(value: Any, *, path: Path) -> None:
+    if type(value) is float and not math.isfinite(value):
+        raise ValueError(f"nonfinite sealed external JSON value: {path}")
+    if type(value) is list:
+        for item in value:
+            _require_finite_json(item, path=path)
+    elif type(value) is dict:
+        for item in value.values():
+            _require_finite_json(item, path=path)
 
 
 def _review_outcomes(corpus: Mapping[str, Any]) -> dict[int, dict[str, Mapping[str, Any]]]:
