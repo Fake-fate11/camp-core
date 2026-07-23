@@ -811,21 +811,34 @@ repeated measurements, not additional independent corridors. Runtime
 same-tick source/timestamp/freshness and unchanged fixed-K8 support remain
 fail-closed execution checks.
 
-At production pre-open materialization, free space was `103,446,487,040` bytes. Against
-the accepted `69,991,287,914`-byte upper bound, projected free space is
-`33,455,199,126` bytes, leaving `22,717,780,886` bytes beyond the 10 GiB floor.
-No model or DP forward ran, and Fresh B2, nonce/marker, execution output, and
-all Fresh outcomes remain absent. The next action is the same-HEAD production
-entry preflight followed, only if it passes, by one all-new nonce and the
-already frozen 1,500-run Fresh execution/review/evaluation chain.
+The real production-entry zero-data preflight subsequently passed with digest
+`d1b7d2681efb68ac62e076250015fa0b701a9a1db58c142aff16c48f03167dac`.
+The one-time Fresh nonce was then consumed under sealed controller root
+`e2b7b957...` and release root `a5a0a8fa...`. Execution failed closed after
+exactly one candidate0 native run, before any complete paired row,
+independent execution review, evaluation, or claim. The runner detected that
+the candidate0 native receipt carried a CAMP-only latency field and rejected
+it with `candidate0 cannot report CAMP-only latency`.
 
-current_v25_status=v25_production_authority_chain_and_independent_reviews_passed_fresh_zero_data_preflight_next
+The immutable failed execution root is `5d7fe1dc...`, with `run.exit=1` and
+only nine run payload files under run ordinal
+`0000_0_35910aac00fde997_candidate0`. The nonce marker is permanent and
+forbids second consumption. Worker/GPU are zero, the shared lock is free,
+and free space is `103,441,956,864` bytes. No second nonce, retry, execution
+review, evaluation, training, calibration, or deployment is authorized.
+
+current_v25_status=v25_fresh_b2_failed_closed_after_nonce_consumption_first_candidate0_receipt_latency_contract
 current_v25_source_head=a52c1717a471202005c16a0c6777f81ee3bd01e4
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_a52c1717_20260723TproductionCST
-current_v25_artifact_root_sha256=854883f466835897af2659be04f37b9fa9ad434e1cab223467ccee12f374f7b1
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_a52c1717_20260723TproductionCST
-current_v25_review_artifact_root_sha256=0f1a5e3eb8e7fb7214ad0344e244165133c84929cade2e7fe74f14b2f2a59bac
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_execution_a52c1717_ea744f3d56cff517
+current_v25_artifact_root_sha256=5d7fe1dc83e1b7e77a006e52f5f8a8b602866aa64ee0a2cdfb882336b0eca50e
+current_v25_review_artifact=not_started
+current_v25_review_artifact_root_sha256=none
+current_v25_fresh_controller_root_sha256=e2b7b957a98e0764cb42aea57ed9f6f248bbfde370c060fb547ac69e291a08fc
+current_v25_fresh_opening_release_root_sha256=a5a0a8fa119aa76ec7b0c91941346717d898368db04074af98efa1fcf6b0ff10
+current_v25_fresh_run_nonce=ea744f3d56cff517428a9319dee293d10466c9180a7fb6840eceb7e74426f449
+current_v25_fresh_terminal_run_count=1
+current_v25_fresh_complete_paired_row_count=0
 current_v25_calibration_freeze_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_a52c1717_20260723TproductionCST
 current_v25_calibration_freeze_artifact_root_sha256=295e22adcb6c4840c678f0e1d6ea7725a9786519bf7a856285a008ee0ce4fa80
 current_v25_calibration_freeze_review_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_review_a52c1717_20260723TproductionCST
@@ -865,23 +878,23 @@ current_v25_atom_mechanism_decision_tick_count=12800
 current_v25_atom_mechanism_primary_design_changed=false
 current_v25_atom_mechanism_single_atom_closed_loop_causal_claim=false
 current_v25_fresh_open_authorized=false
-current_v25_fresh_nonce_created=false
-current_v25_fresh_execution_output_created=false
-current_v25_fresh_outcome_fields_consumed=[]
+current_v25_fresh_nonce_created=true
+current_v25_fresh_execution_output_created=true
+current_v25_fresh_outcome_fields_consumed=["candidate0_raw_closed_loop_run_ordinal_0"]
 current_v25_monitor_started=false
 current_v25_training_completed=true
 current_v25_calibration_completed=true
 current_v25_worker_count=0
 current_v25_gpu_compute_count=0
 current_v25_lock_state=free
-current_v25_fresh_outcome_opened=false
-current_v25_fresh_b2_opened=false
+current_v25_fresh_outcome_opened=true
+current_v25_fresh_b2_opened=true
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=103446487040
+observed_autodl_free_bytes=103441956864
 current_v25_full_corpus_storage_root=/root/autodl-tmp
-current_v25_phase=fresh_b2_production_authority_chain_and_reviews_passed
-next_work_target=fresh_b2_production_entry_preflight_then_unique_opening_release_and_execution
+current_v25_phase=fresh_b2_failed_closed_after_nonce_consumption_before_first_complete_row_and_independent_review
+next_work_target=ultra_read_only_fresh_b2_consumed_nonce_failure_closeout_decision
 
 ## Current V24 Status
 
