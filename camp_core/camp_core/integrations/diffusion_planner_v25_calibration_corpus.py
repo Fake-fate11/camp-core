@@ -45,6 +45,9 @@ def project_candidate0_calibration_corpus_from_paired_terminals(
     identities = {
         row["scenario_identity_sha256"]: row for row in paired["identities"]
     }
+    base_units = {
+        row["unit_ordinal"]: row for row in base["execution_units"]
+    }
     projected: list[dict[str, Any]] = []
     try:
         pairs = zip(
@@ -111,7 +114,9 @@ def project_candidate0_calibration_corpus_from_paired_terminals(
                 {
                     "schema_version": RUN_RESULT_SCHEMA_VERSION,
                     "unit_ordinal": unit["unit_ordinal"],
-                    "unit_sha256": unit["unit_sha256"],
+                    "unit_sha256": base_units[unit["unit_ordinal"]][
+                        "unit_sha256"
+                    ],
                     "scenario_identity_sha256": unit[
                         "scenario_identity_sha256"
                     ],
