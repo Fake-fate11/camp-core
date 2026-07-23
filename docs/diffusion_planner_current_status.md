@@ -768,47 +768,67 @@ Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
 current-gate authority, and the tuple below matches it exactly.
 
-The outcome-blind Fresh B2 pre-open authority and its independent review are
-sealed and passed. They bind the accepted corrected corpus, training,
-calibration recovery, storage, and atom-mechanism roots under implementation
-HEAD `14781cc4e9ccc0b7f992cc4860f840ef1c8a7673` without loading a model,
-executing a DP forward, opening Fresh, creating a nonce, or reading outcomes.
+The candidate0 variability estimand is corrected without changing any NI
+margin, model, atom, scale, threshold, split, or Fresh composition. The 100
+accepted candidate0 calibration rows have 100 distinct exact-unit keys
+(route, scenario, semantic block, seed, spawn, initial state/input, and paired
+exogenous-schedule binding), so exact run repeatability is
+`not_estimable_no_exact_candidate0_duplicates`. The earlier seven q95 values
+remain recorded as within-map cross-scenario heterogeneity diagnostics only;
+they cannot veto Fresh or be described as run-repeatability noise.
 
-The materialized benchmark contains 25 immutable project-authored MIT Lanelet2
-maps, 100 intersections/corridors/routes/semantic blocks, 5 seeds, 500 paired
-units, 1,500 three-arm runs, and 96,000 prospective ticks. All 100 static
-regulatory-element -> physical light/bulbs -> controlled lanelet -> certified
-stop-line -> route-arc chains qualify. Runtime same-tick phase/timestamp and
-actual fixed-K8 support remain fail-closed execution-time checks.
+The correction was derived by streaming only the 100 sealed candidate0
+terminal files from the accepted 300-arm calibration execution; the original
+raw/recovery/review roots remain immutable. The freeze and its independent
+review sealed at roots `7aaf92fa...` and `8d20d038...`, with candidate0 row SHA
+`8afeb83f...`, five map heterogeneity clusters of 20 rows each, zero exact
+duplicate groups/measurements, and `repeatability_gate_blocks_fresh=false`.
+Calibration remains accepted with `claim_authorized=false`; the final claim
+still depends only on the frozen Fresh paired outcome/NI rules.
 
-The sealed split receipt independently reports 1,500 train, 50 calibration,
-and 100 Fresh route rows with geometry/export-clone and ID-free semantic
-deduplication and zero overlap. Fresh coverage is prospective and explicit:
-all seven families and tiers are represented; 21/100 routes are predeclared
-all-K-bad eligible, 4 dilemma-zone, 7 occlusion, 21 lead-stop, 16 straight and
-84 turning routes. Five seeds are repeated measurements and do not increase
-the 100-corridor independent ceiling.
+Under implementation HEAD
+`bffbcfcf4714bb5b80f4baac718783d93b32a38a`, the consolidated outcome-blind
+Fresh B2 pre-open authority and its independent review were rebuilt and passed
+at roots `ab6ab903...` and `7d61339e...`. They bind the new calibration
+freeze/review, accepted corrected corpus, training, calibration recovery,
+storage, and atom-mechanism chains. The critical implementation manifest is
+`b38fd874...`; the execution-plan and map-suite SHAs remain bit-exact at
+`6ad99d7d...` and `2e238c7d...`.
 
-Storage review projects `69,991,287,914` bytes for all 1,500 arms, leaving
-`33,472,627,606` bytes and `22,735,209,366` bytes beyond the 10 GiB floor.
-The atom-mechanism authority covers 12,800 accepted calibration selection
-ticks, the frozen 9D-vs-14D comparison, all 14 leave-one contributions, and six
-preregistered groups. It copies no raw K8 payload and makes no single-atom
-closed-loop causal claim; the primary models, weights, Theta, thresholds, NI
-margins, and Fresh composition are unchanged.
+The materialized benchmark remains 25 project-authored MIT Lanelet2 maps, 100
+intersections/corridors/routes/semantic blocks, five seeds, 500 paired units,
+1,500 three-arm runs, and 96,000 prospective ticks. Static signal-chain
+qualification and train/cal/Fresh zero-overlap remain complete. Five seeds are
+repeated measurements, not additional independent corridors. Runtime
+same-tick source/timestamp/freshness and unchanged fixed-K8 support remain
+fail-closed execution checks.
 
-Calibration remains accepted with no authorized safety claim. Fresh B2,
-nonce/marker, execution output, and every Fresh outcome remain absent. The
-next and only authorized action is Ultra's final one-time Fresh B2 opening
-review.
+At independent pre-open review, free space was `103,451,566,080` bytes. Against
+the accepted `69,991,287,914`-byte upper bound, projected free space is
+`33,460,278,166` bytes, leaving `22,722,859,926` bytes beyond the 10 GiB floor.
+No model or DP forward ran, and Fresh B2, nonce/marker, execution output, and
+all Fresh outcomes remain absent. The next action is the same-HEAD production
+entry preflight followed, only if it passes, by one all-new nonce and the
+already frozen 1,500-run Fresh execution/review/evaluation chain.
 
-current_v25_status=v25_fresh_b2_consolidated_preopen_authority_and_independent_review_passed_ultra_one_time_opening_review_required
-current_v25_source_head=14781cc4e9ccc0b7f992cc4860f840ef1c8a7673
+current_v25_status=v25_repeatability_estimand_corrected_freeze_and_consolidated_preopen_independent_reviews_passed_fresh_production_entry_next
+current_v25_source_head=bffbcfcf4714bb5b80f4baac718783d93b32a38a
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_14781cc4_20260723TpreopenCST
-current_v25_artifact_root_sha256=38cf4d4837cd018b463e4044f34020bd57c1eefb176a11e565d6b1ef3594228d
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_14781cc4_20260723TpreopenCST
-current_v25_review_artifact_root_sha256=09f67b804bb880a861682b87f2a577fad658505a26ba65005b3a9c074a3fd802
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_bffbcfcf_20260723TrepeatabilityCST
+current_v25_artifact_root_sha256=ab6ab90379d8749e23121ab8cb7ae699689be90509874d9f38f850f02903ef08
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_bffbcfcf_20260723TrepeatabilityCST
+current_v25_review_artifact_root_sha256=7d61339e7e5674ca764016097dda922fb4beb4d0208c106d94415d562061cf24
+current_v25_calibration_freeze_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_bffbcfcf_20260723TrepeatabilityCST
+current_v25_calibration_freeze_artifact_root_sha256=7aaf92fa4909a4e8b29bab47b5d3b8bdaa8793970a60c1a49a36f092dff35f4d
+current_v25_calibration_freeze_review_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_review_bffbcfcf_20260723TrepeatabilityCST
+current_v25_calibration_freeze_review_artifact_root_sha256=8d20d038092950d7aaf577b89c9681e0f9ce9d70e06402f0ca06b6803a399c68
+current_v25_calibration_candidate0_row_count=100
+current_v25_calibration_candidate0_rows_sha256=8afeb83f2e1bd5759d645cfabac721f4c3141db60f656e6faac03151d7e187f8
+current_v25_calibration_exact_repeatability_status=not_estimable_no_exact_candidate0_duplicates
+current_v25_calibration_exact_repeatability_group_count=0
+current_v25_calibration_exact_repeatability_measurement_count=0
+current_v25_calibration_within_map_heterogeneity_diagnostic_only=true
+current_v25_calibration_repeatability_gate_blocks_fresh=false
 current_v25_calibration_preregistration_root_sha256=e6f8cf6cb37c3acd964502f04c12a6e15af1fb3d946048ea4abc18c8741f5d55
 current_v25_calibration_preregistration_review_root_sha256=235a99323be75476b7d8d31d9458ddd6f583d6a5d6593901e492addfe40c69e6
 current_v25_original_calibration_root_sha256=5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249
@@ -831,8 +851,8 @@ current_v25_fresh_b2_tick_capacity=96000
 current_v25_fresh_b2_static_signal_chain_qualified_count=100
 current_v25_fresh_b2_zero_overlap_status=passed
 current_v25_fresh_b2_projected_increment_bytes=69991287914
-current_v25_fresh_b2_projected_free_after_bytes=33472627606
-current_v25_fresh_b2_reserve_beyond_10gib_floor_bytes=22735209366
+current_v25_fresh_b2_projected_free_after_bytes=33460278166
+current_v25_fresh_b2_reserve_beyond_10gib_floor_bytes=22722859926
 current_v25_atom_mechanism_decision_tick_count=12800
 current_v25_atom_mechanism_primary_design_changed=false
 current_v25_atom_mechanism_single_atom_closed_loop_causal_claim=false
@@ -850,10 +870,10 @@ current_v25_fresh_outcome_opened=false
 current_v25_fresh_b2_opened=false
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=103460167680
+observed_autodl_free_bytes=103451566080
 current_v25_full_corpus_storage_root=/root/autodl-tmp
-current_v25_phase=fresh_b2_consolidated_preopen_authority_and_independent_review_passed
-next_work_target=ultra_fresh_b2_one_time_opening_release_review
+current_v25_phase=repeatability_estimand_corrected_freeze_and_consolidated_preopen_reviews_passed
+next_work_target=fresh_b2_production_entry_preflight_then_unique_opening_release_and_execution
 
 ## Current V24 Status
 

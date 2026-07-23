@@ -5188,3 +5188,154 @@ observed_autodl_free_bytes=103460167680
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_phase=fresh_b2_consolidated_preopen_authority_and_independent_review_passed
 next_work_target=ultra_fresh_b2_one_time_opening_release_review
+
+## Candidate0 Repeatability Estimand Correction and Rebuilt Fresh B2 Pre-Open PASS
+
+The live production freeze check exposed a scientific estimand error before
+Fresh opened: the accepted 100 candidate0 calibration measurements had been
+grouped only by map geometry. Each 20-row map group mixes corridors, routes,
+scenarios, semantic blocks, and seeds, so its dispersion measures within-map
+cross-scenario heterogeneity, not exact-run repeatability or numerical
+resolvability. No NI margin, model, atom, scale, weight, Theta, threshold,
+split, claim rule, or Fresh composition was changed.
+
+Implementation source commits `398e6193...` and `bffbcfcf...` introduce the
+versioned exact-unit identity and a streaming bridge from the accepted paired
+calibration raw evidence. The exact identity binds route, scenario, ID-free
+semantic block, seed, spawn configuration, initial state/input, and the paired
+exogenous-schedule contract. The bridge reads only the 100 candidate0
+`terminal.json` files, one at a time under a 256 MiB per-file ceiling, extracts
+only the fields required for the candidate0 NI projection, and writes a small
+terminal path/size/SHA receipt. It neither reloads the 300-arm corpus nor
+modifies the immutable raw/recovery/review artifacts.
+
+Local pure numerical/freeze regression passed 42 tests. The authoritative
+AutoDL serialized suite passed 74 tests after one ordinary bridge correction:
+the raw terminal binds the paired-plan unit SHA, while the projected
+candidate0 corpus correctly binds the base calibration unit SHA. CAMP and
+fixed-DP remained clean at
+`bffbcfcf4714bb5b80f4baac718783d93b32a38a` and
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`.
+
+The new calibration freeze sealed at:
+
+`/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_bffbcfcf_20260723TrepeatabilityCST`
+
+root
+`7aaf92fa4909a4e8b29bab47b5d3b8bdaa8793970a60c1a49a36f092dff35f4d`.
+Its independent review sealed at:
+
+`/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_review_bffbcfcf_20260723TrepeatabilityCST`
+
+root
+`8d20d038092950d7aaf577b89c9681e0f9ce9d70e06402f0ca06b6803a399c68`.
+Both report `calibration_freeze_passed`. The 100 candidate0 rows have SHA
+`8afeb83f2e1bd5759d645cfabac721f4c3141db60f656e6faac03151d7e187f8`
+and 100 unique exact-unit identities: exact duplicate group count and
+measurement count are both zero. Therefore repeatability is honestly
+`not_estimable_no_exact_candidate0_duplicates`; it is not fabricated as PASS,
+and `repeatability_gate_blocks_fresh=false`.
+
+For audit continuity, the seven retained q95 values remain:
+completion `0.09581040218416687`, max jerk `28.808542559838063`,
+max lateral acceleration `0.9802232612674391`, maximum deceleration
+`0.2485357116868192`, mean jerk `2.416521807077128`, mean lateral
+acceleration `0.2559518737820439`, and progress `12.010118528851304`.
+Each is labeled only as within-map cross-scenario heterogeneity. The frozen NI
+margins remain `0.02`, `1.0`, `0.3`, `0.5`, `0.2`, `0.1`, and `1.0` in the
+respective preregistered units; those diagnostic q95 values cannot veto Fresh
+or authorize a claim. Calibration remains `claim_authorized=false`.
+
+The consolidated outcome-blind Fresh B2 pre-open authority was then rebuilt at:
+
+`/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_bffbcfcf_20260723TrepeatabilityCST`
+
+root
+`ab6ab90379d8749e23121ab8cb7ae699689be90509874d9f38f850f02903ef08`.
+Its single independent review sealed at:
+
+`/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_bffbcfcf_20260723TrepeatabilityCST`
+
+root
+`7d61339e7e5674ca764016097dda922fb4beb4d0208c106d94415d562061cf24`.
+The reviewed critical implementation manifest SHA is
+`b38fd874e4412fea43cd2d73cfa969b1418a35eae032aec3e50a053919c766e0`.
+The execution-plan and map-suite SHAs remain
+`6ad99d7dc2cb37a2c33b19af256431e271a2d14b85d6bb228eee0c569400cb5f`
+and `2e238c7d4ea2bac5fd5efd8092de8f1e470941a406c898fcf3e36ac7f5a07f72`.
+All accepted corpus/training/calibration/preregistration/storage/atom roots,
+25 maps, 100 corridors/routes/semantic blocks, 500 pairs, 1,500 runs, 96,000
+ticks, signal-chain qualification, zero-overlap, coverage, power, storage, and
+evaluation contracts remain unchanged.
+
+Independent review observed `103,451,566,080` free bytes. The accepted
+`69,991,287,914`-byte conservative increment projects
+`33,460,278,166` bytes free and `22,722,859,926` bytes beyond the 10 GiB floor.
+No model, DP/K8 forward, nonce, marker, Fresh directory, or outcome was
+created or read. The next step is the same-HEAD production-entry preflight; it
+may create one all-new nonce and proceed to the frozen Fresh execution only
+after all live bindings, capacity, and unopened-state checks pass.
+
+current_v25_status=v25_repeatability_estimand_corrected_freeze_and_consolidated_preopen_independent_reviews_passed_fresh_production_entry_next
+current_v25_source_head=bffbcfcf4714bb5b80f4baac718783d93b32a38a
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_authority_bffbcfcf_20260723TrepeatabilityCST
+current_v25_artifact_root_sha256=ab6ab90379d8749e23121ab8cb7ae699689be90509874d9f38f850f02903ef08
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b2_preopen_review_bffbcfcf_20260723TrepeatabilityCST
+current_v25_review_artifact_root_sha256=7d61339e7e5674ca764016097dda922fb4beb4d0208c106d94415d562061cf24
+current_v25_calibration_freeze_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_bffbcfcf_20260723TrepeatabilityCST
+current_v25_calibration_freeze_artifact_root_sha256=7aaf92fa4909a4e8b29bab47b5d3b8bdaa8793970a60c1a49a36f092dff35f4d
+current_v25_calibration_freeze_review_artifact=/root/autodl-tmp/camp_dp_v25_calibration_freeze_from_paired_review_bffbcfcf_20260723TrepeatabilityCST
+current_v25_calibration_freeze_review_artifact_root_sha256=8d20d038092950d7aaf577b89c9681e0f9ce9d70e06402f0ca06b6803a399c68
+current_v25_calibration_candidate0_row_count=100
+current_v25_calibration_candidate0_rows_sha256=8afeb83f2e1bd5759d645cfabac721f4c3141db60f656e6faac03151d7e187f8
+current_v25_calibration_exact_repeatability_status=not_estimable_no_exact_candidate0_duplicates
+current_v25_calibration_exact_repeatability_group_count=0
+current_v25_calibration_exact_repeatability_measurement_count=0
+current_v25_calibration_within_map_heterogeneity_diagnostic_only=true
+current_v25_calibration_repeatability_gate_blocks_fresh=false
+current_v25_calibration_preregistration_root_sha256=e6f8cf6cb37c3acd964502f04c12a6e15af1fb3d946048ea4abc18c8741f5d55
+current_v25_calibration_preregistration_review_root_sha256=235a99323be75476b7d8d31d9458ddd6f583d6a5d6593901e492addfe40c69e6
+current_v25_original_calibration_root_sha256=5cd071b6ac9dd805422d7fe572f3db273abe9fce5cd4f910a0cf6fa9296e8249
+current_v25_calibration_recovery_root_sha256=9d67e57bfa4a96ff3bf318c5aafd17f024207645344f076963fc5f756caa6551
+current_v25_calibration_recovery_review_root_sha256=650e6749bda63f23b073a5491c0f57dd9f97136a644be8ab7c918a48a3f609f7
+current_v25_calibration_claim_authorized=false
+current_v25_storage_artifact_root_sha256=38cebcf597d4e49ec8f06011e0d8077eb1630c6e8a33676346c7d43bec1e8e25
+current_v25_storage_review_root_sha256=8ec1c2bdfbeb95ef36bf551e29104577f874bb8a3ffe3123f2d11f9930c2a25c
+current_v25_atom_mechanism_root_sha256=79c733159594ce31e204127802971e47f9461187f420c1bf90f29467ce931c07
+current_v25_atom_mechanism_review_root_sha256=214550b755fe520d601ed97138202eb1ba772a8bd851062bb14eb54a2bd87073
+current_v25_fresh_b2_map_count=25
+current_v25_fresh_b2_intersection_count=100
+current_v25_fresh_b2_corridor_count=100
+current_v25_fresh_b2_route_count=100
+current_v25_fresh_b2_semantic_block_count=100
+current_v25_fresh_b2_seed_count=5
+current_v25_fresh_b2_paired_unit_count=500
+current_v25_fresh_b2_arm_run_count=1500
+current_v25_fresh_b2_tick_capacity=96000
+current_v25_fresh_b2_static_signal_chain_qualified_count=100
+current_v25_fresh_b2_zero_overlap_status=passed
+current_v25_fresh_b2_projected_increment_bytes=69991287914
+current_v25_fresh_b2_projected_free_after_bytes=33460278166
+current_v25_fresh_b2_reserve_beyond_10gib_floor_bytes=22722859926
+current_v25_atom_mechanism_decision_tick_count=12800
+current_v25_atom_mechanism_primary_design_changed=false
+current_v25_atom_mechanism_single_atom_closed_loop_causal_claim=false
+current_v25_fresh_open_authorized=false
+current_v25_fresh_nonce_created=false
+current_v25_fresh_execution_output_created=false
+current_v25_fresh_outcome_fields_consumed=[]
+current_v25_monitor_started=false
+current_v25_training_completed=true
+current_v25_calibration_completed=true
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+current_v25_fresh_outcome_opened=false
+current_v25_fresh_b2_opened=false
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=103451566080
+current_v25_full_corpus_storage_root=/root/autodl-tmp
+current_v25_phase=repeatability_estimand_corrected_freeze_and_consolidated_preopen_reviews_passed
+next_work_target=fresh_b2_production_entry_preflight_then_unique_opening_release_and_execution
