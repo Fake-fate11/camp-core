@@ -249,7 +249,8 @@ def test_same_pool_mechanism_reports_9d_leave_one_groups_flips_and_association(t
     )
     static = report["arm_reports"]["camp_static14d"]
     assert static["mechanisms"]["atom:jerk_early"]["selected_flip_rate"] == 1.0
-    assert static["mechanisms"]["group:jerk_full_early_late"]["selected_flip_rate"] == 1.0
+    assert static["mechanisms"]["group:jerk_full_early_late"]["trigger_rate"] == 1.0
+    assert static["mechanisms"]["group:jerk_full_early_late"]["selected_flip_rate"] == 0.0
     assert static["mechanisms"]["paper_9d_vs_14d"]["selected_flip_rate"] == 1.0
     assert report["runtime_projection_or_renormalization_used"] is False
     assert report["counterfactual_closed_loop_executed"] is False
