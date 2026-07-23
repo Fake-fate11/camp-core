@@ -5772,3 +5772,107 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=103283118080
 current_v25_phase=fresh_b3_generic_production_chain_and_consolidated_preopen_review_passed
 next_work_target=ultra_read_only_fresh_b3_one_time_opening_review
+
+## 2026-07-23 — Fresh B3 Consumed Engineering Failure Closeout; B4 Recovery
+
+Ultra authorized and opened the one-time Fresh B3 identity
+`84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b`
+under protocol
+`686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e`.
+The CAS reservation was consumed exactly once. Execution then failed
+fail-closed at attempted arm 0, candidate0, while projecting the actual native
+receipt: `KeyError: candidate_tensor_sha256_before`.
+
+The failure occurred before any arm completed or any paired row formed.
+Planned / attempted / complete / unattempted arm counts are
+`1500 / 1 / 0 / 1499`; `full_denominator=false`; no outcome field was
+consumed. This is a production-composition engineering failure, not a CAMP
+scientific result. B3 is permanently ineligible for execution review,
+evaluation, pooling, tuning, power, or claims, and its identity, nonce,
+directories, maps, routes, semantic blocks, seeds, and protocol cannot be
+reused.
+
+The immutable B3 chain strictly reopened:
+
+- controller root:
+  `e7b41aac94317d24ef25ab7d5b4c2f82e6b59607c691d4fe7daa28beab78dacb`;
+- opening release root:
+  `28fd53dd1d04f87b80fc032ebb3c67038c6581c363baafb09a03ab5f64ef7754`;
+- sealed fatal execution root:
+  `a5250fc1c926973e89c50ebc05dae7e48749940a7cf348f9fcb8404fff034ecf`;
+- independent fatal review root:
+  `fb4a9ed1869f89a341ad3047dfe0902f7676d17398c9dd86645ef1a42a226e3e`.
+
+The versioned terminal closeout and its independent review were produced
+without running DP or reading B3 raw values:
+
+- closeout:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_f02f7286_a4951b986c4a3c5f`,
+  root
+  `b57f3d23d4d0537b315161c5c5eb1dbd2b1c095c0c0f6ac327b54ba3910b5e83`;
+- review:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_review_f02f7286_a4951b986c4a3c5f`,
+  root
+  `b0d87070278ee2f32cbc98420f1b11701db25982a8334c2b0130e679651b3171`;
+- run.exit:
+  `0 / 0`.
+
+The accepted terminal status is
+`consumed_one_shot_engineering_failure_no_evaluation_no_claim`. AutoDL focused
+TDD for the closeout contract passed 11 tests. Local, origin, fresh GitHub
+main, and AutoDL were aligned at
+`f02f7286621c48cbf257250ae84a147c4b871371`; fixed DP remained
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, tracked clean. Worker/GPU were
+zero, the shared lock was free, Fresh B4 remained unopened, and observed free
+space was `103,276,781,568` bytes.
+
+B4 engineering recovery is authorized. It must preserve the full scientific
+contract while introducing a canonical actual-native candidate0/CAMP receipt
+contract, an exact non-Fresh production lifecycle preflight, and a strictly
+clone-aware zero-overlap holdout identity and protocol. No B4 CAS, nonce,
+marker, opening, execution, outcome, or claim exists at this point.
+
+current_v25_status=v25_fresh_b3_consumed_one_shot_engineering_failure_no_evaluation_no_claim_b4_recovery_authorized
+current_v25_source_head=f02f7286621c48cbf257250ae84a147c4b871371
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_f02f7286_a4951b986c4a3c5f
+current_v25_artifact_root_sha256=b57f3d23d4d0537b315161c5c5eb1dbd2b1c095c0c0f6ac327b54ba3910b5e83
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_review_f02f7286_a4951b986c4a3c5f
+current_v25_review_artifact_root_sha256=b0d87070278ee2f32cbc98420f1b11701db25982a8334c2b0130e679651b3171
+current_v25_b3_controller_root_sha256=e7b41aac94317d24ef25ab7d5b4c2f82e6b59607c691d4fe7daa28beab78dacb
+current_v25_b3_opening_release_root_sha256=28fd53dd1d04f87b80fc032ebb3c67038c6581c363baafb09a03ab5f64ef7754
+current_v25_b3_failure_root_sha256=a5250fc1c926973e89c50ebc05dae7e48749940a7cf348f9fcb8404fff034ecf
+current_v25_b3_failure_review_root_sha256=fb4a9ed1869f89a341ad3047dfe0902f7676d17398c9dd86645ef1a42a226e3e
+current_v25_holdout_identity_sha256=84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b
+current_v25_experiment_protocol_sha256=686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e
+current_v25_fresh_b2_terminal_state=terminal_failure
+current_v25_fresh_b2_complete_paired_row_count=0
+current_v25_fresh_b2_pooling_allowed=false
+current_v25_fresh_b3_terminal_state=terminal_failure
+current_v25_fresh_b3_open_authorized=false
+current_v25_fresh_b3_nonce_created=true_consumed_once
+current_v25_fresh_b3_opened=true_terminal_failure
+current_v25_fresh_b3_planned_arm_run_count=1500
+current_v25_fresh_b3_attempted_arm_run_count=1
+current_v25_fresh_b3_complete_arm_run_count=0
+current_v25_fresh_b3_unattempted_arm_run_count=1499
+current_v25_fresh_b3_complete_paired_row_count=0
+current_v25_fresh_b3_full_denominator_formed=false
+current_v25_fresh_b3_outcome_fields_consumed=[]
+current_v25_fresh_b3_resume_allowed=false
+current_v25_fresh_b3_new_nonce_allowed=false
+current_v25_fresh_b3_suffix_allowed=false
+current_v25_fresh_b3_evaluation_authorized=false
+current_v25_fresh_b3_claim_authorized=false
+current_v25_b4_cas_created=false
+current_v25_b4_nonce_created=false
+current_v25_b4_opened=false
+current_v25_b4_outcome_fields_consumed=[]
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=103276781568
+current_v25_phase=fresh_b3_consumed_failure_closed_b4_engineering_recovery
+next_work_target=fresh_b4_actual_native_receipt_contract_and_preopen_authority
