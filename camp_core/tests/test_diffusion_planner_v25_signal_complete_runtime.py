@@ -135,17 +135,19 @@ def test_runtime_case_rejects_bad_seed_types(tmp_path: Path) -> None:
         build_signal_complete_runtime_case(identity, map_artifact=map_root, seeds=[True])
 
 
+@pytest.mark.parametrize("split", ("fresh_b2", "fresh_b3"))
 def test_fresh_naturalistic_identity_has_no_scripted_actors_or_future_signal(
-    tmp_path: Path,
+    tmp_path: Path, split: str
 ) -> None:
-    map_root, _suite = _materialize_maps(tmp_path, "fresh_b2")
-    plan = build_signal_complete_execution_plan("fresh_b2")
+    map_root, _suite = _materialize_maps(tmp_path, split)
+    plan = build_signal_complete_execution_plan(split)
     identity = next(
         row for row in plan["identities"] if row["benchmark_stratum"] == "naturalistic"
     )
     result = build_signal_complete_runtime_case(
         identity, map_artifact=map_root, seeds=plan["seeds"]
     )
+    assert result["case"]["split"] == split
     assert result["case"]["family"] == "naturalistic_background"
     assert result["case"]["tier"] == "naturalistic"
     assert result["case"]["actors"] == []

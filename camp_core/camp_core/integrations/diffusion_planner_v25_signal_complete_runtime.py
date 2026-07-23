@@ -233,7 +233,7 @@ def _validate_naturalistic_background_case(case: Mapping[str, Any]) -> None:
     if case.get("schema_version") != CONTROLLED_CASE_SCHEMA_VERSION:
         raise ValueError("naturalistic background schema mismatch")
     if (
-        case.get("split") != "fresh_b2"
+        case.get("split") not in {"fresh_b2", "fresh_b3"}
         or case.get("family") != NATURALISTIC_SCENARIO_FAMILY
         or case.get("tier") != NATURALISTIC_TIER
         or case.get("actors") != []
