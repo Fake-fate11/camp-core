@@ -14,6 +14,7 @@ model, threshold, NI, multiplicity, evaluation, or claim contracts.
 | B4-RC-006 | P1 | A renamed source family can be mistaken for independent provenance | Record common generator provenance; prove independence using geometry/export/semantic clone hashes | implementation and local regression complete; B4 pre-open review pending |
 | B4-RC-007 | P1 | Native field access can outgrow the ABI without a failing test | Static consumer inventory plus required/extra/type/shape/cross-branch mutations | implementation and local ABI regression complete; AutoDL suite pending |
 | B4-RC-008 | P1 | Raw receipt or tensor evidence can be lost before projection failure | Persist and seal raw/preprojection evidence before comparison/projection | implementation and independent mutation regression complete; production canary pending |
+| B4-RC-009 | P1 | Independently selected real signal branches can share one route identity and violate the route-asset denominator | Select the lexicographically first route-distinct real fixture combination and reject an unavailable combination | implementation and focused regression pending |
 
 The production-equivalence certificate is created only after all critical
 implementation work is complete.  After the certificate, critical code is

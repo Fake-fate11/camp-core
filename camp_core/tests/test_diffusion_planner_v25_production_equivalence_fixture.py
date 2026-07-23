@@ -135,6 +135,79 @@ def test_actual_nonfresh_fixture_covers_three_real_signal_branches(
     assert suite["fresh_identity_cas_created"] is False
 
 
+def test_actual_nonfresh_fixture_selects_route_distinct_real_branches(
+    tmp_path,
+) -> None:
+    map_bytes = b"<osm version='0.6'></osm>\n"
+    map_sha = hashlib.sha256(map_bytes).hexdigest()
+    source_map = tmp_path / "source.osm"
+    source_map.write_bytes(map_bytes)
+    cases = [
+        _case(
+            index=0,
+            source_map=source_map,
+            map_sha=map_sha,
+            family="red_light_phase_timing",
+            tier="borderline",
+            traffic_light=True,
+        ),
+        _case(
+            index=0,
+            source_map=source_map,
+            map_sha=map_sha,
+            family="lead_vehicle_hard_brake",
+            tier="easy",
+            traffic_light=True,
+        ),
+        _case(
+            index=1,
+            source_map=source_map,
+            map_sha=map_sha,
+            family="lead_vehicle_hard_brake",
+            tier="easy",
+            traffic_light=True,
+        ),
+        _case(
+            index=2,
+            source_map=source_map,
+            map_sha=map_sha,
+            family="pedestrian_cyclist_crossing",
+            tier="high_risk",
+            traffic_light=False,
+        ),
+    ]
+    chains = [
+        _mapped_chain(cases[0]),
+        _mapped_chain(cases[1]),
+        _mapped_chain(cases[2]),
+        _no_signal_chain(cases[3]),
+    ]
+    selected = select_nonfresh_actual_native_fixtures(
+        formal_plan={
+            "schema_version": (
+                "camp_dp_v25_controlled_corpus_final_plan_v1"
+            ),
+            "train": cases,
+            "outcome_fields_consumed": [],
+        },
+        semantic_authority_chains={
+            "schema_version": (
+                "camp_dp_v25_full_r_semantic_authority_chains_v3"
+            ),
+            "identity_count": len(chains),
+            "chains_root_sha256": canonical_json_sha256(chains),
+            "chains": chains,
+        },
+    )
+    routes = [
+        row["case"]["route_identity_sha256"] for row in selected
+    ]
+    assert len(set(routes)) == 3
+    assert (
+        selected[1]["case"]["scenario_id"] == cases[2]["scenario_id"]
+    )
+
+
 @pytest.mark.parametrize(
     ("mutation", "message"),
     [

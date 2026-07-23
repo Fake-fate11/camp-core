@@ -102,7 +102,7 @@ def select_nonfresh_actual_native_fixtures(
                 "source_chain": validated,
             }
         )
-    selected: list[dict[str, Any]] = []
+    ordered: dict[str, list[dict[str, Any]]] = {}
     for scenario_class in NONFRESH_SCENARIO_CLASSES:
         rows = sorted(
             candidates[scenario_class],
@@ -112,8 +112,47 @@ def select_nonfresh_actual_native_fixtures(
             raise ValueError(
                 f"nonFresh fixture class is unavailable: {scenario_class}"
             )
-        selected.append(rows[0])
+        ordered[scenario_class] = rows
+
+    selected = _select_route_distinct_fixtures(
+        ordered=ordered,
+        scenario_classes=NONFRESH_SCENARIO_CLASSES,
+    )
+    if selected is None:
+        raise ValueError("nonFresh fixture classes lack route-distinct cases")
     return selected
+
+
+def _select_route_distinct_fixtures(
+    *,
+    ordered: Mapping[str, Sequence[dict[str, Any]]],
+    scenario_classes: Sequence[str],
+) -> list[dict[str, Any]] | None:
+    """Return the lexicographically first route-distinct branch fixture set."""
+
+    def visit(
+        index: int,
+        *,
+        seen_routes: set[str],
+        selected: list[dict[str, Any]],
+    ) -> list[dict[str, Any]] | None:
+        if index == len(scenario_classes):
+            return list(selected)
+        scenario_class = scenario_classes[index]
+        for row in ordered[scenario_class]:
+            route_identity = row["case"]["route_identity_sha256"]
+            if route_identity in seen_routes:
+                continue
+            found = visit(
+                index + 1,
+                seen_routes=seen_routes | {route_identity},
+                selected=[*selected, row],
+            )
+            if found is not None:
+                return found
+        return None
+
+    return visit(0, seen_routes=set(), selected=[])
 
 
 def build_nonfresh_production_equivalence_plan(
