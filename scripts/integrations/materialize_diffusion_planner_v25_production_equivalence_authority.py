@@ -156,11 +156,11 @@ def build(
         "fixed_dp_args": _file_asset(fixed_dp_args, "fixed DP args"),
         "probe_template": _file_asset(probe_template, "probe template"),
     }
-    formal_plan = _canonical_json(
+    formal_plan = _strict_external_json(
         Path(formal_source_artifact).resolve()
         / "controlled_corpus_final_plan.json"
     )
-    semantic_chains = _canonical_json(
+    semantic_chains = _strict_external_json(
         Path(corrected_full_corpus_artifact).resolve()
         / "semantic_authority_chains.json"
     )
@@ -359,6 +359,20 @@ def _canonical_json(path: Path) -> dict[str, Any]:
     )
     if type(value) is not dict or raw != _bytes(value):
         raise ValueError(f"noncanonical JSON: {path}")
+    return value
+
+
+def _strict_external_json(path: Path) -> dict[str, Any]:
+    raw = path.read_bytes()
+    value = json.loads(
+        raw.decode("utf-8", "strict"),
+        parse_constant=lambda token: (_ for _ in ()).throw(
+            ValueError(f"nonfinite JSON token: {token}")
+        ),
+        object_pairs_hook=_pairs,
+    )
+    if type(value) is not dict:
+        raise ValueError(f"external sealed JSON object required: {path}")
     return value
 
 

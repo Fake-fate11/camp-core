@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 
 import numpy as np
 import pytest
@@ -26,6 +27,9 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
 )
 from camp_core.integrations.diffusion_planner_v25_signal_complete_runtime import (
     build_signal_complete_scene_adapter,
+)
+from scripts.integrations.materialize_diffusion_planner_v25_production_equivalence_authority import (
+    _strict_external_json,
 )
 
 
@@ -198,6 +202,35 @@ def test_actual_nonfresh_fixture_rejects_missing_class_or_chain_drift(
             },
             semantic_authority_chains=payload,
         )
+
+
+def test_external_fixture_json_is_strict_but_not_camp_canonical(
+    tmp_path,
+) -> None:
+    path = tmp_path / "pretty.json"
+    path.write_text(
+        json.dumps({"rows": [1, 2, 3]}, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    assert _strict_external_json(path) == {"rows": [1, 2, 3]}
+
+
+@pytest.mark.parametrize(
+    "raw",
+    (
+        b'{"rows":[],"rows":[1]}\n',
+        b'{"rows":[NaN]}\n',
+        b'["not-an-object"]\n',
+        b'{"rows":["\xff"]}\n',
+    ),
+)
+def test_external_fixture_json_rejects_invalid_bytes(
+    tmp_path, raw: bytes
+) -> None:
+    path = tmp_path / "invalid.json"
+    path.write_bytes(raw)
+    with pytest.raises((UnicodeDecodeError, ValueError)):
+        _strict_external_json(path)
 
 
 def _case(
