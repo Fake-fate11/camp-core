@@ -114,6 +114,14 @@ def test_preopen_config_is_unopened_and_rejects_nonce_mutation() -> None:
         + "\n"
     ).encode("utf-8")
     assert PRODUCER._validate_config(value)["one_time_state"]["nonce_created"] is False
+    assert (
+        value["upstream_artifacts"]["corrected_corpus"]["root_sha256"]
+        == "97a361b2bbb3544e842c9b6d12b3c17b8f63982db3217e9e360643b0cd7b0ffd"
+    )
+    assert (
+        value["upstream_artifacts"]["corrected_corpus_review"]["root_sha256"]
+        == "548a5468e585bd39bfbb58ecfd4780e6c78ff88cddb7fef985532639d8dd2c4a"
+    )
     mutated = copy.deepcopy(value)
     mutated["one_time_state"]["nonce_created"] = True
     with pytest.raises(ValueError, match="closed-state"):
