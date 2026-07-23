@@ -1,16 +1,111 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-22, Asia/Shanghai.
+Last verified: 2026-07-23, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
 audits are historical evidence and remain frozen.
 
+## Current V25 Status — Fresh B3 Consolidated Pre-Open Passed
+
+Reader contract: this section is the only current V25 pointer source in this
+file. It must agree with the EOF tuple in
+`docs/diffusion_planner_v25_iteration_audit.md`.
+
+Fresh B2 is permanently closed as a consumed one-shot engineering failure. Its
+single candidate0 raw run produced zero complete paired rows and is excluded
+from evaluation, training, calibration, power, protocol changes, and B3
+selection. The sealed B2 closeout/review roots are
+`b2c545ff3afa77a3d2c5a7cb91735f9859f1a70286ca3404f2d680b5b6f12363`
+and `6d1d785cd452335cbce135eb4f1ecbf53edcf651a0191a07fe4d67b698d28367`;
+the permanent CAS tombstone identity is
+`d07fa8b17bdf00fecd70ccc02584920e38657a8502c74be46f3081ffdd95b606`.
+
+Fresh B3 is a new, non-overlapping confirmatory holdout. Its exact production-
+composition preflight remained immutable at root
+`6da4f89ea2d46513b02934ae08982e38204b177e68334add196f351874036089`.
+The corrected real-native independent reviewer passed at root
+`50284a2b5640a37dfcc7736db03461b0350c5eb09e3243ac0f23204d11fbde51`.
+The authoritative AutoDL focused suite passed 122 tests.
+
+The consolidated outcome-blind B3 pre-open authority and its independent
+review passed and strictly reopened:
+
+- authority:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_authority_39c678e6_20260723TcontractCST`,
+  root
+  `459790427cf394e1e31601f839d4e8834adf9997684d7cf3c094065e32fbf6b8`;
+- review:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_review_39c678e6_20260723TcontractCST`,
+  root
+  `1b6c70b2570ba8acf07c9b6e2a5991c5457acf618287c7d94e06d810d5385858`.
+
+The B3 identity is
+`84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b`;
+the unchanged experiment protocol is
+`686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e`.
+The authority freezes 25 project-authored maps, 100 intersections/corridors/
+routes/semantic blocks, five seeds, 500 paired units, 1,500 balanced arm runs,
+and 96,000 ticks. Train/calibration/B1/B2/B3 clone-aware zero overlap passed;
+all 100 static signal chains qualified, while same-tick runtime receipts and
+actual fixed-K8 support remain fail-closed execution checks.
+
+The critical implementation manifest is
+`3223a54af9d6c4ba55080a653a7226a75ebc8f79bcc07387a6a144326f29a021`.
+The projected total increment is `69,991,287,914` bytes; pre-open free space
+was `103,338,287,104` bytes, leaving `33,346,999,190` bytes projected free and
+`22,609,580,950` bytes beyond the 10 GiB floor. No B3 CAS record, nonce,
+marker, opening, execution/evaluation directory, DP forward, or outcome read
+exists. Fresh B3 is not authorized until Ultra issues a separate one-time
+opening decision.
+
+current_v25_status=v25_fresh_b3_consolidated_preopen_and_independent_review_passed_opening_not_authorized
+current_v25_source_head=39c678e64759b60541184034282cbbe0c980a05c
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_authority_39c678e6_20260723TcontractCST
+current_v25_artifact_root_sha256=459790427cf394e1e31601f839d4e8834adf9997684d7cf3c094065e32fbf6b8
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_review_39c678e6_20260723TcontractCST
+current_v25_review_artifact_root_sha256=1b6c70b2570ba8acf07c9b6e2a5991c5457acf618287c7d94e06d810d5385858
+current_v25_b3_production_preflight_root_sha256=6da4f89ea2d46513b02934ae08982e38204b177e68334add196f351874036089
+current_v25_b3_production_preflight_review_root_sha256=50284a2b5640a37dfcc7736db03461b0350c5eb09e3243ac0f23204d11fbde51
+current_v25_holdout_identity_sha256=84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b
+current_v25_experiment_protocol_sha256=686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e
+current_v25_critical_implementation_manifest_sha256=3223a54af9d6c4ba55080a653a7226a75ebc8f79bcc07387a6a144326f29a021
+current_v25_fresh_b3_map_count=25
+current_v25_fresh_b3_intersection_count=100
+current_v25_fresh_b3_corridor_count=100
+current_v25_fresh_b3_route_count=100
+current_v25_fresh_b3_semantic_block_count=100
+current_v25_fresh_b3_seed_count=5
+current_v25_fresh_b3_paired_unit_count=500
+current_v25_fresh_b3_arm_run_count=1500
+current_v25_fresh_b3_tick_capacity=96000
+current_v25_fresh_b3_zero_overlap_status=passed
+current_v25_fresh_b3_static_signal_chain_qualified_count=100
+current_v25_fresh_b3_projected_increment_bytes=69991287914
+current_v25_fresh_b3_projected_free_after_bytes=33346999190
+current_v25_fresh_b3_reserve_beyond_10gib_floor_bytes=22609580950
+current_v25_fresh_b2_terminal_state=terminal_failure
+current_v25_fresh_b2_complete_paired_row_count=0
+current_v25_fresh_b2_pooling_allowed=false
+current_v25_fresh_b3_open_authorized=false
+current_v25_fresh_b3_nonce_created=false
+current_v25_fresh_b3_opened=false
+current_v25_fresh_b3_outcome_fields_consumed=[]
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=103334260736
+current_v25_phase=fresh_b3_consolidated_preopen_review_passed
+next_work_target=ultra_read_only_fresh_b3_one_time_opening_review
+
 ## Historical V25 Status Through A1.6.11
 
-Reader contract: this named section is the only V25 pointer source in this
-file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole
-current-gate authority, and the tuple below must match it exactly.
+This section is historical narrative only. The Current V25 section above and
+the EOF of `docs/diffusion_planner_v25_iteration_audit.md` are the current-gate
+authority.
 
 The stopped 1,500-identity attempt remains the rejected corpus authority: 122
 attempted, 121 complete, one failed, 7,748 snapshots, four illegal partial
@@ -762,7 +857,7 @@ observed_autodl_free_bytes=46844665856
 current_v25_phase=A1_6_11_R3_bounded_execution_failed_closed_after_nonce_consumption_before_independent_review
 next_work_target=ultra_read_only_A1_6_11_R3_failed_bounded_execution_result_review_and_decision
 
-## Current V25 Status
+## Historical V25 Calibration-to-B2 Status
 
 Reader contract: this named section is the only V25 pointer source in this
 file. The EOF of `docs/diffusion_planner_v25_iteration_audit.md` is the sole

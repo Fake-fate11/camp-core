@@ -5564,3 +5564,155 @@ observed_autodl_free_bytes=103441956864
 current_v25_full_corpus_storage_root=/root/autodl-tmp
 current_v25_phase=fresh_b2_failed_closed_after_nonce_consumption_before_first_complete_row_and_independent_review
 next_work_target=ultra_read_only_fresh_b2_consumed_nonce_failure_closeout_decision
+
+## Fresh B3 Normative Contract, Production Preflight, and Consolidated Pre-Open
+
+Fresh B2 remains a permanently consumed one-shot engineering failure. It
+contains one candidate0 raw run, zero complete paired rows, and no valid Fresh
+comparison. Its raw outcome values were not used to choose B3 maps, power,
+models, thresholds, margins, or rules. The sealed closeout/review roots are
+`b2c545ff3afa77a3d2c5a7cb91735f9859f1a70286ca3404f2d680b5b6f12363`
+and `6d1d785cd452335cbce135eb4f1ecbf53edcf651a0191a07fe4d67b698d28367`.
+The permanent CAS tombstone identity
+`d07fa8b17bdf00fecd70ccc02584920e38657a8502c74be46f3081ffdd95b606`
+forbids a second B2 opening under another nonce, directory, HEAD, or package.
+
+The versioned B3 contract separates holdout identity, experiment protocol,
+online operational latency, supplementary evidence latency, and total runtime.
+Candidate0 remains the action-equivalent operational default/first default
+output alias and is never called native-ranked Top1. Same-forward claims bind
+the execution ID plus input/model/action digests. Artifact-integrity failures
+remain fatal rather than scientific terminal rows, and the same exclusive
+terminal registry is used by executor, receipt, reviewer, and evaluator.
+
+The real non-Fresh production-composition producer is immutable:
+
+- artifact:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_production_preflight_c326d1d2_20260723TcontractCST`;
+- root:
+  `6da4f89ea2d46513b02934ae08982e38204b177e68334add196f351874036089`;
+- denominator:
+  one paired unit, three balanced arms, 64 ticks per arm, 192 ticks total;
+- Fresh state:
+  unopened, no outcome fields consumed.
+
+The initial independent review correctly failed because it applied the
+synthetic callback oracle to real native callbacks. The reviewer-only
+implementation added a real-native independent oracle. Its first AutoDL test
+batch exposed two test-fixture defects: an undefined latency helper and a
+synthetic model digest passed to the real-native oracle. Commit
+`e20cddc4bd76d2e8c116051af405269069bb9f45` changed only that dedicated test
+fixture. The frozen suite then passed `115` tests. The producer was not rerun.
+Its unique corrected independent review is:
+
+- artifact:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_production_preflight_review_e20cddc4_20260723TproductionReviewCST`;
+- root:
+  `50284a2b5640a37dfcc7736db03461b0350c5eb09e3243ac0f23204d11fbde51`;
+- status:
+  `passed_independent_fresh_b3_production_preflight_review`;
+- run.exit:
+  `0`.
+
+The first consolidated B3 pre-open materialization then failed closed before
+opening because the naturalistic runtime validator still enumerated only
+`fresh_b2`, even though the planned B3 identities correctly use split
+`fresh_b3`. The failed directory remains immutable and was not reused. Commit
+`39c678e64759b60541184034282cbbe0c980a05c` only admits the two exact Fresh
+split values in that validator and adds a B2/B3 parametrized regression; it
+does not change maps, scenarios, seeds, models, DP/K8, atoms, margins, or the
+execution plan. The expanded AutoDL focused suite passed `122` tests.
+
+Under that implementation HEAD, the consolidated outcome-blind B3 pre-open
+authority and its sole independent review passed and strictly reopened:
+
+- authority:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_authority_39c678e6_20260723TcontractCST`,
+  root
+  `459790427cf394e1e31601f839d4e8834adf9997684d7cf3c094065e32fbf6b8`;
+- review:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_review_39c678e6_20260723TcontractCST`,
+  root
+  `1b6c70b2570ba8acf07c9b6e2a5991c5457acf618287c7d94e06d810d5385858`;
+- authority/review run.exit:
+  `0 / 0`;
+- holdout identity:
+  `84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b`;
+- experiment protocol:
+  `686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e`;
+- critical implementation manifest:
+  `3223a54af9d6c4ba55080a653a7226a75ebc8f79bcc07387a6a144326f29a021`.
+
+The B3 materialization freezes 25 project-authored maps, 100 intersections,
+100 corridors, 100 routes, 100 ID-free semantic blocks, five seeds, 500 paired
+units, 1,500 balanced runs, and 96,000 ticks. All 100 static regulatory chains
+are qualified. Explicit coverage contains 4 dilemma-zone, 7 occlusion, 21
+lead-stop, and 21 prospective all-K-bad-eligible route rows; controlled phase
+fixtures contain 4 green, 4 yellow, and 3 red rows. Runtime same-tick phase
+receipts and actual fixed-K8 support remain fail-closed execution checks.
+
+Clone-aware train/calibration/B1/B2/B3 zero overlap passed across map geometry/
+export clone, intersection, corridor, route identity/family, ID-free semantic
+source clone, and seed namespace. The receipt covers 1,750 split rows:
+1,500 train, 50 calibration, 100 B2, and 100 B3. B2 raw outcomes were not
+consumed and its zero complete paired rows were not pooled.
+
+Prospective power remains frozen at the real 100-corridor ceiling; seeds and
+ticks do not increase independent sample size. The total-SafetyCost
+normal-approximation MDE is `1.3133359826295432` for Static14D and
+`1.568981097623786` for Scene14D; Scene underpower risk remains disclosed.
+The claim scope is the project-authored controlled fixed-DP K8 benchmark only.
+
+The projected total artifact increment is unchanged at `69,991,287,914`
+bytes. Pre-open free space was `103,338,287,104` bytes, leaving
+`33,346,999,190` bytes projected free and `22,609,580,950` bytes beyond the
+10 GiB floor. Final read-only control state was CAMP/AutoDL clean at
+`39c678e64759b60541184034282cbbe0c980a05c`, fixed DP clean at
+`7a1d33da277a1992ec474b5383a0c963c72e04e4`, worker/GPU zero, lock free,
+and `103,334,260,736` free bytes.
+
+No B3 CAS record, nonce, marker, opening, execution/evaluation directory,
+model load, DP/K8 forward, or outcome read exists. This package authorizes
+nothing beyond Ultra's read-only B3 one-time-opening decision.
+
+current_v25_status=v25_fresh_b3_consolidated_preopen_and_independent_review_passed_opening_not_authorized
+current_v25_source_head=39c678e64759b60541184034282cbbe0c980a05c
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_authority_39c678e6_20260723TcontractCST
+current_v25_artifact_root_sha256=459790427cf394e1e31601f839d4e8834adf9997684d7cf3c094065e32fbf6b8
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_preopen_review_39c678e6_20260723TcontractCST
+current_v25_review_artifact_root_sha256=1b6c70b2570ba8acf07c9b6e2a5991c5457acf618287c7d94e06d810d5385858
+current_v25_b3_production_preflight_root_sha256=6da4f89ea2d46513b02934ae08982e38204b177e68334add196f351874036089
+current_v25_b3_production_preflight_review_root_sha256=50284a2b5640a37dfcc7736db03461b0350c5eb09e3243ac0f23204d11fbde51
+current_v25_holdout_identity_sha256=84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b
+current_v25_experiment_protocol_sha256=686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e
+current_v25_critical_implementation_manifest_sha256=3223a54af9d6c4ba55080a653a7226a75ebc8f79bcc07387a6a144326f29a021
+current_v25_fresh_b3_map_count=25
+current_v25_fresh_b3_intersection_count=100
+current_v25_fresh_b3_corridor_count=100
+current_v25_fresh_b3_route_count=100
+current_v25_fresh_b3_semantic_block_count=100
+current_v25_fresh_b3_seed_count=5
+current_v25_fresh_b3_paired_unit_count=500
+current_v25_fresh_b3_arm_run_count=1500
+current_v25_fresh_b3_tick_capacity=96000
+current_v25_fresh_b3_static_signal_chain_qualified_count=100
+current_v25_fresh_b3_zero_overlap_status=passed
+current_v25_fresh_b3_projected_increment_bytes=69991287914
+current_v25_fresh_b3_projected_free_after_bytes=33346999190
+current_v25_fresh_b3_reserve_beyond_10gib_floor_bytes=22609580950
+current_v25_fresh_b2_terminal_state=terminal_failure
+current_v25_fresh_b2_complete_paired_row_count=0
+current_v25_fresh_b2_pooling_allowed=false
+current_v25_fresh_b3_open_authorized=false
+current_v25_fresh_b3_nonce_created=false
+current_v25_fresh_b3_opened=false
+current_v25_fresh_b3_outcome_fields_consumed=[]
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=103334260736
+current_v25_phase=fresh_b3_consolidated_preopen_review_passed
+next_work_target=ultra_read_only_fresh_b3_one_time_opening_review
