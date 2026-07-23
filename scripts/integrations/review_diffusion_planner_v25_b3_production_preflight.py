@@ -192,11 +192,18 @@ def review(
         / "candidate0_supplementary"
         / "native_receipt.json"
     )
+    decision_evidence = {
+        arm: _canonical_value(
+            source / "runs" / arm / "decision_evidence.json"
+        )
+        for arm in ("candidate0", "static14d", "scene14d")
+    }
     _review_actual_native_composition(
         payload=payload,
         configs=configs,
         primary=primary,
         diagnostic=diagnostic,
+        decision_evidence=decision_evidence,
     )
     independent = _independent_review(
         payload, source_root_sha256=source_root_sha256
@@ -256,11 +263,18 @@ def _review_actual_native_composition(
     configs: dict[str, dict[str, Any]],
     primary: dict[str, dict[str, Any]],
     diagnostic: dict[str, Any],
+    decision_evidence: dict[str, Any],
 ) -> None:
     diagnostic_ticks = _ticks(diagnostic, "candidate0 supplementary")
     for arm in ("candidate0", "static14d", "scene14d"):
         ticks = _ticks(primary[arm], arm)
         config = configs[arm]
+        _review_decision_evidence(
+            arm=arm,
+            config=config,
+            ticks=ticks,
+            evidence=decision_evidence[arm],
+        )
         model_sha = canonical_sha256(
             {
                 "fixed_dp_head": config["fixed_dp"]["head"],
@@ -357,6 +371,53 @@ def _review_actual_native_composition(
                 raise ValueError("Scene14D latency matrix drifted")
 
 
+def _review_decision_evidence(
+    *,
+    arm: str,
+    config: dict[str, Any],
+    ticks: list[dict[str, Any]],
+    evidence: Any,
+) -> None:
+    if type(evidence) is not list:
+        raise ValueError(f"{arm} decision evidence must be a native list")
+    if arm == "candidate0":
+        if evidence != []:
+            raise ValueError("candidate0 primary action carried CAMP evidence")
+        return
+    sample_every = config["protocol"].get("sample_every_ticks", 5)
+    expected_indices = list(range(0, 64, sample_every))
+    if len(evidence) != len(expected_indices):
+        raise ValueError(f"{arm} decision evidence denominator drifted")
+    for snapshot, tick_index in zip(
+        evidence, expected_indices, strict=True
+    ):
+        if type(snapshot) is not dict:
+            raise ValueError(f"{arm} decision snapshot type drifted")
+        sidecar = snapshot.get("sidecar")
+        if type(sidecar) is not dict:
+            raise ValueError(f"{arm} decision snapshot sidecar is missing")
+        native = ticks[tick_index]
+        exact = {
+            "tick_index": tick_index,
+            "default_output_sha256": native["default_output_sha256"],
+            "candidate_tensor_sha256_before": native[
+                "candidate_tensor_sha256_before"
+            ],
+            "candidate_tensor_sha256_after": native[
+                "candidate_tensor_sha256_after"
+            ],
+            "selected_index": native["selected_index"],
+            "selected_trajectory_sha256": native[
+                "selected_trajectory_sha256"
+            ],
+            "causal_input_sha256": native["input_sha256"],
+        }
+        if any(sidecar.get(name) != expected for name, expected in exact.items()):
+            raise ValueError(
+                f"{arm} decision snapshot/native receipt drifted"
+            )
+
+
 def _ticks(receipt: dict[str, Any], label: str) -> list[dict[str, Any]]:
     if (
         receipt.get("status") != "ok"
@@ -389,6 +450,32 @@ def _canonical_object(path: Path) -> dict[str, Any]:
     if type(value) is not dict or raw != canonical_json_bytes(value):
         raise ValueError(f"authority JSON is not canonical: {path}")
     return value
+
+
+def _canonical_value(path: Path) -> Any:
+    raw = path.read_bytes()
+    value = _parse_json(raw, path)
+    if raw != canonical_json_bytes(value):
+        raise ValueError(f"authority JSON is not canonical: {path}")
+    return value
+
+
+def _parse_json(raw: bytes, path: Path) -> Any:
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError(f"duplicate JSON key in {path}: {key}")
+            result[key] = value
+        return result
+
+    return json.loads(
+        raw.decode("utf-8", "strict"),
+        object_pairs_hook=pairs,
+        parse_constant=lambda token: (_ for _ in ()).throw(
+            ValueError(f"nonfinite JSON token in {path}: {token}")
+        ),
+    )
 
 
 def _git_head() -> str:

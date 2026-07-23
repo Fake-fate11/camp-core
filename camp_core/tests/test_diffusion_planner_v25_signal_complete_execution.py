@@ -35,6 +35,7 @@ from scripts.integrations.freeze_diffusion_planner_v25_holdout_production_prefli
     build_artifact as build_holdout_preflight_artifact,
 )
 from scripts.integrations.freeze_diffusion_planner_v25_b3_production_preflight import (
+    _expected_decision_evidence_count,
     _fixture_execution_unit,
     _fresh_runtime_selector_authority,
 )
@@ -316,6 +317,29 @@ def test_b3_preflight_projects_exact_paired_unit_from_calibration_config(
         "unit_sha256",
     }
     assert all(projected[name] == plan[name] for name in projected)
+
+
+def test_b3_preflight_uses_native_decision_sampling_cadence(
+    tmp_path: Path,
+) -> None:
+    identity, protocol = _holdout_identity_and_protocol()
+    candidate0 = freeze_holdout_arm_config_from_legacy(
+        legacy_config=_fresh_config(
+            tmp_path / "candidate0",
+            "candidate0_operational_default",
+        ),
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+    )
+    static = freeze_holdout_arm_config_from_legacy(
+        legacy_config=_fresh_config(
+            tmp_path / "static", "camp_static14d"
+        ),
+        holdout_identity=identity,
+        experiment_protocol=protocol,
+    )
+    assert _expected_decision_evidence_count(candidate0) == 0
+    assert _expected_decision_evidence_count(static) == 13
 
 
 def test_exact_production_preflight_runs_three_real_configs_and_callback(

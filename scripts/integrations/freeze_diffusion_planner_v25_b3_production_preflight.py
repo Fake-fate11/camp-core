@@ -191,7 +191,9 @@ def build(
                     ),
                 )
             )
-            expected_snapshots = 0 if arm == "candidate0" else 64
+            expected_snapshots = _expected_decision_evidence_count(
+                configs[arm]
+            )
             if len(snapshots) != expected_snapshots:
                 raise ValueError(
                     f"{plan_arm} production preflight snapshot count drifted"
@@ -398,6 +400,24 @@ def _fixture_execution_unit(
     if any(name not in plan for name in fields):
         raise ValueError("calibration fixture paired-unit authority drifted")
     return {name: plan[name] for name in fields}
+
+
+def _expected_decision_evidence_count(
+    config: Mapping[str, Any],
+) -> int:
+    protocol = config.get("protocol")
+    if type(protocol) is not dict:
+        raise ValueError("production preflight protocol is missing")
+    if protocol.get("holdout_opening_arm") == "candidate0":
+        return 0
+    sample_every = protocol.get("sample_every_ticks", 5)
+    if (
+        type(sample_every) is not int
+        or type(sample_every) is bool
+        or sample_every <= 0
+    ):
+        raise ValueError("production decision sampling cadence drifted")
+    return len(range(0, 64, sample_every))
 
 
 def _binding(
