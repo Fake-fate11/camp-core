@@ -120,7 +120,7 @@ def _inputs(*, safety_claim: bool = False) -> dict:
             "fresh_b2_opened": False,
         },
         "calibration_contract": {
-            "schema_version": "camp_dp_v25_calibration_freeze_v1",
+            "schema_version": "camp_dp_v25_calibration_freeze_v2",
             "status": "calibration_freeze_passed",
             "fresh_b2_opened": False,
             "one_time_opening_release_required": True,

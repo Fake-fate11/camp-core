@@ -48,6 +48,9 @@ EXPECTED_COUNTS = {
 }
 TRACKED_AUTHORITY_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_atom_mechanism.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_calibration.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_calibration_artifact.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_calibration_corpus.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_final_delivery.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_b2.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_coverage.py",
@@ -57,6 +60,7 @@ TRACKED_AUTHORITY_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_preopen_authority.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_receipt.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_fresh_storage.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_paired_calibration.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_signal_complete_execution.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_signal_complete_maps.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_signal_complete_plan.py",
@@ -69,6 +73,7 @@ TRACKED_AUTHORITY_FILES = (
     "configs/integrations/diffusion_planner_v25_fresh_b2_preregistration_draft_v1.json",
     "scripts/integrations/build_diffusion_planner_v25_final_evidence.py",
     "scripts/integrations/freeze_diffusion_planner_v25_atom_mechanism.py",
+    "scripts/integrations/freeze_diffusion_planner_v25_calibration_from_paired.py",
     "scripts/integrations/evaluate_diffusion_planner_v25_fresh_b2.py",
     "scripts/integrations/freeze_diffusion_planner_v25_fresh_b2_preopen.py",
     "scripts/integrations/materialize_diffusion_planner_v25_signal_complete_maps.py",
@@ -78,6 +83,7 @@ TRACKED_AUTHORITY_FILES = (
     "scripts/integrations/qualify_diffusion_planner_v25_signal_complete_runtime.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_b2_evaluation.py",
     "scripts/integrations/review_diffusion_planner_v25_atom_mechanism.py",
+    "scripts/integrations/review_diffusion_planner_v25_calibration_from_paired.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_b2_execution.py",
     "scripts/integrations/review_diffusion_planner_v25_fresh_b2_preopen.py",
     "scripts/integrations/review_diffusion_planner_v25_final_evidence.py",

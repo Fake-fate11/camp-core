@@ -35,6 +35,9 @@ from camp_core.integrations.diffusion_planner_v25_atom_mechanism import (  # noq
     mechanism_names,
     validate_atom_mechanism_binding,
 )
+from camp_core.integrations.diffusion_planner_v25_calibration_artifact import (  # noqa: E402
+    validate_calibration_freeze_payload,
+)
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (  # noqa: E402
     build_signal_complete_suite,
     validate_signal_complete_suite,
@@ -72,6 +75,10 @@ def build(
     atom_mechanism_root_sha256: str,
     atom_mechanism_review_artifact: Path,
     atom_mechanism_review_root_sha256: str,
+    calibration_freeze_artifact: Path,
+    calibration_freeze_root_sha256: str,
+    calibration_freeze_review_artifact: Path,
+    calibration_freeze_review_root_sha256: str,
     output_dir: Path,
 ) -> str:
     if _tracked_dirty():
@@ -94,6 +101,13 @@ def build(
         review_artifact=atom_mechanism_review_artifact,
         review_root_sha256=atom_mechanism_review_root_sha256,
     )
+    calibration_freeze = _open_calibration_freeze(
+        artifact=calibration_freeze_artifact,
+        root_sha256=calibration_freeze_root_sha256,
+        review_artifact=calibration_freeze_review_artifact,
+        review_root_sha256=calibration_freeze_review_root_sha256,
+    )
+    upstream["bindings"].update(calibration_freeze["bindings"])
     suite = build_signal_complete_suite("fresh_b2")
     plan = build_signal_complete_execution_plan("fresh_b2")
     output.mkdir(parents=True)
@@ -162,6 +176,21 @@ def build(
                 "path": str(atom_mechanism_review_artifact.resolve()),
                 "root_sha256": atom_mechanism_review_root_sha256,
             },
+            "calibration_freeze_artifact": {
+                "path": str(calibration_freeze_artifact.resolve()),
+                "root_sha256": calibration_freeze_root_sha256,
+            },
+            "calibration_freeze_review_artifact": {
+                "path": str(calibration_freeze_review_artifact.resolve()),
+                "root_sha256": calibration_freeze_review_root_sha256,
+            },
+            "calibration_freeze_status": calibration_freeze["payload"]["status"],
+            "calibration_repeatability_status": calibration_freeze["payload"][
+                "noninferiority_resolvability"
+            ]["repeatability_status"],
+            "calibration_exact_duplicate_group_count": calibration_freeze["payload"][
+                "noninferiority_resolvability"
+            ]["exact_duplicate_group_count"],
             "preopen_authority_sha256": _sha256(output / "preopen_authority.json"),
             "map_suite_sha256": _sha256(output / "fresh_b2_map_suite.json"),
             "execution_plan_sha256": _sha256(output / "fresh_b2_execution_plan.json"),
@@ -352,6 +381,72 @@ def _open_atom_mechanism(
     )
 
 
+def _open_calibration_freeze(
+    *,
+    artifact: Path,
+    root_sha256: str,
+    review_artifact: Path,
+    review_root_sha256: str,
+) -> dict[str, Any]:
+    source = artifact.resolve()
+    independent_review = review_artifact.resolve()
+    verify_bound_artifact(source, root_sha256, exit_code=0)
+    verify_bound_artifact(independent_review, review_root_sha256, exit_code=0)
+    payload = validate_calibration_freeze_payload(
+        _canonical_json(source / "calibration_freeze.json")
+    )
+    report = _canonical_json(source / "report.json")
+    review = _canonical_json(independent_review / "report.json")
+    resolution = payload["noninferiority_resolvability"]
+    contract = payload["calibration_contract"]
+    if (
+        payload["status"] != "calibration_freeze_passed"
+        or contract["fresh_preopen_qualification_allowed"] is not True
+        or resolution["repeatability_status"]
+        != "not_estimable_no_exact_candidate0_duplicates"
+        or resolution["exact_duplicate_group_count"] != 0
+        or resolution["repeatability_gate_blocks_fresh"] is not False
+        or resolution["heterogeneity_diagnostic_only"] is not True
+        or resolution["heterogeneity_may_not_gate_fresh"] is not True
+        or report.get("status") != "calibration_freeze_passed"
+        or report.get("repeatability_status")
+        != "not_estimable_no_exact_candidate0_duplicates"
+        or report.get("exact_duplicate_repeatability_group_count") != 0
+        or report.get("repeatability_gate_blocks_fresh") is not False
+        or report.get("fresh_b2_opened") is not False
+        or report.get("fresh_open_authorized") is not False
+        or report.get("fresh_outcome_fields_consumed") != []
+        or review.get("status")
+        != "passed_independent_calibration_freeze_from_paired_review"
+        or review.get("reviewed_root_sha256") != root_sha256
+        or review.get("calibration_status") != "calibration_freeze_passed"
+        or review.get("fresh_preopen_qualification_allowed") is not True
+        or review.get("repeatability_status")
+        != "not_estimable_no_exact_candidate0_duplicates"
+        or review.get("exact_duplicate_repeatability_group_count") != 0
+        or review.get("repeatability_gate_blocks_fresh") is not False
+        or review.get("margin_enlargement_authorized") is not False
+        or review.get("model_or_threshold_changed") is not False
+        or review.get("fresh_b2_opened") is not False
+        or review.get("fresh_open_authorized") is not False
+        or review.get("fresh_outcome_fields_consumed") != []
+    ):
+        raise ValueError("Fresh B2 accepted calibration freeze chain drifted")
+    return {
+        "payload": payload,
+        "bindings": {
+            "calibration_freeze": {
+                "path": str(source),
+                "root_sha256": root_sha256,
+            },
+            "calibration_freeze_review": {
+                "path": str(independent_review),
+                "root_sha256": review_root_sha256,
+            },
+        },
+    }
+
+
 def _validate_config(value: Mapping[str, Any]) -> dict[str, Any]:
     if type(value) is not dict or value.get("schema_version") != CONFIG_SCHEMA_VERSION:
         raise ValueError("Fresh B2 pre-open config schema drifted")
@@ -467,6 +562,12 @@ def main() -> None:
     parser.add_argument("--atom-mechanism-root-sha256", required=True)
     parser.add_argument("--atom-mechanism-review-artifact", type=Path, required=True)
     parser.add_argument("--atom-mechanism-review-root-sha256", required=True)
+    parser.add_argument("--calibration-freeze-artifact", type=Path, required=True)
+    parser.add_argument("--calibration-freeze-root-sha256", required=True)
+    parser.add_argument(
+        "--calibration-freeze-review-artifact", type=Path, required=True
+    )
+    parser.add_argument("--calibration-freeze-review-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     root = build(
@@ -479,6 +580,12 @@ def main() -> None:
         atom_mechanism_root_sha256=args.atom_mechanism_root_sha256,
         atom_mechanism_review_artifact=args.atom_mechanism_review_artifact,
         atom_mechanism_review_root_sha256=args.atom_mechanism_review_root_sha256,
+        calibration_freeze_artifact=args.calibration_freeze_artifact,
+        calibration_freeze_root_sha256=args.calibration_freeze_root_sha256,
+        calibration_freeze_review_artifact=args.calibration_freeze_review_artifact,
+        calibration_freeze_review_root_sha256=(
+            args.calibration_freeze_review_root_sha256
+        ),
         output_dir=args.output_dir,
     )
     print(json.dumps({"status": "sealed", "root_sha256": root}, sort_keys=True))

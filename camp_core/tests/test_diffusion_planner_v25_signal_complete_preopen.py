@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -71,18 +72,39 @@ def _train_row() -> dict:
 
 def _eligible_calibration_contract() -> dict:
     performance = {name: 0.0 for name in NONINFERIORITY_METRICS}
-    rows = [
-        {
-            "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v1",
-            "arm": "candidate0_operational_default",
-            "cluster_id": f"calibration-corridor-{index % 50:02d}",
-            "measurement_sha256": f"{index + 1:064x}",
-            "performance": dict(performance),
-            "fresh_b2_opened": False,
-            "fresh_outcome_fields_consumed": [],
+    rows = []
+    for index in range(100):
+        identity = {
+            "schema_version": "camp_dp_v25_exact_candidate0_repeatability_identity_v1",
+            "route_identity_sha256": f"{index + 1000:064x}",
+            "scenario_identity_sha256": f"{index + 2000:064x}",
+            "semantic_parameter_block_sha256": f"{index + 3000:064x}",
+            "scenario_seed": 25001 + index,
+            "spawn_config_sha256": f"{index + 4000:064x}",
+            "initial_state_sha256": f"{index + 5000:064x}",
+            "initial_input_sha256": f"{index + 6000:064x}",
+            "same_initial_state_and_exogenous_schedule_per_pair": True,
         }
-        for index in range(100)
-    ]
+        identity_sha = hashlib.sha256(
+            (
+                json.dumps(identity, sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode()
+        ).hexdigest()
+        rows.append(
+            {
+                "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v2",
+                "arm": "candidate0_operational_default",
+                "heterogeneity_cluster_id": f"calibration-map-{index % 5:02d}",
+                "run_instance_sha256": f"{index + 7000:064x}",
+                "repeatability_identity": identity,
+                "repeatability_identity_sha256": identity_sha,
+                "measurement_sha256": f"{index + 8000:064x}",
+                "performance": dict(performance),
+                "fresh_b2_opened": False,
+                "fresh_outcome_fields_consumed": [],
+            }
+        )
     return freeze_v25_calibration_contract(
         root_bindings={name: "a" * 64 for name in CALIBRATION_ROOT_BINDINGS},
         inventory={

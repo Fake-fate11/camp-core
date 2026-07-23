@@ -57,12 +57,27 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, str, Path, str]:
     rows = []
     for cluster in range(50):
         for repeat in range(2):
+            index = cluster * 2 + repeat
+            identity = {
+                "schema_version": "camp_dp_v25_exact_candidate0_repeatability_identity_v1",
+                "route_identity_sha256": f"{index + 1000:064x}",
+                "scenario_identity_sha256": f"{index + 2000:064x}",
+                "semantic_parameter_block_sha256": f"{index + 3000:064x}",
+                "scenario_seed": 25001 + index,
+                "spawn_config_sha256": f"{index + 4000:064x}",
+                "initial_state_sha256": f"{index + 5000:064x}",
+                "initial_input_sha256": f"{index + 6000:064x}",
+                "same_initial_state_and_exogenous_schedule_per_pair": True,
+            }
             rows.append(
                 {
-                    "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v1",
+                    "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v2",
                     "arm": "candidate0_operational_default",
-                    "cluster_id": f"corridor-{cluster:02d}",
-                    "measurement_sha256": f"{cluster * 2 + repeat + 1:064x}",
+                    "heterogeneity_cluster_id": f"map-{cluster % 5:02d}",
+                    "run_instance_sha256": f"{index + 7000:064x}",
+                    "repeatability_identity": identity,
+                    "repeatability_identity_sha256": _canonical_sha(identity),
+                    "measurement_sha256": f"{index + 8000:064x}",
                     "performance": {
                         "progress": 80.0 + repeat * 0.01,
                         "completion": 0.8 + repeat * 0.001,
@@ -80,7 +95,7 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, str, Path, str]:
     calibration = tmp_path / "calibration"
     calibration.mkdir()
     corpus = {
-        "schema_version": "camp_dp_v25_candidate0_calibration_corpus_projection_v1",
+        "schema_version": "camp_dp_v25_candidate0_calibration_corpus_projection_v2",
         "status": "passed_candidate0_calibration_corpus_projection",
         "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "planned_run_count": 100,
@@ -92,8 +107,16 @@ def _inputs(tmp_path: Path) -> tuple[Path, Path, str, Path, str]:
         "intersection_count": 50,
         "corridor_count": 50,
         "route_count": 50,
-        "independent_calibration_cluster_definition": "map_geometry_sha256",
-        "independent_calibration_cluster_count": 50,
+        "heterogeneity_diagnostic_cluster_definition": (
+            "map_geometry_sha256_with_cross_scenario_route_seed_variation"
+        ),
+        "heterogeneity_diagnostic_cluster_count": 5,
+        "repeatability_identity_definition": (
+            "same_route_scenario_semantic_block_seed_initial_state_and_"
+            "exogenous_schedule_binding"
+        ),
+        "exact_duplicate_repeatability_group_count": 0,
+        "exact_duplicate_repeatability_measurement_count": 0,
         "candidate0_rows": rows,
         "candidate0_rows_sha256": _canonical_sha(rows),
         "retained_failures": [],
@@ -175,7 +198,11 @@ def test_calibration_freeze_artifact_and_review(
     assert report["status"] == "passed_independent_calibration_freeze_review"
     assert report["calibration_status"] == "calibration_freeze_passed"
     assert report["candidate0_row_count"] == 100
-    assert report["independent_cluster_count"] == 50
+    assert report["heterogeneity_cluster_count"] == 5
+    assert report["repeatability_status"] == (
+        "not_estimable_no_exact_candidate0_duplicates"
+    )
+    assert report["exact_duplicate_repeatability_group_count"] == 0
     assert report["operational_overspeed_tolerance_mps"] == 0.1
     assert report["fresh_open_authorized"] is False
 

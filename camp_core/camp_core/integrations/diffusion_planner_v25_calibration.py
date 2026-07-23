@@ -84,11 +84,27 @@ NI_CALIBRATION_ROW_FIELDS = frozenset(
     {
         "schema_version",
         "arm",
-        "cluster_id",
+        "heterogeneity_cluster_id",
+        "run_instance_sha256",
+        "repeatability_identity",
+        "repeatability_identity_sha256",
         "measurement_sha256",
         "performance",
         "fresh_b2_opened",
         "fresh_outcome_fields_consumed",
+    }
+)
+REPEATABILITY_IDENTITY_FIELDS = frozenset(
+    {
+        "schema_version",
+        "route_identity_sha256",
+        "scenario_identity_sha256",
+        "semantic_parameter_block_sha256",
+        "scenario_seed",
+        "spawn_config_sha256",
+        "initial_state_sha256",
+        "initial_input_sha256",
+        "same_initial_state_and_exogenous_schedule_per_pair",
     }
 )
 NI_RESOLVABILITY_FIELDS = frozenset(
@@ -97,18 +113,28 @@ NI_RESOLVABILITY_FIELDS = frozenset(
         "status",
         "calibration_arm",
         "margin_source",
-        "residual_estimator",
+        "heterogeneity_estimator",
+        "repeatability_estimator",
         "residual_quantile",
-        "minimum_independent_clusters",
-        "minimum_measurements_per_cluster",
-        "independent_cluster_count",
+        "minimum_heterogeneity_clusters",
+        "minimum_measurements_per_heterogeneity_cluster",
+        "heterogeneity_cluster_count",
         "measurement_count",
-        "cluster_measurement_counts",
+        "heterogeneity_cluster_measurement_counts",
         "margins",
         "margin_units",
-        "q95_absolute_repeat_variability",
-        "margin_resolvable",
-        "all_margins_resolvable",
+        "q95_within_map_cross_scenario_heterogeneity",
+        "heterogeneity_diagnostic_only",
+        "heterogeneity_may_not_gate_fresh",
+        "exact_duplicate_identity_contract",
+        "exact_duplicate_group_count",
+        "exact_duplicate_measurement_count",
+        "exact_duplicate_group_measurement_counts",
+        "repeatability_status",
+        "q95_exact_duplicate_repeatability",
+        "repeatability_margin_resolvable",
+        "all_repeatability_margins_resolvable",
+        "repeatability_gate_blocks_fresh",
         "camp_method_outcomes_consumed",
         "fresh_b2_opened",
         "fresh_outcome_fields_consumed",
@@ -126,13 +152,26 @@ _NATIVE_PERFORMANCE_FIELDS = {
 
 def project_candidate0_ni_calibration_row(
     *,
-    cluster_id: str,
+    heterogeneity_cluster_id: str,
+    run_instance_sha256: str,
+    scenario_identity_sha256: str,
+    route_identity_sha256: str,
+    semantic_parameter_block_sha256: str,
     native_receipt: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Project one reviewed fixed-DP candidate0 run into an NI calibration row."""
 
-    if type(cluster_id) is not str or not cluster_id:
-        raise ValueError("candidate0 NI calibration cluster must be a nonempty string")
+    if type(heterogeneity_cluster_id) is not str or not heterogeneity_cluster_id:
+        raise ValueError(
+            "candidate0 NI heterogeneity cluster must be a nonempty string"
+        )
+    for name, value in (
+        ("run_instance_sha256", run_instance_sha256),
+        ("scenario_identity_sha256", scenario_identity_sha256),
+        ("route_identity_sha256", route_identity_sha256),
+        ("semantic_parameter_block_sha256", semantic_parameter_block_sha256),
+    ):
+        _require_sha(value, name)
     if type(native_receipt) is not dict:
         raise ValueError("candidate0 native receipt must be a native mapping")
     if (
@@ -145,6 +184,7 @@ def project_candidate0_ni_calibration_row(
         raise ValueError("candidate0 native receipt authority drifted")
     for name in (
         "route_sha256",
+        "spawn_config_sha256",
         "initial_state_sha256",
         "initial_input_sha256",
     ):
@@ -206,9 +246,24 @@ def project_candidate0_ni_calibration_row(
     performance["maximum_deceleration"] = maximum_deceleration
     if set(performance) != set(NONINFERIORITY_METRICS):
         raise AssertionError("candidate0 NI performance projection drifted")
+    repeatability_identity = {
+        "schema_version": "camp_dp_v25_exact_candidate0_repeatability_identity_v1",
+        "route_identity_sha256": route_identity_sha256,
+        "scenario_identity_sha256": scenario_identity_sha256,
+        "semantic_parameter_block_sha256": semantic_parameter_block_sha256,
+        "scenario_seed": seed,
+        "spawn_config_sha256": native_receipt["spawn_config_sha256"],
+        "initial_state_sha256": native_receipt["initial_state_sha256"],
+        "initial_input_sha256": native_receipt["initial_input_sha256"],
+        "same_initial_state_and_exogenous_schedule_per_pair": True,
+    }
+    repeatability_identity_sha256 = _canonical_sha(repeatability_identity)
     measurement_preimage = {
-        "schema_version": "camp_dp_v25_candidate0_ni_measurement_preimage_v1",
+        "schema_version": "camp_dp_v25_candidate0_ni_measurement_preimage_v2",
         "fixed_dp_head": FIXED_DP_HEAD,
+        "run_instance_sha256": run_instance_sha256,
+        "repeatability_identity": repeatability_identity,
+        "repeatability_identity_sha256": repeatability_identity_sha256,
         "route_sha256": native_receipt["route_sha256"],
         "scenario_seed": seed,
         "initial_state_sha256": native_receipt["initial_state_sha256"],
@@ -218,22 +273,14 @@ def project_candidate0_ni_calibration_row(
         "fresh_b2_opened": False,
         "fresh_outcome_fields_consumed": [],
     }
-    measurement_sha256 = hashlib.sha256(
-        (
-            json.dumps(
-                measurement_preimage,
-                sort_keys=True,
-                ensure_ascii=False,
-                separators=(",", ":"),
-                allow_nan=False,
-            )
-            + "\n"
-        ).encode("utf-8")
-    ).hexdigest()
+    measurement_sha256 = _canonical_sha(measurement_preimage)
     return {
-        "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v1",
+        "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v2",
         "arm": "candidate0_operational_default",
-        "cluster_id": cluster_id,
+        "heterogeneity_cluster_id": heterogeneity_cluster_id,
+        "run_instance_sha256": run_instance_sha256,
+        "repeatability_identity": repeatability_identity,
+        "repeatability_identity_sha256": repeatability_identity_sha256,
         "measurement_sha256": measurement_sha256,
         "performance": performance,
         "fresh_b2_opened": False,
@@ -244,36 +291,48 @@ def project_candidate0_ni_calibration_row(
 def estimate_v25_noninferiority_margin_resolvability(
     candidate0_rows: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
-    """Assess fixed NI margins using candidate0 calibration repeats only.
+    """Report map-level heterogeneity and exact duplicate repeatability.
 
-    The calibration data never enlarges the margins.  It only establishes
-    whether the preregistered engineering tolerances are resolvable under
-    equal cluster mass.  CAMP method rows and Fresh outcomes are forbidden.
+    Cross-scenario dispersion within one map is retained as an outcome-blind
+    diagnostic, but it is not run-repeatability and cannot veto Fresh.  Only
+    rows with the exact same route, scenario, semantic block, seed, initial
+    state, and exogenous-schedule binding enter the repeatability estimator.
+    The calibration data never enlarges the preregistered NI margins.
     """
 
     rows = tuple(_ni_calibration_row(row) for row in candidate0_rows)
     if not rows:
         raise ValueError("candidate0 NI calibration rows must be nonempty")
-    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    heterogeneity_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    repeatability_candidates: dict[str, list[dict[str, Any]]] = defaultdict(list)
     measurement_hashes: set[str] = set()
+    run_instances: set[str] = set()
     for row in rows:
         digest = row["measurement_sha256"]
         if digest in measurement_hashes:
             raise ValueError("candidate0 NI calibration measurement SHA repeated")
         measurement_hashes.add(digest)
-        grouped[row["cluster_id"]].append(row)
-    if len(grouped) < 5:
-        raise ValueError("NI margin resolvability requires at least five clusters")
-    if any(len(cluster_rows) < 2 for cluster_rows in grouped.values()):
-        raise ValueError("NI margin resolvability requires two repeats per cluster")
+        run_instance = row["run_instance_sha256"]
+        if run_instance in run_instances:
+            raise ValueError("candidate0 NI calibration run instance repeated")
+        run_instances.add(run_instance)
+        heterogeneity_groups[row["heterogeneity_cluster_id"]].append(row)
+        repeatability_candidates[row["repeatability_identity_sha256"]].append(row)
+    if len(heterogeneity_groups) < 5:
+        raise ValueError(
+            "within-map heterogeneity diagnostic requires at least five map clusters"
+        )
+    if any(len(cluster_rows) < 2 for cluster_rows in heterogeneity_groups.values()):
+        raise ValueError(
+            "within-map heterogeneity diagnostic requires two measurements per map"
+        )
 
-    variability: dict[str, float] = {}
-    resolvable: dict[str, bool] = {}
+    heterogeneity: dict[str, float] = {}
     for metric in NONINFERIORITY_METRICS:
         residuals: list[float] = []
         weights: list[float] = []
-        cluster_mass = 1.0 / len(grouped)
-        for cluster_rows in grouped.values():
+        cluster_mass = 1.0 / len(heterogeneity_groups)
+        for cluster_rows in heterogeneity_groups.values():
             values = np.asarray(
                 [row["performance"][metric] for row in cluster_rows],
                 dtype=np.float64,
@@ -286,37 +345,101 @@ def estimate_v25_noninferiority_margin_resolvability(
             np.asarray(weights, dtype=np.float64),
             0.95,
         )
-        variability[metric] = q95
-        resolvable[metric] = bool(q95 <= NONINFERIORITY_ENGINEERING_MARGINS[metric])
+        heterogeneity[metric] = q95
 
-    all_resolvable = all(resolvable.values())
+    duplicate_groups = {
+        key: values
+        for key, values in repeatability_candidates.items()
+        if len(values) >= 2
+    }
+    exact_q95: dict[str, float | None]
+    exact_resolvable: dict[str, bool | None]
+    all_exact_resolvable: bool | None
+    if duplicate_groups:
+        exact_q95 = {}
+        exact_resolvable = {}
+        for metric in NONINFERIORITY_METRICS:
+            residuals = []
+            weights = []
+            group_mass = 1.0 / len(duplicate_groups)
+            for group_rows in duplicate_groups.values():
+                values = np.asarray(
+                    [row["performance"][metric] for row in group_rows],
+                    dtype=np.float64,
+                )
+                center = float(np.median(values))
+                residuals.extend(np.abs(values - center).tolist())
+                weights.extend([group_mass / len(group_rows)] * len(group_rows))
+            q95 = _weighted_quantile(
+                np.asarray(residuals, dtype=np.float64),
+                np.asarray(weights, dtype=np.float64),
+                0.95,
+            )
+            exact_q95[metric] = q95
+            exact_resolvable[metric] = bool(
+                q95 <= NONINFERIORITY_ENGINEERING_MARGINS[metric]
+            )
+        all_exact_resolvable = all(
+            flag is True for flag in exact_resolvable.values()
+        )
+        repeatability_status = "exact_duplicate_repeatability_estimated"
+        status = (
+            "exact_duplicate_repeatability_resolvable"
+            if all_exact_resolvable
+            else "exact_duplicate_repeatability_not_resolvable"
+        )
+        repeatability_blocks_fresh = not all_exact_resolvable
+    else:
+        exact_q95 = {metric: None for metric in NONINFERIORITY_METRICS}
+        exact_resolvable = {metric: None for metric in NONINFERIORITY_METRICS}
+        all_exact_resolvable = None
+        repeatability_status = "not_estimable_no_exact_candidate0_duplicates"
+        status = "exact_duplicate_repeatability_not_estimable"
+        repeatability_blocks_fresh = False
+
     return {
-        "schema_version": "camp_dp_v25_noninferiority_margin_resolvability_v1",
-        "status": (
-            "noninferiority_margins_resolvable"
-            if all_resolvable
-            else "noninferiority_margins_not_resolvable"
-        ),
+        "schema_version": "camp_dp_v25_noninferiority_margin_resolvability_v2",
+        "status": status,
         "calibration_arm": "candidate0_operational_default",
         "margin_source": (
             "preregistered_engineering_acceptability_not_calibration_outcome_tuned"
         ),
-        "residual_estimator": (
+        "heterogeneity_estimator": (
             "equal_cluster_equal_within_cluster_absolute_deviation_from_cluster_median"
         ),
+        "repeatability_estimator": (
+            "exact_duplicate_identity_equal_group_mass_absolute_deviation_from_group_median"
+        ),
         "residual_quantile": 0.95,
-        "minimum_independent_clusters": 5,
-        "minimum_measurements_per_cluster": 2,
-        "independent_cluster_count": len(grouped),
+        "minimum_heterogeneity_clusters": 5,
+        "minimum_measurements_per_heterogeneity_cluster": 2,
+        "heterogeneity_cluster_count": len(heterogeneity_groups),
         "measurement_count": len(rows),
-        "cluster_measurement_counts": {
-            name: len(grouped[name]) for name in sorted(grouped)
+        "heterogeneity_cluster_measurement_counts": {
+            name: len(heterogeneity_groups[name])
+            for name in sorted(heterogeneity_groups)
         },
         "margins": dict(NONINFERIORITY_ENGINEERING_MARGINS),
         "margin_units": dict(NONINFERIORITY_MARGIN_UNITS),
-        "q95_absolute_repeat_variability": variability,
-        "margin_resolvable": resolvable,
-        "all_margins_resolvable": all_resolvable,
+        "q95_within_map_cross_scenario_heterogeneity": heterogeneity,
+        "heterogeneity_diagnostic_only": True,
+        "heterogeneity_may_not_gate_fresh": True,
+        "exact_duplicate_identity_contract": (
+            "same_route_scenario_semantic_block_seed_initial_state_and_"
+            "exogenous_schedule_binding"
+        ),
+        "exact_duplicate_group_count": len(duplicate_groups),
+        "exact_duplicate_measurement_count": sum(
+            len(values) for values in duplicate_groups.values()
+        ),
+        "exact_duplicate_group_measurement_counts": {
+            name: len(duplicate_groups[name]) for name in sorted(duplicate_groups)
+        },
+        "repeatability_status": repeatability_status,
+        "q95_exact_duplicate_repeatability": exact_q95,
+        "repeatability_margin_resolvable": exact_resolvable,
+        "all_repeatability_margins_resolvable": all_exact_resolvable,
+        "repeatability_gate_blocks_fresh": repeatability_blocks_fresh,
         "camp_method_outcomes_consumed": False,
         "fresh_b2_opened": False,
         "fresh_outcome_fields_consumed": [],
@@ -342,11 +465,11 @@ def freeze_v25_calibration_contract(
         raise ValueError(
             "candidate0 NI calibration measurements must equal paired-eligible runs"
         )
-    if ni_resolution["independent_cluster_count"] > (
+    if ni_resolution["heterogeneity_cluster_count"] > (
         counts["intersection_count"] + counts["corridor_count"]
     ):
         raise ValueError(
-            "candidate0 NI calibration clusters exceed the frozen cluster inventory"
+            "candidate0 heterogeneity clusters exceed the frozen cluster inventory"
         )
     ni = dict(NONINFERIORITY_ENGINEERING_MARGINS)
     component = dict(COMPONENT_REGRESSION_MARGINS)
@@ -360,12 +483,16 @@ def freeze_v25_calibration_contract(
         counts["corridor_count"] >= 5 and counts["route_count"] >= 50
     )
     coverage_passed = bool(counts["paired_eligible_rate"] >= 0.95)
-    ni_resolvability_passed = bool(ni_resolution["all_margins_resolvable"])
+    repeatability_gate_blocks_fresh = ni_resolution[
+        "repeatability_gate_blocks_fresh"
+    ]
     freeze_passed = bool(
-        independent_target_passed and coverage_passed and ni_resolvability_passed
+        independent_target_passed
+        and coverage_passed
+        and not repeatability_gate_blocks_fresh
     )
     return {
-        "schema_version": "camp_dp_v25_calibration_freeze_v1",
+        "schema_version": "camp_dp_v25_calibration_freeze_v2",
         "status": (
             "calibration_freeze_passed"
             if freeze_passed
@@ -379,7 +506,8 @@ def freeze_v25_calibration_contract(
         "minimum_paired_eligible_rate": 0.95,
         "independent_unit_target_passed": independent_target_passed,
         "coverage_gate_passed": coverage_passed,
-        "noninferiority_resolvability_gate_passed": ni_resolvability_passed,
+        "repeatability_estimation_status": ni_resolution["repeatability_status"],
+        "repeatability_gate_blocks_fresh": repeatability_gate_blocks_fresh,
         "operational_overspeed_tolerance_mps": 0.1,
         "strict_speed_epsilon_mps": 1e-6,
         "safety_cost_contract": {
@@ -485,16 +613,30 @@ def _ni_calibration_row(value: Mapping[str, Any]) -> dict[str, Any]:
     if type(value) is not dict or set(value) != NI_CALIBRATION_ROW_FIELDS:
         raise ValueError("candidate0 NI calibration row field set drifted")
     row = dict(value)
-    if row["schema_version"] != "camp_dp_v25_candidate0_ni_calibration_row_v1":
+    if row["schema_version"] != "camp_dp_v25_candidate0_ni_calibration_row_v2":
         raise ValueError("candidate0 NI calibration row schema drifted")
     if row["arm"] != "candidate0_operational_default":
         raise ValueError("NI margin calibration may consume candidate0 rows only")
-    if type(row["cluster_id"]) is not str or not row["cluster_id"]:
-        raise ValueError("candidate0 NI calibration cluster must be a native string")
+    if (
+        type(row["heterogeneity_cluster_id"]) is not str
+        or not row["heterogeneity_cluster_id"]
+    ):
+        raise ValueError(
+            "candidate0 NI heterogeneity cluster must be a native string"
+        )
+    _require_sha(row["run_instance_sha256"], "run_instance_sha256")
+    identity = _repeatability_identity(row["repeatability_identity"])
+    expected_identity_sha = _canonical_sha(identity)
+    if row["repeatability_identity_sha256"] != expected_identity_sha:
+        raise ValueError("candidate0 exact repeatability identity SHA drifted")
     _require_sha(row["measurement_sha256"], "measurement_sha256")
-    if row["fresh_b2_opened"] is not False or row["fresh_outcome_fields_consumed"] != []:
+    if (
+        row["fresh_b2_opened"] is not False
+        or row["fresh_outcome_fields_consumed"] != []
+    ):
         raise ValueError("candidate0 NI calibration must not consume Fresh outcomes")
     row["performance"] = _metric_map(row["performance"], "calibration performance")
+    row["repeatability_identity"] = identity
     if not 0.0 <= row["performance"]["completion"] <= 1.0:
         raise ValueError("candidate0 NI calibration completion must lie in [0,1]")
     return row
@@ -505,19 +647,28 @@ def _ni_resolvability(value: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("noninferiority resolvability field set drifted")
     result = dict(value)
     exact = {
-        "schema_version": "camp_dp_v25_noninferiority_margin_resolvability_v1",
+        "schema_version": "camp_dp_v25_noninferiority_margin_resolvability_v2",
         "calibration_arm": "candidate0_operational_default",
         "margin_source": (
             "preregistered_engineering_acceptability_not_calibration_outcome_tuned"
         ),
-        "residual_estimator": (
+        "heterogeneity_estimator": (
             "equal_cluster_equal_within_cluster_absolute_deviation_from_cluster_median"
         ),
+        "repeatability_estimator": (
+            "exact_duplicate_identity_equal_group_mass_absolute_deviation_from_group_median"
+        ),
         "residual_quantile": 0.95,
-        "minimum_independent_clusters": 5,
-        "minimum_measurements_per_cluster": 2,
+        "minimum_heterogeneity_clusters": 5,
+        "minimum_measurements_per_heterogeneity_cluster": 2,
         "margins": NONINFERIORITY_ENGINEERING_MARGINS,
         "margin_units": NONINFERIORITY_MARGIN_UNITS,
+        "heterogeneity_diagnostic_only": True,
+        "heterogeneity_may_not_gate_fresh": True,
+        "exact_duplicate_identity_contract": (
+            "same_route_scenario_semantic_block_seed_initial_state_and_"
+            "exogenous_schedule_binding"
+        ),
         "camp_method_outcomes_consumed": False,
         "fresh_b2_opened": False,
         "fresh_outcome_fields_consumed": [],
@@ -525,47 +676,112 @@ def _ni_resolvability(value: Mapping[str, Any]) -> dict[str, Any]:
     for name, expected in exact.items():
         if type(result[name]) is not type(expected) or result[name] != expected:
             raise ValueError(f"noninferiority resolvability {name} drifted")
-    for name in ("independent_cluster_count", "measurement_count"):
+    for name in (
+        "heterogeneity_cluster_count",
+        "measurement_count",
+        "exact_duplicate_group_count",
+        "exact_duplicate_measurement_count",
+    ):
         if type(result[name]) is not int or result[name] < 0:
             raise ValueError(f"noninferiority resolvability {name} is invalid")
-    if result["independent_cluster_count"] < 5:
-        raise ValueError("noninferiority resolvability cluster count is below five")
-    counts = result["cluster_measurement_counts"]
+    if result["heterogeneity_cluster_count"] < 5:
+        raise ValueError("heterogeneity diagnostic cluster count is below five")
+    counts = result["heterogeneity_cluster_measurement_counts"]
     if (
         type(counts) is not dict
-        or len(counts) != result["independent_cluster_count"]
+        or len(counts) != result["heterogeneity_cluster_count"]
         or any(type(key) is not str or not key for key in counts)
         or any(type(count) is not int or count < 2 for count in counts.values())
         or sum(counts.values()) != result["measurement_count"]
     ):
-        raise ValueError("noninferiority resolvability cluster accounting drifted")
-    variability = _metric_map(
-        result["q95_absolute_repeat_variability"], "repeat variability"
+        raise ValueError("heterogeneity diagnostic cluster accounting drifted")
+    heterogeneity = _metric_map(
+        result["q95_within_map_cross_scenario_heterogeneity"],
+        "within-map cross-scenario heterogeneity",
     )
-    flags = result["margin_resolvable"]
+    duplicate_counts = result["exact_duplicate_group_measurement_counts"]
     if (
-        type(flags) is not dict
-        or set(flags) != set(NONINFERIORITY_METRICS)
-        or any(type(flag) is not bool for flag in flags.values())
+        type(duplicate_counts) is not dict
+        or len(duplicate_counts) != result["exact_duplicate_group_count"]
+        or any(type(key) is not str or not key for key in duplicate_counts)
+        or any(
+            type(count) is not int or count < 2
+            for count in duplicate_counts.values()
+        )
+        or sum(duplicate_counts.values())
+        != result["exact_duplicate_measurement_count"]
     ):
-        raise ValueError("noninferiority resolvability flags drifted")
-    expected_flags = {
-        name: bool(variability[name] <= NONINFERIORITY_ENGINEERING_MARGINS[name])
-        for name in NONINFERIORITY_METRICS
-    }
-    if flags != expected_flags:
-        raise ValueError("noninferiority resolvability flags are inconsistent")
-    expected_all = all(expected_flags.values())
-    if result["all_margins_resolvable"] is not expected_all:
-        raise ValueError("noninferiority resolvability aggregate drifted")
-    expected_status = (
-        "noninferiority_margins_resolvable"
-        if expected_all
-        else "noninferiority_margins_not_resolvable"
-    )
+        raise ValueError("exact duplicate repeatability accounting drifted")
+    q95 = result["q95_exact_duplicate_repeatability"]
+    flags = result["repeatability_margin_resolvable"]
+    if (
+        type(q95) is not dict
+        or set(q95) != set(NONINFERIORITY_METRICS)
+        or type(flags) is not dict
+        or set(flags) != set(NONINFERIORITY_METRICS)
+    ):
+        raise ValueError("exact duplicate repeatability metric schema drifted")
+    if result["exact_duplicate_group_count"] == 0:
+        if (
+            result["exact_duplicate_measurement_count"] != 0
+            or duplicate_counts != {}
+            or any(value is not None for value in q95.values())
+            or any(value is not None for value in flags.values())
+            or result["all_repeatability_margins_resolvable"] is not None
+            or result["repeatability_status"]
+            != "not_estimable_no_exact_candidate0_duplicates"
+            or result["repeatability_gate_blocks_fresh"] is not False
+        ):
+            raise ValueError("unavailable repeatability contract drifted")
+        expected_status = "exact_duplicate_repeatability_not_estimable"
+    else:
+        q95_values = _metric_map(q95, "exact duplicate repeatability")
+        if any(type(flag) is not bool for flag in flags.values()):
+            raise ValueError("exact duplicate repeatability flags drifted")
+        expected_flags = {
+            name: bool(
+                q95_values[name] <= NONINFERIORITY_ENGINEERING_MARGINS[name]
+            )
+            for name in NONINFERIORITY_METRICS
+        }
+        if flags != expected_flags:
+            raise ValueError("exact duplicate repeatability flags are inconsistent")
+        expected_all = all(expected_flags.values())
+        if (
+            result["all_repeatability_margins_resolvable"] is not expected_all
+            or result["repeatability_status"]
+            != "exact_duplicate_repeatability_estimated"
+            or result["repeatability_gate_blocks_fresh"] is not (not expected_all)
+        ):
+            raise ValueError("exact duplicate repeatability aggregate drifted")
+        expected_status = (
+            "exact_duplicate_repeatability_resolvable"
+            if expected_all
+            else "exact_duplicate_repeatability_not_resolvable"
+        )
     if result["status"] != expected_status:
         raise ValueError("noninferiority resolvability status drifted")
-    result["q95_absolute_repeat_variability"] = variability
+    result["q95_within_map_cross_scenario_heterogeneity"] = heterogeneity
+    return result
+
+
+def _repeatability_identity(value: Mapping[str, Any]) -> dict[str, Any]:
+    if type(value) is not dict or set(value) != REPEATABILITY_IDENTITY_FIELDS:
+        raise ValueError("candidate0 exact repeatability identity field set drifted")
+    result = dict(value)
+    if (
+        result["schema_version"]
+        != "camp_dp_v25_exact_candidate0_repeatability_identity_v1"
+        or result["same_initial_state_and_exogenous_schedule_per_pair"] is not True
+        or type(result["scenario_seed"]) is not int
+    ):
+        raise ValueError("candidate0 exact repeatability identity contract drifted")
+    for name in REPEATABILITY_IDENTITY_FIELDS - {
+        "schema_version",
+        "scenario_seed",
+        "same_initial_state_and_exogenous_schedule_per_pair",
+    }:
+        _require_sha(result[name], f"repeatability_identity.{name}")
     return result
 
 
@@ -685,6 +901,21 @@ def _require_sha(value: Any, name: str) -> None:
         or set(value) - set("0123456789abcdef")
     ):
         raise ValueError(f"{name} must be a lowercase SHA256")
+
+
+def _canonical_sha(value: Any) -> str:
+    return hashlib.sha256(
+        (
+            json.dumps(
+                value,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
 
 
 def _validate_native_safety_cost_weights() -> None:

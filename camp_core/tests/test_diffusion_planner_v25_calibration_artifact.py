@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 
 import pytest
 
@@ -21,17 +23,47 @@ ROOT_BINDINGS = {
 }
 
 
+def _canonical_sha(value: object) -> str:
+    return hashlib.sha256(
+        (
+            json.dumps(
+                value,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode()
+    ).hexdigest()
+
+
 def _rows(*, unresolved: bool = False) -> list[dict]:
     rows = []
     for cluster in range(50):
         for repeat in range(2):
             perturbation = 3.0 if unresolved and repeat else 0.01 * repeat
+            index = cluster * 2 + repeat
+            identity = {
+                "schema_version": "camp_dp_v25_exact_candidate0_repeatability_identity_v1",
+                "route_identity_sha256": f"{index + 1000:064x}",
+                "scenario_identity_sha256": f"{index + 2000:064x}",
+                "semantic_parameter_block_sha256": f"{index + 3000:064x}",
+                "scenario_seed": 25001 + index,
+                "spawn_config_sha256": f"{index + 4000:064x}",
+                "initial_state_sha256": f"{index + 5000:064x}",
+                "initial_input_sha256": f"{index + 6000:064x}",
+                "same_initial_state_and_exogenous_schedule_per_pair": True,
+            }
             rows.append(
                 {
-                    "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v1",
+                    "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v2",
                     "arm": "candidate0_operational_default",
-                    "cluster_id": f"corridor-{cluster:02d}",
-                    "measurement_sha256": f"{cluster * 2 + repeat + 1000:064x}",
+                    "heterogeneity_cluster_id": f"map-{cluster % 5:02d}",
+                    "run_instance_sha256": f"{index + 7000:064x}",
+                    "repeatability_identity": identity,
+                    "repeatability_identity_sha256": _canonical_sha(identity),
+                    "measurement_sha256": f"{index + 8000:064x}",
                     "performance": {
                         "progress": 80.0 + perturbation,
                         "completion": 0.8 + 0.001 * repeat,
@@ -84,10 +116,16 @@ def test_calibration_freeze_passes_without_tuning_from_method_or_fresh() -> None
     assert validate_calibration_freeze_payload(payload) == payload
 
 
-def test_unresolvable_preregistered_margin_blocks_fresh_without_enlargement() -> None:
+def test_cross_scenario_heterogeneity_does_not_block_fresh_or_enlarge_margin() -> None:
     payload = _build(unresolved=True)
-    assert payload["status"] == "calibration_freeze_scientifically_ineligible"
-    assert payload["calibration_contract"]["fresh_preopen_qualification_allowed"] is False
+    assert payload["status"] == "calibration_freeze_passed"
+    assert payload["calibration_contract"]["fresh_preopen_qualification_allowed"] is True
+    assert payload["noninferiority_resolvability"][
+        "q95_within_map_cross_scenario_heterogeneity"
+    ]["progress"] > 1.0
+    assert payload["noninferiority_resolvability"]["repeatability_status"] == (
+        "not_estimable_no_exact_candidate0_duplicates"
+    )
     assert payload["calibration_contract"]["noninferiority"]["margins"]["progress"] == 1.0
     assert payload["margin_enlargement_authorized"] is False
 

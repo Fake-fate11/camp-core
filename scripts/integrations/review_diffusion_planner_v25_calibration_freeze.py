@@ -26,7 +26,7 @@ from camp_core.integrations.diffusion_planner_v25_calibration_artifact import ( 
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_calibration_freeze_review_v1"
+SCHEMA_VERSION = "camp_dp_v25_calibration_freeze_review_v2"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 
 
@@ -74,8 +74,12 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
         != _sha256(artifact / "calibration_freeze.json")
         or report.get("status") != payload["status"]
         or report.get("candidate0_row_count") != payload["candidate0_row_count"]
-        or report.get("independent_cluster_count")
-        != payload["noninferiority_resolvability"]["independent_cluster_count"]
+        or report.get("heterogeneity_cluster_count")
+        != payload["noninferiority_resolvability"]["heterogeneity_cluster_count"]
+        or report.get("repeatability_status")
+        != payload["noninferiority_resolvability"]["repeatability_status"]
+        or report.get("exact_duplicate_repeatability_group_count")
+        != payload["noninferiority_resolvability"]["exact_duplicate_group_count"]
         or report.get("margin_enlargement_authorized") is not False
         or report.get("camp_method_outcomes_consumed") is not False
         or report.get("fresh_b2_opened") is not False
@@ -91,9 +95,15 @@ def review(artifact: Path, expected_root: str) -> dict[str, Any]:
         "reviewed_root_sha256": seal["root_sha256"],
         "calibration_status": payload["status"],
         "candidate0_row_count": payload["candidate0_row_count"],
-        "independent_cluster_count": payload["noninferiority_resolvability"][
-            "independent_cluster_count"
+        "heterogeneity_cluster_count": payload["noninferiority_resolvability"][
+            "heterogeneity_cluster_count"
         ],
+        "repeatability_status": payload["noninferiority_resolvability"][
+            "repeatability_status"
+        ],
+        "exact_duplicate_repeatability_group_count": payload[
+            "noninferiority_resolvability"
+        ]["exact_duplicate_group_count"],
         "operational_overspeed_tolerance_mps": payload[
             "calibration_contract"
         ]["operational_overspeed_tolerance_mps"],

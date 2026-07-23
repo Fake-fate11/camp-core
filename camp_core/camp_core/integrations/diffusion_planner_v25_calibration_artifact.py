@@ -14,7 +14,7 @@ from .diffusion_planner_v25_calibration_corpus import (
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_calibration_freeze_artifact_payload_v1"
+SCHEMA_VERSION = "camp_dp_v25_calibration_freeze_artifact_payload_v2"
 
 
 def build_calibration_freeze_payload_from_corpus(

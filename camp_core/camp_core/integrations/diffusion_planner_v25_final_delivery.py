@@ -355,7 +355,7 @@ def _auxiliary_report(value: Mapping[str, Any]) -> dict[str, Any]:
 def _calibration_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     result = _native_dict(value, "calibration contract")
     if (
-        result.get("schema_version") != "camp_dp_v25_calibration_freeze_v1"
+        result.get("schema_version") != "camp_dp_v25_calibration_freeze_v2"
         or result.get("status") != "calibration_freeze_passed"
         or result.get("fresh_b2_opened") is not False
         or result.get("one_time_opening_release_required") is not True

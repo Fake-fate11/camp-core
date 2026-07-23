@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 from .diffusion_planner_v25_calibration import (
     FIXED_DP_HEAD,
@@ -11,13 +11,126 @@ from .diffusion_planner_v25_calibration import (
 from .diffusion_planner_v25_signal_complete_plan import (
     validate_signal_complete_execution_plan,
 )
+from .diffusion_planner_v25_paired_calibration import (
+    validate_paired_calibration_execution_plan,
+)
 
 
-SCHEMA_VERSION = "camp_dp_v25_candidate0_calibration_corpus_projection_v1"
+SCHEMA_VERSION = "camp_dp_v25_candidate0_calibration_corpus_projection_v2"
 RUN_RESULT_SCHEMA_VERSION = "camp_dp_v25_candidate0_calibration_run_result_v1"
 FAILURE_SCHEMA_VERSION = "camp_dp_v25_candidate0_calibration_retained_failure_v1"
 FIXED_DP_FAILURE_CLASS = "fixed_dp_candidate_generation_capability_failure"
 FIXED_DP_FAILURE_REASON = "invalid_k8_heading_norm_envelope"
+
+
+def project_candidate0_calibration_corpus_from_paired_terminals(
+    *,
+    calibration_plan: Mapping[str, Any],
+    paired_plan: Mapping[str, Any],
+    candidate0_terminals: Iterable[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Project only the candidate0 terminals from an accepted paired run.
+
+    The caller may stream the 100 candidate0 terminal files independently
+    rather than loading the 300-arm paired corpus.  The frozen paired plan
+    supplies the exact run ordinal/order, while the base calibration plan
+    supplies the map-geometry and semantic identities used by the diagnostic
+    and exact-repeat keys.
+    """
+
+    base = validate_signal_complete_execution_plan(calibration_plan)
+    paired = validate_paired_calibration_execution_plan(
+        paired_plan, calibration_plan=base
+    )
+    identities = {
+        row["scenario_identity_sha256"]: row for row in paired["identities"]
+    }
+    projected: list[dict[str, Any]] = []
+    try:
+        pairs = zip(
+            paired["execution_units"], candidate0_terminals, strict=True
+        )
+        for unit, raw_terminal in pairs:
+            terminal = dict(raw_terminal)
+            candidate0_order = unit["ordered_arms"].index(
+                "candidate0_operational_default"
+            )
+            expected_run_ordinal = unit["unit_ordinal"] * 3 + candidate0_order
+            identity = identities[unit["scenario_identity_sha256"]]
+            if (
+                terminal.get("run_ordinal") != expected_run_ordinal
+                or terminal.get("unit_ordinal") != unit["unit_ordinal"]
+                or terminal.get("unit_sha256") != unit["unit_sha256"]
+                or terminal.get("arm_order_index") != candidate0_order
+                or terminal.get("plan_arm")
+                != "candidate0_operational_default"
+                or terminal.get("scenario_identity_sha256")
+                != unit["scenario_identity_sha256"]
+                or terminal.get("route_identity_sha256")
+                != identity["route_identity_sha256"]
+                or terminal.get("seed") != unit["seed"]
+                or terminal.get("fresh_b2_opened") is not False
+                or terminal.get("fresh_outcome_fields_consumed") != []
+            ):
+                raise ValueError("paired candidate0 terminal authority drifted")
+            status = terminal.get("status")
+            if status == "complete":
+                native_receipt = terminal.get("native_receipt")
+                failure_receipt = None
+                if type(native_receipt) is not dict:
+                    raise ValueError("paired candidate0 native receipt is missing")
+            elif status == "retained_fixed_dp_capability_failure":
+                native_receipt = None
+                paired_failure = terminal.get("failure_receipt")
+                if type(paired_failure) is not dict:
+                    raise ValueError("paired candidate0 failure receipt is missing")
+                failure_receipt = {
+                    "schema_version": FAILURE_SCHEMA_VERSION,
+                    "scenario_identity_sha256": identity[
+                        "scenario_identity_sha256"
+                    ],
+                    "route_identity_sha256": identity["route_identity_sha256"],
+                    "seed": unit["seed"],
+                    "fixed_dp_head": FIXED_DP_HEAD,
+                    "failure_class": paired_failure.get("failure_class"),
+                    "reason": paired_failure.get("reason"),
+                    "raw_failure_receipt_sha256": paired_failure.get(
+                        "raw_failure_receipt_sha256"
+                    ),
+                    "training_eligible": False,
+                    "calibration_eligible": False,
+                    "evaluation_eligible": False,
+                    "fresh_b2_opened": False,
+                    "outcome_fields_consumed": [],
+                }
+            else:
+                raise ValueError(
+                    "paired candidate0 terminal status is not retainable"
+                )
+            projected.append(
+                {
+                    "schema_version": RUN_RESULT_SCHEMA_VERSION,
+                    "unit_ordinal": unit["unit_ordinal"],
+                    "unit_sha256": unit["unit_sha256"],
+                    "scenario_identity_sha256": unit[
+                        "scenario_identity_sha256"
+                    ],
+                    "route_identity_sha256": identity["route_identity_sha256"],
+                    "seed": unit["seed"],
+                    "status": status,
+                    "native_receipt": native_receipt,
+                    "failure_receipt": failure_receipt,
+                    "fresh_b2_opened": False,
+                    "fresh_outcome_fields_consumed": [],
+                }
+            )
+    except ValueError as exc:
+        if "zip() argument" in str(exc):
+            raise ValueError(
+                "paired candidate0 terminal denominator drifted"
+            ) from exc
+        raise
+    return project_candidate0_calibration_corpus(base, projected)
 
 
 def project_candidate0_calibration_corpus(
@@ -64,7 +177,13 @@ def project_candidate0_calibration_corpus(
             ):
                 raise ValueError("candidate0 calibration native plan binding drifted")
             projected = project_candidate0_ni_calibration_row(
-                cluster_id=identity["map_geometry_sha256"],
+                heterogeneity_cluster_id=identity["map_geometry_sha256"],
+                run_instance_sha256=expected["unit_sha256"],
+                scenario_identity_sha256=identity["scenario_identity_sha256"],
+                route_identity_sha256=identity["route_identity_sha256"],
+                semantic_parameter_block_sha256=identity[
+                    "semantic_parameter_block_sha256"
+                ],
                 native_receipt=native,
             )
             if projected["measurement_sha256"] in seen_measurements:
@@ -77,6 +196,15 @@ def project_candidate0_calibration_corpus(
     complete = len(candidate0_rows)
     retained = len(failures)
     eligible_rate = complete / len(rows)
+    repeatability_counts: dict[str, int] = {}
+    for row in candidate0_rows:
+        digest = row["repeatability_identity_sha256"]
+        repeatability_counts[digest] = repeatability_counts.get(digest, 0) + 1
+    exact_duplicate_counts = {
+        digest: count
+        for digest, count in repeatability_counts.items()
+        if count >= 2
+    }
     status = (
         "passed_candidate0_calibration_corpus_projection"
         if eligible_rate >= 0.95
@@ -95,9 +223,19 @@ def project_candidate0_calibration_corpus(
         "intersection_count": validated["intersection_count"],
         "corridor_count": validated["corridor_count"],
         "route_count": validated["route_count"],
-        "independent_calibration_cluster_definition": "map_geometry_sha256",
-        "independent_calibration_cluster_count": len(
-            {row["cluster_id"] for row in candidate0_rows}
+        "heterogeneity_diagnostic_cluster_definition": (
+            "map_geometry_sha256_with_cross_scenario_route_seed_variation"
+        ),
+        "heterogeneity_diagnostic_cluster_count": len(
+            {row["heterogeneity_cluster_id"] for row in candidate0_rows}
+        ),
+        "repeatability_identity_definition": (
+            "same_route_scenario_semantic_block_seed_initial_state_and_"
+            "exogenous_schedule_binding"
+        ),
+        "exact_duplicate_repeatability_group_count": len(exact_duplicate_counts),
+        "exact_duplicate_repeatability_measurement_count": sum(
+            exact_duplicate_counts.values()
         ),
         "candidate0_rows": candidate0_rows,
         "candidate0_rows_sha256": _canonical_sha(candidate0_rows),
@@ -120,8 +258,11 @@ def validate_candidate0_calibration_corpus(value: Mapping[str, Any]) -> dict[str
         "complete_run_count", "retained_fixed_dp_capability_failure_count",
         "paired_eligible_rate", "minimum_paired_eligible_rate", "map_count",
         "intersection_count", "corridor_count", "route_count",
-        "independent_calibration_cluster_definition",
-        "independent_calibration_cluster_count", "candidate0_rows",
+        "heterogeneity_diagnostic_cluster_definition",
+        "heterogeneity_diagnostic_cluster_count",
+        "repeatability_identity_definition",
+        "exact_duplicate_repeatability_group_count",
+        "exact_duplicate_repeatability_measurement_count", "candidate0_rows",
         "candidate0_rows_sha256", "retained_failures",
         "retained_failures_sha256", "candidate0_same_forward_operational_default",
         "candidate_tensor_modified", "camp_method_outcomes_consumed",
@@ -156,7 +297,13 @@ def validate_candidate0_calibration_corpus(value: Mapping[str, Any]) -> dict[str
         "schema_version": SCHEMA_VERSION,
         "fixed_dp_head": FIXED_DP_HEAD,
         "minimum_paired_eligible_rate": 0.95,
-        "independent_calibration_cluster_definition": "map_geometry_sha256",
+        "heterogeneity_diagnostic_cluster_definition": (
+            "map_geometry_sha256_with_cross_scenario_route_seed_variation"
+        ),
+        "repeatability_identity_definition": (
+            "same_route_scenario_semantic_block_seed_initial_state_and_"
+            "exogenous_schedule_binding"
+        ),
         "candidate0_same_forward_operational_default": True,
         "candidate_tensor_modified": False,
         "camp_method_outcomes_consumed": False,
@@ -173,6 +320,28 @@ def validate_candidate0_calibration_corpus(value: Mapping[str, Any]) -> dict[str
     )
     if result.get("status") != expected_status:
         raise ValueError("candidate0 calibration corpus status drifted")
+    heterogeneity_ids = {
+        row.get("heterogeneity_cluster_id") for row in candidate0
+    }
+    repeatability_counts: dict[str, int] = {}
+    for row in candidate0:
+        digest = row.get("repeatability_identity_sha256")
+        if type(digest) is not str:
+            raise ValueError("candidate0 repeatability identity is missing")
+        repeatability_counts[digest] = repeatability_counts.get(digest, 0) + 1
+    exact_counts = [
+        count for count in repeatability_counts.values() if count >= 2
+    ]
+    if (
+        None in heterogeneity_ids
+        or result.get("heterogeneity_diagnostic_cluster_count")
+        != len(heterogeneity_ids)
+        or result.get("exact_duplicate_repeatability_group_count")
+        != len(exact_counts)
+        or result.get("exact_duplicate_repeatability_measurement_count")
+        != sum(exact_counts)
+    ):
+        raise ValueError("candidate0 calibration diagnostic accounting drifted")
     return result
 
 

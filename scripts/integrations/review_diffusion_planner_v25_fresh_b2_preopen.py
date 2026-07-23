@@ -26,6 +26,9 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 from camp_core.integrations.diffusion_planner_v25_calibration_preregistration import (  # noqa: E402
     validate_paired_calibration_preregistration,
 )
+from camp_core.integrations.diffusion_planner_v25_calibration_artifact import (  # noqa: E402
+    validate_calibration_freeze_payload,
+)
 from camp_core.integrations.diffusion_planner_v25_fresh_coverage import (  # noqa: E402
     build_fresh_b2_explicit_coverage,
 )
@@ -135,9 +138,58 @@ def review(artifact: Path, root_sha256: str) -> dict[str, Any]:
         raise ValueError("Fresh B2 explicit coverage differs from reconstruction")
 
     bindings = authority["upstream_bindings"]
+    if not {"calibration_freeze", "calibration_freeze_review"} <= set(bindings):
+        raise ValueError("Fresh B2 calibration freeze bindings are missing")
     for role, binding in bindings.items():
         path = Path(binding["path"])
         verify_complete_seal(path, binding["root_sha256"], label=f"Fresh B2 review {role}")
+    calibration_freeze = validate_calibration_freeze_payload(
+        _canonical_json(
+            Path(bindings["calibration_freeze"]["path"])
+            / "calibration_freeze.json"
+        )
+    )
+    calibration_freeze_report = _canonical_json(
+        Path(bindings["calibration_freeze"]["path"]) / "report.json"
+    )
+    calibration_freeze_review = _canonical_json(
+        Path(bindings["calibration_freeze_review"]["path"]) / "report.json"
+    )
+    resolution = calibration_freeze["noninferiority_resolvability"]
+    if (
+        calibration_freeze["status"] != "calibration_freeze_passed"
+        or calibration_freeze["calibration_contract"][
+            "fresh_preopen_qualification_allowed"
+        ]
+        is not True
+        or resolution["repeatability_status"]
+        != "not_estimable_no_exact_candidate0_duplicates"
+        or resolution["exact_duplicate_group_count"] != 0
+        or resolution["repeatability_gate_blocks_fresh"] is not False
+        or resolution["heterogeneity_diagnostic_only"] is not True
+        or resolution["heterogeneity_may_not_gate_fresh"] is not True
+        or calibration_freeze_report.get("status") != "calibration_freeze_passed"
+        or calibration_freeze_report.get("repeatability_gate_blocks_fresh")
+        is not False
+        or calibration_freeze_review.get("status")
+        != "passed_independent_calibration_freeze_from_paired_review"
+        or calibration_freeze_review.get("reviewed_root_sha256")
+        != bindings["calibration_freeze"]["root_sha256"]
+        or calibration_freeze_review.get("fresh_preopen_qualification_allowed")
+        is not True
+        or calibration_freeze_review.get("repeatability_status")
+        != "not_estimable_no_exact_candidate0_duplicates"
+        or calibration_freeze_review.get(
+            "exact_duplicate_repeatability_group_count"
+        )
+        != 0
+        or calibration_freeze_review.get("repeatability_gate_blocks_fresh")
+        is not False
+        or calibration_freeze_review.get("fresh_b2_opened") is not False
+        or calibration_freeze_review.get("fresh_open_authorized") is not False
+        or calibration_freeze_review.get("fresh_outcome_fields_consumed") != []
+    ):
+        raise ValueError("Fresh B2 calibration freeze cross-binding drifted")
     source = _strict_sealed_external_json_object(
         Path(bindings["train_route_source"]["path"]) / "route_signal_source_receipts.json"
     )
@@ -241,6 +293,15 @@ def review(artifact: Path, root_sha256: str) -> dict[str, Any]:
         "atom_mechanism_decision_tick_count": mechanism["decision_tick_count"],
         "atom_mechanism_primary_fresh_design_changed": False,
         "atom_mechanism_single_atom_closed_loop_causal_effect_claimed": False,
+        "calibration_freeze_root_sha256": bindings["calibration_freeze"][
+            "root_sha256"
+        ],
+        "calibration_freeze_review_root_sha256": bindings[
+            "calibration_freeze_review"
+        ]["root_sha256"],
+        "calibration_repeatability_status": resolution["repeatability_status"],
+        "calibration_exact_duplicate_group_count": 0,
+        "calibration_repeatability_gate_blocks_fresh": False,
         "fresh_open_authorized": False,
         "one_time_opening_release_required": True,
         "nonce_created": False,

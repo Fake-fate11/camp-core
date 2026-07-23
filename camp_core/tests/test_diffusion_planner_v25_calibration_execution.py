@@ -122,6 +122,7 @@ def _native(config: dict) -> dict:
         "route_name": route["name"],
         "route_sha256": route["sha256"],
         "scenario_seed": seed,
+        "spawn_config_sha256": f"{ordinal + 20001:064x}",
         "initial_state_sha256": f"{ordinal + 30001:064x}",
         "initial_input_sha256": ticks[0]["input_sha256"],
         "ticks": ticks,

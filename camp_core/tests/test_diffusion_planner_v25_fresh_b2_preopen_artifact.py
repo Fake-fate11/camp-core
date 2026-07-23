@@ -141,6 +141,97 @@ def test_preopen_config_is_unopened_and_rejects_nonce_mutation() -> None:
         PRODUCER._validate_config(mutated)
 
 
+def test_preopen_requires_reviewed_nonblocking_exact_repeat_freeze(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    source = (tmp_path / "freeze").resolve()
+    review = (tmp_path / "freeze-review").resolve()
+    source.mkdir()
+    review.mkdir()
+    root = "a" * 64
+    review_root = "b" * 64
+    payload = {
+        "status": "calibration_freeze_passed",
+        "calibration_contract": {
+            "fresh_preopen_qualification_allowed": True,
+        },
+        "noninferiority_resolvability": {
+            "repeatability_status": (
+                "not_estimable_no_exact_candidate0_duplicates"
+            ),
+            "exact_duplicate_group_count": 0,
+            "repeatability_gate_blocks_fresh": False,
+            "heterogeneity_diagnostic_only": True,
+            "heterogeneity_may_not_gate_fresh": True,
+        },
+    }
+    source_report = {
+        "status": "calibration_freeze_passed",
+        "repeatability_status": (
+            "not_estimable_no_exact_candidate0_duplicates"
+        ),
+        "exact_duplicate_repeatability_group_count": 0,
+        "repeatability_gate_blocks_fresh": False,
+        "fresh_b2_opened": False,
+        "fresh_open_authorized": False,
+        "fresh_outcome_fields_consumed": [],
+    }
+    review_report = {
+        "status": "passed_independent_calibration_freeze_from_paired_review",
+        "reviewed_root_sha256": root,
+        "calibration_status": "calibration_freeze_passed",
+        "fresh_preopen_qualification_allowed": True,
+        "repeatability_status": (
+            "not_estimable_no_exact_candidate0_duplicates"
+        ),
+        "exact_duplicate_repeatability_group_count": 0,
+        "repeatability_gate_blocks_fresh": False,
+        "margin_enlargement_authorized": False,
+        "model_or_threshold_changed": False,
+        "fresh_b2_opened": False,
+        "fresh_open_authorized": False,
+        "fresh_outcome_fields_consumed": [],
+    }
+
+    monkeypatch.setattr(PRODUCER, "verify_bound_artifact", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        PRODUCER, "validate_calibration_freeze_payload", lambda value: value
+    )
+
+    def load(path: Path) -> dict:
+        if path.name == "calibration_freeze.json":
+            return copy.deepcopy(payload)
+        if path.parent.resolve() == source:
+            return copy.deepcopy(source_report)
+        return copy.deepcopy(review_report)
+
+    monkeypatch.setattr(PRODUCER, "_canonical_json", load)
+    accepted = PRODUCER._open_calibration_freeze(
+        artifact=source,
+        root_sha256=root,
+        review_artifact=review,
+        review_root_sha256=review_root,
+    )
+    assert accepted["payload"]["noninferiority_resolvability"][
+        "repeatability_status"
+    ] == "not_estimable_no_exact_candidate0_duplicates"
+    assert set(accepted["bindings"]) == {
+        "calibration_freeze",
+        "calibration_freeze_review",
+    }
+
+    payload["noninferiority_resolvability"][
+        "repeatability_gate_blocks_fresh"
+    ] = True
+    with pytest.raises(ValueError, match="freeze chain"):
+        PRODUCER._open_calibration_freeze(
+            artifact=source,
+            root_sha256=root,
+            review_artifact=review,
+            review_root_sha256=review_root,
+        )
+
+
 @pytest.mark.parametrize("module", [PRODUCER, REVIEWER])
 def test_historical_upstream_json_uses_strict_external_policy(
     module, tmp_path: Path

@@ -8,6 +8,7 @@ from camp_core.integrations.diffusion_planner_v25_calibration_corpus import (
     FAILURE_SCHEMA_VERSION,
     RUN_RESULT_SCHEMA_VERSION,
     project_candidate0_calibration_corpus,
+    project_candidate0_calibration_corpus_from_paired_terminals,
     validate_candidate0_calibration_corpus,
 )
 from camp_core.integrations.diffusion_planner_v25_calibration import (
@@ -18,6 +19,9 @@ from camp_core.integrations.diffusion_planner_v25_calibration_artifact import (
 )
 from camp_core.integrations.diffusion_planner_v25_signal_complete_plan import (
     build_signal_complete_execution_plan,
+)
+from camp_core.integrations.diffusion_planner_v25_paired_calibration import (
+    build_paired_calibration_execution_plan,
 )
 
 
@@ -46,6 +50,7 @@ def _native(route: str, seed: int, ordinal: int) -> dict:
         "route_name": route,
         "route_sha256": route,
         "scenario_seed": seed,
+        "spawn_config_sha256": f"{ordinal + 20001:064x}",
         "initial_state_sha256": f"{ordinal + 30001:064x}",
         "initial_input_sha256": ticks[0]["input_sha256"],
         "ticks": ticks,
@@ -117,7 +122,9 @@ def test_calibration_projection_preserves_100_run_denominator() -> None:
     assert result["complete_run_count"] == 97
     assert result["retained_fixed_dp_capability_failure_count"] == 3
     assert result["paired_eligible_rate"] == 0.97
-    assert result["independent_calibration_cluster_count"] == 5
+    assert result["heterogeneity_diagnostic_cluster_count"] == 5
+    assert result["exact_duplicate_repeatability_group_count"] == 0
+    assert result["exact_duplicate_repeatability_measurement_count"] == 0
     assert result["status"] == "passed_candidate0_calibration_corpus_projection"
     assert validate_candidate0_calibration_corpus(copy.deepcopy(result)) == result
     frozen = build_calibration_freeze_payload_from_corpus(
@@ -132,6 +139,55 @@ def test_calibration_projection_preserves_100_run_denominator() -> None:
     assert frozen["inventory"]["retained_failure_run_count"] == 3
     assert frozen["candidate0_row_count"] == 97
     assert frozen["calibration_contract"]["fresh_open_authorized"] is False
+    assert frozen["calibration_contract"]["repeatability_estimation_status"] == (
+        "not_estimable_no_exact_candidate0_duplicates"
+    )
+    assert frozen["calibration_contract"]["fresh_preopen_qualification_allowed"] is True
+
+
+def test_paired_terminal_bridge_streams_candidate0_only_and_preserves_identity() -> None:
+    base, candidate0 = _results()
+    paired = build_paired_calibration_execution_plan(base)
+    terminals = []
+    for unit, source in zip(
+        paired["execution_units"], candidate0, strict=True
+    ):
+        order = unit["ordered_arms"].index("candidate0_operational_default")
+        identity = next(
+            row
+            for row in paired["identities"]
+            if row["scenario_identity_sha256"]
+            == unit["scenario_identity_sha256"]
+        )
+        terminals.append(
+            {
+                "run_ordinal": unit["unit_ordinal"] * 3 + order,
+                "unit_ordinal": unit["unit_ordinal"],
+                "unit_sha256": unit["unit_sha256"],
+                "arm_order_index": order,
+                "plan_arm": "candidate0_operational_default",
+                "scenario_identity_sha256": unit["scenario_identity_sha256"],
+                "route_identity_sha256": identity["route_identity_sha256"],
+                "seed": unit["seed"],
+                "status": "complete",
+                "native_receipt": source["native_receipt"],
+                "failure_receipt": None,
+                "fresh_b2_opened": False,
+                "fresh_outcome_fields_consumed": [],
+            }
+        )
+    bridged = project_candidate0_calibration_corpus_from_paired_terminals(
+        calibration_plan=base,
+        paired_plan=paired,
+        candidate0_terminals=terminals,
+    )
+    assert bridged["planned_run_count"] == 100
+    assert bridged["complete_run_count"] == 100
+    assert bridged["heterogeneity_diagnostic_cluster_count"] == 5
+    assert bridged["exact_duplicate_repeatability_group_count"] == 0
+    assert bridged["candidate0_rows"][0]["repeatability_identity"][
+        "same_initial_state_and_exogenous_schedule_per_pair"
+    ] is True
 
 
 def test_calibration_projection_fails_closed_below_coverage() -> None:

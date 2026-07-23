@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 
 import pytest
 
@@ -37,6 +39,7 @@ def _native_candidate0() -> dict:
         "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
         "route_sha256": "a" * 64,
         "scenario_seed": 25001,
+        "spawn_config_sha256": "9" * 64,
         "initial_state_sha256": "b" * 64,
         "initial_input_sha256": ticks[0]["input_sha256"],
         "ticks": ticks,
@@ -55,10 +58,20 @@ def _native_candidate0() -> dict:
 def test_candidate0_calibration_row_is_mechanical_and_deterministic() -> None:
     native = _native_candidate0()
     first = project_candidate0_ni_calibration_row(
-        cluster_id="corridor-a", native_receipt=native
+        heterogeneity_cluster_id="map-a",
+        run_instance_sha256="1" * 64,
+        scenario_identity_sha256="2" * 64,
+        route_identity_sha256="3" * 64,
+        semantic_parameter_block_sha256="4" * 64,
+        native_receipt=native,
     )
     second = project_candidate0_ni_calibration_row(
-        cluster_id="corridor-a", native_receipt=copy.deepcopy(native)
+        heterogeneity_cluster_id="map-a",
+        run_instance_sha256="1" * 64,
+        scenario_identity_sha256="2" * 64,
+        route_identity_sha256="3" * 64,
+        semantic_parameter_block_sha256="4" * 64,
+        native_receipt=copy.deepcopy(native),
     )
     assert first == second
     assert first["arm"] == "candidate0_operational_default"
@@ -85,11 +98,35 @@ def test_candidate0_calibration_projection_fails_closed_on_authority_drift(
         native["initial_input_sha256"] = "f" * 64
     with pytest.raises(ValueError):
         project_candidate0_ni_calibration_row(
-            cluster_id="corridor-a", native_receipt=native
+            heterogeneity_cluster_id="map-a",
+            run_instance_sha256="1" * 64,
+            scenario_identity_sha256="2" * 64,
+            route_identity_sha256="3" * 64,
+            semantic_parameter_block_sha256="4" * 64,
+            native_receipt=native,
         )
 
+
+def _canonical_sha(value: object) -> str:
+    return hashlib.sha256(
+        (
+            json.dumps(
+                value,
+                sort_keys=True,
+                ensure_ascii=False,
+                separators=(",", ":"),
+                allow_nan=False,
+            )
+            + "\n"
+        ).encode()
+    ).hexdigest()
+
+
 def _candidate0_rows(
-    *, count: int = 10, excessive_progress_variability: bool = False
+    *,
+    count: int = 10,
+    excessive_progress_variability: bool = False,
+    exact_duplicates: bool = False,
 ):
     rows = []
     base = {
@@ -109,11 +146,28 @@ def _candidate0_rows(
             performance[name] += (repeat % 2) * margin / 2.0
         if excessive_progress_variability and cluster == 4 and repeat % 2:
             performance["progress"] += 4.0
+        identity_index = cluster if exact_duplicates else index
+        repeatability_identity = {
+            "schema_version": "camp_dp_v25_exact_candidate0_repeatability_identity_v1",
+            "route_identity_sha256": f"{identity_index + 1000:064x}",
+            "scenario_identity_sha256": f"{identity_index + 2000:064x}",
+            "semantic_parameter_block_sha256": f"{identity_index + 3000:064x}",
+            "scenario_seed": 25001 + identity_index,
+            "spawn_config_sha256": f"{identity_index + 4000:064x}",
+            "initial_state_sha256": f"{identity_index + 5000:064x}",
+            "initial_input_sha256": f"{identity_index + 6000:064x}",
+            "same_initial_state_and_exogenous_schedule_per_pair": True,
+        }
         rows.append(
             {
-                "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v1",
+                "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v2",
                 "arm": "candidate0_operational_default",
-                "cluster_id": f"cluster-{cluster}",
+                "heterogeneity_cluster_id": f"map-{cluster}",
+                "run_instance_sha256": f"{index + 7000:064x}",
+                "repeatability_identity": repeatability_identity,
+                "repeatability_identity_sha256": _canonical_sha(
+                    repeatability_identity
+                ),
                 "measurement_sha256": f"{index + 1:064x}",
                 "performance": performance,
                 "fresh_b2_opened": False,
@@ -160,6 +214,10 @@ def test_calibration_freeze_binds_thresholds_margins_and_roots() -> None:
     assert result["status"] == "calibration_freeze_passed"
     assert result["fresh_preopen_qualification_allowed"] is True
     assert result["fresh_open_authorized"] is False
+    assert result["repeatability_estimation_status"] == (
+        "not_estimable_no_exact_candidate0_duplicates"
+    )
+    assert result["repeatability_gate_blocks_fresh"] is False
     assert result["one_time_opening_release_required"] is True
     assert result["operational_overspeed_tolerance_mps"] == 0.1
     assert result["safety_cost_contract"]["component_weights"] == (
@@ -188,30 +246,75 @@ def test_calibration_freeze_binds_thresholds_margins_and_roots() -> None:
     ] is False
 
 
-def test_candidate0_calibration_only_assesses_fixed_margin_resolvability() -> None:
+def test_cross_scenario_heterogeneity_is_not_repeatability_or_opening_veto() -> None:
     result = estimate_v25_noninferiority_margin_resolvability(_candidate0_rows())
-    assert result["status"] == "noninferiority_margins_resolvable"
+    assert result["status"] == "exact_duplicate_repeatability_not_estimable"
     assert result["margins"] == NONINFERIORITY_ENGINEERING_MARGINS
-    assert result["independent_cluster_count"] == 5
+    assert result["heterogeneity_cluster_count"] == 5
     assert result["measurement_count"] == 10
-    assert result["all_margins_resolvable"] is True
+    assert result["exact_duplicate_group_count"] == 0
+    assert result["repeatability_status"] == (
+        "not_estimable_no_exact_candidate0_duplicates"
+    )
+    assert result["all_repeatability_margins_resolvable"] is None
+    assert result["repeatability_gate_blocks_fresh"] is False
     for name, margin in NONINFERIORITY_ENGINEERING_MARGINS.items():
-        assert result["q95_absolute_repeat_variability"][name] == pytest.approx(
-            margin / 4.0
-        )
+        assert result["q95_within_map_cross_scenario_heterogeneity"][
+            name
+        ] == pytest.approx(margin / 4.0)
+        assert result["q95_exact_duplicate_repeatability"][name] is None
 
 
-def test_calibration_variability_cannot_enlarge_preregistered_margin() -> None:
+def test_cross_scenario_heterogeneity_cannot_block_fresh_or_enlarge_margin() -> None:
     result = _freeze(excessive_progress_variability=True)
     resolution = result["noninferiority"]["calibration_resolvability"]
-    assert resolution["margin_resolvable"]["progress"] is False
+    assert resolution["q95_within_map_cross_scenario_heterogeneity"][
+        "progress"
+    ] > NONINFERIORITY_ENGINEERING_MARGINS["progress"]
+    assert resolution["repeatability_status"] == (
+        "not_estimable_no_exact_candidate0_duplicates"
+    )
     assert resolution["margins"] == NONINFERIORITY_ENGINEERING_MARGINS
-    assert result["status"] == "calibration_freeze_scientifically_ineligible"
-    assert result["fresh_preopen_qualification_allowed"] is False
+    assert result["status"] == "calibration_freeze_passed"
+    assert result["fresh_preopen_qualification_allowed"] is True
     assert result["fresh_open_authorized"] is False
 
 
-def test_margin_resolvability_rejects_method_fresh_and_cluster_drift() -> None:
+def test_true_exact_duplicate_repeatability_can_block_without_changing_margin() -> None:
+    resolution = estimate_v25_noninferiority_margin_resolvability(
+        _candidate0_rows(
+            exact_duplicates=True,
+            excessive_progress_variability=True,
+        )
+    )
+    assert resolution["exact_duplicate_group_count"] == 5
+    assert resolution["repeatability_status"] == (
+        "exact_duplicate_repeatability_estimated"
+    )
+    assert resolution["repeatability_margin_resolvable"]["progress"] is False
+    assert resolution["repeatability_gate_blocks_fresh"] is True
+    frozen = freeze_v25_calibration_contract(
+        root_bindings={name: "a" * 64 for name in CALIBRATION_ROOT_BINDINGS},
+        inventory={
+            "map_count": 5,
+            "intersection_count": 5,
+            "corridor_count": 5,
+            "route_count": 50,
+            "planned_paired_run_count": 100,
+            "paired_eligible_run_count": 10,
+            "retained_failure_run_count": 90,
+            "paired_eligible_rate": 0.1,
+        },
+        noninferiority_resolvability=resolution,
+        frozen_model_registry_sha256="b" * 64,
+        training_scale_sha256="c" * 64,
+        context_scaler_sha256="d" * 64,
+    )
+    assert frozen["repeatability_gate_blocks_fresh"] is True
+    assert frozen["fresh_preopen_qualification_allowed"] is False
+
+
+def test_repeatability_estimator_rejects_method_fresh_and_cluster_drift() -> None:
     rows = _candidate0_rows()
     rows[0]["arm"] = "scene14d"
     with pytest.raises(ValueError, match="candidate0 rows only"):
@@ -223,9 +326,13 @@ def test_margin_resolvability_rejects_method_fresh_and_cluster_drift() -> None:
         estimate_v25_noninferiority_margin_resolvability(rows)
 
     rows = _candidate0_rows()
-    rows[0]["cluster_id"] = rows[2]["cluster_id"]
-    rows[5]["cluster_id"] = rows[2]["cluster_id"]
-    with pytest.raises(ValueError, match="five clusters"):
+    rows[0]["heterogeneity_cluster_id"] = rows[2][
+        "heterogeneity_cluster_id"
+    ]
+    rows[5]["heterogeneity_cluster_id"] = rows[2][
+        "heterogeneity_cluster_id"
+    ]
+    with pytest.raises(ValueError, match="five map clusters"):
         estimate_v25_noninferiority_margin_resolvability(rows)
 
 

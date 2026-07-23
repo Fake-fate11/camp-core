@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 
 import numpy as np
 import pytest
@@ -143,12 +145,33 @@ def _calibration_contract() -> dict:
     candidate0_rows = []
     for cluster in range(5):
         for repeat in range(20):
+            index = cluster * 20 + repeat
+            identity = {
+                "schema_version": "camp_dp_v25_exact_candidate0_repeatability_identity_v1",
+                "route_identity_sha256": f"{index + 1000:064x}",
+                "scenario_identity_sha256": f"{index + 2000:064x}",
+                "semantic_parameter_block_sha256": f"{index + 3000:064x}",
+                "scenario_seed": 25001 + index,
+                "spawn_config_sha256": f"{index + 4000:064x}",
+                "initial_state_sha256": f"{index + 5000:064x}",
+                "initial_input_sha256": f"{index + 6000:064x}",
+                "same_initial_state_and_exogenous_schedule_per_pair": True,
+            }
+            identity_sha = hashlib.sha256(
+                (
+                    json.dumps(identity, sort_keys=True, separators=(",", ":"))
+                    + "\n"
+                ).encode()
+            ).hexdigest()
             candidate0_rows.append(
                 {
-                    "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v1",
+                    "schema_version": "camp_dp_v25_candidate0_ni_calibration_row_v2",
                     "arm": "candidate0_operational_default",
-                    "cluster_id": f"cal-cluster-{cluster}",
-                    "measurement_sha256": f"{cluster * 20 + repeat + 1:064x}",
+                    "heterogeneity_cluster_id": f"cal-map-{cluster}",
+                    "run_instance_sha256": f"{index + 7000:064x}",
+                    "repeatability_identity": identity,
+                    "repeatability_identity_sha256": identity_sha,
+                    "measurement_sha256": f"{index + 8000:064x}",
                     "performance": {
                         name: 1.0 for name in NONINFERIORITY_METRICS
                     },

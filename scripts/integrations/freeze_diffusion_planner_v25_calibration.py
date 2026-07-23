@@ -31,7 +31,7 @@ from camp_core.integrations.diffusion_planner_v25_calibration_corpus import (  #
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_calibration_freeze_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_calibration_freeze_artifact_v2"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 
 
@@ -129,9 +129,15 @@ def build(
                 output_dir / "calibration_freeze.json"
             ),
             "candidate0_row_count": payload["candidate0_row_count"],
-            "independent_cluster_count": payload[
+            "heterogeneity_cluster_count": payload[
                 "noninferiority_resolvability"
-            ]["independent_cluster_count"],
+            ]["heterogeneity_cluster_count"],
+            "repeatability_status": payload["noninferiority_resolvability"][
+                "repeatability_status"
+            ],
+            "exact_duplicate_repeatability_group_count": payload[
+                "noninferiority_resolvability"
+            ]["exact_duplicate_group_count"],
             "margin_enlargement_authorized": False,
             "camp_method_outcomes_consumed": False,
             "fresh_b2_opened": False,
