@@ -35,6 +35,7 @@ from scripts.integrations.freeze_diffusion_planner_v25_holdout_production_prefli
     build_artifact as build_holdout_preflight_artifact,
 )
 from scripts.integrations.freeze_diffusion_planner_v25_b3_production_preflight import (
+    _fixture_execution_unit,
     _fresh_runtime_selector_authority,
 )
 from scripts.integrations.review_diffusion_planner_v25_holdout_production_preflight import (
@@ -297,6 +298,24 @@ def test_b3_preflight_selector_binds_b3_plan_not_legacy_role_guess(
     assert result["calibration_contract_root_sha256"] == "8" * 64
     assert result["preopen_qualification_root_sha256"] == "9" * 64
     assert result["scenario_manifest_root_sha256"] == "a" * 64
+
+
+def test_b3_preflight_projects_exact_paired_unit_from_calibration_config(
+    tmp_path: Path,
+) -> None:
+    config = _fresh_config(
+        tmp_path, "candidate0_operational_default"
+    )
+    plan = config["signal_complete_plan_authority"]
+    projected = _fixture_execution_unit(config)
+    assert set(projected) == {
+        "unit_ordinal",
+        "scenario_identity_sha256",
+        "seed",
+        "ordered_arms",
+        "unit_sha256",
+    }
+    assert all(projected[name] == plan[name] for name in projected)
 
 
 def test_exact_production_preflight_runs_three_real_configs_and_callback(

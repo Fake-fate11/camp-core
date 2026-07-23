@@ -119,9 +119,7 @@ def build(
         legacy = build_fresh_b2_arm_config(
             probe_template=fixture_config,
             prepared_runtime=fixture_config["signal_complete_runtime"],
-            execution_unit=fixture_config[
-                "signal_complete_plan_authority"
-            ],
+            execution_unit=_fixture_execution_unit(fixture_config),
             plan_arm=plan_arm,
             route_asset=fixture_config["routes"][0],
             dp_repo=Path(fixture_config["fixed_dp"]["repo"]),
@@ -382,6 +380,24 @@ def _fresh_runtime_selector_authority(
         raise ValueError("Fresh B3 execution-plan SHA drifted")
     result["scenario_manifest_root_sha256"] = b3_execution_plan_sha256
     return result
+
+
+def _fixture_execution_unit(
+    config: Mapping[str, Any],
+) -> dict[str, Any]:
+    plan = config.get("signal_complete_plan_authority")
+    if type(plan) is not dict:
+        raise ValueError("calibration fixture plan authority is missing")
+    fields = (
+        "unit_ordinal",
+        "scenario_identity_sha256",
+        "seed",
+        "ordered_arms",
+        "unit_sha256",
+    )
+    if any(name not in plan for name in fields):
+        raise ValueError("calibration fixture paired-unit authority drifted")
+    return {name: plan[name] for name in fields}
 
 
 def _binding(
