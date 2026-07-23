@@ -3630,6 +3630,7 @@ def build_native_arm_runner(
         ]
         | None = None,
         fixed_k8_candidate0: bool = False,
+        candidate0_supplementary_pool_diagnostic: bool = False,
     ) -> Mapping[str, Any]:
         _validate_native_config(config)
         if config.get("schema_version") != runtime_schema_version:
@@ -3666,6 +3667,10 @@ def build_native_arm_runner(
             raise ValueError("arm must be dp or camp")
         if type(fixed_k8_candidate0) is not bool:
             raise TypeError("fixed_k8_candidate0 must be a native bool")
+        if type(candidate0_supplementary_pool_diagnostic) is not bool:
+            raise TypeError(
+                "candidate0_supplementary_pool_diagnostic must be a native bool"
+            )
         if arm == "camp" and fixed_k8_candidate0:
             raise ValueError("fixed_k8_candidate0 is only valid for the DP arm")
         protocol = _mapping(config, "protocol")
@@ -3826,6 +3831,20 @@ def build_native_arm_runner(
                 raise ValueError(
                     f"holdout {label} mode cannot consume a Scene14D provider"
                 )
+            if candidate0_supplementary_pool_diagnostic and (
+                not signal_complete_holdout_arm
+                or plan_arm != "candidate0_operational_default"
+                or arm != "dp"
+                or fixed_k8_candidate0 is not True
+            ):
+                raise ValueError(
+                    "supplementary candidate0 pool diagnostics require the "
+                    "holdout DP candidate0 arm"
+                )
+        elif candidate0_supplementary_pool_diagnostic:
+            raise ValueError(
+                "supplementary candidate0 pool diagnostics require a holdout config"
+            )
         if config.get("schema_version") in {
             "camp_dp_v24_single_record_source_probe_v1",
             "camp_dp_v25_controlled_capability_v1",
@@ -4024,10 +4043,20 @@ def build_native_arm_runner(
             if v25_weight_provider is not None:
                 raise ValueError("DP candidate0 arm cannot consume a CAMP weight provider")
             candidate0_pool_diagnostics = bool(
-                (signal_complete_fresh_arm or signal_complete_paired_calibration)
+                (
+                    signal_complete_fresh_arm
+                    or signal_complete_paired_calibration
+                    or (
+                        signal_complete_holdout_arm
+                        and candidate0_supplementary_pool_diagnostic
+                    )
+                )
                 and protocol.get("candidate0_offline_pool_evidence_required") is True
             )
-            candidate0_action_first = bool(signal_complete_holdout_arm)
+            candidate0_action_first = bool(
+                signal_complete_holdout_arm
+                and not candidate0_supplementary_pool_diagnostic
+            )
             replacement = NativeCampPredictBatch(
                 state=state,
                 to_model_tensors=context["tensor_converter"].to_model_tensors,
@@ -4541,6 +4570,7 @@ def _public_tick_receipt(receipt: Mapping[str, Any], arm: str) -> dict[str, Any]
                 "selected_trajectory_sha256": str(
                     receipt["selected_trajectory_sha256"]
                 ),
+                "selection_policy": str(receipt["selection_policy"]),
                 "score_contract": str(receipt["score_contract"]),
                 "eligibility_mask_name": str(
                     receipt["eligibility_mask_name"]

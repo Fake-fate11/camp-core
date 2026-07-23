@@ -205,11 +205,13 @@ def build(
             _write(run_dir / "native_receipt.json", primary[arm])
             _write(run_dir / "decision_evidence.json", snapshots)
 
-        diagnostic_config = legacy_fixture_configs["candidate0"]
+        diagnostic_config = configs["candidate0"]
         diagnostic_dir = output / "runs" / "candidate0_supplementary"
         diagnostic_dir.mkdir()
         diagnostic_runner = build_native_arm_runner(
-            diagnostic_config, device="cuda"
+            diagnostic_config,
+            device="cuda",
+            holdout_preflight_authority=authority,
         )
         diagnostic = dict(
             diagnostic_runner(
@@ -219,6 +221,7 @@ def build(
                 output_dir=diagnostic_dir / "native",
                 max_steps=64,
                 fixed_k8_candidate0=True,
+                candidate0_supplementary_pool_diagnostic=True,
             )
         )
         _write(diagnostic_dir / "native_receipt.json", diagnostic)

@@ -220,6 +220,8 @@ def _all_offroad_native_hook_state(module):
                 "_safety_pre": {"pre_decision_speed_mps": 1.0},
                 "latency_ms": {"total_planning": 1.0},
                 "default_output_sha256": "2" * 64,
+                "_planning_started_ns": 1_000 + index * 10,
+                "action_available_ns": 1_001 + index * 10,
             }
         )
     return module.NativeHookState(tick_index=64, receipts=receipts)

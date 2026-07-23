@@ -274,7 +274,10 @@ def _patch_projection(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         module,
         "build_candidate0_pool_evidence",
-        lambda native: {"native": native["arm"]},
+        lambda native, supplementary=None: {
+            "native": native["arm"],
+            "supplementary": supplementary,
+        },
     )
     monkeypatch.setattr(
         module,
@@ -374,7 +377,10 @@ def test_generic_holdout_fixed_dp_failure_terminates_whole_unit(
         seen.append(config["plan_arm"])
         if config["plan_arm"] == "camp_static14d":
             raise _fixed_dp_failure()
-        return {"arm": "dp"}
+        return {
+            "arm": "dp",
+            "_candidate0_supplementary_native_receipt": {"arm": "dp"},
+        }
 
     report = _execute_validated_fresh_units(
         plan=_mini_plan(),

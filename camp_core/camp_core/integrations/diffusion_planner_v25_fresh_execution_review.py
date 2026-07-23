@@ -54,7 +54,7 @@ from .diffusion_planner_v25_signal_complete_plan import (
 
 
 SCHEMA_VERSION = "camp_dp_v25_fresh_b2_three_arm_execution_review_v1"
-HOLDOUT_SCHEMA_VERSION = "camp_dp_v25_holdout_three_arm_execution_review_v1"
+HOLDOUT_SCHEMA_VERSION = "camp_dp_v25_holdout_three_arm_execution_review_v2"
 
 
 def review_fresh_b2_three_arm_execution(
@@ -259,11 +259,39 @@ def _review_three_arm_execution(
                 _review_logical_decision_evidence(
                     run_dir, native=native, evaluation_arm=evaluation_arm
                 )
+                supplementary_native = None
+                if holdout_mode and evaluation_arm == "candidate0":
+                    supplementary_native = _canonical_json(
+                        run_dir
+                        / "candidate0_supplementary_native_receipt.json"
+                    )
                 pool = (
-                    build_candidate0_pool_evidence(native)
+                    build_candidate0_pool_evidence(
+                        native, supplementary_native
+                    )
                     if evaluation_arm == "candidate0"
                     else None
                 )
+                if pool is not None and not _strict_equal(
+                    _canonical_json(
+                        run_dir / "candidate0_pool_evidence.json"
+                    ),
+                    pool,
+                ):
+                    raise ValueError(
+                        "candidate0 stored pool evidence drifted from native "
+                        "receipts"
+                    )
+                if evaluation_arm != "candidate0" and any(
+                    (run_dir / name).exists()
+                    for name in (
+                        "candidate0_supplementary_native_receipt.json",
+                        "candidate0_pool_evidence.json",
+                    )
+                ):
+                    raise ValueError(
+                        "method arm exposed candidate0 supplementary evidence"
+                    )
                 row = build_fresh_b2_complete_row(
                     qualification_row=manifest,
                     pair_key=unit["unit_sha256"],
@@ -296,6 +324,11 @@ def _review_three_arm_execution(
                     "native_receipt_sha256": _canonical_sha(native),
                     "candidate0_pool_evidence_sha256": (
                         _canonical_sha(pool) if pool is not None else None
+                    ),
+                    "candidate0_supplementary_native_receipt_sha256": (
+                        _canonical_sha(supplementary_native)
+                        if supplementary_native is not None
+                        else None
                     ),
                     "fixed_dp_failure_receipt_sha256": None,
                     "evaluation_row": row,
@@ -345,6 +378,7 @@ def _review_three_arm_execution(
                     "arm_order_index": arm_order_index,
                     "native_receipt_sha256": None,
                     "candidate0_pool_evidence_sha256": None,
+                    "candidate0_supplementary_native_receipt_sha256": None,
                     "fixed_dp_failure_receipt_sha256": _canonical_sha(evidence),
                     "evaluation_row": row,
                 }
@@ -384,6 +418,7 @@ def _review_three_arm_execution(
                     "arm_order_index": arm_order_index,
                     "native_receipt_sha256": None,
                     "candidate0_pool_evidence_sha256": None,
+                    "candidate0_supplementary_native_receipt_sha256": None,
                     "fixed_dp_failure_receipt_sha256": None,
                     "source_ineligible_receipt_sha256": _canonical_sha(
                         evidence

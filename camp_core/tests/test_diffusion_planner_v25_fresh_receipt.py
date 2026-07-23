@@ -13,6 +13,7 @@ from camp_core.integrations.diffusion_planner_v25_fresh_receipt import (
     build_candidate0_pool_evidence,
     build_fresh_b2_complete_row,
     build_fresh_b2_failure_row,
+    project_candidate0_supplementary_native_receipt,
 )
 
 
@@ -179,6 +180,63 @@ def _native(arm: str) -> dict:
 
 def _pool() -> dict:
     return build_candidate0_pool_evidence(_native("candidate0"))
+
+
+def _action_first_native() -> dict:
+    value = _native("candidate0")
+    for index, tick in enumerate(value["ticks"]):
+        for name in (
+            "candidate_tensor_sha256_before",
+            "candidate_tensor_sha256_after",
+            "candidate_row_sha256",
+            "default_candidate0_identity",
+            "source_valid_mask",
+            "physical_feasible_mask",
+        ):
+            tick.pop(name)
+        tick.update(
+            {
+                "input_sha256": f"{20_000 + index:064x}",
+                "candidate0_action_first": True,
+                "candidate0_pool_evidence_collected_online": False,
+                "candidate0_pool_evidence_required_post_action": True,
+                "same_forward_claimed": False,
+                "planning_started_ns": 1_000 + index * 10,
+                "action_available_ns": 1_005 + index * 10,
+                "receipt_projected_ns": 1_006 + index * 10,
+            }
+        )
+        tick["latency_ms"] = {
+            "default_inference": 1.0,
+            "tracker": 0.5,
+            "total_planning": 2.0,
+        }
+    return value
+
+
+def _supplementary_native(primary: dict) -> dict:
+    value = _native("candidate0")
+    for index, tick in enumerate(value["ticks"]):
+        tick.update(
+            {
+                "input_sha256": primary["ticks"][index]["input_sha256"],
+                "source_complete_mask": [True] * 8,
+                "atom_matrix_sha256": f"{30_000 + index:064x}",
+                "planning_started_ns": 10_000 + index * 10,
+                "action_available_ns": 10_005 + index * 10,
+                "receipt_projected_ns": 10_006 + index * 10,
+            }
+        )
+        tick["latency_ms"] = {
+            "input_materialization": 0.2,
+            "default_inference": 1.0,
+            "candidate_inference": 7.0,
+            "atom_materialization": 0.3,
+            "hook_total": 8.5,
+            "tracker": 0.5,
+            "total_planning": 9.0,
+        }
+    return value
 
 
 def test_complete_rows_are_mechanical_and_bind_scene_authority() -> None:
@@ -382,3 +440,63 @@ def test_mapped_source_ineligible_row_is_retained_without_outcome_values() -> No
     wrong["failure_class"] = "generic_source_failure"
     with pytest.raises(ValueError, match="evidence contract"):
         validate_fresh_b2_evaluation_row(wrong)
+
+
+def test_action_first_candidate0_binds_separate_supplementary_pool() -> None:
+    primary = _action_first_native()
+    supplementary = project_candidate0_supplementary_native_receipt(
+        _supplementary_native(primary)
+    )
+    pool = build_candidate0_pool_evidence(primary, supplementary)
+    assert pool["schema_version"] == CANDIDATE0_POOL_SCHEMA_VERSION
+    assert pool["same_forward_claimed"] is False
+    assert pool["pool_evidence_affects_action"] is False
+    assert pool["pool_evidence_affects_rng_or_next_tick"] is False
+    assert pool["ticks"][0]["input_sha256"] == primary["ticks"][0][
+        "input_sha256"
+    ]
+    assert "candidate_tensor_sha256_before" not in primary["ticks"][0]
+    row = build_fresh_b2_complete_row(
+        qualification_row=_manifest(),
+        pair_key="pair-supplementary",
+        arm="candidate0",
+        arm_order_index=0,
+        native_receipt=primary,
+        candidate0_pool_evidence=pool,
+    )
+    assert row["selected_index_sequence"] == [0] * 64
+    assert row["latency_ms"]["additional_k8_generation"] == [0.0] * 64
+
+
+@pytest.mark.parametrize(
+    ("mutator", "match"),
+    [
+        (
+            lambda value: value["ticks"][0].__setitem__(
+                "input_sha256", "f" * 64
+            ),
+            "base-forward binding",
+        ),
+        (
+            lambda value: value["ticks"][0].pop("atom_matrix_sha256"),
+            "tick schema",
+        ),
+        (
+            lambda value: value["ticks"][0].__setitem__(
+                "same_forward_claimed", True
+            ),
+            "tick schema",
+        ),
+    ],
+)
+def test_supplementary_candidate0_receipt_mutations_fail_closed(
+    mutator, match: str
+) -> None:
+    primary = _action_first_native()
+    supplementary = project_candidate0_supplementary_native_receipt(
+        _supplementary_native(primary)
+    )
+    changed = copy.deepcopy(supplementary)
+    mutator(changed)
+    with pytest.raises(ValueError, match=match):
+        build_candidate0_pool_evidence(primary, changed)

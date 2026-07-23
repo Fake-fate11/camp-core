@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import shutil
 import sys
 from typing import Any, Callable, Mapping
 
@@ -26,6 +27,9 @@ from camp_core.integrations.diffusion_planner_v25_b3_preopen import (  # noqa: E
 from camp_core.integrations.diffusion_planner_v25_fresh_execution import (  # noqa: E402
     execute_holdout_three_arm_units,
     materialize_fixed_dp_failure_evidence,
+)
+from camp_core.integrations.diffusion_planner_v25_fresh_receipt import (  # noqa: E402
+    project_candidate0_supplementary_native_receipt,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (  # noqa: E402
     tracked_implementation_manifest,
@@ -404,6 +408,28 @@ def _native_run_one(
             != list(range(64))
         ):
             raise ValueError("holdout decision-evidence denominator drifted")
+        if plan_arm == "candidate0_operational_default":
+            diagnostic_dir = run_dir / "_candidate0_supplementary_native_raw"
+            try:
+                diagnostic = dict(
+                    holder["run_arm"](
+                        route=config["routes"][0],
+                        arm="dp",
+                        config=config,
+                        output_dir=diagnostic_dir,
+                        max_steps=64,
+                        fixed_k8_candidate0=True,
+                        candidate0_supplementary_pool_diagnostic=True,
+                    )
+                )
+                receipt[
+                    "_candidate0_supplementary_native_receipt"
+                ] = project_candidate0_supplementary_native_receipt(
+                    diagnostic
+                )
+            finally:
+                if diagnostic_dir.exists():
+                    shutil.rmtree(diagnostic_dir)
         logical = run_dir / "decision_evidence.json"
         _write_json(logical, snapshots)
         receipt["fresh_decision_evidence_reference"] = (
