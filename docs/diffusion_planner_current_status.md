@@ -1,135 +1,88 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-24, Asia/Shanghai.
+Last verified: 2026-07-25, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
 audits are historical evidence and remain frozen.
 
-## Current V25 Status — Fresh B4 Consumer Authority Contract and Consolidated Pre-Open Passed
+## Current V25 Status — Fresh B4 Post-Exposure Evaluation-Control Fatal and Honest-No-Claim Terminal
 
 Reader contract: this section is the only current V25 pointer source in this
 file. It must agree with the EOF tuple in
 `docs/diffusion_planner_v25_iteration_audit.md`.
 
-Fresh B3 remains permanently closed as
-`consumed_one_shot_engineering_failure_no_evaluation_no_claim`; its post-exposure
-engineering fatal, roots, tombstone, and raw-value exclusion are unchanged.
+The unique Fresh B4 execution completed and its independent execution review
+passed. It formed the complete preregistered engineering denominator: 500/500
+pairs, 1,500/1,500 complete and terminal arms, 96,000 planned ticks, and
+coverage PASS. The execution and review roots are
+`e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881`
+and
+`f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d`.
 
-The B4 production RC closed the actual-native receipt ABI and exercised the
-real non-Fresh production composition. No replacement canary was run after the
-accepted sealed execution and independent execution review. Deterministic
-evaluation, independent evaluation review, the production-equivalence
-certificate, and its independent review strictly reopened:
+The frozen evaluator then exited `1` with
+`ValueError: holdout execution/evaluation role HEAD drifted` before creating
+an evaluation artifact. This was a deterministic engineering fatal after
+scientific exposure, not a transport ambiguity. Evaluation was not repaired,
+rerun, redirected, or manually reconstructed; evaluation review was never
+started; raw Fresh outcome values were not inspected.
 
-- sealed non-Fresh execution root
-  `731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2`;
-- execution-review root
-  `83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566`;
-- evaluation root
-  `c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99`;
-- evaluation-review root
-  `08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc`;
-- production-equivalence certificate root
-  `f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6`;
-- certificate-review root
-  `4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c`.
+The outcome-blind closeout and independent literal review passed under roots
+`a97af4901ac0627ece1203eaac130f8bf2f10caf6b8bee523555582b2ff3d398`
+and
+`86aa7ca12ae8cfa4a655fc55022761a78ac54a3a22ef32a750df9c7eb75d0062`.
+The scientific CAS advanced once from `full_denominator_formed` to
+`terminal_failure`, preserving the execution history and binding the closeout
+root. Fresh B4 statistics, SafetyCost components, CI95, Better/Tie/Worse,
+strata, NI, latency, and post-Fresh mechanism tables are
+`unavailable_due_to_post_exposure_evaluation_fatal`.
 
-The role-level provenance is explicit: execution remains frozen at its
-producer HEAD and critical manifest, while evaluation is frozen at its later
-evaluator HEAD and manifest; no artifact claims same-HEAD provenance.
+The final V25 disposition is `honest_no_claim`. B2 and B3 tombstones remain
+immutable, fixed Diffusion Planner K=8 remains unchanged, and no new nonce,
+rerun, replacement, promotion, deployment, real-road safety claim, broad
+unseen-map claim, or native-ranked Top-1 claim is authorized. The paper-level
+report and 11-item evidence index are
+`docs/diffusion_planner_v25_final_honest_no_claim_report.md` and
+`docs/diffusion_planner_v25_final_evidence_index.md`.
 
-The versioned 24-role upstream authority contract now separates native
-execution terminal state from authority disposition. It accepts only exact
-table-declared direct-success, recovery, and historical closeout chains. The
-formal runner uses that contract for Fresh B4, the independent execution
-reviewer rebuilds it from a reviewer-local literal oracle, and the nonFresh
-fixture remains explicit all-success. Evaluator and evaluation-reviewer
-calibration-freeze bindings remain exact role-specific success checks rather
-than blanket upstream policy. The authoritative AutoDL focused suite passed
-all 279 tests under root
-`d618b6dcc509c0223038f8bf25308be6baa466b055487104a99f79c7e77d8f79`.
-
-The rebuilt consolidated B4 pre-open authority and independent review passed:
-
-- authority:
-  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_7be93df2_20260724TconsumerFinalCST`,
-  root
-  `bfb6727983cbb43a3612ea00d274b249277ed4abfa4f63219c5aaba4420b2829`;
-- review:
-  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_7be93df2_20260724TconsumerFinalCST`,
-  root
-  `4b4b64682addf728cafcd01dbde1e5ff837124e9be5105ed3000ab68eb18ea55`.
-
-The critical implementation manifest is
-`f3b707d480b30e1d37d2c10355d8a824df4cff8230af7d78d803dd4504ef6c2b`;
-the sealed role contract SHA is
-`3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653`.
-The later issued nonce
-`fe4538efba9684c091ab25b059cd01d93fea0139e39ca856764bd01a4aa269bb`
-is permanently void as
-`issued_then_aborted_pre_exposure_runner_authority_policy_defect`. Its exact
-controller, release, operational attempt, and released operational-identity
-reservation remain immutable diagnostics. The attempt is
-`pre_exposure_failure`, its scientific-identity-consumed flag is false, and no
-scientific ledger or execution output exists. The earlier void nonce remains
-unchanged.
-
-The B4 plan remains 25 maps, 100 intersections/corridors/routes/semantic
-blocks, five seeds, 500 paired units, 1,500 arms, and 96,000 ticks. Clone-aware
-train/calibration/B2/B3/B4 zero-overlap passed. Capacity projection leaves
-`33,407,693,718` bytes after the full artifact and `22,670,275,478` bytes above
-the 10 GiB floor. B4 scientific exposure remains unopened: no operational
-attempt is active, no scientific ledger, execution output, or outcome field
-exists, and the prior operational reservation is reusable only through a new
-Ultra-issued nonce after its exact failed-attempt chain is validated. The next
-action is an Ultra read-only one-time opening decision.
-
-current_v25_status=v25_fresh_b4_consumer_authority_contract_and_consolidated_preopen_review_passed_opening_not_authorized
-current_v25_source_head=7be93df20deee03587b9898e8560909662df972c
+current_v25_status=v25_fresh_b4_post_exposure_evaluation_control_fatal_honest_no_claim_terminal
+current_v25_execution_source_head=7be93df20deee03587b9898e8560909662df972c
+current_v25_execution_pointer_head=06d3a1f3a37061f93f5c9788312ae59d1356d126
+current_v25_reporting_machinery_head=77b735dcb24ed17e5a897f98f430ca1c536d787c
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_7be93df2_20260724TconsumerFinalCST
-current_v25_artifact_root_sha256=bfb6727983cbb43a3612ea00d274b249277ed4abfa4f63219c5aaba4420b2829
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_7be93df2_20260724TconsumerFinalCST
-current_v25_review_artifact_root_sha256=4b4b64682addf728cafcd01dbde1e5ff837124e9be5105ed3000ab68eb18ea55
-current_v25_production_execution_root_sha256=731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2
-current_v25_production_execution_review_root_sha256=83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566
-current_v25_production_evaluation_root_sha256=c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99
-current_v25_production_evaluation_review_root_sha256=08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc
-current_v25_production_equivalence_certificate_root_sha256=f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6
-current_v25_production_equivalence_certificate_review_root_sha256=4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c
-current_v25_focused_tests_root_sha256=d618b6dcc509c0223038f8bf25308be6baa466b055487104a99f79c7e77d8f79
-current_v25_critical_implementation_manifest_sha256=f3b707d480b30e1d37d2c10355d8a824df4cff8230af7d78d803dd4504ef6c2b
-current_v25_upstream_authority_role_contract_sha256=3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653
-current_v25_holdout_identity_sha256=5f2f8e2c2eb90927ec485a8d0baa3935b155e82d90b04fa3d456fc845cd8464a
-current_v25_experiment_protocol_sha256=aa79576f8ac487e2ce197c481d57f9c5d350a41d9522096975786207ef76785f
-current_v25_execution_plan_sha256=41442dd7d71552972d737d9a9e3d56e9827f864e0c06e11c57487f651206dee0
-current_v25_map_count=25
-current_v25_intersection_corridor_route_semantic_block_count=100
-current_v25_seed_count=5
-current_v25_paired_unit_count=500
-current_v25_arm_run_count=1500
-current_v25_tick_count=96000
-current_v25_zero_overlap_status=passed_train_calibration_b2_b3_b4_zero_overlap
-current_v25_projected_total_bytes=69991287914
-current_v25_projected_free_after_bytes=33407693718
-current_v25_capacity_reserve_beyond_10gib_bytes=22670275478
-current_v25_b4_prior_operational_attempt_state=pre_exposure_failure
-current_v25_b4_prior_operational_attempt_scientific_identity_consumed=false
-current_v25_b4_active_operational_attempt_created=false
-current_v25_b4_scientific_ledger_created=false
-current_v25_b4_scientific_cas_created=false
-current_v25_b4_new_nonce_authorized=false
-current_v25_b4_opened=false
-current_v25_b4_outcome_fields_consumed=[]
-current_v25_worker_count=0
-current_v25_gpu_compute_count=0
-current_v25_lock_state=free
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_terminal_closeout_7be93df2_8680c1b19ce0620b
+current_v25_artifact_root_sha256=a97af4901ac0627ece1203eaac130f8bf2f10caf6b8bee523555582b2ff3d398
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_terminal_closeout_review_7be93df2_8680c1b19ce0620b
+current_v25_review_artifact_root_sha256=86aa7ca12ae8cfa4a655fc55022761a78ac54a3a22ef32a750df9c7eb75d0062
+current_v25_b4_controller_root_sha256=06f2bf198b9983e0e15f9e0feaba52bc0d595fdd5703d73d98e21c1e8c4f08a2
+current_v25_b4_opening_release_root_sha256=7deec7b81a1ad20dd9eb4657c0c3066ce695bc797349def843c0e7152f85851b
+current_v25_b4_execution_root_sha256=e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881
+current_v25_b4_execution_review_root_sha256=f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d
+current_v25_b4_evaluation_artifact_created=false
+current_v25_b4_evaluation_root_sha256=none
+current_v25_b4_evaluation_review_started=false
+current_v25_b4_evaluation_review_root_sha256=none
+current_v25_b4_planned_pair_count=500
+current_v25_b4_complete_paired_row_count=500
+current_v25_b4_planned_arm_run_count=1500
+current_v25_b4_complete_arm_run_count=1500
+current_v25_b4_terminal_arm_run_count=1500
+current_v25_b4_tick_count=96000
+current_v25_b4_full_denominator_formed=true
+current_v25_b4_scientific_state=terminal_failure
+current_v25_b4_scientific_history=exposure_started,full_denominator_formed,terminal_failure
+current_v25_b4_scientific_terminal_reason=post_exposure_evaluation_control_fatal
+current_v25_b4_scientific_ledger_sha256=c3db4fb56f28efda7e3feb762ab0f01954f09983813b442f0a31e7730fbe72e4
+current_v25_b4_raw_outcome_values_inspected=false
+current_v25_b4_claim_authorized=false
+current_v25_b4_rerun_allowed=false
+current_v25_b4_result_status=unavailable_due_to_post_exposure_evaluation_fatal
+current_v25_final_claim_decision=honest_no_claim
+current_v25_final_report=docs/diffusion_planner_v25_final_honest_no_claim_report.md
+current_v25_final_evidence_index=docs/diffusion_planner_v25_final_evidence_index.md
 local_origin_github_autodl_aligned=true
-minimum_free_disk_gib=10
-observed_autodl_free_bytes=103405363200
-current_v25_phase=fresh_b4_consumer_authority_contract_and_consolidated_preopen_review_passed
-next_work_target=ultra_read_only_fresh_b4_one_time_opening_review
+current_v25_phase=fresh_b4_terminal_honest_no_claim_final_report_ready
+next_work_target=high_incremental_terminal_package_review_before_ultra
 
 ## Historical V25 Status Through A1.6.11
 

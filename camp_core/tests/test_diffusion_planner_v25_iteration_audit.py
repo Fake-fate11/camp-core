@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 AUDIT = ROOT / "docs" / "diffusion_planner_v25_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
+FINAL_REPORT = ROOT / "docs" / "diffusion_planner_v25_final_honest_no_claim_report.md"
+FINAL_INDEX = ROOT / "docs" / "diffusion_planner_v25_final_evidence_index.md"
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -412,22 +414,44 @@ POINTER = (
 # tuple above remains a byte-visible regression record while the active reader
 # contract tracks only the latest Fresh holdout state.
 POINTER = (
-    "current_v25_b4_prior_operational_attempt_state=pre_exposure_failure",
-    "current_v25_b4_prior_operational_attempt_scientific_identity_consumed=false",
-    "current_v25_b4_active_operational_attempt_created=false",
-    "current_v25_b4_scientific_ledger_created=false",
-    "current_v25_b4_scientific_cas_created=false",
-    "current_v25_b4_new_nonce_authorized=false",
-    "current_v25_b4_opened=false",
-    "current_v25_b4_outcome_fields_consumed=[]",
-    "current_v25_worker_count=0",
-    "current_v25_gpu_compute_count=0",
-    "current_v25_lock_state=free",
+    "current_v25_status=v25_fresh_b4_post_exposure_evaluation_control_fatal_honest_no_claim_terminal",
+    "current_v25_execution_source_head=7be93df20deee03587b9898e8560909662df972c",
+    "current_v25_execution_pointer_head=06d3a1f3a37061f93f5c9788312ae59d1356d126",
+    "current_v25_reporting_machinery_head=77b735dcb24ed17e5a897f98f430ca1c536d787c",
+    "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    "current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_terminal_closeout_7be93df2_8680c1b19ce0620b",
+    "current_v25_artifact_root_sha256=a97af4901ac0627ece1203eaac130f8bf2f10caf6b8bee523555582b2ff3d398",
+    "current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_terminal_closeout_review_7be93df2_8680c1b19ce0620b",
+    "current_v25_review_artifact_root_sha256=86aa7ca12ae8cfa4a655fc55022761a78ac54a3a22ef32a750df9c7eb75d0062",
+    "current_v25_b4_controller_root_sha256=06f2bf198b9983e0e15f9e0feaba52bc0d595fdd5703d73d98e21c1e8c4f08a2",
+    "current_v25_b4_opening_release_root_sha256=7deec7b81a1ad20dd9eb4657c0c3066ce695bc797349def843c0e7152f85851b",
+    "current_v25_b4_execution_root_sha256=e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881",
+    "current_v25_b4_execution_review_root_sha256=f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d",
+    "current_v25_b4_evaluation_artifact_created=false",
+    "current_v25_b4_evaluation_root_sha256=none",
+    "current_v25_b4_evaluation_review_started=false",
+    "current_v25_b4_evaluation_review_root_sha256=none",
+    "current_v25_b4_planned_pair_count=500",
+    "current_v25_b4_complete_paired_row_count=500",
+    "current_v25_b4_planned_arm_run_count=1500",
+    "current_v25_b4_complete_arm_run_count=1500",
+    "current_v25_b4_terminal_arm_run_count=1500",
+    "current_v25_b4_tick_count=96000",
+    "current_v25_b4_full_denominator_formed=true",
+    "current_v25_b4_scientific_state=terminal_failure",
+    "current_v25_b4_scientific_history=exposure_started,full_denominator_formed,terminal_failure",
+    "current_v25_b4_scientific_terminal_reason=post_exposure_evaluation_control_fatal",
+    "current_v25_b4_scientific_ledger_sha256=c3db4fb56f28efda7e3feb762ab0f01954f09983813b442f0a31e7730fbe72e4",
+    "current_v25_b4_raw_outcome_values_inspected=false",
+    "current_v25_b4_claim_authorized=false",
+    "current_v25_b4_rerun_allowed=false",
+    "current_v25_b4_result_status=unavailable_due_to_post_exposure_evaluation_fatal",
+    "current_v25_final_claim_decision=honest_no_claim",
+    "current_v25_final_report=docs/diffusion_planner_v25_final_honest_no_claim_report.md",
+    "current_v25_final_evidence_index=docs/diffusion_planner_v25_final_evidence_index.md",
     "local_origin_github_autodl_aligned=true",
-    "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=103405363200",
-    "current_v25_phase=fresh_b4_consumer_authority_contract_and_consolidated_preopen_review_passed",
-    "next_work_target=ultra_read_only_fresh_b4_one_time_opening_review",
+    "current_v25_phase=fresh_b4_terminal_honest_no_claim_final_report_ready",
+    "next_work_target=high_incremental_terminal_package_review_before_ultra",
 )
 
 
@@ -807,36 +831,40 @@ def test_v25_a16_r06_source_census_and_independent_review_are_bounded() -> None:
         assert phrase in text
 
 
-def test_v25_b4_production_rc_preopen_pointer_is_consistent_and_unopened() -> None:
+def test_v25_b4_terminal_pointer_and_honest_no_claim_report_are_consistent() -> None:
     status = " ".join(STATUS.read_text(encoding="utf-8").split())
     audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    report = " ".join(FINAL_REPORT.read_text(encoding="utf-8").split())
+    index = " ".join(FINAL_INDEX.read_text(encoding="utf-8").split())
     required = (
-        "Fresh B4 Consumer Authority Contract and Consolidated Pre-Open Passed",
+        "Fresh B4 Post-Exposure Evaluation-Control Fatal and Honest-No-Claim Terminal",
         "7be93df20deee03587b9898e8560909662df972c",
-        "bfb6727983cbb43a3612ea00d274b249277ed4abfa4f63219c5aaba4420b2829",
-        "4b4b64682addf728cafcd01dbde1e5ff837124e9be5105ed3000ab68eb18ea55",
-        "d618b6dcc509c0223038f8bf25308be6baa466b055487104a99f79c7e77d8f79",
-        "f3b707d480b30e1d37d2c10355d8a824df4cff8230af7d78d803dd4504ef6c2b",
-        "3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653",
-        "731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2",
-        "83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566",
-        "c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99",
-        "08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc",
-        "f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6",
-        "4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c",
-        "current_v25_b4_prior_operational_attempt_state=pre_exposure_failure",
-        (
-            "current_v25_b4_prior_operational_attempt_"
-            "scientific_identity_consumed=false"
-        ),
-        "current_v25_b4_active_operational_attempt_created=false",
-        "current_v25_b4_scientific_ledger_created=false",
-        "current_v25_b4_scientific_cas_created=false",
-        "current_v25_b4_new_nonce_authorized=false",
-        "current_v25_b4_opened=false",
-        "current_v25_b4_outcome_fields_consumed=[]",
-        "next_work_target=ultra_read_only_fresh_b4_one_time_opening_review",
+        "06d3a1f3a37061f93f5c9788312ae59d1356d126",
+        "77b735dcb24ed17e5a897f98f430ca1c536d787c",
+        "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881",
+        "f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d",
+        "a97af4901ac0627ece1203eaac130f8bf2f10caf6b8bee523555582b2ff3d398",
+        "86aa7ca12ae8cfa4a655fc55022761a78ac54a3a22ef32a750df9c7eb75d0062",
+        "c3db4fb56f28efda7e3feb762ab0f01954f09983813b442f0a31e7730fbe72e4",
+        "post_exposure_evaluation_control_fatal",
+        "unavailable_due_to_post_exposure_evaluation_fatal",
+        "honest_no_claim",
+        "current_v25_b4_complete_paired_row_count=500",
+        "current_v25_b4_complete_arm_run_count=1500",
+        "current_v25_b4_terminal_arm_run_count=1500",
+        "current_v25_b4_full_denominator_formed=true",
+        "current_v25_b4_raw_outcome_values_inspected=false",
+        "current_v25_b4_claim_authorized=false",
+        "current_v25_b4_rerun_allowed=false",
+        "next_work_target=high_incremental_terminal_package_review_before_ultra",
     )
     for phrase in required:
         assert phrase in status
         assert phrase in audit
+    for phrase in required[1:12]:
+        assert phrase in report
+        assert phrase in index
+    assert "## Eleven-item acceptance checklist" in index
+    assert index.count("| 1 |") == 1
+    assert index.count("| 11 |") == 1
+    assert "No V25 scientific claim is authorized." in report
