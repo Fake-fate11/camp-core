@@ -218,6 +218,24 @@ def validate_production_equivalence_certificate(
     return json.loads(json.dumps(value))
 
 
+def validate_self_bound_production_equivalence_certificate(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate the sealed evaluator role without conflating a later pre-open role."""
+
+    if type(value) is not dict:
+        raise ValueError(
+            "production-equivalence certificate must be a native mapping"
+        )
+    return validate_production_equivalence_certificate(
+        value,
+        implementation_head=value.get("implementation_head"),
+        manifest_sha256=value.get(
+            "critical_implementation_manifest_sha256"
+        ),
+    )
+
+
 def _binding(value: Mapping[str, Any], role: str) -> dict[str, str]:
     if type(value) is not dict or set(value) != {"path", "root_sha256"}:
         raise ValueError(f"production-equivalence {role} binding drifted")

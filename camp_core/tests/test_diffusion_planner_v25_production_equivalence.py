@@ -10,6 +10,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
 from camp_core.integrations.diffusion_planner_v25_production_equivalence_certificate import (
     freeze_production_equivalence_certificate,
     validate_production_equivalence_certificate,
+    validate_self_bound_production_equivalence_certificate,
 )
 from camp_core.integrations.diffusion_planner_v25_role_provenance_review import (
     independent_validate_evaluation_dual_head_provenance,
@@ -84,6 +85,7 @@ def test_production_equivalence_certificate_exact_round_trip() -> None:
         )
         == value
     )
+    assert validate_self_bound_production_equivalence_certificate(value) == value
 
 
 @pytest.mark.parametrize(

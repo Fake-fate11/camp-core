@@ -37,7 +37,7 @@ from .diffusion_planner_v25_holdout_terminal_closeout import (
     validate_terminal_failure_closeout,
 )
 from .diffusion_planner_v25_production_equivalence_certificate import (
-    validate_production_equivalence_certificate,
+    validate_self_bound_production_equivalence_certificate,
 )
 from .diffusion_planner_v25_signal_complete_maps import (
     GENERATOR_FAMILY,
@@ -298,10 +298,8 @@ def build_b4_preopen_authority(
         status="passed_independent_holdout_terminal_failure_closeout_review",
         label="B3 closeout review",
     )
-    certificate = validate_production_equivalence_certificate(
-        production_equivalence_certificate,
-        implementation_head=implementation_head,
-        manifest_sha256=manifest["manifest_sha256"],
+    certificate = validate_self_bound_production_equivalence_certificate(
+        production_equivalence_certificate
     )
     _review(
         production_equivalence_certificate_review,
@@ -494,10 +492,8 @@ def validate_b4_preopen_authority(
         status="passed_independent_holdout_terminal_failure_closeout_review",
         label="B3 closeout review",
     )
-    validate_production_equivalence_certificate(
-        value["production_equivalence_certificate"],
-        implementation_head=value["implementation_head"],
-        manifest_sha256=manifest["manifest_sha256"],
+    validate_self_bound_production_equivalence_certificate(
+        value["production_equivalence_certificate"]
     )
     _review(
         value["production_equivalence_certificate_review"],
