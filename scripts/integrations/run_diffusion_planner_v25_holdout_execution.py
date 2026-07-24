@@ -390,7 +390,7 @@ def qualify(
         "experiment_protocol_sha256": release["experiment_protocol"][
             "experiment_protocol_sha256"
         ],
-        "execution_plan_sha256": qualified["plan"][
+        "execution_plan_sha256": preopen["holdout_identity"][
             "execution_plan_sha256"
         ],
         "authorized_output_dir": str(qualified["output"]),

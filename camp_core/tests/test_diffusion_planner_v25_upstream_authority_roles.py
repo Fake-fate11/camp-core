@@ -733,7 +733,10 @@ def test_runner_qualification_reports_zero_exposure_side_effects(
             "path": str((tmp_path / "preopen-review").resolve()),
             "root_sha256": "6" * 64,
         },
-        "holdout_identity": {"holdout_identity_sha256": "7" * 64},
+        "holdout_identity": {
+            "holdout_identity_sha256": "7" * 64,
+            "execution_plan_sha256": "a" * 64,
+        },
         "experiment_protocol": {"experiment_protocol_sha256": "8" * 64},
     }
     qualified = {
