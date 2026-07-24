@@ -34,9 +34,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # n
     _strict_canonical_json,
     canonical_json_bytes,
 )
-from camp_core.integrations.diffusion_planner_v25_holdout_opening import (  # noqa: E402
-    validate_holdout_controller_decision,
-    validate_holdout_opening_release,
+from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  # noqa: E402,E501
+    validate_production_rc_controller_decision,
+    validate_production_rc_opening_release,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
     validate_scientific_ledger,
@@ -103,10 +103,10 @@ def build(
     ):
         raise ValueError("Fresh B4 accepted artifact run.exit drifted")
 
-    controller = validate_holdout_controller_decision(
+    controller = validate_production_rc_controller_decision(
         _strict_canonical_json(controller_path / "decision.json")
     )
-    release = validate_holdout_opening_release(
+    release = validate_production_rc_opening_release(
         _strict_canonical_json(release_path / "decision.json")
     )
     review_report = _strict_canonical_json(
