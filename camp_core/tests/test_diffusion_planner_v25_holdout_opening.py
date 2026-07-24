@@ -36,6 +36,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_state import (
 from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (
     TRACKED_AUTHORITY_FILES,
 )
+from scripts.integrations import (
+    create_diffusion_planner_v25_holdout_opening as opening_creator,
+)
 
 
 def _identity() -> dict:
@@ -379,3 +382,127 @@ def test_pre_marker_failure_is_unconsumed_and_post_marker_is_permanent(
             experiment_protocol=protocol,
             reservation_commitment_sha256="3" * 64,
         )
+
+
+def test_creator_exact_entry_qualification_has_no_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifacts = {}
+    roots = {}
+    for index, role in enumerate(opening_creator.ROLES, start=1):
+        path = tmp_path / role
+        path.mkdir()
+        (path / "run.exit").write_bytes(b"0\n")
+        artifacts[role] = path
+        roots[role] = f"{index:x}".rjust(64, "0")
+    identity = {
+        "split": "fresh_b4",
+        "holdout_identity_sha256": "1" * 64,
+    }
+    protocol = {"experiment_protocol_sha256": "2" * 64}
+    certificate = {"certificate": "sealed"}
+    manifest = {"manifest_sha256": "3" * 64}
+    preopen = {
+        "implementation_head": "a" * 40,
+        "critical_implementation_manifest": manifest,
+        "holdout_identity": identity,
+        "experiment_protocol": protocol,
+        "upstream_bindings": {},
+        "upstream_authority_role_contract": {
+            "contract_sha256": "4" * 64
+        },
+        "production_equivalence_certificate": certificate,
+    }
+
+    monkeypatch.setattr(opening_creator, "_tracked_dirty", lambda _root: False)
+    monkeypatch.setattr(opening_creator, "_git_head", lambda _root: "b" * 40)
+    monkeypatch.setattr(
+        opening_creator, "_verify_pointer_only_delta", lambda **_kwargs: None
+    )
+    monkeypatch.setattr(
+        opening_creator, "verify_complete_seal", lambda *_args, **_kwargs: None
+    )
+    monkeypatch.setattr(
+        opening_creator,
+        "validate_holdout_preopen_authority",
+        lambda _value: preopen,
+    )
+    monkeypatch.setattr(
+        opening_creator,
+        "verify_upstream_authority_role_contract",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        opening_creator,
+        "tracked_implementation_manifest",
+        lambda _root: manifest,
+    )
+    monkeypatch.setattr(
+        opening_creator,
+        "validate_self_bound_production_equivalence_certificate",
+        lambda *_args, **_kwargs: certificate,
+    )
+    monkeypatch.setattr(
+        opening_creator,
+        "validate_holdout_production_certificate",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("Fresh B4 certificate must remain evaluator-role bound")
+        ),
+    )
+    monkeypatch.setattr(
+        opening_creator,
+        "validate_consumed_holdout_failure_closeout",
+        lambda _value: {"raw_outcome_values_inspected": False},
+    )
+
+    def fake_json(path: Path) -> dict:
+        if path.name == "preopen_authority.json":
+            return {}
+        if path.parent.name == "preopen_review":
+            return {
+                "status": "passed_independent_fresh_b4_preopen_review",
+                "reviewed_root_sha256": roots["preopen"],
+            }
+        if path.parent.name == "production_preflight":
+            return certificate
+        if path.parent.name == "production_preflight_review":
+            return {
+                "status": (
+                    "passed_independent_nonfresh_production_equivalence_review"
+                ),
+                "reviewed_root_sha256": roots["production_preflight"],
+            }
+        if path.parent.name == "b2_failure_review":
+            return {
+                "status": (
+                    "passed_independent_consumed_holdout_failure_review"
+                ),
+                "reviewed_root_sha256": roots["b2_tombstone"],
+            }
+        return {}
+
+    monkeypatch.setattr(opening_creator, "_canonical_json", fake_json)
+    controller = tmp_path / "controller"
+    release = tmp_path / "release"
+    output = tmp_path / "execution"
+    cas_root = tmp_path / "cas"
+    result = opening_creator.qualify(
+        implementation_source_head="a" * 40,
+        pointer_head_at_release="b" * 40,
+        artifacts=artifacts,
+        roots=roots,
+        run_nonce="e" * 64,
+        authorized_output_dir=str(output.resolve()),
+        controller_output_dir=controller,
+        release_output_dir=release,
+        cas_root=cas_root,
+    )
+    assert result["status"] == (
+        "passed_no_side_effect_exact_entry_qualification"
+    )
+    assert result["upstream_authority_role_contract_sha256"] == "4" * 64
+    assert not controller.exists()
+    assert not release.exists()
+    assert not output.exists()
+    assert not cas_root.exists()

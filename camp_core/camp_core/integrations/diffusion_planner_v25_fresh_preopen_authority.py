@@ -50,6 +50,7 @@ TRACKED_AUTHORITY_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_atom_mechanism.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_b3_preopen.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_b4_preopen.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_upstream_authority_roles.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_calibration.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_calibration_artifact.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_calibration_corpus.py",

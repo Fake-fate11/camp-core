@@ -47,6 +47,10 @@ TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v25_signal_complete_plan.py",
     "camp_core/tests/test_diffusion_planner_v25_signal_complete_runtime.py",
     "camp_core/tests/test_diffusion_planner_v25_split.py",
+    (
+        "camp_core/tests/"
+        "test_diffusion_planner_v25_upstream_authority_roles.py"
+    ),
 )
 
 

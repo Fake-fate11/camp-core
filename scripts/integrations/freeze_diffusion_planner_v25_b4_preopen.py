@@ -53,6 +53,9 @@ from camp_core.integrations.diffusion_planner_v25_signal_complete_routes import 
     materialize_signal_complete_route_assets,
     validate_signal_complete_route_assets,
 )
+from camp_core.integrations.diffusion_planner_v25_upstream_authority_roles import (
+    freeze_upstream_authority_role_contract,
+)
 from scripts.integrations.freeze_diffusion_planner_v25_fresh_b2_preopen import (
     _canonical_json,
     _open_atom_mechanism,
@@ -66,7 +69,7 @@ from scripts.integrations.materialize_diffusion_planner_v25_signal_complete_rout
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_fresh_b4_preopen_materialization_v1"
+SCHEMA_VERSION = "camp_dp_v25_fresh_b4_preopen_materialization_v2"
 CAS_ROOT = Path("/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas")
 
 
@@ -250,6 +253,9 @@ def build(
                 ),
             }
         )
+        upstream_role_contract = freeze_upstream_authority_role_contract(
+            bindings
+        )
         identity = build_b4_holdout_identity(suite=suite_full, plan=plan)
         identity_sha = identity["holdout_identity_sha256"]
         operational_exists = operational_identity_path(
@@ -264,6 +270,7 @@ def build(
                 ROOT
             ),
             upstream_bindings=bindings,
+            upstream_authority_role_contract=upstream_role_contract,
             train_source_rows=upstream["train_source_rows"],
             calibration_plan=build_signal_complete_execution_plan(
                 "calibration"

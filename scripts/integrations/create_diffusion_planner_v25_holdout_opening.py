@@ -41,7 +41,10 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  #
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
     fail_operational_pre_exposure,
+    operational_attempt_path,
+    operational_identity_path,
     reserve_operational_attempt,
+    scientific_identity_path,
     seal_operational_release,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
@@ -51,6 +54,12 @@ from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch impor
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_plan_dispatch import (  # noqa: E402
     NONFRESH_CANARY_SPLIT,
+)
+from camp_core.integrations.diffusion_planner_v25_upstream_authority_roles import (  # noqa: E402
+    verify_upstream_authority_role_contract,
+)
+from camp_core.integrations.diffusion_planner_v25_production_equivalence_certificate import (  # noqa: E402
+    validate_self_bound_production_equivalence_certificate,
 )
 from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import (  # noqa: E402
     _canonical_json,
@@ -88,114 +97,20 @@ def build(
     release_output_dir: Path,
     cas_root: Path,
 ) -> dict[str, str]:
-    if set(artifacts) != set(ROLES) or set(roots) != set(ROLES):
-        raise ValueError("holdout opening input role set drifted")
-    if controller_output_dir.exists() or release_output_dir.exists():
-        raise FileExistsError("holdout controller/release output exists")
-    if _tracked_dirty(ROOT) or _git_head(ROOT) != pointer_head_at_release:
-        raise ValueError("holdout live CAMP pointer is dirty or drifted")
-    _verify_pointer_only_delta(
+    qualified = _qualify_inputs(
         implementation_source_head=implementation_source_head,
         pointer_head_at_release=pointer_head_at_release,
+        artifacts=artifacts,
+        roots=roots,
+        run_nonce=run_nonce,
+        authorized_output_dir=authorized_output_dir,
+        controller_output_dir=controller_output_dir,
+        release_output_dir=release_output_dir,
+        cas_root=cas_root,
     )
-    canonical = {name: Path(artifacts[name]).resolve() for name in ROLES}
-    for role in ROLES:
-        verify_complete_seal(canonical[role], roots[role], label=role)
-        if (canonical[role] / "run.exit").read_bytes() != b"0\n":
-            raise ValueError(f"{role} did not exit successfully")
-
-    preopen = validate_holdout_preopen_authority(
-        _canonical_json(canonical["preopen"] / "preopen_authority.json")
-    )
-    split = preopen["holdout_identity"]["split"]
-    if split in {"fresh_b4", NONFRESH_CANARY_SPLIT}:
-        sealed_bindings = dict(preopen["upstream_bindings"])
-        if split == NONFRESH_CANARY_SPLIT:
-            sealed_bindings.update(preopen["source_fixture_bindings"])
-        for upstream_role, upstream_binding in sealed_bindings.items():
-            upstream_path = Path(upstream_binding["path"]).resolve()
-            verify_complete_seal(
-                upstream_path,
-                upstream_binding["root_sha256"],
-                label=f"{split} preopen upstream {upstream_role}",
-            )
-            if (upstream_path / "run.exit").read_bytes() != b"0\n":
-                raise ValueError(
-                    f"{split} preopen upstream did not pass: {upstream_role}"
-                )
-    preopen_review = _canonical_json(
-        canonical["preopen_review"] / "report.json"
-    )
-    preflight_raw = _canonical_json(
-        canonical["production_preflight"] / "preflight.json"
-    )
-    preflight_review = _canonical_json(
-        canonical["production_preflight_review"] / "report.json"
-    )
-    b2_closeout = validate_consumed_holdout_failure_closeout(
-        _canonical_json(canonical["b2_tombstone"] / "closeout.json")
-    )
-    b2_review = _canonical_json(
-        canonical["b2_failure_review"] / "report.json"
-    )
-    manifest = tracked_implementation_manifest(ROOT)
-    preflight = validate_holdout_production_certificate(
-        preflight_raw,
-        implementation_head=implementation_source_head,
-        manifest_sha256=manifest["manifest_sha256"],
-    )
-    if split == "fresh_b4":
-        preflight_binding_ok = (
-            preopen.get("production_equivalence_certificate") == preflight
-        )
-    elif split == NONFRESH_CANARY_SPLIT:
-        # The canary itself creates the replacement production-equivalence
-        # certificate, so its release may only bind a previously accepted
-        # nonFresh bootstrap preflight.  The canary authority and independent
-        # review bind the current ABI, implementation manifest, real source
-        # fixtures, and exact 3x3x64 mini plan; the finished certificate is
-        # required by the later Fresh B4 release.
-        preflight_binding_ok = (
-            preflight.get("status")
-            == "passed_exact_production_composition_preflight"
-            and preflight.get("fresh_opened") is False
-            and preflight.get("outcome_fields_consumed") == []
-        )
-    else:
-        preflight_binding_ok = (
-            preflight["holdout_identity"]["holdout_identity_sha256"]
-            == preopen["holdout_identity"]["holdout_identity_sha256"]
-            and preflight["experiment_protocol"][
-                "experiment_protocol_sha256"
-            ]
-            == preopen["experiment_protocol"]["experiment_protocol_sha256"]
-        )
-    if (
-        preopen["implementation_head"] != implementation_source_head
-        or not strict_equal(preopen["critical_implementation_manifest"], manifest)
-        or preopen_review.get("status")
-        != expected_holdout_preopen_review_status(split)
-        or preopen_review.get("reviewed_root_sha256") != roots["preopen"]
-        or not preflight_binding_ok
-        or preflight_review.get("status")
-        not in {
-            "passed_independent_production_composition_preflight_review",
-            "passed_independent_fresh_b3_production_preflight_review",
-            "passed_independent_nonfresh_production_equivalence_review",
-        }
-        or preflight_review.get("reviewed_root_sha256")
-        not in {None, roots["production_preflight"]}
-        or b2_review.get("status")
-        != "passed_independent_consumed_holdout_failure_review"
-        or b2_review.get("reviewed_root_sha256") != roots["b2_tombstone"]
-        or b2_closeout["raw_outcome_values_inspected"] is not False
-    ):
-        raise ValueError("holdout sealed authority chain drifted")
-
-    bindings = {
-        name: {"path": str(canonical[name]), "root_sha256": roots[name]}
-        for name in ROLES
-    }
+    preopen = qualified["preopen"]
+    manifest = qualified["manifest"]
+    bindings = qualified["bindings"]
     controller = freeze_production_rc_controller_decision(
         implementation_source_head=implementation_source_head,
         pointer_head_at_release=pointer_head_at_release,
@@ -301,6 +216,225 @@ def build(
     }
 
 
+def qualify(
+    *,
+    implementation_source_head: str,
+    pointer_head_at_release: str,
+    artifacts: Mapping[str, Path],
+    roots: Mapping[str, str],
+    run_nonce: str,
+    authorized_output_dir: str,
+    controller_output_dir: Path,
+    release_output_dir: Path,
+    cas_root: Path,
+) -> dict[str, Any]:
+    qualified = _qualify_inputs(
+        implementation_source_head=implementation_source_head,
+        pointer_head_at_release=pointer_head_at_release,
+        artifacts=artifacts,
+        roots=roots,
+        run_nonce=run_nonce,
+        authorized_output_dir=authorized_output_dir,
+        controller_output_dir=controller_output_dir,
+        release_output_dir=release_output_dir,
+        cas_root=cas_root,
+    )
+    preopen = qualified["preopen"]
+    return {
+        "schema_version": (
+            "camp_dp_v25_holdout_opening_creator_exact_entry_"
+            "qualification_v1"
+        ),
+        "status": "passed_no_side_effect_exact_entry_qualification",
+        "implementation_source_head": implementation_source_head,
+        "pointer_head_at_release": pointer_head_at_release,
+        "critical_implementation_manifest_sha256": qualified["manifest"][
+            "manifest_sha256"
+        ],
+        "preopen_root_sha256": roots["preopen"],
+        "preopen_review_root_sha256": roots["preopen_review"],
+        "holdout_identity_sha256": preopen["holdout_identity"][
+            "holdout_identity_sha256"
+        ],
+        "experiment_protocol_sha256": preopen["experiment_protocol"][
+            "experiment_protocol_sha256"
+        ],
+        "upstream_authority_role_contract_sha256": preopen[
+            "upstream_authority_role_contract"
+        ]["contract_sha256"],
+        "run_nonce": run_nonce,
+        "authorized_output_dir": authorized_output_dir,
+        "controller_output_dir": str(controller_output_dir.resolve()),
+        "release_output_dir": str(release_output_dir.resolve()),
+        "cas_root": str(cas_root.resolve()),
+        "controller_created": False,
+        "release_created": False,
+        "operational_attempt_created": False,
+        "operational_identity_created": False,
+        "scientific_ledger_created": False,
+        "fresh_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _qualify_inputs(
+    *,
+    implementation_source_head: str,
+    pointer_head_at_release: str,
+    artifacts: Mapping[str, Path],
+    roots: Mapping[str, str],
+    run_nonce: str,
+    authorized_output_dir: str,
+    controller_output_dir: Path,
+    release_output_dir: Path,
+    cas_root: Path,
+) -> dict[str, Any]:
+    if set(artifacts) != set(ROLES) or set(roots) != set(ROLES):
+        raise ValueError("holdout opening input role set drifted")
+    if (
+        type(run_nonce) is not str
+        or len(run_nonce) != 64
+        or any(char not in "0123456789abcdef" for char in run_nonce)
+    ):
+        raise ValueError("holdout run nonce is not canonical")
+    output_path = Path(authorized_output_dir)
+    if (
+        not output_path.is_absolute()
+        or str(output_path.resolve()) != authorized_output_dir
+    ):
+        raise ValueError("holdout authorized output path is not canonical")
+    if (
+        controller_output_dir.exists()
+        or release_output_dir.exists()
+        or output_path.exists()
+    ):
+        raise FileExistsError("holdout controller/release/output exists")
+    if _tracked_dirty(ROOT) or _git_head(ROOT) != pointer_head_at_release:
+        raise ValueError("holdout live CAMP pointer is dirty or drifted")
+    _verify_pointer_only_delta(
+        implementation_source_head=implementation_source_head,
+        pointer_head_at_release=pointer_head_at_release,
+    )
+    canonical = {name: Path(artifacts[name]).resolve() for name in ROLES}
+    for role in ROLES:
+        verify_complete_seal(canonical[role], roots[role], label=role)
+        if (canonical[role] / "run.exit").read_bytes() != b"0\n":
+            raise ValueError(f"{role} did not exit successfully")
+
+    preopen = validate_holdout_preopen_authority(
+        _canonical_json(canonical["preopen"] / "preopen_authority.json")
+    )
+    split = preopen["holdout_identity"]["split"]
+    if split == "fresh_b4":
+        verify_upstream_authority_role_contract(
+            preopen["upstream_authority_role_contract"],
+            bindings=preopen["upstream_bindings"],
+        )
+    elif split == NONFRESH_CANARY_SPLIT:
+        sealed_bindings = dict(preopen["upstream_bindings"])
+        sealed_bindings.update(preopen["source_fixture_bindings"])
+        for upstream_role, upstream_binding in sealed_bindings.items():
+            upstream_path = Path(upstream_binding["path"]).resolve()
+            verify_complete_seal(
+                upstream_path,
+                upstream_binding["root_sha256"],
+                label=f"{split} preopen upstream {upstream_role}",
+            )
+            if (upstream_path / "run.exit").read_bytes() != b"0\n":
+                raise ValueError(
+                    f"{split} preopen upstream did not pass: {upstream_role}"
+                )
+    preopen_review = _canonical_json(
+        canonical["preopen_review"] / "report.json"
+    )
+    preflight_raw = _canonical_json(
+        canonical["production_preflight"] / "preflight.json"
+    )
+    preflight_review = _canonical_json(
+        canonical["production_preflight_review"] / "report.json"
+    )
+    b2_closeout = validate_consumed_holdout_failure_closeout(
+        _canonical_json(canonical["b2_tombstone"] / "closeout.json")
+    )
+    b2_review = _canonical_json(
+        canonical["b2_failure_review"] / "report.json"
+    )
+    manifest = tracked_implementation_manifest(ROOT)
+    if split == "fresh_b4":
+        preflight = validate_self_bound_production_equivalence_certificate(
+            preflight_raw
+        )
+        preflight_binding_ok = (
+            preopen.get("production_equivalence_certificate") == preflight
+        )
+    else:
+        preflight = validate_holdout_production_certificate(
+            preflight_raw,
+            implementation_head=implementation_source_head,
+            manifest_sha256=manifest["manifest_sha256"],
+        )
+    if split == NONFRESH_CANARY_SPLIT:
+        preflight_binding_ok = (
+            preflight.get("status")
+            == "passed_exact_production_composition_preflight"
+            and preflight.get("fresh_opened") is False
+            and preflight.get("outcome_fields_consumed") == []
+        )
+    elif split != "fresh_b4":
+        preflight_binding_ok = (
+            preflight["holdout_identity"]["holdout_identity_sha256"]
+            == preopen["holdout_identity"]["holdout_identity_sha256"]
+            and preflight["experiment_protocol"][
+                "experiment_protocol_sha256"
+            ]
+            == preopen["experiment_protocol"]["experiment_protocol_sha256"]
+        )
+    if (
+        preopen["implementation_head"] != implementation_source_head
+        or not strict_equal(preopen["critical_implementation_manifest"], manifest)
+        or preopen_review.get("status")
+        != expected_holdout_preopen_review_status(split)
+        or preopen_review.get("reviewed_root_sha256") != roots["preopen"]
+        or not preflight_binding_ok
+        or preflight_review.get("status")
+        not in {
+            "passed_independent_production_composition_preflight_review",
+            "passed_independent_fresh_b3_production_preflight_review",
+            "passed_independent_nonfresh_production_equivalence_review",
+        }
+        or preflight_review.get("reviewed_root_sha256")
+        not in {None, roots["production_preflight"]}
+        or b2_review.get("status")
+        != "passed_independent_consumed_holdout_failure_review"
+        or b2_review.get("reviewed_root_sha256") != roots["b2_tombstone"]
+        or b2_closeout["raw_outcome_values_inspected"] is not False
+    ):
+        raise ValueError("holdout sealed authority chain drifted")
+
+    identity_sha = preopen["holdout_identity"]["holdout_identity_sha256"]
+    state_paths = {
+        "operational_attempt": operational_attempt_path(cas_root, run_nonce),
+        "operational_identity": operational_identity_path(
+            cas_root, identity_sha
+        ),
+        "scientific_ledger": scientific_identity_path(cas_root, identity_sha),
+    }
+    existing = [name for name, path in state_paths.items() if path.exists()]
+    if existing:
+        raise FileExistsError(
+            "holdout one-time state already exists: " + ",".join(existing)
+        )
+    bindings = {
+        name: {"path": str(canonical[name]), "root_sha256": roots[name]}
+        for name in ROLES
+    }
+    return {
+        "preopen": preopen,
+        "manifest": manifest,
+        "bindings": bindings,
+    }
+
+
 def _verify_pointer_only_delta(
     *, implementation_source_head: str, pointer_head_at_release: str
 ) -> None:
@@ -366,12 +500,14 @@ def _arguments() -> argparse.Namespace:
         type=Path,
         default=Path("/root/autodl-tmp/.camp_dp_v25_holdout_identity_cas"),
     )
+    parser.add_argument("--qualification-only", action="store_true")
     return parser.parse_args()
 
 
 def main() -> int:
     args = _arguments()
-    result = build(
+    operation = qualify if args.qualification_only else build
+    result = operation(
         implementation_source_head=args.implementation_source_head,
         pointer_head_at_release=args.pointer_head_at_release,
         artifacts={role: getattr(args, f"{role}_artifact") for role in ROLES},

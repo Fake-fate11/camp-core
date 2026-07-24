@@ -57,9 +57,13 @@ from .diffusion_planner_v25_split import (
     validate_signal_complete_map_license,
     validate_v25_replacement_holdout_zero_overlap,
 )
+from .diffusion_planner_v25_upstream_authority_roles import (
+    ROLE_SPECS as UPSTREAM_ROLE_SPECS,
+    validate_upstream_authority_role_contract,
+)
 
 
-SCHEMA_VERSION = "camp_dp_v25_fresh_b4_consolidated_preopen_authority_v1"
+SCHEMA_VERSION = "camp_dp_v25_fresh_b4_consolidated_preopen_authority_v2"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_COUNTS = {
     "map_count": 25,
@@ -72,20 +76,7 @@ EXPECTED_COUNTS = {
     "arm_run_count": 1500,
     "tick_capacity": 96_000,
 }
-REQUIRED_UPSTREAM_BINDINGS = frozenset(
-    {
-        "b2_consumed_failure",
-        "b2_consumed_failure_review",
-        "b3_terminal_closeout",
-        "b3_terminal_closeout_review",
-        "production_equivalence_certificate",
-        "production_equivalence_certificate_review",
-        "storage",
-        "storage_review",
-        "atom_mechanism",
-        "atom_mechanism_review",
-    }
-)
+REQUIRED_UPSTREAM_BINDINGS = frozenset(UPSTREAM_ROLE_SPECS)
 AUTHORITY_FIELDS = frozenset(
     {
         "schema_version",
@@ -94,6 +85,7 @@ AUTHORITY_FIELDS = frozenset(
         "fixed_dp_head",
         "critical_implementation_manifest",
         "upstream_bindings",
+        "upstream_authority_role_contract",
         "holdout_identity",
         "experiment_protocol",
         "protocol_amendment",
@@ -212,6 +204,7 @@ def build_b4_preopen_authority(
     implementation_head: str,
     critical_implementation_manifest: Mapping[str, Any],
     upstream_bindings: Mapping[str, Mapping[str, str]],
+    upstream_authority_role_contract: Mapping[str, Any],
     train_source_rows: Sequence[Mapping[str, Any]],
     calibration_plan: Mapping[str, Any],
     b2_plan: Mapping[str, Any],
@@ -249,8 +242,12 @@ def build_b4_preopen_authority(
         raise ValueError("Fresh B4 operational/scientific one-time state is not empty")
     manifest = _critical_manifest(critical_implementation_manifest)
     bindings = _bindings(upstream_bindings)
-    if not REQUIRED_UPSTREAM_BINDINGS <= set(bindings):
-        raise ValueError("Fresh B4 required upstream bindings are missing")
+    if set(bindings) != set(REQUIRED_UPSTREAM_BINDINGS):
+        raise ValueError("Fresh B4 complete upstream binding set drifted")
+    role_contract = validate_upstream_authority_role_contract(
+        upstream_authority_role_contract,
+        bindings=bindings,
+    )
     suite = validate_signal_complete_suite(b4_suite)
     plan = validate_signal_complete_execution_plan(b4_plan)
     calibration = validate_signal_complete_execution_plan(calibration_plan)
@@ -360,6 +357,7 @@ def build_b4_preopen_authority(
         "fixed_dp_head": FIXED_DP_HEAD,
         "critical_implementation_manifest": manifest,
         "upstream_bindings": bindings,
+        "upstream_authority_role_contract": role_contract,
         "holdout_identity": identity,
         "experiment_protocol": protocol,
         "protocol_amendment": amendment,
@@ -469,8 +467,12 @@ def validate_b4_preopen_authority(
         raise ValueError("Fresh B4 actual-native ABI drifted")
     manifest = _critical_manifest(value["critical_implementation_manifest"])
     bindings = _bindings(value["upstream_bindings"])
-    if not REQUIRED_UPSTREAM_BINDINGS <= set(bindings):
-        raise ValueError("Fresh B4 required upstream binding drifted")
+    if set(bindings) != set(REQUIRED_UPSTREAM_BINDINGS):
+        raise ValueError("Fresh B4 complete upstream binding set drifted")
+    validate_upstream_authority_role_contract(
+        value["upstream_authority_role_contract"],
+        bindings=bindings,
+    )
     b2 = validate_consumed_holdout_failure_closeout(
         value["b2_consumed_failure"]
     )
