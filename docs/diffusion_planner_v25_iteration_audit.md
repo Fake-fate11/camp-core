@@ -6014,3 +6014,99 @@ minimum_free_disk_gib=10
 observed_autodl_free_bytes=103409045504
 current_v25_phase=fresh_b4_authority_role_contract_and_consolidated_preopen_review_passed
 next_work_target=ultra_read_only_fresh_b4_one_time_opening_review
+
+## 2026-07-24 — Fresh B4 Consumer Authority Contract and Consolidated Pre-Open Passed
+
+The first formally authorized B4 attempt stopped before scientific exposure
+because the production runner and execution reviewer still imposed an
+all-upstream `run.exit=0` rule. The controller root
+`cc6667a63d2bb3f1827be5aa30be3bc3fabaefa4167620e2250d107776678b39`,
+release root
+`cf63de7e6f061c39288055e2c4a068b7c059b9320d6c044ed05667a11b61f55c`,
+and operational attempt remain immutable diagnostics. Nonce
+`fe4538efba9684c091ab25b059cd01d93fea0139e39ca856764bd01a4aa269bb`
+is permanently void. The attempt is `pre_exposure_failure`; its scientific
+identity consumed flag is false, the scientific ledger is absent, no
+execution output was created, and no outcome field was consumed.
+
+The consolidated correction applies the frozen 24-role typed contract at the
+formal Fresh B4 runner, while the independent execution reviewer rebuilds the
+same role table from its own literal oracle. The nonFresh branch remains an
+explicit all-success fixture. Evaluator and evaluation reviewer keep only the
+exact successful `calibration_freeze` role binding and do not iterate a
+blanket upstream rule. The operational state bridge separately proves that a
+released reservation is reusable only when its exact referenced attempt is a
+same-identity, same-protocol `pre_exposure_failure` and no scientific ledger
+exists. A new requested nonce must still have no attempt path.
+
+Local compilation/diff checks passed. The authoritative AutoDL focused suite
+passed `279` tests and sealed root
+`aaad49821dcdbc829253eeebdb2efe220fa18af8b2df568750e7a5471ed25637`.
+The implementation HEAD is
+`00522a745168901c48f54c85f95c8ac82b5e5d58`; the new critical manifest is
+`b8eb8d281af73cdf55f67b18509c4d60659b206496698628bfa49b6b92e9628e`.
+The 24-role contract itself remains
+`3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653`.
+
+The rebuilt pre-open authority and its one independent review passed:
+
+- authority:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_00522a74_20260724TconsumerRoleContractFinalCST`,
+  root
+  `4a19362822b28121e3326fde1857082c54e7054825d05fa251fede102b64ccb2`;
+- review:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_00522a74_20260724TconsumerRoleContractFinalCST`,
+  root
+  `8178815452b025fbde9fb8aec7c992a7739a3cce2519222fec015e242d973571`.
+
+The identity, protocol, plan, fixed DP, models, atoms, margins, failure
+denominator, and claim rules did not change. Free space at materialization was
+`103,405,363,200` bytes; projected free-after is `33,414,075,286` bytes,
+`22,676,657,046` bytes above the 10 GiB floor. B4 remains scientifically
+unopened and no new nonce is authorized.
+
+current_v25_status=v25_fresh_b4_consumer_authority_contract_and_consolidated_preopen_review_passed_opening_not_authorized
+current_v25_source_head=00522a745168901c48f54c85f95c8ac82b5e5d58
+fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_00522a74_20260724TconsumerRoleContractFinalCST
+current_v25_artifact_root_sha256=4a19362822b28121e3326fde1857082c54e7054825d05fa251fede102b64ccb2
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_00522a74_20260724TconsumerRoleContractFinalCST
+current_v25_review_artifact_root_sha256=8178815452b025fbde9fb8aec7c992a7739a3cce2519222fec015e242d973571
+current_v25_production_execution_root_sha256=731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2
+current_v25_production_execution_review_root_sha256=83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566
+current_v25_production_evaluation_root_sha256=c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99
+current_v25_production_evaluation_review_root_sha256=08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc
+current_v25_production_equivalence_certificate_root_sha256=f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6
+current_v25_production_equivalence_certificate_review_root_sha256=4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c
+current_v25_focused_tests_root_sha256=aaad49821dcdbc829253eeebdb2efe220fa18af8b2df568750e7a5471ed25637
+current_v25_critical_implementation_manifest_sha256=b8eb8d281af73cdf55f67b18509c4d60659b206496698628bfa49b6b92e9628e
+current_v25_upstream_authority_role_contract_sha256=3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653
+current_v25_holdout_identity_sha256=5f2f8e2c2eb90927ec485a8d0baa3935b155e82d90b04fa3d456fc845cd8464a
+current_v25_experiment_protocol_sha256=aa79576f8ac487e2ce197c481d57f9c5d350a41d9522096975786207ef76785f
+current_v25_execution_plan_sha256=41442dd7d71552972d737d9a9e3d56e9827f864e0c06e11c57487f651206dee0
+current_v25_map_count=25
+current_v25_intersection_corridor_route_semantic_block_count=100
+current_v25_seed_count=5
+current_v25_paired_unit_count=500
+current_v25_arm_run_count=1500
+current_v25_tick_count=96000
+current_v25_zero_overlap_status=passed_train_calibration_b2_b3_b4_zero_overlap
+current_v25_projected_total_bytes=69991287914
+current_v25_projected_free_after_bytes=33414075286
+current_v25_capacity_reserve_beyond_10gib_bytes=22676657046
+current_v25_b4_prior_operational_attempt_state=pre_exposure_failure
+current_v25_b4_prior_operational_attempt_scientific_identity_consumed=false
+current_v25_b4_active_operational_attempt_created=false
+current_v25_b4_scientific_ledger_created=false
+current_v25_b4_scientific_cas_created=false
+current_v25_b4_new_nonce_authorized=false
+current_v25_b4_opened=false
+current_v25_b4_outcome_fields_consumed=[]
+current_v25_worker_count=0
+current_v25_gpu_compute_count=0
+current_v25_lock_state=free
+local_origin_github_autodl_aligned=true
+minimum_free_disk_gib=10
+observed_autodl_free_bytes=103405363200
+current_v25_phase=fresh_b4_consumer_authority_contract_and_consolidated_preopen_review_passed
+next_work_target=ultra_read_only_fresh_b4_one_time_opening_review

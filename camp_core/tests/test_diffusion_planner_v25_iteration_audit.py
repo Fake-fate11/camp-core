@@ -412,10 +412,12 @@ POINTER = (
 # tuple above remains a byte-visible regression record while the active reader
 # contract tracks only the latest Fresh holdout state.
 POINTER = (
-    "current_v25_b4_operational_attempt_created=false",
+    "current_v25_b4_prior_operational_attempt_state=pre_exposure_failure",
+    "current_v25_b4_prior_operational_attempt_scientific_identity_consumed=false",
+    "current_v25_b4_active_operational_attempt_created=false",
     "current_v25_b4_scientific_ledger_created=false",
-    "current_v25_b4_cas_created=false",
-    "current_v25_b4_nonce_created=false",
+    "current_v25_b4_scientific_cas_created=false",
+    "current_v25_b4_new_nonce_authorized=false",
     "current_v25_b4_opened=false",
     "current_v25_b4_outcome_fields_consumed=[]",
     "current_v25_worker_count=0",
@@ -423,8 +425,8 @@ POINTER = (
     "current_v25_lock_state=free",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=103409045504",
-    "current_v25_phase=fresh_b4_authority_role_contract_and_consolidated_preopen_review_passed",
+    "observed_autodl_free_bytes=103405363200",
+    "current_v25_phase=fresh_b4_consumer_authority_contract_and_consolidated_preopen_review_passed",
     "next_work_target=ultra_read_only_fresh_b4_one_time_opening_review",
 )
 
@@ -809,12 +811,12 @@ def test_v25_b4_production_rc_preopen_pointer_is_consistent_and_unopened() -> No
     status = " ".join(STATUS.read_text(encoding="utf-8").split())
     audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
     required = (
-        "Fresh B4 Authority-Role Contract and Consolidated Pre-Open Passed",
-        "e69ce5f22d0e37222f4c402152e35f199c81cf88",
-        "10ee08df6e9996f6dfc54971b864ec9c0e27a475b26cff857151db4989bd0110",
-        "e3bcf415f7446f4f9049fdb6b42c76b065411945a3d6a2fb27cf37ec5ff9fbc8",
-        "1d15d797c9dba1eece652aa3ebc655a30377cac433cfae73aa7904c15868a2b9",
-        "baab244b256782e4d6a55fcca7aa581a8379f085d265e78050ebfdd4686c70c7",
+        "Fresh B4 Consumer Authority Contract and Consolidated Pre-Open Passed",
+        "00522a745168901c48f54c85f95c8ac82b5e5d58",
+        "4a19362822b28121e3326fde1857082c54e7054825d05fa251fede102b64ccb2",
+        "8178815452b025fbde9fb8aec7c992a7739a3cce2519222fec015e242d973571",
+        "aaad49821dcdbc829253eeebdb2efe220fa18af8b2df568750e7a5471ed25637",
+        "b8eb8d281af73cdf55f67b18509c4d60659b206496698628bfa49b6b92e9628e",
         "3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653",
         "731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2",
         "83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566",
@@ -822,10 +824,15 @@ def test_v25_b4_production_rc_preopen_pointer_is_consistent_and_unopened() -> No
         "08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc",
         "f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6",
         "4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c",
-        "current_v25_b4_operational_attempt_created=false",
+        "current_v25_b4_prior_operational_attempt_state=pre_exposure_failure",
+        (
+            "current_v25_b4_prior_operational_attempt_"
+            "scientific_identity_consumed=false"
+        ),
+        "current_v25_b4_active_operational_attempt_created=false",
         "current_v25_b4_scientific_ledger_created=false",
-        "current_v25_b4_cas_created=false",
-        "current_v25_b4_nonce_created=false",
+        "current_v25_b4_scientific_cas_created=false",
+        "current_v25_b4_new_nonce_authorized=false",
         "current_v25_b4_opened=false",
         "current_v25_b4_outcome_fields_consumed=[]",
         "next_work_target=ultra_read_only_fresh_b4_one_time_opening_review",
