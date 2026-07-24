@@ -423,8 +423,8 @@ POINTER = (
     "current_v25_lock_state=free",
     "local_origin_github_autodl_aligned=true",
     "minimum_free_disk_gib=10",
-    "observed_autodl_free_bytes=103416995840",
-    "current_v25_phase=fresh_b4_production_rc_and_consolidated_preopen_review_passed",
+    "observed_autodl_free_bytes=103409045504",
+    "current_v25_phase=fresh_b4_authority_role_contract_and_consolidated_preopen_review_passed",
     "next_work_target=ultra_read_only_fresh_b4_one_time_opening_review",
 )
 
@@ -809,9 +809,13 @@ def test_v25_b4_production_rc_preopen_pointer_is_consistent_and_unopened() -> No
     status = " ".join(STATUS.read_text(encoding="utf-8").split())
     audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
     required = (
-        "Fresh B4 Production RC and Consolidated Pre-Open Passed",
-        "91121ab625b9430bd693ae07f9a336ac50fe815569038212c09e803f51d314e9",
-        "d11a640f5708630076d631eec8dc86d2a979b45f66602a513c0e95dd5ce40596",
+        "Fresh B4 Authority-Role Contract and Consolidated Pre-Open Passed",
+        "e69ce5f22d0e37222f4c402152e35f199c81cf88",
+        "10ee08df6e9996f6dfc54971b864ec9c0e27a475b26cff857151db4989bd0110",
+        "e3bcf415f7446f4f9049fdb6b42c76b065411945a3d6a2fb27cf37ec5ff9fbc8",
+        "1d15d797c9dba1eece652aa3ebc655a30377cac433cfae73aa7904c15868a2b9",
+        "baab244b256782e4d6a55fcca7aa581a8379f085d265e78050ebfdd4686c70c7",
+        "3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653",
         "731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2",
         "83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566",
         "c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99",

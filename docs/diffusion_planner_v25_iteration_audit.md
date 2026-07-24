@@ -5877,7 +5877,7 @@ observed_autodl_free_bytes=103276781568
 current_v25_phase=fresh_b3_consumed_failure_closed_b4_engineering_recovery
 next_work_target=fresh_b4_actual_native_receipt_contract_and_preopen_authority
 
-## 2026-07-24 — Fresh B4 Production RC and Consolidated Pre-Open Passed
+## 2026-07-24 — Fresh B4 Authority-Role Contract and Consolidated Pre-Open Passed
 
 B3 remains the immutable
 `consumed_one_shot_engineering_failure_no_evaluation_no_claim` historical
@@ -5908,25 +5908,35 @@ The certificate binds role-level dual-HEAD provenance: the execution HEAD,
 critical manifest, release, and scientific ledger remain immutable, while the
 later evaluator HEAD and evaluation critical manifest are separately frozen.
 Wrong schema, root, HEAD, manifest, and ledger-SHA substitutions fail closed.
-The final authoritative focused suite passed under root
-`f77033755c89e3b863f3d4ac2259bc84ae36f9a54b2c5e08351309292b9ed0d9`.
+The final authoritative focused suite passed all 251 tests under root
+`1d15d797c9dba1eece652aa3ebc655a30377cac433cfae73aa7904c15868a2b9`.
 
-The unique consolidated B4 pre-open authority and independent review both
+The versioned, typed 24-role upstream authority contract separates native
+execution terminal state from authority disposition. Direct-success roles,
+the exact calibration raw/recovery/review tuple, and historical
+tombstone/closeout roles are table-declared; unknown, missing, extra,
+duplicate, type-smuggled, or cross-chain roles fail closed. The producer seals
+the complete role contract, the independent reviewer rebuilds it from a
+literal oracle, and the formal creator validates it before any controller,
+CAS, or output write. The role contract SHA is
+`3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653`.
+
+The rebuilt consolidated B4 pre-open authority and independent review both
 sealed with `run.exit=0`:
 
 - authority:
-  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_9d3cec82_20260724TproductionRCCST`,
+  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_e69ce5f2_20260724TroleContractFinalCST`,
   root
-  `91121ab625b9430bd693ae07f9a336ac50fe815569038212c09e803f51d314e9`;
+  `10ee08df6e9996f6dfc54971b864ec9c0e27a475b26cff857151db4989bd0110`;
 - review:
-  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_9d3cec82_20260724TproductionRCCST`,
+  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_e69ce5f2_20260724TroleContractFinalCST`,
   root
-  `d11a640f5708630076d631eec8dc86d2a979b45f66602a513c0e95dd5ce40596`.
+  `e3bcf415f7446f4f9049fdb6b42c76b065411945a3d6a2fb27cf37ec5ff9fbc8`.
 
 Implementation HEAD is
-`9d3cec82eb58365af5d2cca8a9aca698763b976d`; the critical implementation
+`e69ce5f22d0e37222f4c402152e35f199c81cf88`; the critical implementation
 manifest is
-`64eb2e62bbaf5441f960ad8bd159bb1ab0a312a99fe32c9759d8ddc1e769bc44`.
+`baab244b256782e4d6a55fcca7aa581a8379f085d265e78050ebfdd4686c70c7`.
 B4 holdout identity and experiment protocol are respectively
 `5f2f8e2c2eb90927ec485a8d0baa3935b155e82d90b04fa3d456fc845cd8464a`
 and
@@ -5941,31 +5951,38 @@ zero-overlap passed with row counts `1500 / 50 / 100 / 100 / 100`.
 The generator family is `camp_v25_project_authored_lanelet2_generator` and its
 provenance is `project_authored_from_first_principles`.
 
-At pre-open creation, free space was `103,421,321,216` bytes. The conservative
-total projection is `69,991,287,914` bytes, leaving `33,430,033,302` bytes and
-`22,692,615,062` bytes above the 10 GiB floor. The later observed free-space
-check was `103,416,995,840` bytes.
+At the latest live check, free space was `103,409,045,504` bytes. The conservative
+total projection is `69,991,287,914` bytes, leaving `33,417,757,590` bytes and
+`22,680,339,350` bytes above the 10 GiB floor. The later observed free-space
+check was `103,409,045,504` bytes.
 
 B4 remains scientifically unopened. Operational attempt, scientific ledger,
 CAS, nonce, opening release, execution output, and outcome fields are all
 absent. Worker/GPU counts are zero and the shared lock is free. The only next
 action is Ultra read-only review for a single B4 opening decision.
 
-current_v25_status=v25_fresh_b4_production_rc_certificate_and_consolidated_preopen_review_passed_opening_not_authorized
-current_v25_source_head=9d3cec82eb58365af5d2cca8a9aca698763b976d
+The previously issued nonce
+`b9b7e2e6a5851f3b7143f32aec76cdeed930cf1555485e948ef9590b08fed00d`
+is permanently
+`issued_then_aborted_pre_exposure_policy_defect`; no operational or scientific
+CAS entry was written for it, and it must never be reused.
+
+current_v25_status=v25_fresh_b4_authority_role_contract_and_consolidated_preopen_review_passed_opening_not_authorized
+current_v25_source_head=e69ce5f22d0e37222f4c402152e35f199c81cf88
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_9d3cec82_20260724TproductionRCCST
-current_v25_artifact_root_sha256=91121ab625b9430bd693ae07f9a336ac50fe815569038212c09e803f51d314e9
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_9d3cec82_20260724TproductionRCCST
-current_v25_review_artifact_root_sha256=d11a640f5708630076d631eec8dc86d2a979b45f66602a513c0e95dd5ce40596
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_e69ce5f2_20260724TroleContractFinalCST
+current_v25_artifact_root_sha256=10ee08df6e9996f6dfc54971b864ec9c0e27a475b26cff857151db4989bd0110
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_e69ce5f2_20260724TroleContractFinalCST
+current_v25_review_artifact_root_sha256=e3bcf415f7446f4f9049fdb6b42c76b065411945a3d6a2fb27cf37ec5ff9fbc8
 current_v25_production_execution_root_sha256=731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2
 current_v25_production_execution_review_root_sha256=83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566
 current_v25_production_evaluation_root_sha256=c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99
 current_v25_production_evaluation_review_root_sha256=08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc
 current_v25_production_equivalence_certificate_root_sha256=f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6
 current_v25_production_equivalence_certificate_review_root_sha256=4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c
-current_v25_focused_tests_root_sha256=f77033755c89e3b863f3d4ac2259bc84ae36f9a54b2c5e08351309292b9ed0d9
-current_v25_critical_implementation_manifest_sha256=64eb2e62bbaf5441f960ad8bd159bb1ab0a312a99fe32c9759d8ddc1e769bc44
+current_v25_focused_tests_root_sha256=1d15d797c9dba1eece652aa3ebc655a30377cac433cfae73aa7904c15868a2b9
+current_v25_critical_implementation_manifest_sha256=baab244b256782e4d6a55fcca7aa581a8379f085d265e78050ebfdd4686c70c7
+current_v25_upstream_authority_role_contract_sha256=3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653
 current_v25_holdout_identity_sha256=5f2f8e2c2eb90927ec485a8d0baa3935b155e82d90b04fa3d456fc845cd8464a
 current_v25_experiment_protocol_sha256=aa79576f8ac487e2ce197c481d57f9c5d350a41d9522096975786207ef76785f
 current_v25_execution_plan_sha256=41442dd7d71552972d737d9a9e3d56e9827f864e0c06e11c57487f651206dee0
@@ -5977,8 +5994,8 @@ current_v25_arm_run_count=1500
 current_v25_tick_count=96000
 current_v25_zero_overlap_status=passed_train_calibration_b2_b3_b4_zero_overlap
 current_v25_projected_total_bytes=69991287914
-current_v25_projected_free_after_bytes=33430033302
-current_v25_capacity_reserve_beyond_10gib_bytes=22692615062
+current_v25_projected_free_after_bytes=33417757590
+current_v25_capacity_reserve_beyond_10gib_bytes=22680339350
 current_v25_b3_terminal_state=terminal_failure
 current_v25_b3_complete_paired_row_count=0
 current_v25_b3_evaluation_authorized=false
@@ -5994,6 +6011,6 @@ current_v25_gpu_compute_count=0
 current_v25_lock_state=free
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=103416995840
-current_v25_phase=fresh_b4_production_rc_and_consolidated_preopen_review_passed
+observed_autodl_free_bytes=103409045504
+current_v25_phase=fresh_b4_authority_role_contract_and_consolidated_preopen_review_passed
 next_work_target=ultra_read_only_fresh_b4_one_time_opening_review
