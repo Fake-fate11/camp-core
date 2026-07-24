@@ -812,11 +812,11 @@ def test_v25_b4_production_rc_preopen_pointer_is_consistent_and_unopened() -> No
     audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
     required = (
         "Fresh B4 Consumer Authority Contract and Consolidated Pre-Open Passed",
-        "00522a745168901c48f54c85f95c8ac82b5e5d58",
-        "4a19362822b28121e3326fde1857082c54e7054825d05fa251fede102b64ccb2",
-        "8178815452b025fbde9fb8aec7c992a7739a3cce2519222fec015e242d973571",
-        "aaad49821dcdbc829253eeebdb2efe220fa18af8b2df568750e7a5471ed25637",
-        "b8eb8d281af73cdf55f67b18509c4d60659b206496698628bfa49b6b92e9628e",
+        "7be93df20deee03587b9898e8560909662df972c",
+        "bfb6727983cbb43a3612ea00d274b249277ed4abfa4f63219c5aaba4420b2829",
+        "4b4b64682addf728cafcd01dbde1e5ff837124e9be5105ed3000ab68eb18ea55",
+        "d618b6dcc509c0223038f8bf25308be6baa466b055487104a99f79c7e77d8f79",
+        "f3b707d480b30e1d37d2c10355d8a824df4cff8230af7d78d803dd4504ef6c2b",
         "3254191ef3ff10e8ab0dda5985acb3589bb44df8534f51a8a033bca26e01c653",
         "731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2",
         "83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566",
