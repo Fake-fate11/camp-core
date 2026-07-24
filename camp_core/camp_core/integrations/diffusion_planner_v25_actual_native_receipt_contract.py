@@ -282,6 +282,8 @@ _SAFETY_SIGNAL_FIELDS = frozenset(
         "pre_decision_speed_mps",
     }
 )
+_SAFETY_SIGNAL_PHASES = frozenset({"none", "green", "yellow", "red"})
+_MAPPED_SIGNAL_PHASES = frozenset({"green", "yellow", "red"})
 _CONTROLLED_SCENE_FIELDS = frozenset(
     {
         "scenario_id",
@@ -451,9 +453,10 @@ _NESTED_SCHEMAS: dict[str, dict[str, Any]] = {
         },
     },
     "safety_record": {
-        "kind": "signal_optional_exact_mapping",
+        "kind": "certified_signal_exact_mapping",
         "common_fields": sorted(_SAFETY_COMMON_FIELDS),
         "signal_fields": sorted(_SAFETY_SIGNAL_FIELDS),
+        "signal_phase_literals": sorted(_SAFETY_SIGNAL_PHASES),
     },
     "controlled_scene": {
         "kind": "discriminated_exact_mapping",
@@ -598,6 +601,77 @@ def actual_native_receipt_contract() -> dict[str, Any]:
         "candidate0_supplementary_semantics": (
             "post_action_separate_actual_native_k8_pool_diagnostic"
         ),
+        "literal_domains": {
+            "header.status": ["ok"],
+            "header.arm_by_branch": {
+                "candidate0_primary": ["dp"],
+                "candidate0_supplementary": ["dp"],
+                "static14d": ["camp"],
+                "scene14d": ["camp"],
+            },
+            "tick.status": ["ok"],
+            "tick.safety.signal_phase_at_interval_start": sorted(
+                _SAFETY_SIGNAL_PHASES
+            ),
+            "tick.controlled_scene.signal.phase": sorted(
+                _SAFETY_SIGNAL_PHASES
+            ),
+            "tick.selection_policy_by_branch": {
+                "candidate0_primary": ["candidate0_operational_default"],
+                "candidate0_supplementary": [
+                    "candidate0_operational_default"
+                ],
+                "static14d": ["v22_source_valid"],
+                "scene14d": ["v22_source_valid"],
+            },
+            "tick.score_contract_by_branch": {
+                "candidate0_primary": ["candidate0_operational_default"],
+                "candidate0_supplementary": [
+                    "candidate0_operational_default"
+                ],
+                "static14d": ["score_k=clip(a_k/s,0,10)^T w"],
+                "scene14d": ["score_k=clip(a_k/s,0,10)^T w"],
+            },
+            "tick.eligibility_mask_name_by_branch": {
+                "candidate0_primary": ["candidate0_operational_default"],
+                "candidate0_supplementary": [
+                    "candidate0_operational_default"
+                ],
+                "static14d": ["source_valid_mask"],
+                "scene14d": ["source_valid_mask"],
+            },
+            "tick.tie_break_contract_by_branch": {
+                "candidate0_primary": [],
+                "candidate0_supplementary": [],
+                "static14d": ["lowest_eligible_candidate_index"],
+                "scene14d": ["lowest_eligible_candidate_index"],
+            },
+        },
+        "cross_branch_relations": [
+            (
+                "candidate0 primary and supplementary bind identical route, "
+                "map, fixed-DP, model asset, seed, spawn, initial-state, and "
+                "initial-input authority"
+            ),
+            (
+                "candidate0 supplementary planning begins no earlier than the "
+                "primary action-available timestamp and cannot affect action, "
+                "RNG, or the next tick"
+            ),
+            (
+                "every K8 branch binds row0 to the same-forward default output "
+                "and the selected row to the committed action"
+            ),
+            (
+                "K8 safety signal phase equals the same-tick controlled-scene "
+                "signal phase, including the explicit no-signal literal none"
+            ),
+            (
+                "Static14D and Scene14D share fixed K8, atom, mask, affine "
+                "selection, and tie contracts; only Scene14D carries context "
+                "and scene-weight receipts"
+            ),
+        ],
         "default_or_none_backfill_allowed": False,
         "post_hoc_field_fabrication_allowed": False,
         "nested_schemas": _NESTED_SCHEMAS,
@@ -806,6 +880,11 @@ def validate_actual_native_tick(
         value["default_candidate0_identity"], "default_candidate0_identity"
     )
     _validate_declared_nested(value["controlled_scene"], "controlled_scene")
+    if (
+        value["safety"]["signal_phase_at_interval_start"]
+        != value["controlled_scene"]["signal"]["phase"]
+    ):
+        raise ValueError(f"{branch} safety/controlled-scene phase drifted")
     if branch in {"static14d", "scene14d"}:
         if (
             type(value["tie_break_contract"]) is not str
@@ -892,7 +971,7 @@ def _canonical_sha(value: Any) -> str:
 
 def _validate_declared_nested(value: Any, schema_name: str) -> None:
     schema = _NESTED_SCHEMAS[schema_name]
-    if schema["kind"] == "signal_optional_exact_mapping":
+    if schema["kind"] == "certified_signal_exact_mapping":
         _validate_safety_record(value)
         return
     if schema["kind"] == "discriminated_exact_mapping":
@@ -980,10 +1059,7 @@ def _validate_safety_record(value: Any) -> None:
     if type(value) is not dict:
         raise ValueError("actual-native safety record must be an object")
     fields = set(value)
-    if fields not in (
-        set(_SAFETY_COMMON_FIELDS),
-        set(_SAFETY_COMMON_FIELDS | _SAFETY_SIGNAL_FIELDS),
-    ):
+    if fields != set(_SAFETY_COMMON_FIELDS | _SAFETY_SIGNAL_FIELDS):
         raise ValueError("actual-native safety record field set drifted")
     for name in ("tick_index",):
         if type(value[name]) is not int or value[name] < 0:
@@ -1042,23 +1118,18 @@ def _validate_safety_record(value: Any) -> None:
         )
     ):
         raise ValueError("actual-native safety TTC drifted")
-    if _SAFETY_SIGNAL_FIELDS <= fields:
-        if value["signal_phase_at_interval_start"] not in {
-            "green",
-            "yellow",
-            "red",
-        }:
-            raise ValueError("actual-native safety signal phase drifted")
-        _stop_lines(
-            value["certified_signal_stop_lines"],
-            label="safety.certified_signal_stop_lines",
-        )
-        if (
-            type(value["pre_decision_speed_mps"]) is not float
-            or not math.isfinite(value["pre_decision_speed_mps"])
-            or value["pre_decision_speed_mps"] < 0.0
-        ):
-            raise ValueError("actual-native safety pre-decision speed drifted")
+    if value["signal_phase_at_interval_start"] not in _SAFETY_SIGNAL_PHASES:
+        raise ValueError("actual-native safety signal phase drifted")
+    _stop_lines(
+        value["certified_signal_stop_lines"],
+        label="safety.certified_signal_stop_lines",
+    )
+    if (
+        type(value["pre_decision_speed_mps"]) is not float
+        or not math.isfinite(value["pre_decision_speed_mps"])
+        or value["pre_decision_speed_mps"] < 0.0
+    ):
+        raise ValueError("actual-native safety pre-decision speed drifted")
 
 
 def _validate_controlled_scene(value: Any) -> None:
@@ -1159,7 +1230,7 @@ def _validate_controlled_signal(
         or type(value["applied"]) is not bool
         or source["phase_authority_mode"]
         not in {"controlled_same_tick_override", "observe_same_tick_request"}
-        or source["current_phase"] not in {"green", "yellow", "red"}
+        or source["current_phase"] not in _MAPPED_SIGNAL_PHASES
         or source["freshness"] != "same_tick"
         or source["source_id"]
         != "fixed_dp_current_request_route_map_signal_one_hot"

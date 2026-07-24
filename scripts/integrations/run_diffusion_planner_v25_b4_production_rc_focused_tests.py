@@ -48,7 +48,13 @@ TEST_FILES = (
 )
 
 
-def run(*, expected_head: str, output_dir: Path) -> str:
+def run(
+    *,
+    expected_head: str,
+    output_dir: Path,
+    sealed_actual_native_fixture_artifact: Path | None = None,
+    sealed_actual_native_fixture_root_sha256: str | None = None,
+) -> str:
     output = Path(output_dir).resolve()
     if output.exists():
         raise FileExistsError(output)
@@ -60,6 +66,19 @@ def run(*, expected_head: str, output_dir: Path) -> str:
     if env.get("PYTHONPATH"):
         python_path = python_path + os.pathsep + env["PYTHONPATH"]
     env["PYTHONPATH"] = python_path
+    if (sealed_actual_native_fixture_artifact is None) is not (
+        sealed_actual_native_fixture_root_sha256 is None
+    ):
+        raise ValueError(
+            "sealed actual-native fixture path/root must be supplied together"
+        )
+    if sealed_actual_native_fixture_artifact is not None:
+        env["CAMP_V25_SEALED_ACTUAL_NATIVE_FIXTURE_ARTIFACT"] = str(
+            Path(sealed_actual_native_fixture_artifact).resolve()
+        )
+        env["CAMP_V25_SEALED_ACTUAL_NATIVE_FIXTURE_ROOT_SHA256"] = str(
+            sealed_actual_native_fixture_root_sha256
+        )
     completed = subprocess.run(
         command,
         cwd=ROOT,
@@ -88,6 +107,14 @@ def run(*, expected_head: str, output_dir: Path) -> str:
         },
         "pytest_exit_code": completed.returncode,
         "serial_execution": True,
+        "sealed_actual_native_fixture_artifact": (
+            str(Path(sealed_actual_native_fixture_artifact).resolve())
+            if sealed_actual_native_fixture_artifact is not None
+            else None
+        ),
+        "sealed_actual_native_fixture_root_sha256": (
+            sealed_actual_native_fixture_root_sha256
+        ),
         "fresh_rows_or_outcomes_used": False,
     }
     _write(output / "report.json", report)
@@ -140,6 +167,13 @@ def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-head", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--sealed-actual-native-fixture-artifact",
+        type=Path,
+    )
+    parser.add_argument(
+        "--sealed-actual-native-fixture-root-sha256",
+    )
     return parser.parse_args()
 
 

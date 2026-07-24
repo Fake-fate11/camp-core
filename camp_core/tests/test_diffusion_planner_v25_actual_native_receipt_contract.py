@@ -5,10 +5,14 @@ import copy
 import hashlib
 import inspect
 import json
+import os
 from pathlib import Path
 
 import pytest
 
+from camp_core.integrations.diffusion_planner_artifact_seal import (
+    verify_complete_seal,
+)
 from camp_core.integrations.diffusion_planner_v25_actual_native_receipt_contract import (
     BRANCHES,
     HEADER_FIELDS_BY_BRANCH,
@@ -26,12 +30,81 @@ from camp_core.integrations.diffusion_planner_v25_actual_native_receipt_review i
 from camp_core.integrations.diffusion_planner_v25_fresh_receipt import (
     _build_supplementary_candidate0_pool,
     _native_receipt,
+    build_candidate0_pool_evidence,
     project_candidate0_supplementary_native_receipt,
 )
 
 
 SHA = "a" * 64
 GIT_SHA = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+SEALED_ACTUAL_NATIVE_FIXTURE_ROOT_SHA256 = (
+    "d6443ab49857b06f03610789a801d36f6037b8a05aa67ca76f766c041645cdd3"
+)
+SEALED_ACTUAL_NATIVE_FIXTURES = {
+    (
+        "runs/0000_0_24e72a2003607f73_candidate0/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "candidate0_primary",
+        "a95bf896020680854357da70887cbb72eb1f03f3866069dd09234dbcec7b5e06",
+    ),
+    (
+        "runs/0000_0_24e72a2003607f73_candidate0/"
+        "candidate0_supplementary_actual_native_raw.json"
+    ): (
+        "candidate0_supplementary",
+        "79a4538ab2ed9f762c6aa98df0dacb0646275806291a7c26fe672af50857ab47",
+    ),
+    (
+        "runs/0000_1_24e72a2003607f73_static14d/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "static14d",
+        "17dad1781b10087165ff1685e65291853dc920d43afece90d99dd3730e8de430",
+    ),
+    (
+        "runs/0000_2_24e72a2003607f73_scene14d/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "scene14d",
+        "8db7ee57360a0937085c0255cf69d0b71d864a30e4e6ab318decc1c0686a8d4b",
+    ),
+    (
+        "runs/0001_0_8a02c8e86fd64c21_static14d/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "static14d",
+        "71cda81e2ee8a386b086d6ab3b8485663d9cdc08a62455d6c8481ce91c61bed0",
+    ),
+    (
+        "runs/0001_1_8a02c8e86fd64c21_scene14d/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "scene14d",
+        "28352450e061a4ee56028dfde7d2989e8a558d2fab015709c01a811d012daff1",
+    ),
+    (
+        "runs/0001_2_8a02c8e86fd64c21_candidate0/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "candidate0_primary",
+        "7fd8ae7fab6e405c5a129f4cf4fec7aeecb74832ecfde8592103282a4407304e",
+    ),
+    (
+        "runs/0001_2_8a02c8e86fd64c21_candidate0/"
+        "candidate0_supplementary_actual_native_raw.json"
+    ): (
+        "candidate0_supplementary",
+        "2a67599f85d07cd0b95535387529737fb21f25f9eba3c3fdf33ec8bb90400daa",
+    ),
+    (
+        "runs/0002_0_45a617cb746f54d9_scene14d/"
+        "actual_native_receipt_raw.json"
+    ): (
+        "scene14d",
+        "5cddac7e7bb93e1a2573bb09db7fb354ee35934bd75d1e0f176f8b2e0fd6fb60",
+    ),
+}
 
 
 def _header(branch: str, ticks: list[dict]) -> dict:
@@ -103,6 +176,9 @@ def _common_tick(index: int, branch: str) -> dict:
             "speed_limit_mps": 12.0,
             "constant_velocity_circle_ttc_diagnostic_s": None,
             "source_complete": True,
+            "signal_phase_at_interval_start": "none",
+            "certified_signal_stop_lines": [],
+            "pre_decision_speed_mps": 8.0,
         },
         "latency_ms": {
             name: 0.25 for name in LATENCY_FIELDS_BY_BRANCH[branch]
@@ -419,6 +495,13 @@ def test_contract_freezes_all_four_actual_native_branches() -> None:
         row = contract["branches"][branch]
         assert set(row["tick_native_types"]) == TICK_FIELDS_BY_BRANCH[branch]
         assert set(row["latency_fields"]) == LATENCY_FIELDS_BY_BRANCH[branch]
+    assert contract["literal_domains"][
+        "tick.safety.signal_phase_at_interval_start"
+    ] == ["green", "none", "red", "yellow"]
+    assert any(
+        "safety signal phase equals" in relation
+        for relation in contract["cross_branch_relations"]
+    )
 
 
 def test_real_candidate0_primary_and_supplementary_contract_round_trip() -> None:
@@ -458,6 +541,12 @@ def test_mapped_signal_rows_allow_one_empty_tensor_but_bind_authority() -> None:
     ]
     supplementary["ticks"][0]["controlled_scene"] = (
         _mapped_controlled_scene(0, route_rows=[], map_rows=map_rows)
+    )
+    supplementary["ticks"][0]["safety"].update(
+        {
+            "signal_phase_at_interval_start": "yellow",
+            "certified_signal_stop_lines": [],
+        }
     )
     assert (
         validate_actual_native_receipt(
@@ -527,6 +616,45 @@ def test_actual_native_sink_precedes_production_validation_and_projection() -> N
         "project_candidate0_supplementary_native_receipt(diagnostic)"
     )
     assert sink < projection
+
+
+def test_execution_review_and_evaluation_chain_preserve_the_raw_abi_boundary() -> None:
+    root = Path(__file__).resolve().parents[2]
+    execution = (
+        root
+        / "camp_core"
+        / "camp_core"
+        / "integrations"
+        / "diffusion_planner_v25_fresh_execution.py"
+    ).read_text(encoding="utf-8")
+    execution_review = (
+        root
+        / "camp_core"
+        / "camp_core"
+        / "integrations"
+        / "diffusion_planner_v25_fresh_execution_review.py"
+    ).read_text(encoding="utf-8")
+    evaluator = (
+        root / "scripts" / "integrations"
+        / "evaluate_diffusion_planner_v25_holdout.py"
+    ).read_text(encoding="utf-8")
+    evaluation_review = (
+        root / "scripts" / "integrations"
+        / "review_diffusion_planner_v25_holdout_evaluation.py"
+    ).read_text(encoding="utf-8")
+
+    assert execution.index("build_candidate0_pool_evidence(") < execution.index(
+        "build_fresh_b2_complete_row("
+    )
+    assert "independent_validate_actual_native_receipt(" in execution_review
+    assert "independent_candidate0_pool_evidence(" in execution_review
+    assert execution_review.index(
+        "independent_validate_actual_native_receipt("
+    ) < execution_review.index("build_fresh_b2_complete_row(")
+    assert "actual_native_receipt_raw.json" not in evaluator
+    assert "actual_native_receipt_raw.json" not in evaluation_review
+    assert "execution_review_root_sha256" in evaluator
+    assert "execution_review_artifact" in evaluation_review
 
 
 def test_execution_enrichment_is_separate_from_actual_native_abi() -> None:
@@ -657,7 +785,12 @@ def test_production_consumer_field_access_is_covered_by_abi() -> None:
         "tick_index",
     }
     accessed = set()
-    for function in (_native_receipt, _build_supplementary_candidate0_pool):
+    for function in (
+        _native_receipt,
+        _build_supplementary_candidate0_pool,
+        build_candidate0_pool_evidence,
+        project_candidate0_supplementary_native_receipt,
+    ):
         tree = ast.parse(inspect.getsource(function))
         for node in ast.walk(tree):
             if (
@@ -715,3 +848,150 @@ def test_every_declared_branch_field_is_required_and_typed() -> None:
                 independent_validate_actual_native_receipt(
                     wrong_type, branch=branch
                 )
+
+
+@pytest.fixture(scope="module")
+def sealed_actual_native_receipts() -> dict[str, tuple[str, dict]]:
+    configured = os.environ.get(
+        "CAMP_V25_SEALED_ACTUAL_NATIVE_FIXTURE_ARTIFACT"
+    )
+    if configured is None:
+        pytest.skip("sealed AutoDL actual-native fixture was not requested")
+    root = Path(configured)
+    expected = os.environ.get(
+        "CAMP_V25_SEALED_ACTUAL_NATIVE_FIXTURE_ROOT_SHA256"
+    )
+    assert expected == SEALED_ACTUAL_NATIVE_FIXTURE_ROOT_SHA256
+    verified = verify_complete_seal(
+        root,
+        SEALED_ACTUAL_NATIVE_FIXTURE_ROOT_SHA256,
+        label="B4 sealed actual-native fixture",
+    )
+    assert verified["root_sha256"] == SEALED_ACTUAL_NATIVE_FIXTURE_ROOT_SHA256
+    current_contract = actual_native_receipt_contract_sha256()
+    loaded: dict[str, tuple[str, dict]] = {}
+    for relative, (branch, expected_sha) in (
+        SEALED_ACTUAL_NATIVE_FIXTURES.items()
+    ):
+        raw = (root / relative).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == expected_sha
+        value = json.loads(raw)
+        # The fixture is an immutable receipt from the immediately preceding
+        # nonFresh RC contract.  Rebind only its declared ABI digest in memory;
+        # every producer value, type, shape, literal, and cross-branch relation
+        # remains byte-derived from the sealed raw evidence.
+        value["actual_native_receipt_contract_sha256"] = current_contract
+        loaded[relative] = (branch, value)
+    return loaded
+
+
+def test_sealed_actual_native_receipts_close_all_branches_and_variants(
+    sealed_actual_native_receipts: dict[str, tuple[str, dict]],
+) -> None:
+    phases: set[str] = set()
+    branches: set[str] = set()
+    candidate0_by_run: dict[str, dict[str, dict]] = {}
+    for relative, (branch, value) in sealed_actual_native_receipts.items():
+        branches.add(branch)
+        phases.update(
+            tick["safety"]["signal_phase_at_interval_start"]
+            for tick in value["ticks"]
+        )
+        assert validate_actual_native_receipt(value, branch=branch) == value
+        assert (
+            independent_validate_actual_native_receipt(
+                value, branch=branch
+            )
+            == value
+        )
+        if branch != "candidate0_supplementary":
+            arm = (
+                "candidate0" if branch == "candidate0_primary" else branch
+            )
+            assert _native_receipt(value, arm) == value
+        run = str(Path(relative).parent)
+        if branch.startswith("candidate0_"):
+            candidate0_by_run.setdefault(run, {})[branch] = value
+    assert branches == set(BRANCHES)
+    assert phases == {"none", "red", "yellow"}
+    for pair in candidate0_by_run.values():
+        if set(pair) != {
+            "candidate0_primary",
+            "candidate0_supplementary",
+        }:
+            continue
+        projected = project_candidate0_supplementary_native_receipt(
+            pair["candidate0_supplementary"]
+        )
+        assert projected == independent_project_candidate0_supplementary(
+            pair["candidate0_supplementary"]
+        )
+        assert build_candidate0_pool_evidence(
+            pair["candidate0_primary"], projected
+        ) == independent_candidate0_pool_evidence(
+            pair["candidate0_primary"], projected
+        )
+
+
+def test_sealed_four_branch_fixtures_reject_all_mutation_classes(
+    sealed_actual_native_receipts: dict[str, tuple[str, dict]],
+) -> None:
+    examples: dict[str, dict] = {}
+    for branch, value in sealed_actual_native_receipts.values():
+        examples.setdefault(branch, value)
+    assert set(examples) == set(BRANCHES)
+
+    for branch, fixture in examples.items():
+        mutations: list[dict] = []
+
+        missing = copy.deepcopy(fixture)
+        missing["ticks"][0].pop("input_sha256")
+        mutations.append(missing)
+
+        extra = copy.deepcopy(fixture)
+        extra["ticks"][0]["futureOutcome"] = True
+        mutations.append(extra)
+
+        type_smuggled = copy.deepcopy(fixture)
+        type_smuggled["ticks"][0]["planning_started_ns"] = False
+        mutations.append(type_smuggled)
+
+        wrong_shape = copy.deepcopy(fixture)
+        wrong_shape["ticks"][0]["safety"]["position_xy"] = [0.0]
+        mutations.append(wrong_shape)
+
+        wrong_literal = copy.deepcopy(fixture)
+        wrong_literal["ticks"][0]["safety"][
+            "signal_phase_at_interval_start"
+        ] = "future_red"
+        mutations.append(wrong_literal)
+
+        nested_extra = copy.deepcopy(fixture)
+        nested_extra["ticks"][0]["safety"]["futureOutcome"] = True
+        mutations.append(nested_extra)
+
+        for changed in mutations:
+            with pytest.raises(ValueError):
+                validate_actual_native_receipt(changed, branch=branch)
+            with pytest.raises(ValueError):
+                independent_validate_actual_native_receipt(
+                    changed, branch=branch
+                )
+
+    for branch, fixture in examples.items():
+        swapped = copy.deepcopy(fixture)
+        source_branch = {
+            "candidate0_primary": "candidate0_supplementary",
+            "candidate0_supplementary": "static14d",
+            "static14d": "scene14d",
+            "scene14d": "static14d",
+        }[branch]
+        swapped["ticks"][0] = copy.deepcopy(
+            examples[source_branch]["ticks"][0]
+        )
+        with pytest.raises(ValueError):
+            validate_actual_native_receipt(swapped, branch=branch)
+        with pytest.raises(ValueError):
+            independent_validate_actual_native_receipt(
+                swapped, branch=branch
+            )

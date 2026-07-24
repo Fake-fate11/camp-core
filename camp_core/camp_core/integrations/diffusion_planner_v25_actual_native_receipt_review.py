@@ -696,6 +696,13 @@ def _independent_tick_semantics(
         or not any(value["source_valid_mask"])
     ):
         raise ValueError(f"independent {branch} selection binding drifted")
+    if (
+        value["safety"]["signal_phase_at_interval_start"]
+        != value["controlled_scene"]["signal"]["phase"]
+    ):
+        raise ValueError(
+            f"independent {branch} safety/controlled-scene phase drifted"
+        )
     if branch == "candidate0_supplementary":
         if (
             selected != 0
@@ -855,7 +862,7 @@ def _independent_kind(
     elif kind.startswith("nested:"):
         schema_name = kind.split(":", 1)[1]
         schema = declaration["nested_schemas"][schema_name]
-        if schema["kind"] == "signal_optional_exact_mapping":
+        if schema["kind"] == "certified_signal_exact_mapping":
             try:
                 _independent_safety_record(value, schema=schema)
                 valid = True
@@ -911,10 +918,7 @@ def _independent_safety_record(
 ) -> None:
     common = set(schema["common_fields"])
     signal = set(schema["signal_fields"])
-    if type(value) is not dict or set(value) not in (
-        common,
-        common | signal,
-    ):
+    if type(value) is not dict or set(value) != common | signal:
         raise ValueError("independent safety field set drifted")
     if type(value["tick_index"]) is not int or value["tick_index"] < 0:
         raise ValueError("independent safety tick drifted")
@@ -959,23 +963,20 @@ def _independent_safety_record(
         )
     ):
         raise ValueError("independent safety TTC drifted")
-    if signal <= set(value):
-        if value["signal_phase_at_interval_start"] not in {
-            "green",
-            "yellow",
-            "red",
-        }:
-            raise ValueError("independent safety signal phase drifted")
-        _independent_stop_lines(
-            value["certified_signal_stop_lines"],
-            "safety.certified_signal_stop_lines",
-        )
-        if (
-            type(value["pre_decision_speed_mps"]) is not float
-            or not math.isfinite(value["pre_decision_speed_mps"])
-            or value["pre_decision_speed_mps"] < 0.0
-        ):
-            raise ValueError("independent safety pre-decision speed drifted")
+    if value["signal_phase_at_interval_start"] not in set(
+        schema["signal_phase_literals"]
+    ):
+        raise ValueError("independent safety signal phase drifted")
+    _independent_stop_lines(
+        value["certified_signal_stop_lines"],
+        "safety.certified_signal_stop_lines",
+    )
+    if (
+        type(value["pre_decision_speed_mps"]) is not float
+        or not math.isfinite(value["pre_decision_speed_mps"])
+        or value["pre_decision_speed_mps"] < 0.0
+    ):
+        raise ValueError("independent safety pre-decision speed drifted")
 
 
 def _independent_controlled_scene(
