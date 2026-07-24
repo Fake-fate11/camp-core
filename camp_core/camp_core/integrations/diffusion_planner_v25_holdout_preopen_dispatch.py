@@ -8,7 +8,6 @@ from .diffusion_planner_v25_b3_preopen import (
 )
 from .diffusion_planner_v25_b4_preopen import (
     SCHEMA_VERSION as B4_SCHEMA_VERSION,
-    validate_production_equivalence_certificate,
     validate_b4_preopen_authority,
 )
 from .diffusion_planner_v25_holdout_preflight import (
@@ -20,6 +19,9 @@ from .diffusion_planner_v25_production_equivalence_authority import (
     REVIEW_STATUS as NONFRESH_CANARY_REVIEW_STATUS,
     SCHEMA_VERSION as NONFRESH_CANARY_SCHEMA_VERSION,
     validate_nonfresh_production_equivalence_authority,
+)
+from .diffusion_planner_v25_production_equivalence_certificate import (
+    validate_production_equivalence_certificate,
 )
 from .diffusion_planner_v25_holdout_plan_dispatch import (
     NONFRESH_CANARY_SPLIT,
