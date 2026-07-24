@@ -24,6 +24,9 @@ from .diffusion_planner_v25_holdout_opening_rc import (
     validate_production_rc_opening_release,
     validate_scientific_exposure_receipt,
 )
+from .diffusion_planner_v25_holdout_plan_dispatch import (
+    NONFRESH_CANARY_SPLIT,
+)
 from .diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
     REQUIRED_CONTROLLED_EVENT_FAMILIES,
@@ -216,6 +219,9 @@ def evaluate_fresh_b2_three_arm(
         )
     component_regression_margins = calibration["component_guardrails"]["margins"]
     noninferiority_margins = calibration["noninferiority"]["margins"]
+    nonfresh_production_equivalence = (
+        _holdout_mode and identity["split"] == NONFRESH_CANARY_SPLIT
+    )
     gates = _root_gates(root_gates)
     normalized = [_row(row, index) for index, row in enumerate(rows)]
     grouped: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
@@ -270,7 +276,15 @@ def evaluate_fresh_b2_three_arm(
         }
         clusters = [pair["candidate0"]["inference_cluster_id"] for pair in eligible_pairs]
         claim = (
-            evaluate_fresh_b2_claim(
+            _nonfresh_production_equivalence_no_claim(
+                paired_eligible_count=len(eligible_pairs),
+                independent_cluster_count=len(set(clusters)),
+                coverage=coverage,
+                component_regression_margins=component_regression_margins,
+                noninferiority_margins=noninferiority_margins,
+            )
+            if nonfresh_production_equivalence
+            else evaluate_fresh_b2_claim(
                 total,
                 components,
                 performance,
@@ -367,6 +381,9 @@ def evaluate_fresh_b2_three_arm(
         "full_plan_arm_run_count": len(normalized),
         "shared_three_arm_paired_eligible_count": len(shared_eligible_pairs),
         "method_comparisons_use_identical_pair_set": True,
+        "nonfresh_production_equivalence_no_claim": (
+            nonfresh_production_equivalence
+        ),
         "arm_order_position_counts": order_counts,
         "arm_order_balanced": True,
         "method_reports": method_reports,
@@ -837,6 +854,36 @@ def _insufficient_shared_pair_claim(
         "red_light_improvement_claim_passed": False,
         "claim_scope": "unchanged_fixed_dp_valid_k8_preregistered_support_domain",
         "real_world_or_all_map_claim_authorized": False,
+    }
+
+
+def _nonfresh_production_equivalence_no_claim(
+    *,
+    paired_eligible_count: int,
+    independent_cluster_count: int,
+    coverage: Mapping[str, Any],
+    component_regression_margins: Mapping[str, float],
+    noninferiority_margins: Mapping[str, float],
+) -> dict[str, Any]:
+    return {
+        "schema_version": (
+            "camp_dp_v25_nonfresh_production_equivalence_no_claim_v1"
+        ),
+        "status": "not_evaluated_nonfresh_production_equivalence",
+        "paired_eligible_count": paired_eligible_count,
+        "independent_cluster_count": independent_cluster_count,
+        "coverage": dict(coverage),
+        "component_regression_margins": dict(component_regression_margins),
+        "noninferiority_margins": dict(noninferiority_margins),
+        "safetycost_imputed": False,
+        "total_safety_inference_available": False,
+        "component_inference_available": False,
+        "performance_comfort_noninferiority_available": False,
+        "safety_improvement_claim_passed": False,
+        "red_light_improvement_claim_passed": False,
+        "claim_scope": "nonfresh_lifecycle_certificate_only",
+        "real_world_or_all_map_claim_authorized": False,
+        "fresh_rows_or_outcomes_used": False,
     }
 
 

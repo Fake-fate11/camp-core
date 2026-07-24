@@ -34,6 +34,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
 from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (
     RELEASE_SCHEMA_VERSION as PRODUCTION_RC_RELEASE_SCHEMA_VERSION,
 )
+from camp_core.integrations.diffusion_planner_v25_holdout_plan_dispatch import (
+    NONFRESH_CANARY_SPLIT,
+)
 from camp_core.integrations.diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
     REQUIRED_CONTROLLED_EVENT_FAMILIES,
@@ -253,10 +256,12 @@ def _evaluate(rows):
     )
 
 
-def _holdout_authority(rows):
+def _holdout_authority(
+    rows, *, split: str = "fresh_b3_nonfresh_evaluation_test"
+):
     pair_count = len(rows) // 3
     identity = freeze_holdout_identity(
-        split="fresh_b3_nonfresh_evaluation_test",
+        split=split,
         scenario_manifest_sha256="1" * 64,
         map_suite_payload_sha256="2" * 64,
         route_census_sha256="3" * 64,
@@ -342,9 +347,11 @@ def _holdout_authority(rows):
     return release, consumption
 
 
-def _evaluate_holdout(rows):
+def _evaluate_holdout(
+    rows, *, split: str = "fresh_b3_nonfresh_evaluation_test"
+):
     calibration = _calibration_contract()
-    release, consumption = _holdout_authority(rows)
+    release, consumption = _holdout_authority(rows, split=split)
     return evaluate_holdout_three_arm(
         rows,
         calibration_contract=calibration,
@@ -437,6 +444,20 @@ def test_generic_holdout_evaluation_uses_generic_identity_and_schema() -> None:
     assert result["holdout_opened_once_after_cas_consumption"] is True
     assert result["full_plan_arm_run_count"] == len(rows)
     assert result["fresh_outcome_used_to_change_protocol"] is False
+
+
+def test_nonfresh_production_equivalence_uses_lifecycle_no_claim() -> None:
+    rows = _rows()[:9]
+    result = _evaluate_holdout(rows, split=NONFRESH_CANARY_SPLIT)
+    assert result["nonfresh_production_equivalence_no_claim"] is True
+    for method in ("static14d", "scene14d"):
+        claim = result["method_reports"][method]["claim_decision"]
+        assert claim["status"] == (
+            "not_evaluated_nonfresh_production_equivalence"
+        )
+        assert claim["total_safety_inference_available"] is False
+        assert claim["safety_improvement_claim_passed"] is False
+        assert claim["fresh_rows_or_outcomes_used"] is False
 
 
 def test_production_rc_holdout_evaluation_uses_scientific_exposure_receipt(
