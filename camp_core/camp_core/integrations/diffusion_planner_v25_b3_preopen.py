@@ -29,6 +29,7 @@ from .diffusion_planner_v25_holdout_preflight import (
     validate_production_composition_preflight,
 )
 from .diffusion_planner_v25_signal_complete_maps import (
+    build_signal_complete_suite,
     validate_signal_complete_suite,
     validate_signal_complete_suite_receipt,
 )
@@ -398,7 +399,7 @@ def validate_b3_preopen_authority(value: Mapping[str, Any]) -> dict[str, Any]:
     identity = validate_holdout_identity(value["holdout_identity"])
     protocol = validate_experiment_protocol(value["experiment_protocol"])
     plan = validate_signal_complete_execution_plan(value["execution_plan"])
-    suite = validate_signal_complete_suite_receipt(value["map_suite"])
+    suite = _validate_b3_map_suite_receipt(value["map_suite"])
     if (
         identity["split"] != "fresh_b3"
         or plan["split"] != "fresh_b3"
@@ -612,6 +613,25 @@ def _counts(plan: Mapping[str, Any]) -> dict[str, int]:
     if result != EXPECTED_COUNTS:
         raise ValueError("Fresh B3 denominator drifted")
     return result
+
+
+def _validate_b3_map_suite_receipt(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Reopen the accepted B3 receipt across the provenance-field schema bump."""
+
+    try:
+        return validate_signal_complete_suite_receipt(value)
+    except ValueError as current_error:
+        expected = validate_signal_complete_suite(
+            build_signal_complete_suite("fresh_b3")
+        )
+        legacy_expected = dict(expected)
+        legacy_expected.pop("generator_family")
+        legacy_expected.pop("generator_provenance")
+        if type(value) is not dict or value != legacy_expected:
+            raise current_error
+        return dict(value)
 
 
 def _normalize_coverage(value: Mapping[str, Any]) -> dict[str, Any]:

@@ -4,12 +4,16 @@ import copy
 
 import pytest
 
+from camp_core.integrations.diffusion_planner_v25_b3_preopen import (
+    _validate_b3_map_suite_receipt,
+)
 from camp_core.integrations.diffusion_planner_v25_b4_preopen import (
     build_b4_holdout_identity,
     build_b4_protocol_amendment,
 )
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (
     build_signal_complete_suite,
+    validate_signal_complete_suite,
 )
 from camp_core.integrations.diffusion_planner_v25_signal_complete_plan import (
     build_signal_complete_execution_plan,
@@ -38,3 +42,18 @@ def test_b4_identity_rejects_prior_split_materialization() -> None:
     changed["split"] = "fresh_b3"
     with pytest.raises(ValueError):
         build_b4_holdout_identity(suite=suite, plan=changed)
+
+
+def test_b3_accepted_map_receipt_reopens_across_provenance_schema_bump() -> None:
+    current = validate_signal_complete_suite(
+        build_signal_complete_suite("fresh_b3")
+    )
+    legacy = copy.deepcopy(current)
+    legacy.pop("generator_family")
+    legacy.pop("generator_provenance")
+
+    assert _validate_b3_map_suite_receipt(legacy) == legacy
+    changed = copy.deepcopy(legacy)
+    changed["map_count"] += 1
+    with pytest.raises(ValueError, match="suite receipt exact value drifted"):
+        _validate_b3_map_suite_receipt(changed)
