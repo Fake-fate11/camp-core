@@ -1,6 +1,38 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Mapping
+
+
+def independent_canonicalize_persisted_json(value: Any) -> Any:
+    """Rebuild the native JSON value observed after canonical persistence."""
+
+    raw = (
+        json.dumps(
+            value,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, item in items:
+            if key in result:
+                raise ValueError(f"duplicate rebuilt evaluation key: {key}")
+            result[key] = item
+        return result
+
+    return json.loads(
+        raw.decode("utf-8", "strict"),
+        object_pairs_hook=pairs,
+        parse_constant=lambda token: (_ for _ in ()).throw(
+            ValueError(f"nonfinite rebuilt evaluation token: {token}")
+        ),
+    )
 
 
 def independent_validate_evaluation_dual_head_provenance(

@@ -44,6 +44,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa
     terminate_scientific_identity,
 )
 from camp_core.integrations.diffusion_planner_v25_role_provenance_review import (  # noqa: E402
+    independent_canonicalize_persisted_json,
     independent_validate_evaluation_dual_head_provenance,
 )
 from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import (  # noqa: E402
@@ -189,29 +190,31 @@ def review(
     ):
         raise ValueError("holdout evaluation dual-HEAD provenance drifted")
     rows = _canonical_value(execution / "evaluation_rows.json")
-    rebuilt = evaluate_holdout_three_arm(
-        rows,
-        calibration_contract=calibration["calibration_contract"],
-        calibration_contract_root_sha256=calibration_binding[
-            "root_sha256"
-        ],
-        preopen_qualification_root_sha256=release[
-            "preopen_authority"
-        ]["root_sha256"],
-        opening_release=release,
-        opening_release_root_sha256=opening_release_root_sha256,
-        opening_consumption_receipt=artifact_report[
-            "opening_consumption"
-        ],
-        root_gates={
-            "failure_denominator_complete": (
-                execution_review_report["full_denominator_formed"] is True
-            ),
-            "immutability_passed": True,
-            "zero_overlap_passed": holdout_zero_overlap_passed(
-                preopen_authority, split=split
-            ),
-        },
+    rebuilt = independent_canonicalize_persisted_json(
+        evaluate_holdout_three_arm(
+            rows,
+            calibration_contract=calibration["calibration_contract"],
+            calibration_contract_root_sha256=calibration_binding[
+                "root_sha256"
+            ],
+            preopen_qualification_root_sha256=release[
+                "preopen_authority"
+            ]["root_sha256"],
+            opening_release=release,
+            opening_release_root_sha256=opening_release_root_sha256,
+            opening_consumption_receipt=artifact_report[
+                "opening_consumption"
+            ],
+            root_gates={
+                "failure_denominator_complete": (
+                    execution_review_report["full_denominator_formed"] is True
+                ),
+                "immutability_passed": True,
+                "zero_overlap_passed": holdout_zero_overlap_passed(
+                    preopen_authority, split=split
+                ),
+            },
+        )
     )
     stored = _canonical_json(evaluation_root / "evaluation.json")
     if (

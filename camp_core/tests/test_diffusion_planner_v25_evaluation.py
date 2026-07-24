@@ -42,6 +42,9 @@ from camp_core.integrations.diffusion_planner_v25_statistics import (
     REQUIRED_CONTROLLED_EVENT_FAMILIES,
     SAFETY_COMPONENTS,
 )
+from camp_core.integrations.diffusion_planner_v25_role_provenance_review import (
+    independent_canonicalize_persisted_json,
+)
 
 
 def _signal_evidence(phase: str, method: bool) -> tuple[dict, dict, dict]:
@@ -458,6 +461,31 @@ def test_nonfresh_production_equivalence_uses_lifecycle_no_claim() -> None:
         assert claim["total_safety_inference_available"] is False
         assert claim["safety_improvement_claim_passed"] is False
         assert claim["fresh_rows_or_outcomes_used"] is False
+
+
+def test_evaluation_reviewer_compares_the_persisted_numeric_boundary() -> None:
+    rebuilt = {
+        "cluster_standard_error": np.float64(0.31681054845303236),
+        "count": 3,
+    }
+    canonical = independent_canonicalize_persisted_json(rebuilt)
+
+    assert canonical == {
+        "cluster_standard_error": 0.31681054845303236,
+        "count": 3,
+    }
+    assert type(canonical["cluster_standard_error"]) is float
+    assert canonical != {
+        "cluster_standard_error": np.nextafter(
+            0.31681054845303236,
+            np.inf,
+        ),
+        "count": 3,
+    }
+    with pytest.raises(ValueError, match="Out of range float values"):
+        independent_canonicalize_persisted_json(
+            {"cluster_standard_error": np.float64(np.nan)}
+        )
 
 
 def test_production_rc_holdout_evaluation_uses_scientific_exposure_receipt(
