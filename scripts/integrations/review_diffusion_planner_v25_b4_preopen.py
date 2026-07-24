@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -100,6 +101,11 @@ _ROLE_ORACLE = {
         "run_exit": row[4],
         "mode": row[5],
         "review_role": row[6],
+        "json_byte_policy": (
+            "strict_sealed_legacy"
+            if row[0] in {"corrected_corpus", "corrected_corpus_review"}
+            else "camp_canonical"
+        ),
     }
     for row in _ROLE_ROWS
 }
@@ -397,6 +403,7 @@ def _verify_upstream_role_contract_independent(
             "payload_file": spec["payload_file"],
             "schema_version": spec["schema_version"],
             "status": spec["status"],
+            "json_byte_policy": spec["json_byte_policy"],
         }
         if not _literal_equal(row["execution_terminal"], terminal):
             raise ValueError(
@@ -412,7 +419,10 @@ def _verify_upstream_role_contract_independent(
             raise ValueError(
                 f"independent native-int run.exit drifted: {role}"
             )
-        payload = _canonical_object(path / spec["payload_file"])
+        payload = _independent_authority_object(
+            path / spec["payload_file"],
+            byte_policy=spec["json_byte_policy"],
+        )
         if (
             payload.get("schema_version") != spec["schema_version"]
             or payload.get("status") != spec["status"]
@@ -658,6 +668,25 @@ def _canonical_object(path: Path) -> dict[str, Any]:
     return value
 
 
+def _independent_authority_object(
+    path: Path, *, byte_policy: str
+) -> dict[str, Any]:
+    raw = path.read_bytes()
+    value = _parse(raw, path)
+    if type(value) is not dict:
+        raise ValueError(f"independent authority object required: {path}")
+    if byte_policy == "camp_canonical":
+        if raw != canonical_json_bytes(value):
+            raise ValueError(
+                f"independent authority JSON is not canonical: {path}"
+            )
+    elif byte_policy != "strict_sealed_legacy":
+        raise ValueError(
+            f"independent authority JSON byte policy drifted: {path}"
+        )
+    return value
+
+
 def _canonical_value(path: Path) -> Any:
     raw = path.read_bytes()
     value = _parse(raw, path)
@@ -682,13 +711,26 @@ def _parse(raw: bytes, path: Path) -> Any:
             result[key] = value
         return result
 
-    return json.loads(
+    value = json.loads(
         raw.decode("utf-8", "strict"),
         object_pairs_hook=pairs,
         parse_constant=lambda token: (_ for _ in ()).throw(
             ValueError(f"nonfinite JSON token in {path}: {token}")
         ),
     )
+    _require_finite_json(value, path=path)
+    return value
+
+
+def _require_finite_json(value: Any, *, path: Path) -> None:
+    if type(value) is float and not math.isfinite(value):
+        raise ValueError(f"nonfinite JSON value in {path}")
+    if type(value) is list:
+        for item in value:
+            _require_finite_json(item, path=path)
+    elif type(value) is dict:
+        for item in value.values():
+            _require_finite_json(item, path=path)
 
 
 def _sha256(path: Path) -> str:

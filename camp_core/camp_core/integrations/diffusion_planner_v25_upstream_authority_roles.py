@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -265,6 +266,15 @@ ROLE_SPECS: dict[str, dict[str, Any]] = {
         "mode": _DIRECT,
     },
 }
+_STRICT_SEALED_LEGACY_ROLES = frozenset(
+    {"corrected_corpus", "corrected_corpus_review"}
+)
+for _role_name, _role_spec in ROLE_SPECS.items():
+    _role_spec["json_byte_policy"] = (
+        "strict_sealed_legacy"
+        if _role_name in _STRICT_SEALED_LEGACY_ROLES
+        else "camp_canonical"
+    )
 
 
 def freeze_upstream_authority_role_contract(
@@ -281,7 +291,10 @@ def freeze_upstream_authority_role_contract(
             path, binding["root_sha256"], label=f"upstream role {role}"
         )
         _require_run_exit(path, spec["run_exit"], role)
-        payload = _canonical_object(path / spec["payload_file"])
+        payload = _authority_object(
+            path / spec["payload_file"],
+            byte_policy=spec["json_byte_policy"],
+        )
         _require_payload(payload, spec, role)
         payloads[role] = payload
         roles.append(
@@ -293,6 +306,7 @@ def freeze_upstream_authority_role_contract(
                     "payload_file": spec["payload_file"],
                     "schema_version": spec["schema_version"],
                     "status": spec["status"],
+                    "json_byte_policy": spec["json_byte_policy"],
                 },
                 "authority_disposition": _disposition(
                     role, spec, normalized, payload
@@ -354,6 +368,7 @@ def validate_upstream_authority_role_contract(
             "payload_file": spec["payload_file"],
             "schema_version": spec["schema_version"],
             "status": spec["status"],
+            "json_byte_policy": spec["json_byte_policy"],
         }
         if not strict_equal(row["execution_terminal"], expected_terminal):
             raise ValueError(f"upstream execution terminal drifted: {role}")
@@ -610,8 +625,9 @@ def _verify_closeout(
     _require_run_exit(
         failure_path, spec["failure_run_exit"], f"{role} embedded failure"
     )
-    failure_payload = _canonical_object(
-        failure_path / spec["failure_payload_file"]
+    failure_payload = _authority_object(
+        failure_path / spec["failure_payload_file"],
+        byte_policy="camp_canonical",
     )
     if (
         failure_payload.get("schema_version")
@@ -640,8 +656,9 @@ def _verify_closeout(
             spec["embedded_failure_review_run_exit"],
             f"{role} embedded failure review",
         )
-        review_payload = _canonical_object(
-            review_path / spec["embedded_failure_review_payload_file"]
+        review_payload = _authority_object(
+            review_path / spec["embedded_failure_review_payload_file"],
+            byte_policy="camp_canonical",
         )
         if (
             review_payload.get("schema_version")
@@ -673,7 +690,7 @@ def _require_run_exit(path: Path, expected: int, label: str) -> None:
         raise ValueError(f"upstream native-int run.exit drifted: {label}")
 
 
-def _canonical_object(path: Path) -> dict[str, Any]:
+def _authority_object(path: Path, *, byte_policy: str) -> dict[str, Any]:
     raw = path.read_bytes()
     value = json.loads(
         raw.decode("utf-8", "strict"),
@@ -682,8 +699,14 @@ def _canonical_object(path: Path) -> dict[str, Any]:
             ValueError(token)
         ),
     )
-    if type(value) is not dict or raw != canonical_json_bytes(value):
-        raise ValueError(f"authority JSON is not canonical: {path}")
+    if type(value) is not dict:
+        raise ValueError(f"authority JSON object expected: {path}")
+    _require_finite(value, path=path)
+    if byte_policy == "camp_canonical":
+        if raw != canonical_json_bytes(value):
+            raise ValueError(f"authority JSON is not canonical: {path}")
+    elif byte_policy != "strict_sealed_legacy":
+        raise ValueError(f"unknown authority JSON byte policy: {path}")
     return value
 
 
@@ -694,6 +717,17 @@ def _no_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
             raise ValueError(f"duplicate JSON key: {key}")
         result[key] = value
     return result
+
+
+def _require_finite(value: Any, *, path: Path) -> None:
+    if type(value) is float and not math.isfinite(value):
+        raise ValueError(f"nonfinite authority JSON value: {path}")
+    if type(value) is list:
+        for item in value:
+            _require_finite(item, path=path)
+    elif type(value) is dict:
+        for item in value.values():
+            _require_finite(item, path=path)
 
 
 def _binding(value: Any, label: str) -> dict[str, str]:

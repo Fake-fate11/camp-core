@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 from typing import Any, Callable
 
@@ -37,9 +38,16 @@ def _seal(
     payload: dict[str, Any],
     run_exit: int,
     include_run_exit: bool = True,
+    canonical: bool = True,
 ) -> tuple[Path, str]:
     root.mkdir(parents=True)
-    _write_json(root / payload_file, payload)
+    if canonical:
+        _write_json(root / payload_file, payload)
+    else:
+        (root / payload_file).write_text(
+            json.dumps(payload, indent=2, sort_keys=False) + "\n",
+            encoding="utf-8",
+        )
     (root / "HEADS").write_text("camp_head=" + "a" * 40 + "\n", "ascii")
     (root / "COMMAND").write_text("fixture\n", "utf-8")
     if include_run_exit:
@@ -56,8 +64,10 @@ def _chain(
     *,
     exit_overrides: dict[str, int | None] | None = None,
     payload_mutator: PayloadMutator | None = None,
+    noncanonical_roles: set[str] | None = None,
 ) -> dict[str, dict[str, str]]:
     exits = exit_overrides or {}
+    noncanonical = noncanonical_roles or set()
     identity_b2 = "2" * 64
     identity_b3 = "3" * 64
     b2_failure = _seal(
@@ -126,6 +136,7 @@ def _chain(
             payload=payload,
             run_exit=spec["run_exit"] if expected_exit is None else expected_exit,
             include_run_exit=expected_exit is not None,
+            canonical=role not in noncanonical,
         )
         bindings[role] = _binding(artifact)
 
@@ -159,6 +170,7 @@ def _chain(
             payload=payload,
             run_exit=exits.get(role, 0) or 0,
             include_run_exit=exits.get(role, 0) is not None,
+            canonical=role not in noncanonical,
         )
         bindings[role] = _binding(artifact)
 
@@ -181,6 +193,7 @@ def _chain(
         payload=recovery_payload,
         run_exit=exits.get("calibration_recovery", 0) or 0,
         include_run_exit=exits.get("calibration_recovery", 0) is not None,
+        canonical="calibration_recovery" not in noncanonical,
     )
     bindings["calibration_recovery"] = _binding(recovery)
 
@@ -232,6 +245,7 @@ def _chain(
             payload=payload,
             run_exit=0 if expected_exit is None else expected_exit,
             include_run_exit=expected_exit is not None,
+            canonical=role not in noncanonical,
         )
         bindings[role] = _binding(artifact)
 
@@ -263,6 +277,7 @@ def _chain(
         payload=recovery_review_payload,
         run_exit=0 if expected_exit is None else expected_exit,
         include_run_exit=expected_exit is not None,
+        canonical="calibration_recovery_review" not in noncanonical,
     )
     bindings["calibration_recovery_review"] = _binding(recovery_review)
     return bindings
@@ -281,6 +296,25 @@ def test_all_upstream_roles_freeze_and_independent_oracle_match(
         contract, bindings=bindings
     ) == contract
     _verify_upstream_role_contract_independent(contract, bindings=bindings)
+
+
+def test_only_registered_legacy_roles_accept_noncanonical_sealed_json(
+    tmp_path: Path,
+) -> None:
+    bindings = _chain(
+        tmp_path / "accepted",
+        noncanonical_roles={"corrected_corpus", "corrected_corpus_review"},
+    )
+    contract = freeze_upstream_authority_role_contract(bindings)
+    verify_upstream_authority_role_contract(contract, bindings=bindings)
+    _verify_upstream_role_contract_independent(contract, bindings=bindings)
+
+    rejected = _chain(
+        tmp_path / "rejected",
+        noncanonical_roles={"training"},
+    )
+    with pytest.raises(ValueError, match="not canonical"):
+        freeze_upstream_authority_role_contract(rejected)
 
 
 @pytest.mark.parametrize("role", sorted(ROLE_SPECS))
