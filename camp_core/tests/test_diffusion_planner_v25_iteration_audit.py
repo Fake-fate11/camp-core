@@ -833,3 +833,29 @@ def test_v25_a16_r06_source_census_and_independent_review_are_bounded() -> None:
         "ultra_read_only_A1_6_R0_6_source_package_review_before_bounded_coverage_gate",
     ):
         assert phrase in text
+
+
+def test_v25_b4_production_rc_preopen_pointer_is_consistent_and_unopened() -> None:
+    status = " ".join(STATUS.read_text(encoding="utf-8").split())
+    audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
+    required = (
+        "Fresh B4 Production RC and Consolidated Pre-Open Passed",
+        "91121ab625b9430bd693ae07f9a336ac50fe815569038212c09e803f51d314e9",
+        "d11a640f5708630076d631eec8dc86d2a979b45f66602a513c0e95dd5ce40596",
+        "731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2",
+        "83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566",
+        "c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99",
+        "08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc",
+        "f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6",
+        "4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c",
+        "current_v25_b4_operational_attempt_created=false",
+        "current_v25_b4_scientific_ledger_created=false",
+        "current_v25_b4_cas_created=false",
+        "current_v25_b4_nonce_created=false",
+        "current_v25_b4_opened=false",
+        "current_v25_b4_outcome_fields_consumed=[]",
+        "next_work_target=ultra_read_only_fresh_b4_one_time_opening_review",
+    )
+    for phrase in required:
+        assert phrase in status
+        assert phrase in audit

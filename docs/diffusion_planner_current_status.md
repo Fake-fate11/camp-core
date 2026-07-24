@@ -1,83 +1,93 @@
 # DP-CAMP Current Status
 
-Last verified: 2026-07-23, Asia/Shanghai.
+Last verified: 2026-07-24, Asia/Shanghai.
 
 This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
 audits are historical evidence and remain frozen.
 
-## Current V25 Status — Fresh B3 Permanently Closed; B4 Engineering Recovery Active
+## Current V25 Status — Fresh B4 Production RC and Consolidated Pre-Open Passed
 
 Reader contract: this section is the only current V25 pointer source in this
 file. It must agree with the EOF tuple in
 `docs/diffusion_planner_v25_iteration_audit.md`.
 
-Fresh B3 is permanently closed as
-`consumed_one_shot_engineering_failure_no_evaluation_no_claim`. Its one-time
-CAS identity and nonce were legally consumed, then the execution failed
-fail-closed while projecting the unit-0 candidate0 native receipt. The exact
-failure was `KeyError: candidate_tensor_sha256_before`. No arm completed, no
-paired row formed, and no outcome field was consumed; B3 raw values are
-excluded from all science, design, power, tuning, evaluation, and claims.
+Fresh B3 remains permanently closed as
+`consumed_one_shot_engineering_failure_no_evaluation_no_claim`; its post-exposure
+engineering fatal, roots, tombstone, and raw-value exclusion are unchanged.
 
-The controller, opening release, sealed fatal execution, and independent fatal
-review roots are respectively
-`e7b41aac94317d24ef25ab7d5b4c2f82e6b59607c691d4fe7daa28beab78dacb`,
-`28fd53dd1d04f87b80fc032ebb3c67038c6581c363baafb09a03ab5f64ef7754`,
-`a5250fc1c926973e89c50ebc05dae7e48749940a7cf348f9fcb8404fff034ecf`,
-and `fb4a9ed1869f89a341ad3047dfe0902f7676d17398c9dd86645ef1a42a226e3e`.
-The immutable terminal closeout and its independent review strictly reopened:
+The B4 production RC closed the actual-native receipt ABI and exercised the
+real non-Fresh production composition. No replacement canary was run after the
+accepted sealed execution and independent execution review. Deterministic
+evaluation, independent evaluation review, the production-equivalence
+certificate, and its independent review strictly reopened:
 
-- closeout:
-  `/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_f02f7286_a4951b986c4a3c5f`,
+- sealed non-Fresh execution root
+  `731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2`;
+- execution-review root
+  `83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566`;
+- evaluation root
+  `c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99`;
+- evaluation-review root
+  `08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc`;
+- production-equivalence certificate root
+  `f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6`;
+- certificate-review root
+  `4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c`.
+
+The role-level provenance is explicit: execution remains frozen at its
+producer HEAD and critical manifest, while evaluation is frozen at its later
+evaluator HEAD and manifest; no artifact claims same-HEAD provenance.
+
+The unique consolidated B4 pre-open authority and independent review passed:
+
+- authority:
+  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_9d3cec82_20260724TproductionRCCST`,
   root
-  `b57f3d23d4d0537b315161c5c5eb1dbd2b1c095c0c0f6ac327b54ba3910b5e83`;
+  `91121ab625b9430bd693ae07f9a336ac50fe815569038212c09e803f51d314e9`;
 - review:
-  `/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_review_f02f7286_a4951b986c4a3c5f`,
+  `/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_9d3cec82_20260724TproductionRCCST`,
   root
-  `b0d87070278ee2f32cbc98420f1b11701db25982a8334c2b0130e679651b3171`.
+  `d11a640f5708630076d631eec8dc86d2a979b45f66602a513c0e95dd5ce40596`.
 
-B4 engineering recovery is authorized, but B4 holdout authority does not yet
-exist and Fresh remains closed. The next implementation work is limited to a
-canonical actual-native candidate0/CAMP receipt contract and an exact
-non-Fresh production lifecycle preflight. B4 must be clone-aware zero-overlap
-with train/calibration/B1/B2/B3 and must use a new identity, protocol, CAS,
-nonce, directories, maps, corridors, routes, semantic blocks, and seeds.
-Fixed DP/K8/trajectory, models, weights/Theta, atoms/scales, thresholds, NI,
-multiplicity, denominator, and claim rules remain unchanged.
+The B4 plan remains 25 maps, 100 intersections/corridors/routes/semantic
+blocks, five seeds, 500 paired units, 1,500 arms, and 96,000 ticks. Clone-aware
+train/calibration/B2/B3/B4 zero-overlap passed. Capacity projection leaves
+`33,430,033,302` bytes after the full artifact and `22,692,615,062` bytes above
+the 10 GiB floor. B4 scientific exposure remains unopened: no operational
+attempt, scientific ledger, CAS, nonce, release, execution output, or outcome
+field exists. The next action is an Ultra read-only one-time opening decision.
 
-current_v25_status=v25_fresh_b3_consumed_one_shot_engineering_failure_no_evaluation_no_claim_b4_recovery_authorized
-current_v25_source_head=f02f7286621c48cbf257250ae84a147c4b871371
+current_v25_status=v25_fresh_b4_production_rc_certificate_and_consolidated_preopen_review_passed_opening_not_authorized
+current_v25_source_head=9d3cec82eb58365af5d2cca8a9aca698763b976d
 fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
-current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_f02f7286_a4951b986c4a3c5f
-current_v25_artifact_root_sha256=b57f3d23d4d0537b315161c5c5eb1dbd2b1c095c0c0f6ac327b54ba3910b5e83
-current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b3_terminal_failure_closeout_review_f02f7286_a4951b986c4a3c5f
-current_v25_review_artifact_root_sha256=b0d87070278ee2f32cbc98420f1b11701db25982a8334c2b0130e679651b3171
-current_v25_b3_controller_root_sha256=e7b41aac94317d24ef25ab7d5b4c2f82e6b59607c691d4fe7daa28beab78dacb
-current_v25_b3_opening_release_root_sha256=28fd53dd1d04f87b80fc032ebb3c67038c6581c363baafb09a03ab5f64ef7754
-current_v25_b3_failure_root_sha256=a5250fc1c926973e89c50ebc05dae7e48749940a7cf348f9fcb8404fff034ecf
-current_v25_b3_failure_review_root_sha256=fb4a9ed1869f89a341ad3047dfe0902f7676d17398c9dd86645ef1a42a226e3e
-current_v25_holdout_identity_sha256=84c3e44f4196e41e0405b72bfc5e5f4883c5dd19e1f522b175c38b1cbe516b2b
-current_v25_experiment_protocol_sha256=686a384da77ff0bd9eaa80411c7f58845225453f2bc84f8b0fd3c40a790da40e
-current_v25_fresh_b2_terminal_state=terminal_failure
-current_v25_fresh_b2_complete_paired_row_count=0
-current_v25_fresh_b2_pooling_allowed=false
-current_v25_fresh_b3_terminal_state=terminal_failure
-current_v25_fresh_b3_open_authorized=false
-current_v25_fresh_b3_nonce_created=true_consumed_once
-current_v25_fresh_b3_opened=true_terminal_failure
-current_v25_fresh_b3_planned_arm_run_count=1500
-current_v25_fresh_b3_attempted_arm_run_count=1
-current_v25_fresh_b3_complete_arm_run_count=0
-current_v25_fresh_b3_unattempted_arm_run_count=1499
-current_v25_fresh_b3_complete_paired_row_count=0
-current_v25_fresh_b3_full_denominator_formed=false
-current_v25_fresh_b3_outcome_fields_consumed=[]
-current_v25_fresh_b3_resume_allowed=false
-current_v25_fresh_b3_new_nonce_allowed=false
-current_v25_fresh_b3_suffix_allowed=false
-current_v25_fresh_b3_evaluation_authorized=false
-current_v25_fresh_b3_claim_authorized=false
+current_v25_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_authority_9d3cec82_20260724TproductionRCCST
+current_v25_artifact_root_sha256=91121ab625b9430bd693ae07f9a336ac50fe815569038212c09e803f51d314e9
+current_v25_review_artifact=/root/autodl-tmp/camp_dp_v25_fresh_b4_preopen_review_9d3cec82_20260724TproductionRCCST
+current_v25_review_artifact_root_sha256=d11a640f5708630076d631eec8dc86d2a979b45f66602a513c0e95dd5ce40596
+current_v25_production_execution_root_sha256=731b4789375765f055de666af899995c6d3c91ab42cbee8eee71bda4c70632f2
+current_v25_production_execution_review_root_sha256=83738d4f2dcb91e9c5efe0c0813cb9fe2bdd6a90dedb5a06108f5f2caaa93566
+current_v25_production_evaluation_root_sha256=c450c398b89d46fb5a042ec53e4f0fd31da7315a39a90ec50bec8e3ce3c5ce99
+current_v25_production_evaluation_review_root_sha256=08d7ffea5eed97b5880b9f5829b81a650a10f993cd0ec3254022286f4bc7d4dc
+current_v25_production_equivalence_certificate_root_sha256=f3d2c801ae895206087c6f797eae7611e9211bd754b26efc8a7e22258ac4b6b6
+current_v25_production_equivalence_certificate_review_root_sha256=4c50cfae72838b2e06f4d7a545b9ee7a35c3793484f97f907cf207287fd2e48c
+current_v25_focused_tests_root_sha256=f77033755c89e3b863f3d4ac2259bc84ae36f9a54b2c5e08351309292b9ed0d9
+current_v25_critical_implementation_manifest_sha256=64eb2e62bbaf5441f960ad8bd159bb1ab0a312a99fe32c9759d8ddc1e769bc44
+current_v25_holdout_identity_sha256=5f2f8e2c2eb90927ec485a8d0baa3935b155e82d90b04fa3d456fc845cd8464a
+current_v25_experiment_protocol_sha256=aa79576f8ac487e2ce197c481d57f9c5d350a41d9522096975786207ef76785f
+current_v25_execution_plan_sha256=41442dd7d71552972d737d9a9e3d56e9827f864e0c06e11c57487f651206dee0
+current_v25_map_count=25
+current_v25_intersection_corridor_route_semantic_block_count=100
+current_v25_seed_count=5
+current_v25_paired_unit_count=500
+current_v25_arm_run_count=1500
+current_v25_tick_count=96000
+current_v25_zero_overlap_status=passed_train_calibration_b2_b3_b4_zero_overlap
+current_v25_projected_total_bytes=69991287914
+current_v25_projected_free_after_bytes=33430033302
+current_v25_capacity_reserve_beyond_10gib_bytes=22692615062
+current_v25_b4_operational_attempt_created=false
+current_v25_b4_scientific_ledger_created=false
 current_v25_b4_cas_created=false
 current_v25_b4_nonce_created=false
 current_v25_b4_opened=false
@@ -87,9 +97,9 @@ current_v25_gpu_compute_count=0
 current_v25_lock_state=free
 local_origin_github_autodl_aligned=true
 minimum_free_disk_gib=10
-observed_autodl_free_bytes=103276781568
-current_v25_phase=fresh_b3_consumed_failure_closed_b4_engineering_recovery
-next_work_target=fresh_b4_actual_native_receipt_contract_and_preopen_authority
+observed_autodl_free_bytes=103416995840
+current_v25_phase=fresh_b4_production_rc_and_consolidated_preopen_review_passed
+next_work_target=ultra_read_only_fresh_b4_one_time_opening_review
 
 ## Historical V25 Status Through A1.6.11
 
