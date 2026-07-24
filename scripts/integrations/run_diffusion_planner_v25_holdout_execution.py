@@ -48,9 +48,11 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  #
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
     fail_operational_pre_exposure,
     mark_full_denominator,
+    qualify_unexposed_operational_state,
     start_scientific_exposure,
     terminate_scientific_identity,
     validate_operational_attempt,
+    validate_operational_identity_reservation,
     validate_scientific_ledger,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
@@ -265,19 +267,20 @@ def _qualify_inputs(
         release["operational_identity_reservation_path"]
     ).resolve()
     scientific_path = Path(release["scientific_ledger_path"]).resolve()
-    if scientific_path.exists() or operational_identity_path.exists():
-        raise FileExistsError(
-            "holdout scientific identity was already reserved or exposed"
-        )
+    if scientific_path.exists():
+        raise FileExistsError("holdout scientific identity was already exposed")
+    operational_availability = None
     if qualification_only:
-        if attempt_path.exists():
-            attempt = validate_operational_attempt(
-                _canonical_json(attempt_path)
-            )
-            if attempt["state"] != "release_sealed":
-                raise ValueError(
-                    "qualification operational attempt is not release_sealed"
-                )
+        operational_availability = qualify_unexposed_operational_state(
+            attempt_path.parent.parent,
+            holdout_identity_sha256=release["holdout_identity"][
+                "holdout_identity_sha256"
+            ],
+            experiment_protocol_sha256=release["experiment_protocol"][
+                "experiment_protocol_sha256"
+            ],
+            requested_run_nonce=release["run_nonce"],
+        )
     else:
         if not attempt_path.exists():
             raise FileNotFoundError(attempt_path)
@@ -285,6 +288,27 @@ def _qualify_inputs(
         if attempt["state"] != "release_sealed":
             raise ValueError(
                 "holdout operational attempt is not release_sealed"
+            )
+        if not operational_identity_path.is_file():
+            raise FileNotFoundError(operational_identity_path)
+        operational_identity = validate_operational_identity_reservation(
+            _canonical_json(operational_identity_path)
+        )
+        if (
+            operational_identity["state"] != "active"
+            or operational_identity["new_attempt_allowed"] is not False
+            or operational_identity["run_nonce"] != release["run_nonce"]
+            or operational_identity["holdout_identity_sha256"]
+            != release["holdout_identity"]["holdout_identity_sha256"]
+            or operational_identity["experiment_protocol_sha256"]
+            != release["experiment_protocol"]["experiment_protocol_sha256"]
+            or Path(
+                operational_identity["operational_attempt_path"]
+            ).resolve()
+            != attempt_path
+        ):
+            raise ValueError(
+                "holdout operational identity does not bind release attempt"
             )
     return {
         "output": output,
@@ -310,6 +334,7 @@ def _qualify_inputs(
         "operational_attempt_preexisting": attempt_path.exists(),
         "operational_identity_preexisting": operational_identity_path.exists(),
         "scientific_ledger_preexisting": scientific_path.exists(),
+        "operational_availability": operational_availability,
     }
 
 
@@ -369,6 +394,9 @@ def qualify(
             "execution_plan_sha256"
         ],
         "authorized_output_dir": str(qualified["output"]),
+        "pre_exposure_operational_availability": qualified[
+            "operational_availability"
+        ],
         "operational_attempt_preexisting": qualified[
             "operational_attempt_preexisting"
         ],

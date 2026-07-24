@@ -55,6 +55,106 @@ def operational_identity_path(
     )
 
 
+def qualify_unexposed_operational_state(
+    cas_root: Path,
+    *,
+    holdout_identity_sha256: str,
+    experiment_protocol_sha256: str,
+    requested_run_nonce: str | None = None,
+) -> dict[str, Any]:
+    """Prove that a new pre-exposure attempt can be qualified safely.
+
+    A released operational reservation is historical bookkeeping, not
+    scientific exposure.  It is admissible only when its exact referenced
+    attempt is a validated pre-exposure failure for the same identity and
+    protocol.  Scientific exposure always remains terminal.
+    """
+
+    _sha(holdout_identity_sha256, "holdout_identity_sha256")
+    _sha(experiment_protocol_sha256, "experiment_protocol_sha256")
+    root = Path(cas_root).resolve()
+    scientific = scientific_identity_path(root, holdout_identity_sha256)
+    if scientific.exists():
+        raise FileExistsError("holdout scientific identity is already exposed")
+    requested_path = None
+    if requested_run_nonce is not None:
+        _sha(requested_run_nonce, "requested_run_nonce")
+        requested_path = operational_attempt_path(root, requested_run_nonce)
+        if requested_path.exists():
+            raise FileExistsError("requested operational attempt already exists")
+
+    identity_path = operational_identity_path(root, holdout_identity_sha256)
+    prior = None
+    if identity_path.exists():
+        identity = validate_operational_identity_reservation(
+            _strict_canonical_json(identity_path)
+        )
+        if (
+            identity["holdout_identity_sha256"] != holdout_identity_sha256
+            or identity["experiment_protocol_sha256"]
+            != experiment_protocol_sha256
+            or identity["state"] != "pre_exposure_released"
+            or identity["new_attempt_allowed"] is not True
+        ):
+            raise FileExistsError(
+                "holdout operational identity is not released pre-exposure"
+            )
+        prior_path = Path(identity["operational_attempt_path"]).resolve()
+        expected_prior_path = operational_attempt_path(
+            root, identity["run_nonce"]
+        )
+        if prior_path != expected_prior_path or not prior_path.is_file():
+            raise ValueError("released operational attempt path drifted")
+        attempt = validate_operational_attempt(
+            _strict_canonical_json(prior_path)
+        )
+        if (
+            attempt["holdout_identity_sha256"] != holdout_identity_sha256
+            or attempt["experiment_protocol_sha256"]
+            != experiment_protocol_sha256
+            or attempt["run_nonce"] != identity["run_nonce"]
+            or attempt["state"] != "pre_exposure_failure"
+            or attempt["scientific_identity_consumed"] is not False
+            or attempt["new_attempt_allowed_if_pre_exposure_failure"] is not True
+            or type(attempt["terminal_reason"]) is not str
+            or not attempt["terminal_reason"]
+        ):
+            raise ValueError(
+                "released operational identity lacks its failed attempt"
+            )
+        prior = {
+            "run_nonce": attempt["run_nonce"],
+            "operational_attempt_path": str(prior_path),
+            "operational_attempt_sha256": canonical_sha256(attempt),
+            "operational_identity_path": str(identity_path),
+            "operational_identity_sha256": canonical_sha256(identity),
+            "controller_root_sha256": attempt["controller_root_sha256"],
+            "opening_release_root_sha256": attempt[
+                "opening_release_root_sha256"
+            ],
+            "terminal_reason": attempt["terminal_reason"],
+            "state": attempt["state"],
+            "scientific_identity_consumed": False,
+        }
+
+    return {
+        "schema_version": (
+            "camp_dp_v25_holdout_unexposed_operational_availability_v1"
+        ),
+        "holdout_identity_sha256": holdout_identity_sha256,
+        "experiment_protocol_sha256": experiment_protocol_sha256,
+        "scientific_ledger_exists": False,
+        "active_operational_attempt_exists": False,
+        "prior_pre_exposure_failure": prior,
+        "requested_run_nonce": requested_run_nonce,
+        "requested_operational_attempt_path": (
+            str(requested_path) if requested_path is not None else None
+        ),
+        "requested_operational_attempt_exists": False,
+        "new_attempt_allowed": True,
+    }
+
+
 def reserve_operational_attempt(
     cas_root: Path,
     *,

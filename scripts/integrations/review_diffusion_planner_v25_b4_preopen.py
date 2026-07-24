@@ -39,7 +39,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
     strict_equal,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (
-    operational_identity_path,
+    qualify_unexposed_operational_state,
     scientific_identity_path,
 )
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (
@@ -238,10 +238,14 @@ def review(
         Path(bindings["storage"]["path"]) / "storage_manifest.json"
     )
     identity_sha = stored["holdout_identity"]["holdout_identity_sha256"]
-    operational_exists = operational_identity_path(
-        CAS_ROOT, identity_sha
-    ).exists()
     scientific_exists = scientific_identity_path(CAS_ROOT, identity_sha).exists()
+    operational_availability = qualify_unexposed_operational_state(
+        CAS_ROOT,
+        holdout_identity_sha256=identity_sha,
+        experiment_protocol_sha256=stored["experiment_protocol"][
+            "experiment_protocol_sha256"
+        ],
+    )
     expected = build_b4_preopen_authority(
         implementation_head=_git_head(),
         critical_implementation_manifest=tracked_implementation_manifest(ROOT),
@@ -273,7 +277,7 @@ def review(
         atom_mechanism_review_binding=bindings["atom_mechanism_review"],
         free_bytes_before=stored["capacity"]["free_bytes_before"],
         output_parent=Path(stored["capacity"]["canonical_output_parent"]),
-        operational_attempt_exists=operational_exists,
+        operational_attempt_exists=False,
         scientific_ledger_exists=scientific_exists,
     )
     if not strict_equal(stored, expected):
@@ -288,6 +292,10 @@ def review(
         or report.get("prior_holdout_raw_values_used") is not False
         or report.get("operational_attempt_exists") is not False
         or report.get("scientific_ledger_exists") is not False
+        or not strict_equal(
+            report.get("pre_exposure_operational_availability"),
+            operational_availability,
+        )
         or report.get("fresh_b4_opened") is not False
         or report.get("outcome_fields_consumed") != []
     ):
@@ -321,6 +329,7 @@ def review(
         "production_equivalence_certificate_reviewed": True,
         "operational_attempt_exists": False,
         "scientific_ledger_exists": False,
+        "pre_exposure_operational_availability": operational_availability,
         "storage_capacity_passed": True,
         "fresh_open_authorized": False,
         "nonce_created": False,

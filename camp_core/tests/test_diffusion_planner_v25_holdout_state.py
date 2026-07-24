@@ -13,6 +13,7 @@ from camp_core.integrations.diffusion_planner_v25_holdout_state import (
     mark_scientific_evaluated,
     operational_identity_path,
     operational_attempt_path,
+    qualify_unexposed_operational_state,
     reserve_operational_attempt,
     scientific_identity_path,
     seal_operational_release,
@@ -66,6 +67,50 @@ def test_pre_exposure_failure_does_not_consume_scientific_identity(
     )
     assert reservation["state"] == "pre_exposure_released"
     assert reservation["new_attempt_allowed"] is True
+    available = qualify_unexposed_operational_state(
+        tmp_path,
+        holdout_identity_sha256=IDENTITY,
+        experiment_protocol_sha256=PROTOCOL,
+        requested_run_nonce="7" * 64,
+    )
+    assert available["new_attempt_allowed"] is True
+    assert available["scientific_ledger_exists"] is False
+    assert available["active_operational_attempt_exists"] is False
+    assert available["prior_pre_exposure_failure"]["run_nonce"] == NONCE
+    assert available["requested_operational_attempt_exists"] is False
+
+
+def test_unexposed_operational_availability_rejects_wrong_chain(
+    tmp_path: Path,
+) -> None:
+    attempt = _reserve(tmp_path)
+    fail_operational_pre_exposure(
+        attempt,
+        expected_state="release_reserved",
+        terminal_reason="release_build_failed",
+    )
+    with pytest.raises(FileExistsError, match="requested operational attempt"):
+        qualify_unexposed_operational_state(
+            tmp_path,
+            holdout_identity_sha256=IDENTITY,
+            experiment_protocol_sha256=PROTOCOL,
+            requested_run_nonce=NONCE,
+        )
+    with pytest.raises(FileExistsError, match="not released pre-exposure"):
+        qualify_unexposed_operational_state(
+            tmp_path,
+            holdout_identity_sha256=IDENTITY,
+            experiment_protocol_sha256="7" * 64,
+            requested_run_nonce="8" * 64,
+        )
+    attempt.unlink()
+    with pytest.raises(ValueError, match="attempt path drifted"):
+        qualify_unexposed_operational_state(
+            tmp_path,
+            holdout_identity_sha256=IDENTITY,
+            experiment_protocol_sha256=PROTOCOL,
+            requested_run_nonce="8" * 64,
+        )
 
 
 def test_pre_release_failure_also_keeps_scientific_identity_unopened(

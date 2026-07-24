@@ -748,6 +748,10 @@ def test_runner_qualification_reports_zero_exposure_side_effects(
         "operational_attempt_preexisting": False,
         "operational_identity_preexisting": False,
         "scientific_ledger_preexisting": False,
+        "operational_availability": {
+            "new_attempt_allowed": True,
+            "prior_pre_exposure_failure": None,
+        },
     }
     monkeypatch.setattr(
         holdout_runner,
@@ -781,4 +785,8 @@ def test_runner_qualification_reports_zero_exposure_side_effects(
     ):
         assert result[field] is False
     assert result["outcome_fields_consumed"] == []
+    assert result["pre_exposure_operational_availability"] == {
+        "new_attempt_allowed": True,
+        "prior_pre_exposure_failure": None,
+    }
     assert not output.exists()

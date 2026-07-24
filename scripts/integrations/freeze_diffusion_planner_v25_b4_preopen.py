@@ -36,7 +36,7 @@ from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import
     tracked_implementation_manifest,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (
-    operational_identity_path,
+    qualify_unexposed_operational_state,
     scientific_identity_path,
 )
 from camp_core.integrations.diffusion_planner_v25_signal_complete_maps import (
@@ -258,9 +258,6 @@ def build(
         )
         identity = build_b4_holdout_identity(suite=suite_full, plan=plan)
         identity_sha = identity["holdout_identity_sha256"]
-        operational_exists = operational_identity_path(
-            CAS_ROOT, identity_sha
-        ).exists()
         scientific_exists = scientific_identity_path(
             CAS_ROOT, identity_sha
         ).exists()
@@ -299,8 +296,15 @@ def build(
             ],
             free_bytes_before=shutil.disk_usage(output.parent).free,
             output_parent=output.parent,
-            operational_attempt_exists=operational_exists,
+            operational_attempt_exists=False,
             scientific_ledger_exists=scientific_exists,
+        )
+        operational_availability = qualify_unexposed_operational_state(
+            CAS_ROOT,
+            holdout_identity_sha256=identity_sha,
+            experiment_protocol_sha256=authority[
+                "experiment_protocol"
+            ]["experiment_protocol_sha256"],
         )
         _write(output / "fresh_b4_map_suite.json", suite_receipt)
         _write(output / "fresh_b4_execution_plan.json", plan)
@@ -327,8 +331,11 @@ def build(
             "tick_capacity": 96_000,
             "prior_holdout_raw_values_used": False,
             "fresh_open_authorized": False,
-            "operational_attempt_exists": operational_exists,
+            "operational_attempt_exists": False,
             "scientific_ledger_exists": scientific_exists,
+            "pre_exposure_operational_availability": (
+                operational_availability
+            ),
             "fresh_b4_opened": False,
             "outcome_fields_consumed": [],
         }

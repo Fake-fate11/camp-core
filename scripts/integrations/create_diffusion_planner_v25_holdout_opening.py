@@ -42,9 +42,8 @@ from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  #
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
     fail_operational_pre_exposure,
     operational_attempt_path,
-    operational_identity_path,
+    qualify_unexposed_operational_state,
     reserve_operational_attempt,
-    scientific_identity_path,
     seal_operational_release,
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
@@ -267,6 +266,9 @@ def qualify(
         "controller_output_dir": str(controller_output_dir.resolve()),
         "release_output_dir": str(release_output_dir.resolve()),
         "cas_root": str(cas_root.resolve()),
+        "pre_exposure_operational_availability": qualified[
+            "operational_availability"
+        ],
         "controller_created": False,
         "release_created": False,
         "operational_attempt_created": False,
@@ -412,18 +414,14 @@ def _qualify_inputs(
         raise ValueError("holdout sealed authority chain drifted")
 
     identity_sha = preopen["holdout_identity"]["holdout_identity_sha256"]
-    state_paths = {
-        "operational_attempt": operational_attempt_path(cas_root, run_nonce),
-        "operational_identity": operational_identity_path(
-            cas_root, identity_sha
-        ),
-        "scientific_ledger": scientific_identity_path(cas_root, identity_sha),
-    }
-    existing = [name for name, path in state_paths.items() if path.exists()]
-    if existing:
-        raise FileExistsError(
-            "holdout one-time state already exists: " + ",".join(existing)
-        )
+    operational_availability = qualify_unexposed_operational_state(
+        cas_root,
+        holdout_identity_sha256=identity_sha,
+        experiment_protocol_sha256=preopen["experiment_protocol"][
+            "experiment_protocol_sha256"
+        ],
+        requested_run_nonce=run_nonce,
+    )
     bindings = {
         name: {"path": str(canonical[name]), "root_sha256": roots[name]}
         for name in ROLES
@@ -432,6 +430,7 @@ def _qualify_inputs(
         "preopen": preopen,
         "manifest": manifest,
         "bindings": bindings,
+        "operational_availability": operational_availability,
     }
 
 
