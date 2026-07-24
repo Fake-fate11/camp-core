@@ -19,6 +19,11 @@ from .diffusion_planner_v25_holdout_opening import (
     validate_holdout_opening_consumption,
     validate_holdout_opening_release,
 )
+from .diffusion_planner_v25_holdout_opening_rc import (
+    RELEASE_SCHEMA_VERSION as PRODUCTION_RC_RELEASE_SCHEMA_VERSION,
+    validate_production_rc_opening_release,
+    validate_scientific_exposure_receipt,
+)
 from .diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
     REQUIRED_CONTROLLED_EVENT_FAMILIES,
@@ -149,7 +154,15 @@ def evaluate_fresh_b2_three_arm(
     _require_sha(preopen_qualification_root_sha256, "preopen qualification root")
     _require_sha(opening_release_root_sha256, "opening release root")
     if _holdout_mode:
-        release = validate_holdout_opening_release(opening_release)
+        production_rc = (
+            opening_release.get("schema_version")
+            == PRODUCTION_RC_RELEASE_SCHEMA_VERSION
+        )
+        release = (
+            validate_production_rc_opening_release(opening_release)
+            if production_rc
+            else validate_holdout_opening_release(opening_release)
+        )
         identity = validate_holdout_identity(release["holdout_identity"])
         protocol = validate_holdout_experiment_protocol(
             release["experiment_protocol"]
@@ -165,12 +178,21 @@ def evaluate_fresh_b2_three_arm(
             != calibration["context_scaler_sha256"]
         ):
             raise ValueError("holdout opening release/calibration authority drifted")
-        consumption = validate_holdout_opening_consumption(
-            opening_consumption_receipt,
-            opening_release=release,
-            opening_release_root_sha256=opening_release_root_sha256,
+        consumption = (
+            validate_scientific_exposure_receipt(
+                opening_consumption_receipt,
+                opening_release=release,
+                opening_release_root_sha256=opening_release_root_sha256,
+            )
+            if production_rc
+            else validate_holdout_opening_consumption(
+                opening_consumption_receipt,
+                opening_release=release,
+                opening_release_root_sha256=opening_release_root_sha256,
+            )
         )
     else:
+        production_rc = False
         release = validate_fresh_b2_opening_release(opening_release)
         identity = None
         protocol = None
@@ -280,7 +302,12 @@ def evaluate_fresh_b2_three_arm(
         }
     return {
         "schema_version": (
-            "camp_dp_v25_holdout_three_arm_evaluation_v1"
+            (
+                "camp_dp_v25_holdout_three_arm_evaluation_"
+                "production_rc_v2"
+            )
+            if _holdout_mode and production_rc
+            else "camp_dp_v25_holdout_three_arm_evaluation_v1"
             if _holdout_mode
             else "camp_dp_v25_fresh_b2_three_arm_evaluation_v2"
         ),
@@ -304,7 +331,24 @@ def evaluate_fresh_b2_three_arm(
         "opening_release_controller_decision_root_sha256": release[
             "controller_decision_root_sha256"
         ],
-        "opening_release_consumption_marker_sha256": consumption["marker_sha256"],
+        **(
+            {
+                "opening_scientific_exposure_ledger_sha256": consumption[
+                    "scientific_ledger_sha256"
+                ],
+                "holdout_scientific_exposure_started_before_first_forward": (
+                    consumption[
+                        "scientific_exposure_started_before_first_forward"
+                    ]
+                ),
+            }
+            if _holdout_mode and production_rc
+            else {
+                "opening_release_consumption_marker_sha256": consumption[
+                    "marker_sha256"
+                ]
+            }
+        ),
         **(
             {"fresh_b2_opened_once_after_nonce_consumption": True}
             if not _holdout_mode

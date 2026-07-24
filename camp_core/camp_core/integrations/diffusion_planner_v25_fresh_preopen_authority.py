@@ -70,6 +70,7 @@ TRACKED_AUTHORITY_FILES = (
         "camp_core/camp_core/integrations/"
         "diffusion_planner_v25_actual_native_receipt_review.py"
     ),
+    "camp_core/camp_core/integrations/diffusion_planner_v25_evaluation.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_contract.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_execution.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_holdout_failure_closeout.py",
@@ -97,6 +98,14 @@ TRACKED_AUTHORITY_FILES = (
     (
         "camp_core/camp_core/integrations/"
         "diffusion_planner_v25_production_equivalence_fixture.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_role_provenance.py"
+    ),
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_role_provenance_review.py"
     ),
     (
         "camp_core/camp_core/integrations/"

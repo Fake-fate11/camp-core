@@ -23,6 +23,9 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 from camp_core.integrations.diffusion_planner_v25_actual_native_receipt_contract import (  # noqa: E402
     validate_actual_native_receipt,
 )
+from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # noqa: E402
+    strict_equal,
+)
 from camp_core.integrations.diffusion_planner_v25_production_equivalence_certificate import (  # noqa: E402
     freeze_production_equivalence_certificate,
 )
@@ -76,13 +79,6 @@ def build(
     authority = validate_nonfresh_production_equivalence_authority(
         _canonical_json(canonical["authority"] / "preopen_authority.json")
     )
-    if (
-        _tracked_dirty(ROOT)
-        or _git_head(ROOT) != authority["implementation_head"]
-        or tracked_implementation_manifest(ROOT)["manifest_sha256"]
-        != authority["critical_implementation_manifest"]["manifest_sha256"]
-    ):
-        raise ValueError("production-equivalence certificate HEAD drifted")
     expected_statuses = {
         "authority_review": (
             "passed_independent_nonfresh_production_equivalence_"
@@ -106,6 +102,50 @@ def build(
             raise ValueError(
                 f"production-equivalence {role} status drifted"
             )
+    evaluation_report = _canonical_json(
+        canonical["evaluation"] / "report.json"
+    )
+    evaluation_review_report = _canonical_json(
+        canonical["evaluation_review"] / "report.json"
+    )
+    provenance = evaluation_report["dual_head_provenance"]
+    current_manifest = tracked_implementation_manifest(ROOT)
+    release = _canonical_json(
+        canonical["opening_release"] / "decision.json"
+    )
+    if (
+        _tracked_dirty(ROOT)
+        or _git_head(ROOT)
+        != provenance["evaluation_implementation_head"]
+        or current_manifest["manifest_sha256"]
+        != provenance[
+            "evaluation_critical_implementation_manifest_sha256"
+        ]
+        or authority["implementation_head"]
+        != provenance["execution_implementation_head"]
+        or authority["critical_implementation_manifest"]["manifest_sha256"]
+        != provenance[
+            "execution_critical_implementation_manifest_sha256"
+        ]
+        or release["implementation_source_head"]
+        != provenance["execution_implementation_head"]
+        or release["critical_implementation_manifest_sha256"]
+        != provenance[
+            "execution_critical_implementation_manifest_sha256"
+        ]
+        or not strict_equal(
+            evaluation_review_report.get("dual_head_provenance"),
+            provenance,
+        )
+        or roots["opening_release"]
+        != provenance["opening_release_root_sha256"]
+        or roots["execution"] != provenance["execution_root_sha256"]
+        or roots["execution_review"]
+        != provenance["execution_review_root_sha256"]
+    ):
+        raise ValueError(
+            "production-equivalence certificate dual-HEAD drifted"
+        )
     execution = canonical["execution"]
     branches = {
         "candidate0_primary": [],
@@ -150,9 +190,9 @@ def build(
     }:
         raise ValueError("production-equivalence branch coverage drifted")
     certificate = freeze_production_equivalence_certificate(
-        implementation_head=authority["implementation_head"],
-        manifest_sha256=authority["critical_implementation_manifest"][
-            "manifest_sha256"
+        implementation_head=provenance["evaluation_implementation_head"],
+        manifest_sha256=provenance[
+            "evaluation_critical_implementation_manifest_sha256"
         ],
         holdout_identity_sha256=authority["holdout_identity"][
             "holdout_identity_sha256"
@@ -160,6 +200,7 @@ def build(
         experiment_protocol_sha256=authority["experiment_protocol"][
             "experiment_protocol_sha256"
         ],
+        dual_head_provenance=provenance,
         sealed_chain={
             role: {
                 "path": str(canonical[role]),
@@ -178,7 +219,8 @@ def build(
                 "certificate_artifact_v1"
             ),
             "status": certificate["status"],
-            "implementation_head": authority["implementation_head"],
+            "implementation_head": certificate["implementation_head"],
+            "dual_head_provenance": provenance,
             "holdout_identity_sha256": certificate[
                 "holdout_identity_sha256"
             ],
@@ -193,7 +235,10 @@ def build(
     )
     (output / "HEADS").write_bytes(
         (
-            f"camp_head={authority['implementation_head']}\n"
+            "execution_camp_head="
+            f"{provenance['execution_implementation_head']}\n"
+            "evaluation_camp_head="
+            f"{provenance['evaluation_implementation_head']}\n"
             f"fixed_dp_head={authority['fixed_dp_head']}\n"
         ).encode("ascii")
     )

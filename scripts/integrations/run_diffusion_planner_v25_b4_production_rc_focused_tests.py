@@ -31,11 +31,13 @@ from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import ( 
 TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v25_actual_native_receipt_contract.py",
     "camp_core/tests/test_diffusion_planner_v25_b4_preopen.py",
+    "camp_core/tests/test_diffusion_planner_v25_evaluation.py",
     "camp_core/tests/test_diffusion_planner_v25_holdout_contract.py",
     "camp_core/tests/test_diffusion_planner_v25_holdout_preimages.py",
     "camp_core/tests/test_diffusion_planner_v25_holdout_opening.py",
     "camp_core/tests/test_diffusion_planner_v25_holdout_state.py",
     "camp_core/tests/test_diffusion_planner_v25_production_equivalence.py",
+    "camp_core/tests/test_diffusion_planner_v25_role_provenance.py",
     (
         "camp_core/tests/"
         "test_diffusion_planner_v25_production_equivalence_fixture.py"

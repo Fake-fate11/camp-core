@@ -8,10 +8,13 @@ from .diffusion_planner_v25_actual_native_receipt_contract import (
     actual_native_receipt_contract_sha256,
 )
 from .diffusion_planner_v25_holdout_contract import canonical_sha256
+from .diffusion_planner_v25_role_provenance import (
+    validate_evaluation_dual_head_provenance,
+)
 
 
 SCHEMA_VERSION = (
-    "camp_dp_v25_nonfresh_production_equivalence_certificate_v2"
+    "camp_dp_v25_nonfresh_production_equivalence_certificate_v3"
 )
 STATUS = "passed_nonfresh_production_equivalence_certificate"
 CHAIN_ROLES = frozenset(
@@ -67,6 +70,7 @@ FIELDS = frozenset(
         "implementation_head",
         "critical_implementation_manifest_sha256",
         "actual_native_receipt_contract_sha256",
+        "dual_head_provenance",
         "holdout_identity_sha256",
         "experiment_protocol_sha256",
         "scenario_classes",
@@ -91,8 +95,30 @@ def freeze_production_equivalence_certificate(
     manifest_sha256: str,
     holdout_identity_sha256: str,
     experiment_protocol_sha256: str,
+    dual_head_provenance: Mapping[str, Any],
     sealed_chain: Mapping[str, Mapping[str, Any]],
 ) -> dict[str, Any]:
+    provenance = validate_evaluation_dual_head_provenance(
+        dual_head_provenance
+    )
+    chain = {
+        role: _binding(binding, role)
+        for role, binding in sorted(sealed_chain.items())
+    }
+    if (
+        provenance["evaluation_implementation_head"] != implementation_head
+        or provenance[
+            "evaluation_critical_implementation_manifest_sha256"
+        ]
+        != manifest_sha256
+        or chain["opening_release"]["root_sha256"]
+        != provenance["opening_release_root_sha256"]
+        or chain["execution"]["root_sha256"]
+        != provenance["execution_root_sha256"]
+        or chain["execution_review"]["root_sha256"]
+        != provenance["execution_review_root_sha256"]
+    ):
+        raise ValueError("production-equivalence dual-HEAD binding drifted")
     result = {
         "schema_version": SCHEMA_VERSION,
         "status": STATUS,
@@ -101,6 +127,7 @@ def freeze_production_equivalence_certificate(
         "actual_native_receipt_contract_sha256": (
             actual_native_receipt_contract_sha256()
         ),
+        "dual_head_provenance": provenance,
         "holdout_identity_sha256": holdout_identity_sha256,
         "experiment_protocol_sha256": experiment_protocol_sha256,
         "scenario_classes": [
@@ -111,10 +138,7 @@ def freeze_production_equivalence_certificate(
         "paired_unit_count": 3,
         "arm_run_count": 9,
         "tick_count": 576,
-        "sealed_chain": {
-            role: _binding(binding, role)
-            for role, binding in sorted(sealed_chain.items())
-        },
+        "sealed_chain": chain,
         "production_entrypoints": list(PRODUCTION_ENTRYPOINTS),
         "branch_receipt_counts": dict(BRANCH_RECEIPT_COUNTS),
         "mutation_coverage": list(MUTATION_COVERAGE),
@@ -150,6 +174,10 @@ def validate_production_equivalence_certificate(
         or value["critical_implementation_manifest_sha256"] != manifest_sha256
         or value["actual_native_receipt_contract_sha256"]
         != actual_native_receipt_contract_sha256()
+        or validate_evaluation_dual_head_provenance(
+            value["dual_head_provenance"]
+        )
+        != value["dual_head_provenance"]
         or not _sha(value["holdout_identity_sha256"])
         or not _sha(value["experiment_protocol_sha256"])
         or value["scenario_classes"]
@@ -171,6 +199,22 @@ def validate_production_equivalence_certificate(
         or value["fresh_rows_or_outcomes_used"] is not False
     ):
         raise ValueError("production-equivalence certificate drifted")
+    provenance = value["dual_head_provenance"]
+    chain = value["sealed_chain"]
+    if (
+        provenance["evaluation_implementation_head"] != implementation_head
+        or provenance[
+            "evaluation_critical_implementation_manifest_sha256"
+        ]
+        != manifest_sha256
+        or chain["opening_release"]["root_sha256"]
+        != provenance["opening_release_root_sha256"]
+        or chain["execution"]["root_sha256"]
+        != provenance["execution_root_sha256"]
+        or chain["execution_review"]["root_sha256"]
+        != provenance["execution_review_root_sha256"]
+    ):
+        raise ValueError("production-equivalence dual-HEAD binding drifted")
     return json.loads(json.dumps(value))
 
 

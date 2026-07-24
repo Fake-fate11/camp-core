@@ -7,6 +7,7 @@ import json
 import numpy as np
 import pytest
 
+import camp_core.integrations.diffusion_planner_v25_evaluation as evaluation_module
 from camp_core.integrations.diffusion_planner_v25_calibration import (
     CALIBRATION_ROOT_BINDINGS,
     estimate_v25_noninferiority_margin_resolvability,
@@ -29,6 +30,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (
 )
 from camp_core.integrations.diffusion_planner_v25_holdout_opening import (
     freeze_holdout_opening_release,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (
+    RELEASE_SCHEMA_VERSION as PRODUCTION_RC_RELEASE_SCHEMA_VERSION,
 )
 from camp_core.integrations.diffusion_planner_v25_statistics import (
     NONINFERIORITY_METRICS,
@@ -249,8 +253,7 @@ def _evaluate(rows):
     )
 
 
-def _evaluate_holdout(rows):
-    calibration = _calibration_contract()
+def _holdout_authority(rows):
     pair_count = len(rows) // 3
     identity = freeze_holdout_identity(
         split="fresh_b3_nonfresh_evaluation_test",
@@ -336,13 +339,19 @@ def _evaluate_holdout(rows):
         "suffix_allowed": False,
         "outcome_fields_consumed_before_opening": [],
     }
+    return release, consumption
+
+
+def _evaluate_holdout(rows):
+    calibration = _calibration_contract()
+    release, consumption = _holdout_authority(rows)
     return evaluate_holdout_three_arm(
         rows,
         calibration_contract=calibration,
         calibration_contract_root_sha256="e" * 64,
         preopen_qualification_root_sha256="1" * 64,
         opening_release=release,
-        opening_release_root_sha256=release_root,
+        opening_release_root_sha256="2" * 64,
         opening_consumption_receipt=consumption,
         root_gates={
             "failure_denominator_complete": True,
@@ -428,6 +437,115 @@ def test_generic_holdout_evaluation_uses_generic_identity_and_schema() -> None:
     assert result["holdout_opened_once_after_cas_consumption"] is True
     assert result["full_plan_arm_run_count"] == len(rows)
     assert result["fresh_outcome_used_to_change_protocol"] is False
+
+
+def test_production_rc_holdout_evaluation_uses_scientific_exposure_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rows = _rows()
+    release, _ = _holdout_authority(rows)
+    release.pop("cas_tombstone_path")
+    release.update(
+        {
+            "schema_version": PRODUCTION_RC_RELEASE_SCHEMA_VERSION,
+            "status": "holdout_production_rc_opening_released",
+            "operational_attempt_path": "/root/autodl-tmp/cas/operational.json",
+            "operational_identity_reservation_path": (
+                "/root/autodl-tmp/cas/operational_identity.json"
+            ),
+            "scientific_ledger_path": (
+                "/root/autodl-tmp/cas/scientific.json"
+            ),
+            "actual_native_receipt_contract_sha256": "9" * 64,
+            "scientific_identity_consumed_at_release": False,
+        }
+    )
+    exposure = {
+        "scientific_ledger_sha256": "a" * 64,
+        "scientific_exposure_started_before_first_forward": True,
+    }
+    calls: list[str] = []
+
+    def validate_release(value):
+        calls.append("release")
+        assert value is release
+        return release
+
+    def validate_exposure(value, *, opening_release, opening_release_root_sha256):
+        calls.append("exposure")
+        assert value is exposure
+        assert opening_release is release
+        assert opening_release_root_sha256 == "2" * 64
+        return exposure
+
+    monkeypatch.setattr(
+        evaluation_module,
+        "validate_production_rc_opening_release",
+        validate_release,
+    )
+    monkeypatch.setattr(
+        evaluation_module,
+        "validate_scientific_exposure_receipt",
+        validate_exposure,
+    )
+    result = evaluate_holdout_three_arm(
+        rows,
+        calibration_contract=_calibration_contract(),
+        calibration_contract_root_sha256="e" * 64,
+        preopen_qualification_root_sha256="1" * 64,
+        opening_release=release,
+        opening_release_root_sha256="2" * 64,
+        opening_consumption_receipt=exposure,
+        root_gates={
+            "failure_denominator_complete": True,
+            "immutability_passed": True,
+            "zero_overlap_passed": True,
+        },
+    )
+    assert calls == ["release", "exposure"]
+    assert result["schema_version"] == (
+        "camp_dp_v25_holdout_three_arm_evaluation_production_rc_v2"
+    )
+    assert result["opening_scientific_exposure_ledger_sha256"] == "a" * 64
+    assert (
+        result["holdout_scientific_exposure_started_before_first_forward"]
+        is True
+    )
+    assert "opening_release_consumption_marker_sha256" not in result
+
+
+def test_production_rc_fields_under_legacy_schema_fail_closed() -> None:
+    rows = _rows()
+    release, consumption = _holdout_authority(rows)
+    release.pop("cas_tombstone_path")
+    release.update(
+        {
+            "operational_attempt_path": "/root/autodl-tmp/cas/operational.json",
+            "operational_identity_reservation_path": (
+                "/root/autodl-tmp/cas/operational_identity.json"
+            ),
+            "scientific_ledger_path": (
+                "/root/autodl-tmp/cas/scientific.json"
+            ),
+            "actual_native_receipt_contract_sha256": "9" * 64,
+            "scientific_identity_consumed_at_release": False,
+        }
+    )
+    with pytest.raises(ValueError, match="release field set"):
+        evaluate_holdout_three_arm(
+            rows,
+            calibration_contract=_calibration_contract(),
+            calibration_contract_root_sha256="e" * 64,
+            preopen_qualification_root_sha256="1" * 64,
+            opening_release=release,
+            opening_release_root_sha256="2" * 64,
+            opening_consumption_receipt=consumption,
+            root_gates={
+                "failure_denominator_complete": True,
+                "immutability_passed": True,
+                "zero_overlap_passed": True,
+            },
+        )
 
 
 def test_three_arm_evaluation_rejects_calibration_contract_drift() -> None:

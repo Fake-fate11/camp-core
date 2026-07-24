@@ -23,6 +23,13 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 from camp_core.integrations.diffusion_planner_v25_production_equivalence_certificate import (  # noqa: E402
     validate_production_equivalence_certificate,
 )
+from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # noqa: E402
+    strict_equal,
+)
+from camp_core.integrations.diffusion_planner_v25_role_provenance_review import (  # noqa: E402
+    independent_validate_evaluation_dual_head_provenance,
+    independent_validate_evaluation_role_bindings,
+)
 from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (  # noqa: E402
     tracked_implementation_manifest,
 )
@@ -71,16 +78,103 @@ def review(
             raise ValueError(
                 f"reviewed production-equivalence chain {role} failed"
             )
+    provenance = independent_validate_evaluation_dual_head_provenance(
+        certificate["dual_head_provenance"]
+    )
+    chain = certificate["sealed_chain"]
+    release = _canonical_json(
+        Path(chain["opening_release"]["path"]) / "decision.json"
+    )
+    execution_report = _canonical_json(
+        Path(chain["execution"]["path"]) / "artifact_report.json"
+    )
+    evaluation_report = _canonical_json(
+        Path(chain["evaluation"]["path"]) / "report.json"
+    )
+    evaluation_review_report = _canonical_json(
+        Path(chain["evaluation_review"]["path"]) / "report.json"
+    )
+    independent_validate_evaluation_role_bindings(
+        provenance,
+        opening_release=release,
+        execution_artifact_report=execution_report,
+        sealed_chain_roots={
+            role: chain[role]["root_sha256"]
+            for role in ("opening_release", "execution", "execution_review")
+        },
+        evaluation_implementation_head=certificate["implementation_head"],
+        evaluation_critical_implementation_manifest_sha256=certificate[
+            "critical_implementation_manifest_sha256"
+        ],
+    )
+    if (
+        release["implementation_source_head"]
+        != provenance["execution_implementation_head"]
+        or release["critical_implementation_manifest_sha256"]
+        != provenance[
+            "execution_critical_implementation_manifest_sha256"
+        ]
+        or chain["opening_release"]["root_sha256"]
+        != provenance["opening_release_root_sha256"]
+        or chain["execution"]["root_sha256"]
+        != provenance["execution_root_sha256"]
+        or chain["execution_review"]["root_sha256"]
+        != provenance["execution_review_root_sha256"]
+        or execution_report["opening_consumption"][
+            "scientific_ledger_sha256"
+        ]
+        != provenance["scientific_exposure_ledger_sha256"]
+        or certificate["implementation_head"]
+        != provenance["evaluation_implementation_head"]
+        or certificate["critical_implementation_manifest_sha256"]
+        != provenance[
+            "evaluation_critical_implementation_manifest_sha256"
+        ]
+        or not strict_equal(
+            evaluation_report.get("dual_head_provenance"), provenance
+        )
+        or not strict_equal(
+            evaluation_review_report.get("dual_head_provenance"),
+            provenance,
+        )
+        or _heads(Path(chain["execution"]["path"]) / "HEADS")
+        != {
+            "camp_head": provenance["execution_implementation_head"],
+            "fixed_dp_head": (
+                "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+            ),
+        }
+        or _dual_heads(Path(chain["evaluation"]["path"]) / "HEADS")
+        != {
+            "execution_camp_head": provenance[
+                "execution_implementation_head"
+            ],
+            "evaluation_camp_head": provenance[
+                "evaluation_implementation_head"
+            ],
+            "fixed_dp_head": (
+                "7a1d33da277a1992ec474b5383a0c963c72e04e4"
+            ),
+        }
+        or _dual_heads(
+            Path(chain["evaluation_review"]["path"]) / "HEADS"
+        )
+        != _dual_heads(Path(chain["evaluation"]["path"]) / "HEADS")
+    ):
+        raise ValueError(
+            "reviewed production-equivalence dual-HEAD binding drifted"
+        )
     result = {
         "schema_version": (
             "camp_dp_v25_nonfresh_production_equivalence_certificate_"
-            "independent_review_v1"
+            "independent_review_v2"
         ),
         "status": (
             "passed_independent_nonfresh_production_equivalence_review"
         ),
         "reviewed_root_sha256": source_root_sha256,
         "implementation_head": certificate["implementation_head"],
+        "dual_head_provenance": provenance,
         "holdout_identity_sha256": certificate[
             "holdout_identity_sha256"
         ],
@@ -97,7 +191,10 @@ def review(
     _write(output / "report.json", result)
     (output / "HEADS").write_bytes(
         (
-            f"camp_head={certificate['implementation_head']}\n"
+            "execution_camp_head="
+            f"{provenance['execution_implementation_head']}\n"
+            "evaluation_camp_head="
+            f"{provenance['evaluation_implementation_head']}\n"
             "fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4\n"
         ).encode("ascii")
     )
@@ -109,6 +206,40 @@ def review(
         output,
         label="independent V25 production-equivalence certificate review",
     )
+
+
+def _heads(path: Path) -> dict[str, str]:
+    return _heads_with_fields(path, {"camp_head", "fixed_dp_head"})
+
+
+def _dual_heads(path: Path) -> dict[str, str]:
+    return _heads_with_fields(
+        path,
+        {"execution_camp_head", "evaluation_camp_head", "fixed_dp_head"},
+    )
+
+
+def _heads_with_fields(path: Path, fields: set[str]) -> dict[str, str]:
+    raw = Path(path).read_bytes()
+    try:
+        text = raw.decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"reviewed certificate HEADS is not ASCII: {path}") from exc
+    if not text.endswith("\n") or "\r" in text:
+        raise ValueError(f"reviewed certificate HEADS bytes drifted: {path}")
+    result: dict[str, str] = {}
+    for line in text[:-1].split("\n"):
+        if line.count("=") != 1:
+            raise ValueError(f"reviewed certificate HEADS row drifted: {path}")
+        key, item = line.split("=", 1)
+        if key in result:
+            raise ValueError(f"duplicate reviewed certificate HEADS row: {key}")
+        result[key] = item
+    if set(result) != fields:
+        raise ValueError(
+            f"reviewed certificate HEADS field set drifted: {path}"
+        )
+    return result
 
 
 def _canonical_json(path: Path) -> dict[str, Any]:

@@ -27,6 +27,9 @@ from camp_core.integrations.diffusion_planner_v25_calibration_artifact import ( 
 from camp_core.integrations.diffusion_planner_v25_evaluation import (  # noqa: E402
     evaluate_holdout_three_arm,
 )
+from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (  # noqa: E402
+    tracked_implementation_manifest,
+)
 from camp_core.integrations.diffusion_planner_v25_holdout_opening_rc import (  # noqa: E402
     validate_production_rc_opening_release,
 )
@@ -36,6 +39,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_contract import (  # n
 from camp_core.integrations.diffusion_planner_v25_holdout_state import (  # noqa: E402
     validate_scientific_ledger,
 )
+from camp_core.integrations.diffusion_planner_v25_role_provenance import (  # noqa: E402
+    freeze_evaluation_dual_head_provenance,
+)
 from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch import (  # noqa: E402
     holdout_zero_overlap_passed,
     validate_holdout_preopen_authority,
@@ -43,10 +49,14 @@ from camp_core.integrations.diffusion_planner_v25_holdout_preopen_dispatch impor
 from scripts.integrations.run_diffusion_planner_v25_holdout_execution import (  # noqa: E402
     SCHEMA_VERSION as EXECUTION_ARTIFACT_SCHEMA_VERSION,
 )
+from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import (  # noqa: E402
+    _git_head,
+    _tracked_dirty,
+)
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
-SCHEMA_VERSION = "camp_dp_v25_holdout_evaluation_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_holdout_evaluation_artifact_v2"
 EXECUTION_ARTIFACT_REPORT_FIELDS = frozenset(
     {
         "schema_version",
@@ -92,6 +102,23 @@ def evaluate(
     release = validate_production_rc_opening_release(
         _canonical_json(release_root / "decision.json")
     )
+    if _tracked_dirty(ROOT):
+        raise ValueError("holdout evaluator worktree is dirty")
+    evaluation_head = _git_head(ROOT)
+    evaluation_manifest = tracked_implementation_manifest(ROOT)
+    execution_heads = _heads(execution / "HEADS")
+    execution_review_heads = _heads(execution_review / "HEADS")
+    execution_head = release["implementation_source_head"]
+    if (
+        execution_heads
+        != {
+            "camp_head": execution_head,
+            "fixed_dp_head": FIXED_DP_HEAD,
+        }
+        or execution_review_heads != execution_heads
+        or release["pointer_head_at_release"] != execution_head
+    ):
+        raise ValueError("holdout execution/evaluation role HEAD drifted")
     execution_review_report = _canonical_json(
         execution_review / "report.json"
     )
@@ -149,6 +176,23 @@ def evaluate(
         or artifact_report["claim_authorized_by_artifact"] is not False
     ):
         raise ValueError("holdout execution artifact report drifted")
+    exposure = artifact_report["opening_consumption"]
+    provenance = freeze_evaluation_dual_head_provenance(
+        execution_implementation_head=execution_head,
+        execution_critical_implementation_manifest_sha256=release[
+            "critical_implementation_manifest_sha256"
+        ],
+        opening_release_root_sha256=opening_release_root_sha256,
+        scientific_exposure_ledger_sha256=exposure[
+            "scientific_ledger_sha256"
+        ],
+        execution_root_sha256=execution_root_sha256,
+        execution_review_root_sha256=execution_review_root_sha256,
+        evaluation_implementation_head=evaluation_head,
+        evaluation_critical_implementation_manifest_sha256=(
+            evaluation_manifest["manifest_sha256"]
+        ),
+    )
     scientific = validate_scientific_ledger(
         _strict_canonical_json(Path(release["scientific_ledger_path"]))
     )
@@ -203,6 +247,7 @@ def evaluate(
         "experiment_protocol_sha256": release["experiment_protocol"][
             "experiment_protocol_sha256"
         ],
+        "dual_head_provenance": provenance,
         "evaluation": result,
         "fresh_outcome_used_to_change_protocol": False,
         "training_executed": False,
@@ -214,7 +259,8 @@ def evaluate(
     _write_json(output / "report.json", report)
     (output / "HEADS").write_bytes(
         (
-            f"camp_head={release['pointer_head_at_release']}\n"
+            f"execution_camp_head={execution_head}\n"
+            f"evaluation_camp_head={evaluation_head}\n"
             f"fixed_dp_head={FIXED_DP_HEAD}\n"
         ).encode("ascii")
     )
@@ -239,6 +285,27 @@ def main() -> int:
     root = evaluate(**vars(_arguments()))
     print(json.dumps({"status": "passed", "root_sha256": root}, sort_keys=True))
     return 0
+
+
+def _heads(path: Path) -> dict[str, str]:
+    raw = Path(path).read_bytes()
+    try:
+        text = raw.decode("ascii")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"holdout HEADS is not ASCII: {path}") from exc
+    if not text.endswith("\n") or "\r" in text:
+        raise ValueError(f"holdout HEADS bytes drifted: {path}")
+    result: dict[str, str] = {}
+    for line in text[:-1].split("\n"):
+        if line.count("=") != 1:
+            raise ValueError(f"holdout HEADS row drifted: {path}")
+        key, value = line.split("=", 1)
+        if key in result:
+            raise ValueError(f"duplicate holdout HEADS row: {key}")
+        result[key] = value
+    if set(result) != {"camp_head", "fixed_dp_head"}:
+        raise ValueError(f"holdout HEADS field set drifted: {path}")
+    return result
 
 
 def _canonical_json(path: Path) -> dict[str, Any]:
