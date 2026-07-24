@@ -577,6 +577,7 @@ def test_method_actual_native_contract_round_trip(branch: str) -> None:
         independent_validate_actual_native_receipt(value, branch=branch)
         == value
     )
+    assert _native_receipt(value, branch) == value
 
 
 @pytest.mark.parametrize("branch", ["static14d", "scene14d"])

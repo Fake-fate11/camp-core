@@ -642,7 +642,8 @@ def _native_receipt(value: Mapping[str, Any], arm: str) -> dict[str, Any]:
     # remain independently reopenable under their frozen schemas.  Every B4
     # receipt carries the ABI hash and must pass the current production
     # validator; absence is not backfilled.
-    if "actual_native_receipt_contract_sha256" in value:
+    actual_native_abi = "actual_native_receipt_contract_sha256" in value
+    if actual_native_abi:
         if (
             value["actual_native_receipt_contract_sha256"]
             != actual_native_receipt_contract_sha256()
@@ -769,7 +770,12 @@ def _native_receipt(value: Mapping[str, Any], arm: str) -> dict[str, Any]:
                 raise ValueError("Fresh candidate0 operational-default contract drifted")
         elif (
             tick.get("selection_policy") != "v22_source_valid"
-            or tick.get("score_contract") != "score_k(w)=a_k^T w"
+            or tick.get("score_contract")
+            != (
+                "score_k=clip(a_k/s,0,10)^T w"
+                if actual_native_abi
+                else "score_k(w)=a_k^T w"
+            )
             or tick.get("eligibility_mask_name") != "source_valid_mask"
         ):
             raise ValueError("Fresh CAMP source-valid affine contract drifted")
