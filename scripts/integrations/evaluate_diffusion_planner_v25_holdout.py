@@ -8,7 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
-from typing import Any
+from typing import Any, Mapping
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -141,9 +141,7 @@ def evaluate(
         _canonical_json(preopen / "preopen_authority.json")
     )
     split = release["holdout_identity"]["split"]
-    calibration_binding = preopen_authority["upstream_bindings"][
-        "calibration_freeze"
-    ]
+    calibration_binding = _calibration_freeze_binding(preopen_authority)
     calibration_root = Path(calibration_binding["path"]).resolve()
     verify_complete_seal(
         calibration_root,
@@ -267,6 +265,32 @@ def evaluate(
     (output / "COMMAND").write_bytes((" ".join(sys.argv) + "\n").encode("utf-8"))
     (output / "run.exit").write_bytes(b"0\n")
     return seal_artifact(output, label="V25 holdout evaluation")
+
+
+def _calibration_freeze_binding(
+    preopen_authority: Mapping[str, Any],
+) -> dict[str, str]:
+    """Select the exact success role; never reinterpret every upstream exit."""
+
+    bindings = preopen_authority.get("upstream_bindings")
+    if type(bindings) is not dict or "calibration_freeze" not in bindings:
+        raise ValueError("holdout calibration freeze binding is missing")
+    binding = bindings["calibration_freeze"]
+    if (
+        type(binding) is not dict
+        or set(binding) != {"path", "root_sha256"}
+        or type(binding["path"]) is not str
+        or not Path(binding["path"]).is_absolute()
+        or str(Path(binding["path"]).resolve()) != binding["path"]
+        or type(binding["root_sha256"]) is not str
+        or len(binding["root_sha256"]) != 64
+        or any(
+            char not in "0123456789abcdef"
+            for char in binding["root_sha256"]
+        )
+    ):
+        raise ValueError("holdout calibration freeze binding drifted")
+    return dict(binding)
 
 
 def _arguments() -> argparse.Namespace:

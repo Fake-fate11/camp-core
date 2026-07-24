@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 from typing import Any, Callable, Mapping
 
@@ -61,6 +62,9 @@ from camp_core.integrations.diffusion_planner_v25_holdout_plan_dispatch import (
     NONFRESH_CANARY_SPLIT,
     validate_holdout_execution_plan,
 )
+from camp_core.integrations.diffusion_planner_v25_upstream_authority_roles import (  # noqa: E402
+    verify_upstream_authority_role_contract,
+)
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa: E402
     V25RuntimeSelectorAssets,
     load_v25_runtime_selector_assets,
@@ -74,7 +78,6 @@ from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import ( 
     _file_sha256,
     _git_head,
     _legacy_json_object,
-    _preconditions,
     _strict_json_equal,
     _tracked_dirty,
     _write_control_files,
@@ -83,10 +86,13 @@ from scripts.integrations.run_diffusion_planner_v25_fresh_b2_execution import ( 
 
 
 SCHEMA_VERSION = "camp_dp_v25_holdout_execution_artifact_v1"
+QUALIFICATION_SCHEMA_VERSION = (
+    "camp_dp_v25_holdout_runner_exact_entry_qualification_v1"
+)
 RunOne = Callable[[Mapping[str, Any], Path], Mapping[str, Any]]
 
 
-def _run_impl(
+def _qualify_inputs(
     *,
     probe_template: Path,
     probe_template_sha256: str,
@@ -97,8 +103,8 @@ def _run_impl(
     dp_repo: Path,
     output_dir: Path,
     device: str,
-    run_one: RunOne | None = None,
-) -> str:
+    qualification_only: bool,
+) -> dict[str, Any]:
     if device != "cuda":
         raise ValueError("holdout production execution requires cuda")
     output = Path(output_dir)
@@ -106,7 +112,7 @@ def _run_impl(
         raise ValueError("holdout output path must be canonical")
     output = output.resolve()
     dp_root = Path(dp_repo).resolve()
-    _preconditions(dp_root, output)
+    _read_only_preconditions(dp_root, output)
     probe = _legacy_json_object(
         Path(probe_template).resolve(), probe_template_sha256
     )
@@ -204,21 +210,7 @@ def _run_impl(
         != release["critical_implementation_manifest_sha256"]
     ):
         raise ValueError("holdout preopen/release authority drifted")
-    if split in {"fresh_b4", NONFRESH_CANARY_SPLIT}:
-        sealed_bindings = dict(preopen["upstream_bindings"])
-        if split == NONFRESH_CANARY_SPLIT:
-            sealed_bindings.update(preopen["source_fixture_bindings"])
-        for upstream_role, upstream_binding in sealed_bindings.items():
-            upstream_path = Path(upstream_binding["path"]).resolve()
-            verify_complete_seal(
-                upstream_path,
-                upstream_binding["root_sha256"],
-                label=f"{split} execution upstream {upstream_role}",
-            )
-            if (upstream_path / "run.exit").read_bytes() != b"0\n":
-                raise ValueError(
-                    f"{split} execution upstream did not pass: {upstream_role}"
-                )
+    _verify_execution_upstream_authorities(preopen=preopen, split=split)
     for role in (
         "production_composition_preflight",
         "production_composition_preflight_review",
@@ -268,6 +260,173 @@ def _run_impl(
         training=training,
         protocol=release["experiment_protocol"],
     )
+    attempt_path = Path(release["operational_attempt_path"]).resolve()
+    operational_identity_path = Path(
+        release["operational_identity_reservation_path"]
+    ).resolve()
+    scientific_path = Path(release["scientific_ledger_path"]).resolve()
+    if scientific_path.exists() or operational_identity_path.exists():
+        raise FileExistsError(
+            "holdout scientific identity was already reserved or exposed"
+        )
+    if qualification_only:
+        if attempt_path.exists():
+            attempt = validate_operational_attempt(
+                _canonical_json(attempt_path)
+            )
+            if attempt["state"] != "release_sealed":
+                raise ValueError(
+                    "qualification operational attempt is not release_sealed"
+                )
+    else:
+        if not attempt_path.exists():
+            raise FileNotFoundError(attempt_path)
+        attempt = validate_operational_attempt(_canonical_json(attempt_path))
+        if attempt["state"] != "release_sealed":
+            raise ValueError(
+                "holdout operational attempt is not release_sealed"
+            )
+    return {
+        "output": output,
+        "dp_root": dp_root,
+        "probe": probe,
+        "release_root": release_root,
+        "release": release,
+        "controller_root": controller_root,
+        "controller": controller,
+        "preopen_root": preopen_root,
+        "preopen_review_root": preopen_review_root,
+        "preopen": preopen,
+        "preopen_review": preopen_review,
+        "manifest": manifest,
+        "split": split,
+        "plan": plan,
+        "prepared": prepared,
+        "route_by_identity": route_by_identity,
+        "qualifications": qualifications,
+        "bindings": bindings,
+        "training": training,
+        "training_review": training_review,
+        "operational_attempt_preexisting": attempt_path.exists(),
+        "operational_identity_preexisting": operational_identity_path.exists(),
+        "scientific_ledger_preexisting": scientific_path.exists(),
+    }
+
+
+def qualify(
+    *,
+    probe_template: Path,
+    probe_template_sha256: str,
+    controller_decision_artifact: Path,
+    controller_decision_root_sha256: str,
+    opening_release_artifact: Path,
+    opening_release_root_sha256: str,
+    dp_repo: Path,
+    output_dir: Path,
+    device: str,
+) -> dict[str, Any]:
+    """Run the production qualification kernel without opening the holdout."""
+
+    qualified = _qualify_inputs(
+        probe_template=probe_template,
+        probe_template_sha256=probe_template_sha256,
+        controller_decision_artifact=controller_decision_artifact,
+        controller_decision_root_sha256=controller_decision_root_sha256,
+        opening_release_artifact=opening_release_artifact,
+        opening_release_root_sha256=opening_release_root_sha256,
+        dp_repo=dp_repo,
+        output_dir=output_dir,
+        device=device,
+        qualification_only=True,
+    )
+    release = qualified["release"]
+    preopen = qualified["preopen"]
+    return {
+        "schema_version": QUALIFICATION_SCHEMA_VERSION,
+        "status": "passed_no_side_effect_holdout_runner_qualification",
+        "implementation_source_head": release["implementation_source_head"],
+        "pointer_head_at_release": release["pointer_head_at_release"],
+        "fixed_dp_head": release["fixed_dp_head"],
+        "critical_implementation_manifest_sha256": release[
+            "critical_implementation_manifest_sha256"
+        ],
+        "controller_decision_root_sha256": (
+            controller_decision_root_sha256
+        ),
+        "opening_release_root_sha256": opening_release_root_sha256,
+        "preopen_root_sha256": release["preopen_authority"]["root_sha256"],
+        "preopen_review_root_sha256": release["preopen_review"]["root_sha256"],
+        "upstream_authority_role_contract_sha256": preopen[
+            "upstream_authority_role_contract"
+        ]["contract_sha256"],
+        "holdout_identity_sha256": release["holdout_identity"][
+            "holdout_identity_sha256"
+        ],
+        "experiment_protocol_sha256": release["experiment_protocol"][
+            "experiment_protocol_sha256"
+        ],
+        "execution_plan_sha256": qualified["plan"][
+            "execution_plan_sha256"
+        ],
+        "authorized_output_dir": str(qualified["output"]),
+        "operational_attempt_preexisting": qualified[
+            "operational_attempt_preexisting"
+        ],
+        "operational_attempt_created": False,
+        "operational_identity_preexisting": qualified[
+            "operational_identity_preexisting"
+        ],
+        "operational_identity_created": False,
+        "scientific_ledger_preexisting": qualified[
+            "scientific_ledger_preexisting"
+        ],
+        "scientific_ledger_created": False,
+        "authorized_output_created": False,
+        "model_loaded": False,
+        "dp_loaded": False,
+        "simulator_loaded": False,
+        "forward_executed": False,
+        "fresh_opened": False,
+        "outcome_fields_consumed": [],
+    }
+
+
+def _run_impl(
+    *,
+    probe_template: Path,
+    probe_template_sha256: str,
+    controller_decision_artifact: Path,
+    controller_decision_root_sha256: str,
+    opening_release_artifact: Path,
+    opening_release_root_sha256: str,
+    dp_repo: Path,
+    output_dir: Path,
+    device: str,
+    run_one: RunOne | None = None,
+) -> str:
+    qualified = _qualify_inputs(
+        probe_template=probe_template,
+        probe_template_sha256=probe_template_sha256,
+        controller_decision_artifact=controller_decision_artifact,
+        controller_decision_root_sha256=controller_decision_root_sha256,
+        opening_release_artifact=opening_release_artifact,
+        opening_release_root_sha256=opening_release_root_sha256,
+        dp_repo=dp_repo,
+        output_dir=output_dir,
+        device=device,
+        qualification_only=False,
+    )
+    output = qualified["output"]
+    dp_root = qualified["dp_root"]
+    probe = qualified["probe"]
+    release = qualified["release"]
+    plan = qualified["plan"]
+    prepared = qualified["prepared"]
+    route_by_identity = qualified["route_by_identity"]
+    qualifications = qualified["qualifications"]
+    bindings = qualified["bindings"]
+    training = qualified["training"]
+    training_review = qualified["training_review"]
 
     with _exclusive_lock(TRAIN_LOCK):
         exposure: dict[str, Any] = {}
@@ -438,6 +597,60 @@ def _run_impl(
                     terminal_reason="execution_pre_exposure_fatal",
                 )
             raise
+
+
+def _verify_execution_upstream_authorities(
+    *, preopen: Mapping[str, Any], split: str
+) -> None:
+    if split == "fresh_b4":
+        verify_upstream_authority_role_contract(
+            preopen["upstream_authority_role_contract"],
+            bindings=preopen["upstream_bindings"],
+        )
+        return
+    if split != NONFRESH_CANARY_SPLIT:
+        raise ValueError(f"unsupported holdout execution split: {split}")
+    upstream_bindings = preopen["upstream_bindings"]
+    fixture_bindings = preopen["source_fixture_bindings"]
+    if (
+        type(upstream_bindings) is not dict
+        or type(fixture_bindings) is not dict
+        or set(upstream_bindings) & set(fixture_bindings)
+    ):
+        raise ValueError("nonFresh all-success binding set drifted")
+    sealed_bindings = dict(upstream_bindings)
+    sealed_bindings.update(fixture_bindings)
+    for role, binding in sealed_bindings.items():
+        if type(binding) is not dict or set(binding) != {
+            "path",
+            "root_sha256",
+        }:
+            raise ValueError(f"nonFresh upstream binding drifted: {role}")
+        path = Path(binding["path"]).resolve()
+        verify_complete_seal(
+            path,
+            binding["root_sha256"],
+            label=f"{split} execution upstream {role}",
+        )
+        if (path / "run.exit").read_bytes() != b"0\n":
+            raise ValueError(
+                f"{split} execution upstream did not pass: {role}"
+            )
+
+
+def _read_only_preconditions(dp_root: Path, output: Path) -> None:
+    if _tracked_dirty(ROOT):
+        raise ValueError("CAMP tracked worktree must be clean")
+    if _git_head(dp_root) != FIXED_DP_HEAD or _tracked_dirty(dp_root):
+        raise ValueError("fixed DP HEAD drifted or tracked worktree is dirty")
+    if output.exists():
+        raise FileExistsError(output)
+    if not output.parent.is_dir() or output.parent.is_symlink():
+        raise ValueError("holdout output parent is not an existing real directory")
+    if not os.access(output.parent, os.W_OK):
+        raise PermissionError(output.parent)
+    if shutil.disk_usage(output.parent).free < MINIMUM_FREE_BYTES:
+        raise RuntimeError("free disk is below the 10 GiB floor")
 
 
 def run(
@@ -904,11 +1117,67 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--device", choices=("cuda",), required=True)
     parser.add_argument("--holdout-one-time-open", action="store_true")
+    parser.add_argument("--qualification-only", action="store_true")
+    parser.add_argument("--qualification-output-dir", type=Path)
     return parser.parse_args()
 
 
 def main() -> int:
     args = _arguments()
+    if args.qualification_only:
+        if args.holdout_one_time_open:
+            raise ValueError(
+                "runner qualification cannot request one-time opening"
+            )
+        if args.qualification_output_dir is None:
+            raise ValueError("runner qualification output is required")
+        receipt_output = args.qualification_output_dir.resolve()
+        if receipt_output.exists():
+            raise FileExistsError(receipt_output)
+        result = qualify(
+            probe_template=args.probe_template,
+            probe_template_sha256=args.probe_template_sha256,
+            controller_decision_artifact=args.controller_decision_artifact,
+            controller_decision_root_sha256=(
+                args.controller_decision_root_sha256
+            ),
+            opening_release_artifact=args.opening_release_artifact,
+            opening_release_root_sha256=args.opening_release_root_sha256,
+            dp_repo=args.dp_repo,
+            output_dir=args.output_dir,
+            device=args.device,
+        )
+        receipt_output.mkdir(parents=True)
+        _write_json(receipt_output / "qualification.json", result)
+        (receipt_output / "HEADS").write_bytes(
+            (
+                f"camp_source_head={result['implementation_source_head']}\n"
+                f"camp_pointer_head={result['pointer_head_at_release']}\n"
+                f"fixed_dp_head={FIXED_DP_HEAD}\n"
+            ).encode("ascii")
+        )
+        (receipt_output / "COMMAND").write_bytes(
+            (" ".join(sys.argv) + "\n").encode("utf-8")
+        )
+        (receipt_output / "run.exit").write_bytes(b"0\n")
+        root = seal_artifact(
+            receipt_output,
+            label="V25 holdout runner exact-entry qualification",
+        )
+        print(
+            json.dumps(
+                {
+                    "status": result["status"],
+                    "root_sha256": root,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.qualification_output_dir is not None:
+        raise ValueError(
+            "qualification output is forbidden for production execution"
+        )
     if not args.holdout_one_time_open:
         raise ValueError("holdout production entry requires one-time open")
     root = run(

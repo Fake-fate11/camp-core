@@ -49,6 +49,52 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa
 )
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 SCHEMA_VERSION = "camp_dp_v25_holdout_execution_review_artifact_v1"
+ROLE_CONTRACT_SCHEMA_VERSION = (
+    "camp_dp_v25_upstream_authority_role_contract_v1"
+)
+
+_ROLE_ROWS = (
+    ("accepted_b3_preopen", "preopen_authority.json", "camp_dp_v25_fresh_b3_consolidated_preopen_authority_v1", "passed_outcome_blind_fresh_b3_preopen_authority", 0, "direct_success", "accepted_b3_preopen_review"),
+    ("accepted_b3_preopen_review", "report.json", "camp_dp_v25_fresh_b3_preopen_independent_review_v1", "passed_independent_fresh_b3_preopen_review", 0, "direct_success", None),
+    ("atom_mechanism", "report.json", "camp_dp_v25_atom_mechanism_artifact_v1", "frozen_atom_mechanism_ready_before_fresh_b2_opening", 0, "direct_success", "atom_mechanism_review"),
+    ("atom_mechanism_review", "report.json", "camp_dp_v25_atom_mechanism_review_v1", "passed_independent_atom_mechanism_preopen_review", 0, "direct_success", None),
+    ("b2_consumed_failure", "closeout.json", "camp_dp_v25_consumed_holdout_failure_closeout_v1", "terminal_consumed_one_shot_engineering_failure", 0, "accepted_via_closeout", "b2_consumed_failure_review"),
+    ("b2_consumed_failure_review", "report.json", "camp_dp_v25_consumed_holdout_failure_review_v1", "passed_independent_consumed_holdout_failure_review", 0, "direct_success", None),
+    ("b3_terminal_closeout", "closeout.json", "camp_dp_v25_holdout_terminal_failure_closeout_v1", "consumed_one_shot_engineering_failure_no_evaluation_no_claim", 0, "accepted_via_closeout", "b3_terminal_closeout_review"),
+    ("b3_terminal_closeout_review", "report.json", "camp_dp_v25_holdout_terminal_failure_closeout_review_v1", "passed_independent_holdout_terminal_failure_closeout_review", 0, "direct_success", None),
+    ("calibration_freeze", "report.json", "camp_dp_v25_calibration_freeze_from_paired_artifact_v1", "calibration_freeze_passed", 0, "direct_success", "calibration_freeze_review"),
+    ("calibration_freeze_review", "report.json", "camp_dp_v25_calibration_freeze_from_paired_review_v1", "passed_independent_calibration_freeze_from_paired_review", 0, "direct_success", None),
+    ("calibration_preregistration", "report.json", "camp_dp_v25_paired_calibration_preregistration_artifact_v1", "paired_calibration_preregistration_frozen", 0, "direct_success", "calibration_preregistration_review"),
+    ("calibration_preregistration_review", "report.json", "camp_dp_v25_paired_calibration_preregistration_review_v1", "passed_independent_paired_calibration_preregistration_review", 0, "direct_success", None),
+    ("calibration_raw", "failure.json", "camp_dp_v25_paired_calibration_execution_artifact_v1", "failed_closed_paired_calibration_execution", 1, "accepted_via_recovery", None),
+    ("calibration_recovery", "report.json", "camp_dp_v25_paired_calibration_recovery_analysis_v1", "recovered_calibration_analysis_complete_fresh_closed", 0, "direct_success", "calibration_recovery_review"),
+    ("calibration_recovery_review", "report.json", "camp_dp_v25_paired_calibration_recovery_review_v1", "passed_independent_paired_calibration_recovery_review", 0, "direct_success", None),
+    ("corrected_corpus", "report.json", "camp_dp_v25_controlled_training_corpus_execution_v8", "passed", 0, "direct_success", "corrected_corpus_review"),
+    ("corrected_corpus_review", "report.json", "camp_dp_v25_controlled_training_corpus_review_v8", "passed_independent_full_corpus_review", 0, "direct_success", None),
+    ("production_equivalence_certificate", "preflight.json", "camp_dp_v25_nonfresh_production_equivalence_certificate_v3", "passed_nonfresh_production_equivalence_certificate", 0, "direct_success", "production_equivalence_certificate_review"),
+    ("production_equivalence_certificate_review", "report.json", "camp_dp_v25_nonfresh_production_equivalence_certificate_independent_review_v2", "passed_independent_nonfresh_production_equivalence_review", 0, "direct_success", None),
+    ("storage", "report.json", "camp_dp_v25_fresh_storage_qualification_artifact_v1", "passed_fresh_storage_equivalence_and_capacity", 0, "direct_success", "storage_review"),
+    ("storage_review", "report.json", "camp_dp_v25_fresh_storage_qualification_review_v1", "passed_independent_fresh_storage_equivalence_and_capacity_review", 0, "direct_success", None),
+    ("train_route_source", "report.json", "camp_dp_v25_a161_route_signal_source_census_v2", "passed_source_only_route_signal_authority_census", 0, "direct_success", None),
+    ("training", "report.json", "camp_dp_v25_strict_convex_training_artifact_v1", "passed_strict_convex_training", 0, "direct_success", "training_review"),
+    ("training_review", "report.json", "camp_dp_v25_strict_convex_training_review_v1", "passed_independent_strict_convex_training_review", 0, "direct_success", None),
+)
+_ROLE_ORACLE = {
+    row[0]: {
+        "payload_file": row[1],
+        "schema_version": row[2],
+        "status": row[3],
+        "run_exit": row[4],
+        "mode": row[5],
+        "review_role": row[6],
+        "json_byte_policy": (
+            "strict_sealed_legacy"
+            if row[0] in {"corrected_corpus", "corrected_corpus_review"}
+            else "camp_canonical"
+        ),
+    }
+    for row in _ROLE_ROWS
+}
 
 
 def review(
@@ -174,18 +220,10 @@ def review(
         preopen = validate_holdout_preopen_authority(
             _canonical_json(preopen_root / "preopen_authority.json")
         )
-        sealed_bindings = dict(preopen["upstream_bindings"])
-        if preopen["holdout_identity"]["split"] == NONFRESH_CANARY_SPLIT:
-            sealed_bindings.update(preopen["source_fixture_bindings"])
-        for role, binding in sealed_bindings.items():
-            upstream = Path(binding["path"]).resolve()
-            verify_complete_seal(
-                upstream,
-                binding["root_sha256"],
-                label=f"reviewed holdout upstream {role}",
-            )
-            if (upstream / "run.exit").read_bytes() != b"0\n":
-                raise ValueError(f"reviewed holdout upstream failed: {role}")
+        _verify_execution_upstream_authorities_independent(
+            preopen=preopen,
+            split=preopen["holdout_identity"]["split"],
+        )
         preopen_files = holdout_preopen_files(
             preopen["holdout_identity"]["split"]
         )
@@ -271,6 +309,378 @@ def review(
     (output / "COMMAND").write_bytes((" ".join(sys.argv) + "\n").encode("utf-8"))
     (output / "run.exit").write_bytes(b"0\n")
     return seal_artifact(output, label="independent V25 holdout execution review")
+
+
+def _verify_execution_upstream_authorities_independent(
+    *, preopen: Mapping[str, Any], split: str
+) -> None:
+    if split == "fresh_b4":
+        _verify_upstream_role_contract_independent(
+            preopen["upstream_authority_role_contract"],
+            bindings=preopen["upstream_bindings"],
+        )
+        return
+    if split != NONFRESH_CANARY_SPLIT:
+        raise ValueError(f"unsupported reviewed holdout split: {split}")
+    upstream_bindings = preopen["upstream_bindings"]
+    fixture_bindings = preopen["source_fixture_bindings"]
+    if (
+        type(upstream_bindings) is not dict
+        or type(fixture_bindings) is not dict
+        or set(upstream_bindings) & set(fixture_bindings)
+    ):
+        raise ValueError("independent nonFresh all-success bindings drifted")
+    sealed_bindings = dict(upstream_bindings)
+    sealed_bindings.update(fixture_bindings)
+    for role, raw_binding in sealed_bindings.items():
+        binding = _independent_binding(raw_binding, role)
+        upstream = Path(binding["path"])
+        verify_complete_seal(
+            upstream,
+            binding["root_sha256"],
+            label=f"reviewed holdout upstream {role}",
+        )
+        if (upstream / "run.exit").read_bytes() != b"0\n":
+            raise ValueError(f"reviewed holdout upstream failed: {role}")
+
+
+def _verify_upstream_role_contract_independent(
+    contract: Any,
+    *,
+    bindings: Any,
+) -> None:
+    if type(bindings) is not dict or set(bindings) != set(_ROLE_ORACLE):
+        raise ValueError("independent upstream role binding set drifted")
+    if type(contract) is not dict or set(contract) != {
+        "schema_version",
+        "status",
+        "role_count",
+        "roles",
+        "contract_sha256",
+    }:
+        raise ValueError("independent upstream role contract fields drifted")
+    if (
+        contract["schema_version"] != ROLE_CONTRACT_SCHEMA_VERSION
+        or contract["status"]
+        != "frozen_complete_upstream_authority_role_contract"
+        or type(contract["role_count"]) is not int
+        or contract["role_count"] != len(_ROLE_ORACLE)
+        or type(contract["roles"]) is not list
+        or len(contract["roles"]) != len(_ROLE_ORACLE)
+    ):
+        raise ValueError("independent upstream role contract header drifted")
+    unsigned = dict(contract)
+    claimed_sha = unsigned.pop("contract_sha256")
+    if (
+        type(claimed_sha) is not str
+        or claimed_sha
+        != hashlib.sha256(_canonical_bytes(unsigned)).hexdigest()
+    ):
+        raise ValueError("independent upstream role contract SHA drifted")
+    rows: dict[str, dict[str, Any]] = {}
+    payloads: dict[str, dict[str, Any]] = {}
+    for row in contract["roles"]:
+        if type(row) is not dict or set(row) != {
+            "role",
+            "binding",
+            "execution_terminal",
+            "authority_disposition",
+        }:
+            raise ValueError("independent upstream role row fields drifted")
+        role = row["role"]
+        if (
+            type(role) is not str
+            or role not in _ROLE_ORACLE
+            or role in rows
+        ):
+            raise ValueError("independent unknown or duplicate upstream role")
+        spec = _ROLE_ORACLE[role]
+        binding = _independent_binding(bindings[role], role)
+        if not _literal_equal(row["binding"], binding):
+            raise ValueError(f"independent upstream binding drifted: {role}")
+        terminal = {
+            "run_exit": spec["run_exit"],
+            "payload_file": spec["payload_file"],
+            "schema_version": spec["schema_version"],
+            "status": spec["status"],
+            "json_byte_policy": spec["json_byte_policy"],
+        }
+        if not _literal_equal(row["execution_terminal"], terminal):
+            raise ValueError(f"independent upstream terminal drifted: {role}")
+        path = Path(binding["path"])
+        verify_complete_seal(
+            path, binding["root_sha256"], label=f"review upstream {role}"
+        )
+        if (path / "run.exit").read_bytes() != (
+            f"{spec['run_exit']}\n".encode("ascii")
+        ):
+            raise ValueError(
+                f"independent native-int run.exit drifted: {role}"
+            )
+        payload = _independent_authority_object(
+            path / spec["payload_file"],
+            byte_policy=spec["json_byte_policy"],
+        )
+        if (
+            payload.get("schema_version") != spec["schema_version"]
+            or payload.get("status") != spec["status"]
+        ):
+            raise ValueError(f"independent upstream payload drifted: {role}")
+        rows[role] = row
+        payloads[role] = payload
+    if set(rows) != set(_ROLE_ORACLE):
+        raise ValueError("independent upstream role set incomplete")
+    for role, spec in _ROLE_ORACLE.items():
+        disposition = rows[role]["authority_disposition"]
+        mode = spec["mode"]
+        if type(disposition) is not dict or disposition.get("mode") != mode:
+            raise ValueError(
+                f"independent authority disposition drifted: {role}"
+            )
+        if mode == "direct_success":
+            if disposition != {
+                "mode": mode,
+                "independent_review_role": spec["review_role"],
+            }:
+                raise ValueError(
+                    f"independent direct-success disposition drifted: {role}"
+                )
+            if spec["review_role"] is not None:
+                review = payloads[spec["review_role"]]
+                root_field = (
+                    "reviewed_recovery_root_sha256"
+                    if role == "calibration_recovery"
+                    else "reviewed_root_sha256"
+                )
+                path_field = (
+                    "reviewed_recovery_artifact"
+                    if role == "calibration_recovery"
+                    else "reviewed_artifact"
+                )
+                if (
+                    review.get(root_field) != bindings[role]["root_sha256"]
+                    or review.get(path_field)
+                    not in {None, bindings[role]["path"]}
+                ):
+                    raise ValueError(
+                        f"independent review crosslink drifted: {role}"
+                    )
+        elif mode == "accepted_via_recovery":
+            _verify_recovery_disposition_independent(
+                disposition,
+                bindings=bindings,
+                payloads=payloads,
+            )
+        elif mode == "accepted_via_closeout":
+            _verify_closeout_disposition_independent(
+                role,
+                disposition,
+                bindings=bindings,
+                payloads=payloads,
+            )
+        else:
+            raise ValueError(
+                f"independent unknown authority disposition: {role}"
+            )
+
+
+def _verify_recovery_disposition_independent(
+    disposition: Mapping[str, Any],
+    *,
+    bindings: Mapping[str, Mapping[str, str]],
+    payloads: Mapping[str, Mapping[str, Any]],
+) -> None:
+    if set(disposition) != {
+        "mode",
+        "recovery_role",
+        "recovery_review_role",
+        "chain_id_sha256",
+    } or (
+        disposition["recovery_role"] != "calibration_recovery"
+        or disposition["recovery_review_role"]
+        != "calibration_recovery_review"
+    ):
+        raise ValueError("independent calibration recovery disposition drifted")
+    chain = {
+        "raw": bindings["calibration_raw"],
+        "recovery": bindings["calibration_recovery"],
+        "recovery_review": bindings["calibration_recovery_review"],
+    }
+    if disposition["chain_id_sha256"] != hashlib.sha256(
+        _canonical_bytes(chain)
+    ).hexdigest():
+        raise ValueError("independent calibration recovery chain SHA drifted")
+    raw = bindings["calibration_raw"]
+    recovery = payloads["calibration_recovery"]
+    review = payloads["calibration_recovery_review"]
+    if (
+        recovery.get("original_execution_artifact") != raw["path"]
+        or recovery.get("original_execution_root_sha256")
+        != raw["root_sha256"]
+        or type(recovery.get("original_execution_run_exit")) is not int
+        or recovery.get("original_execution_run_exit") != 1
+        or review.get("original_execution_artifact") != raw["path"]
+        or review.get("original_execution_root_sha256")
+        != raw["root_sha256"]
+        or type(review.get("original_execution_run_exit")) is not int
+        or review.get("original_execution_run_exit") != 1
+        or review.get("reviewed_recovery_artifact")
+        != bindings["calibration_recovery"]["path"]
+        or review.get("reviewed_recovery_root_sha256")
+        != bindings["calibration_recovery"]["root_sha256"]
+    ):
+        raise ValueError("independent calibration recovery crosslink drifted")
+
+
+def _verify_closeout_disposition_independent(
+    role: str,
+    disposition: Mapping[str, Any],
+    *,
+    bindings: Mapping[str, Mapping[str, str]],
+    payloads: Mapping[str, Mapping[str, Any]],
+) -> None:
+    is_b3 = role == "b3_terminal_closeout"
+    expected_fields = {
+        "mode",
+        "independent_review_role",
+        "embedded_failure",
+        "holdout_identity_sha256",
+        "chain_id_sha256",
+    }
+    if is_b3:
+        expected_fields.add("embedded_failure_review")
+    spec = _ROLE_ORACLE[role]
+    if (
+        set(disposition) != expected_fields
+        or disposition["independent_review_role"] != spec["review_role"]
+        or type(disposition["holdout_identity_sha256"]) is not str
+        or len(disposition["holdout_identity_sha256"]) != 64
+    ):
+        raise ValueError(f"independent closeout disposition drifted: {role}")
+    failure = _independent_binding(
+        disposition["embedded_failure"], f"{role} failure"
+    )
+    chain: dict[str, Any] = {
+        "closeout": bindings[role],
+        "closeout_review": bindings[spec["review_role"]],
+        "embedded_failure": failure,
+        "holdout_identity_sha256": disposition["holdout_identity_sha256"],
+    }
+    if is_b3:
+        failure_review = _independent_binding(
+            disposition["embedded_failure_review"],
+            f"{role} failure review",
+        )
+        chain["embedded_failure_review"] = failure_review
+    if disposition["chain_id_sha256"] != hashlib.sha256(
+        _canonical_bytes(chain)
+    ).hexdigest():
+        raise ValueError(f"independent closeout chain SHA drifted: {role}")
+    failure_path = Path(failure["path"])
+    verify_complete_seal(
+        failure_path,
+        failure["root_sha256"],
+        label=f"review {role} embedded failure",
+    )
+    failure_file = "fatal.json" if is_b3 else "failure.json"
+    failure_schema = (
+        "camp_dp_v25_holdout_artifact_fatal_v1"
+        if is_b3
+        else "camp_dp_v25_fresh_b2_execution_artifact_v2"
+    )
+    failure_status = (
+        "artifact_fatal" if is_b3 else "failed_closed_fresh_b2_execution"
+    )
+    if (failure_path / "run.exit").read_bytes() != b"1\n":
+        raise ValueError(f"independent closeout failure exit drifted: {role}")
+    failure_payload = _canonical_json(failure_path / failure_file)
+    if (
+        failure_payload.get("schema_version") != failure_schema
+        or failure_payload.get("status") != failure_status
+    ):
+        raise ValueError(
+            f"independent closeout failure terminal drifted: {role}"
+        )
+    closeout_review = payloads[spec["review_role"]]
+    if (
+        closeout_review.get("reviewed_root_sha256")
+        != bindings[role]["root_sha256"]
+        or closeout_review.get("holdout_identity_sha256")
+        != disposition["holdout_identity_sha256"]
+    ):
+        raise ValueError(
+            f"independent closeout review crosslink drifted: {role}"
+        )
+    if is_b3:
+        review_path = Path(failure_review["path"])
+        verify_complete_seal(
+            review_path,
+            failure_review["root_sha256"],
+            label="review B3 embedded failure review",
+        )
+        if (review_path / "run.exit").read_bytes() != b"0\n":
+            raise ValueError("independent B3 failure review exit drifted")
+        review_payload = _canonical_json(review_path / "report.json")
+        if (
+            review_payload.get("schema_version")
+            != "camp_dp_v25_holdout_execution_review_artifact_v1"
+            or review_payload.get("status")
+            != "passed_independent_holdout_artifact_fatal_review"
+            or review_payload.get("reviewed_root_sha256")
+            != failure["root_sha256"]
+            or review_payload.get("holdout_identity_sha256")
+            != disposition["holdout_identity_sha256"]
+        ):
+            raise ValueError("independent B3 failure review drifted")
+
+
+def _independent_binding(value: Any, label: str) -> dict[str, str]:
+    if type(value) is not dict or set(value) != {"path", "root_sha256"}:
+        raise ValueError(f"independent binding fields drifted: {label}")
+    path = Path(value["path"])
+    if (
+        type(value["path"]) is not str
+        or not path.is_absolute()
+        or str(path.resolve()) != value["path"]
+        or type(value["root_sha256"]) is not str
+        or len(value["root_sha256"]) != 64
+        or any(char not in "0123456789abcdef" for char in value["root_sha256"])
+    ):
+        raise ValueError(f"independent binding invalid: {label}")
+    return dict(value)
+
+
+def _literal_equal(left: Any, right: Any) -> bool:
+    if type(left) is not type(right):
+        return False
+    if type(left) is dict:
+        return set(left) == set(right) and all(
+            _literal_equal(left[key], right[key]) for key in left
+        )
+    if type(left) is list:
+        return len(left) == len(right) and all(
+            _literal_equal(a, b) for a, b in zip(left, right)
+        )
+    return left == right
+
+
+def _independent_authority_object(
+    path: Path, *, byte_policy: str
+) -> dict[str, Any]:
+    raw = path.read_bytes()
+    value = _strict_parse_json(raw, path)
+    if type(value) is not dict:
+        raise ValueError(f"independent authority object required: {path}")
+    if byte_policy == "camp_canonical":
+        if raw != _canonical_bytes(value):
+            raise ValueError(
+                f"independent authority JSON is not canonical: {path}"
+            )
+    elif byte_policy != "strict_sealed_legacy":
+        raise ValueError(
+            f"independent authority JSON byte policy drifted: {path}"
+        )
+    return value
 
 
 def _arguments() -> argparse.Namespace:

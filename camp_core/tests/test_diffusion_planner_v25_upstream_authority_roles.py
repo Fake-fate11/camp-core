@@ -7,11 +7,17 @@ from typing import Any, Callable
 
 import pytest
 
+from scripts.integrations import (
+    run_diffusion_planner_v25_holdout_execution as holdout_runner,
+)
 from camp_core.integrations.diffusion_planner_artifact_seal import (
     seal_artifact,
 )
 from camp_core.integrations.diffusion_planner_v25_fresh_preopen_authority import (
     canonical_json_bytes,
+)
+from camp_core.integrations.diffusion_planner_v25_holdout_plan_dispatch import (
+    NONFRESH_CANARY_SPLIT,
 )
 from camp_core.integrations.diffusion_planner_v25_upstream_authority_roles import (
     ROLE_SPECS,
@@ -21,6 +27,18 @@ from camp_core.integrations.diffusion_planner_v25_upstream_authority_roles impor
 )
 from scripts.integrations.review_diffusion_planner_v25_b4_preopen import (
     _verify_upstream_role_contract_independent,
+)
+from scripts.integrations.review_diffusion_planner_v25_holdout_evaluation import (
+    _calibration_freeze_binding_independent,
+)
+from scripts.integrations.review_diffusion_planner_v25_holdout_execution import (
+    _verify_execution_upstream_authorities_independent,
+)
+from scripts.integrations.evaluate_diffusion_planner_v25_holdout import (
+    _calibration_freeze_binding,
+)
+from scripts.integrations.run_diffusion_planner_v25_holdout_execution import (
+    _verify_execution_upstream_authorities,
 )
 
 
@@ -296,6 +314,16 @@ def test_all_upstream_roles_freeze_and_independent_oracle_match(
         contract, bindings=bindings
     ) == contract
     _verify_upstream_role_contract_independent(contract, bindings=bindings)
+    preopen = {
+        "upstream_authority_role_contract": contract,
+        "upstream_bindings": bindings,
+    }
+    _verify_execution_upstream_authorities(
+        preopen=preopen, split="fresh_b4"
+    )
+    _verify_execution_upstream_authorities_independent(
+        preopen=preopen, split="fresh_b4"
+    )
 
 
 def test_only_registered_legacy_roles_accept_noncanonical_sealed_json(
@@ -333,6 +361,22 @@ def test_every_role_rejects_deletion_replacement_and_native_type_smuggling(
         validate_upstream_authority_role_contract(
             deleted, bindings=bindings
         )
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities(
+            preopen={
+                "upstream_authority_role_contract": deleted,
+                "upstream_bindings": bindings,
+            },
+            split="fresh_b4",
+        )
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": deleted,
+                "upstream_bindings": bindings,
+            },
+            split="fresh_b4",
+        )
 
     replaced = copy.deepcopy(contract)
     row = next(item for item in replaced["roles"] if item["role"] == role)
@@ -340,6 +384,14 @@ def test_every_role_rejects_deletion_replacement_and_native_type_smuggling(
     with pytest.raises(ValueError):
         validate_upstream_authority_role_contract(
             replaced, bindings=bindings
+        )
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": replaced,
+                "upstream_bindings": bindings,
+            },
+            split="fresh_b4",
         )
 
     smuggled = copy.deepcopy(contract)
@@ -350,6 +402,77 @@ def test_every_role_rejects_deletion_replacement_and_native_type_smuggling(
     with pytest.raises(ValueError):
         validate_upstream_authority_role_contract(
             smuggled, bindings=bindings
+        )
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": smuggled,
+                "upstream_bindings": bindings,
+            },
+            split="fresh_b4",
+        )
+
+    wrong_binding = copy.deepcopy(bindings)
+    wrong_binding[role]["root_sha256"] = "f" * 64
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": wrong_binding,
+            },
+            split="fresh_b4",
+        )
+
+    wrong_path = copy.deepcopy(bindings)
+    wrong_path[role]["path"] = str((tmp_path / "missing").resolve())
+    with pytest.raises((ValueError, FileNotFoundError)):
+        _verify_execution_upstream_authorities(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": wrong_path,
+            },
+            split="fresh_b4",
+        )
+    with pytest.raises((ValueError, FileNotFoundError)):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": wrong_path,
+            },
+            split="fresh_b4",
+        )
+
+
+@pytest.mark.parametrize("role", sorted(ROLE_SPECS))
+def test_every_role_rejects_native_exit_and_payload_status_mutation(
+    tmp_path: Path,
+    role: str,
+) -> None:
+    wrong_exit = 0 if ROLE_SPECS[role]["run_exit"] == 1 else 1
+    mutated_exit = _chain(
+        tmp_path / "exit",
+        exit_overrides={role: wrong_exit},
+    )
+    with pytest.raises((ValueError, FileNotFoundError)):
+        freeze_upstream_authority_role_contract(mutated_exit)
+
+    def mutate(current_role: str, payload: dict[str, Any]) -> None:
+        if current_role == role:
+            payload["status"] = "unexpected_status"
+
+    mutated_status = _chain(
+        tmp_path / "status",
+        payload_mutator=mutate,
+    )
+    with pytest.raises(ValueError):
+        freeze_upstream_authority_role_contract(mutated_status)
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": wrong_binding,
+            },
+            split="fresh_b4",
         )
 
 
@@ -364,6 +487,22 @@ def test_unknown_extra_duplicate_mode_and_status_are_rejected(
     extra["unknown"] = next(iter(bindings.values()))
     with pytest.raises(ValueError):
         validate_upstream_authority_role_contract(contract, bindings=extra)
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": extra,
+            },
+            split="fresh_b4",
+        )
+    with pytest.raises(ValueError):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": extra,
+            },
+            split="fresh_b4",
+        )
 
     duplicate = copy.deepcopy(contract)
     duplicate["roles"][-1] = copy.deepcopy(duplicate["roles"][0])
@@ -383,6 +522,14 @@ def test_unknown_extra_duplicate_mode_and_status_are_rejected(
         with pytest.raises(ValueError):
             validate_upstream_authority_role_contract(
                 changed, bindings=bindings
+            )
+        with pytest.raises(ValueError):
+            _verify_execution_upstream_authorities_independent(
+                preopen={
+                    "upstream_authority_role_contract": changed,
+                    "upstream_bindings": bindings,
+                },
+                split="fresh_b4",
             )
 
 
@@ -465,3 +612,163 @@ def test_closeout_missing_or_crosslinked_fields_fail_closed(
     bindings = _chain(tmp_path, payload_mutator=mutate)
     with pytest.raises(ValueError):
         freeze_upstream_authority_role_contract(bindings)
+
+
+def test_nonfresh_canary_keeps_explicit_all_success_policy(
+    tmp_path: Path,
+) -> None:
+    upstream = _seal(
+        tmp_path / "upstream",
+        payload_file="report.json",
+        payload={"schema_version": "fixture", "status": "passed"},
+        run_exit=0,
+    )
+    source = _seal(
+        tmp_path / "source",
+        payload_file="report.json",
+        payload={"schema_version": "fixture", "status": "passed"},
+        run_exit=0,
+    )
+    preopen = {
+        "upstream_bindings": {"upstream": _binding(upstream)},
+        "source_fixture_bindings": {"source": _binding(source)},
+    }
+    _verify_execution_upstream_authorities(
+        preopen=preopen,
+        split=NONFRESH_CANARY_SPLIT,
+    )
+    _verify_execution_upstream_authorities_independent(
+        preopen=preopen,
+        split=NONFRESH_CANARY_SPLIT,
+    )
+
+    failed = _seal(
+        tmp_path / "failed",
+        payload_file="report.json",
+        payload={"schema_version": "fixture", "status": "failed"},
+        run_exit=1,
+    )
+    preopen["source_fixture_bindings"]["source"] = _binding(failed)
+    with pytest.raises(ValueError, match="did not pass"):
+        _verify_execution_upstream_authorities(
+            preopen=preopen,
+            split=NONFRESH_CANARY_SPLIT,
+        )
+    with pytest.raises(ValueError, match="failed"):
+        _verify_execution_upstream_authorities_independent(
+            preopen=preopen,
+            split=NONFRESH_CANARY_SPLIT,
+        )
+
+
+def test_evaluators_select_only_calibration_freeze_not_blanket_upstreams(
+    tmp_path: Path,
+) -> None:
+    calibration = {
+        "path": str((tmp_path / "calibration").resolve()),
+        "root_sha256": "a" * 64,
+    }
+    preopen = {
+        "upstream_bindings": {
+            "calibration_freeze": calibration,
+            "calibration_raw": {
+                "path": str((tmp_path / "failed-raw").resolve()),
+                "root_sha256": "b" * 64,
+            },
+        }
+    }
+    assert _calibration_freeze_binding(preopen) == calibration
+    assert _calibration_freeze_binding_independent(preopen) == calibration
+
+    for changed in (
+        {"upstream_bindings": {}},
+        {
+            "upstream_bindings": {
+                "calibration_freeze": {
+                    "path": "relative",
+                    "root_sha256": "a" * 64,
+                }
+            }
+        },
+        {
+            "upstream_bindings": {
+                "calibration_freeze": {
+                    "path": calibration["path"],
+                    "root_sha256": True,
+                }
+            }
+        },
+    ):
+        with pytest.raises(ValueError):
+            _calibration_freeze_binding(changed)
+        with pytest.raises(ValueError):
+            _calibration_freeze_binding_independent(changed)
+
+
+def test_runner_qualification_reports_zero_exposure_side_effects(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "execution"
+    release = {
+        "implementation_source_head": "1" * 40,
+        "pointer_head_at_release": "2" * 40,
+        "fixed_dp_head": "3" * 40,
+        "critical_implementation_manifest_sha256": "4" * 64,
+        "preopen_authority": {
+            "path": str((tmp_path / "preopen").resolve()),
+            "root_sha256": "5" * 64,
+        },
+        "preopen_review": {
+            "path": str((tmp_path / "preopen-review").resolve()),
+            "root_sha256": "6" * 64,
+        },
+        "holdout_identity": {"holdout_identity_sha256": "7" * 64},
+        "experiment_protocol": {"experiment_protocol_sha256": "8" * 64},
+    }
+    qualified = {
+        "release": release,
+        "preopen": {
+            "upstream_authority_role_contract": {
+                "contract_sha256": "9" * 64,
+            }
+        },
+        "plan": {"execution_plan_sha256": "a" * 64},
+        "output": output.resolve(),
+        "operational_attempt_preexisting": False,
+        "operational_identity_preexisting": False,
+        "scientific_ledger_preexisting": False,
+    }
+    monkeypatch.setattr(
+        holdout_runner,
+        "_qualify_inputs",
+        lambda **_kwargs: qualified,
+    )
+    result = holdout_runner.qualify(
+        probe_template=tmp_path / "probe.json",
+        probe_template_sha256="b" * 64,
+        controller_decision_artifact=tmp_path / "controller",
+        controller_decision_root_sha256="c" * 64,
+        opening_release_artifact=tmp_path / "release",
+        opening_release_root_sha256="d" * 64,
+        dp_repo=tmp_path / "dp",
+        output_dir=output,
+        device="cuda",
+    )
+    assert result["status"] == (
+        "passed_no_side_effect_holdout_runner_qualification"
+    )
+    for field in (
+        "operational_attempt_created",
+        "operational_identity_created",
+        "scientific_ledger_created",
+        "authorized_output_created",
+        "model_loaded",
+        "dp_loaded",
+        "simulator_loaded",
+        "forward_executed",
+        "fresh_opened",
+    ):
+        assert result[field] is False
+    assert result["outcome_fields_consumed"] == []
+    assert not output.exists()
