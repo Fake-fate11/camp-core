@@ -448,6 +448,8 @@ def test_every_role_rejects_native_exit_and_payload_status_mutation(
     tmp_path: Path,
     role: str,
 ) -> None:
+    valid_bindings = _chain(tmp_path / "valid")
+    contract = freeze_upstream_authority_role_contract(valid_bindings)
     wrong_exit = 0 if ROLE_SPECS[role]["run_exit"] == 1 else 1
     mutated_exit = _chain(
         tmp_path / "exit",
@@ -455,6 +457,14 @@ def test_every_role_rejects_native_exit_and_payload_status_mutation(
     )
     with pytest.raises((ValueError, FileNotFoundError)):
         freeze_upstream_authority_role_contract(mutated_exit)
+    with pytest.raises((ValueError, FileNotFoundError)):
+        _verify_execution_upstream_authorities_independent(
+            preopen={
+                "upstream_authority_role_contract": contract,
+                "upstream_bindings": mutated_exit,
+            },
+            split="fresh_b4",
+        )
 
     def mutate(current_role: str, payload: dict[str, Any]) -> None:
         if current_role == role:
@@ -470,7 +480,7 @@ def test_every_role_rejects_native_exit_and_payload_status_mutation(
         _verify_execution_upstream_authorities_independent(
             preopen={
                 "upstream_authority_role_contract": contract,
-                "upstream_bindings": wrong_binding,
+                "upstream_bindings": mutated_status,
             },
             split="fresh_b4",
         )
