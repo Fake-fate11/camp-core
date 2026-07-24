@@ -1,6 +1,6 @@
 # V25 Final Evidence Index and Acceptance Checklist
 
-Date: 2026-07-25 (Asia/Shanghai)  
+Date: 2026-07-25 (Asia/Shanghai)
 Disposition: `post_exposure_evaluation_control_fatal_honest_no_claim`
 
 ## Eleven-item acceptance checklist

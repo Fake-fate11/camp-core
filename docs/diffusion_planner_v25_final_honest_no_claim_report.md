@@ -2,8 +2,8 @@
 
 ## Final Auditable Honest-No-Claim Report
 
-Date: 2026-07-25 (Asia/Shanghai)  
-Final scientific disposition: `honest_no_claim`  
+Date: 2026-07-25 (Asia/Shanghai)
+Final scientific disposition: `honest_no_claim`
 Terminal cause:
 `unavailable_due_to_post_exposure_evaluation_fatal`
 
