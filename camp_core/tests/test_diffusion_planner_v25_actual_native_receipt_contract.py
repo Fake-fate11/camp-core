@@ -371,9 +371,9 @@ def _method_tick(index: int, branch: str) -> dict:
         {
             "normalized_atom_matrix_sha256": "4" * 64,
             "scores": [float(item) for item in range(8)],
-            "tie_break_contract": "lowest_index",
+            "tie_break_contract": "lowest_eligible_candidate_index",
             "selection_policy": "v22_source_valid",
-            "score_contract": "score_k(w)=a_k^T w",
+            "score_contract": "score_k=clip(a_k/s,0,10)^T w",
             "eligibility_mask_name": "source_valid_mask",
         }
     )
@@ -577,6 +577,28 @@ def test_method_actual_native_contract_round_trip(branch: str) -> None:
         independent_validate_actual_native_receipt(value, branch=branch)
         == value
     )
+
+
+@pytest.mark.parametrize("branch", ["static14d", "scene14d"])
+@pytest.mark.parametrize(
+    "field,stale_value",
+    [
+        ("score_contract", "score_k(w)=a_k^T w"),
+        ("tie_break_contract", "lowest_index"),
+    ],
+)
+def test_method_actual_native_contract_rejects_stale_shorthand(
+    branch: str, field: str, stale_value: str
+) -> None:
+    value = _header(
+        branch,
+        [_method_tick(index, branch) for index in range(64)],
+    )
+    value["ticks"][0][field] = stale_value
+    with pytest.raises(ValueError):
+        validate_actual_native_receipt(value, branch=branch)
+    with pytest.raises(ValueError):
+        independent_validate_actual_native_receipt(value, branch=branch)
 
 
 @pytest.mark.parametrize(

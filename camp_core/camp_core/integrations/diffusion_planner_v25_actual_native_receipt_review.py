@@ -711,9 +711,11 @@ def _independent_tick_semantics(
         return
     if (
         value["selection_policy"] != "v22_source_valid"
-        or value["score_contract"] != "score_k(w)=a_k^T w"
+        or value["score_contract"]
+        != "score_k=clip(a_k/s,0,10)^T w"
         or value["eligibility_mask_name"] != "source_valid_mask"
-        or value["tie_break_contract"] != "lowest_index"
+        or value["tie_break_contract"]
+        != "lowest_eligible_candidate_index"
     ):
         raise ValueError(f"independent {branch} CAMP score contract drifted")
     eligible = [
