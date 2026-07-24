@@ -334,7 +334,10 @@ def _review_three_arm_execution(
                             "raw receipt"
                         )
                 _review_logical_decision_evidence(
-                    run_dir, native=native, evaluation_arm=evaluation_arm
+                    run_dir,
+                    native=native,
+                    evaluation_arm=evaluation_arm,
+                    config=expected_config,
                 )
                 supplementary_native = None
                 if holdout_mode and evaluation_arm == "candidate0":
@@ -901,7 +904,11 @@ def _validate_cross_arm_pair_authority(rows: Sequence[Mapping[str, Any]]) -> Non
 
 
 def _review_logical_decision_evidence(
-    run_dir: Path, *, native: Mapping[str, Any], evaluation_arm: str
+    run_dir: Path,
+    *,
+    native: Mapping[str, Any],
+    evaluation_arm: str,
+    config: Mapping[str, Any],
 ) -> None:
     reference_path = run_dir / "decision_evidence.ref.json"
     storage_path = run_dir / "decision_evidence.json.gz"
@@ -941,17 +948,39 @@ def _review_logical_decision_evidence(
     evidence = _strict_json(logical_raw)
     if logical_raw != _canonical_bytes(evidence) or type(evidence) is not list:
         raise ValueError("Fresh decision-evidence logical JSON drifted")
-    expected_count = 0 if evaluation_arm == "candidate0" else 64
+    expected_indices = _independent_decision_evidence_indices(
+        config, evaluation_arm=evaluation_arm
+    )
     if (
-        native.get("fresh_decision_evidence_count") != expected_count
-        or len(evidence) != expected_count
+        native.get("fresh_decision_evidence_count") != len(expected_indices)
+        or len(evidence) != len(expected_indices)
         or (
             evidence
             and [row.get("sidecar", {}).get("tick_index") for row in evidence]
-            != list(range(64))
+            != expected_indices
         )
     ):
         raise ValueError("Fresh decision-evidence logical denominator drifted")
+
+
+def _independent_decision_evidence_indices(
+    config: Mapping[str, Any], *, evaluation_arm: str
+) -> list[int]:
+    protocol = config.get("protocol")
+    if type(protocol) is not dict:
+        raise ValueError("Fresh decision-evidence protocol drifted")
+    if evaluation_arm == "candidate0":
+        return []
+    if evaluation_arm not in {"static14d", "scene14d"}:
+        raise ValueError("Fresh decision-evidence arm drifted")
+    sample_every = protocol.get("sample_every_ticks", 5)
+    if (
+        type(sample_every) is not int
+        or type(sample_every) is bool
+        or sample_every <= 0
+    ):
+        raise ValueError("Fresh decision sampling cadence drifted")
+    return list(range(0, 64, sample_every))
 
 
 def _canonical_json(path: Path) -> dict[str, Any]:

@@ -563,13 +563,11 @@ def _native_run_one(
                 ),
             )
         )
-        expected = (
-            0 if plan_arm == "candidate0_operational_default" else 64
-        )
-        if len(snapshots) != expected or (
+        expected_indices = _expected_decision_evidence_indices(config)
+        if len(snapshots) != len(expected_indices) or (
             snapshots
             and [row["sidecar"]["tick_index"] for row in snapshots]
-            != list(range(64))
+            != expected_indices
         ):
             raise ValueError("holdout decision-evidence denominator drifted")
         # Fail-safe evidence ordering: the actual native callback output is
@@ -628,6 +626,24 @@ def _native_run_one(
         return receipt
 
     return execute
+
+
+def _expected_decision_evidence_indices(
+    config: Mapping[str, Any],
+) -> list[int]:
+    protocol = config.get("protocol")
+    if type(protocol) is not dict:
+        raise ValueError("holdout decision-evidence protocol drifted")
+    if protocol.get("holdout_plan_arm") == "candidate0_operational_default":
+        return []
+    sample_every = protocol.get("sample_every_ticks", 5)
+    if (
+        type(sample_every) is not int
+        or type(sample_every) is bool
+        or sample_every <= 0
+    ):
+        raise ValueError("holdout decision sampling cadence drifted")
+    return list(range(0, 64, sample_every))
 
 
 def _candidate_tensor_preimage_sink(
