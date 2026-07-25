@@ -422,13 +422,30 @@ def review_summary(
         "atom_and_score_difference_threshold_added": False,
         "atom_and_score_differences_are_exact_and_absolute_descriptive": True,
         "hard_stop_preserved": True,
+        "classification": (
+            "overconservative_equivalence_contract_triggered; "
+            "functional adaptation risk unresolved"
+        ),
+        "hard_stop_proves_only_frozen_neighbor_tolerance_rule_triggered": True,
         "neighbor_equivalent_rows": 114,
         "neighbor_row_denominator": 128,
         "substantive_drift_state_count": 9,
+        "ego_trajectory_equivalent_rows": 128,
+        "ego_trajectory_row_denominator": 128,
+        "mask_equal_state_count": 16,
+        "static_selected_index_equal_state_count": 16,
+        "scene_selected_index_equal_state_count": 16,
+        "selector_functional_selection_drift_observed_in_16_states": False,
+        "batch8_architecture_failure_proven": False,
+        "model_failure_proven": False,
+        "training_distribution_or_ood_drift_proven": False,
+        "retraining_required_proven": False,
         "closed_loop_started": False,
         "closed_loop_arm_count": 0,
         "closed_loop_tick_count": 0,
-        "possible_adaptation_or_ood_risk": True,
+        "legacy_source_possible_training_pool_adaptation_required": True,
+        "legacy_source_field_is_overconservative_contract_field_not_scientific_conclusion": True,
+        "functional_adaptation_risk": "unresolved",
         "retraining_decision": "undecided_not_authorized",
     }:
         raise ValueError("summary interpretation boundary drifted")
@@ -448,6 +465,13 @@ def review_summary(
         "failure_indicator_state_count": indicator_states,
         "failure_indicator_row_count": indicator_rows,
         "hard_stop_preserved": True,
+        "classification": (
+            "overconservative_equivalence_contract_triggered; "
+            "functional adaptation risk unresolved"
+        ),
+        "selector_functional_selection_drift_observed_in_16_states": False,
+        "training_distribution_or_ood_drift_proven": False,
+        "retraining_required_proven": False,
     }
 
 

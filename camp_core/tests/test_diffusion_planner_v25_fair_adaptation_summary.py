@@ -109,6 +109,16 @@ def test_additive_summary_and_independent_literal_review():
     ] == 9
     assert rebuilt["primary_failure_taxonomy_state_count"]["no_failure"] == 7
     assert rebuilt["failure_indicator_row_count"]["neighbor_tolerance"] == 14
+    assert rebuilt["classification"] == (
+        "overconservative_equivalence_contract_triggered; "
+        "functional adaptation risk unresolved"
+    )
+    assert (
+        rebuilt["selector_functional_selection_drift_observed_in_16_states"]
+        is False
+    )
+    assert rebuilt["training_distribution_or_ood_drift_proven"] is False
+    assert rebuilt["retraining_required_proven"] is False
 
 
 def test_summary_unknown_array_fails_closed():
