@@ -380,6 +380,15 @@ def test_reviewer_does_not_import_producer_contract_module() -> None:
     assert "diffusion_planner_v25_target_architecture import" not in source
 
 
+def test_result_reviewer_checks_mutable_input_preimage_proof() -> None:
+    source = (
+        ROOT / "scripts/integrations/review_diffusion_planner_v25_same_ego_k8.py"
+    ).read_text(encoding="utf-8")
+    assert "_encoded, outputs = model(call_inputs)" in source
+    assert "value.detach().clone() for key, value in inputs.items()" in source
+    assert "latent_preimage_np = latent_preimage.detach().cpu().numpy().copy()" in source
+
+
 def test_fairness_draft_separates_state_matched_and_compute_matched() -> None:
     draft = target_architecture_amendment()["fairness_contract_draft"]
     assert draft["state_matched_offline_selector_replay"]["same_k8_tensor"] is True

@@ -166,7 +166,10 @@ def review(
         ROOT / "scripts/integrations/qualify_diffusion_planner_v25_same_ego_k8.py"
     ).read_text(encoding="utf-8")
     if (
-        "model(inputs)" not in producer_source
+        "_encoded, outputs = model(call_inputs)" not in producer_source
+        or "value.detach().clone() for key, value in inputs.items()" not in producer_source
+        or "latent_preimage_np = latent_preimage.detach().cpu().numpy().copy()"
+        not in producer_source
         or "replay._predict_batch = direct_qualification" not in producer_source
         or '"simulator_steps_advanced": 0' not in producer_source
         or "qualify_selector_after_pool" not in producer_source
