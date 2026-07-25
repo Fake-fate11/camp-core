@@ -349,7 +349,9 @@ def review(
         or report["evaluation_role_provenance"]
         != {
             "implementation_head": evaluation_head,
-            "implementation_manifest_sha256": _correction_manifest_sha256(),
+            "implementation_manifest_sha256": (
+                _correction_manifest_sha256(evaluation_head)
+            ),
         }
         or report["old_terminal_diagnostic_preserved"] is not True
         or report["fresh_execution_reused"] is not True
