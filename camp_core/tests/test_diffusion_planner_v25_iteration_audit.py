@@ -37,6 +37,14 @@ FAIR_NONHOLDOUT_REPORT = (
 FAIR_NONHOLDOUT_INDEX = (
     ROOT / "docs" / "diffusion_planner_v25_fair_nonholdout_evidence_index.md"
 )
+FAIR_POOL_ADAPTATION_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_fair_pool_adaptation_contract_report.md"
+)
+FAIR_POOL_ADAPTATION_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_fair_pool_adaptation_contract_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -500,8 +508,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Fair Nonholdout Pool-Adaptation Hard Stop, "
-        "Scientific Contract Review Required"
+        "## Current V25 Status - Fair-Pool Adaptation Contract v1 Frozen, "
+        "Acquisition Unauthorized"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -512,8 +520,8 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-25 - Fair Nonholdout Pool-Adaptation Hard Stop, "
-        "Scientific Contract Review Required"
+        "## 2026-07-25 - Fair-Pool Adaptation Contract v1 Frozen, "
+        "Acquisition Unauthorized"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -523,18 +531,16 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_nonholdout_overconservative_equivalence_contract_triggered_"
-        "functional_adaptation_risk_unresolved_"
+        "v25_fair_pool_adaptation_contract_v1_frozen_acquisition_unauthorized_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "fair_nonholdout_pool_adaptation_hard_stop_"
-        "no_closed_loop_executed"
+        "fair_pool_adaptation_contract_design_and_independent_review_complete_"
+        "no_acquisition"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_fair_nonholdout_additive_adaptation_summary_review_"
-        "before_any_prospective_contract"
+        "high_fair_pool_adaptation_contract_review_before_any_acquisition"
     )
 
 
@@ -578,6 +584,45 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_fair_nonholdout_evidence_index_sha256"
     ] == _sha256(FAIR_NONHOLDOUT_INDEX)
+    assert status_pointer[
+        "current_v25_fair_pool_adaptation_report_sha256"
+    ] == _sha256(FAIR_POOL_ADAPTATION_REPORT)
+    assert status_pointer[
+        "current_v25_fair_pool_adaptation_evidence_index_sha256"
+    ] == _sha256(FAIR_POOL_ADAPTATION_INDEX)
+
+
+def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
+    pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    assert pointer["current_v25_fair_pool_adaptation_contract_schema"] == (
+        "camp_dp_v25_fair_pool_adaptation_contract_v1"
+    )
+    assert pointer["current_v25_fair_pool_adaptation_calibration_state_count"] == "64"
+    assert pointer["current_v25_fair_pool_adaptation_validation_state_count"] == "64"
+    assert pointer["current_v25_fair_pool_adaptation_independent_statistical_unit"] == (
+        "state"
+    )
+    assert pointer["current_v25_fair_pool_adaptation_within_mode_repeat_count"] == "5"
+    assert pointer["current_v25_fair_pool_adaptation_single_float_1e_5_veto"] == (
+        "false"
+    )
+    assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == (
+        "false"
+    )
+    for field in (
+        "calibration_run_count",
+        "repeat_model_run_count",
+        "pool_run_count",
+        "selector_run_count",
+        "closed_loop_run_count",
+        "fresh_run_count",
+        "holdout_run_count",
+        "training_run_count",
+    ):
+        assert pointer[f"current_v25_fair_pool_adaptation_{field}"] == "0"
+    assert pointer["current_v25_fair_pool_adaptation_claim_authorized"] == "false"
 
 
 def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() -> None:
@@ -720,8 +765,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_fair_nonholdout_additive_adaptation_summary_review_"
-        "before_any_prospective_contract"
+        "high_fair_pool_adaptation_contract_review_before_any_acquisition"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
