@@ -451,7 +451,7 @@ def _independent_verify_release_dual_head(
         or pointer != POINTER_HEAD
         or manifest_sha != CRITICAL_IMPLEMENTATION_MANIFEST_SHA256
         or execution_heads
-        != {"camp_head": source, "fixed_dp_head": FIXED_DP_HEAD}
+        != {"camp_head": pointer, "fixed_dp_head": FIXED_DP_HEAD}
         or execution_review_heads != execution_heads
     ):
         raise ValueError("reviewed release dual-HEAD binding drifted")

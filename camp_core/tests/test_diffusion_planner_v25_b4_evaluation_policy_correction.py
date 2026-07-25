@@ -64,8 +64,8 @@ def test_real_b4_dual_head_contract_passes() -> None:
         critical_implementation_manifest_sha256=(
             CRITICAL_IMPLEMENTATION_MANIFEST_SHA256
         ),
-        execution_heads=_heads(),
-        execution_review_heads=_heads(),
+        execution_heads=_heads(POINTER_HEAD),
+        execution_review_heads=_heads(POINTER_HEAD),
     )
     assert result["pointer_only_changed_paths"] == list(POINTER_ONLY_PATHS)
 
@@ -96,8 +96,8 @@ def test_dual_head_drift_fails_closed(mutation: str) -> None:
         "critical_implementation_manifest_sha256": (
             CRITICAL_IMPLEMENTATION_MANIFEST_SHA256
         ),
-        "execution_heads": _heads(),
-        "execution_review_heads": _heads(),
+        "execution_heads": _heads(POINTER_HEAD),
+        "execution_review_heads": _heads(POINTER_HEAD),
         "fixed_dp_head": FIXED_DP_HEAD,
     }
     current = subprocess.check_output(
@@ -110,9 +110,9 @@ def test_dual_head_drift_fails_closed(mutation: str) -> None:
     elif mutation == "manifest":
         kwargs["critical_implementation_manifest_sha256"] = HEX_A
     elif mutation == "execution_heads":
-        kwargs["execution_heads"] = _heads(POINTER_HEAD)
+        kwargs["execution_heads"] = _heads(IMPLEMENTATION_SOURCE_HEAD)
     elif mutation == "review_heads":
-        kwargs["execution_review_heads"] = _heads(POINTER_HEAD)
+        kwargs["execution_review_heads"] = _heads(IMPLEMENTATION_SOURCE_HEAD)
     else:
         kwargs["fixed_dp_head"] = HEX_A
     with pytest.raises((ValueError, subprocess.CalledProcessError)):

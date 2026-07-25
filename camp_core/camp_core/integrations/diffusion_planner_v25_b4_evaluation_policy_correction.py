@@ -313,14 +313,18 @@ def verify_release_dual_head_contract(
     )
     if fixed_dp_head != FIXED_DP_HEAD:
         raise ValueError("holdout fixed DP HEAD drifted")
-    expected_heads = {"camp_head": source, "fixed_dp_head": FIXED_DP_HEAD}
+    # The sealed execution roles ran from the release pointer.  Their
+    # implementation source is separately pinned by the release manifest and
+    # the exact source->pointer allowlist; conflating these two roles caused
+    # the original evaluation-control fatal.
+    expected_heads = {"camp_head": pointer, "fixed_dp_head": FIXED_DP_HEAD}
     if (
         type(execution_heads) is not dict
         or type(execution_review_heads) is not dict
         or not strict_equal(execution_heads, expected_heads)
         or not strict_equal(execution_review_heads, expected_heads)
     ):
-        raise ValueError("holdout execution source HEAD binding drifted")
+        raise ValueError("holdout execution pointer HEAD binding drifted")
     changed = _git_changed_paths(Path(repo).resolve(), source, pointer)
     if source == pointer:
         if changed:
