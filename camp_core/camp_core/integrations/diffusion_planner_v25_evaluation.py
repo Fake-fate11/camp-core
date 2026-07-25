@@ -676,21 +676,32 @@ def _arm_order_counts(
     grouped: Mapping[str, Mapping[str, Mapping[str, Any]]]
 ) -> dict[str, Any]:
     pairs = list(grouped.values())
-    result: dict[str, Any] = {"overall": _position_counts(pairs, "overall")}
+    result: dict[str, Any] = {
+        "overall": _position_counts(
+            pairs, "overall", require_balanced=True
+        )
+    }
     for field in ("benchmark_stratum", "scenario_family", "inference_cluster_id"):
         groups: dict[str, list[Mapping[str, Mapping[str, Any]]]] = defaultdict(list)
         for pair in pairs:
             groups[str(pair["candidate0"][field])].append(pair)
         output_name = "independent_cluster" if field == "inference_cluster_id" else field
         result[output_name] = {
-            value: _position_counts(rows, f"{field}={value}")
+            value: _position_counts(
+                rows,
+                f"{field}={value}",
+                require_balanced=field == "inference_cluster_id",
+            )
             for value, rows in sorted(groups.items())
         }
     return result
 
 
 def _position_counts(
-    pairs: Sequence[Mapping[str, Mapping[str, Any]]], label: str
+    pairs: Sequence[Mapping[str, Mapping[str, Any]]],
+    label: str,
+    *,
+    require_balanced: bool,
 ) -> dict[str, list[int]]:
     result: dict[str, list[int]] = {}
     for arm in ARMS:
@@ -698,7 +709,7 @@ def _position_counts(
             sum(pair[arm]["arm_order_index"] == position for pair in pairs)
             for position in range(3)
         ]
-        if max(counts) - min(counts) > 1:
+        if require_balanced and max(counts) - min(counts) > 1:
             raise ValueError(f"Fresh B2 arm order is not balanced within {label}")
         result[arm] = counts
     return result

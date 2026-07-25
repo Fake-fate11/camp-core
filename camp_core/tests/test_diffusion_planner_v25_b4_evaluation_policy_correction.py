@@ -18,7 +18,7 @@ from camp_core.integrations.diffusion_planner_v25_b4_evaluation_continuation imp
 )
 from camp_core.integrations.diffusion_planner_v25_b4_evaluation_policy_correction import (
     CONTROLLER_ROOT_SHA256,
-    CORRECTION_IMPLEMENTATION_PATHS,
+    AUTHORITY_V1_IMPLEMENTATION_PATHS,
     CRITICAL_IMPLEMENTATION_MANIFEST_SHA256,
     EXECUTION_PLAN_SHA256,
     EXECUTION_REVIEW_ROOT_SHA256,
@@ -44,6 +44,14 @@ from camp_core.integrations.diffusion_planner_v25_b4_evaluation_policy_correctio
     manifest_at_git_head,
     validate_correction_authority,
     verify_release_dual_head_contract,
+)
+from camp_core.integrations.diffusion_planner_v25_evaluation import (
+    _arm_order_counts,
+)
+from camp_core.integrations.diffusion_planner_v25_b4_evaluation_repair import (
+    ALLOWED_CHANGED_PATHS,
+    freeze_repair,
+    validate_repair,
 )
 
 
@@ -159,7 +167,7 @@ def _authority() -> dict[str, object]:
         correction_implementation={
             "head": correction_head,
             "manifest_sha256": HEX_A,
-            "manifest_paths": list(CORRECTION_IMPLEMENTATION_PATHS),
+            "manifest_paths": list(AUTHORITY_V1_IMPLEMENTATION_PATHS),
         },
         focused_tests={"path": "/focused", "root_sha256": HEX_B},
         corrected_evaluation_output_dir=(
@@ -271,3 +279,55 @@ def test_reviewer_does_not_import_correction_producer_validator() -> None:
     assert "validate_correction_authority" not in source
     assert "if corrected:" in source
     assert "mark_independently_reviewed_terminal" in source
+
+
+def test_arm_order_contract_does_not_invent_family_balance() -> None:
+    arms = ("candidate0", "static14d", "scene14d")
+    grouped = {}
+    for pair_index, offset in enumerate((0, 1, 2, 0, 1, 2)):
+        order = arms[offset:] + arms[:offset]
+        family = "family-a" if pair_index in {0, 3} else "family-b"
+        grouped[str(pair_index)] = {
+            arm: {
+                "arm_order_index": order.index(arm),
+                "benchmark_stratum": "controlled_stress",
+                "scenario_family": family,
+                "inference_cluster_id": f"cluster-{pair_index}",
+            }
+            for arm in arms
+        }
+    counts = _arm_order_counts(grouped)
+    assert counts["overall"]["candidate0"] == [2, 2, 2]
+    assert counts["scenario_family"]["family-a"]["candidate0"] == [2, 0, 0]
+
+
+def test_pre_artifact_repair_schema_is_outcome_blind_and_fail_closed() -> None:
+    repair = freeze_repair(
+        original_correction_authority={"path": "/authority", "root_sha256": HEX_A},
+        original_correction_authority_review={"path": "/authority-review", "root_sha256": HEX_B},
+        continuation_ledger={"path": "/continuation.json", "sha256": "c" * 64},
+        failed_evaluation_control={
+            "directory": "/control",
+            "run_exit": 1,
+            "stderr": {"path": "/control/stderr.log", "sha256": "d" * 64},
+            "run_script": {"path": "/control/run.sh", "sha256": "e" * 64},
+            "run_receipt": {"path": "/control/run.sha256", "sha256": "f" * 64},
+        },
+        old_correction_head=HEX_A,
+        old_correction_manifest_sha256=HEX_B,
+        new_correction_head="c" * 64,
+        new_correction_manifest_sha256="d" * 64,
+        focused_tests={"path": "/focused", "root_sha256": "e" * 64},
+        changed_paths=list(ALLOWED_CHANGED_PATHS),
+        corrected_evaluation_output_dir="/corrected/evaluation",
+        corrected_evaluation_review_output_dir="/corrected/review",
+    )
+    assert validate_repair(repair) == repair
+    poisoned = copy.deepcopy(repair)
+    poisoned["raw_outcome_values_inspected"] = True
+    with pytest.raises(ValueError):
+        validate_repair(poisoned)
+    unknown = copy.deepcopy(repair)
+    unknown["outcome"] = 1.0
+    with pytest.raises(ValueError):
+        validate_repair(unknown)

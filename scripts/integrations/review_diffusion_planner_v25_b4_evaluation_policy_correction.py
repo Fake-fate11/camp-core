@@ -61,6 +61,7 @@ POINTER_PATHS = (
 CORRECTION_PATHS = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_b4_evaluation_policy_correction.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_b4_evaluation_continuation.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_evaluation.py",
     "scripts/integrations/evaluate_diffusion_planner_v25_holdout.py",
     "scripts/integrations/review_diffusion_planner_v25_holdout_evaluation.py",
     "scripts/integrations/freeze_diffusion_planner_v25_b4_evaluation_policy_correction.py",

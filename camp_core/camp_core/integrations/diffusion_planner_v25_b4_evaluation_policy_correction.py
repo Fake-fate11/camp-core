@@ -104,7 +104,7 @@ CONTINUATION_STATE_SEQUENCE = (
     "independently_reviewed_terminal",
 )
 
-CORRECTION_IMPLEMENTATION_PATHS = (
+AUTHORITY_V1_IMPLEMENTATION_PATHS = (
     (
         "camp_core/camp_core/integrations/"
         "diffusion_planner_v25_b4_evaluation_policy_correction.py"
@@ -126,6 +126,22 @@ CORRECTION_IMPLEMENTATION_PATHS = (
     (
         "scripts/integrations/"
         "authorize_diffusion_planner_v25_b4_evaluation_continuation.py"
+    ),
+)
+CORRECTION_IMPLEMENTATION_PATHS = (
+    *AUTHORITY_V1_IMPLEMENTATION_PATHS,
+    "camp_core/camp_core/integrations/diffusion_planner_v25_evaluation.py",
+    (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_b4_evaluation_repair.py"
+    ),
+    (
+        "scripts/integrations/"
+        "freeze_diffusion_planner_v25_b4_evaluation_repair.py"
+    ),
+    (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_b4_evaluation_repair.py"
     ),
 )
 
@@ -812,7 +828,7 @@ def _correction_implementation(
     paths = _exact_string_list(
         value["manifest_paths"], "correction manifest paths"
     )
-    if tuple(paths) != CORRECTION_IMPLEMENTATION_PATHS:
+    if tuple(paths) != AUTHORITY_V1_IMPLEMENTATION_PATHS:
         raise ValueError("correction implementation path set drifted")
     return {
         "head": _git_head(value["head"], "correction implementation"),

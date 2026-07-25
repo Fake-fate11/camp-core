@@ -39,6 +39,10 @@ from camp_core.integrations.diffusion_planner_v25_b4_evaluation_continuation imp
     mark_corrected_evaluation_artifact_formed,
     start_corrected_evaluation,
 )
+from camp_core.integrations.diffusion_planner_v25_b4_evaluation_repair import (  # noqa: E402,E501
+    validate_repair,
+    validate_repair_review,
+)
 from camp_core.integrations.diffusion_planner_v25_evaluation import (  # noqa: E402
     evaluate_holdout_three_arm,
 )
@@ -104,6 +108,10 @@ def evaluate(
     correction_authority_review_artifact: Path | None = None,
     correction_authority_review_root_sha256: str | None = None,
     continuation_ledger: Path | None = None,
+    correction_repair_artifact: Path | None = None,
+    correction_repair_root_sha256: str | None = None,
+    correction_repair_review_artifact: Path | None = None,
+    correction_repair_review_root_sha256: str | None = None,
 ) -> str:
     output = Path(output_dir).resolve()
     if output.exists():
@@ -136,6 +144,17 @@ def evaluate(
     corrected = any(value is not None for value in corrected_arguments)
     if corrected and not all(value is not None for value in corrected_arguments):
         raise ValueError("corrected evaluation authority arguments are incomplete")
+    repair_arguments = (
+        correction_repair_artifact,
+        correction_repair_root_sha256,
+        correction_repair_review_artifact,
+        correction_repair_review_root_sha256,
+    )
+    repaired = any(value is not None for value in repair_arguments)
+    if repaired and not all(value is not None for value in repair_arguments):
+        raise ValueError("corrected evaluation repair arguments are incomplete")
+    if repaired and not corrected:
+        raise ValueError("evaluation repair requires correction authority")
     execution_heads = _heads(execution / "HEADS")
     execution_review_heads = _heads(execution_review / "HEADS")
     dual_head = verify_release_dual_head_contract(
@@ -224,6 +243,8 @@ def evaluate(
     correction: dict[str, Any] | None = None
     correction_review: dict[str, Any] | None = None
     continuation: dict[str, Any] | None = None
+    repair: dict[str, Any] | None = None
+    repair_review: dict[str, Any] | None = None
     if corrected:
         authority_path = Path(correction_authority_artifact).resolve()
         authority_review_path = Path(
@@ -262,10 +283,6 @@ def evaluate(
             or correction["execution_review"]["root_sha256"]
             != execution_review_root_sha256
             or correction["corrected_evaluation_output_dir"] != str(output)
-            or correction["correction_implementation"]["head"]
-            != evaluation_head
-            or correction["correction_implementation"]["manifest_sha256"]
-            != correction_implementation_manifest(ROOT)["manifest_sha256"]
             or scientific["state"] != "terminal_failure"
             or tuple(scientific["history"]) != OLD_TERMINAL_HISTORY
             or scientific["terminal_reason"] != OLD_TERMINAL_REASON
@@ -275,6 +292,59 @@ def evaluate(
             != OLD_TERMINAL_LEDGER_SHA256
         ):
             raise ValueError("corrected evaluation authority binding drifted")
+        current_manifest = correction_implementation_manifest(ROOT)
+        original_head = correction["correction_implementation"]["head"]
+        if evaluation_head == original_head:
+            if repaired or (
+                correction["correction_implementation"]["manifest_sha256"]
+                != current_manifest["manifest_sha256"]
+            ):
+                raise ValueError("unexpected corrected evaluation repair")
+        else:
+            if not repaired:
+                raise ValueError("pre-artifact evaluation repair is required")
+            repair_path = Path(correction_repair_artifact).resolve()
+            repair_review_path = Path(
+                correction_repair_review_artifact
+            ).resolve()
+            verify_complete_seal(
+                repair_path,
+                str(correction_repair_root_sha256),
+                label="Fresh B4 pre-artifact evaluation repair",
+            )
+            verify_complete_seal(
+                repair_review_path,
+                str(correction_repair_review_root_sha256),
+                label="Fresh B4 pre-artifact evaluation repair review",
+            )
+            repair = validate_repair(
+                _canonical_json(repair_path / "repair.json")
+            )
+            repair_review = validate_repair_review(
+                _canonical_json(repair_review_path / "report.json")
+            )
+            if (
+                repair_review["reviewed_repair"]
+                != {
+                    "path": str(repair_path),
+                    "root_sha256": correction_repair_root_sha256,
+                }
+                or repair["original_correction_authority"]["root_sha256"]
+                != correction_authority_root_sha256
+                or repair["original_correction_authority_review"][
+                    "root_sha256"
+                ]
+                != correction_authority_review_root_sha256
+                or repair["continuation_ledger"]["path"]
+                != str(Path(continuation_ledger).resolve())
+                or repair["new_correction_head"] != evaluation_head
+                or repair["new_correction_manifest_sha256"]
+                != current_manifest["manifest_sha256"]
+                or repair["corrected_evaluation_output_dir"] != str(output)
+                or repair["corrected_evaluation_review_output_dir"]
+                != correction["corrected_evaluation_review_output_dir"]
+            ):
+                raise ValueError("pre-artifact evaluation repair binding drifted")
         continuation_path = Path(continuation_ledger).resolve()
         continuation = load_continuation_ledger(continuation_path)
         if (
@@ -396,6 +466,23 @@ def evaluate(
                 },
             }
         )
+        if repaired:
+            report.update(
+                {
+                    "correction_repair_artifact": str(
+                        Path(correction_repair_artifact).resolve()
+                    ),
+                    "correction_repair_root_sha256": (
+                        correction_repair_root_sha256
+                    ),
+                    "correction_repair_review_artifact": str(
+                        Path(correction_repair_review_artifact).resolve()
+                    ),
+                    "correction_repair_review_root_sha256": (
+                        correction_repair_review_root_sha256
+                    ),
+                }
+            )
     output.mkdir(parents=True)
     _write_json(output / "evaluation.json", result)
     _write_json(output / "report.json", report)
@@ -461,6 +548,10 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--correction-authority-review-artifact", type=Path)
     parser.add_argument("--correction-authority-review-root-sha256")
     parser.add_argument("--continuation-ledger", type=Path)
+    parser.add_argument("--correction-repair-artifact", type=Path)
+    parser.add_argument("--correction-repair-root-sha256")
+    parser.add_argument("--correction-repair-review-artifact", type=Path)
+    parser.add_argument("--correction-repair-review-root-sha256")
     return parser.parse_args()
 
 

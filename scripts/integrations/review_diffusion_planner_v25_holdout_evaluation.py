@@ -126,6 +126,14 @@ CORRECTED_EVALUATION_REPORT_FIELDS = EVALUATION_REPORT_FIELDS | frozenset(
         "evaluation_role_provenance",
     }
 )
+CORRECTED_REPAIR_FIELDS = frozenset(
+    {
+        "correction_repair_artifact",
+        "correction_repair_root_sha256",
+        "correction_repair_review_artifact",
+        "correction_repair_review_root_sha256",
+    }
+)
 CORRECTION_IMPLEMENTATION_PATHS = (
     "camp_core/camp_core/integrations/diffusion_planner_v25_b4_evaluation_policy_correction.py",
     "camp_core/camp_core/integrations/diffusion_planner_v25_b4_evaluation_continuation.py",
@@ -134,6 +142,10 @@ CORRECTION_IMPLEMENTATION_PATHS = (
     "scripts/integrations/freeze_diffusion_planner_v25_b4_evaluation_policy_correction.py",
     "scripts/integrations/review_diffusion_planner_v25_b4_evaluation_policy_correction.py",
     "scripts/integrations/authorize_diffusion_planner_v25_b4_evaluation_continuation.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_evaluation.py",
+    "camp_core/camp_core/integrations/diffusion_planner_v25_b4_evaluation_repair.py",
+    "scripts/integrations/freeze_diffusion_planner_v25_b4_evaluation_repair.py",
+    "scripts/integrations/review_diffusion_planner_v25_b4_evaluation_repair.py",
 )
 
 
@@ -171,6 +183,7 @@ def review(
         report.get("schema_version")
         == "camp_dp_v25_holdout_evaluation_artifact_v3_corrected"
     )
+    repaired = corrected and "correction_repair_artifact" in report
     execution = Path(report["execution_artifact"]).resolve()
     execution_review = Path(report["execution_review_artifact"]).resolve()
     verify_complete_seal(
@@ -297,7 +310,11 @@ def review(
         not strict_equal(stored, rebuilt)
         or set(report)
         != (
-            CORRECTED_EVALUATION_REPORT_FIELDS
+            (
+                CORRECTED_EVALUATION_REPORT_FIELDS | CORRECTED_REPAIR_FIELDS
+                if repaired
+                else CORRECTED_EVALUATION_REPORT_FIELDS
+            )
             if corrected
             else EVALUATION_REPORT_FIELDS
         )
@@ -375,6 +392,17 @@ def review(
                 "scientific_contract_changed": False,
             }
         )
+        if repaired:
+            result.update(
+                {
+                    "correction_repair_root_sha256": report[
+                        "correction_repair_root_sha256"
+                    ],
+                    "correction_repair_review_root_sha256": report[
+                        "correction_repair_review_root_sha256"
+                    ],
+                }
+            )
     output.mkdir(parents=True)
     _write_json(output / "report.json", result)
     (output / "HEADS").write_bytes(
@@ -573,12 +601,6 @@ def _independent_correction_bindings(
         != CRITICAL_IMPLEMENTATION_MANIFEST_SHA256
         or authority.get("old_scientific_ledger", {}).get("sha256")
         != OLD_TERMINAL_LEDGER_SHA256
-        or authority.get("correction_implementation", {}).get("head")
-        != evaluation_head
-        or authority.get("correction_implementation", {}).get(
-            "manifest_sha256"
-        )
-        != _correction_manifest_sha256()
         or authority.get("corrected_evaluation_output_dir")
         != str(evaluation_artifact)
         or authority.get("corrected_evaluation_review_output_dir")
@@ -594,6 +616,64 @@ def _independent_correction_bindings(
         or authority_review.get("scientific_contract_changed") is not False
     ):
         raise ValueError("reviewer correction authority binding drifted")
+    original_head = authority.get("correction_implementation", {}).get("head")
+    current_manifest = _correction_manifest_sha256()
+    repaired = "correction_repair_artifact" in report
+    if not repaired and (
+        original_head != evaluation_head
+        or authority.get("correction_implementation", {}).get(
+            "manifest_sha256"
+        )
+        != current_manifest
+    ):
+        raise ValueError("reviewer correction implementation drifted")
+    if repaired:
+        repair_path = Path(report["correction_repair_artifact"]).resolve()
+        repair_review_path = Path(
+            report["correction_repair_review_artifact"]
+        ).resolve()
+        for label, path, root in (
+            ("evaluation repair", repair_path, report["correction_repair_root_sha256"]),
+            (
+                "evaluation repair review",
+                repair_review_path,
+                report["correction_repair_review_root_sha256"],
+            ),
+        ):
+            verify_complete_seal(path, root, label=label)
+            if (path / "run.exit").read_bytes() != b"0\n":
+                raise ValueError(f"{label} did not pass")
+        repair = _canonical_json(repair_path / "repair.json")
+        repair_review = _canonical_json(repair_review_path / "report.json")
+        if (
+            repair.get("original_correction_authority", {}).get(
+                "root_sha256"
+            )
+            != authority_root
+            or repair.get("original_correction_authority_review", {}).get(
+                "root_sha256"
+            )
+            != authority_review_root
+            or repair.get("old_correction_head") != original_head
+            or repair.get("new_correction_head") != evaluation_head
+            or repair.get("new_correction_manifest_sha256")
+            != current_manifest
+            or repair.get("corrected_evaluation_output_dir")
+            != str(evaluation_artifact)
+            or repair.get("corrected_evaluation_review_output_dir")
+            != str(evaluation_review_output)
+            or repair.get("raw_outcome_values_inspected") is not False
+            or repair.get("fresh_execution_rerun") is not False
+            or repair.get("scientific_contract_changed") is not False
+            or repair_review.get("reviewed_repair")
+            != {
+                "path": str(repair_path),
+                "root_sha256": report["correction_repair_root_sha256"],
+            }
+            or repair_review.get("status")
+            != "passed_independent_outcome_blind_pre_artifact_evaluation_repair_review"
+        ):
+            raise ValueError("reviewer evaluation repair binding drifted")
     continuation = load_continuation_ledger(Path(report["continuation_ledger"]))
     if (
         continuation["state"] != "evaluation_artifact_formed"
