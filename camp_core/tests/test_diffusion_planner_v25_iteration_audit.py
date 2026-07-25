@@ -16,6 +16,14 @@ CORRECTED_FINAL_REPORT = (
 CORRECTED_FINAL_INDEX = (
     ROOT / "docs" / "diffusion_planner_v25_final_corrected_evidence_index.md"
 )
+METRIC_SEMANTICS_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_metric_semantics_amendment_report.md"
+)
+METRIC_SEMANTICS_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_metric_semantics_amendment_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -479,7 +487,7 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Fresh B4 Corrected Evaluation "
+        "## Current V25 Status - Metric Semantics Amendment "
         "Independently Reviewed"
     )
     assert text.count("## Current V25 Status") == 1
@@ -490,10 +498,7 @@ def _current_v25_section(text: str) -> str:
 
 
 def _audit_v25_eof(text: str) -> str:
-    heading = (
-        "## 2026-07-25 - Prospective Evaluator-Policy Correction "
-        "and Corrected Evaluation Terminal"
-    )
+    heading = "## 2026-07-25 - Metric Semantics Amendment Independently Reviewed"
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
 
@@ -502,13 +507,13 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fresh_b4_corrected_evaluation_independently_reviewed_honest_no_claim"
+        "v25_metric_semantics_amendment_independently_reviewed_honest_no_claim"
     )
     assert pointer["current_v25_phase"] == (
-        "fresh_b4_corrected_evaluation_independently_reviewed_terminal"
+        "metric_semantics_amendment_independently_reviewed_terminal"
     )
     assert text.rstrip().endswith(
-        "next_work_target=high_final_incremental_package_review_before_ultra"
+        "next_work_target=high_metric_semantics_amendment_package_review"
     )
 
 
@@ -531,6 +536,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_final_corrected_evidence_index_sha256"
     ] == _sha256(CORRECTED_FINAL_INDEX)
+    assert status_pointer["current_v25_metric_semantics_report_sha256"] == _sha256(
+        METRIC_SEMANTICS_REPORT
+    )
+    assert status_pointer[
+        "current_v25_metric_semantics_evidence_index_sha256"
+    ] == _sha256(METRIC_SEMANTICS_INDEX)
 
 
 def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
@@ -561,7 +572,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert audit.rstrip().endswith(
-        "next_work_target=high_final_incremental_package_review_before_ultra"
+        "next_work_target=high_metric_semantics_amendment_package_review"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
@@ -632,6 +643,90 @@ def test_v25_corrected_latency_checklist_uses_sealed_complete_summaries() -> Non
         "mean,median,p95,p99,max"
     )
     assert status_pointer["current_v25_b4_latency_checklist_complete"] == "true"
+
+
+def test_v25_metric_semantics_amendment_is_additive_and_fail_closed() -> None:
+    report = METRIC_SEMANTICS_REPORT.read_text(encoding="utf-8")
+    index = METRIC_SEMANTICS_INDEX.read_text(encoding="utf-8")
+    current = _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    audit_eof = _audit_v25_eof(AUDIT.read_text(encoding="utf-8"))
+    pointer = _machine_tuple(current)
+
+    assert _machine_tuple(audit_eof) == pointer
+    assert pointer["current_v25_metric_semantics_schema"] == (
+        "camp_dp_v25_metric_semantics_amendment_v1"
+    )
+    assert pointer["current_v25_metric_semantics_report_sha256"] == _sha256(
+        METRIC_SEMANTICS_REPORT
+    )
+    assert pointer[
+        "current_v25_metric_semantics_evidence_index_sha256"
+    ] == _sha256(METRIC_SEMANTICS_INDEX)
+    assert pointer["current_v25_metric_semantics_filtered_samples_per_run"] == "52"
+    assert pointer["current_v25_metric_semantics_per_run_before_pair_and_cluster"] == (
+        "true"
+    )
+    assert pointer["current_v25_metric_semantics_new_ni_or_claim_gate"] == "false"
+    assert pointer["current_v25_metric_semantics_sealed_source_artifacts_written"] == (
+        "false"
+    )
+    assert pointer[
+        "current_v25_metric_semantics_scientific_or_continuation_cas_written"
+    ] == "false"
+    assert pointer[
+        "current_v25_metric_semantics_industrial_occupant_comfort_status"
+    ] == "evidence_missing_not_assessed"
+
+    roots = (
+        "318e85f9656a5dd79c9fb0ad6c1dfcd94678b35c4aba455f3909cf3475cca758",
+        "fc04fd6e45487df6c9bf5313b9ee6d633f91303e0a1aa00f0a3114b8134fea95",
+        "99fd5e571160a3ac3d5bb2b6d6f3391c3da5965bf592707ff85c88080ac2dbcf",
+        "88b35ab8ef51807c848200675ceeebe6b26e15a4f4b34da51f131e9303f37898",
+        "896fa3858a427462ecd4d3b206208605864fb34f3a4a5dd43ca723ec30445e95",
+        "727ac337bfbd2bace321d45127c84b5b36d28522750f5e8ba445d1259248c392",
+    )
+    for root in roots:
+        assert root in report
+        assert root in index
+        assert root in current
+        assert root in audit_eof
+
+    exact_terms = (
+        "legacy_project_defined_controlled_benchmark_safetycost",
+        "noncollision_obb_clearance_le_2m_tick_rate",
+        "five_point_drivable_coverage_failure_tick_rate",
+        "nearest_route_segment_heading_opposition_moving_onroad_tick_rate",
+        "certified_red_phase_stopline_crossing_gt_0_5mps_any",
+        "onroad_speed_excess_gt_0_1mps_tick_rate",
+        "final_nearest_route_polyline_projection_m",
+        "clipped_final_route_projection_fraction",
+        "raw_longitudinal_speed_second_difference_chatter_diagnostic",
+        "raw_speed_times_heading_rate_lateral_kinematic_diagnostic",
+        "raw_same_tick_scalar_speed_drop_peak_deceleration_diagnostic",
+        "vehicle_body_kinematic_comfort_proxy",
+        "filtered_vehicle_body_acceleration",
+        "evidence_missing_not_assessed",
+        "honest_no_claim_under_frozen_preregistered_all_gate",
+    )
+    combined = report + "\n" + index
+    normalized_combined = " ".join(combined.split())
+    for term in exact_terms:
+        assert term in combined
+
+    for class_value in ("PASS", "benchmark-only", "FAIL-industrial", "evidence-missing"):
+        assert class_value in report
+        assert class_value in index
+    for boundary in (
+        "64->63->62->52",
+        "not industrial comfort",
+        "not a comfort gate",
+        "Fresh rerun=false",
+        "corrected-evaluation rerun=false",
+        "scientific or continuation CAS written=false",
+    ):
+        assert boundary in normalized_combined
+    assert "real-road safety" in normalized_combined
+    assert "production-readiness claim is authorized" in normalized_combined
 
 
 def test_v25_training_and_independent_review_are_accepted_before_calibration() -> None:
