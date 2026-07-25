@@ -22,6 +22,15 @@ METRIC_SEMANTICS_REPORT = (
 METRIC_SEMANTICS_INDEX = (
     ROOT / "docs" / "diffusion_planner_v25_metric_semantics_amendment_evidence_index.md"
 )
+TARGET_ARCH_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_target_architecture_qualification_report.md"
+)
+TARGET_ARCH_INDEX = (
+    ROOT / "docs" / "diffusion_planner_v25_target_architecture_evidence_index.md"
+)
+TARGET_ARCH_FAIRNESS = (
+    ROOT / "docs" / "diffusion_planner_v25_layered_fairness_contract_draft.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -485,8 +494,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Evaluation v2 Corrected Independently Reviewed "
-        "Exploratory Honest No-Claim"
+        "## Current V25 Status - Target Architecture Development Capability "
+        "Qualified, Scientific Contract Review Required"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -497,8 +506,8 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-25 - Evaluation v2 Corrected Independently Reviewed "
-        "Exploratory Honest No-Claim"
+        "## 2026-07-25 - Target Architecture Development Capability Qualified, "
+        "Scientific Contract Review Required"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -508,15 +517,17 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_evaluation_v2_second_correction_independently_reviewed_"
-        "exploratory_honest_no_claim"
+        "v25_target_architecture_development_capability_qualified_"
+        "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "evaluation_v2_second_correction_independently_reviewed_terminal"
+        "target_architecture_nonholdout_qualification_complete_"
+        "no_closed_loop_authority"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_evaluation_v2_second_correction_combined_package_review"
+        "high_target_architecture_qualification_package_review_"
+        "before_any_new_scientific_contract"
     )
 
 
@@ -545,6 +556,70 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_metric_semantics_evidence_index_sha256"
     ] == _sha256(METRIC_SEMANTICS_INDEX)
+    assert status_pointer["current_v25_target_architecture_report_sha256"] == _sha256(
+        TARGET_ARCH_REPORT
+    )
+    assert status_pointer[
+        "current_v25_target_architecture_evidence_index_sha256"
+    ] == _sha256(TARGET_ARCH_INDEX)
+    assert status_pointer[
+        "current_v25_target_architecture_fairness_contract_draft_sha256"
+    ] == _sha256(TARGET_ARCH_FAIRNESS)
+
+
+def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() -> None:
+    pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    assert pointer["current_v25_target_architecture_classification"] == (
+        "compute_augmented_candidate_expansion_plus_reranking"
+    )
+    assert pointer["current_v25_target_architecture_capability_status"] == (
+        "passed_development_nonholdout_same_ego_single_invocation_k8_capability"
+    )
+    assert pointer["current_v25_target_architecture_candidate_axis"] == (
+        "same_ego_candidate_batch"
+    )
+    assert pointer["current_v25_target_architecture_agent_as_ego_batch"] == "false"
+    assert pointer["current_v25_target_architecture_model_call_count"] == "1"
+    assert pointer["current_v25_target_architecture_unique_row_sha_count"] == "8"
+    assert pointer["current_v25_target_architecture_deterministic_exact"] == "true"
+    assert (
+        pointer[
+            "current_v25_target_architecture_batch_vs_sequential_within_tolerance"
+        ]
+        == "true"
+    )
+    assert pointer["current_v25_target_architecture_selector_model_calls_after_pool"] == "0"
+    assert (
+        pointer[
+            "current_v25_target_architecture_selector_latent_replacements_after_pool"
+        ]
+        == "0"
+    )
+    assert (
+        pointer[
+            "current_v25_target_architecture_selector_trajectory_generations_after_pool"
+        ]
+        == "0"
+    )
+    assert pointer["current_v25_target_architecture_closed_loop_executed"] == "false"
+    assert pointer["current_v25_target_architecture_training_executed"] == "false"
+    assert (
+        pointer["current_v25_target_architecture_scientific_effect_claim_authorized"]
+        == "false"
+    )
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (TARGET_ARCH_REPORT, TARGET_ARCH_INDEX, TARGET_ARCH_FAIRNESS)
+    )
+    for phrase in (
+        "same-ego K=8",
+        "compute_augmented_candidate_expansion_plus_reranking",
+        "honest_no_claim_under_frozen_preregistered_all_gate",
+        "No Fresh",
+    ):
+        assert phrase in combined
 
 
 def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
@@ -576,7 +651,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_evaluation_v2_second_correction_combined_package_review"
+        "high_target_architecture_qualification_package_review_"
+        "before_any_new_scientific_contract"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
