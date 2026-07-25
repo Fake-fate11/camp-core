@@ -406,6 +406,13 @@ def test_independent_reviewer_literal_geometry_and_body_match_synthetic_kernel()
     independent_review._assert_equal(producer, reviewer, "synthetic body")
 
 
+def test_candidate0_equivalence_is_not_applicable_without_dynamic_actors() -> None:
+    assert (
+        independent_review._candidate_equivalence_for_actor_inventory({}, {}, [])
+        is None
+    )
+
+
 def test_independent_reviewer_unknown_field_fails_closed() -> None:
     with pytest.raises(ValueError, match="fields drifted"):
         independent_review._assert_equal(

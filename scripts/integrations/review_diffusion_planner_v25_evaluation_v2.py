@@ -143,7 +143,7 @@ def review(
     geometry_cache: dict[tuple[str, str], dict[str, Any]] = {}
     summaries: list[dict[str, Any]] = []
     pairs: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
-    candidate_equivalent = candidate_missing = 0
+    candidate_equivalent = candidate_missing = candidate_not_applicable = 0
     for run_dir, terminal in zip(run_dirs, terminals, strict=True):
         if (
             _object(run_dir / "terminal.json") != terminal
@@ -183,8 +183,13 @@ def review(
             independent_validate_actual_native_receipt(
                 supplementary, branch="candidate0_supplementary"
             )
-            equivalence = _candidate_equivalence(primary, supplementary)
-            if equivalence["equivalent"]:
+            actors = config["signal_complete_runtime"]["case"]["actors"]
+            equivalence = _candidate_equivalence_for_actor_inventory(
+                primary, supplementary, actors
+            )
+            if equivalence is None:
+                candidate_not_applicable += 1
+            elif equivalence["equivalent"]:
                 candidate_equivalent += 1
             else:
                 candidate_missing += 1
@@ -265,6 +270,8 @@ def review(
         "candidate0_supplementary_equivalence": {
             "equivalent_count": candidate_equivalent,
             "evidence_missing_count": candidate_missing,
+            "not_applicable_no_dynamic_actor_count": candidate_not_applicable,
+            "candidate0_run_count": 500,
         },
         "literal_oracle": {
             "producer_metric_module_imported": False,
@@ -510,6 +517,16 @@ def _candidate_equivalence(
             "controlled_scene.source_nonconsumption",
         ],
     }
+
+
+def _candidate_equivalence_for_actor_inventory(
+    primary: dict[str, Any],
+    supplementary: dict[str, Any],
+    actors: Sequence[Mapping[str, Any]],
+) -> dict[str, Any] | None:
+    if not actors:
+        return None
+    return _candidate_equivalence(primary, supplementary)
 
 
 def _obb(
