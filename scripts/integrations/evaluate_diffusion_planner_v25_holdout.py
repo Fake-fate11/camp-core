@@ -24,6 +24,21 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 from camp_core.integrations.diffusion_planner_v25_calibration_artifact import (  # noqa: E402
     validate_calibration_freeze_payload,
 )
+from camp_core.integrations.diffusion_planner_v25_b4_evaluation_policy_correction import (  # noqa: E402,E501
+    OLD_CLOSEOUT_ROOT_SHA256,
+    OLD_TERMINAL_HISTORY,
+    OLD_TERMINAL_LEDGER_SHA256,
+    OLD_TERMINAL_REASON,
+    correction_implementation_manifest,
+    validate_correction_authority,
+    validate_correction_authority_review,
+    verify_release_dual_head_contract,
+)
+from camp_core.integrations.diffusion_planner_v25_b4_evaluation_continuation import (  # noqa: E402,E501
+    load_continuation_ledger,
+    mark_corrected_evaluation_artifact_formed,
+    start_corrected_evaluation,
+)
 from camp_core.integrations.diffusion_planner_v25_evaluation import (  # noqa: E402
     evaluate_holdout_three_arm,
 )
@@ -84,6 +99,11 @@ def evaluate(
     opening_release_artifact: Path,
     opening_release_root_sha256: str,
     output_dir: Path,
+    correction_authority_artifact: Path | None = None,
+    correction_authority_root_sha256: str | None = None,
+    correction_authority_review_artifact: Path | None = None,
+    correction_authority_review_root_sha256: str | None = None,
+    continuation_ledger: Path | None = None,
 ) -> str:
     output = Path(output_dir).resolve()
     if output.exists():
@@ -106,19 +126,25 @@ def evaluate(
         raise ValueError("holdout evaluator worktree is dirty")
     evaluation_head = _git_head(ROOT)
     evaluation_manifest = tracked_implementation_manifest(ROOT)
+    corrected_arguments = (
+        correction_authority_artifact,
+        correction_authority_root_sha256,
+        correction_authority_review_artifact,
+        correction_authority_review_root_sha256,
+        continuation_ledger,
+    )
+    corrected = any(value is not None for value in corrected_arguments)
+    if corrected and not all(value is not None for value in corrected_arguments):
+        raise ValueError("corrected evaluation authority arguments are incomplete")
     execution_heads = _heads(execution / "HEADS")
     execution_review_heads = _heads(execution_review / "HEADS")
-    execution_head = release["implementation_source_head"]
-    if (
-        execution_heads
-        != {
-            "camp_head": execution_head,
-            "fixed_dp_head": FIXED_DP_HEAD,
-        }
-        or execution_review_heads != execution_heads
-        or release["pointer_head_at_release"] != execution_head
-    ):
-        raise ValueError("holdout execution/evaluation role HEAD drifted")
+    dual_head = verify_release_dual_head_contract(
+        ROOT,
+        release=release,
+        execution_heads=execution_heads,
+        execution_review_heads=execution_review_heads,
+    )
+    execution_head = dual_head["implementation_source_head"]
     execution_review_report = _canonical_json(
         execution_review / "report.json"
     )
@@ -191,10 +217,90 @@ def evaluate(
             evaluation_manifest["manifest_sha256"]
         ),
     )
+    scientific_path = Path(release["scientific_ledger_path"])
     scientific = validate_scientific_ledger(
-        _strict_canonical_json(Path(release["scientific_ledger_path"]))
+        _strict_canonical_json(scientific_path)
     )
-    if (
+    correction: dict[str, Any] | None = None
+    correction_review: dict[str, Any] | None = None
+    continuation: dict[str, Any] | None = None
+    if corrected:
+        authority_path = Path(correction_authority_artifact).resolve()
+        authority_review_path = Path(
+            correction_authority_review_artifact
+        ).resolve()
+        verify_complete_seal(
+            authority_path,
+            str(correction_authority_root_sha256),
+            label="Fresh B4 evaluator-policy correction authority",
+        )
+        verify_complete_seal(
+            authority_review_path,
+            str(correction_authority_review_root_sha256),
+            label="Fresh B4 evaluator-policy correction authority review",
+        )
+        if (
+            (authority_path / "run.exit").read_bytes() != b"0\n"
+            or (authority_review_path / "run.exit").read_bytes() != b"0\n"
+        ):
+            raise ValueError("corrected evaluation authority chain did not pass")
+        correction = validate_correction_authority(
+            _canonical_json(authority_path / "authority.json")
+        )
+        correction_review = validate_correction_authority_review(
+            _canonical_json(authority_review_path / "report.json")
+        )
+        if (
+            correction_review["reviewed_authority"]["path"]
+            != str(authority_path)
+            or correction_review["reviewed_authority"]["root_sha256"]
+            != correction_authority_root_sha256
+            or correction["opening_release"]["root_sha256"]
+            != opening_release_root_sha256
+            or correction["execution"]["root_sha256"]
+            != execution_root_sha256
+            or correction["execution_review"]["root_sha256"]
+            != execution_review_root_sha256
+            or correction["corrected_evaluation_output_dir"] != str(output)
+            or correction["correction_implementation"]["head"]
+            != evaluation_head
+            or correction["correction_implementation"]["manifest_sha256"]
+            != correction_implementation_manifest(ROOT)["manifest_sha256"]
+            or scientific["state"] != "terminal_failure"
+            or tuple(scientific["history"]) != OLD_TERMINAL_HISTORY
+            or scientific["terminal_reason"] != OLD_TERMINAL_REASON
+            or scientific["terminal_artifact_root_sha256"]
+            != OLD_CLOSEOUT_ROOT_SHA256
+            or _file_sha256(scientific_path)
+            != OLD_TERMINAL_LEDGER_SHA256
+        ):
+            raise ValueError("corrected evaluation authority binding drifted")
+        continuation_path = Path(continuation_ledger).resolve()
+        continuation = load_continuation_ledger(continuation_path)
+        if (
+            continuation["state"]
+            not in {
+                "authorized_from_preserved_denominator",
+                "evaluation_started",
+            }
+            or continuation["correction_authority_root_sha256"]
+            != correction_authority_root_sha256
+            or continuation["correction_authority_review_root_sha256"]
+            != correction_authority_review_root_sha256
+            or continuation["corrected_evaluation_output_dir"] != str(output)
+            or continuation["old_terminal_ledger_sha256"]
+            != OLD_TERMINAL_LEDGER_SHA256
+        ):
+            raise ValueError("corrected evaluation continuation CAS drifted")
+        if continuation["state"] == "authorized_from_preserved_denominator":
+            continuation = start_corrected_evaluation(
+                continuation_path,
+                correction_authority_root_sha256=str(
+                    correction_authority_root_sha256
+                ),
+                corrected_evaluation_output_dir=str(output),
+            )
+    elif (
         scientific["state"] != "full_denominator_formed"
         or scientific["opening_release_root_sha256"]
         != opening_release_root_sha256
@@ -203,6 +309,7 @@ def evaluate(
         or scientific["terminal_artifact_root_sha256"] is not None
     ):
         raise ValueError("holdout evaluation CAS state drifted")
+    # The continuation CAS is advanced before this first read of sealed outcome rows.
     rows = _canonical_value(execution / "evaluation_rows.json")
     if type(rows) is not list:
         raise ValueError("holdout evaluation row inventory drifted")
@@ -231,8 +338,12 @@ def evaluate(
         ],
         root_gates=root_gates,
     )
-    report = {
-        "schema_version": SCHEMA_VERSION,
+    report: dict[str, Any] = {
+        "schema_version": (
+            "camp_dp_v25_holdout_evaluation_artifact_v3_corrected"
+            if corrected
+            else SCHEMA_VERSION
+        ),
         "status": "sealed_holdout_three_arm_evaluation",
         "execution_artifact": str(execution),
         "execution_root_sha256": execution_root_sha256,
@@ -252,6 +363,39 @@ def evaluate(
         "calibration_executed": False,
         "promotion_deployment_activation_authorized": False,
     }
+    if corrected:
+        report.update(
+            {
+                "correction_authority_artifact": str(
+                    Path(correction_authority_artifact).resolve()
+                ),
+                "correction_authority_root_sha256": (
+                    correction_authority_root_sha256
+                ),
+                "correction_authority_review_artifact": str(
+                    Path(correction_authority_review_artifact).resolve()
+                ),
+                "correction_authority_review_root_sha256": (
+                    correction_authority_review_root_sha256
+                ),
+                "continuation_ledger": str(
+                    Path(continuation_ledger).resolve()
+                ),
+                "old_terminal_diagnostic_preserved": True,
+                "fresh_execution_reused": True,
+                "fresh_execution_rerun": False,
+                "scientific_contract_changed": False,
+                "release_dual_head_contract": dual_head,
+                "evaluation_role_provenance": {
+                    "implementation_head": evaluation_head,
+                    "implementation_manifest_sha256": (
+                        correction_implementation_manifest(ROOT)[
+                            "manifest_sha256"
+                        ]
+                    ),
+                },
+            }
+        )
     output.mkdir(parents=True)
     _write_json(output / "evaluation.json", result)
     _write_json(output / "report.json", report)
@@ -264,7 +408,17 @@ def evaluate(
     )
     (output / "COMMAND").write_bytes((" ".join(sys.argv) + "\n").encode("utf-8"))
     (output / "run.exit").write_bytes(b"0\n")
-    return seal_artifact(output, label="V25 holdout evaluation")
+    root = seal_artifact(output, label="V25 holdout evaluation")
+    if corrected:
+        mark_corrected_evaluation_artifact_formed(
+            Path(continuation_ledger),
+            correction_authority_root_sha256=str(
+                correction_authority_root_sha256
+            ),
+            corrected_evaluation_output_dir=str(output),
+            evaluation_root_sha256=root,
+        )
+    return root
 
 
 def _calibration_freeze_binding(
@@ -302,6 +456,11 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--opening-release-artifact", type=Path, required=True)
     parser.add_argument("--opening-release-root-sha256", required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--correction-authority-artifact", type=Path)
+    parser.add_argument("--correction-authority-root-sha256")
+    parser.add_argument("--correction-authority-review-artifact", type=Path)
+    parser.add_argument("--correction-authority-review-root-sha256")
+    parser.add_argument("--continuation-ledger", type=Path)
     return parser.parse_args()
 
 
@@ -384,6 +543,14 @@ def _canonical_sha(value: Any) -> str:
 
 def _write_json(path: Path, value: Any) -> None:
     path.write_bytes(_canonical_bytes(value))
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 if __name__ == "__main__":
