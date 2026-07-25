@@ -716,6 +716,21 @@ def test_v25_metric_semantics_amendment_is_additive_and_fail_closed() -> None:
     for class_value in ("PASS", "benchmark-only", "FAIL-industrial", "evidence-missing"):
         assert class_value in report
         assert class_value in index
+    assert (
+        "https://www.iso.org/standard/78951.html"
+        in report
+    )
+    assert (
+        "SAE J2834_202504"
+        in report
+    )
+    assert (
+        "https://saemobilus.sae.org/standards/"
+        "j2834_202504-ride-index-structure-development-methodology"
+        in report
+    )
+    assert "J2834_201310" not in report
+    assert "/cms/%20render/" not in report
     for boundary in (
         "64->63->62->52",
         "not industrial comfort",

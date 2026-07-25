@@ -64,7 +64,7 @@ type approval or certification.
 
 The controlled benchmark is narrower than scenario-based ADS evaluation and
 ODD evidence frameworks, and it is not a UNECE type-approval test. See
-[ISO 34502:2022](https://www.iso.org/cms/%20render/live/en/sites/isoorg/contents/data/standard/07/89/78951.html?browse=ics),
+[ISO 34502:2022](https://www.iso.org/standard/78951.html),
 [ISO 34503:2023](https://www.iso.org/standard/78952.html), and
 [UNECE Regulation No. 157](https://unece.org/transport/documents/2021/03/standards/un-regulation-no-157-automated-lane-keeping-systems-alks).
 The speed-limit sensitivity is likewise not evidence of EU ISA conformity;
@@ -170,7 +170,8 @@ occupant comfort is `evidence_missing_not_assessed`. ISO 2631 addresses
 whole-body vibration, while SAE J2834 covers periodic, random, and transient
 whole-body vibration, its measurement/transducer conditions, and transmission
 through body contact points. See [ISO 2631-1:1997](https://www.iso.org/standard/7612.html)
-and [SAE J2834](https://saemobilus.sae.org/standards/j2834_201310-ride-index-structure-development-methodology).
+and the current [SAE J2834_202504](https://saemobilus.sae.org/standards/j2834_202504-ride-index-structure-development-methodology),
+reaffirmed 2025-04-16.
 The scalar-speed jerk and one-tick deceleration diagnostics also do not
 establish ACC conformance under
 [ISO 15622:2018](https://www.iso.org/standard/71515.html?browse=tc).
