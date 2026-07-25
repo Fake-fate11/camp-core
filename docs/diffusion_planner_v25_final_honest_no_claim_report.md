@@ -313,6 +313,11 @@ Its history is
 closeout root. Rerun, replacement, new nonce, alternate directory, suffix,
 manual outcome recovery, and claim authorization are false.
 
+The terminal machine-readable boundary is:
+`evaluation_artifact_created=false`, `evaluation_root=null`,
+`evaluation_review_started=false`, `raw_outcome_values_inspected=false`,
+`rerun_allowed=false`, and `claim_authorized=false`.
+
 ## 14. Final claim boundary
 
 Final V25 decision: `honest_no_claim`.
