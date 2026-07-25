@@ -556,6 +556,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
+    assert len(status_pointer) == 436
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
