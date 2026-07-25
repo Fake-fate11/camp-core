@@ -38,12 +38,14 @@ FAIR_NONHOLDOUT_INDEX = (
     ROOT / "docs" / "diffusion_planner_v25_fair_nonholdout_evidence_index.md"
 )
 FAIR_POOL_ADAPTATION_REPORT = (
-    ROOT / "docs" / "diffusion_planner_v25_fair_pool_adaptation_contract_report.md"
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_fair_pool_adaptation_contract_v2_report.md"
 )
 FAIR_POOL_ADAPTATION_INDEX = (
     ROOT
     / "docs"
-    / "diffusion_planner_v25_fair_pool_adaptation_contract_evidence_index.md"
+    / "diffusion_planner_v25_fair_pool_adaptation_contract_v2_evidence_index.md"
 )
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
@@ -508,7 +510,7 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Fair-Pool Adaptation Contract v1 Frozen, "
+        "## Current V25 Status - Fair-Pool Adaptation Contract v2 Executable, "
         "Acquisition Unauthorized"
     )
     assert text.count("## Current V25 Status") == 1
@@ -520,7 +522,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-25 - Fair-Pool Adaptation Contract v1 Frozen, "
+        "## 2026-07-25 - Fair-Pool Adaptation Contract v2 Executable, "
         "Acquisition Unauthorized"
     )
     assert text.count(heading) == 1
@@ -531,16 +533,17 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_pool_adaptation_contract_v1_frozen_acquisition_unauthorized_"
+        "v25_fair_pool_adaptation_contract_v2_executable_acquisition_unauthorized_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "fair_pool_adaptation_contract_design_and_independent_review_complete_"
-        "no_acquisition"
+        "fair_pool_adaptation_contract_v2_executability_and_independent_"
+        "semantic_review_complete_no_acquisition"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_fair_pool_adaptation_contract_review_before_any_acquisition"
+        "high_fair_pool_adaptation_contract_v2_executability_review_before_"
+        "any_acquisition"
     )
 
 
@@ -597,7 +600,7 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
         _current_v25_section(STATUS.read_text(encoding="utf-8"))
     )
     assert pointer["current_v25_fair_pool_adaptation_contract_schema"] == (
-        "camp_dp_v25_fair_pool_adaptation_contract_v1"
+        "camp_dp_v25_fair_pool_adaptation_contract_v2"
     )
     assert pointer["current_v25_fair_pool_adaptation_calibration_state_count"] == "64"
     assert pointer["current_v25_fair_pool_adaptation_validation_state_count"] == "64"
@@ -608,6 +611,27 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
     assert pointer["current_v25_fair_pool_adaptation_single_float_1e_5_veto"] == (
         "false"
     )
+    assert pointer["current_v25_fair_pool_adaptation_endpoint_count"] == "37"
+    assert pointer["current_v25_fair_pool_adaptation_scope"] == (
+        "single_route_single_map_bounded_development_nonholdout_"
+        "four_density_tiers_only"
+    )
+    assert (
+        pointer[
+            "current_v25_fair_pool_adaptation_actual_input_manifest_"
+            "materialization_count"
+        ]
+        == "0"
+    )
+    assert pointer[
+        "current_v25_fair_pool_adaptation_unknown_or_omitted_endpoint_policy"
+    ] == "fail_closed"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_reviewer_local_semantic_oracle"
+    ] == "true"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_v1_scope"
+    ] == "superseded_preacquisition_diagnostic"
     assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == (
         "false"
     )
@@ -765,7 +789,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_fair_pool_adaptation_contract_review_before_any_acquisition"
+        "high_fair_pool_adaptation_contract_v2_executability_review_before_"
+        "any_acquisition"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
