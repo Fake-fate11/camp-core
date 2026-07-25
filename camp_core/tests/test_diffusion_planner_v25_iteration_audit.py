@@ -31,6 +31,12 @@ TARGET_ARCH_INDEX = (
 TARGET_ARCH_FAIRNESS = (
     ROOT / "docs" / "diffusion_planner_v25_layered_fairness_contract_draft.md"
 )
+FAIR_NONHOLDOUT_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_fair_nonholdout_qualification_report.md"
+)
+FAIR_NONHOLDOUT_INDEX = (
+    ROOT / "docs" / "diffusion_planner_v25_fair_nonholdout_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -494,8 +500,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Target Architecture Development Capability "
-        "Qualified, Scientific Contract Review Required"
+        "## Current V25 Status - Fair Nonholdout Pool-Adaptation Hard Stop, "
+        "Scientific Contract Review Required"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -506,7 +512,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-25 - Target Architecture Development Capability Qualified, "
+        "## 2026-07-25 - Fair Nonholdout Pool-Adaptation Hard Stop, "
         "Scientific Contract Review Required"
     )
     assert text.count(heading) == 1
@@ -517,17 +523,17 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_target_architecture_development_capability_qualified_"
+        "v25_fair_nonholdout_pool_adaptation_hard_stop_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "target_architecture_nonholdout_qualification_complete_"
-        "no_closed_loop_authority"
+        "fair_nonholdout_pool_adaptation_hard_stop_"
+        "no_closed_loop_executed"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_target_architecture_qualification_package_review_"
-        "before_any_new_scientific_contract"
+        "high_fair_nonholdout_hard_stop_package_review_"
+        "and_training_adaptation_contract_decision"
     )
 
 
@@ -565,6 +571,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_target_architecture_fairness_contract_draft_sha256"
     ] == _sha256(TARGET_ARCH_FAIRNESS)
+    assert status_pointer["current_v25_fair_nonholdout_report_sha256"] == _sha256(
+        FAIR_NONHOLDOUT_REPORT
+    )
+    assert status_pointer[
+        "current_v25_fair_nonholdout_evidence_index_sha256"
+    ] == _sha256(FAIR_NONHOLDOUT_INDEX)
 
 
 def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() -> None:
@@ -622,6 +634,41 @@ def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() ->
         assert phrase in combined
 
 
+def test_v25_fair_nonholdout_hard_stop_is_complete_and_fail_closed() -> None:
+    pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    assert pointer["current_v25_fair_nonholdout_status"] == (
+        "blocked_pool_adaptation_substantive_neighbor_tensor_drift"
+    )
+    assert pointer["current_v25_fair_nonholdout_state_count"] == "16"
+    assert pointer["current_v25_fair_nonholdout_real_selector_receipt_count"] == "48"
+    assert pointer["current_v25_fair_nonholdout_trajectory_equivalent_rows"] == "128"
+    assert pointer["current_v25_fair_nonholdout_trajectory_row_denominator"] == "128"
+    assert pointer["current_v25_fair_nonholdout_neighbor_equivalent_rows"] == "114"
+    assert pointer["current_v25_fair_nonholdout_neighbor_row_denominator"] == "128"
+    assert pointer["current_v25_fair_nonholdout_substantive_drift_state_count"] == "9"
+    assert pointer["current_v25_fair_nonholdout_post_pool_forbidden_call_count"] == "0"
+    assert pointer["current_v25_fair_nonholdout_closed_loop_started"] == "false"
+    assert pointer["current_v25_fair_nonholdout_closed_loop_arm_count"] == "0"
+    assert pointer["current_v25_fair_nonholdout_closed_loop_tick_count"] == "0"
+    assert pointer["current_v25_fair_nonholdout_training_executed"] == "false"
+    assert pointer["current_v25_fair_nonholdout_retraining_decision_authorized"] == "false"
+    assert pointer["current_v25_fair_nonholdout_claim_authorized"] == "false"
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (FAIR_NONHOLDOUT_REPORT, FAIR_NONHOLDOUT_INDEX)
+    )
+    for phrase in (
+        "new_single_invocation_batched_k8_candidate_pool",
+        "114/128",
+        "9/16",
+        "0/192",
+        "honest_no_claim_under_frozen_preregistered_all_gate",
+    ):
+        assert phrase in combined
+
+
 def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
     status = STATUS.read_text(encoding="utf-8")
     audit = AUDIT.read_text(encoding="utf-8")
@@ -651,8 +698,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_target_architecture_qualification_package_review_"
-        "before_any_new_scientific_contract"
+        "high_fair_nonholdout_hard_stop_package_review_"
+        "and_training_adaptation_contract_decision"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
