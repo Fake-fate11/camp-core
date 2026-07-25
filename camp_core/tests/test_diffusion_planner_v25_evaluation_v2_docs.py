@@ -59,13 +59,26 @@ def test_evaluation_v2_pointer_and_audit_are_exact() -> None:
     audit = _tuple(_eof(AUDIT.read_text(encoding="utf-8")))
     assert status == audit
     assert status["current_v25_status"] == (
-        "v25_evaluation_v2_corrected_independently_reviewed_exploratory_honest_no_claim"
+        "v25_evaluation_v2_second_correction_independently_reviewed_"
+        "exploratory_honest_no_claim"
     )
     assert status["current_v25_phase"] == (
-        "evaluation_v2_corrected_independently_reviewed_terminal"
+        "evaluation_v2_second_correction_independently_reviewed_terminal"
     )
     assert status["next_work_target"] == (
-        "high_evaluation_v2_corrected_combined_package_review"
+        "high_evaluation_v2_second_correction_combined_package_review"
+    )
+    assert status["current_v25_evaluation_v2_contract_schema"] == (
+        "camp_dp_v25_evaluation_v2_contract_v3"
+    )
+    assert status["current_v25_evaluation_v2_artifact_schema"] == (
+        "camp_dp_v25_evaluation_v2_artifact_v3"
+    )
+    assert status["current_v25_evaluation_v2_road_signed_boundary_status"] == (
+        "benchmark_only"
+    )
+    assert status["current_v25_evaluation_v2_actual_scalar_path_direction_count"] == (
+        "180"
     )
     assert status["current_v25_evaluation_v2_report_sha256"] == _sha(REPORT)
     assert status["current_v25_evaluation_v2_evidence_index_sha256"] == _sha(INDEX)
@@ -91,7 +104,7 @@ def test_evaluation_v2_docs_and_aggregate_preserve_claim_boundary() -> None:
     aggregate = json.loads(AGGREGATE.read_text(encoding="utf-8"))
     assert (
         aggregate["schema_version"]
-        == "camp_dp_v25_evaluation_v2_corrected_aggregate_summary_v1"
+        == "camp_dp_v25_evaluation_v2_corrected_aggregate_summary_v2"
     )
     assert aggregate["per_run_values_included"] is False
     assert aggregate["legacy_evaluation_values_included"] is False
@@ -148,6 +161,21 @@ def test_evaluation_v2_docs_and_aggregate_preserve_claim_boundary() -> None:
             "d1cfb29dbb34e3bb92592f803820a6a0454af89b3b9fc2100b45cbaf8215f91d"
         ),
     }
+    assert aggregate["superseded_corrected_diagnostic"] == {
+        "contract_review_root_sha256": (
+            "0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628"
+        ),
+        "contract_root_sha256": (
+            "ab99f6740038136409b9f131c8bd38dd35b1b19c338e85c4df6ba86b25f59306"
+        ),
+        "materialization_root_sha256": (
+            "3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588"
+        ),
+        "preserved": True,
+        "review_root_sha256": (
+            "372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827"
+        ),
+    }
     assert aggregate["endpoint_vector"]["route"]["denominator"][
         "available_arm_count"
     ] == 929
@@ -157,6 +185,37 @@ def test_evaluation_v2_docs_and_aggregate_preserve_claim_boundary() -> None:
     assert aggregate["endpoint_vector"]["goal"]["denominator"][
         "available_arm_count"
     ] == 1500
+    road = aggregate["endpoint_vector"]["road_containment"]
+    assert road["denominator"]["available_arm_count"] == 1500
+    assert road["denominator"]["missing_arm_count"] == 0
+    directions = road["aggregate"]["scalar_path_directions"]
+    assert directions[
+        "/signed_boundary_clearance_or_penetration/"
+        "minimum_signed_boundary_clearance_m"
+    ] == "higher"
+    assert directions[
+        "/signed_boundary_clearance_or_penetration/"
+        "maximum_boundary_penetration_m"
+    ] == "lower"
+
+
+def test_evaluation_v2_actual_scalar_paths_have_exhaustive_directions() -> None:
+    aggregate = json.loads(AGGREGATE.read_text(encoding="utf-8"))
+    classified = 0
+    for endpoint in aggregate["endpoint_vector"].values():
+        result = endpoint["aggregate"]
+        if result["status"] != "benchmark_only":
+            continue
+        paths = result["descriptive_scalar_paths"]
+        directions = result["scalar_path_directions"]
+        assert set(directions) == set(paths)
+        classified += len(paths)
+        for method in ("static14d", "scene14d"):
+            for path in paths:
+                assert result["paired_cluster_summaries"][method][path][
+                    "direction"
+                ] == directions[path]
+    assert classified == 180
 
 
 def test_evaluation_v2_corrected_btw_is_paired_not_variance() -> None:
@@ -194,6 +253,10 @@ def test_evaluation_v2_docs_bind_no_rerun_and_no_cas_mutation() -> None:
         "0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628",
         "3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588",
         "372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827",
+        "99501763a4a88c9d80fff738054b37593717df0b6d33e3749ad451d9e52a15e0",
+        "a7ba686647ccfe64f45a3304a00a392c1a362534833023fe26e0343a374bfac0",
+        "4fffc63bbeef6c2f6c0f26d8fb8b5af2842ad6e8c998a0ed04342aff73134941",
+        "e1df26f72402745aa68041a068b347b6fd1dad1abe9ed173baf05571c666427b",
         "not_prospectively_defined_for_v2",
         "exploratory_posthoc_not_claim_authorizing",
     )

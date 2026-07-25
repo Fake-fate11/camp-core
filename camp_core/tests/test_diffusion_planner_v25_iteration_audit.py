@@ -508,13 +508,15 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_evaluation_v2_corrected_independently_reviewed_exploratory_honest_no_claim"
+        "v25_evaluation_v2_second_correction_independently_reviewed_"
+        "exploratory_honest_no_claim"
     )
     assert pointer["current_v25_phase"] == (
-        "evaluation_v2_corrected_independently_reviewed_terminal"
+        "evaluation_v2_second_correction_independently_reviewed_terminal"
     )
     assert text.rstrip().endswith(
-        "next_work_target=high_evaluation_v2_corrected_combined_package_review"
+        "next_work_target="
+        "high_evaluation_v2_second_correction_combined_package_review"
     )
 
 
@@ -573,7 +575,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert audit.rstrip().endswith(
-        "next_work_target=high_evaluation_v2_corrected_combined_package_review"
+        "next_work_target="
+        "high_evaluation_v2_second_correction_combined_package_review"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index

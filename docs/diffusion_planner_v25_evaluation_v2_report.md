@@ -37,18 +37,30 @@ Its B/T/W label, red encounter handling, route/goal coupling, omitted road
 boundary field, and unbounded TTC policy are superseded only for this additive
 v2 evaluation.
 
-The corrected implementation is Git HEAD
-`6e74016ca97b0677ef0d3221e56206b9642cd65d`. Its outcome-independent contract
-and independent contract review were sealed before the corrected B4
+The first corrected package is also preserved as a superseded engineering
+diagnostic: contract
+`ab99f6740038136409b9f131c8bd38dd35b1b19c338e85c4df6ba86b25f59306`,
+contract review
+`0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628`,
+materialization
+`3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588`,
+and review
+`372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827`.
+It incorrectly classified union-boundary extraction as new-evidence missing
+and used a coarse scalar-direction heuristic.
+
+The current corrected implementation is Git HEAD
+`ee04c1ee3226684ba85f66f6e75566b82e871c77`. Its outcome-independent contract
+and independent contract review were sealed before the current B4
 materialization:
 
 | Role | Exact path | Root |
 |---|---|---|
-| Outcome-free focused | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_correction_prefreeze_focused_6e74016c_8680c1b19ce0620b` | `d895e9c5221bb9a1d003e917021ba427ec6c614a695da4a1b00e9fdd36380f3e` |
-| Corrected contract | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_6e74016c_8680c1b19ce0620b` | `ab99f6740038136409b9f131c8bd38dd35b1b19c338e85c4df6ba86b25f59306` |
-| Independent contract review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_review_6e74016c_8680c1b19ce0620b` | `0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628` |
-| Read-only corrected materialization | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_6e74016c_8680c1b19ce0620b` | `3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588` |
-| Independent corrected review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_review_6e74016c_8680c1b19ce0620b` | `372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827` |
+| Outcome-free focused | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_second_correction_prefreeze_focused_ee04c1ee_8680c1b19ce0620b` | `d87d54009088ad5b60fd299c962950c884bae9ea928d0ba86f0972021936cbd7` |
+| Corrected contract | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_ee04c1ee_8680c1b19ce0620b` | `99501763a4a88c9d80fff738054b37593717df0b6d33e3749ad451d9e52a15e0` |
+| Independent contract review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_review_ee04c1ee_8680c1b19ce0620b` | `a7ba686647ccfe64f45a3304a00a392c1a362534833023fe26e0343a374bfac0` |
+| Read-only corrected materialization | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_ee04c1ee_8680c1b19ce0620b` | `4fffc63bbeef6c2f6c0f26d8fb8b5af2842ad6e8c998a0ed04342aff73134941` |
+| Independent corrected review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_review_ee04c1ee_8680c1b19ce0620b` | `e1df26f72402745aa68041a068b347b6fd1dad1abe9ed173baf05571c666427b` |
 
 The result reviewer uses reviewer-local formulas, direction tables, thresholds,
 root checks, sample accounting, and cluster aggregation; it does not import
@@ -64,6 +76,9 @@ the contract and a tie is exactly zero method-minus-candidate0 delta. The three
 counts must sum to 500. Signed means, opportunity counts, sample-accounting
 fields, and other directionless scalars are
 `descriptive_unclassified`; no B/T/W is manufactured.
+The producer records an exhaustive direction mapping for all 180 actual
+descriptive scalar paths, and the independent reviewer reconstructs that
+mapping using a reviewer-local literal table. Unknown paths fail closed.
 
 Confidence intervals remain Student-t intervals over 100 equal-mass
 corridor/intersection cluster means. The retained between/total/within
@@ -88,17 +103,21 @@ Better/Tie/Worse.
 - Goal distance/reached/passed is independent of route-path availability.
   Passed uses same-tick distance and heading geometry, never an historical
   minimum combined with a later heading.
-- Full-polygon outside fraction remains computed. Minimum signed boundary
-  clearance / maximum penetration is explicitly `evidence_missing`: the
-  sealed drivable-polygon inventory is sufficient for union membership/area,
-  but not a unique root-bound union-boundary topology and orientation.
+- Full-polygon outside fraction and signed boundary distance are computed from
+  the same root-bound finite lanelet-polygon inventory. Polygon edges are
+  split at intersections; segments with union on both sides are discarded as
+  internal overlap/adjacency seams. A contained footprint reports positive
+  minimum full-footprint-boundary clearance; an outside footprint reports
+  negative maximum boundary penetration and its positive magnitude.
 
 Synthetic/adversarial tests cover stationary-far and coincident red geometry,
 phase interruption and multiple stop lines, 0.4 m/s unthresholded crossing,
 backward adjacency and non-adjacent route jumps, nonzero start arc,
 route-missing-but-goal-computable, near-then-turn-away goal geometry,
 non-approaching SAT and TTC beyond 5 s, five-points-inside/full-polygon-outside,
-and every schema/root/formula/grid drift required to fail closed.
+adjacent and overlapping lanelet seams, fully inside/touching/partially outside
+footprints, exhaustive scalar-direction coverage, and every
+schema/root/formula/grid drift required to fail closed.
 
 ## 4. Endpoint availability
 
@@ -106,7 +125,7 @@ and every schema/root/formula/grid drift required to fail closed.
 |---|---:|---:|---:|---|
 | Collision | `benchmark_only` | 1500 / 1500 | 0 | 1,500 complete runs; severity missing |
 | Dynamic proximity | `benchmark_only` | 1500 / 1500 | 0 | 68,160 actor-ticks; PET missing |
-| Road containment | `benchmark_only` | 1500 / 1500 | 0 | outside fraction computed; signed boundary/penetration missing |
+| Road containment | `benchmark_only` | 1500 / 1500 | 0 | outside fraction and signed external-union-boundary metrics computed |
 | Certified red crossing | `evidence_missing` | 1063 / 1500 | 437 | 846 deduplicated certified encounters; ambiguous swept geometry |
 | Speed | `benchmark_only` | 1500 / 1500 | 0 | same-tick map limit |
 | Route | `evidence_missing` | 929 / 1500 | 571 | 565 no unique feasible path; 6 equal-cost paths |
@@ -134,6 +153,10 @@ clusters; B/T/W is over the 500 frozen paired units.
 | maximum closing (`lower`) | Scene14D | -0.0947279 [-0.133836, -0.0556198] | 220 / 198 / 82 |
 | road max outside fraction (`lower`) | Static14D | -0.0162363 [-0.0245723, -0.00790036] | 269 / 44 / 187 |
 | road max outside fraction (`lower`) | Scene14D | -0.00640012 [-0.0130530, 0.000252736] | 211 / 88 / 201 |
+| road minimum signed boundary clearance (`higher`) | Static14D | 0.0281822 [0.0122791, 0.0440854] | 257 / 20 / 223 |
+| road minimum signed boundary clearance (`higher`) | Scene14D | 0.00704554 [-0.00774476, 0.0218358] | 243 / 67 / 190 |
+| road maximum penetration (`lower`) | Static14D | -0.0281822 [-0.0440854, -0.0122791] | 257 / 20 / 223 |
+| road maximum penetration (`lower`) | Scene14D | -0.00704554 [-0.0218358, 0.00774476] | 243 / 67 / 190 |
 | speed max excess (`lower`) | Static14D | -0.0410297 [-0.0605025, -0.0215570] | 86 / 402 / 12 |
 | speed max excess (`lower`) | Scene14D | -0.00581840 [-0.0134303, 0.00179353] | 51 / 402 / 47 |
 | goal minimum distance (`lower`) | Static14D | 1.016269 [0.644221, 1.388318] | 144 / 0 / 356 |
@@ -149,15 +172,15 @@ The complete aggregate-only endpoint vector, including every scalar, arm mean,
 direction or unclassified status, B/T/W, 100-cluster CI, denominator, and
 missing reason, is
 `docs/diffusion_planner_v25_evaluation_v2_aggregate_summary.json`
-(SHA256 `3c9a88d3570db0529102809e284b1f7d18e7e10f286c85c64ee603f9ddac38af`).
+(SHA256 `ca6a911d9d1f98ad5b73eaec43fc23c36ed81edc4003b436e6ca7765401d3680`).
 It contains no per-run values and no embedded legacy evaluation payload.
 
 ## 6. Interpretation boundary
 
-All threshold grids and the 5 s TTC horizon are
+All threshold grids, signed road-boundary summaries, and the 5 s TTC horizon are
 `project_descriptive_not_industrial_gate`. Collision severity, PET,
-signed union-boundary penetration, occupant/seat/vertical response,
-ISO 2631 or SAE J2834 conformity, and production scheduler/deadline evidence
+occupant/seat/vertical response, ISO 2631 or SAE J2834 conformity, and
+production scheduler/deadline evidence
 remain missing or not assessed.
 
 Nothing in v2 authorizes Fresh scientific benefit, real-road safety, broad

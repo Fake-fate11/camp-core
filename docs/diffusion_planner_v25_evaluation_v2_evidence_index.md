@@ -22,19 +22,29 @@ Status: additive, exploratory, independently reviewed, and not claim-authorizing
 | Materialization | `0cd17b28553b1ae8b1f23eb8796974e6c06f1d5e1c020998d302526f3b07c72d` |
 | Independent result review | `d1cfb29dbb34e3bb92592f803820a6a0454af89b3b9fc2100b45cbaf8215f91d` |
 
-These seals remain unchanged. They are superseded only for the additive v2
-semantics corrected at `6e74016ca97b0677ef0d3221e56206b9642cd65d`.
+These seals remain unchanged.
+
+The first corrected chain is also preserved as a superseded diagnostic:
+contract `ab99f6740038136409b9f131c8bd38dd35b1b19c338e85c4df6ba86b25f59306`,
+contract review
+`0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628`,
+materialization
+`3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588`,
+and review
+`372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827`.
+Its road-boundary missing classification and coarse direction heuristic are
+superseded at `ee04c1ee3226684ba85f66f6e75566b82e871c77`.
 
 ## Corrected sealed chain
 
 | Role | Exact path | Root |
 |---|---|---|
-| Outcome-free focused | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_correction_prefreeze_focused_6e74016c_8680c1b19ce0620b` | `d895e9c5221bb9a1d003e917021ba427ec6c614a695da4a1b00e9fdd36380f3e` |
-| Corrected v2 contract | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_6e74016c_8680c1b19ce0620b` | `ab99f6740038136409b9f131c8bd38dd35b1b19c338e85c4df6ba86b25f59306` |
-| Independent contract review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_review_6e74016c_8680c1b19ce0620b` | `0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628` |
-| Read-only corrected materialization | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_6e74016c_8680c1b19ce0620b` | `3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588` |
-| Independent corrected result review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_review_6e74016c_8680c1b19ce0620b` | `372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827` |
-| Aggregate-only endpoint vector | `docs/diffusion_planner_v25_evaluation_v2_aggregate_summary.json` | `3c9a88d3570db0529102809e284b1f7d18e7e10f286c85c64ee603f9ddac38af` |
+| Outcome-free focused | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_second_correction_prefreeze_focused_ee04c1ee_8680c1b19ce0620b` | `d87d54009088ad5b60fd299c962950c884bae9ea928d0ba86f0972021936cbd7` |
+| Corrected v2 contract | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_ee04c1ee_8680c1b19ce0620b` | `99501763a4a88c9d80fff738054b37593717df0b6d33e3749ad451d9e52a15e0` |
+| Independent contract review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_contract_review_ee04c1ee_8680c1b19ce0620b` | `a7ba686647ccfe64f45a3304a00a392c1a362534833023fe26e0343a374bfac0` |
+| Read-only corrected materialization | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_ee04c1ee_8680c1b19ce0620b` | `4fffc63bbeef6c2f6c0f26d8fb8b5af2842ad6e8c998a0ed04342aff73134941` |
+| Independent corrected result review | `/root/autodl-tmp/camp_dp_v25_evaluation_v2_corrected_materialization_review_ee04c1ee_8680c1b19ce0620b` | `e1df26f72402745aa68041a068b347b6fd1dad1abe9ed173baf05571c666427b` |
+| Aggregate-only endpoint vector | `docs/diffusion_planner_v25_evaluation_v2_aggregate_summary.json` | `ca6a911d9d1f98ad5b73eaec43fc23c36ed81edc4003b436e6ca7765401d3680` |
 
 ## Corrected acceptance matrix
 
@@ -42,7 +52,7 @@ semantics corrected at `6e74016ca97b0677ef0d3221e56206b9642cd65d`.
 |---|---|---:|---|
 | collision | `benchmark_only` | 1500 / 0 / 1500 | 500-pair B/T/W + 100-cluster CI |
 | dynamic proximity | `benchmark_only` | 1500 / 0 / 1500 | 500-pair B/T/W + 100-cluster CI |
-| road containment | `benchmark_only` | 1500 / 0 / 1500 | outside fraction inferred; signed boundary field explicitly missing |
+| road containment | `benchmark_only` | 1500 / 0 / 1500 | outside fraction + signed external-union-boundary metrics; 500-pair B/T/W + 100-cluster CI |
 | certified red crossing | `evidence_missing` | 1063 / 437 / 1500 | cancelled; no complete-case shrinkage |
 | speed | `benchmark_only` | 1500 / 0 / 1500 | 500-pair B/T/W + 100-cluster CI |
 | route | `evidence_missing` | 929 / 571 / 1500 | cancelled; no complete-case shrinkage |
@@ -52,7 +62,9 @@ semantics corrected at `6e74016ca97b0677ef0d3221e56206b9642cd65d`.
 
 Every directed scalar uses a contract-frozen `lower`/`higher` direction and
 exact-zero tie rule. Directionless scalars are `descriptive_unclassified`.
-Between/total/within variance fields are not B/T/W.
+All 180 actual scalar paths have an exhaustive recorded direction mapping;
+unknown paths fail closed and the independent reviewer reconstructs the
+mapping. Between/total/within variance fields are not B/T/W.
 
 ## Documentation
 

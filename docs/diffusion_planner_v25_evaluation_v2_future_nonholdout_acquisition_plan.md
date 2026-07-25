@@ -10,7 +10,6 @@ the sealed B4 denominator, or alter
 | PET | Frozen conflict-zone identity and both road-user passage times | Zone geometry SHA and opportunity denominator |
 | Red within-tick ambiguity | Higher-rate or continuous ego pose/front-edge trajectory and stop-line encounter identity | Same-tick certified phase, route line SHA, no future phase |
 | Unique route arc for 571 runs | Ordered route geometry, signed adjacency, projection-tie evidence, and sufficiently sampled trajectory | Route/map SHA, spawn, goal, travel-bound preregistration |
-| Signed road-boundary clearance/penetration | Canonical topology-resolved drivable union boundary with orientation and validity receipts | Execution-time map root and geometry-library/version receipt |
 | Candidate0 dynamic actors if future equivalence is incomplete | Primary-evaluation actor pose, heading, dimensions, and velocity each tick | Prospective exact source/equivalence receipt |
 | Occupant comfort | Multi-axis seat/back/foot acceleration, vertical and rotational channels, transfer path and frequency weighting | Prospectively specified ISO/SAE scope and calibrated acquisition |
 | Production latency | Warm-up policy, concurrent load, scheduler/deadline traces, target hardware and deployment stack | Prospective workload and deadline contract |

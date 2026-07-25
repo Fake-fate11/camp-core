@@ -10,7 +10,7 @@ as superseded diagnostics; this correction is additive and read-only.
 | B/T/W mislabeled as variance decomposition | 500-pair `better_tie_worse`, frozen direction, exact-zero ties; variance retained separately | Directionless scalars are `descriptive_unclassified` |
 | OBB overlap/clearance aliases | Full OBB collision plus polygon clearance, closing, DRAC, and continuous SAT TTC | Severity and PET remain missing |
 | Infinite-horizon/unqualified SAT | Requires centroid approach and entry within frozen 5.0 s descriptive horizon | Ego velocity is speed-times-heading kinematic reconstruction |
-| Five-point road proxy | Full footprint outside root-bound drivable polygon union | Signed union-boundary clearance/penetration explicitly missing |
+| Five-point road proxy | Full footprint outside root-bound drivable polygon union | Signed external-union-boundary clearance/penetration computed; internal overlap/adjacency seams removed |
 | Red zero-area sweep treated as missing | Disjoint stationary edge is computed false; coincident/tangent/multiple crossing is ambiguous | Stop-line encounter deduplicated across phase interruption |
 | Speed tolerance proxy | Same-tick excess and duration/magnitude-duration grid | Project benchmark only |
 | Forward-only route state | Same/forward/backward adjacent transitions with sealed displacement/trapezoidal bound | Non-adjacent jumps rejected; ambiguous path remains missing |
