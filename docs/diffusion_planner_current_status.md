@@ -6,49 +6,54 @@ This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
 audits are historical evidence and remain frozen.
 
-## Current V25 Status - Metric Semantics Amendment Independently Reviewed
+## Current V25 Status - Evaluation v2 Independently Reviewed Exploratory Honest No-Claim
 
 Reader contract: this named section is the only current V25 pointer source in
 this file. Its machine tuple must match the EOF tuple in
 `docs/diffusion_planner_v25_iteration_audit.md` field for field.
 
-The unique Fresh B4 execution and independent execution review remain sealed:
-500/500 pairs, 1,500/1,500 complete and terminal arms, and 96,000 ticks. The
-prospective evaluator-policy correction reused this exact denominator without
-rerunning Fresh or changing the scientific contract. Corrected evaluation and
-its separate-role sealed deterministic replay using the frozen canonical
-evaluation core remain sealed under roots
-`4a817b4bbd17449486e3258c0d4b07102929d5f12d60fa4bb73056eb726afb9f`
-and
-`94b048ace4a2a539532ccc64fe061afb51bc6b4e23ee2e5a5affd1fc2ef69459`.
-The review independently binds role, HEAD, provenance, roots, denominator, and
-claim equality; it is not a reviewer-local independent statistical
-implementation.
+The unique Fresh B4 execution remains fixed at 500 paired units, 1,500
+complete arms, and 96,000 ticks. Evaluation v2 reused that exact sealed
+denominator without rerunning Fresh, an arm, DP/K8, or corrected evaluation.
+It did not write the legacy scientific ledger, continuation ledger, execution,
+corrected evaluation, or any existing seal.
+The earlier corrected evaluation remains a separate-role sealed deterministic
+replay using the frozen canonical evaluation core.
 
-The additive `camp_dp_v25_metric_semantics_amendment_v1` contract was sealed
-outcome-independently before one read-only pass over this existing denominator.
-Its separate-role reviewer independently reconstructed the field set,
-formulas, roots, legacy equality, 64->63->62->52 body-proxy accounting,
-per-run-first paired cluster summaries, and claim invariance. No sealed source
-artifact or CAS was written.
+The outcome-free `camp_dp_v25_evaluation_v2_contract_v1` and independent
+contract review were sealed before the successful read-only materialization.
+The final independent result reviewer reconstructed all 1,500 receipts,
+full-polygon geometry, stateful route logic, 64->63->62->52->51 body-proxy
+accounting, all per-run endpoint values, 500 pairs, and 100 cluster summaries
+without importing the producer metric module or threshold tables.
 
-Static14D and Scene14D both decreased the legacy project-defined controlled-
-benchmark SafetyCost composite, but neither passed the frozen conjunction of
-component guardrails and NI gates. Progress/completion remain project
-benchmark performance NI; legacy jerk/lateral/deceleration are raw diagnostics
-and are not industrial comfort measures. Industrial occupant comfort is
-`evidence_missing_not_assessed`. The final scientific decision remains
-`honest_no_claim_under_frozen_preregistered_all_gate`.
+Collision, dynamic proximity, road containment, speed, vehicle-body planar
+kinematic proxy, and latency have the complete 1,500-arm benchmark
+denominator. Certified red crossing is `evidence_missing` for paired
+inference because 437 runs contain within-tick swept-geometry ambiguity.
+Route is `evidence_missing` for all 1,500 arms because the sealed sampling
+does not yield a unique ordered, adjacent, kinematically feasible route path;
+the evaluator does not fall back to stateless global nearest projection.
+
+Evaluation v2 is `exploratory_posthoc_not_claim_authorizing`: it produces no
+weighted total, has no prospectively defined scientific hard gate, and cannot
+reuse the legacy multiplicity/NI rule for a new claim. The legacy decision
+remains `honest_no_claim_under_frozen_preregistered_all_gate`. Better
+descriptive values are not Fresh benefit or industrial safety/comfort
+evidence.
 
 ### Preserved superseded engineering diagnostic
 
-The original evaluation-control fatal, closeout/review roots, and old
-scientific `terminal_failure` ledger remain immutable. The old ledger was not
-rewritten; the additive continuation ledger independently reached
-`independently_reviewed_terminal`. This preserved history does not replace or
-contradict the current corrected-evaluation pointer.
+The original corrected-evaluation control fatal and terminal ledger remain
+preserved and superseded only by the already accepted additive continuation
+chain. Evaluation v2 also preserves (1) the pre-artifact decimal-path
+serialization failure at `ab67b801...`, which produced no artifact, and (2)
+the first review-only applicability mismatch after the successful
+materialization, which produced no review artifact. The former was fixed
+before resealing the outcome-free contract; the latter changed only the
+reviewer and did not rerun materialization.
 
-current_v25_status=v25_metric_semantics_amendment_independently_reviewed_honest_no_claim
+current_v25_status=v25_evaluation_v2_independently_reviewed_exploratory_honest_no_claim
 current_v25_execution_source_head=7be93df20deee03587b9898e8560909662df972c
 current_v25_execution_pointer_head=06d3a1f3a37061f93f5c9788312ae59d1356d126
 current_v25_correction_authority_head=dddca1c64f9e03ca515ffb4e06724b0842e33135
@@ -164,8 +169,79 @@ current_v25_evaluator_reviewer_implementation_focused_root_sha256=7c01cd9ea5176d
 current_v25_final_package_focused_test_count=102
 current_v25_final_package_focused_root_sha256=58c241ec562a570c72f3d96bc2b85e32079f367e9d9d2e30e2835b20e49f8205
 local_origin_github_autodl_aligned=true
-current_v25_phase=metric_semantics_amendment_independently_reviewed_terminal
-next_work_target=high_metric_semantics_amendment_package_review
+current_v25_evaluation_v2_contract_schema=camp_dp_v25_evaluation_v2_contract_v1
+current_v25_evaluation_v2_result_semantics=exploratory_posthoc_not_claim_authorizing
+current_v25_evaluation_v2_producer_head=de173a204efddbb8494d8bfe4c90f07f60d5d1d8
+current_v25_evaluation_v2_reviewer_head=7c3e67c64faf1dbc838f9dcd10da82fa1a8fbdb2
+current_v25_evaluation_v2_prefreeze_focused=/root/autodl-tmp/camp_dp_v25_evaluation_v2_prefreeze_focused_de173a20_8680c1b19ce0620b
+current_v25_evaluation_v2_prefreeze_focused_root_sha256=9fd8152d5187accb3f493da28e8d636216f3025b4b92bc9ae36470aae467c331
+current_v25_evaluation_v2_prefreeze_passed=71
+current_v25_evaluation_v2_prefreeze_skipped=2
+current_v25_evaluation_v2_contract=/root/autodl-tmp/camp_dp_v25_evaluation_v2_contract_de173a20_8680c1b19ce0620b
+current_v25_evaluation_v2_contract_root_sha256=2a3c39aea959a9e311859f8af2c4ea81e22ac093b4e62ea48cbca6f4808d5795
+current_v25_evaluation_v2_contract_review=/root/autodl-tmp/camp_dp_v25_evaluation_v2_contract_review_de173a20_8680c1b19ce0620b
+current_v25_evaluation_v2_contract_review_root_sha256=a15edb5cad2279991dec2f091e134cd3a711a1b949eb38523a20125578500fed
+current_v25_evaluation_v2_materialization=/root/autodl-tmp/camp_dp_v25_evaluation_v2_materialization_de173a20_8680c1b19ce0620b
+current_v25_evaluation_v2_materialization_root_sha256=0cd17b28553b1ae8b1f23eb8796974e6c06f1d5e1c020998d302526f3b07c72d
+current_v25_evaluation_v2_reviewer_repair_focused=/root/autodl-tmp/camp_dp_v25_evaluation_v2_reviewer_repair_focused_7c3e67c6_8680c1b19ce0620b
+current_v25_evaluation_v2_reviewer_repair_focused_root_sha256=e218de63613459a35a3339080aa296935dcf0c582f284bbcbb6c0d1dea3a9214
+current_v25_evaluation_v2_review=/root/autodl-tmp/camp_dp_v25_evaluation_v2_materialization_review_7c3e67c6_8680c1b19ce0620b
+current_v25_evaluation_v2_review_root_sha256=d1cfb29dbb34e3bb92592f803820a6a0454af89b3b9fc2100b45cbaf8215f91d
+current_v25_evaluation_v2_pair_count=500
+current_v25_evaluation_v2_arm_count=1500
+current_v25_evaluation_v2_tick_count=96000
+current_v25_evaluation_v2_cluster_count=100
+current_v25_evaluation_v2_receipts_independently_reconstructed=1500
+current_v25_evaluation_v2_candidate0_run_count=500
+current_v25_evaluation_v2_candidate0_equivalent_count=320
+current_v25_evaluation_v2_candidate0_evidence_missing_count=0
+current_v25_evaluation_v2_candidate0_not_applicable_no_actor_count=180
+current_v25_evaluation_v2_collision_status=benchmark_only
+current_v25_evaluation_v2_collision_available_arms=1500
+current_v25_evaluation_v2_dynamic_proximity_status=benchmark_only
+current_v25_evaluation_v2_dynamic_proximity_available_arms=1500
+current_v25_evaluation_v2_road_containment_status=benchmark_only
+current_v25_evaluation_v2_road_containment_available_arms=1500
+current_v25_evaluation_v2_red_status=evidence_missing
+current_v25_evaluation_v2_red_available_arms=1063
+current_v25_evaluation_v2_red_missing_arms=437
+current_v25_evaluation_v2_red_opportunity_count=846
+current_v25_evaluation_v2_red_missing_reason=ambiguous_evidence_missing
+current_v25_evaluation_v2_speed_status=benchmark_only
+current_v25_evaluation_v2_speed_available_arms=1500
+current_v25_evaluation_v2_route_status=evidence_missing
+current_v25_evaluation_v2_route_available_arms=0
+current_v25_evaluation_v2_route_missing_arms=1500
+current_v25_evaluation_v2_route_missing_reason=no_unique_kinematically_feasible_route_path
+current_v25_evaluation_v2_body_proxy_status=benchmark_only
+current_v25_evaluation_v2_body_proxy_available_arms=1500
+current_v25_evaluation_v2_latency_status=benchmark_only
+current_v25_evaluation_v2_latency_available_arms=1500
+current_v25_evaluation_v2_complete_case_shrinkage_used=false
+current_v25_evaluation_v2_weighted_total_generated=false
+current_v25_evaluation_v2_scientific_hard_gate=not_prospectively_defined_for_v2
+current_v25_evaluation_v2_claim_authorized=false
+current_v25_evaluation_v2_legacy_values_mutated=false
+current_v25_evaluation_v2_fresh_execution_rerun=false
+current_v25_evaluation_v2_arm_or_dp_k8_rerun=false
+current_v25_evaluation_v2_corrected_evaluation_rerun=false
+current_v25_evaluation_v2_scientific_or_continuation_cas_written=false
+current_v25_evaluation_v2_initial_preartifact_failure_class=pre_artifact_mechanical_scalar_path_serialization_failure
+current_v25_evaluation_v2_initial_preartifact_artifact_created=false
+current_v25_evaluation_v2_initial_review_failure_class=candidate0_no_dynamic_actor_equivalence_applicability_drift
+current_v25_evaluation_v2_initial_review_artifact_created=false
+current_v25_evaluation_v2_aggregate_summary=docs/diffusion_planner_v25_evaluation_v2_aggregate_summary.json
+current_v25_evaluation_v2_aggregate_summary_sha256=2698b7d65f9d791ea048b0c3c3d79dcec788bd8df45aed12a5d87d10f7c467d0
+current_v25_evaluation_v2_report=docs/diffusion_planner_v25_evaluation_v2_report.md
+current_v25_evaluation_v2_report_sha256=9c7312c550164b65f9f68e6d1c1a649154bc7fd8b2f53c2d3ac2894c7f0fc37a
+current_v25_evaluation_v2_evidence_index=docs/diffusion_planner_v25_evaluation_v2_evidence_index.md
+current_v25_evaluation_v2_evidence_index_sha256=890aa1b8395f6e351cfee402ce25561e3696c1b301df79c30814c64af17ee9a4
+current_v25_evaluation_v2_migration_matrix=docs/diffusion_planner_v25_evaluation_v2_migration_matrix.md
+current_v25_evaluation_v2_migration_matrix_sha256=6286680de3cb7b920f4e45c14b8f627cd26ea25f3e82e0647d94f82d1ed3c693
+current_v25_evaluation_v2_future_plan=docs/diffusion_planner_v25_evaluation_v2_future_nonholdout_acquisition_plan.md
+current_v25_evaluation_v2_future_plan_sha256=057f0f033825602efd3ddb710fd058778d20773fcf1587e97f1486be5f924c6b
+current_v25_phase=evaluation_v2_independently_reviewed_terminal
+next_work_target=high_evaluation_v2_combined_package_review
 
 ## Historical V25 Status Through A1.6.11
 

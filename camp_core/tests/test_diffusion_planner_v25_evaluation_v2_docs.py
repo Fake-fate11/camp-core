@@ -1,0 +1,157 @@
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+import re
+
+
+ROOT = Path(__file__).resolve().parents[2]
+STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
+AUDIT = ROOT / "docs" / "diffusion_planner_v25_iteration_audit.md"
+REPORT = ROOT / "docs" / "diffusion_planner_v25_evaluation_v2_report.md"
+INDEX = ROOT / "docs" / "diffusion_planner_v25_evaluation_v2_evidence_index.md"
+MIGRATION = ROOT / "docs" / "diffusion_planner_v25_evaluation_v2_migration_matrix.md"
+FUTURE_PLAN = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_evaluation_v2_future_nonholdout_acquisition_plan.md"
+)
+AGGREGATE = ROOT / "docs" / "diffusion_planner_v25_evaluation_v2_aggregate_summary.json"
+CURRENT_HEADING = (
+    "## Current V25 Status - Evaluation v2 Independently Reviewed "
+    "Exploratory Honest No-Claim"
+)
+AUDIT_HEADING = (
+    "## 2026-07-25 - Evaluation v2 Independently Reviewed "
+    "Exploratory Honest No-Claim"
+)
+
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _tuple(section: str) -> dict[str, str]:
+    rows = [
+        row for row in section.splitlines() if re.fullmatch(r"[a-z][a-z0-9_]*=.*", row)
+    ]
+    result = dict(row.split("=", 1) for row in rows)
+    assert len(result) == len(rows)
+    return result
+
+
+def _current(text: str) -> str:
+    assert text.count("## Current V25 Status") == 1
+    assert text.count(CURRENT_HEADING) == 1
+    return text.split(CURRENT_HEADING, 1)[1].split(
+        "## Historical V25 Status Through A1.6.11", 1
+    )[0]
+
+
+def _eof(text: str) -> str:
+    assert text.count(AUDIT_HEADING) == 1
+    return text.split(AUDIT_HEADING, 1)[1]
+
+
+def test_evaluation_v2_pointer_and_audit_are_exact() -> None:
+    status = _tuple(_current(STATUS.read_text(encoding="utf-8")))
+    audit = _tuple(_eof(AUDIT.read_text(encoding="utf-8")))
+    assert status == audit
+    assert status["current_v25_status"] == (
+        "v25_evaluation_v2_independently_reviewed_exploratory_honest_no_claim"
+    )
+    assert status["current_v25_phase"] == (
+        "evaluation_v2_independently_reviewed_terminal"
+    )
+    assert status["next_work_target"] == "high_evaluation_v2_combined_package_review"
+    assert status["current_v25_evaluation_v2_report_sha256"] == _sha(REPORT)
+    assert status["current_v25_evaluation_v2_evidence_index_sha256"] == _sha(INDEX)
+    assert status["current_v25_evaluation_v2_migration_matrix_sha256"] == _sha(
+        MIGRATION
+    )
+    assert status["current_v25_evaluation_v2_future_plan_sha256"] == _sha(FUTURE_PLAN)
+    assert status["current_v25_evaluation_v2_aggregate_summary_sha256"] == _sha(
+        AGGREGATE
+    )
+
+
+def test_evaluation_v2_docs_and_aggregate_preserve_claim_boundary() -> None:
+    documents = [
+        REPORT.read_text(encoding="utf-8"),
+        INDEX.read_text(encoding="utf-8"),
+        MIGRATION.read_text(encoding="utf-8"),
+        FUTURE_PLAN.read_text(encoding="utf-8"),
+    ]
+    for text in documents:
+        assert "@@V2_" not in text
+        assert "honest_no_claim_under_frozen_preregistered_all_gate" in text
+    aggregate = json.loads(AGGREGATE.read_text(encoding="utf-8"))
+    assert (
+        aggregate["schema_version"] == "camp_dp_v25_evaluation_v2_aggregate_summary_v1"
+    )
+    assert aggregate["per_run_values_included"] is False
+    assert aggregate["legacy_evaluation_values_included"] is False
+    assert aggregate["v2_claim_authorized"] is False
+    assert aggregate["result_semantics"] == (
+        "exploratory_posthoc_not_claim_authorizing"
+    )
+    assert set(aggregate["endpoint_vector"]) == {
+        "collision",
+        "dynamic_proximity",
+        "road_containment",
+        "certified_red_crossing",
+        "speed",
+        "route",
+        "vehicle_body_planar_kinematic_proxy",
+        "latency",
+    }
+    for endpoint in aggregate["endpoint_vector"].values():
+        assert set(endpoint) == {
+            "formula",
+            "units",
+            "source_root_sha256",
+            "evidence_class",
+            "denominator",
+            "opportunity",
+            "aggregate",
+            "status",
+            "missing_reason_counts",
+        }
+        assert endpoint["source_root_sha256"] == (
+            "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881"
+        )
+        assert endpoint["denominator"]["required_arm_count"] == 1500
+        if endpoint["denominator"]["missing_arm_count"]:
+            assert endpoint["aggregate"] == {
+                "status": "evidence_missing",
+                "paired_inference": "cancelled_missing_full_paired_denominator",
+                "complete_case_shrinkage_used": False,
+            }
+
+
+def test_evaluation_v2_docs_bind_no_rerun_and_no_cas_mutation() -> None:
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (REPORT, INDEX, MIGRATION, FUTURE_PLAN)
+    )
+    required = (
+        "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881",
+        "f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d",
+        "4a817b4bbd17449486e3258c0d4b07102929d5f12d60fa4bb73056eb726afb9f",
+        "94b048ace4a2a539532ccc64fe061afb51bc6b4e23ee2e5a5affd1fc2ef69459",
+        "727ac337bfbd2bace321d45127c84b5b36d28522750f5e8ba445d1259248c392",
+        "not_prospectively_defined_for_v2",
+        "exploratory_posthoc_not_claim_authorizing",
+    )
+    for value in required:
+        assert value in combined
+    prohibited_claims = (
+        "Fresh benefit",
+        "real-road safety",
+        "broad unseen-map",
+        "native-ranked Top1",
+        "production readiness",
+    )
+    for claim in prohibited_claims:
+        assert claim in combined

@@ -20,9 +20,7 @@ METRIC_SEMANTICS_REPORT = (
     ROOT / "docs" / "diffusion_planner_v25_metric_semantics_amendment_report.md"
 )
 METRIC_SEMANTICS_INDEX = (
-    ROOT
-    / "docs"
-    / "diffusion_planner_v25_metric_semantics_amendment_evidence_index.md"
+    ROOT / "docs" / "diffusion_planner_v25_metric_semantics_amendment_evidence_index.md"
 )
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
@@ -487,8 +485,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Metric Semantics Amendment "
-        "Independently Reviewed"
+        "## Current V25 Status - Evaluation v2 Independently Reviewed "
+        "Exploratory Honest No-Claim"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -498,7 +496,10 @@ def _current_v25_section(text: str) -> str:
 
 
 def _audit_v25_eof(text: str) -> str:
-    heading = "## 2026-07-25 - Metric Semantics Amendment Independently Reviewed"
+    heading = (
+        "## 2026-07-25 - Evaluation v2 Independently Reviewed "
+        "Exploratory Honest No-Claim"
+    )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
 
@@ -507,13 +508,13 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_metric_semantics_amendment_independently_reviewed_honest_no_claim"
+        "v25_evaluation_v2_independently_reviewed_exploratory_honest_no_claim"
     )
     assert pointer["current_v25_phase"] == (
-        "metric_semantics_amendment_independently_reviewed_terminal"
+        "evaluation_v2_independently_reviewed_terminal"
     )
     assert text.rstrip().endswith(
-        "next_work_target=high_metric_semantics_amendment_package_review"
+        "next_work_target=high_evaluation_v2_combined_package_review"
     )
 
 
@@ -572,7 +573,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert audit.rstrip().endswith(
-        "next_work_target=high_metric_semantics_amendment_package_review"
+        "next_work_target=high_evaluation_v2_combined_package_review"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
@@ -581,8 +582,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
     assert "Scene14D safety_improvement_claim_passed=false" in report
     assert "overall and within each independent inference cluster" in normalized_report
     assert (
-        "does not claim exact balance within every scenario family"
-        in normalized_report
+        "does not claim exact balance within every scenario family" in normalized_report
     )
     assert "101/101" in index
     assert "102/102" in index
@@ -596,9 +596,12 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
     assert pointer["current_v25_b4_evaluation_review_mode"] == (
         "separate_role_sealed_deterministic_replay_frozen_canonical_evaluation_core"
     )
-    assert pointer[
-        "current_v25_b4_reviewer_local_independent_statistical_implementation_claimed"
-    ] == "false"
+    assert (
+        pointer[
+            "current_v25_b4_reviewer_local_independent_statistical_implementation_claimed"
+        ]
+        == "false"
+    )
 
 
 def test_v25_corrected_latency_checklist_uses_sealed_complete_summaries() -> None:
@@ -625,13 +628,11 @@ def test_v25_corrected_latency_checklist_uses_sealed_complete_summaries() -> Non
     assert "no raw row was read" in normalized_report
     assert "zero-valued placeholders" in normalized_report
     assert (
-        "n/a (candidate0 does not invoke the additional-K8 branch)"
-        in normalized_report
+        "n/a (candidate0 does not invoke the additional-K8 branch)" in normalized_report
     )
     assert "n/a (Static14D has no scene-context stage)" in normalized_report
     assert (
-        "| 9 | Latency | complete from sealed corrected-evaluation summary |"
-        in index
+        "| 9 | Latency | complete from sealed corrected-evaluation summary |" in index
     )
     assert status_pointer["current_v25_b4_latency_summary_source"] == (
         "sealed_corrected_evaluation_summary"
@@ -659,9 +660,9 @@ def test_v25_metric_semantics_amendment_is_additive_and_fail_closed() -> None:
     assert pointer["current_v25_metric_semantics_report_sha256"] == _sha256(
         METRIC_SEMANTICS_REPORT
     )
-    assert pointer[
-        "current_v25_metric_semantics_evidence_index_sha256"
-    ] == _sha256(METRIC_SEMANTICS_INDEX)
+    assert pointer["current_v25_metric_semantics_evidence_index_sha256"] == _sha256(
+        METRIC_SEMANTICS_INDEX
+    )
     assert pointer["current_v25_metric_semantics_filtered_samples_per_run"] == "52"
     assert pointer["current_v25_metric_semantics_per_run_before_pair_and_cluster"] == (
         "true"
@@ -670,12 +671,14 @@ def test_v25_metric_semantics_amendment_is_additive_and_fail_closed() -> None:
     assert pointer["current_v25_metric_semantics_sealed_source_artifacts_written"] == (
         "false"
     )
-    assert pointer[
-        "current_v25_metric_semantics_scientific_or_continuation_cas_written"
-    ] == "false"
-    assert pointer[
-        "current_v25_metric_semantics_industrial_occupant_comfort_status"
-    ] == "evidence_missing_not_assessed"
+    assert (
+        pointer["current_v25_metric_semantics_scientific_or_continuation_cas_written"]
+        == "false"
+    )
+    assert (
+        pointer["current_v25_metric_semantics_industrial_occupant_comfort_status"]
+        == "evidence_missing_not_assessed"
+    )
 
     roots = (
         "318e85f9656a5dd79c9fb0ad6c1dfcd94678b35c4aba455f3909cf3475cca758",
@@ -713,21 +716,19 @@ def test_v25_metric_semantics_amendment_is_additive_and_fail_closed() -> None:
     for term in exact_terms:
         assert term in combined
 
-    for class_value in ("PASS", "benchmark-only", "FAIL-industrial", "evidence-missing"):
+    for class_value in (
+        "PASS",
+        "benchmark-only",
+        "FAIL-industrial",
+        "evidence-missing",
+    ):
         assert class_value in report
         assert class_value in index
-    assert (
-        "https://www.iso.org/standard/78951.html"
-        in report
-    )
-    assert (
-        "SAE J2834_202504"
-        in report
-    )
+    assert "https://www.iso.org/standard/78951.html" in report
+    assert "SAE J2834_202504" in report
     assert (
         "https://saemobilus.sae.org/standards/"
-        "j2834_202504-ride-index-structure-development-methodology"
-        in report
+        "j2834_202504-ride-index-structure-development-methodology" in report
     )
     assert "J2834_201310" not in report
     assert "/cms/%20render/" not in report
@@ -1104,9 +1105,7 @@ def test_v25_a16_r06_source_census_and_independent_review_are_bounded() -> None:
 
 
 def test_v25_b4_terminal_pointer_and_honest_no_claim_report_are_consistent() -> None:
-    status = " ".join(
-        _current_v25_section(STATUS.read_text(encoding="utf-8")).split()
-    )
+    status = " ".join(_current_v25_section(STATUS.read_text(encoding="utf-8")).split())
     audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
     report = " ".join(FINAL_REPORT.read_text(encoding="utf-8").split())
     index = " ".join(FINAL_INDEX.read_text(encoding="utf-8").split())
