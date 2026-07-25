@@ -242,9 +242,16 @@ def review_receipt_from_tensor_bytes(
     bindings = receipt.get("bindings")
     if not isinstance(bindings, dict) or set(bindings) != BINDING_FIELDS:
         raise ValueError("review binding field set drifted")
-    for field in BINDING_FIELDS - {"forward_ids"}:
+    for field in BINDING_FIELDS - {"forward_ids", "fixed_dp_head"}:
         if not _is_sha(bindings[field]):
             raise ValueError("review binding SHA drifted")
+    fixed_dp_head = bindings["fixed_dp_head"]
+    if (
+        not isinstance(fixed_dp_head, str)
+        or len(fixed_dp_head) != 40
+        or any(character not in "0123456789abcdef" for character in fixed_dp_head)
+    ):
+        raise ValueError("review fixed-DP git HEAD drifted")
     forward_ids = bindings["forward_ids"]
     if (
         not isinstance(forward_ids, list)

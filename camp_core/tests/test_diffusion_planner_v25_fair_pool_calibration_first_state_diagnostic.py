@@ -51,7 +51,7 @@ def _bindings(
         "latent_tensor_sha256": _sha("latent"),
         "model_source_sha256": _sha("model"),
         "checkpoint_sha256": _sha("checkpoint"),
-        "fixed_dp_head": _sha("fixed-dp"),
+        "fixed_dp_head": "7" * 40,
     }
     candidate_shas = [
         hashlib.sha256(_bytes(row)).hexdigest() for row in candidate
@@ -278,6 +278,14 @@ def test_unknown_receipt_field_and_forward_binding_drift_block() -> None:
             candidate=candidate,
             neighbor=neighbor,
             bindings=duplicate_forward,
+        )
+    wrong_fixed_dp = _bindings(candidate, neighbor)
+    wrong_fixed_dp["fixed_dp_head"] = _sha("not-a-git-head")
+    with pytest.raises(ValueError, match="fixed-DP git HEAD"):
+        build_precondition_receipt(
+            candidate=candidate,
+            neighbor=neighbor,
+            bindings=wrong_fixed_dp,
         )
 
 

@@ -153,9 +153,11 @@ def _validate_bindings(bindings: Mapping[str, Any]) -> dict[str, Any]:
     if set(bindings) != set(REQUIRED_BINDINGS):
         raise ValueError("diagnostic binding field set drifted")
     result = dict(bindings)
-    for field in REQUIRED_BINDINGS[:-1]:
+    for field in REQUIRED_BINDINGS[:-2]:
         if not is_sha256(result[field]):
             raise ValueError(f"invalid binding SHA256: {field}")
+    if not is_git_sha(result["fixed_dp_head"]):
+        raise ValueError("invalid fixed-DP git HEAD")
     forward_ids = result["forward_ids"]
     if (
         not isinstance(forward_ids, list)
