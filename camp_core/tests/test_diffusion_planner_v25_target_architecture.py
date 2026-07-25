@@ -305,6 +305,16 @@ def test_synthetic_single_invocation_same_ego_batch_produces_k8() -> None:
     assert np.array_equal(expanded, np.repeat(expanded[:1], 8, axis=0))
 
 
+def test_qualifier_clones_mutable_model_inputs_and_seals_latent_preimage() -> None:
+    source = (
+        ROOT / "scripts/integrations/qualify_diffusion_planner_v25_same_ego_k8.py"
+    ).read_text(encoding="utf-8")
+    assert "latent_preimage_np = latent_preimage.detach().cpu().numpy().copy()" in source
+    assert "call_inputs = {" in source
+    assert "value.detach().clone() for key, value in inputs.items()" in source
+    assert "_encoded, outputs = model(call_inputs)" in source
+
+
 def test_agent_as_ego_axis_is_rejected_by_capability_oracles() -> None:
     report = _capability_report()
     report["candidate_axis"]["agent_as_ego_batch"] = True

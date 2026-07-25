@@ -189,15 +189,18 @@ def qualify(
             int(config["seeds"]["candidate"]),
             noise_scale=1.0,
         )
-        latent = torch.from_numpy(latent_np).to(
+        latent_preimage = torch.from_numpy(np.array(latent_np, copy=True)).to(
             device=device_arg,
             dtype=expanded["sampled_trajectories"].dtype,
         )
-        if tuple(latent.shape) != tuple(expanded["sampled_trajectories"].shape):
+        if tuple(latent_preimage.shape) != tuple(
+            expanded["sampled_trajectories"].shape
+        ):
             raise ValueError("same-ego K8 latent shape drifted")
-        expanded["sampled_trajectories"] = latent.contiguous()
+        expanded["sampled_trajectories"] = latent_preimage.contiguous()
         expanded_input_sha = _tensor_dict_sha256(expanded)
-        latent_sha = array_sha256(latent.detach().cpu().numpy())
+        latent_preimage_np = latent_preimage.detach().cpu().numpy().copy()
+        latent_sha = array_sha256(latent_preimage_np)
         invocation_id = canonical_sha256(
             {
                 "input_sha256": expanded_input_sha,
@@ -213,11 +216,17 @@ def qualify(
         def forward(inputs: dict[str, Any]) -> np.ndarray:
             nonlocal call_count
             call_count += 1
+            # The fixed decoder treats sampled_trajectories as a mutable work
+            # tensor.  Every comparison must therefore receive an independent
+            # clone of the identical frozen input preimage.
+            call_inputs = {
+                key: value.detach().clone() for key, value in inputs.items()
+            }
             with torch.no_grad():
-                _encoded, outputs = model(inputs)
+                _encoded, outputs = model(call_inputs)
             prediction = outputs["prediction"]
             if tuple(prediction.shape[:2]) != (
-                int(inputs["sampled_trajectories"].shape[0]),
+                int(call_inputs["sampled_trajectories"].shape[0]),
                 321,
             ):
                 raise ValueError("fixed DP formal prediction shape drifted")
@@ -319,14 +328,14 @@ def qualify(
                 "source": "legacy_candidate_latents_seed24001_noise_scale1",
                 "seed": int(config["seeds"]["candidate"]),
                 "noise_scale": 1.0,
-                "shape": list(latent.shape),
-                "dtype": str(latent.detach().cpu().numpy().dtype),
+                "shape": list(latent_preimage_np.shape),
+                "dtype": str(latent_preimage_np.dtype),
                 "sha256": latent_sha,
                 "row_sha256": [
-                    array_sha256(row) for row in latent.detach().cpu().numpy()
+                    array_sha256(row) for row in latent_preimage_np
                 ],
-                "row0_zero": bool(torch.count_nonzero(latent[0]).item() == 0),
-                "finite": bool(torch.isfinite(latent).all().item()),
+                "row0_zero": bool(np.count_nonzero(latent_preimage_np[0]) == 0),
+                "finite": bool(np.all(np.isfinite(latent_preimage_np))),
             },
             "temperature": {
                 "status": "not_exposed_by_fixed_dp_formal_interface",
@@ -412,6 +421,7 @@ def qualify(
             or repeat_call_count != 1
             or sequential_call_count != 8
             or not nonlatent_identical
+            or np.count_nonzero(latent_preimage_np[0]) != 0
             or not np.all(np.isfinite(primary))
             or len(set(row_sha)) != 8
             or not np.array_equal(primary, repeat)
@@ -424,7 +434,7 @@ def qualify(
                 "report": report,
                 "candidate_tensor": primary,
                 "sequential_candidate_tensor": sequential,
-                "latent_tensor": latent.detach().cpu().numpy(),
+                "latent_tensor": latent_preimage_np,
             }
         )
         raise _QualificationComplete
