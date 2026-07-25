@@ -48,7 +48,9 @@ Disposition: `honest_no_claim_under_frozen_preregistered_all_gate`
 
 Execution facts: 500/500 complete pairs, 1,500/1,500 complete and terminal
 arms, 96,000 ticks, identical paired set, full denominator, coverage PASS,
-failed rows retained, no SafetyCost imputation, no Fresh rerun.
+failed rows retained, no SafetyCost imputation, no Fresh rerun. The frozen
+arm-order contract guarantees balance overall and per independent inference
+cluster; it does not claim exact per-scenario-family balance.
 
 ## Preserved superseded engineering diagnostic
 
@@ -83,7 +85,7 @@ overwritten, or restated as if the failure never occurred.
 | Independent repair review | `/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_policy_correction_repair_review_62079a71_8680c1b19ce0620b` | `e622220157c46ae2a95173ad63699fd0afad03d24a6514edae92c28f746f3583` |
 | Corrected evaluation | `/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_corrected_dddca1c6_8680c1b19ce0620b` | `4a817b4bbd17449486e3258c0d4b07102929d5f12d60fa4bb73056eb726afb9f` |
 | Corrected independent review | `/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_corrected_review_dddca1c6_8680c1b19ce0620b` | `94b048ace4a2a539532ccc64fe061afb51bc6b4e23ee2e5a5affd1fc2ef69459` |
-| Continuation ledger | `/root/autodl-tmp/.camp_dp_v25_fresh_b4_evaluation_continuation_cas/625fee32ec6600d7d17345ffa5c096f3585ff91537a93f67a66dcda4335f6144.json` | `independently_reviewed_terminal` |
+| Continuation ledger | `/root/autodl-tmp/.camp_dp_v25_fresh_b4_evaluation_continuation_cas/625fee32ec6600d7d17345ffa5c096f3585ff91537a93f67a66dcda4335f6144.json` | SHA `727ac337bfbd2bace321d45127c84b5b36d28522750f5e8ba445d1259248c392`; `independently_reviewed_terminal` |
 
 Continuation history:
 `authorized_from_preserved_denominator -> evaluation_started ->
@@ -98,14 +100,20 @@ evaluation_artifact_formed -> independently_reviewed_terminal`.
 | Arm-order consumer contract | 101/101 | `ae502c61...` diagnostic |
 | Git HEAD schema | 101/101 | `3f1b69f6...` diagnostic |
 | Separate evaluator/reviewer HEADs | 101/101 | `5548768d...` diagnostic |
-| Historical sealed evaluation manifest | 101/101 | `7c01cd9ea5176da889186d3beffec38d6e9ab5d04e40d3fa2b4a47eea8713437` authoritative |
+| Historical sealed evaluation manifest | 101/101 | `7c01cd9ea5176da889186d3beffec38d6e9ab5d04e40d3fa2b4a47eea8713437` implementation-focused |
+| Post-publication final-package authority | 102/102 | `58c241ec562a570c72f3d96bc2b85e32079f367e9d9d2e30e2835b20e49f8205` final-package-focused |
 
-The authoritative focused artifact is:
+The evaluator/reviewer implementation-focused artifact is:
 `/root/autodl-tmp/camp_dp_v25_fresh_b4_evaluation_policy_correction_focused_6e43a625_8680c1b19ce0620b`.
-Tests use synthetic/tmp fixtures and fail closed on B3 disguise, outcome fields,
-run.exit drift, directories or review appearing early, denominator drift,
-root/command/error drift, duplicate/unknown fields, dual-HEAD/allowlist/manifest
-drift, and consumer-contract drift.
+It contains the 101/101 synthetic implementation suite. The separately sealed
+post-publication final-package-focused artifact is:
+`/root/autodl-tmp/camp_dp_v25_fresh_b4_final_corrected_package_focused_00c40701_8680c1b19ce0620b`.
+It contains 102/102 tests, adding the final corrected-EOF consumer check. These
+labels are intentionally distinct; neither root silently supersedes the other.
+Tests use synthetic/tmp fixtures and fail closed on B3 disguise, outcome
+fields, run.exit drift, directories or review appearing early, denominator
+drift, root/command/error drift, duplicate/unknown fields,
+dual-HEAD/allowlist/manifest drift, and consumer-contract drift.
 
 ## Accepted upstream evidence
 

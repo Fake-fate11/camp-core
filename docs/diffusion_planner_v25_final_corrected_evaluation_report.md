@@ -158,11 +158,14 @@ and
 
 Clone-aware train/calibration/B2/B3/B4 overlap checks passed. Fresh B4 used 25
 maps, 100 intersections/corridors/routes/semantic blocks, five seeds, 500
-paired units, 1,500 balanced arms, and 96,000 ticks. The sealed evaluation
-retained the identical 500-pair set and all failed rows, used no SafetyCost
-imputation, and accepted 500 complete arms for each of candidate0, Static14D,
-and Scene14D. There were zero fixed-DP capability failures and zero
-source-ineligible B4 arms.
+paired units, 1,500 arms, and 96,000 ticks. The frozen plan guarantees arm
+balance overall and within each independent inference cluster; it does not
+claim exact balance within every scenario family. The pre-artifact arm-order
+repair enforced this static contract without changing any execution row. The
+sealed evaluation retained the identical 500-pair set and all failed rows,
+used no SafetyCost imputation, and accepted 500 complete arms for each of
+candidate0, Static14D, and Scene14D. There were zero fixed-DP capability
+failures and zero source-ineligible B4 arms.
 
 ## 6. Static/Scene 9D/14D training and convergence
 
@@ -397,6 +400,8 @@ The prospective correction authority is additive:
   `e622220157c46ae2a95173ad63699fd0afad03d24a6514edae92c28f746f3583`;
 - continuation ledger:
   `/root/autodl-tmp/.camp_dp_v25_fresh_b4_evaluation_continuation_cas/625fee32ec6600d7d17345ffa5c096f3585ff91537a93f67a66dcda4335f6144.json`;
+- final continuation ledger SHA256:
+  `727ac337bfbd2bace321d45127c84b5b36d28522750f5e8ba445d1259248c392`;
 - continuation history:
   `authorized_from_preserved_denominator -> evaluation_started -> evaluation_artifact_formed -> independently_reviewed_terminal`.
 
@@ -431,10 +436,16 @@ Explicitly unsupported:
 ## 15. Reproducibility
 
 The complete path/root register and 11-item acceptance checklist are in
-`docs/diffusion_planner_v25_final_corrected_evidence_index.md`. The append-only
-authoritative status tuple is at the EOF of
-`docs/diffusion_planner_current_status.md` and
+`docs/diffusion_planner_v25_final_corrected_evidence_index.md`. The
+authoritative status tuple is in the named top Current V25 section of
+`docs/diffusion_planner_current_status.md` and, field for field, at the EOF of
 `docs/diffusion_planner_v25_iteration_audit.md`. The earlier
 `docs/diffusion_planner_v25_final_honest_no_claim_report.md` remains preserved
 as the superseded engineering-diagnostic closeout; it is not silently rewritten
 as though the original fatal never occurred.
+
+Focused evidence is explicitly layered: the evaluator/reviewer implementation
+suite passed 101/101 at root
+`7c01cd9ea5176da889186d3beffec38d6e9ab5d04e40d3fa2b4a47eea8713437`;
+the post-publication final-package suite passed 102/102 at root
+`58c241ec562a570c72f3d96bc2b85e32079f367e9d9d2e30e2835b20e49f8205`.

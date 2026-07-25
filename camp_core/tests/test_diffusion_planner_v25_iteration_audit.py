@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -465,25 +466,71 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _machine_tuple(section: str) -> dict[str, str]:
+    lines = [
+        line
+        for line in section.splitlines()
+        if re.fullmatch(r"[a-z][a-z0-9_]*=.*", line)
+    ]
+    result = dict(line.split("=", 1) for line in lines)
+    assert len(result) == len(lines)
+    return result
+
+
+def _current_v25_section(text: str) -> str:
+    heading = (
+        "## Current V25 Status - Fresh B4 Corrected Evaluation "
+        "Independently Reviewed"
+    )
+    assert text.count("## Current V25 Status") == 1
+    assert text.count(heading) == 1
+    return text.split(heading, 1)[1].split(
+        "## Historical V25 Status Through A1.6.11", 1
+    )[0]
+
+
+def _audit_v25_eof(text: str) -> str:
+    heading = (
+        "## 2026-07-25 - Prospective Evaluator-Policy Correction "
+        "and Corrected Evaluation Terminal"
+    )
+    assert text.count(heading) == 1
+    return text.split(heading, 1)[1]
+
+
 def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
+    pointer = _machine_tuple(_audit_v25_eof(text))
+    assert pointer["current_v25_status"] == (
+        "v25_fresh_b4_corrected_evaluation_independently_reviewed_honest_no_claim"
+    )
+    assert pointer["current_v25_phase"] == (
+        "fresh_b4_corrected_evaluation_independently_reviewed_terminal"
+    )
     assert text.rstrip().endswith(
-        "\n".join(
-            (
-                "current_v25_focused_tests_root_sha256=7c01cd9ea5176da889186d3beffec38d6e9ab5d04e40d3fa2b4a47eea8713437",
-                "current_v25_phase=fresh_b4_corrected_evaluation_independently_reviewed_terminal",
-                "next_work_target=high_final_incremental_package_review_before_ultra",
-            )
-        )
+        "next_work_target=high_final_incremental_package_review_before_ultra"
     )
 
 
 def test_current_status_has_one_v25_pointer_matching_audit() -> None:
-    text = STATUS.read_text(encoding="utf-8")
-    assert text.count("## Current V25 Status") == 1
-    section = text.split("## Current V25 Status", 1)[1].split("\n## ", 1)[0]
-    for line in POINTER:
-        assert section.count(line) == 1
+    status_text = STATUS.read_text(encoding="utf-8")
+    audit_text = AUDIT.read_text(encoding="utf-8")
+    current_section = _current_v25_section(status_text)
+    status_pointer = _machine_tuple(current_section)
+    audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
+    assert status_pointer == audit_pointer
+    assert current_section.count("current_v25_status=") == 1
+    assert (
+        "current_v25_status="
+        "v25_fresh_b4_post_exposure_evaluation_control_fatal_honest_no_claim_terminal"
+    ) not in current_section
+    assert "Preserved superseded engineering diagnostic" in current_section
+    assert status_pointer["current_v25_final_corrected_report_sha256"] == _sha256(
+        CORRECTED_FINAL_REPORT
+    )
+    assert status_pointer[
+        "current_v25_final_corrected_evidence_index_sha256"
+    ] == _sha256(CORRECTED_FINAL_INDEX)
 
 
 def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
@@ -491,13 +538,9 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
     audit = AUDIT.read_text(encoding="utf-8")
     report = CORRECTED_FINAL_REPORT.read_text(encoding="utf-8")
     index = CORRECTED_FINAL_INDEX.read_text(encoding="utf-8")
-    status_eof = status.rsplit(
-        "## Authoritative EOF - V25 Fresh B4 Corrected Evaluation", 1
-    )[1]
-    audit_eof = audit.rsplit(
-        "## 2026-07-25 - Prospective Evaluator-Policy Correction and Corrected Evaluation Terminal",
-        1,
-    )[1]
+    normalized_report = " ".join(report.split())
+    status_pointer = _current_v25_section(status)
+    audit_eof = _audit_v25_eof(audit)
     required = (
         "7be93df20deee03587b9898e8560909662df972c",
         "06d3a1f3a37061f93f5c9788312ae59d1356d126",
@@ -507,16 +550,16 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         "4a817b4bbd17449486e3258c0d4b07102929d5f12d60fa4bb73056eb726afb9f",
         "94b048ace4a2a539532ccc64fe061afb51bc6b4e23ee2e5a5affd1fc2ef69459",
         "c3db4fb56f28efda7e3feb762ab0f01954f09983813b442f0a31e7730fbe72e4",
+        "727ac337bfbd2bace321d45127c84b5b36d28522750f5e8ba445d1259248c392",
+        "7c01cd9ea5176da889186d3beffec38d6e9ab5d04e40d3fa2b4a47eea8713437",
+        "58c241ec562a570c72f3d96bc2b85e32079f367e9d9d2e30e2835b20e49f8205",
         "honest_no_claim_under_frozen_preregistered_all_gate",
     )
     for phrase in required:
-        assert phrase in status_eof
+        assert phrase in status_pointer
         assert phrase in audit_eof
         assert phrase in report
         assert phrase in index
-    assert status.rstrip().endswith(
-        "next_work_target=high_final_incremental_package_review_before_ultra"
-    )
     assert audit.rstrip().endswith(
         "next_work_target=high_final_incremental_package_review_before_ultra"
     )
@@ -525,6 +568,13 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
     assert "Fresh execution rerun: `false`" in report
     assert "Static14D safety_improvement_claim_passed=false" in report
     assert "Scene14D safety_improvement_claim_passed=false" in report
+    assert "overall and within each independent inference cluster" in normalized_report
+    assert (
+        "does not claim exact balance within every scenario family"
+        in normalized_report
+    )
+    assert "101/101" in index
+    assert "102/102" in index
 
 
 def test_v25_training_and_independent_review_are_accepted_before_calibration() -> None:
@@ -887,12 +937,13 @@ def test_v25_a16_r06_source_census_and_independent_review_are_bounded() -> None:
 
 
 def test_v25_b4_terminal_pointer_and_honest_no_claim_report_are_consistent() -> None:
-    status = " ".join(STATUS.read_text(encoding="utf-8").split())
+    status = " ".join(
+        _current_v25_section(STATUS.read_text(encoding="utf-8")).split()
+    )
     audit = " ".join(AUDIT.read_text(encoding="utf-8").split())
     report = " ".join(FINAL_REPORT.read_text(encoding="utf-8").split())
     index = " ".join(FINAL_INDEX.read_text(encoding="utf-8").split())
-    required = (
-        "Fresh B4 Post-Exposure Evaluation-Control Fatal and Honest-No-Claim Terminal",
+    preserved = (
         "7be93df20deee03587b9898e8560909662df972c",
         "06d3a1f3a37061f93f5c9788312ae59d1356d126",
         "77b735dcb24ed17e5a897f98f430ca1c536d787c",
@@ -902,6 +953,9 @@ def test_v25_b4_terminal_pointer_and_honest_no_claim_report_are_consistent() -> 
         "86aa7ca12ae8cfa4a655fc55022761a78ac54a3a22ef32a750df9c7eb75d0062",
         "c3db4fb56f28efda7e3feb762ab0f01954f09983813b442f0a31e7730fbe72e4",
         "post_exposure_evaluation_control_fatal",
+    )
+    old_terminal_only = (
+        "Fresh B4 Post-Exposure Evaluation-Control Fatal and Honest-No-Claim Terminal",
         "unavailable_due_to_post_exposure_evaluation_fatal",
         "honest_no_claim",
         "current_v25_b4_complete_paired_row_count=500",
@@ -913,12 +967,21 @@ def test_v25_b4_terminal_pointer_and_honest_no_claim_report_are_consistent() -> 
         "current_v25_b4_rerun_allowed=false",
         "next_work_target=high_incremental_terminal_package_review_before_ultra",
     )
-    for phrase in required:
+    for phrase in preserved:
         assert phrase in status
         assert phrase in audit
-    for phrase in required[1:12]:
         assert phrase in report
         assert phrase in index
+    for phrase in old_terminal_only:
+        assert phrase in audit
+    for phrase in old_terminal_only[1:3]:
+        assert phrase in report
+        assert phrase in index
+    assert (
+        "current_v25_status="
+        "v25_fresh_b4_post_exposure_evaluation_control_fatal_honest_no_claim_terminal"
+    ) not in status
+    assert "Preserved superseded engineering diagnostic" in status
     assert "## Eleven-item acceptance checklist" in index
     assert index.count("| 1 |") == 1
     assert index.count("| 11 |") == 1
