@@ -485,7 +485,7 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Evaluation v2 Independently Reviewed "
+        "## Current V25 Status - Evaluation v2 Corrected Independently Reviewed "
         "Exploratory Honest No-Claim"
     )
     assert text.count("## Current V25 Status") == 1
@@ -497,7 +497,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-25 - Evaluation v2 Independently Reviewed "
+        "## 2026-07-25 - Evaluation v2 Corrected Independently Reviewed "
         "Exploratory Honest No-Claim"
     )
     assert text.count(heading) == 1
@@ -508,13 +508,13 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_evaluation_v2_independently_reviewed_exploratory_honest_no_claim"
+        "v25_evaluation_v2_corrected_independently_reviewed_exploratory_honest_no_claim"
     )
     assert pointer["current_v25_phase"] == (
-        "evaluation_v2_independently_reviewed_terminal"
+        "evaluation_v2_corrected_independently_reviewed_terminal"
     )
     assert text.rstrip().endswith(
-        "next_work_target=high_evaluation_v2_combined_package_review"
+        "next_work_target=high_evaluation_v2_corrected_combined_package_review"
     )
 
 
@@ -573,7 +573,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert audit.rstrip().endswith(
-        "next_work_target=high_evaluation_v2_combined_package_review"
+        "next_work_target=high_evaluation_v2_corrected_combined_package_review"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
