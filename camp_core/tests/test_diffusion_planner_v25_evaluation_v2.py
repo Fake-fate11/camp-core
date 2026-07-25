@@ -26,6 +26,7 @@ from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (
     obb_polygon,
     polygon_clearance_m,
     road_outside_fraction,
+    road_signed_boundary_metrics,
     stateful_route_projection,
     swept_front_edge_crossing,
     validate_evaluation_v2_contract,
@@ -41,7 +42,7 @@ from scripts.integrations import (
 
 def test_contract_is_versioned_exact_and_non_claim_authorizing() -> None:
     contract = evaluation_v2_contract()
-    assert contract["schema_version"] == "camp_dp_v25_evaluation_v2_contract_v2"
+    assert contract["schema_version"] == "camp_dp_v25_evaluation_v2_contract_v3"
     assert contract["result_semantics"] == "exploratory_posthoc_not_claim_authorizing"
     assert contract["claim_policy"]["v2_scientific_hard_gate"] == (
         "not_prospectively_defined_for_v2"
@@ -79,7 +80,7 @@ def test_contract_freezes_all_descriptive_grids_and_sources() -> None:
 
 def test_independent_contract_reviewer_accepts_only_corrected_literal_contract() -> None:
     producer = {
-        "schema_version": "camp_dp_v25_evaluation_v2_contract_artifact_v2",
+        "schema_version": "camp_dp_v25_evaluation_v2_contract_artifact_v3",
         "status": "sealed_outcome_free_evaluation_v2_corrected_contract",
         "contract": evaluation_v2_contract(),
         "source_capability_audit": {},
@@ -95,6 +96,17 @@ def test_independent_contract_reviewer_accepts_only_corrected_literal_contract()
                 "max_trapezoidal_speed_or_sealed_displacement_bound",
                 "forward_increment_completion",
                 "goal_endpoint_independent_of_route_projection",
+            ],
+        },
+        "superseded_corrected_v2_static_correction_diagnosis": {
+            "basis": "synthetic static source",
+            "superseded_corrected_materialization_root_sha256": (
+                "3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588"
+            ),
+            "corrections_selected_without_outcome_values": [
+                "deterministic_root_bound_polygon_union_external_boundary",
+                "full_footprint_boundary_signed_clearance_and_maximum_penetration",
+                "explicit_fail_closed_scalar_path_direction_contract",
             ],
         },
         "execution_binding": {
@@ -242,7 +254,7 @@ def test_drivable_union_clipping_does_not_double_count_overlap() -> None:
     )
 
 
-def test_road_boundary_metric_is_explicitly_evidence_missing_without_union_topology() -> None:
+def test_road_boundary_metric_is_computed_from_root_bound_polygon_union() -> None:
     ticks = [
         {"safety": {"position_xy": [0.0, 0.0], "ego_heading_rad": 0.0}}
     ]
@@ -253,8 +265,93 @@ def test_road_boundary_metric_is_explicitly_evidence_missing_without_union_topol
         ego_width=2.0,
         ego_wheelbase=2.5,
     )
-    assert result["signed_boundary_clearance_or_penetration"]["status"] == (
-        "evidence_missing"
+    boundary = result["signed_boundary_clearance_or_penetration"]
+    assert boundary["status"] == "computed"
+    assert boundary["minimum_signed_boundary_clearance_m"] > 0.0
+    assert boundary["maximum_boundary_penetration_m"] == 0.0
+
+
+@pytest.mark.parametrize(
+    ("footprint", "drivable", "expected_signed", "expected_penetration"),
+    [
+        (
+            [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]],
+            [
+                [[-5.0, -5.0], [0.0, -5.0], [0.0, 5.0], [-5.0, 5.0]],
+                [[0.0, -5.0], [5.0, -5.0], [5.0, 5.0], [0.0, 5.0]],
+            ],
+            4.0,
+            0.0,
+        ),
+        (
+            [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]],
+            [
+                [[-5.0, -5.0], [2.0, -5.0], [2.0, 5.0], [-5.0, 5.0]],
+                [[-2.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-2.0, 5.0]],
+            ],
+            4.0,
+            0.0,
+        ),
+        (
+            [[-1.0, -1.0], [1.0, -1.0], [1.0, 1.0], [-1.0, 1.0]],
+            [[[-5.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-5.0, 5.0]]],
+            4.0,
+            0.0,
+        ),
+        (
+            [[3.0, -1.0], [5.0, -1.0], [5.0, 1.0], [3.0, 1.0]],
+            [[[-5.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-5.0, 5.0]]],
+            0.0,
+            0.0,
+        ),
+        (
+            [[4.0, -1.0], [6.0, -1.0], [6.0, 1.0], [4.0, 1.0]],
+            [[[-5.0, -5.0], [5.0, -5.0], [5.0, 5.0], [-5.0, 5.0]]],
+            -1.0,
+            1.0,
+        ),
+    ],
+    ids=[
+        "adjacent_lanelets_internal_seam_removed",
+        "overlapping_lanelets_internal_seams_removed",
+        "fully_inside",
+        "touching_external_boundary",
+        "partially_outside",
+    ],
+)
+def test_road_union_boundary_signed_metrics_match_independent_literal_oracle(
+    footprint: list[list[float]],
+    drivable: list[list[list[float]]],
+    expected_signed: float,
+    expected_penetration: float,
+) -> None:
+    producer = road_signed_boundary_metrics(footprint, drivable)
+    reviewer = independent_review._independent_road_boundary(
+        np.asarray(footprint, dtype=np.float64),
+        [np.asarray(row, dtype=np.float64) for row in drivable],
+    )
+    assert math.isclose(
+        producer["minimum_signed_boundary_clearance_m"],
+        expected_signed,
+        abs_tol=1e-9,
+    )
+    assert math.isclose(
+        producer["maximum_boundary_penetration_m"],
+        expected_penetration,
+        abs_tol=1e-9,
+    )
+    assert producer["union_boundary_segment_count"] == reviewer[
+        "union_boundary_segment_count"
+    ]
+    assert math.isclose(
+        producer["minimum_signed_boundary_clearance_m"],
+        reviewer["minimum_signed_boundary_clearance_m"],
+        abs_tol=1e-9,
+    )
+    assert math.isclose(
+        producer["maximum_boundary_penetration_m"],
+        reviewer["maximum_boundary_penetration_m"],
+        abs_tol=1e-9,
     )
 
 
@@ -530,12 +627,51 @@ def test_paired_better_tie_worse_uses_direction_and_exact_zero_ties() -> None:
         ("dynamic_proximity", "/min_clearance_m", "higher"),
         ("dynamic_proximity", "/actor_tick_opportunity_count", "descriptive_unclassified"),
         ("route", "/backtracking_distance_m", "lower"),
+        ("route", "/distance_traveled_m", "descriptive_unclassified"),
+        ("route", "/route_length_m", "descriptive_unclassified"),
+        (
+            "route",
+            "/final_nearest_route_polyline_projection_m",
+            "higher",
+        ),
+        ("route", "/net_m", "higher"),
+        ("route", "/max_forward_m", "higher"),
         ("route", "/completion_fraction", "higher"),
         ("goal", "/minimum_goal_distance_m", "lower"),
         ("goal", "/goal_passed_by_literal_heading_and_window", "higher"),
         (
             "vehicle_body_planar_kinematic_proxy",
             "/filtered_acceleration/longitudinal/signed_mean",
+            "descriptive_unclassified",
+        ),
+        (
+            "vehicle_body_planar_kinematic_proxy",
+            "/filtered_acceleration/longitudinal/min",
+            "descriptive_unclassified",
+        ),
+        (
+            "vehicle_body_planar_kinematic_proxy",
+            "/filtered_acceleration/longitudinal_deceleration/max",
+            "lower",
+        ),
+        (
+            "vehicle_body_planar_kinematic_proxy",
+            "/filtered_acceleration/longitudinal_deceleration/p95",
+            "lower",
+        ),
+        (
+            "vehicle_body_planar_kinematic_proxy",
+            "/filtered_jerk/lateral/peak_abs",
+            "lower",
+        ),
+        (
+            "vehicle_body_planar_kinematic_proxy",
+            "/filtered_acceleration/duration_abs_gt_s/longitudinal/1",
+            "lower",
+        ),
+        (
+            "latency",
+            "/stages/selector/count",
             "descriptive_unclassified",
         ),
         ("latency", "/total/p95", "lower"),
@@ -546,6 +682,127 @@ def test_direction_classifier_matches_independent_literal_oracle(
 ) -> None:
     assert v2_kernel._scalar_direction(endpoint, path) == expected
     assert independent_review._direction(endpoint, path) == expected
+
+
+def test_direction_classifier_fails_closed_for_unknown_scalar_path() -> None:
+    with pytest.raises(ValueError, match="unknown Evaluation v2 scalar direction"):
+        v2_kernel._scalar_direction("route", "/unknown_metric")
+    with pytest.raises(
+        ValueError, match="unknown independent Evaluation v2 scalar direction"
+    ):
+        independent_review._direction("route", "/unknown_metric")
+
+
+def test_complete_synthetic_endpoint_scalar_paths_are_exhaustively_classified() -> None:
+    ticks = []
+    actor_ticks = []
+    for index in range(64):
+        position = [0.1 * index, 0.0]
+        ticks.append(
+            {
+                "tick_index": index,
+                "safety": {
+                    "position_xy": position,
+                    "ego_heading_rad": 0.0,
+                    "speed_mps": 1.0,
+                    "speed_limit_mps": 2.0,
+                    "signal_phase_at_interval_start": "green",
+                    "certified_signal_stop_lines": [],
+                    "front_center_prev_xy": position,
+                    "front_center_xy": position,
+                    "pre_decision_speed_mps": 1.0,
+                },
+                "latency_ms": {
+                    "candidate_generation": 1.0,
+                    "selector": 2.0,
+                    "total_planning": 3.0,
+                },
+            }
+        )
+        actor_ticks.append(
+            {
+                "controlled_scene": {
+                    "actors": [
+                        {
+                            "id": "actor",
+                            "position_xy": [100.0, 0.0],
+                            "heading_rad": 0.0,
+                            "velocity_xy_mps": [0.0, 0.0],
+                        }
+                    ]
+                }
+            }
+        )
+    collision, proximity = v2_kernel._collision_and_proximity(
+        ticks=ticks,
+        actor_source_ticks=actor_ticks,
+        actor_specs={
+            "actor": {"length_m": 4.0, "width_m": 2.0, "wheelbase_m": 2.5}
+        },
+        ego_length=4.0,
+        ego_width=2.0,
+        ego_wheelbase=2.5,
+    )
+    positions = np.asarray(
+        [tick["safety"]["position_xy"] for tick in ticks], dtype=np.float64
+    )
+    headings = np.zeros(64, dtype=np.float64)
+    endpoints = {
+        "collision": collision,
+        "dynamic_proximity": proximity,
+        "road_containment": v2_kernel._road_endpoint(
+            ticks,
+            [[[-100.0, -10.0], [100.0, -10.0], [100.0, 10.0], [-100.0, 10.0]]],
+            ego_length=4.0,
+            ego_width=2.0,
+            ego_wheelbase=2.5,
+        ),
+        "certified_red_crossing": v2_kernel._red_endpoint(
+            ticks, [], ego_width=2.0, initial_heading_rad=0.0
+        ),
+        "speed": v2_kernel.speed_endpoint(ticks),
+        "route": stateful_route_projection(
+            positions,
+            [1.0] * 64,
+            [
+                {
+                    "index": 0,
+                    "start_xy": [0.0, 0.0],
+                    "end_xy": [20.0, 0.0],
+                    "arc_start_m": 0.0,
+                    "arc_end_m": 20.0,
+                    "next_indices": [],
+                }
+            ],
+        ),
+        "goal": v2_kernel._goal_endpoint(
+            positions,
+            headings,
+            [10.0, 0.0, 0.0],
+            0.5,
+            1.0,
+            {"goal_reached": False, "reason": "max_steps"},
+        ),
+        "vehicle_body_planar_kinematic_proxy": (
+            vehicle_body_planar_kinematic_proxy(positions, headings)
+        ),
+        "latency": v2_kernel.latency_endpoint(ticks),
+    }
+    assert set(endpoints) == set(evaluation_v2_contract()["endpoint_catalog"])
+    for endpoint, value in endpoints.items():
+        paths = v2_kernel._numeric_paths(value, prefix="")
+        directions = {
+            path: v2_kernel._scalar_direction(endpoint, path) for path in paths
+        }
+        assert len(directions) == len(paths)
+        assert set(directions.values()) <= {
+            "lower",
+            "higher",
+            "descriptive_unclassified",
+        }
+        assert directions == {
+            path: independent_review._direction(endpoint, path) for path in paths
+        }
 
 
 def test_polygon_clearance_is_zero_for_intersection() -> None:

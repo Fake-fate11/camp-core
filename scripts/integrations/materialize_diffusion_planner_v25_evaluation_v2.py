@@ -37,13 +37,17 @@ from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (  # noqa
     SUPERSEDED_V2_CONTRACT_ROOT,
     SUPERSEDED_V2_MATERIALIZATION_ROOT,
     SUPERSEDED_V2_REVIEW_ROOT,
+    SUPERSEDED_CORRECTED_V2_CONTRACT_REVIEW_ROOT,
+    SUPERSEDED_CORRECTED_V2_CONTRACT_ROOT,
+    SUPERSEDED_CORRECTED_V2_MATERIALIZATION_ROOT,
+    SUPERSEDED_CORRECTED_V2_REVIEW_ROOT,
     build_evaluation_v2_result,
     canonical_sha256,
     summarize_run_v2,
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_materialization_artifact_v2"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_materialization_artifact_v3"
 
 
 def materialize(
@@ -246,6 +250,17 @@ def materialize(
             "contract_review_root_sha256": SUPERSEDED_V2_CONTRACT_REVIEW_ROOT,
             "materialization_root_sha256": SUPERSEDED_V2_MATERIALIZATION_ROOT,
             "review_root_sha256": SUPERSEDED_V2_REVIEW_ROOT,
+            "preserved": True,
+        },
+        "superseded_corrected_evaluation_v2_diagnostic": {
+            "contract_root_sha256": SUPERSEDED_CORRECTED_V2_CONTRACT_ROOT,
+            "contract_review_root_sha256": (
+                SUPERSEDED_CORRECTED_V2_CONTRACT_REVIEW_ROOT
+            ),
+            "materialization_root_sha256": (
+                SUPERSEDED_CORRECTED_V2_MATERIALIZATION_ROOT
+            ),
+            "review_root_sha256": SUPERSEDED_CORRECTED_V2_REVIEW_ROOT,
             "preserved": True,
         },
         "claim_authorized": False,

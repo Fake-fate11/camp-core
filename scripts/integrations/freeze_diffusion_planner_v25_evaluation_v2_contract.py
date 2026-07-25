@@ -28,7 +28,7 @@ from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (  # noqa
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_artifact_v2"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_artifact_v3"
 
 
 def freeze_contract(*, output: Path, execution: Path, execution_root: str) -> str:
@@ -61,6 +61,20 @@ def freeze_contract(*, output: Path, execution: Path, execution_root: str) -> st
                 "max_trapezoidal_speed_or_sealed_displacement_bound",
                 "forward_increment_completion",
                 "goal_endpoint_independent_of_route_projection",
+            ],
+        },
+        "superseded_corrected_v2_static_correction_diagnosis": {
+            "basis": (
+                "static producer/reviewer source and published aggregate-only "
+                "scalar-path inventory; no per-run outcome values"
+            ),
+            "superseded_corrected_materialization_root_sha256": (
+                "3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588"
+            ),
+            "corrections_selected_without_outcome_values": [
+                "deterministic_root_bound_polygon_union_external_boundary",
+                "full_footprint_boundary_signed_clearance_and_maximum_penetration",
+                "explicit_fail_closed_scalar_path_direction_contract",
             ],
         },
         "execution_binding": {

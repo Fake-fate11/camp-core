@@ -11,8 +11,8 @@ import numpy as np
 from scipy.stats import t as student_t
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_v2"
-RESULT_SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_artifact_v2"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_v3"
+RESULT_SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_artifact_v3"
 ARMS = ("candidate0", "static14d", "scene14d")
 METHOD_ARMS = ("static14d", "scene14d")
 TICK_COUNT = 64
@@ -36,6 +36,7 @@ LATENCY_DEADLINE_GRID_MS = (50.0, 100.0, 200.0, 500.0, 1000.0)
 BOXCAR_KERNEL = tuple([1.0 / 11.0] * 11)
 GEOMETRY_TTC_HORIZON_S = 5.0
 ROUTE_TRAVEL_EPSILON_M = 1e-6
+UNION_BOUNDARY_PROBE_EPS_M = 1e-7
 
 EXECUTION_ROOT = "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881"
 EXECUTION_REVIEW_ROOT = (
@@ -66,6 +67,18 @@ SUPERSEDED_V2_MATERIALIZATION_ROOT = (
 )
 SUPERSEDED_V2_REVIEW_ROOT = (
     "d1cfb29dbb34e3bb92592f803820a6a0454af89b3b9fc2100b45cbaf8215f91d"
+)
+SUPERSEDED_CORRECTED_V2_CONTRACT_ROOT = (
+    "ab99f6740038136409b9f131c8bd38dd35b1b19c338e85c4df6ba86b25f59306"
+)
+SUPERSEDED_CORRECTED_V2_CONTRACT_REVIEW_ROOT = (
+    "0962b233a2a0391649433233bd4e7fcbd688ddedc28f2d25fa5cf4eda9354628"
+)
+SUPERSEDED_CORRECTED_V2_MATERIALIZATION_ROOT = (
+    "3a4575f346188d87c4c3c18e4cc817540eac09aa38cd0cf886628c3013402588"
+)
+SUPERSEDED_CORRECTED_V2_REVIEW_ROOT = (
+    "372550201df3f62907d7fe247cb9889cecfa2abef91ab7db425613f70c816827"
 )
 
 
@@ -135,21 +148,29 @@ def evaluation_v2_contract() -> dict[str, Any]:
         "road_containment": {
             "formula": (
                 "outside_fraction=area(F_t minus union(D_t))/area(F_t); "
-                "offroad_any=any(outside_fraction>1e-9)"
+                "offroad_any=any(outside_fraction>1e-9); exposed union boundary "
+                "is reconstructed by splitting root-bound polygon edges at all "
+                "intersections and removing internal overlap/adjacency seams; "
+                "signed clearance is positive minimum full-footprint-boundary "
+                "distance when contained and negative maximum footprint-boundary "
+                "penetration when outside"
             ),
             "units": {
                 "outside_fraction": "fraction",
                 "duration_s": "s",
                 "episode_count": "count",
+                "minimum_signed_boundary_clearance_m": "m",
+                "maximum_boundary_penetration_m": "m",
             },
             "evidence_class": "benchmark_only",
             "five_point_substitute_allowed": False,
             "signed_boundary_clearance_or_penetration": {
-                "status": "evidence_missing",
-                "reason": (
-                    "root_bound_drivable_geometry_is_an_unordered_overlapping_"
-                    "polygon_inventory_without_union_boundary_topology"
+                "status": "computed",
+                "union_boundary_source": (
+                    "deterministic_external_boundary_of_root_bound_polygon_union"
                 ),
+                "internal_overlap_or_adjacency_seams_are_boundary": False,
+                "probe_epsilon_m": UNION_BOUNDARY_PROBE_EPS_M,
             },
         },
         "certified_red_crossing": {
@@ -254,6 +275,16 @@ def evaluation_v2_contract() -> dict[str, Any]:
                 "contract_review_root_sha256": SUPERSEDED_V2_CONTRACT_REVIEW_ROOT,
                 "materialization_root_sha256": SUPERSEDED_V2_MATERIALIZATION_ROOT,
                 "review_root_sha256": SUPERSEDED_V2_REVIEW_ROOT,
+            },
+            "superseded_corrected_evaluation_v2_diagnostic": {
+                "contract_root_sha256": SUPERSEDED_CORRECTED_V2_CONTRACT_ROOT,
+                "contract_review_root_sha256": (
+                    SUPERSEDED_CORRECTED_V2_CONTRACT_REVIEW_ROOT
+                ),
+                "materialization_root_sha256": (
+                    SUPERSEDED_CORRECTED_V2_MATERIALIZATION_ROOT
+                ),
+                "review_root_sha256": SUPERSEDED_CORRECTED_V2_REVIEW_ROOT,
             },
         },
         "denominator": {
@@ -361,6 +392,8 @@ def evaluation_v2_contract() -> dict[str, Any]:
             "geometry_ttc_horizon_classification": (
                 "project_descriptive_not_industrial_gate"
             ),
+            "road_union_boundary_probe_epsilon_m": UNION_BOUNDARY_PROBE_EPS_M,
+            "road_internal_overlap_or_adjacency_seams_are_boundary": False,
             "boxcar_kernel": list(BOXCAR_KERNEL),
             "boxcar_padding": False,
         },
@@ -399,6 +432,9 @@ def evaluation_v2_contract() -> dict[str, Any]:
             ],
             "tie_rule": "exact_zero_delta",
             "tie_rule_source": "High-authorized Evaluation v2 correction 2026-07-25",
+            "actual_scalar_path_direction_coverage": (
+                "exhaustive_exactly_once_and_unknown_path_fail_closed"
+            ),
             "unclassified_policy": (
                 "signed means, sample-accounting and opportunity counts are "
                 "descriptive_unclassified"
@@ -409,22 +445,28 @@ def evaluation_v2_contract() -> dict[str, Any]:
                     "min_clearance_and_min_finite_geometry_ttc_higher;"
                     "other_risk_scalars_lower_except_unclassified_metadata"
                 ),
-                "road_containment": "lower_except_unclassified_metadata",
+                "road_containment": (
+                    "exposure_and_maximum_penetration_lower;minimum_signed_"
+                    "boundary_clearance_higher;geometry_metadata_"
+                    "descriptive_unclassified"
+                ),
                 "certified_red_crossing": (
                     "crossing_scalars_lower;opportunity_and_interval_counts_"
                     "descriptive_unclassified"
                 ),
                 "speed": "lower_except_unclassified_metadata",
                 "route": (
-                    "backtracking_lower;forward_progress_completion_and_"
-                    "distance_traveled_higher;route_length_descriptive_unclassified"
+                    "backtracking_lower;forward_progress_completion_final_arc_"
+                    "higher;distance_traveled_and_route_length_"
+                    "descriptive_unclassified"
                 ),
                 "goal": (
                     "minimum_distance_lower;reached_passed_higher;"
                     "native_and_threshold_metadata_descriptive_unclassified"
                 ),
                 "vehicle_body_planar_kinematic_proxy": (
-                    "magnitude_rms_percentile_duration_lower;signed_mean_min_max_"
+                    "unsigned_magnitude_deceleration_rms_percentile_duration_"
+                    "lower;signed_acceleration_mean_min_max_"
                     "descriptive_unclassified"
                 ),
                 "latency": "lower_except_unclassified_metadata",
@@ -633,6 +675,309 @@ def road_outside_fraction(
     if value < 0.0 or value > 1.0 + 1e-12:
         raise ValueError("outside fraction drifted")
     return float(np.clip(value, 0.0, 1.0))
+
+
+def road_signed_boundary_metrics(
+    footprint: Sequence[Sequence[float]],
+    drivable_polygons: Sequence[Sequence[Sequence[float]]],
+) -> dict[str, Any]:
+    ego = _polygon(footprint, "footprint")
+    if not drivable_polygons:
+        raise ValueError("drivable polygons are missing")
+    drivable = [_polygon(row, "drivable_polygon") for row in drivable_polygons]
+    boundary = _union_boundary_segments(drivable)
+    return _road_signed_boundary_metrics_normalized(ego, drivable, boundary)
+
+
+def _road_signed_boundary_metrics_normalized(
+    ego: np.ndarray,
+    drivable: Sequence[np.ndarray],
+    boundary: Sequence[tuple[np.ndarray, np.ndarray]],
+) -> dict[str, Any]:
+    if not boundary:
+        raise ValueError("drivable polygon union has no determinate boundary")
+    footprint_edges = [
+        (ego[index], ego[(index + 1) % ego.shape[0]])
+        for index in range(ego.shape[0])
+    ]
+    minimum_boundary_distance = min(
+        _segment_segment_distance(start, end, other_start, other_end)
+        for start, end in footprint_edges
+        for other_start, other_end in boundary
+    )
+    outside_fraction = float(
+        1.0 - _convex_union_intersection_area(ego, drivable) / _polygon_area(ego)
+    )
+    outside_fraction = float(np.clip(outside_fraction, 0.0, 1.0))
+    if outside_fraction <= GEOM_EPS:
+        penetration = 0.0
+        signed = minimum_boundary_distance
+    else:
+        penetration = max(
+            _maximum_outside_distance_on_segment(start, end, boundary, drivable)
+            for start, end in footprint_edges
+        )
+        if penetration <= GEOM_EPS:
+            raise ValueError(
+                "outside footprint has no determinate union-boundary penetration"
+            )
+        signed = -penetration
+    return {
+        "status": "computed",
+        "minimum_signed_boundary_clearance_m": float(signed),
+        "maximum_boundary_penetration_m": float(penetration),
+        "union_boundary_segment_count": len(boundary),
+        "internal_overlap_or_adjacency_seams_are_boundary": False,
+        "probe_epsilon_m": UNION_BOUNDARY_PROBE_EPS_M,
+        "units": "m",
+    }
+
+
+def _union_boundary_segments(
+    polygons: Sequence[np.ndarray],
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    result: list[tuple[np.ndarray, np.ndarray]] = []
+    for polygon_index, polygon in enumerate(polygons):
+        for edge_index in range(polygon.shape[0]):
+            start = polygon[edge_index]
+            end = polygon[(edge_index + 1) % polygon.shape[0]]
+            delta = end - start
+            length = float(np.linalg.norm(delta))
+            if length <= GEOM_EPS:
+                raise ValueError("drivable polygon boundary edge is degenerate")
+            ratios = [0.0, 1.0]
+            for other_index, other in enumerate(polygons):
+                if other_index == polygon_index:
+                    continue
+                for index in range(other.shape[0]):
+                    ratios.extend(
+                        _segment_split_ratios(
+                            start,
+                            end,
+                            other[index],
+                            other[(index + 1) % other.shape[0]],
+                        )
+                    )
+            ratios = _sorted_unique_ratios(ratios)
+            outward = np.asarray([delta[1], -delta[0]], dtype=np.float64) / length
+            for lo, hi in zip(ratios[:-1], ratios[1:], strict=True):
+                if hi - lo <= GEOM_EPS:
+                    continue
+                first = start + lo * delta
+                second = start + hi * delta
+                midpoint = 0.5 * (first + second)
+                probe = max(UNION_BOUNDARY_PROBE_EPS_M, length * 1e-9)
+                inner = midpoint - probe * outward
+                outer = midpoint + probe * outward
+                if _point_in_polygon_union(inner, polygons) and not _point_in_polygon_union(
+                    outer, polygons
+                ):
+                    result.append((first, second))
+    deduplicated: list[tuple[np.ndarray, np.ndarray]] = []
+    for start, end in result:
+        if any(
+            (
+                np.linalg.norm(start - other_start) <= GEOM_EPS
+                and np.linalg.norm(end - other_end) <= GEOM_EPS
+            )
+            or (
+                np.linalg.norm(start - other_end) <= GEOM_EPS
+                and np.linalg.norm(end - other_start) <= GEOM_EPS
+            )
+            for other_start, other_end in deduplicated
+        ):
+            continue
+        deduplicated.append((start, end))
+    return deduplicated
+
+
+def _segment_split_ratios(
+    start: np.ndarray,
+    end: np.ndarray,
+    other_start: np.ndarray,
+    other_end: np.ndarray,
+) -> list[float]:
+    delta = end - start
+    other_delta = other_end - other_start
+    denominator = _cross_2d(delta, other_delta)
+    if abs(denominator) > GEOM_EPS:
+        ratio = _cross_2d(other_start - start, other_delta) / denominator
+        other_ratio = _cross_2d(other_start - start, delta) / denominator
+        if (
+            -GEOM_EPS <= ratio <= 1.0 + GEOM_EPS
+            and -GEOM_EPS <= other_ratio <= 1.0 + GEOM_EPS
+        ):
+            return [float(np.clip(ratio, 0.0, 1.0))]
+        return []
+    if abs(_cross_2d(other_start - start, delta)) > GEOM_EPS:
+        return []
+    length_squared = float(np.dot(delta, delta))
+    return [
+        float(np.clip(np.dot(point - start, delta) / length_squared, 0.0, 1.0))
+        for point in (other_start, other_end)
+        if -GEOM_EPS
+        <= float(np.dot(point - start, delta) / length_squared)
+        <= 1.0 + GEOM_EPS
+    ]
+
+
+def _sorted_unique_ratios(values: Sequence[float]) -> list[float]:
+    result: list[float] = []
+    for value in sorted(float(np.clip(row, 0.0, 1.0)) for row in values):
+        if not result or abs(value - result[-1]) > GEOM_EPS:
+            result.append(value)
+    return result
+
+
+def _point_in_polygon_union(point: np.ndarray, polygons: Sequence[np.ndarray]) -> bool:
+    return any(_point_in_convex_polygon(point, polygon) for polygon in polygons)
+
+
+def _segment_segment_distance(
+    first_start: np.ndarray,
+    first_end: np.ndarray,
+    second_start: np.ndarray,
+    second_end: np.ndarray,
+) -> float:
+    if _segments_intersect(first_start, first_end, second_start, second_end):
+        return 0.0
+    return min(
+        _point_segment_distance(first_start, second_start, second_end),
+        _point_segment_distance(first_end, second_start, second_end),
+        _point_segment_distance(second_start, first_start, first_end),
+        _point_segment_distance(second_end, first_start, first_end),
+    )
+
+
+def _maximum_outside_distance_on_segment(
+    start: np.ndarray,
+    end: np.ndarray,
+    boundary: Sequence[tuple[np.ndarray, np.ndarray]],
+    polygons: Sequence[np.ndarray],
+) -> float:
+    pieces: list[tuple[float, float, float, float, float]] = []
+    candidate_ratios = [0.0, 1.0]
+    delta = end - start
+    endpoint_upper_bound = min(
+        max(
+            _point_segment_distance(start, boundary_start, boundary_end),
+            _point_segment_distance(end, boundary_start, boundary_end),
+        )
+        for boundary_start, boundary_end in boundary
+    )
+    local_boundary = [
+        (boundary_start, boundary_end)
+        for boundary_start, boundary_end in boundary
+        if _segment_segment_distance(
+            start, end, boundary_start, boundary_end
+        )
+        <= endpoint_upper_bound + GEOM_EPS
+    ]
+    if not local_boundary:
+        raise ValueError("union boundary local candidate set is empty")
+    for boundary_start, boundary_end in local_boundary:
+        candidate_ratios.extend(
+            _segment_split_ratios(start, end, boundary_start, boundary_end)
+        )
+        pieces.extend(
+            _point_to_segment_squared_pieces(
+                start, delta, boundary_start, boundary_end
+            )
+        )
+    for index, first in enumerate(pieces):
+        candidate_ratios.extend((first[0], first[1]))
+        for second in pieces[index + 1 :]:
+            lo = max(first[0], second[0])
+            hi = min(first[1], second[1])
+            if hi - lo <= GEOM_EPS:
+                continue
+            candidate_ratios.extend(
+                _quadratic_roots_in_interval(
+                    first[2] - second[2],
+                    first[3] - second[3],
+                    first[4] - second[4],
+                    lo,
+                    hi,
+                )
+            )
+    maximum = 0.0
+    for ratio in _sorted_unique_ratios(candidate_ratios):
+        point = start + ratio * delta
+        if _point_in_polygon_union(point, polygons):
+            continue
+        maximum = max(
+            maximum,
+            min(
+                _point_segment_distance(point, other_start, other_end)
+                for other_start, other_end in local_boundary
+            ),
+        )
+    return float(maximum)
+
+
+def _point_to_segment_squared_pieces(
+    start: np.ndarray,
+    delta: np.ndarray,
+    segment_start: np.ndarray,
+    segment_end: np.ndarray,
+) -> list[tuple[float, float, float, float, float]]:
+    segment = segment_end - segment_start
+    length_squared = float(np.dot(segment, segment))
+    if length_squared <= GEOM_EPS:
+        raise ValueError("union boundary segment is degenerate")
+    u0 = float(np.dot(start - segment_start, segment) / length_squared)
+    u1 = float(np.dot(delta, segment) / length_squared)
+    splits = [0.0, 1.0]
+    if abs(u1) > GEOM_EPS:
+        splits.extend((-u0 / u1, (1.0 - u0) / u1))
+    ratios = _sorted_unique_ratios(
+        [value for value in splits if -GEOM_EPS <= value <= 1.0 + GEOM_EPS]
+    )
+    pieces: list[tuple[float, float, float, float, float]] = []
+    for lo, hi in zip(ratios[:-1], ratios[1:], strict=True):
+        midpoint = 0.5 * (lo + hi)
+        u = u0 + midpoint * u1
+        if u <= 0.0:
+            offset = start - segment_start
+            linear = delta
+        elif u >= 1.0:
+            offset = start - segment_end
+            linear = delta
+        else:
+            projection = np.outer(segment, segment) / length_squared
+            normal = np.eye(2) - projection
+            offset = normal @ (start - segment_start)
+            linear = normal @ delta
+        pieces.append(
+            (
+                lo,
+                hi,
+                float(np.dot(linear, linear)),
+                float(2.0 * np.dot(offset, linear)),
+                float(np.dot(offset, offset)),
+            )
+        )
+    return pieces
+
+
+def _quadratic_roots_in_interval(
+    a: float, b: float, c: float, lo: float, hi: float
+) -> list[float]:
+    if abs(a) <= GEOM_EPS:
+        if abs(b) <= GEOM_EPS:
+            return []
+        root = -c / b
+        return [float(root)] if lo - GEOM_EPS <= root <= hi + GEOM_EPS else []
+    discriminant = b * b - 4.0 * a * c
+    if discriminant < -GEOM_EPS:
+        return []
+    square_root = math.sqrt(max(0.0, discriminant))
+    roots = ((-b - square_root) / (2.0 * a), (-b + square_root) / (2.0 * a))
+    return [
+        float(root)
+        for root in roots
+        if lo - GEOM_EPS <= root <= hi + GEOM_EPS
+    ]
 
 
 def swept_front_edge_crossing(
@@ -1482,7 +1827,14 @@ def _road_endpoint(
         }
     if type(drivable_polygons) is not list:
         raise ValueError("Evaluation v2 drivable polygon inventory drifted")
+    drivable = [_polygon(row, "drivable_polygon") for row in drivable_polygons]
+    boundary = _union_boundary_segments(drivable)
+    if not boundary:
+        raise ValueError("drivable polygon union has no determinate boundary")
     values = []
+    signed_clearances = []
+    penetrations = []
+    boundary_segment_counts = []
     for tick in ticks:
         safety = _mapping(tick, "safety")
         footprint = obb_polygon(
@@ -1492,7 +1844,32 @@ def _road_endpoint(
             ego_width,
             wheelbase_m=ego_wheelbase,
         )
-        values.append(road_outside_fraction(footprint, drivable_polygons))
+        normalized_footprint = _polygon(footprint, "footprint")
+        values.append(
+            float(
+                np.clip(
+                    1.0
+                    - _convex_union_intersection_area(
+                        normalized_footprint, drivable
+                    )
+                    / _polygon_area(normalized_footprint),
+                    0.0,
+                    1.0,
+                )
+            )
+        )
+        boundary_metric = _road_signed_boundary_metrics_normalized(
+            normalized_footprint, drivable, boundary
+        )
+        signed_clearances.append(
+            boundary_metric["minimum_signed_boundary_clearance_m"]
+        )
+        penetrations.append(boundary_metric["maximum_boundary_penetration_m"])
+        boundary_segment_counts.append(
+            boundary_metric["union_boundary_segment_count"]
+        )
+    if len(set(boundary_segment_counts)) != 1:
+        raise ValueError("drivable union boundary segment count drifted within run")
     array = np.asarray(values, dtype=np.float64)
     mask = array > GEOM_EPS
     return {
@@ -1504,11 +1881,16 @@ def _road_endpoint(
         "geom_eps": GEOM_EPS,
         "five_point_proxy_used": False,
         "signed_boundary_clearance_or_penetration": {
-            "status": "evidence_missing",
-            "reason": (
-                "root_bound_drivable_geometry_is_an_unordered_overlapping_"
-                "polygon_inventory_without_union_boundary_topology"
+            "status": "computed",
+            "minimum_signed_boundary_clearance_m": float(
+                np.min(np.asarray(signed_clearances, dtype=np.float64))
             ),
+            "maximum_boundary_penetration_m": float(
+                np.max(np.asarray(penetrations, dtype=np.float64))
+            ),
+            "union_boundary_segment_count": int(boundary_segment_counts[0]),
+            "internal_overlap_or_adjacency_seams_are_boundary": False,
+            "probe_epsilon_m": UNION_BOUNDARY_PROBE_EPS_M,
             "units": "m",
         },
     }
@@ -1668,6 +2050,9 @@ def _endpoint_aggregate(
                 )
             )
     common_paths = sorted(set.intersection(*path_sets)) if path_sets else []
+    directions = {
+        path: _scalar_direction(endpoint_name, path) for path in common_paths
+    }
     arm_means: dict[str, dict[str, float]] = {}
     paired: dict[str, dict[str, Any]] = {}
     for arm in ARMS:
@@ -1694,11 +2079,12 @@ def _endpoint_aggregate(
             paired[method][path] = clustered_paired_descriptive(
                 deltas,
                 clusters,
-                direction=_scalar_direction(endpoint_name, path),
+                direction=directions[path],
             )
     return {
         "status": "benchmark_only",
         "descriptive_scalar_paths": common_paths,
+        "scalar_path_directions": directions,
         "arm_means": arm_means,
         "paired_cluster_summaries": paired,
         "claim_authorized": False,
@@ -1870,66 +2256,187 @@ def clustered_paired_descriptive(
 
 
 def _scalar_direction(endpoint_name: str, path: str) -> str:
-    unclassified_tokens = (
-        "opportunity_count",
-        "red_phase_interval_count",
-        "sample",
-        "padding_used",
-        "geom_eps",
-        "prediction_horizon",
-        "route_length_m",
-        "goal_tolerance_m",
-        "goal_pass_window_m",
-        "native_goal_reached",
-        "native_literal_semantics_bound",
-        "future_phase_consumed",
-        "five_point_proxy_used",
-        "stationary_proximity_is_dynamic_risk",
-        "point_cv_proxy_used_as_geometry_ttc",
-        "geometry_ttc_approach_required",
-        "historical_minimum_coupled_to_later_heading_used",
-        "goal_pass_uses_same_tick_distance_and_heading",
-        "is_severity",
-    )
-    if any(token in path for token in unclassified_tokens):
-        return "descriptive_unclassified"
-    if endpoint_name == "dynamic_proximity" and (
-        "min_clearance_m" in path or "min_finite_geometry_ttc_s" in path
-    ):
-        return "higher"
-    if endpoint_name == "route":
-        if "backtracking" in path:
+    if endpoint_name == "collision":
+        if path in {"/collision_any", "/duration_s", "/episode_count"}:
             return "lower"
-        return "higher"
-    if endpoint_name == "goal":
-        if "minimum_goal_distance_m" in path:
+        if path == "/kinematic_relative_speed_proxy_is_severity":
+            return "descriptive_unclassified"
+    elif endpoint_name == "dynamic_proximity":
+        if path in {"/min_clearance_m", "/min_finite_geometry_ttc_s"}:
+            return "higher"
+        if path in {
+            "/actor_tick_opportunity_count",
+            "/geometry_ttc_prediction_horizon_s",
+            "/point_cv_proxy_used_as_geometry_ttc",
+            "/stationary_proximity_is_dynamic_risk",
+        }:
+            return "descriptive_unclassified"
+        if _matches_grid_metric(
+            path,
+            {
+                "clearance_grid": CLEARANCE_GRID_M,
+                "geometry_ttc_grid": TTC_GRID_S,
+                "closing_grid": CLOSING_GRID_MPS,
+                "drac_grid": DRAC_GRID_MPS2,
+            },
+            {"duration_s", "episode_count"},
+        ) or path in {"/max_closing_mps", "/max_drac_mps2"}:
             return "lower"
-        if any(
-            token in path
-            for token in (
-                "goal_reached_by_literal_tolerance",
-                "goal_passed_by_literal_heading_and_window",
-                "reconstructed_goal_reached_or_passed",
-            )
+    elif endpoint_name == "road_containment":
+        if path in {
+            "/duration_s",
+            "/episode_count",
+            "/max_outside_fraction",
+            "/offroad_any",
+            (
+                "/signed_boundary_clearance_or_penetration/"
+                "maximum_boundary_penetration_m"
+            ),
+        }:
+            return "lower"
+        if path == (
+            "/signed_boundary_clearance_or_penetration/"
+            "minimum_signed_boundary_clearance_m"
         ):
             return "higher"
-        return "descriptive_unclassified"
-    if endpoint_name == "vehicle_body_planar_kinematic_proxy" and any(
-        token in path.rsplit("/", 1)[-1]
-        for token in ("signed_mean", "min", "max")
-    ):
-        return "descriptive_unclassified"
-    if endpoint_name in {
-        "collision",
-        "dynamic_proximity",
-        "road_containment",
-        "certified_red_crossing",
-        "speed",
-        "vehicle_body_planar_kinematic_proxy",
-        "latency",
-    }:
-        return "lower"
-    return "descriptive_unclassified"
+        if path in {
+            "/five_point_proxy_used",
+            "/geom_eps",
+            (
+                "/signed_boundary_clearance_or_penetration/"
+                "internal_overlap_or_adjacency_seams_are_boundary"
+            ),
+            "/signed_boundary_clearance_or_penetration/probe_epsilon_m",
+            "/signed_boundary_clearance_or_penetration/union_boundary_segment_count",
+        }:
+            return "descriptive_unclassified"
+    elif endpoint_name == "certified_red_crossing":
+        if path in {
+            "/unthresholded_crossing_count",
+            "/unthresholded_crossing_any",
+            "/legacy_gt_0_5mps_crossing_count",
+        }:
+            return "lower"
+        if path in {
+            "/red_opportunity_count",
+            "/red_phase_interval_count",
+            "/future_phase_consumed",
+        }:
+            return "descriptive_unclassified"
+    elif endpoint_name == "speed":
+        if path in {"/max_excess_mps", "/mean_positive_excess_mps"} or (
+            _matches_grid_metric(
+                path,
+                {"tolerance_grid": SPEED_TOLERANCE_GRID_MPS},
+                {"duration_s", "magnitude_duration_m"},
+            )
+        ):
+            return "lower"
+    elif endpoint_name == "route":
+        if path in {"/backtracking_duration_s", "/backtracking_distance_m"}:
+            return "lower"
+        if path in {
+            "/final_nearest_route_polyline_projection_m",
+            "/net_m",
+            "/max_forward_m",
+            "/completion_fraction",
+        }:
+            return "higher"
+        if path in {"/distance_traveled_m", "/route_length_m"}:
+            return "descriptive_unclassified"
+    elif endpoint_name == "goal":
+        if path == "/minimum_goal_distance_m":
+            return "lower"
+        if path in {
+            "/goal_reached_by_literal_tolerance",
+            "/goal_passed_by_literal_heading_and_window",
+            "/native_goal_reached",
+            "/reconstructed_goal_reached_or_passed",
+        }:
+            return "higher"
+        if path in {
+            "/goal_tolerance_m",
+            "/goal_pass_window_m",
+            "/native_literal_semantics_bound",
+            "/historical_minimum_coupled_to_later_heading_used",
+            "/goal_pass_uses_same_tick_distance_and_heading",
+        }:
+            return "descriptive_unclassified"
+    elif endpoint_name == "vehicle_body_planar_kinematic_proxy":
+        if path.startswith("/sample_accounting/"):
+            if path.rsplit("/", 1)[-1] in {
+                "position_samples",
+                "interval_velocity_samples",
+                "raw_acceleration_samples",
+                "filtered_acceleration_samples",
+                "filtered_jerk_samples",
+                "padding_used",
+            }:
+                return "descriptive_unclassified"
+        signed_prefixes = (
+            "/filtered_acceleration/longitudinal/",
+            "/filtered_acceleration/lateral/",
+        )
+        if path.startswith(signed_prefixes):
+            leaf = path.rsplit("/", 1)[-1]
+            if leaf in {"signed_mean", "min", "max"}:
+                return "descriptive_unclassified"
+            if leaf in {"rms", "peak_abs", "abs_p50", "abs_p90", "abs_p95", "abs_p99"}:
+                return "lower"
+        if path.startswith("/filtered_acceleration/longitudinal_deceleration/"):
+            if path.rsplit("/", 1)[-1] in {
+                "mean",
+                "rms",
+                "max",
+                "p50",
+                "p90",
+                "p95",
+                "p99",
+            }:
+                return "lower"
+        if path.startswith(
+            "/filtered_acceleration/duration_abs_gt_s/"
+        ) or path.startswith(
+            "/filtered_acceleration/signed_deceleration_duration_lt_s/"
+        ):
+            return "lower"
+        if path.startswith(
+            (
+                "/filtered_jerk/longitudinal/",
+                "/filtered_jerk/lateral/",
+            )
+        ):
+            if path.rsplit("/", 1)[-1] in {"rms", "peak_abs", "abs_p95"}:
+                return "lower"
+        if path.startswith("/filtered_jerk/duration_abs_gt_s/"):
+            return "lower"
+    elif endpoint_name == "latency":
+        if path.startswith("/deadline_grid/"):
+            if path.rsplit("/", 1)[-1] in {
+                "exceedance_rate",
+                "max_exceedance_ms",
+            }:
+                return "lower"
+        if path.startswith("/stages/") or path.startswith("/total/"):
+            leaf = path.rsplit("/", 1)[-1]
+            if leaf == "count":
+                return "descriptive_unclassified"
+            if leaf in {"mean", "median", "p95", "p99", "max"}:
+                return "lower"
+    raise ValueError(
+        f"unknown Evaluation v2 scalar direction path: {endpoint_name}{path}"
+    )
+
+
+def _matches_grid_metric(
+    path: str,
+    grids: Mapping[str, Sequence[float]],
+    leaves: set[str],
+) -> bool:
+    parts = path.strip("/").split("/")
+    if len(parts) != 3 or parts[0] not in grids or parts[2] not in leaves:
+        return False
+    return parts[1] in {_number_key(value) for value in grids[parts[0]]}
 
 
 def _signed_summary(values: np.ndarray) -> dict[str, float]:
