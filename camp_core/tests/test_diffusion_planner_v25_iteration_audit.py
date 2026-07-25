@@ -9,6 +9,12 @@ AUDIT = ROOT / "docs" / "diffusion_planner_v25_iteration_audit.md"
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 FINAL_REPORT = ROOT / "docs" / "diffusion_planner_v25_final_honest_no_claim_report.md"
 FINAL_INDEX = ROOT / "docs" / "diffusion_planner_v25_final_evidence_index.md"
+CORRECTED_FINAL_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_final_corrected_evaluation_report.md"
+)
+CORRECTED_FINAL_INDEX = (
+    ROOT / "docs" / "diffusion_planner_v25_final_corrected_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -461,7 +467,15 @@ def _sha256(path: Path) -> str:
 
 def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
-    assert text.rstrip().endswith("\n".join(POINTER))
+    assert text.rstrip().endswith(
+        "\n".join(
+            (
+                "current_v25_focused_tests_root_sha256=7c01cd9ea5176da889186d3beffec38d6e9ab5d04e40d3fa2b4a47eea8713437",
+                "current_v25_phase=fresh_b4_corrected_evaluation_independently_reviewed_terminal",
+                "next_work_target=high_final_incremental_package_review_before_ultra",
+            )
+        )
+    )
 
 
 def test_current_status_has_one_v25_pointer_matching_audit() -> None:
@@ -470,6 +484,47 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     section = text.split("## Current V25 Status", 1)[1].split("\n## ", 1)[0]
     for line in POINTER:
         assert section.count(line) == 1
+
+
+def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
+    status = STATUS.read_text(encoding="utf-8")
+    audit = AUDIT.read_text(encoding="utf-8")
+    report = CORRECTED_FINAL_REPORT.read_text(encoding="utf-8")
+    index = CORRECTED_FINAL_INDEX.read_text(encoding="utf-8")
+    status_eof = status.rsplit(
+        "## Authoritative EOF - V25 Fresh B4 Corrected Evaluation", 1
+    )[1]
+    audit_eof = audit.rsplit(
+        "## 2026-07-25 - Prospective Evaluator-Policy Correction and Corrected Evaluation Terminal",
+        1,
+    )[1]
+    required = (
+        "7be93df20deee03587b9898e8560909662df972c",
+        "06d3a1f3a37061f93f5c9788312ae59d1356d126",
+        "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+        "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881",
+        "f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d",
+        "4a817b4bbd17449486e3258c0d4b07102929d5f12d60fa4bb73056eb726afb9f",
+        "94b048ace4a2a539532ccc64fe061afb51bc6b4e23ee2e5a5affd1fc2ef69459",
+        "c3db4fb56f28efda7e3feb762ab0f01954f09983813b442f0a31e7730fbe72e4",
+        "honest_no_claim_under_frozen_preregistered_all_gate",
+    )
+    for phrase in required:
+        assert phrase in status_eof
+        assert phrase in audit_eof
+        assert phrase in report
+        assert phrase in index
+    assert status.rstrip().endswith(
+        "next_work_target=high_final_incremental_package_review_before_ultra"
+    )
+    assert audit.rstrip().endswith(
+        "next_work_target=high_final_incremental_package_review_before_ultra"
+    )
+    assert "| 1 | 14D atom table |" in index
+    assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
+    assert "Fresh execution rerun: `false`" in report
+    assert "Static14D safety_improvement_claim_passed=false" in report
+    assert "Scene14D safety_improvement_claim_passed=false" in report
 
 
 def test_v25_training_and_independent_review_are_accepted_before_calibration() -> None:
