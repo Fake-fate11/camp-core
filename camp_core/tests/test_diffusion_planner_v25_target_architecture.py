@@ -387,6 +387,8 @@ def test_result_reviewer_checks_mutable_input_preimage_proof() -> None:
     assert "_encoded, outputs = model(call_inputs)" in source
     assert "value.detach().clone() for key, value in inputs.items()" in source
     assert "latent_preimage_np = latent_preimage.detach().cpu().numpy().copy()" in source
+    assert "diffusion_planner_v25_target_architecture import" not in source
+    assert '"diffusion_planner_v25_target_" + "architecture import"' in source
 
 
 def test_fairness_draft_separates_state_matched_and_compute_matched() -> None:

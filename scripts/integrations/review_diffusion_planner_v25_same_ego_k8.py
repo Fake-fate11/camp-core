@@ -176,7 +176,10 @@ def review(
     ):
         raise ValueError("producer direct-formal-interface static proof drifted")
     reviewer_source = Path(__file__).read_text(encoding="utf-8")
-    if "diffusion_planner_v25_target_architecture import" in reviewer_source:
+    forbidden_import = (
+        "diffusion_planner_v25_target_" + "architecture import"
+    )
+    if forbidden_import in reviewer_source:
         raise ValueError("reviewer imported producer metric/contract oracle")
     review_report = {
         "schema_version": (
