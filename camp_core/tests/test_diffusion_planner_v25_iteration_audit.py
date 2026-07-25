@@ -47,6 +47,16 @@ FAIR_POOL_ADAPTATION_INDEX = (
     / "docs"
     / "diffusion_planner_v25_fair_pool_adaptation_contract_v5_evidence_index.md"
 )
+CALIBRATION_HARD_STOP_REPORT = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_fair_pool_calibration_hard_stop_report.md"
+)
+CALIBRATION_HARD_STOP_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_fair_pool_calibration_hard_stop_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -509,11 +519,7 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 
 def _current_v25_section(text: str) -> str:
-    heading = (
-        "## Current V25 Status - Fair-Pool Adaptation Contract v5 Raw Numeric "
-        "Semantics Fail-Closed, "
-        "Acquisition Unauthorized"
-    )
+    heading = "## Current V25 Status - Fair-Pool Development Calibration Hard Stop"
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
     return text.split(heading, 1)[1].split(
@@ -522,11 +528,7 @@ def _current_v25_section(text: str) -> str:
 
 
 def _audit_v25_eof(text: str) -> str:
-    heading = (
-        "## 2026-07-25 - Fair-Pool Adaptation Contract v5 Raw Numeric "
-        "Semantics Fail-Closed, "
-        "Acquisition Unauthorized"
-    )
+    heading = "## 2026-07-26 - Fair-Pool Development Calibration Hard Stop"
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
 
@@ -535,17 +537,16 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_pool_adaptation_contract_v5_raw_numeric_semantics_fail_closed_"
-        "acquisition_unauthorized_scientific_contract_review_required"
+        "v25_fair_pool_development_calibration_hard_stop_"
+        "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "fair_pool_adaptation_contract_v5_raw_numeric_semantic_provenance_and_"
-        "independent_literal_review_complete_no_acquisition"
+        "fair_pool_development_calibration_hard_stop_closeout_"
+        "independently_reviewed"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_fair_pool_adaptation_contract_v5_raw_numeric_semantics_review_"
-        "before_any_acquisition"
+        "high_calibration_hard_stop_closeout_review_before_any_replacement_or_validation"
     )
 
 
@@ -556,7 +557,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 436
+    assert len(status_pointer) == 500
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -596,6 +597,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_fair_pool_adaptation_evidence_index_sha256"
     ] == _sha256(FAIR_POOL_ADAPTATION_INDEX)
+    assert status_pointer["current_v25_calibration_report_sha256"] == _sha256(
+        CALIBRATION_HARD_STOP_REPORT
+    )
+    assert status_pointer[
+        "current_v25_calibration_evidence_index_sha256"
+    ] == _sha256(CALIBRATION_HARD_STOP_INDEX)
 
 
 def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
@@ -708,12 +715,14 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
     assert pointer[
         "current_v25_fair_pool_adaptation_v4_scope"
     ] == "superseded_preacquisition_diagnostic"
-    assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == (
-        "false"
-    )
+    assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == "true"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_calibration_run_count"
+    ] == "0"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_repeat_model_run_count"
+    ] == "8"
     for field in (
-        "calibration_run_count",
-        "repeat_model_run_count",
         "pool_run_count",
         "selector_run_count",
         "closed_loop_run_count",
@@ -723,6 +732,54 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
     ):
         assert pointer[f"current_v25_fair_pool_adaptation_{field}"] == "0"
     assert pointer["current_v25_fair_pool_adaptation_claim_authorized"] == "false"
+
+
+def test_v25_calibration_hard_stop_pointer_is_outcome_blind_and_fail_closed() -> None:
+    pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    assert pointer["current_v25_calibration_hard_stop_schema"] == (
+        "camp_dp_v25_fair_pool_adaptation_calibration_hard_stop_closeout_v1"
+    )
+    assert pointer["current_v25_calibration_hard_stop_classification"] == (
+        "first_calibration_run_k8_validity_compound_gate_triggered; "
+        "exact_subcondition_unresolved_from_preserved_evidence"
+    )
+    assert pointer["current_v25_calibration_first_state_spec_id"] == (
+        "development_calibration:000"
+    )
+    assert pointer["current_v25_calibration_first_mode"] == "sequential_batch1_x8"
+    assert pointer["current_v25_calibration_first_repeat_index"] == "0"
+    assert pointer["current_v25_calibration_model_call_count"] == "8"
+    assert pointer["current_v25_calibration_selector_call_count"] == "0"
+    assert pointer["current_v25_calibration_resolved_subcondition"] == "unknown"
+    assert pointer["current_v25_calibration_raw_artifact_absent"] == "true"
+    assert pointer["current_v25_calibration_raw_review_artifact_absent"] == "true"
+    assert pointer["current_v25_calibration_threshold_not_formed"] == "true"
+    assert pointer[
+        "current_v25_calibration_threshold_review_artifact_absent"
+    ] == "true"
+    assert pointer["current_v25_calibration_completed_raw_run_count"] == "0"
+    assert pointer["current_v25_calibration_planned_raw_run_count"] == "640"
+    assert pointer["current_v25_calibration_completed_pair_receipt_count"] == "0"
+    assert pointer["current_v25_calibration_planned_pair_receipt_count"] == "1600"
+    for field in (
+        "validation_execution_count",
+        "closed_loop_run_count",
+        "replacement_run_count",
+        "fresh_holdout_run_count",
+        "training_retraining_run_count",
+        "old_artifact_cas_write_count",
+    ):
+        assert pointer[f"current_v25_calibration_{field}"] == "0"
+    assert pointer["current_v25_calibration_raw_outcome_inspected"] == "false"
+    for field in (
+        "model_failure_claimed",
+        "batch8_architecture_failure_claimed",
+        "ood_drift_claimed",
+        "retraining_required_claimed",
+    ):
+        assert pointer[f"current_v25_calibration_{field}"] == "false"
 
 
 def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() -> None:
@@ -865,8 +922,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_fair_pool_adaptation_contract_v5_raw_numeric_semantics_review_"
-        "before_any_acquisition"
+        "high_calibration_hard_stop_closeout_review_before_any_replacement_or_validation"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
