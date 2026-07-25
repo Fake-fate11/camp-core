@@ -8,6 +8,9 @@ import pytest
 from scripts.integrations import (
     review_diffusion_planner_v25_fair_nonholdout as reviewer,
 )
+from scripts.integrations import (
+    validate_diffusion_planner_v25_fair_nonholdout as producer,
+)
 
 
 def _valid_preimage():
@@ -83,3 +86,50 @@ def test_producer_baseline_has_explicit_uncalled_stage_na_gate():
     assert '"weights": None' in source
     assert '"selector_incremental": None' in source
     assert "real selector made a forbidden model call" in source
+
+
+def test_producer_builds_explicit_root_bound_no_signal_input():
+    class Lanelet:
+        def trafficLights(self):
+            return []
+
+    class Cached:
+        raw_centerline = np.asarray([[0.0, 0.0], [10.0, 0.0]])
+
+    class Builder:
+        _ll_by_id = {7: Lanelet()}
+        _cache = {7: Cached()}
+
+    chain = producer._build_no_signal_chain(
+        builder=Builder(),
+        route_ids=[7],
+        map_sha256="1" * 64,
+        route_sha256="2" * 64,
+    )
+    assert chain["traffic_light_regulatory_element_ids"] == []
+    assert chain["source_map_sha256"] == "1" * 64
+    assert chain["route_identity_sha256"] == "2" * 64
+
+
+def test_producer_rejects_signalized_route_for_no_signal_contract():
+    class Light:
+        id = 3
+
+    class Lanelet:
+        def trafficLights(self):
+            return [Light()]
+
+    class Cached:
+        raw_centerline = np.asarray([[0.0, 0.0], [10.0, 0.0]])
+
+    class Builder:
+        _ll_by_id = {7: Lanelet()}
+        _cache = {7: Cached()}
+
+    with pytest.raises(ValueError, match="signal authority"):
+        producer._build_no_signal_chain(
+            builder=Builder(),
+            route_ids=[7],
+            map_sha256="1" * 64,
+            route_sha256="2" * 64,
+        )

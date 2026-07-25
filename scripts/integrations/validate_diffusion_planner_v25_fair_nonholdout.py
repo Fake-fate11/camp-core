@@ -63,6 +63,14 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa
     TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
     load_v25_runtime_selector_assets,
 )
+from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  # noqa: E402
+    NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+    build_no_signal_causal_atom_input,
+    build_runtime_no_signal_receipt,
+    build_semantic_clone_payload,
+    canonical_json_sha256,
+    validate_no_signal_chain,
+)
 from scripts.integrations.materialize_diffusion_planner_v25_evaluation_v2 import (  # noqa: E402
     _load_root_bound_geometry,
 )
@@ -102,6 +110,7 @@ class _FairPredictBatch:
         operational_arm: str,
         evaluate_all_arms: bool,
         adaptation_diagnostics: bool,
+        causal_signal_chain: Mapping[str, Any],
     ) -> None:
         self.model = model
         self.model_args = model_args
@@ -118,6 +127,7 @@ class _FairPredictBatch:
         self.operational_arm = operational_arm
         self.evaluate_all_arms = evaluate_all_arms
         self.adaptation_diagnostics = adaptation_diagnostics
+        self.causal_signal_chain = dict(causal_signal_chain)
         self.primary_candidates: list[np.ndarray] = []
         self.sequential_candidates: list[np.ndarray] = []
         self.primary_neighbors: list[np.ndarray] = []
@@ -354,8 +364,22 @@ class _FairPredictBatch:
                 ),
                 dtype=np.float64,
             )
+            runtime_signal_receipt = build_runtime_no_signal_receipt(
+                self.causal_signal_chain,
+                scenario_id=str(self.causal_signal_chain["scenario_id"]),
+                tick_index=tick,
+                decision_time_s=float(tick) * float(scene.dt),
+            )
+            causal_signal_atom_input = build_no_signal_causal_atom_input(
+                self.causal_signal_chain,
+                runtime_signal_receipt,
+            )
+            receipt["causal_signal_atom_input_sha256"] = canonical_sha256(
+                causal_signal_atom_input
+            )
             receipt["latency_ms"]["causal_sources"] = _ms(causal_started)
         else:
+            causal_signal_atom_input = None
             receipt["latency_ms"]["causal_sources"] = None
         primary_eval = self._evaluate_pool(
             candidates=candidates,
@@ -364,6 +388,7 @@ class _FairPredictBatch:
             neighbor_valid=neighbor_valid,
             signals=signals,
             red_cost=red_cost,
+            causal_signal_atom_input=causal_signal_atom_input,
             evaluate_arms=(
                 list(ARMS) if self.evaluate_all_arms else [self.operational_arm]
             ),
@@ -409,6 +434,7 @@ class _FairPredictBatch:
                 neighbor_valid=neighbor_valid,
                 signals=sequential_signals,
                 red_cost=sequential_red,
+                causal_signal_atom_input=causal_signal_atom_input,
                 evaluate_arms=list(ARMS),
             )
             trajectory_errors = _per_row_max_error(candidates, sequential)
@@ -593,6 +619,7 @@ class _FairPredictBatch:
         neighbor_valid: np.ndarray | None,
         signals: np.ndarray | None,
         red_cost: np.ndarray | None,
+        causal_signal_atom_input: Mapping[str, Any] | None,
         evaluate_arms: list[str],
     ) -> dict[str, Any]:
         before = array_sha256(candidates)
@@ -641,7 +668,13 @@ class _FairPredictBatch:
                     ],
                 },
             }
-        if causal is None or neighbor_valid is None or signals is None or red_cost is None:
+        if (
+            causal is None
+            or neighbor_valid is None
+            or signals is None
+            or red_cost is None
+            or causal_signal_atom_input is None
+        ):
             raise ValueError("selector inputs missing for Static14D/Scene14D")
         atom_started = time.perf_counter_ns()
         materialized = self.materialize(
@@ -651,7 +684,7 @@ class _FairPredictBatch:
             neighbor_valid_mask=neighbor_valid,
             signal_mask=signals,
             planned_red_light_cost=red_cost,
-            causal_signal_atom_input=None,
+            causal_signal_atom_input=causal_signal_atom_input,
             dt=0.1,
             eligibility_policy="v22_source_valid",
         )
@@ -665,7 +698,7 @@ class _FairPredictBatch:
             source_valid_mask=np.asarray(
                 materialized["source_valid_mask"], dtype=bool
             ),
-            causal_signal_atom_input=None,
+            causal_signal_atom_input=causal_signal_atom_input,
             v2i_signal_timing=None,
         )
         context_payload = {
@@ -1153,6 +1186,12 @@ def _run_one(
     route_ids = list(route.route_lanelet_ids or ())
     if not route_ids:
         raise ValueError("fair validation route is unresolved")
+    causal_signal_chain = _build_no_signal_chain(
+        builder=builder,
+        route_ids=route_ids,
+        map_sha256=str(config["map"]["sha256"]),
+        route_sha256=str(route_spec["sha256"]),
+    )
     spawn = replay.SpawnConfig(**dict(config["spawn_config"]))
     spawn.max_steps = max_ticks
     spawn.validate()
@@ -1173,6 +1212,7 @@ def _run_one(
         operational_arm=operational_arm,
         evaluate_all_arms=evaluate_all_arms,
         adaptation_diagnostics=adaptation_diagnostics,
+        causal_signal_chain=causal_signal_chain,
     )
 
     def after_tracker(receipt: dict[str, Any], scene: Any) -> None:
@@ -1218,6 +1258,75 @@ def _run_one(
         "native_result": dict(native_result),
         "callback": callback,
     }
+
+
+def _build_no_signal_chain(
+    *,
+    builder: Any,
+    route_ids: list[int],
+    map_sha256: str,
+    route_sha256: str,
+) -> dict[str, Any]:
+    pieces: list[np.ndarray] = []
+    regulatory_ids: set[int] = set()
+    for lanelet_id in route_ids:
+        lanelet = builder._ll_by_id.get(int(lanelet_id))
+        cached = builder._cache.get(int(lanelet_id))
+        if lanelet is None or cached is None:
+            raise ValueError("fair no-signal route lanelet is absent from fixed map")
+        regulatory_ids.update(int(value.id) for value in lanelet.trafficLights())
+        line = np.asarray(cached.raw_centerline, dtype=np.float64)
+        if (
+            line.ndim != 2
+            or line.shape[1] != 2
+            or len(line) < 2
+            or not np.isfinite(line).all()
+        ):
+            raise ValueError("fair no-signal route centerline is invalid")
+        pieces.append(line if not pieces else line[1:])
+    if regulatory_ids:
+        raise ValueError("fair source route unexpectedly has signal authority")
+    route_world = np.concatenate(pieces, axis=0)
+    semantic = build_semantic_clone_payload(
+        {
+            "family": "source_only_four_track_highway",
+            "tier": "development_qualification",
+            "semantic_variant": "fixed_source_route",
+            "parameters": {},
+            "actors": [],
+            "signal": {"phase": "none", "mapped_source_required": False},
+        },
+        route_polyline_world=route_world,
+        stop_line_world=None,
+    )
+    chain: dict[str, Any] = {
+        "schema_version": NO_SIGNAL_CHAIN_SCHEMA_VERSION,
+        "scenario_id": canonical_json_sha256(
+            {
+                "role": "v25_fair_development_source_only",
+                "route_identity_sha256": route_sha256,
+                "source_map_sha256": map_sha256,
+            }
+        ),
+        "route_identity_sha256": route_sha256,
+        "source_map_sha256": map_sha256,
+        "route_lanelet_ids": [int(value) for value in route_ids],
+        "route_geometry_sha256": canonical_json_sha256(
+            {"route_polyline_local_m": semantic["route_polyline_local_m"]}
+        ),
+        "traffic_light_regulatory_element_ids": [],
+        "semantic_clone_payload": semantic,
+        "semantic_clone_sha256": canonical_json_sha256(semantic),
+        "source_chain_sha256": "",
+    }
+    chain["source_chain_sha256"] = canonical_json_sha256(
+        {
+            key: value
+            for key, value in chain.items()
+            if key != "source_chain_sha256"
+        }
+    )
+    return validate_no_signal_chain(chain)
 
 
 def _native_receipt(
