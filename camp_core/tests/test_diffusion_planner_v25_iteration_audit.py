@@ -40,12 +40,12 @@ FAIR_NONHOLDOUT_INDEX = (
 FAIR_POOL_ADAPTATION_REPORT = (
     ROOT
     / "docs"
-    / "diffusion_planner_v25_fair_pool_adaptation_contract_v4_report.md"
+    / "diffusion_planner_v25_fair_pool_adaptation_contract_v5_report.md"
 )
 FAIR_POOL_ADAPTATION_INDEX = (
     ROOT
     / "docs"
-    / "diffusion_planner_v25_fair_pool_adaptation_contract_v4_evidence_index.md"
+    / "diffusion_planner_v25_fair_pool_adaptation_contract_v5_evidence_index.md"
 )
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
@@ -510,8 +510,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Fair-Pool Adaptation Contract v4 Provenance "
-        "Fail-Closed, "
+        "## Current V25 Status - Fair-Pool Adaptation Contract v5 Raw Numeric "
+        "Semantics Fail-Closed, "
         "Acquisition Unauthorized"
     )
     assert text.count("## Current V25 Status") == 1
@@ -523,8 +523,8 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-25 - Fair-Pool Adaptation Contract v4 Provenance "
-        "Fail-Closed, "
+        "## 2026-07-25 - Fair-Pool Adaptation Contract v5 Raw Numeric "
+        "Semantics Fail-Closed, "
         "Acquisition Unauthorized"
     )
     assert text.count(heading) == 1
@@ -535,17 +535,17 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_pool_adaptation_contract_v4_provenance_fail_closed_"
+        "v25_fair_pool_adaptation_contract_v5_raw_numeric_semantics_fail_closed_"
         "acquisition_unauthorized_scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "fair_pool_adaptation_contract_v4_provenance_executability_and_"
+        "fair_pool_adaptation_contract_v5_raw_numeric_semantic_provenance_and_"
         "independent_literal_review_complete_no_acquisition"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_fair_pool_adaptation_contract_v4_provenance_review_before_"
-        "any_acquisition"
+        "high_fair_pool_adaptation_contract_v5_raw_numeric_semantics_review_"
+        "before_any_acquisition"
     )
 
 
@@ -602,7 +602,7 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
         _current_v25_section(STATUS.read_text(encoding="utf-8"))
     )
     assert pointer["current_v25_fair_pool_adaptation_contract_schema"] == (
-        "camp_dp_v25_fair_pool_adaptation_contract_v4"
+        "camp_dp_v25_fair_pool_adaptation_contract_v5"
     )
     assert pointer["current_v25_fair_pool_adaptation_calibration_state_count"] == "64"
     assert pointer["current_v25_fair_pool_adaptation_validation_state_count"] == "64"
@@ -635,6 +635,33 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
     ] == "false"
     assert pointer[
         "current_v25_fair_pool_adaptation_provenance_naked_hard_or_threshold_accepted"
+    ] == "false"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_raw_semantic_runs_per_split_if_future_authorized"
+    ] == "640"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_raw_semantic_total_runs_if_future_authorized"
+    ] == "1280"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_raw_semantic_all_five_repeats_required"
+    ] == "true"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_numeric_cache_is_authority"
+    ] == "false"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_numeric_phase_keys_reconstructed"
+    ] == "73"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_forward_pool_ids_derived_from_raw_preimages"
+    ] == "true"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_all_zero_cache_reseal_retrust_blocks"
+    ] == "true"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_repeat1_through_4_tensor_reseal_retrust_blocks"
+    ] == "true"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_v5_reviewer_imports_producer_metric_threshold_decision_oracle"
     ] == "false"
     assert pointer["current_v25_fair_pool_adaptation_scope"] == (
         "single_route_single_map_bounded_development_nonholdout_"
@@ -676,6 +703,9 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
     ] == "superseded_preacquisition_diagnostic"
     assert pointer[
         "current_v25_fair_pool_adaptation_v3_scope"
+    ] == "superseded_preacquisition_diagnostic"
+    assert pointer[
+        "current_v25_fair_pool_adaptation_v4_scope"
     ] == "superseded_preacquisition_diagnostic"
     assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == (
         "false"
@@ -834,8 +864,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_fair_pool_adaptation_contract_v4_provenance_review_before_"
-        "any_acquisition"
+        "high_fair_pool_adaptation_contract_v5_raw_numeric_semantics_review_"
+        "before_any_acquisition"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
