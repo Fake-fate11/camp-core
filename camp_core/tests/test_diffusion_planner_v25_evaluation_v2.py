@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -150,6 +151,22 @@ def test_full_polygon_detects_outside_even_when_five_samples_are_inside() -> Non
         for x, y in five
     )
     assert road_outside_fraction(footprint, drivable) > 0.9
+
+
+def test_drivable_union_clipping_does_not_double_count_overlap() -> None:
+    footprint = [[-2.0, -1.0], [2.0, -1.0], [2.0, 1.0], [-2.0, 1.0]]
+    overlapping_cover = [
+        [[-3.0, -2.0], [0.5, -2.0], [0.5, 2.0], [-3.0, 2.0]],
+        [[-0.5, -2.0], [3.0, -2.0], [3.0, 2.0], [-0.5, 2.0]],
+    ]
+    assert road_outside_fraction(footprint, overlapping_cover) == 0.0
+    assert (
+        independent_review._outside_fraction(
+            np.asarray(footprint, dtype=np.float64),
+            [np.asarray(row, dtype=np.float64) for row in overlapping_cover],
+        )
+        == 0.0
+    )
 
 
 def test_red_crossing_at_0_4mps_is_unthresholded_crossing() -> None:
@@ -336,6 +353,22 @@ def test_independent_reviewer_does_not_import_producer_metric_module() -> None:
     )
     assert 'producer_metric_module_imported": False' in source
     assert 'producer_threshold_tables_imported": False' in source
+
+
+def test_evaluation_v2_geometry_has_no_optional_shapely_dependency() -> None:
+    paths = (
+        Path(__file__).parents[1]
+        / "camp_core"
+        / "integrations"
+        / "diffusion_planner_v25_evaluation_v2.py",
+        Path(__file__).parents[2]
+        / "scripts"
+        / "integrations"
+        / "materialize_diffusion_planner_v25_evaluation_v2.py",
+        Path(independent_review.__file__),
+    )
+    for path in paths:
+        assert "shapely" not in path.read_text(encoding="utf-8").lower()
 
 
 def test_independent_reviewer_literal_geometry_and_body_match_synthetic_kernel() -> (

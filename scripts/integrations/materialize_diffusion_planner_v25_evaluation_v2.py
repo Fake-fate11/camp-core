@@ -12,8 +12,6 @@ import tempfile
 from typing import Any
 
 import numpy as np
-from shapely.geometry import Polygon
-from shapely.ops import unary_union
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -321,9 +319,6 @@ def _load_root_bound_geometry(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Evaluation v2 route pose geometry drifted")
     return {
         "drivable_polygons": drivable_polygons,
-        "drivable_union": unary_union(
-            [Polygon(vertices) for vertices in drivable_polygons]
-        ),
         "route_segments": segments,
         "initial_heading_rad": float(start_pose[2]),
         "goal_pose": goal_pose.tolist(),

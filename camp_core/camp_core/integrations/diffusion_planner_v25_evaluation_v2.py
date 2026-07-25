@@ -9,8 +9,6 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 from scipy.stats import t as student_t
-from shapely.geometry import LineString, Polygon
-from shapely.ops import unary_union
 
 
 SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_v1"
@@ -410,7 +408,7 @@ def polygons_intersect(
 ) -> bool:
     first = _polygon(a, "polygon_a")
     second = _polygon(b, "polygon_b")
-    return bool(first.intersects(second))
+    return _convex_polygons_intersect(first, second)
 
 
 def polygon_clearance_m(
@@ -418,7 +416,27 @@ def polygon_clearance_m(
 ) -> float:
     first = _polygon(a, "polygon_a")
     second = _polygon(b, "polygon_b")
-    return float(first.distance(second))
+    if _convex_polygons_intersect(first, second):
+        return 0.0
+    distances = [
+        _point_segment_distance(
+            first[index],
+            second[other],
+            second[(other + 1) % second.shape[0]],
+        )
+        for index in range(first.shape[0])
+        for other in range(second.shape[0])
+    ]
+    distances.extend(
+        _point_segment_distance(
+            second[index],
+            first[other],
+            first[(other + 1) % first.shape[0]],
+        )
+        for index in range(second.shape[0])
+        for other in range(first.shape[0])
+    )
+    return float(min(distances))
 
 
 def continuous_sat_ttc_s(
@@ -504,13 +522,10 @@ def road_outside_fraction(
     ego = _polygon(footprint, "footprint")
     if not drivable_polygons:
         raise ValueError("drivable polygons are missing")
-    drivable = unary_union(
-        [_polygon(row, "drivable_polygon") for row in drivable_polygons]
-    )
-    if drivable.is_empty:
-        raise ValueError("drivable polygon union is empty")
-    outside = ego.difference(drivable)
-    value = float(outside.area / ego.area)
+    drivable = [_polygon(row, "drivable_polygon") for row in drivable_polygons]
+    ego_area = _polygon_area(ego)
+    inside_area = _convex_union_intersection_area(ego, drivable)
+    value = float(1.0 - inside_area / ego_area)
     if value < 0.0 or value > 1.0 + 1e-12:
         raise ValueError("outside fraction drifted")
     return float(np.clip(value, 0.0, 1.0))
@@ -524,11 +539,10 @@ def swept_front_edge_crossing(
     start = _edge(start_edge, "start_edge")
     end = _edge(end_edge, "end_edge")
     stop = _edge(stop_line, "stop_line")
-    swept = Polygon([start[0], start[1], end[1], end[0]])
-    line = LineString(stop)
-    if not swept.is_valid:
+    swept = np.asarray([start[0], start[1], end[1], end[0]], dtype=np.float64)
+    if _polygon_self_intersects(swept) or abs(_signed_polygon_area(swept)) <= GEOM_EPS:
         return {"status": "ambiguous_evidence_missing", "crossing": None, "alpha": None}
-    if not swept.intersects(line):
+    if not _segment_intersects_polygon(stop[0], stop[1], swept):
         return {"status": "computed", "crossing": False, "alpha": None}
     alphas: list[float] = []
     for index in range(2):
@@ -538,7 +552,9 @@ def swept_front_edge_crossing(
         if value is not None:
             alphas.append(value)
     if not alphas:
-        if LineString(start).intersects(line) or LineString(end).intersects(line):
+        if _segments_intersect(start[0], start[1], stop[0], stop[1]) or (
+            _segments_intersect(end[0], end[1], stop[0], stop[1])
+        ):
             return {
                 "status": "ambiguous_evidence_missing",
                 "crossing": None,
@@ -995,7 +1011,7 @@ def summarize_run_v2(
     )
     road = _road_endpoint(
         ticks,
-        geometry.get("drivable_union", geometry.get("drivable_polygons")),
+        geometry.get("drivable_polygons"),
         ego_length=ego_length,
         ego_width=ego_width,
         ego_wheelbase=ego_wheelbase,
@@ -1323,13 +1339,8 @@ def _road_endpoint(
             "reason": "root_bound_drivable_polygon_union_missing",
             "five_point_proxy_used": False,
         }
-    drivable_union = (
-        unary_union([_polygon(row, "drivable_polygon") for row in drivable_polygons])
-        if type(drivable_polygons) is list
-        else drivable_polygons
-    )
-    if drivable_union.is_empty:
-        raise ValueError("Evaluation v2 drivable polygon union is empty")
+    if type(drivable_polygons) is not list:
+        raise ValueError("Evaluation v2 drivable polygon inventory drifted")
     values = []
     for tick in ticks:
         safety = _mapping(tick, "safety")
@@ -1340,17 +1351,7 @@ def _road_endpoint(
             ego_width,
             wheelbase_m=ego_wheelbase,
         )
-        footprint_polygon = _polygon(footprint, "ego footprint")
-        values.append(
-            float(
-                np.clip(
-                    footprint_polygon.difference(drivable_union).area
-                    / footprint_polygon.area,
-                    0.0,
-                    1.0,
-                )
-            )
-        )
+        values.append(road_outside_fraction(footprint, drivable_polygons))
     array = np.asarray(values, dtype=np.float64)
     mask = array > GEOM_EPS
     return {
@@ -1883,11 +1884,243 @@ def _vertices(value: Any, label: str) -> np.ndarray:
     return result
 
 
-def _polygon(value: Any, label: str) -> Polygon:
-    result = Polygon(_vertices(value, label))
-    if not result.is_valid or result.area <= GEOM_EPS:
-        raise ValueError(f"{label} is invalid")
+def _polygon(value: Any, label: str) -> np.ndarray:
+    result = _vertices(value, label)
+    if (
+        _polygon_self_intersects(result)
+        or abs(_signed_polygon_area(result)) <= GEOM_EPS
+        or not _polygon_is_convex(result)
+    ):
+        raise ValueError(f"{label} is not a valid convex polygon")
+    if _signed_polygon_area(result) < 0.0:
+        result = result[::-1].copy()
     return result
+
+
+def _signed_polygon_area(vertices: np.ndarray) -> float:
+    shifted = np.roll(vertices, -1, axis=0)
+    return float(
+        0.5 * np.sum(vertices[:, 0] * shifted[:, 1] - vertices[:, 1] * shifted[:, 0])
+    )
+
+
+def _polygon_area(vertices: np.ndarray) -> float:
+    return abs(_signed_polygon_area(vertices))
+
+
+def _polygon_is_convex(vertices: np.ndarray) -> bool:
+    signs: list[float] = []
+    for index in range(vertices.shape[0]):
+        first = vertices[(index + 1) % vertices.shape[0]] - vertices[index]
+        second = (
+            vertices[(index + 2) % vertices.shape[0]]
+            - vertices[(index + 1) % vertices.shape[0]]
+        )
+        cross = _cross_2d(first, second)
+        if abs(cross) > GEOM_EPS:
+            signs.append(cross)
+    return bool(signs) and (
+        all(value > 0.0 for value in signs) or all(value < 0.0 for value in signs)
+    )
+
+
+def _polygon_self_intersects(vertices: np.ndarray) -> bool:
+    count = vertices.shape[0]
+    for first in range(count):
+        first_next = (first + 1) % count
+        for second in range(first + 1, count):
+            second_next = (second + 1) % count
+            if first in {second, second_next} or first_next in {second, second_next}:
+                continue
+            if _segments_intersect(
+                vertices[first],
+                vertices[first_next],
+                vertices[second],
+                vertices[second_next],
+            ):
+                return True
+    return False
+
+
+def _cross_2d(first: np.ndarray, second: np.ndarray) -> float:
+    return float(first[0] * second[1] - first[1] * second[0])
+
+
+def _segments_intersect(
+    first_start: np.ndarray,
+    first_end: np.ndarray,
+    second_start: np.ndarray,
+    second_end: np.ndarray,
+) -> bool:
+    def orientation(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
+        return _cross_2d(b - a, c - a)
+
+    def on_segment(a: np.ndarray, b: np.ndarray, point: np.ndarray) -> bool:
+        return (
+            min(a[0], b[0]) - GEOM_EPS <= point[0] <= max(a[0], b[0]) + GEOM_EPS
+            and min(a[1], b[1]) - GEOM_EPS <= point[1] <= max(a[1], b[1]) + GEOM_EPS
+            and abs(orientation(a, b, point)) <= GEOM_EPS
+        )
+
+    values = (
+        orientation(first_start, first_end, second_start),
+        orientation(first_start, first_end, second_end),
+        orientation(second_start, second_end, first_start),
+        orientation(second_start, second_end, first_end),
+    )
+    if values[0] * values[1] < -GEOM_EPS and values[2] * values[3] < -GEOM_EPS:
+        return True
+    return (
+        on_segment(first_start, first_end, second_start)
+        or on_segment(first_start, first_end, second_end)
+        or on_segment(second_start, second_end, first_start)
+        or on_segment(second_start, second_end, first_end)
+    )
+
+
+def _convex_polygons_intersect(first: np.ndarray, second: np.ndarray) -> bool:
+    for polygon in (first, second):
+        for index in range(polygon.shape[0]):
+            edge = polygon[(index + 1) % polygon.shape[0]] - polygon[index]
+            axis = np.asarray([-edge[1], edge[0]], dtype=np.float64)
+            first_projection = first @ axis
+            second_projection = second @ axis
+            if (
+                float(first_projection.max())
+                < float(second_projection.min()) - GEOM_EPS
+                or float(second_projection.max())
+                < float(first_projection.min()) - GEOM_EPS
+            ):
+                return False
+    return True
+
+
+def _point_segment_distance(
+    point: np.ndarray, start: np.ndarray, end: np.ndarray
+) -> float:
+    delta = end - start
+    denominator = float(np.dot(delta, delta))
+    if denominator <= GEOM_EPS:
+        return float(np.linalg.norm(point - start))
+    ratio = float(np.clip(np.dot(point - start, delta) / denominator, 0.0, 1.0))
+    return float(np.linalg.norm(point - (start + ratio * delta)))
+
+
+def _segment_intersects_polygon(
+    start: np.ndarray, end: np.ndarray, polygon: np.ndarray
+) -> bool:
+    if _point_in_convex_polygon(start, polygon) or _point_in_convex_polygon(
+        end, polygon
+    ):
+        return True
+    return any(
+        _segments_intersect(
+            start,
+            end,
+            polygon[index],
+            polygon[(index + 1) % polygon.shape[0]],
+        )
+        for index in range(polygon.shape[0])
+    )
+
+
+def _point_in_convex_polygon(point: np.ndarray, polygon: np.ndarray) -> bool:
+    return all(
+        _cross_2d(
+            polygon[(index + 1) % polygon.shape[0]] - polygon[index],
+            point - polygon[index],
+        )
+        >= -GEOM_EPS
+        for index in range(polygon.shape[0])
+    )
+
+
+def _convex_clip(subject: np.ndarray, clipper: np.ndarray) -> np.ndarray | None:
+    output = subject.copy()
+    for index in range(clipper.shape[0]):
+        edge_start = clipper[index]
+        edge_end = clipper[(index + 1) % clipper.shape[0]]
+        if not output.size:
+            return None
+        input_vertices = output
+        clipped: list[np.ndarray] = []
+        previous = input_vertices[-1]
+        previous_inside = (
+            _cross_2d(edge_end - edge_start, previous - edge_start) >= -GEOM_EPS
+        )
+        for current in input_vertices:
+            current_inside = (
+                _cross_2d(edge_end - edge_start, current - edge_start) >= -GEOM_EPS
+            )
+            if current_inside != previous_inside:
+                intersection = _line_intersection(
+                    previous, current, edge_start, edge_end
+                )
+                if intersection is not None:
+                    clipped.append(intersection)
+            if current_inside:
+                clipped.append(current)
+            previous = current
+            previous_inside = current_inside
+        if len(clipped) < 3:
+            return None
+        output = _deduplicate_vertices(np.asarray(clipped, dtype=np.float64))
+        if output.shape[0] < 3 or _polygon_area(output) <= GEOM_EPS:
+            return None
+    return output
+
+
+def _line_intersection(
+    first_start: np.ndarray,
+    first_end: np.ndarray,
+    second_start: np.ndarray,
+    second_end: np.ndarray,
+) -> np.ndarray | None:
+    first_delta = first_end - first_start
+    second_delta = second_end - second_start
+    denominator = _cross_2d(first_delta, second_delta)
+    if abs(denominator) <= GEOM_EPS:
+        return None
+    ratio = _cross_2d(second_start - first_start, second_delta) / denominator
+    return first_start + ratio * first_delta
+
+
+def _deduplicate_vertices(vertices: np.ndarray) -> np.ndarray:
+    result: list[np.ndarray] = []
+    for vertex in vertices:
+        if not result or float(np.linalg.norm(vertex - result[-1])) > GEOM_EPS:
+            result.append(vertex)
+    if len(result) > 1 and float(np.linalg.norm(result[0] - result[-1])) <= GEOM_EPS:
+        result.pop()
+    return np.asarray(result, dtype=np.float64)
+
+
+def _convex_union_intersection_area(
+    footprint: np.ndarray, drivable_polygons: Sequence[np.ndarray]
+) -> float:
+    candidates = [
+        clipped
+        for polygon in drivable_polygons
+        if (clipped := _convex_clip(footprint, polygon)) is not None
+    ]
+
+    def accumulate(start: int, current: np.ndarray | None, depth: int) -> float:
+        total = 0.0
+        for index in range(start, len(candidates)):
+            intersection = (
+                candidates[index]
+                if current is None
+                else _convex_clip(current, candidates[index])
+            )
+            if intersection is None:
+                continue
+            area = _polygon_area(intersection)
+            total += area if depth % 2 == 0 else -area
+            total += accumulate(index + 1, intersection, depth + 1)
+        return total
+
+    value = accumulate(0, None, 0)
+    return float(np.clip(value, 0.0, _polygon_area(footprint)))
 
 
 def _edge(value: Any, label: str) -> np.ndarray:

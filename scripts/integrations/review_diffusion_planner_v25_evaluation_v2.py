@@ -15,8 +15,6 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 from scipy.stats import t as student_t
-from shapely.geometry import LineString, Polygon
-from shapely.ops import unary_union
 
 
 # Deliberately no import of diffusion_planner_v25_evaluation_v2 or its tables.
@@ -407,7 +405,7 @@ def _validate_endpoints_literal(
     _assert_equal(expected_collision, actual["collision"], "collision")
     _assert_equal(expected_proximity, actual["dynamic_proximity"], "dynamic proximity")
     _assert_equal(
-        _road(ticks, geometry["drivable_union"], spawn, config["map"]["sha256"]),
+        _road(ticks, geometry["drivable_polygons"], spawn, config["map"]["sha256"]),
         actual["road_containment"],
         "road containment",
     )
@@ -531,7 +529,7 @@ def _obb(
 def _sat_ttc(
     a: np.ndarray, b: np.ndarray, va: np.ndarray, vb: np.ndarray
 ) -> float | None:
-    if Polygon(a).intersects(Polygon(b)):
+    if _polygons_intersect(a, b):
         return 0.0
     relative = vb - va
     entry, exit_time = 0.0, math.inf
@@ -601,8 +599,8 @@ def _collision_proximity(
                 float(spec["width_m"]),
                 float(spec["wheelbase_m"]),
             )
-            collision = Polygon(ego).intersects(Polygon(other))
-            clearance = float(Polygon(ego).distance(Polygon(other)))
+            collision = _polygons_intersect(ego, other)
+            clearance = _polygon_distance(ego, other)
             r = np.asarray(actor["position_xy"], dtype=np.float64) - position
             vr = np.asarray(actor["velocity_xy_mps"], dtype=np.float64) - ego_v
             closing = max(
@@ -669,25 +667,21 @@ def _collision_proximity(
 
 def _road(
     ticks: Sequence[dict[str, Any]],
-    drivable: Any,
+    drivable: Sequence[np.ndarray],
     spawn: Mapping[str, Any],
     map_sha: str,
 ) -> dict[str, Any]:
     values = []
     for tick in ticks:
         safety = tick["safety"]
-        polygon = Polygon(
-            _obb(
-                safety["position_xy"],
-                float(safety["ego_heading_rad"]),
-                float(spawn["ego_length"]),
-                float(spawn["ego_width"]),
-                float(spawn["ego_wheelbase"]),
-            )
+        polygon = _obb(
+            safety["position_xy"],
+            float(safety["ego_heading_rad"]),
+            float(spawn["ego_length"]),
+            float(spawn["ego_width"]),
+            float(spawn["ego_wheelbase"]),
         )
-        values.append(
-            float(np.clip(polygon.difference(drivable).area / polygon.area, 0, 1))
-        )
+        values.append(_outside_fraction(polygon, drivable))
     array = np.asarray(values)
     mask = array > EPS
     return {
@@ -1059,7 +1053,7 @@ def _geometry(config: dict[str, Any]) -> dict[str, Any]:
         lane = builder._cache[lanelet_id]
         left = np.asarray(lane.raw_left, dtype=np.float64)[:, :2]
         right = np.asarray(lane.raw_right, dtype=np.float64)[:, :2]
-        polygons.append(Polygon(np.concatenate([left, right[::-1]], axis=0)))
+        polygons.append(_ccw(np.concatenate([left, right[::-1]], axis=0)))
     parts = []
     for lanelet_id in route.route_lanelet_ids:
         points = np.asarray(
@@ -1090,7 +1084,7 @@ def _geometry(config: dict[str, Any]) -> dict[str, Any]:
         arc += length
     segments[-1]["next_indices"] = []
     return {
-        "drivable_union": unary_union(polygons),
+        "drivable_polygons": polygons,
         "segments": segments,
         "initial_heading_rad": float(route.start_pose[2]),
         "goal_pose": np.asarray(route.goal_pose, dtype=np.float64).tolist(),
@@ -1252,11 +1246,10 @@ def _front(center: Any, heading: float, width: float) -> np.ndarray:
 def _cross(
     start: np.ndarray, end: np.ndarray, stop: np.ndarray
 ) -> tuple[str, bool, float | None]:
-    swept = Polygon([start[0], start[1], end[1], end[0]])
-    line = LineString(stop)
-    if not swept.is_valid:
+    swept = np.asarray([start[0], start[1], end[1], end[0]], dtype=np.float64)
+    if _self_intersects(swept) or abs(_signed_area(swept)) <= EPS:
         return ("ambiguous", False, None)
-    if not swept.intersects(line):
+    if not _segment_intersects_polygon(stop[0], stop[1], _ccw(swept)):
         return ("computed", False, None)
     alphas = []
     for index in range(2):
@@ -1287,6 +1280,223 @@ def _intersection_alpha(
         if -EPS <= t <= 1 + EPS and -EPS <= u <= 1 + EPS
         else None
     )
+
+
+def _cross2(first: np.ndarray, second: np.ndarray) -> float:
+    return float(first[0] * second[1] - first[1] * second[0])
+
+
+def _signed_area(vertices: np.ndarray) -> float:
+    shifted = np.roll(vertices, -1, axis=0)
+    return float(
+        0.5 * np.sum(vertices[:, 0] * shifted[:, 1] - vertices[:, 1] * shifted[:, 0])
+    )
+
+
+def _area(vertices: np.ndarray) -> float:
+    return abs(_signed_area(vertices))
+
+
+def _ccw(vertices: np.ndarray) -> np.ndarray:
+    result = np.asarray(vertices, dtype=np.float64)
+    return result if _signed_area(result) >= 0 else result[::-1].copy()
+
+
+def _segments_intersect(
+    a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray
+) -> bool:
+    def orientation(first: np.ndarray, second: np.ndarray, third: np.ndarray) -> float:
+        return _cross2(second - first, third - first)
+
+    def contains(first: np.ndarray, second: np.ndarray, point: np.ndarray) -> bool:
+        return (
+            min(first[0], second[0]) - EPS <= point[0] <= max(first[0], second[0]) + EPS
+            and min(first[1], second[1]) - EPS
+            <= point[1]
+            <= max(first[1], second[1]) + EPS
+            and abs(orientation(first, second, point)) <= EPS
+        )
+
+    values = (
+        orientation(a, b, c),
+        orientation(a, b, d),
+        orientation(c, d, a),
+        orientation(c, d, b),
+    )
+    if values[0] * values[1] < -EPS and values[2] * values[3] < -EPS:
+        return True
+    return (
+        contains(a, b, c) or contains(a, b, d) or contains(c, d, a) or contains(c, d, b)
+    )
+
+
+def _self_intersects(vertices: np.ndarray) -> bool:
+    count = vertices.shape[0]
+    for first in range(count):
+        first_next = (first + 1) % count
+        for second in range(first + 1, count):
+            second_next = (second + 1) % count
+            if first in {second, second_next} or first_next in {second, second_next}:
+                continue
+            if _segments_intersect(
+                vertices[first],
+                vertices[first_next],
+                vertices[second],
+                vertices[second_next],
+            ):
+                return True
+    return False
+
+
+def _polygons_intersect(first: np.ndarray, second: np.ndarray) -> bool:
+    for polygon in (first, second):
+        for index in range(polygon.shape[0]):
+            edge = polygon[(index + 1) % polygon.shape[0]] - polygon[index]
+            axis = np.asarray([-edge[1], edge[0]], dtype=np.float64)
+            first_values = first @ axis
+            second_values = second @ axis
+            if (
+                float(first_values.max()) < float(second_values.min()) - EPS
+                or float(second_values.max()) < float(first_values.min()) - EPS
+            ):
+                return False
+    return True
+
+
+def _point_segment_distance(
+    point: np.ndarray, start: np.ndarray, end: np.ndarray
+) -> float:
+    delta = end - start
+    ratio = float(
+        np.clip(
+            np.dot(point - start, delta) / max(float(np.dot(delta, delta)), EPS),
+            0,
+            1,
+        )
+    )
+    return float(np.linalg.norm(point - (start + ratio * delta)))
+
+
+def _polygon_distance(first: np.ndarray, second: np.ndarray) -> float:
+    if _polygons_intersect(first, second):
+        return 0.0
+    return min(
+        [
+            _point_segment_distance(
+                first[index],
+                second[other],
+                second[(other + 1) % second.shape[0]],
+            )
+            for index in range(first.shape[0])
+            for other in range(second.shape[0])
+        ]
+        + [
+            _point_segment_distance(
+                second[index],
+                first[other],
+                first[(other + 1) % first.shape[0]],
+            )
+            for index in range(second.shape[0])
+            for other in range(first.shape[0])
+        ]
+    )
+
+
+def _point_in_polygon(point: np.ndarray, polygon: np.ndarray) -> bool:
+    return all(
+        _cross2(
+            polygon[(index + 1) % polygon.shape[0]] - polygon[index],
+            point - polygon[index],
+        )
+        >= -EPS
+        for index in range(polygon.shape[0])
+    )
+
+
+def _segment_intersects_polygon(
+    start: np.ndarray, end: np.ndarray, polygon: np.ndarray
+) -> bool:
+    return (
+        _point_in_polygon(start, polygon)
+        or _point_in_polygon(end, polygon)
+        or any(
+            _segments_intersect(
+                start,
+                end,
+                polygon[index],
+                polygon[(index + 1) % polygon.shape[0]],
+            )
+            for index in range(polygon.shape[0])
+        )
+    )
+
+
+def _line_intersection(
+    a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray
+) -> np.ndarray | None:
+    first = b - a
+    second = d - c
+    denominator = _cross2(first, second)
+    if abs(denominator) <= EPS:
+        return None
+    return a + (_cross2(c - a, second) / denominator) * first
+
+
+def _clip(subject: np.ndarray, clipper: np.ndarray) -> np.ndarray | None:
+    output = _ccw(subject)
+    clip = _ccw(clipper)
+    for index in range(clip.shape[0]):
+        edge_start = clip[index]
+        edge_end = clip[(index + 1) % clip.shape[0]]
+        source = output
+        rows: list[np.ndarray] = []
+        previous = source[-1]
+        previous_inside = _cross2(edge_end - edge_start, previous - edge_start) >= -EPS
+        for current in source:
+            current_inside = (
+                _cross2(edge_end - edge_start, current - edge_start) >= -EPS
+            )
+            if current_inside != previous_inside:
+                intersection = _line_intersection(
+                    previous, current, edge_start, edge_end
+                )
+                if intersection is not None:
+                    rows.append(intersection)
+            if current_inside:
+                rows.append(current)
+            previous = current
+            previous_inside = current_inside
+        if len(rows) < 3:
+            return None
+        output = np.asarray(rows, dtype=np.float64)
+        if _area(output) <= EPS:
+            return None
+    return output
+
+
+def _outside_fraction(footprint: np.ndarray, drivable: Sequence[np.ndarray]) -> float:
+    candidates = [
+        clipped
+        for polygon in drivable
+        if (clipped := _clip(footprint, polygon)) is not None
+    ]
+
+    def accumulate(start: int, current: np.ndarray | None, depth: int) -> float:
+        total = 0.0
+        for index in range(start, len(candidates)):
+            intersection = (
+                candidates[index]
+                if current is None
+                else _clip(current, candidates[index])
+            )
+            if intersection is None:
+                continue
+            total += _area(intersection) if depth % 2 == 0 else -_area(intersection)
+            total += accumulate(index + 1, intersection, depth + 1)
+        return total
+
+    inside = accumulate(0, None, 0)
+    return float(np.clip(1.0 - inside / _area(footprint), 0.0, 1.0))
 
 
 def _grid(values: np.ndarray, thresholds: Sequence[float], mode: str) -> dict[str, Any]:
