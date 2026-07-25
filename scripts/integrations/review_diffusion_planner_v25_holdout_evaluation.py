@@ -174,10 +174,12 @@ def review(
     )
     if _tracked_dirty(ROOT):
         raise ValueError("holdout evaluation reviewer worktree is dirty")
-    evaluation_head = _git_head(ROOT)
-    evaluation_manifest_sha256 = tracked_implementation_manifest(ROOT)[
-        "manifest_sha256"
-    ]
+    reviewer_head = _git_head(ROOT)
+    persisted_evaluation_heads = _evaluation_heads(evaluation_root / "HEADS")
+    evaluation_head = persisted_evaluation_heads["evaluation_camp_head"]
+    evaluation_manifest_sha256 = _historical_critical_manifest_sha256(
+        evaluation_head
+    )
     report = _canonical_json(evaluation_root / "report.json")
     corrected = (
         report.get("schema_version")
@@ -270,7 +272,7 @@ def review(
     if (
         not strict_equal(provenance, expected_provenance)
         or release_dual_head["implementation_source_head"] != execution_head
-        or _evaluation_heads(evaluation_root / "HEADS")
+        or persisted_evaluation_heads
         != {
             "execution_camp_head": execution_head,
             "evaluation_camp_head": evaluation_head,
@@ -390,6 +392,10 @@ def review(
                 "fresh_execution_reused": True,
                 "fresh_execution_rerun": False,
                 "scientific_contract_changed": False,
+                "reviewer_implementation_head": reviewer_head,
+                "reviewer_implementation_manifest_sha256": (
+                    _correction_manifest_sha256()
+                ),
             }
         )
         if repaired:
@@ -409,7 +415,12 @@ def review(
         (
             f"execution_camp_head={execution_head}\n"
             f"evaluation_camp_head={evaluation_head}\n"
-            f"fixed_dp_head={FIXED_DP_HEAD}\n"
+            + (
+                f"reviewer_camp_head={reviewer_head}\n"
+                if corrected
+                else ""
+            )
+            + f"fixed_dp_head={FIXED_DP_HEAD}\n"
         ).encode("ascii")
     )
     (output / "COMMAND").write_bytes((" ".join(sys.argv) + "\n").encode("utf-8"))
@@ -544,13 +555,27 @@ def _historical_critical_manifest_sha256(source: str) -> str:
     return hashlib.sha256(_canonical_bytes(rows)).hexdigest()
 
 
-def _correction_manifest_sha256() -> str:
+def _correction_manifest_sha256(git_head: str | None = None) -> str:
     rows: list[dict[str, str]] = []
     for relative in CORRECTION_IMPLEMENTATION_PATHS:
-        path = (ROOT / relative).resolve()
-        if ROOT not in path.parents or not path.is_file() or path.is_symlink():
-            raise ValueError("reviewer correction implementation path drifted")
-        rows.append({"path": relative, "sha256": _file_sha256(path)})
+        if git_head is None:
+            path = (ROOT / relative).resolve()
+            if (
+                ROOT not in path.parents
+                or not path.is_file()
+                or path.is_symlink()
+            ):
+                raise ValueError(
+                    "reviewer correction implementation path drifted"
+                )
+            blob = path.read_bytes()
+        else:
+            blob = subprocess.check_output(
+                ["git", "-C", str(ROOT), "show", f"{git_head}:{relative}"]
+            )
+        rows.append(
+            {"path": relative, "sha256": hashlib.sha256(blob).hexdigest()}
+        )
     return hashlib.sha256(_canonical_bytes(rows)).hexdigest()
 
 
@@ -617,7 +642,7 @@ def _independent_correction_bindings(
     ):
         raise ValueError("reviewer correction authority binding drifted")
     original_head = authority.get("correction_implementation", {}).get("head")
-    current_manifest = _correction_manifest_sha256()
+    current_manifest = _correction_manifest_sha256(evaluation_head)
     repaired = "correction_repair_artifact" in report
     if not repaired and (
         original_head != evaluation_head
