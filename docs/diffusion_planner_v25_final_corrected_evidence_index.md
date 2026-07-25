@@ -16,7 +16,7 @@ Disposition: `honest_no_claim_under_frozen_preregistered_all_gate`
 | 6 | SafetyCost six components, CI95, B-T-W, strata | complete | total gate passes; component all-gate fails both primary methods |
 | 7 | Performance/comfort NI tradeoff | complete | mean jerk fails both; progress also fails Static14D |
 | 8 | Ablation and atom mechanism | complete as association only | 9D/14D and leave-group diagnostics; no causal claim |
-| 9 | Latency | complete as controlled benchmark timing | no deployment or online-runtime claim |
+| 9 | Latency | complete from sealed corrected-evaluation summary | candidate0/Static14D/Scene14D DP, additional-K8, atom, context, weight, selector, and total mean/median/p95/p99/max; inapplicable stages are `n/a`; no deployment claim |
 | 10 | Failure and one-time accounting | complete | B2/B3 tombstones; B4 old fatal preserved; additive continuation terminal |
 | 11 | Provenance, claim boundary, paper-grade report | complete | dual-HEAD roles, roots, frozen claim rule, explicit no-claim |
 
@@ -91,6 +91,11 @@ Continuation history:
 `authorized_from_preserved_denominator -> evaluation_started ->
 evaluation_artifact_formed -> independently_reviewed_terminal`.
 
+The corrected evaluation review is a separate-role sealed deterministic replay
+using the frozen canonical evaluation core. Its independently bound
+role/HEAD/provenance verifies roots, denominator, replay equality, and claim
+equality. It is not a reviewer-local independent statistical implementation.
+
 ## Correction implementation and focused evidence
 
 | Stage | Tests | Root |
@@ -161,3 +166,13 @@ dual-HEAD/allowlist/manifest drift, and consumer-contract drift.
 No real-road safety, broad unseen-map, native-ranked Top-1, causal mechanism,
 promotion, deployment, online activation, or production-readiness statement is
 authorized.
+
+## Latency evidence boundary
+
+Report section 12 transcribes the existing sealed `latency_ms` aggregates for
+all three arms and all required stages as
+mean/median/p95/p99/max. It reads only the corrected evaluation summary; it
+does not read raw rows or recompute any statistic. Candidate0 does not invoke
+additional K8, atom, context, scene-weight, or CAMP-selector stages. Static14D
+does not invoke scene context or scene weighting. Those cells are `n/a`, even
+though the serialization uses zero-valued placeholders for non-invoked stages.

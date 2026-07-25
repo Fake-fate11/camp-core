@@ -575,6 +575,63 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
     )
     assert "101/101" in index
     assert "102/102" in index
+    for text in (status_pointer, audit_eof, report, index):
+        assert "literal-oracle" not in text
+        assert (
+            "separate-role sealed deterministic replay using the frozen "
+            "canonical evaluation core"
+        ) in " ".join(text.split())
+    pointer = _machine_tuple(status_pointer)
+    assert pointer["current_v25_b4_evaluation_review_mode"] == (
+        "separate_role_sealed_deterministic_replay_frozen_canonical_evaluation_core"
+    )
+    assert pointer[
+        "current_v25_b4_reviewer_local_independent_statistical_implementation_claimed"
+    ] == "false"
+
+
+def test_v25_corrected_latency_checklist_uses_sealed_complete_summaries() -> None:
+    report = CORRECTED_FINAL_REPORT.read_text(encoding="utf-8")
+    normalized_report = " ".join(report.split())
+    index = CORRECTED_FINAL_INDEX.read_text(encoding="utf-8")
+    status_pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    expected_cells = (
+        "51.985414/51.472995/54.386444/56.967885/401.075010",
+        "358.990532/358.009244/373.918668/388.722123/461.924196",
+        "35.932418/26.206801/93.213820/139.693299/255.957926",
+        "3.169737/3.147744/3.300608/3.704798/11.938545",
+        "0.284847/0.281420/0.301724/0.361152/2.773259",
+        "0.199182/0.197558/0.209259/0.243650/1.084602",
+        "68.800894/68.348749/72.232599/75.897811/518.258393",
+        "531.782756/518.678487/607.223826/755.545621/993.904560",
+        "536.456213/522.531789/613.830395/755.155321/1072.831110",
+    )
+    for cell in expected_cells:
+        assert cell in report
+    assert "mean/median/p95/p99/max" in normalized_report
+    assert "no raw row was read" in normalized_report
+    assert "zero-valued placeholders" in normalized_report
+    assert (
+        "n/a (candidate0 does not invoke the additional-K8 branch)"
+        in normalized_report
+    )
+    assert "n/a (Static14D has no scene-context stage)" in normalized_report
+    assert (
+        "| 9 | Latency | complete from sealed corrected-evaluation summary |"
+        in index
+    )
+    assert status_pointer["current_v25_b4_latency_summary_source"] == (
+        "sealed_corrected_evaluation_summary"
+    )
+    assert status_pointer["current_v25_b4_latency_raw_rows_read_for_reporting"] == (
+        "false"
+    )
+    assert status_pointer["current_v25_b4_latency_summary_metrics"] == (
+        "mean,median,p95,p99,max"
+    )
+    assert status_pointer["current_v25_b4_latency_checklist_complete"] == "true"
 
 
 def test_v25_training_and_independent_review_are_accepted_before_calibration() -> None:

@@ -28,13 +28,19 @@ engineering diagnostic.
 
 A separate, exclusively keyed continuation authority and CAS then permitted
 one deterministic evaluation of the preserved denominator. The corrected
-evaluation and its literal-oracle independent review passed and sealed:
+evaluation and its separate-role sealed deterministic replay using the frozen
+canonical evaluation core passed and sealed:
 
 - corrected evaluation root:
   `4a817b4bbd17449486e3258c0d4b07102929d5f12d60fa4bb73056eb726afb9f`;
 - corrected evaluation-review root:
   `94b048ace4a2a539532ccc64fe061afb51bc6b4e23ee2e5a5affd1fc2ef69459`;
 - continuation terminal state: `independently_reviewed_terminal`.
+
+The review used an independently bound role, HEAD, provenance, input roots,
+denominator, and seal. It verified exact equality of the frozen replay and
+claim outputs. It did not use a reviewer-local independent statistical
+implementation, and this report makes no such claim.
 
 Both Static14D and no-V2I Scene14D reduced mean total SafetyCost relative to
 candidate0, with paired clustered CI95 bounds below zero. Neither method passes
@@ -345,18 +351,26 @@ All mechanism language is associative.
 
 ## 12. Controlled benchmark latency
 
-Values are mean/p95/p99/max milliseconds. Each arm has 500 runs and 32,000
-ticks.
+Every numeric cell is the already-sealed
+mean/median/p95/p99/max summary in milliseconds. Each arm has 500 runs and
+32,000 ticks. Values below are display-rounded from the sealed corrected
+evaluation summary; no raw row was read and no latency statistic was
+recomputed for this report.
 
-| Arm | Total planning | Additional K8 generation | Atom | Context | Scene weight | Selector |
-|---|---|---|---|---|---|---|
-| candidate0 | 68.8009/72.2326/75.8978/518.258 | n/a | n/a | n/a | n/a | 0 |
-| Static14D | 531.7828/607.2238/755.5456/993.905 | mean 358.9905 | mean 35.3676 | n/a | n/a | mean 0.199182 |
-| Scene14D | 536.4562/613.8304/755.1553/1072.831 | mean 359.5578 | mean 35.9324 | mean 3.16974 | mean 0.284847 | mean 0.190547 |
+| Stage | candidate0 | Static14D | Scene14D |
+|---|---|---|---|
+| DP operational default | 51.985414/51.472995/54.386444/56.967885/401.075010 | 52.372716/52.206028/54.960062/57.736034/87.906316 | 52.455441/52.219803/55.503030/58.618227/79.417326 |
+| Additional K8 generation | n/a (candidate0 does not invoke the additional-K8 branch) | 358.990532/358.009244/373.918668/388.722123/461.924196 | 359.557809/358.118697/378.276624/392.227093/509.932722 |
+| Atom computation | n/a (candidate0 does not invoke CAMP atoms) | 35.367576/26.184283/90.621291/140.679615/246.071532 | 35.932418/26.206801/93.213820/139.693299/255.957926 |
+| Context computation | n/a (candidate0 has no CAMP context) | n/a (Static14D has no scene-context stage) | 3.169737/3.147744/3.300608/3.704798/11.938545 |
+| Scene-weight computation | n/a (candidate0 has no scene weighting) | n/a (Static14D has no scene-weight stage) | 0.284847/0.281420/0.301724/0.361152/2.773259 |
+| Selector | n/a (candidate0 uses the operational default directly) | 0.199182/0.197558/0.209259/0.243650/1.084602 | 0.190547/0.188570/0.201046/0.236650/1.141094 |
+| Total planning | 68.800894/68.348749/72.232599/75.897811/518.258393 | 531.782756/518.678487/607.223826/755.545621/993.904560 | 536.456213/522.531789/613.830395/755.155321/1072.831110 |
 
-Candidate0 default-DP mean latency was 51.9854 ms. These are controlled
-benchmark timings, not deployment, online-activation, or real-time production
-claims.
+The sealed summary encodes stages that were not invoked as zero-valued
+placeholders; the table reports those stages as `n/a` rather than treating
+zero as a measured latency. These are controlled benchmark timings, not
+deployment, online-activation, or real-time production claims.
 
 ## 13. Failure accounting and continuation state
 
