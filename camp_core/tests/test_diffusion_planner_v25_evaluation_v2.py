@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from camp_core.integrations import diffusion_planner_v25_evaluation_v2 as v2_kernel
 from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (
     ACCELERATION_GRID_MPS2,
     BOXCAR_KERNEL,
@@ -341,6 +342,16 @@ def test_result_vector_cancels_inference_instead_of_shrinking_denominator() -> N
             "complete_case_shrinkage_used": False,
         }
         assert endpoint["denominator"]["required_arm_count"] == 1500
+
+
+def test_scalar_paths_use_json_pointer_for_decimal_and_reserved_keys() -> None:
+    value = {"grid": {"0.5": {"a/b~c": 7.0}}}
+    producer_paths = v2_kernel._numeric_paths(value, prefix="")
+    reviewer_paths = independent_review._numeric_paths(value)
+    assert producer_paths == ["/grid/0.5/a~1b~0c"]
+    assert reviewer_paths == producer_paths
+    assert v2_kernel._path_number(value, producer_paths[0]) == 7.0
+    assert independent_review._path(value, reviewer_paths[0]) == 7.0
 
 
 def test_independent_reviewer_does_not_import_producer_metric_module() -> None:

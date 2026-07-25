@@ -1591,7 +1591,8 @@ def _numeric_paths(value: Any, *, prefix: str) -> list[str]:
                 "geometry_source_sha256",
             }:
                 continue
-            path = f"{prefix}.{name}" if prefix else name
+            token = str(name).replace("~", "~0").replace("/", "~1")
+            path = f"{prefix}/{token}"
             result.extend(_numeric_paths(value[name], prefix=path))
     elif type(value) in {int, float, bool} and math.isfinite(float(value)):
         result.append(prefix)
@@ -1600,7 +1601,10 @@ def _numeric_paths(value: Any, *, prefix: str) -> list[str]:
 
 def _path_number(value: Mapping[str, Any], path: str) -> float:
     current: Any = value
-    for name in path.split("."):
+    if not path.startswith("/"):
+        raise ValueError(f"Evaluation v2 scalar path is not JSON Pointer: {path}")
+    for token in path.split("/")[1:]:
+        name = token.replace("~1", "/").replace("~0", "~")
         current = current[name]
     if type(current) not in {int, float, bool} or not math.isfinite(float(current)):
         raise ValueError(f"Evaluation v2 scalar path drifted: {path}")

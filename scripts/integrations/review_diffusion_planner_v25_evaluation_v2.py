@@ -1196,7 +1196,8 @@ def _numeric_paths(value: Any, prefix: str = "") -> list[str]:
         for name in sorted(value):
             if name in excluded:
                 continue
-            path = f"{prefix}.{name}" if prefix else name
+            token = str(name).replace("~", "~0").replace("/", "~1")
+            path = f"{prefix}/{token}"
             result.extend(_numeric_paths(value[name], path))
     elif type(value) in {int, float, bool} and math.isfinite(float(value)):
         result.append(prefix)
@@ -1205,7 +1206,10 @@ def _numeric_paths(value: Any, prefix: str = "") -> list[str]:
 
 def _path(value: Mapping[str, Any], path: str) -> float:
     current: Any = value
-    for name in path.split("."):
+    if not path.startswith("/"):
+        raise ValueError(f"independent scalar path is not JSON Pointer: {path}")
+    for token in path.split("/")[1:]:
+        name = token.replace("~1", "/").replace("~0", "~")
         current = current[name]
     return float(current)
 
