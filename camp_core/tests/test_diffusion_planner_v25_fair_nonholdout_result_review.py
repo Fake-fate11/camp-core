@@ -133,3 +133,10 @@ def test_producer_rejects_signalized_route_for_no_signal_contract():
             map_sha256="1" * 64,
             route_sha256="2" * 64,
         )
+
+
+def test_result_reviewer_has_literal_hard_stop_branch():
+    source = Path(reviewer.__file__).read_text("utf-8")
+    assert "blocked_fair_nonholdout_engineering_validation" in source
+    assert "passed_independent_fair_nonholdout_hard_stop_review" in source
+    assert "hard-stop closed-loop exclusion accounting failed" in source

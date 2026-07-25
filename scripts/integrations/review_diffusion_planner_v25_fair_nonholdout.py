@@ -192,6 +192,14 @@ def review_payload(
     """Reviewer-local reconstruction used by both CLI and adversarial tests."""
 
     value = _plain_object(report, "validation report")
+    blocked = (
+        value.get("status") == "blocked_fair_nonholdout_engineering_validation"
+    )
+    passed = (
+        value.get("status") == "passed_fair_nonholdout_engineering_validation"
+    )
+    if not (blocked or passed):
+        raise ValueError("independent validation terminal status drifted")
     expected_arrays = {
         "primary_candidates",
         "sequential_candidates",
@@ -205,14 +213,19 @@ def review_payload(
         "sequential_physical_masks",
         "atom_scales",
         "static_weights",
-        "closed_loop_candidate0_candidates",
-        "closed_loop_static14d_candidates",
-        "closed_loop_static14d_atoms",
-        "closed_loop_static14d_source_masks",
-        "closed_loop_scene14d_candidates",
-        "closed_loop_scene14d_atoms",
-        "closed_loop_scene14d_source_masks",
     }
+    if passed:
+        expected_arrays.update(
+            {
+                "closed_loop_candidate0_candidates",
+                "closed_loop_static14d_candidates",
+                "closed_loop_static14d_atoms",
+                "closed_loop_static14d_source_masks",
+                "closed_loop_scene14d_candidates",
+                "closed_loop_scene14d_atoms",
+                "closed_loop_scene14d_source_masks",
+            }
+        )
     if set(arrays) != expected_arrays:
         raise ValueError("independent numeric preimage inventory drifted")
     primary = np.asarray(arrays["primary_candidates"])
@@ -242,11 +255,20 @@ def review_payload(
         raise ValueError("independent replay preimage shape accounting failed")
     replay = _plain_object(value.get("state_matched_replay"), "replay")
     receipts = replay.get("receipts")
-    if type(receipts) is not list or len(receipts) != 16:
+    if (
+        replay.get("status") != "passed"
+        or replay.get("state_count") != 16
+        or replay.get("authoritative_pool_count") != 16
+        or replay.get("real_selector_execution") is not True
+        or replay.get("structural_row0_probe_used_as_static_or_scene") is not False
+        or type(receipts) is not list
+        or len(receipts) != 16
+    ):
         raise ValueError("independent replay denominator failed")
     primary_selected: list[dict[str, int]] = []
     equivalent_trajectory_rows = 0
     equivalent_neighbor_rows = 0
+    substantive_drift_states = 0
     for tick, receipt in enumerate(receipts):
         chosen = _review_selector_receipt(
             tick=tick,
@@ -281,20 +303,13 @@ def review_payload(
             )
             for row in range(8)
         ]
-        if (
-            adaptation.get("repeat_exact_equal") is not True
-            or adaptation.get("trajectory_within_tolerance") != trajectory_ok
-            or adaptation.get("neighbor_within_tolerance") != neighbor_ok
-            or adaptation.get("source_and_eligibility_masks_equal")
-            is not bool(
-                np.array_equal(source_masks[tick], sequential_masks[tick])
-                and np.array_equal(
-                    physical_masks[tick], sequential_physical_masks[tick]
-                )
+        mask_equal = bool(
+            np.array_equal(source_masks[tick], sequential_masks[tick])
+            and np.array_equal(
+                physical_masks[tick], sequential_physical_masks[tick]
             )
-            or adaptation.get("substantive_drift") is not False
-        ):
-            raise ValueError("independent adaptation reconstruction failed")
+        )
+        selected_equal: dict[str, bool] = {}
         sequential_summary = _plain_object(
             adaptation["sequential"], "sequential summary"
         )
@@ -311,17 +326,33 @@ def review_payload(
                 weights,
                 sequential_masks[tick],
             )
-            if adaptation["selected_index_equal"][arm] is not bool(
-                sequential_selected == chosen[arm]
-            ):
-                raise ValueError("independent adaptation selected-index failed")
+            selected_equal[arm] = sequential_selected == chosen[arm]
+        expected_substantive = bool(
+            adaptation.get("repeat_exact_equal") is not True
+            or not all(trajectory_ok)
+            or not all(neighbor_ok)
+            or not mask_equal
+            or not all(selected_equal.values())
+        )
+        if (
+            type(adaptation.get("repeat_exact_equal")) is not bool
+            or adaptation.get("trajectory_within_tolerance") != trajectory_ok
+            or adaptation.get("neighbor_within_tolerance") != neighbor_ok
+            or adaptation.get("source_and_eligibility_masks_equal")
+            is not mask_equal
+            or adaptation.get("selected_index_equal") != selected_equal
+            or adaptation.get("substantive_drift") is not expected_substantive
+        ):
+            raise ValueError("independent adaptation reconstruction failed")
         equivalent_trajectory_rows += sum(trajectory_ok)
         equivalent_neighbor_rows += sum(neighbor_ok)
+        substantive_drift_states += int(expected_substantive)
     adaptation_report = _plain_object(
         value.get("pool_distribution_adaptation_audit"), "adaptation report"
     )
     if (
-        adaptation_report.get("status") != "passed"
+        adaptation_report.get("status")
+        != ("substantive_drift" if blocked else "passed")
         or adaptation_report.get("state_count") != 16
         or adaptation_report.get("trajectory_row_denominator") != 128
         or adaptation_report.get("neighbor_row_denominator") != 128
@@ -329,14 +360,32 @@ def review_payload(
         != equivalent_trajectory_rows
         or adaptation_report.get("neighbor_equivalent_row_count")
         != equivalent_neighbor_rows
-        or adaptation_report.get("substantive_drift_state_count") != 0
+        or adaptation_report.get("substantive_drift_state_count")
+        != substantive_drift_states
+        or adaptation_report.get("possible_training_pool_adaptation_required")
+        is not blocked
+        or adaptation_report.get("training_executed") is not False
     ):
         raise ValueError("independent adaptation aggregate failed")
     closed = _plain_object(value.get("compute_matched_closed_loop"), "closed loop")
     runs = closed.get("runs")
-    if type(runs) is not list or [row.get("arm") for row in runs] != list(ARMS):
+    if type(runs) is not list:
         raise ValueError("independent closed-loop arm denominator failed")
     closed_ticks = 0
+    if blocked:
+        if (
+            runs != []
+            or closed.get("entry_conditions_passed") is not False
+            or closed.get("arm_run_denominator") != 3
+            or closed.get("planned_tick_denominator") != 192
+            or closed.get("terminal_arm_run_count") != 0
+            or closed.get("complete_arm_run_count") != 0
+            or closed.get("retained_terminal_failure_count") != 0
+            or closed.get("complete_case_shrinkage_used") is not False
+        ):
+            raise ValueError("hard-stop closed-loop exclusion accounting failed")
+    elif [row.get("arm") for row in runs] != list(ARMS):
+        raise ValueError("independent closed-loop arm inventory failed")
     for run in runs:
         arm = run["arm"]
         key = {
@@ -448,7 +497,7 @@ def review_payload(
         ):
             raise ValueError("closed-loop endpoint provenance/claim drifted")
         closed_ticks += len(ticks)
-    if (
+    if passed and (
         closed.get("entry_conditions_passed") is not True
         or closed.get("arm_run_denominator") != 3
         or closed.get("planned_tick_denominator") != 192
@@ -460,11 +509,10 @@ def review_payload(
     ):
         raise ValueError("independent closed-loop aggregate accounting failed")
     boundaries = _plain_object(value.get("boundaries"), "boundaries")
+    hard_stop = _plain_object(value.get("hard_stop"), "hard stop")
     if (
         value.get("schema_version")
         != "camp_dp_v25_fair_nonholdout_validation_v1"
-        or value.get("status")
-        != "passed_fair_nonholdout_engineering_validation"
         or value.get("generator_name") != GENERATOR_NAME
         or value.get("fixed_dp_head") != FIXED_DP_HEAD
         or boundaries.get("development_nonholdout_only") is not True
@@ -473,6 +521,12 @@ def review_payload(
         or boundaries.get("training_or_retraining_executed") is not False
         or boundaries.get("confirmatory_effect_claim_authorized") is not False
         or boundaries.get("ultra_submission_authorized") is not False
+        or hard_stop
+        != {
+            "selector_failure": False,
+            "post_pool_forbidden_call": False,
+            "adaptation_substantive_drift": blocked,
+        }
     ):
         raise ValueError("independent validation boundary oracle failed")
     return {
@@ -481,9 +535,11 @@ def review_payload(
         "trajectory_equivalent_row_count": equivalent_trajectory_rows,
         "neighbor_row_denominator": 128,
         "neighbor_equivalent_row_count": equivalent_neighbor_rows,
-        "closed_loop_arm_count": 3,
+        "substantive_drift_state_count": substantive_drift_states,
+        "hard_stop_confirmed": blocked,
+        "closed_loop_arm_count": len(runs),
         "closed_loop_tick_denominator": closed_ticks,
-        "real_selector_receipt_count": 16 * 3 + 64 * 3,
+        "real_selector_receipt_count": 16 * 3 + closed_ticks,
         "post_pool_forbidden_call_count": 0,
         "candidate_tensor_mutation_count": 0,
     }
@@ -527,7 +583,12 @@ def review(
             "schema_version": (
                 "camp_dp_v25_fair_nonholdout_independent_result_review_v1"
             ),
-            "status": "passed_independent_fair_nonholdout_result_review",
+            "status": (
+                "passed_independent_fair_nonholdout_hard_stop_review"
+                if report.get("status")
+                == "blocked_fair_nonholdout_engineering_validation"
+                else "passed_independent_fair_nonholdout_result_review"
+            ),
             "source": {"path": str(source), "root_sha256": source_root},
             "review_head": _git_head(ROOT),
             "fixed_dp_head": FIXED_DP_HEAD,
