@@ -122,11 +122,11 @@ def freeze_repair(
         "failure_class": "pre_artifact_evaluation_consumer_contract_omission",
         "error_message": ERROR,
         "fix_basis": FIX_BASIS,
-        "old_correction_head": _sha(old_correction_head, "old correction head"),
+        "old_correction_head": _head(old_correction_head, "old correction head"),
         "old_correction_manifest_sha256": _sha(
             old_correction_manifest_sha256, "old correction manifest"
         ),
-        "new_correction_head": _sha(new_correction_head, "new correction head"),
+        "new_correction_head": _head(new_correction_head, "new correction head"),
         "new_correction_manifest_sha256": _sha(
             new_correction_manifest_sha256, "new correction manifest"
         ),
@@ -250,11 +250,11 @@ def validate_repair_review(value: Mapping[str, Any]) -> dict[str, Any]:
     for name in (
         "original_correction_authority_root_sha256",
         "original_correction_authority_review_root_sha256",
-        "new_correction_head",
         "new_correction_manifest_sha256",
         "focused_test_root_sha256",
     ):
         _sha(result[name], name)
+    _head(result["new_correction_head"], "new correction head")
     _absolute(result["continuation_ledger_path"], "continuation ledger")
     _absolute(result["corrected_evaluation_output_dir"], "evaluation output")
     _absolute(
@@ -304,6 +304,12 @@ def _absolute(value: Any, label: str) -> str:
 def _sha(value: Any, label: str) -> str:
     if type(value) is not str or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
         raise ValueError(f"{label} SHA drifted")
+    return value
+
+
+def _head(value: Any, label: str) -> str:
+    if type(value) is not str or len(value) != 40 or any(c not in "0123456789abcdef" for c in value):
+        raise ValueError(f"{label} Git HEAD drifted")
     return value
 
 
