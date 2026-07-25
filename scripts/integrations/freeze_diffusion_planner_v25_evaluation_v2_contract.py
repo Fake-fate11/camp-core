@@ -28,7 +28,7 @@ from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (  # noqa
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_artifact_v2"
 
 
 def freeze_contract(*, output: Path, execution: Path, execution_root: str) -> str:
@@ -40,9 +40,29 @@ def freeze_contract(*, output: Path, execution: Path, execution_root: str) -> st
     source_audit = _outcome_free_source_audit(execution)
     report = {
         "schema_version": SCHEMA_VERSION,
-        "status": "sealed_outcome_free_evaluation_v2_contract",
+        "status": "sealed_outcome_free_evaluation_v2_corrected_contract",
         "contract": contract,
         "source_capability_audit": source_audit,
+        "superseded_v2_static_correction_diagnosis": {
+            "basis": (
+                "static evaluator source plus the published aggregate-only v1 "
+                "summary; no per-run outcome values"
+            ),
+            "old_route_missing_arm_count": 1500,
+            "old_route_reported_reason": (
+                "no_unique_kinematically_feasible_route_path"
+            ),
+            "first_evaluator_branch_category": (
+                "next route-state inventory became empty under forward-only "
+                "adjacency and speed-only travel bound"
+            ),
+            "corrections_selected_without_outcome_values": [
+                "forward_or_backward_frozen_adjacency",
+                "max_trapezoidal_speed_or_sealed_displacement_bound",
+                "forward_increment_completion",
+                "goal_endpoint_independent_of_route_projection",
+            ],
+        },
         "execution_binding": {
             "path": str(execution.resolve()),
             "root_sha256": execution_root,
@@ -174,16 +194,18 @@ def _write_atomic(output: Path, report: dict[str, Any]) -> str:
         (staging / "HEADS.json").write_bytes(
             _canonical_bytes(
                 {
-                    "role": "evaluation_v2_contract",
+                    "role": "evaluation_v2_corrected_contract",
                     "implementation_head": report["implementation_head"],
                     "execution_root_sha256": report["execution_binding"]["root_sha256"],
                     "fixed_dp_head": report["contract"]["bindings"]["fixed_dp_head"],
                 }
             )
         )
-        root = seal_artifact(staging, label="V25 Evaluation v2 contract")
+        root = seal_artifact(staging, label="V25 Evaluation v2 corrected contract")
         os.replace(staging, output)
-        verify_complete_seal(output, root, label="V25 Evaluation v2 contract")
+        verify_complete_seal(
+            output, root, label="V25 Evaluation v2 corrected contract"
+        )
         return root
     except BaseException:
         if staging.exists():

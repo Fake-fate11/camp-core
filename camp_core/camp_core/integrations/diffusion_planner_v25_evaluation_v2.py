@@ -11,8 +11,8 @@ import numpy as np
 from scipy.stats import t as student_t
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_v1"
-RESULT_SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_v2"
+RESULT_SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_artifact_v2"
 ARMS = ("candidate0", "static14d", "scene14d")
 METHOD_ARMS = ("static14d", "scene14d")
 TICK_COUNT = 64
@@ -34,6 +34,8 @@ ACCELERATION_GRID_MPS2 = (0.5, 1.0, 2.0, 3.0)
 JERK_GRID_MPS3 = (0.5, 1.0, 2.0, 5.0)
 LATENCY_DEADLINE_GRID_MS = (50.0, 100.0, 200.0, 500.0, 1000.0)
 BOXCAR_KERNEL = tuple([1.0 / 11.0] * 11)
+GEOMETRY_TTC_HORIZON_S = 5.0
+ROUTE_TRAVEL_EPSILON_M = 1e-6
 
 EXECUTION_ROOT = "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881"
 EXECUTION_REVIEW_ROOT = (
@@ -53,6 +55,18 @@ IDENTITY_SHA256 = "5f2f8e2c2eb90927ec485a8d0baa3935b155e82d90b04fa3d456fc845cd84
 PROTOCOL_SHA256 = "aa79576f8ac487e2ce197c481d57f9c5d350a41d9522096975786207ef76785f"
 PLAN_SHA256 = "41442dd7d71552972d737d9a9e3d56e9827f864e0c06e11c57487f651206dee0"
 NONCE = "8680c1b19ce0620b7dc2ec9453ffde0da024d3443e6d6307fc41e87f3dad3b42"
+SUPERSEDED_V2_CONTRACT_ROOT = (
+    "2a3c39aea959a9e311859f8af2c4ea81e22ac093b4e62ea48cbca6f4808d5795"
+)
+SUPERSEDED_V2_CONTRACT_REVIEW_ROOT = (
+    "a15edb5cad2279991dec2f091e134cd3a711a1b949eb38523a20125578500fed"
+)
+SUPERSEDED_V2_MATERIALIZATION_ROOT = (
+    "0cd17b28553b1ae8b1f23eb8796974e6c06f1d5e1c020998d302526f3b07c72d"
+)
+SUPERSEDED_V2_REVIEW_ROOT = (
+    "d1cfb29dbb34e3bb92592f803820a6a0454af89b3b9fc2100b45cbaf8215f91d"
+)
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -101,7 +115,8 @@ def evaluation_v2_contract() -> dict[str, Any]:
                 ),
                 "geometry_ttc": (
                     "continuous SAT entry time under constant-velocity "
-                    "translation of the two frozen OBBs"
+                    "translation of the two frozen OBBs only when centroid "
+                    "dot(r,v_rel)<0 and entry_time<=5.0s"
                 ),
             },
             "units": {
@@ -112,6 +127,10 @@ def evaluation_v2_contract() -> dict[str, Any]:
             },
             "evidence_class": "benchmark_only",
             "pet": "evidence_missing",
+            "geometry_ttc_prediction_horizon_s": GEOMETRY_TTC_HORIZON_S,
+            "ego_velocity_source": (
+                "same_tick_scalar_speed_times_heading_kinematic_reconstruction"
+            ),
         },
         "road_containment": {
             "formula": (
@@ -125,6 +144,13 @@ def evaluation_v2_contract() -> dict[str, Any]:
             },
             "evidence_class": "benchmark_only",
             "five_point_substitute_allowed": False,
+            "signed_boundary_clearance_or_penetration": {
+                "status": "evidence_missing",
+                "reason": (
+                    "root_bound_drivable_geometry_is_an_unordered_overlapping_"
+                    "polygon_inventory_without_union_boundary_topology"
+                ),
+            },
         },
         "certified_red_crossing": {
             "formula": (
@@ -157,7 +183,8 @@ def evaluation_v2_contract() -> dict[str, Any]:
         "route": {
             "formula": (
                 "stateful ordered-route segment projection with same/adjacent "
-                "transitions and trapezoidal tick travel bound; "
+                "forward-or-backward transitions and max(trapezoidal speed "
+                "distance,sealed position displacement)+1e-6m travel bound; "
                 "completion=clip(max_forward/route_length,0,1)"
             ),
             "units": {
@@ -167,6 +194,20 @@ def evaluation_v2_contract() -> dict[str, Any]:
                 "backtracking_duration": "s",
                 "backtracking_distance": "m",
                 "completion": "fraction",
+            },
+            "evidence_class": "benchmark_only",
+        },
+        "goal": {
+            "formula": (
+                "independent of route projection; reached when same-tick "
+                "distance<=frozen goal_tolerance_m; passed when the same tick "
+                "is within frozen goal_pass_window_m and the goal lies behind "
+                "the frozen ego heading"
+            ),
+            "units": {
+                "minimum_goal_distance": "m",
+                "goal_reached": "bool",
+                "goal_passed": "bool",
             },
             "evidence_class": "benchmark_only",
         },
@@ -208,6 +249,12 @@ def evaluation_v2_contract() -> dict[str, Any]:
             "experiment_protocol_sha256": PROTOCOL_SHA256,
             "execution_plan_sha256": PLAN_SHA256,
             "nonce": NONCE,
+            "superseded_evaluation_v2_diagnostic": {
+                "contract_root_sha256": SUPERSEDED_V2_CONTRACT_ROOT,
+                "contract_review_root_sha256": SUPERSEDED_V2_CONTRACT_REVIEW_ROOT,
+                "materialization_root_sha256": SUPERSEDED_V2_MATERIALIZATION_ROOT,
+                "review_root_sha256": SUPERSEDED_V2_REVIEW_ROOT,
+            },
         },
         "denominator": {
             "pair_count": 500,
@@ -303,9 +350,17 @@ def evaluation_v2_contract() -> dict[str, Any]:
                 "rear_left",
             ],
             "route_transition": (
-                "same segment or next frozen ordered adjacent segment only"
+                "same segment or frozen ordered forward-or-backward adjacent segment"
             ),
-            "route_travel_bound": ("0.5*(speed[t-1]+speed[t])*0.1 + 1e-6m"),
+            "route_travel_bound": (
+                "max(0.5*(speed[t-1]+speed[t])*0.1,"
+                "norm(position[t]-position[t-1])) + 1e-6m"
+            ),
+            "geometry_ttc_approach_condition": "centroid dot(r,v_rel)<0",
+            "geometry_ttc_prediction_horizon_s": GEOMETRY_TTC_HORIZON_S,
+            "geometry_ttc_horizon_classification": (
+                "project_descriptive_not_industrial_gate"
+            ),
             "boxcar_kernel": list(BOXCAR_KERNEL),
             "boxcar_padding": False,
         },
@@ -337,7 +392,43 @@ def evaluation_v2_contract() -> dict[str, Any]:
             "independent_cluster_count": 100,
             "cluster_definition": "corridor/intersection equal-mass cluster",
             "estimator": "equal_mass_cluster_mean_student_t",
-            "report": ["CI95", "between", "total", "within"],
+            "report": [
+                "CI95",
+                "better_tie_worse_for_directional_scalars",
+                "variance_decomposition_descriptive",
+            ],
+            "tie_rule": "exact_zero_delta",
+            "tie_rule_source": "High-authorized Evaluation v2 correction 2026-07-25",
+            "unclassified_policy": (
+                "signed means, sample-accounting and opportunity counts are "
+                "descriptive_unclassified"
+            ),
+            "direction_rules": {
+                "collision": "lower_except_unclassified_metadata",
+                "dynamic_proximity": (
+                    "min_clearance_and_min_finite_geometry_ttc_higher;"
+                    "other_risk_scalars_lower_except_unclassified_metadata"
+                ),
+                "road_containment": "lower_except_unclassified_metadata",
+                "certified_red_crossing": (
+                    "crossing_scalars_lower;opportunity_and_interval_counts_"
+                    "descriptive_unclassified"
+                ),
+                "speed": "lower_except_unclassified_metadata",
+                "route": (
+                    "backtracking_lower;forward_progress_completion_and_"
+                    "distance_traveled_higher;route_length_descriptive_unclassified"
+                ),
+                "goal": (
+                    "minimum_distance_lower;reached_passed_higher;"
+                    "native_and_threshold_metadata_descriptive_unclassified"
+                ),
+                "vehicle_body_planar_kinematic_proxy": (
+                    "magnitude_rms_percentile_duration_lower;signed_mean_min_max_"
+                    "descriptive_unclassified"
+                ),
+                "latency": "lower_except_unclassified_metadata",
+            },
             "ticks_seeds_or_arms_independent": False,
             "missing_arm_policy": (
                 "report full missing denominator and cancel paired inference"
@@ -444,6 +535,8 @@ def continuous_sat_ttc_s(
     actor_polygon: Sequence[Sequence[float]],
     ego_velocity_xy_mps: Sequence[float],
     actor_velocity_xy_mps: Sequence[float],
+    *,
+    prediction_horizon_s: float = GEOMETRY_TTC_HORIZON_S,
 ) -> float | None:
     ego = _vertices(ego_polygon, "ego_polygon")
     actor = _vertices(actor_polygon, "actor_polygon")
@@ -452,6 +545,14 @@ def continuous_sat_ttc_s(
     ) - _finite_vector(ego_velocity_xy_mps, 2, "ego_velocity_xy_mps")
     if polygons_intersect(ego, actor):
         return 0.0
+    if (
+        not math.isfinite(prediction_horizon_s)
+        or prediction_horizon_s <= 0.0
+    ):
+        raise ValueError("geometry TTC prediction horizon drifted")
+    relative_position = actor.mean(axis=0) - ego.mean(axis=0)
+    if float(np.dot(relative_position, relative_velocity)) >= 0.0:
+        return None
     entry = 0.0
     exit_time = math.inf
     for polygon in (ego, actor):
@@ -478,7 +579,8 @@ def continuous_sat_ttc_s(
                 return None
     if exit_time < -GEOM_EPS:
         return None
-    return float(max(0.0, entry))
+    result = float(max(0.0, entry))
+    return result if result <= prediction_horizon_s else None
 
 
 def dynamic_pair_tick(
@@ -512,6 +614,8 @@ def dynamic_pair_tick(
         "closing_mps": float(closing),
         "drac_mps2": None if drac is None else float(drac),
         "geometry_ttc_s": None if ttc is None else float(ttc),
+        "geometry_ttc_prediction_horizon_s": GEOMETRY_TTC_HORIZON_S,
+        "geometry_ttc_approach_required": True,
     }
 
 
@@ -540,7 +644,15 @@ def swept_front_edge_crossing(
     end = _edge(end_edge, "end_edge")
     stop = _edge(stop_line, "stop_line")
     swept = np.asarray([start[0], start[1], end[1], end[0]], dtype=np.float64)
+    boundary_intersection = (
+        _segments_intersect(start[0], start[1], stop[0], stop[1])
+        or _segments_intersect(end[0], end[1], stop[0], stop[1])
+        or _segments_intersect(start[0], end[0], stop[0], stop[1])
+        or _segments_intersect(start[1], end[1], stop[0], stop[1])
+    )
     if _polygon_self_intersects(swept) or abs(_signed_polygon_area(swept)) <= GEOM_EPS:
+        if not boundary_intersection:
+            return {"status": "computed", "crossing": False, "alpha": None}
         return {"status": "ambiguous_evidence_missing", "crossing": None, "alpha": None}
     if not _segment_intersects_polygon(stop[0], stop[1], swept):
         return {"status": "computed", "crossing": False, "alpha": None}
@@ -579,7 +691,7 @@ def stateful_route_projection(
     segments: Sequence[Mapping[str, Any]],
     *,
     dt_s: float = DT_S,
-    travel_epsilon_m: float = 1e-6,
+    travel_epsilon_m: float = ROUTE_TRAVEL_EPSILON_M,
 ) -> dict[str, Any]:
     positions = np.asarray(positions_xy, dtype=np.float64)
     speeds = np.asarray(speeds_mps, dtype=np.float64)
@@ -612,8 +724,21 @@ def stateful_route_projection(
         return _ambiguous_route("no_initial_projection_candidate")
     for tick in range(1, positions.shape[0]):
         candidates = _projection_candidates(positions[tick], route_segments)
+        minimum_lateral = min(
+            candidate["lateral_distance_m"] for candidate in candidates
+        )
+        candidates = [
+            candidate
+            for candidate in candidates
+            if candidate["lateral_distance_m"] - minimum_lateral
+            <= travel_epsilon_m
+        ]
         next_states: dict[int, tuple[float, tuple[int, ...], list[float]]] = {}
-        bound = 0.5 * (speeds[tick - 1] + speeds[tick]) * dt_s + travel_epsilon_m
+        speed_bound = 0.5 * (speeds[tick - 1] + speeds[tick]) * dt_s
+        sealed_displacement = float(
+            np.linalg.norm(positions[tick] - positions[tick - 1])
+        )
+        bound = max(speed_bound, sealed_displacement) + travel_epsilon_m
         for candidate in candidates:
             options: list[tuple[float, tuple[int, ...], list[float]]] = []
             for previous_index, previous in states.items():
@@ -622,6 +747,8 @@ def stateful_route_projection(
                     candidate["index"] == previous_index
                     or candidate["index"]
                     in route_segments[previous_index]["next_indices"]
+                    or previous_index
+                    in route_segments[candidate["index"]]["next_indices"]
                 )
                 delta = candidate["s_m"] - previous_s
                 if allowed and delta >= -bound and delta <= bound:
@@ -661,7 +788,12 @@ def stateful_route_projection(
             np.linalg.norm(np.diff(positions, axis=0), axis=1).sum()
         ),
         "route_length_m": float(route_length),
-        "completion_fraction": float(np.clip(max_forward / route_length, 0.0, 1.0)),
+        "completion_fraction": float(
+            np.clip((max_forward - s_values[0]) / route_length, 0.0, 1.0)
+        ),
+        "travel_bound": (
+            "max(trapezoidal_speed_distance,sealed_position_displacement)+1e-6m"
+        ),
     }
 
 
@@ -1029,15 +1161,15 @@ def summarize_run_v2(
         speeds,
         geometry.get("route_segments"),
     )
+    goal = _goal_endpoint(
+        positions,
+        headings,
+        geometry.get("goal_pose"),
+        _positive(spawn.get("goal_tolerance_m"), "goal tolerance"),
+        _positive(spawn.get("goal_pass_window_m"), "goal pass window"),
+        _mapping(native_receipt, "native_result"),
+    )
     if route.get("substatus") == "computed":
-        route["goal"] = _goal_endpoint(
-            positions,
-            headings,
-            geometry.get("goal_pose"),
-            _positive(spawn.get("goal_tolerance_m"), "goal tolerance"),
-            _positive(spawn.get("goal_pass_window_m"), "goal pass window"),
-            _mapping(native_receipt, "native_result"),
-        )
         route["geometry_source_sha256"] = _sha(
             geometry.get("route_geometry_sha256"), "route geometry SHA"
         )
@@ -1068,6 +1200,7 @@ def summarize_run_v2(
             "certified_red_crossing": red,
             "speed": speed_endpoint(ticks),
             "route": route,
+            "goal": goal,
             "vehicle_body_planar_kinematic_proxy": (
                 vehicle_body_planar_kinematic_proxy(positions, headings)
             ),
@@ -1318,6 +1451,14 @@ def _collision_and_proximity(
         ),
         "stationary_proximity_is_dynamic_risk": False,
         "point_cv_proxy_used_as_geometry_ttc": False,
+        "geometry_ttc_approach_condition": "centroid dot(r,v_rel)<0",
+        "geometry_ttc_prediction_horizon_s": GEOMETRY_TTC_HORIZON_S,
+        "geometry_ttc_horizon_classification": (
+            "project_descriptive_not_industrial_gate"
+        ),
+        "ego_velocity_source": (
+            "same_tick_scalar_speed_times_heading_kinematic_reconstruction"
+        ),
         "PET": "evidence_missing",
     }
     return collision, proximity
@@ -1362,6 +1503,14 @@ def _road_endpoint(
         "max_outside_fraction": float(array.max()),
         "geom_eps": GEOM_EPS,
         "five_point_proxy_used": False,
+        "signed_boundary_clearance_or_penetration": {
+            "status": "evidence_missing",
+            "reason": (
+                "root_bound_drivable_geometry_is_an_unordered_overlapping_"
+                "polygon_inventory_without_union_boundary_topology"
+            ),
+            "units": "m",
+        },
     }
 
 
@@ -1378,26 +1527,25 @@ def _red_endpoint(
     legacy_over_0_5_count = 0
     crossing_speeds: list[float] = []
     ambiguity_count = 0
-    previous_identity: str | None = None
+    seen_identities: set[str] = set()
     for index, tick in enumerate(ticks):
         safety = _mapping(tick, "safety")
         phase = safety.get("signal_phase_at_interval_start")
         lines = safety.get("certified_signal_stop_lines")
         if phase != "red" or type(lines) is not list or not lines:
-            previous_identity = None
             continue
         red_intervals += 1
         identities = [_stop_line_identity(line) for line in lines]
-        encounter_identity = canonical_sha256(sorted(identities))
         if actor_source_ticks not in (None, []):
             controlled = _mapping(actor_source_ticks[index], "controlled_scene")
             source = _mapping(_mapping(controlled, "signal"), "source_receipt")
             stop_id = source.get("certified_stop_line_id")
             if type(stop_id) is str and stop_id:
-                encounter_identity = stop_id
-        if encounter_identity != previous_identity:
-            opportunities += 1
-        previous_identity = encounter_identity
+                identities = [stop_id]
+        for identity in identities:
+            if identity not in seen_identities:
+                opportunities += 1
+                seen_identities.add(identity)
         previous_heading = (
             initial_heading_rad
             if index == 0
@@ -1465,14 +1613,12 @@ def _goal_endpoint(
     goal = _finite_vector(goal_pose, 3, "goal pose")
     distances = np.linalg.norm(positions - goal[:2], axis=1)
     reached = bool(np.any(distances <= tolerance_m))
-    minimum = math.inf
     passed = False
     for position, heading, distance in zip(positions, headings, distances, strict=True):
-        minimum = min(minimum, float(distance))
         forward = np.asarray([math.cos(float(heading)), math.sin(float(heading))])
         if (
             float(np.dot(goal[:2] - position, forward)) < 0.0
-            and minimum <= pass_window_m
+            and float(distance) <= pass_window_m
         ):
             passed = True
             break
@@ -1489,6 +1635,8 @@ def _goal_endpoint(
         "minimum_goal_distance_m": float(distances.min()),
         "goal_reached_by_literal_tolerance": reached,
         "goal_passed_by_literal_heading_and_window": passed,
+        "goal_pass_uses_same_tick_distance_and_heading": True,
+        "historical_minimum_coupled_to_later_heading_used": False,
         "reconstructed_goal_reached_or_passed": reconstructed,
         "native_goal_reached": native_goal,
         "native_reason": native_reason,
@@ -1543,7 +1691,11 @@ def _endpoint_aggregate(
                 - _path_number(pair["candidate0"]["endpoints"][endpoint_name], path)
                 for pair in pairs
             ]
-            paired[method][path] = clustered_paired_descriptive(deltas, clusters)
+            paired[method][path] = clustered_paired_descriptive(
+                deltas,
+                clusters,
+                direction=_scalar_direction(endpoint_name, path),
+            )
     return {
         "status": "benchmark_only",
         "descriptive_scalar_paths": common_paths,
@@ -1656,7 +1808,10 @@ def _stop_line_identity(line: Any) -> str:
 
 
 def clustered_paired_descriptive(
-    deltas: Sequence[float], cluster_ids: Sequence[str]
+    deltas: Sequence[float],
+    cluster_ids: Sequence[str],
+    *,
+    direction: str = "descriptive_unclassified",
 ) -> dict[str, Any]:
     values = np.asarray(deltas, dtype=np.float64)
     if values.shape != (500,) or len(cluster_ids) != 500:
@@ -1677,7 +1832,9 @@ def clustered_paired_descriptive(
     between = float(means.var(ddof=1))
     total = float(values.var(ddof=1))
     within = float(np.mean([np.var(groups[key], ddof=1) for key in sorted(groups)]))
-    return {
+    if direction not in {"lower", "higher", "descriptive_unclassified"}:
+        raise ValueError("paired scalar direction drifted")
+    result: dict[str, Any] = {
         "status": "benchmark_only",
         "estimator": "equal_mass_cluster_mean_student_t",
         "pair_count": 500,
@@ -1687,8 +1844,92 @@ def clustered_paired_descriptive(
         "between_variance": between,
         "total_variance": total,
         "within_variance": within,
+        "variance_fields_are_not_better_tie_worse": True,
+        "direction": direction,
         "claim_authorized": False,
     }
+    if direction == "descriptive_unclassified":
+        result["better_tie_worse"] = {
+            "status": "descriptive_unclassified",
+            "reason": "no_outcome_independent_natural_direction",
+        }
+    else:
+        better = int(np.count_nonzero(values < 0.0 if direction == "lower" else values > 0.0))
+        tie = int(np.count_nonzero(values == 0.0))
+        worse = int(values.size - better - tie)
+        result["better_tie_worse"] = {
+            "status": "benchmark_only",
+            "direction": direction,
+            "tie_rule": "exact_zero_delta",
+            "better": better,
+            "tie": tie,
+            "worse": worse,
+            "sum": better + tie + worse,
+        }
+    return result
+
+
+def _scalar_direction(endpoint_name: str, path: str) -> str:
+    unclassified_tokens = (
+        "opportunity_count",
+        "red_phase_interval_count",
+        "sample",
+        "padding_used",
+        "geom_eps",
+        "prediction_horizon",
+        "route_length_m",
+        "goal_tolerance_m",
+        "goal_pass_window_m",
+        "native_goal_reached",
+        "native_literal_semantics_bound",
+        "future_phase_consumed",
+        "five_point_proxy_used",
+        "stationary_proximity_is_dynamic_risk",
+        "point_cv_proxy_used_as_geometry_ttc",
+        "geometry_ttc_approach_required",
+        "historical_minimum_coupled_to_later_heading_used",
+        "goal_pass_uses_same_tick_distance_and_heading",
+        "is_severity",
+    )
+    if any(token in path for token in unclassified_tokens):
+        return "descriptive_unclassified"
+    if endpoint_name == "dynamic_proximity" and (
+        "min_clearance_m" in path or "min_finite_geometry_ttc_s" in path
+    ):
+        return "higher"
+    if endpoint_name == "route":
+        if "backtracking" in path:
+            return "lower"
+        return "higher"
+    if endpoint_name == "goal":
+        if "minimum_goal_distance_m" in path:
+            return "lower"
+        if any(
+            token in path
+            for token in (
+                "goal_reached_by_literal_tolerance",
+                "goal_passed_by_literal_heading_and_window",
+                "reconstructed_goal_reached_or_passed",
+            )
+        ):
+            return "higher"
+        return "descriptive_unclassified"
+    if endpoint_name == "vehicle_body_planar_kinematic_proxy" and any(
+        token in path.rsplit("/", 1)[-1]
+        for token in ("signed_mean", "min", "max")
+    ):
+        return "descriptive_unclassified"
+    if endpoint_name in {
+        "collision",
+        "dynamic_proximity",
+        "road_containment",
+        "certified_red_crossing",
+        "speed",
+        "vehicle_body_planar_kinematic_proxy",
+        "latency",
+    }:
+        return "lower"
+    return "descriptive_unclassified"
 
 
 def _signed_summary(values: np.ndarray) -> dict[str, float]:

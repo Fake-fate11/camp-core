@@ -24,7 +24,7 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_review_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_contract_review_artifact_v2"
 EXPECTED_EXECUTION_ROOT = (
     "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881"
 )
@@ -71,7 +71,9 @@ def review_contract(
             raise ValueError(f"independent Evaluation v2 source audit drifted: {name}")
     report = {
         "schema_version": SCHEMA_VERSION,
-        "status": "passed_independent_outcome_free_evaluation_v2_contract_review",
+        "status": (
+            "passed_independent_outcome_free_evaluation_v2_corrected_contract_review"
+        ),
         "contract_binding": {
             "path": str(contract_dir.resolve()),
             "root_sha256": contract_root,
@@ -108,6 +110,7 @@ def _literal_contract_review(producer: dict[str, Any]) -> None:
         "status",
         "contract",
         "source_capability_audit",
+        "superseded_v2_static_correction_diagnosis",
         "execution_binding",
         "implementation_head",
         "outcome_values_read",
@@ -121,8 +124,9 @@ def _literal_contract_review(producer: dict[str, Any]) -> None:
     }:
         raise ValueError("independent Evaluation v2 producer fields drifted")
     if (
-        producer["schema_version"] != "camp_dp_v25_evaluation_v2_contract_artifact_v1"
-        or producer["status"] != "sealed_outcome_free_evaluation_v2_contract"
+        producer["schema_version"] != "camp_dp_v25_evaluation_v2_contract_artifact_v2"
+        or producer["status"]
+        != "sealed_outcome_free_evaluation_v2_corrected_contract"
         or producer["execution_binding"]["root_sha256"] != EXPECTED_EXECUTION_ROOT
         or any(
             producer[name] is not False
@@ -139,10 +143,25 @@ def _literal_contract_review(producer: dict[str, Any]) -> None:
         )
     ):
         raise ValueError("independent Evaluation v2 producer authority drifted")
+    diagnosis = producer["superseded_v2_static_correction_diagnosis"]
+    if (
+        type(diagnosis) is not dict
+        or diagnosis.get("old_route_missing_arm_count") != 1500
+        or diagnosis.get("old_route_reported_reason")
+        != "no_unique_kinematically_feasible_route_path"
+        or set(diagnosis.get("corrections_selected_without_outcome_values", []))
+        != {
+            "forward_or_backward_frozen_adjacency",
+            "max_trapezoidal_speed_or_sealed_displacement_bound",
+            "forward_increment_completion",
+            "goal_endpoint_independent_of_route_projection",
+        }
+    ):
+        raise ValueError("independent Evaluation v2 static diagnosis drifted")
     contract = producer["contract"]
     if (
         type(contract) is not dict
-        or contract.get("schema_version") != "camp_dp_v25_evaluation_v2_contract_v1"
+        or contract.get("schema_version") != "camp_dp_v25_evaluation_v2_contract_v2"
         or contract.get("result_semantics")
         != "exploratory_posthoc_not_claim_authorizing"
         or contract.get("bindings", {}).get("execution_root_sha256")
@@ -182,6 +201,7 @@ def _literal_contract_review(producer: dict[str, Any]) -> None:
         "certified_red_crossing",
         "speed",
         "route",
+        "goal",
         "vehicle_body_planar_kinematic_proxy",
         "latency",
     }:
@@ -196,6 +216,7 @@ def _literal_contract_review(producer: dict[str, Any]) -> None:
         not in catalog["certified_red_crossing"]["formula"]
         or "stateful ordered-route segment projection"
         not in catalog["route"]["formula"]
+        or "independent of route projection" not in catalog["goal"]["formula"]
         or "64 positions -> 63 interval velocities -> 62 accelerations"
         not in catalog["vehicle_body_planar_kinematic_proxy"]["formula"]
     ):
@@ -206,9 +227,43 @@ def _literal_contract_review(producer: dict[str, Any]) -> None:
         or geometry.get("geom_eps") != 1e-9
         or geometry.get("boxcar_padding") is not False
         or geometry.get("boxcar_kernel") != [1.0 / 11.0] * 11
+        or geometry.get("geometry_ttc_approach_condition")
+        != "centroid dot(r,v_rel)<0"
+        or geometry.get("geometry_ttc_prediction_horizon_s") != 5.0
+        or "forward-or-backward" not in geometry.get("route_transition", "")
         or not math.isclose(sum(geometry["boxcar_kernel"]), 1.0)
     ):
         raise ValueError("independent Evaluation v2 geometry contract drifted")
+    statistics = contract.get("statistics", {})
+    if (
+        statistics.get("tie_rule") != "exact_zero_delta"
+        or "better_tie_worse_for_directional_scalars"
+        not in statistics.get("report", [])
+        or "descriptive_unclassified"
+        not in statistics.get("unclassified_policy", "")
+        or set(statistics.get("direction_rules", {}))
+        != {
+            "collision",
+            "dynamic_proximity",
+            "road_containment",
+            "certified_red_crossing",
+            "speed",
+            "route",
+            "goal",
+            "vehicle_body_planar_kinematic_proxy",
+            "latency",
+        }
+        or statistics["direction_rules"].get("collision")
+        != "lower_except_unclassified_metadata"
+        or "min_clearance_and_min_finite_geometry_ttc_higher"
+        not in statistics["direction_rules"].get("dynamic_proximity", "")
+        or "backtracking_lower" not in statistics["direction_rules"].get("route", "")
+        or "signed_mean_min_max_descriptive_unclassified"
+        not in statistics["direction_rules"].get(
+            "vehicle_body_planar_kinematic_proxy", ""
+        )
+    ):
+        raise ValueError("independent Evaluation v2 statistics contract drifted")
 
 
 def _independent_source_audit(execution: Path) -> dict[str, Any]:

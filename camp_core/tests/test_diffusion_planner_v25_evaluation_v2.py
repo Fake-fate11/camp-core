@@ -34,11 +34,14 @@ from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (
 from scripts.integrations import (
     review_diffusion_planner_v25_evaluation_v2 as independent_review,
 )
+from scripts.integrations import (
+    review_diffusion_planner_v25_evaluation_v2_contract as contract_review,
+)
 
 
 def test_contract_is_versioned_exact_and_non_claim_authorizing() -> None:
     contract = evaluation_v2_contract()
-    assert contract["schema_version"] == "camp_dp_v25_evaluation_v2_contract_v1"
+    assert contract["schema_version"] == "camp_dp_v25_evaluation_v2_contract_v2"
     assert contract["result_semantics"] == "exploratory_posthoc_not_claim_authorizing"
     assert contract["claim_policy"]["v2_scientific_hard_gate"] == (
         "not_prospectively_defined_for_v2"
@@ -72,6 +75,47 @@ def test_contract_freezes_all_descriptive_grids_and_sources() -> None:
     assert contract["grids"]["classification"] == (
         "project_descriptive_not_industrial_gate"
     )
+
+
+def test_independent_contract_reviewer_accepts_only_corrected_literal_contract() -> None:
+    producer = {
+        "schema_version": "camp_dp_v25_evaluation_v2_contract_artifact_v2",
+        "status": "sealed_outcome_free_evaluation_v2_corrected_contract",
+        "contract": evaluation_v2_contract(),
+        "source_capability_audit": {},
+        "superseded_v2_static_correction_diagnosis": {
+            "basis": "synthetic static source",
+            "old_route_missing_arm_count": 1500,
+            "old_route_reported_reason": (
+                "no_unique_kinematically_feasible_route_path"
+            ),
+            "first_evaluator_branch_category": "synthetic",
+            "corrections_selected_without_outcome_values": [
+                "forward_or_backward_frozen_adjacency",
+                "max_trapezoidal_speed_or_sealed_displacement_bound",
+                "forward_increment_completion",
+                "goal_endpoint_independent_of_route_projection",
+            ],
+        },
+        "execution_binding": {
+            "path": "/synthetic",
+            "root_sha256": contract_review.EXPECTED_EXECUTION_ROOT,
+        },
+        "implementation_head": "a" * 40,
+        "outcome_values_read": False,
+        "native_receipt_values_read": False,
+        "evaluation_rows_read": False,
+        "raw_execution_outcomes_read": False,
+        "fresh_execution_rerun": False,
+        "corrected_evaluation_rerun": False,
+        "scientific_or_continuation_cas_written": False,
+        "claim_authorized": False,
+    }
+    contract_review._literal_contract_review(producer)
+    drifted = copy.deepcopy(producer)
+    drifted["contract"]["geometry"]["geometry_ttc_prediction_horizon_s"] = 6.0
+    with pytest.raises(ValueError, match="geometry contract drifted"):
+        contract_review._literal_contract_review(drifted)
 
 
 def test_obb_geometry_uses_rear_axle_wheelbase_reference() -> None:
@@ -123,6 +167,34 @@ def test_continuous_sat_separates_diverging_objects() -> None:
     assert continuous_sat_ttc_s(ego, actor, [-1.0, 0.0], [1.0, 0.0]) is None
 
 
+def test_continuous_sat_requires_centroid_approach_and_five_second_horizon() -> None:
+    ego = np.asarray(
+        [
+            [-2.1703748517585453, -2.6713795142547063],
+            [3.185964866795878, 1.302468185357309],
+            [2.1703748517585453, 2.6713795142547063],
+            [-3.185964866795878, -1.302468185357309],
+        ]
+    )
+    actor = np.asarray(
+        [
+            [3.1801118186037893, 3.2648157636437394],
+            [-2.8870145662431055, 8.809893638467843],
+            [-3.582364995463328, 8.049078546043113],
+            [2.484761389383567, 2.5040006712190093],
+        ]
+    )
+    actor_velocity = np.asarray([-4.6776559634958055, 0.5233035347840129])
+    assert float(np.dot(actor.mean(axis=0) - ego.mean(axis=0), actor_velocity)) > 0
+    assert v2_kernel.polygons_intersect(
+        ego, actor + 0.031972440652812975 * actor_velocity
+    )
+    assert continuous_sat_ttc_s(ego, actor, [0.0, 0.0], actor_velocity) is None
+    small = obb_polygon([0.0, 0.0], 0.0, 2.0, 2.0)
+    far = obb_polygon([20.0, 0.0], 0.0, 2.0, 2.0)
+    assert continuous_sat_ttc_s(small, far, [0.0, 0.0], [-1.0, 0.0]) is None
+
+
 def test_full_polygon_detects_outside_even_when_five_samples_are_inside() -> None:
     footprint = np.asarray([[-2.0, -1.0], [2.0, -1.0], [2.0, 1.0], [-2.0, 1.0]])
     five = [[0.0, 0.0], *footprint.tolist()]
@@ -170,6 +242,22 @@ def test_drivable_union_clipping_does_not_double_count_overlap() -> None:
     )
 
 
+def test_road_boundary_metric_is_explicitly_evidence_missing_without_union_topology() -> None:
+    ticks = [
+        {"safety": {"position_xy": [0.0, 0.0], "ego_heading_rad": 0.0}}
+    ]
+    result = v2_kernel._road_endpoint(
+        ticks,
+        [[[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]]],
+        ego_length=4.0,
+        ego_width=2.0,
+        ego_wheelbase=2.5,
+    )
+    assert result["signed_boundary_clearance_or_penetration"]["status"] == (
+        "evidence_missing"
+    )
+
+
 def test_red_crossing_at_0_4mps_is_unthresholded_crossing() -> None:
     result = swept_front_edge_crossing(
         [[-0.1, -1.0], [-0.1, 1.0]],
@@ -191,6 +279,68 @@ def test_rotating_front_edge_multiple_times_is_ambiguous() -> None:
     )
     assert result["status"] == "ambiguous_evidence_missing"
     assert result["crossing"] is None
+
+
+def test_stationary_red_front_edge_is_false_when_far_and_ambiguous_when_coincident() -> None:
+    far = swept_front_edge_crossing(
+        [[-1.0, -1.0], [-1.0, 1.0]],
+        [[-1.0, -1.0], [-1.0, 1.0]],
+        [[2.0, -2.0], [2.0, 2.0]],
+    )
+    assert far == {"status": "computed", "crossing": False, "alpha": None}
+    coincident = swept_front_edge_crossing(
+        [[0.0, -1.0], [0.0, 1.0]],
+        [[0.0, -1.0], [0.0, 1.0]],
+        [[0.0, -2.0], [0.0, 2.0]],
+    )
+    assert coincident["status"] == "ambiguous_evidence_missing"
+
+
+def test_red_opportunity_deduplicates_same_stopline_across_phase_interruption() -> None:
+    line = [[2.0, -2.0], [2.0, 2.0]]
+    ticks = []
+    for phase in ("red", "green", "red"):
+        ticks.append(
+            {
+                "safety": {
+                    "signal_phase_at_interval_start": phase,
+                    "certified_signal_stop_lines": [line],
+                    "ego_heading_rad": 0.0,
+                    "front_center_prev_xy": [-1.0, 0.0],
+                    "front_center_xy": [-1.0, 0.0],
+                    "pre_decision_speed_mps": 0.0,
+                    "speed_mps": 0.0,
+                }
+            }
+        )
+    result = v2_kernel._red_endpoint(
+        ticks, [], ego_width=2.0, initial_heading_rad=0.0
+    )
+    assert result["red_phase_interval_count"] == 2
+    assert result["red_opportunity_count"] == 1
+    assert result["unthresholded_crossing_count"] == 0
+
+
+def test_red_opportunity_counts_distinct_stopline_identities() -> None:
+    lines = [
+        [[2.0, -2.0], [2.0, 2.0]],
+        [[4.0, -2.0], [4.0, 2.0]],
+    ]
+    tick = {
+        "safety": {
+            "signal_phase_at_interval_start": "red",
+            "certified_signal_stop_lines": lines,
+            "ego_heading_rad": 0.0,
+            "front_center_prev_xy": [-1.0, 0.0],
+            "front_center_xy": [-1.0, 0.0],
+            "pre_decision_speed_mps": 0.0,
+            "speed_mps": 0.0,
+        }
+    }
+    result = v2_kernel._red_endpoint(
+        [tick], [], ego_width=2.0, initial_heading_rad=0.0
+    )
+    assert result["red_opportunity_count"] == 2
 
 
 def _segments() -> list[dict[str, object]]:
@@ -249,6 +399,66 @@ def test_route_fork_jump_is_rejected_by_adjacency_and_travel_bound() -> None:
     assert result["maps_to_status"] == "evidence_missing"
 
 
+def test_route_supports_backward_adjacent_transition() -> None:
+    segments = _segments()
+    positions = [[10.1, 0.0], [9.9, 0.0], [9.7, 0.0]]
+    result = stateful_route_projection(positions, [2.0, 2.0, 2.0], segments)
+    assert result["substatus"] == "computed"
+    assert result["backtracking_distance_m"] > 0.0
+
+
+def test_route_completion_uses_forward_increment_from_nonzero_start_arc() -> None:
+    segments = _segments()
+    positions = [[5.0, 0.0], [6.0, 0.0], [7.0, 0.0]]
+    result = stateful_route_projection(positions, [10.0, 10.0, 10.0], segments)
+    assert result["substatus"] == "computed"
+    assert math.isclose(result["max_forward_m"], 2.0)
+    assert math.isclose(result["completion_fraction"], 0.1)
+
+
+def test_goal_is_same_tick_and_independent_of_route_path() -> None:
+    positions = np.asarray([[0.0, 0.0], [10.0, 0.0]])
+    headings = np.asarray([0.0, math.pi])
+    result = v2_kernel._goal_endpoint(
+        positions,
+        headings,
+        [1.0, 0.0, 0.0],
+        0.1,
+        2.0,
+        {"goal_reached": False, "reason": "max_steps"},
+    )
+    assert result["goal_passed_by_literal_heading_and_window"] is False
+    assert result["goal_pass_uses_same_tick_distance_and_heading"] is True
+
+
+def test_route_missing_does_not_make_goal_evidence_missing() -> None:
+    segments = _segments()
+    segments.append(
+        {
+            "index": 2,
+            "start_xy": [100.0, 0.0],
+            "end_xy": [110.0, 0.0],
+            "arc_start_m": 20.0,
+            "arc_end_m": 30.0,
+            "next_indices": [],
+        }
+    )
+    route = stateful_route_projection(
+        [[0.0, 0.0], [100.0, 0.0]], [1.0, 1.0], segments
+    )
+    goal = v2_kernel._goal_endpoint(
+        np.asarray([[0.0, 0.0], [0.05, 0.0]]),
+        np.asarray([0.0, 0.0]),
+        [0.0, 0.0, 0.0],
+        0.1,
+        1.0,
+        {"goal_reached": True, "reason": "goal_reached"},
+    )
+    assert route["status"] == "ambiguous_evidence_missing"
+    assert goal["status"] == "benchmark_only"
+    assert goal["goal_reached_by_literal_tolerance"] is True
+
+
 def test_vehicle_body_sample_accounting_and_boxcar_are_frozen() -> None:
     positions = [[0.1 * index, 0.0] for index in range(64)]
     result = vehicle_body_planar_kinematic_proxy(positions, [0.0] * 64)
@@ -294,6 +504,48 @@ def test_clustered_summary_requires_full_500_and_100x5() -> None:
     assert result["claim_authorized"] is False
     with pytest.raises(ValueError, match="all 500 pairs"):
         clustered_paired_descriptive(values[:-1], clusters[:-1])
+
+
+def test_paired_better_tie_worse_uses_direction_and_exact_zero_ties() -> None:
+    clusters = [f"cluster_{index // 5:03d}" for index in range(500)]
+    deltas = [-1.0] * 200 + [0.0] * 100 + [1.0] * 200
+    lower = clustered_paired_descriptive(deltas, clusters, direction="lower")
+    assert lower["better_tie_worse"] == {
+        "status": "benchmark_only",
+        "direction": "lower",
+        "tie_rule": "exact_zero_delta",
+        "better": 200,
+        "tie": 100,
+        "worse": 200,
+        "sum": 500,
+    }
+    unclassified = clustered_paired_descriptive(deltas, clusters)
+    assert unclassified["better_tie_worse"]["status"] == "descriptive_unclassified"
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "path", "expected"),
+    [
+        ("collision", "/collision_any", "lower"),
+        ("dynamic_proximity", "/min_clearance_m", "higher"),
+        ("dynamic_proximity", "/actor_tick_opportunity_count", "descriptive_unclassified"),
+        ("route", "/backtracking_distance_m", "lower"),
+        ("route", "/completion_fraction", "higher"),
+        ("goal", "/minimum_goal_distance_m", "lower"),
+        ("goal", "/goal_passed_by_literal_heading_and_window", "higher"),
+        (
+            "vehicle_body_planar_kinematic_proxy",
+            "/filtered_acceleration/longitudinal/signed_mean",
+            "descriptive_unclassified",
+        ),
+        ("latency", "/total/p95", "lower"),
+    ],
+)
+def test_direction_classifier_matches_independent_literal_oracle(
+    endpoint: str, path: str, expected: str
+) -> None:
+    assert v2_kernel._scalar_direction(endpoint, path) == expected
+    assert independent_review._direction(endpoint, path) == expected
 
 
 def test_polygon_clearance_is_zero_for_intersection() -> None:

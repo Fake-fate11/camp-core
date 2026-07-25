@@ -32,7 +32,7 @@ from camp_core.integrations.diffusion_planner_v25_actual_native_receipt_review i
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_review_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_review_artifact_v2"
 EXECUTION_ROOT = "e1bc886bd4d6d44b9bff703db7bbbfdb5117224bda1c5af5fb6524b0ed759881"
 EXECUTION_REVIEW_ROOT = (
     "f0afc12a15eba589b5fc63750477b60d0ba9b69cbd22b2e17bd87fadc761d98d"
@@ -57,6 +57,23 @@ SPEED = (0.0, 0.05, 0.1, 0.2)
 ACCEL = (0.5, 1.0, 2.0, 3.0)
 JERK = (0.5, 1.0, 2.0, 5.0)
 DEADLINES = (50.0, 100.0, 200.0, 500.0, 1000.0)
+TTC_HORIZON = 5.0
+ROUTE_EPS = 1e-6
+SUPERSEDED = {
+    "contract_root_sha256": (
+        "2a3c39aea959a9e311859f8af2c4ea81e22ac093b4e62ea48cbca6f4808d5795"
+    ),
+    "contract_review_root_sha256": (
+        "a15edb5cad2279991dec2f091e134cd3a711a1b949eb38523a20125578500fed"
+    ),
+    "materialization_root_sha256": (
+        "0cd17b28553b1ae8b1f23eb8796974e6c06f1d5e1c020998d302526f3b07c72d"
+    ),
+    "review_root_sha256": (
+        "d1cfb29dbb34e3bb92592f803820a6a0454af89b3b9fc2100b45cbaf8215f91d"
+    ),
+    "preserved": True,
+}
 
 
 def review(
@@ -244,7 +261,7 @@ def review(
     _review_aggregates(result, pairs)
     report = {
         "schema_version": SCHEMA_VERSION,
-        "status": "passed_independent_evaluation_v2_review",
+        "status": "passed_independent_evaluation_v2_corrected_review",
         "artifact_binding": {
             "path": str(artifact.resolve()),
             "root_sha256": artifact_root,
@@ -260,6 +277,7 @@ def review(
             "contract_root_sha256": contract_root,
             "contract_review_root_sha256": contract_review_root,
         },
+        "superseded_evaluation_v2_diagnostic": dict(SUPERSEDED),
         "denominator": {
             "pair_count": 500,
             "arm_count": 1500,
@@ -280,6 +298,8 @@ def review(
             "sample_accounting_reconstructed": "64_to_63_to_62_to_52_to_51",
             "legacy_equality_reconstructed": True,
             "cluster_statistics_reconstructed": True,
+            "better_tie_worse_reconstructed": True,
+            "direction_table_reconstructed_locally": True,
             "claim_invariance_reconstructed": True,
         },
         "legacy_values_mutated": False,
@@ -299,8 +319,9 @@ def _producer_shape(
 ) -> dict[str, Any]:
     if (
         producer.get("schema_version")
-        != "camp_dp_v25_evaluation_v2_materialization_artifact_v1"
-        or producer.get("status") != "sealed_read_only_evaluation_v2_materialization"
+        != "camp_dp_v25_evaluation_v2_materialization_artifact_v2"
+        or producer.get("status")
+        != "sealed_read_only_evaluation_v2_corrected_materialization"
         or any(
             producer.get(name) is not False
             for name in (
@@ -319,7 +340,7 @@ def _producer_shape(
     result = producer.get("evaluation_v2")
     if (
         type(result) is not dict
-        or result.get("schema_version") != "camp_dp_v25_evaluation_v2_artifact_v1"
+        or result.get("schema_version") != "camp_dp_v25_evaluation_v2_artifact_v2"
         or result.get("result_semantics") != "exploratory_posthoc_not_claim_authorizing"
         or result.get("contract_root_sha256") != contract_root
         or result.get("contract_review_root_sha256") != contract_review_root
@@ -341,6 +362,8 @@ def _producer_shape(
         or legacy.get("legacy_claim_changed") is not False
     ):
         raise ValueError("independent Evaluation v2 legacy namespace drifted")
+    if producer.get("superseded_evaluation_v2_diagnostic") != SUPERSEDED:
+        raise ValueError("independent superseded Evaluation v2 binding drifted")
     return result
 
 
@@ -355,6 +378,7 @@ def _endpoint_lookup(
         "certified_red_crossing",
         "speed",
         "route",
+        "goal",
         "vehicle_body_planar_kinematic_proxy",
         "latency",
     }
@@ -431,6 +455,11 @@ def _validate_endpoints_literal(
         _route(ticks, geometry, spawn, primary["native_result"]),
         actual["route"],
         "route",
+    )
+    _assert_equal(
+        _goal(ticks, geometry, spawn, primary["native_result"]),
+        actual["goal"],
+        "goal",
     )
     _assert_equal(
         _body(ticks), actual["vehicle_body_planar_kinematic_proxy"], "body proxy"
@@ -549,6 +578,9 @@ def _sat_ttc(
     if _polygons_intersect(a, b):
         return 0.0
     relative = vb - va
+    relative_position = b.mean(axis=0) - a.mean(axis=0)
+    if float(np.dot(relative_position, relative)) >= 0.0:
+        return None
     entry, exit_time = 0.0, math.inf
     for polygon in (a, b):
         for index in range(4):
@@ -566,7 +598,10 @@ def _sat_ttc(
             entry, exit_time = max(entry, min(values)), min(exit_time, max(values))
             if entry - exit_time > EPS:
                 return None
-    return None if exit_time < -EPS else float(max(0.0, entry))
+    if exit_time < -EPS:
+        return None
+    result = float(max(0.0, entry))
+    return result if result <= TTC_HORIZON else None
 
 
 def _collision_proximity(
@@ -677,6 +712,14 @@ def _collision_proximity(
         "drac_grid": _grid(drac_array, DRAC, "ge"),
         "stationary_proximity_is_dynamic_risk": False,
         "point_cv_proxy_used_as_geometry_ttc": False,
+        "geometry_ttc_approach_condition": "centroid dot(r,v_rel)<0",
+        "geometry_ttc_prediction_horizon_s": TTC_HORIZON,
+        "geometry_ttc_horizon_classification": (
+            "project_descriptive_not_industrial_gate"
+        ),
+        "ego_velocity_source": (
+            "same_tick_scalar_speed_times_heading_kinematic_reconstruction"
+        ),
         "PET": "evidence_missing",
     }
     return collision, proximity
@@ -709,6 +752,14 @@ def _road(
         "max_outside_fraction": float(array.max()),
         "geom_eps": EPS,
         "five_point_proxy_used": False,
+        "signed_boundary_clearance_or_penetration": {
+            "status": "evidence_missing",
+            "reason": (
+                "root_bound_drivable_geometry_is_an_unordered_overlapping_"
+                "polygon_inventory_without_union_boundary_topology"
+            ),
+            "units": "m",
+        },
         "geometry_source_sha256": map_sha,
     }
 
@@ -721,22 +772,22 @@ def _red(
 ) -> dict[str, Any]:
     opportunities = intervals = crossings = legacy = ambiguous = 0
     speeds = []
-    previous = None
+    seen: set[str] = set()
     for index, tick in enumerate(ticks):
         safety = tick["safety"]
         lines = safety["certified_signal_stop_lines"]
         if safety["signal_phase_at_interval_start"] != "red" or not lines:
-            previous = None
             continue
         intervals += 1
-        identity = _sha_object(sorted(_sha_object(line) for line in lines))
+        identities = [_sha_object(line) for line in lines]
         if actor_ticks not in (None, []):
             source = actor_ticks[index]["controlled_scene"]["signal"]["source_receipt"]
             if type(source.get("certified_stop_line_id")) is str:
-                identity = source["certified_stop_line_id"]
-        if identity != previous:
-            opportunities += 1
-        previous = identity
+                identities = [source["certified_stop_line_id"]]
+        for identity in identities:
+            if identity not in seen:
+                opportunities += 1
+                seen.add(identity)
         heading0 = (
             initial_heading
             if index == 0
@@ -943,9 +994,6 @@ def _route(
     speeds = np.asarray(
         [tick["safety"]["speed_mps"] for tick in ticks], dtype=np.float64
     )
-    headings = np.asarray(
-        [tick["safety"]["ego_heading_rad"] for tick in ticks], dtype=np.float64
-    )
     segments = geometry["segments"]
     first = _candidates(positions[0], segments)
     minimum = min(row[2] for row in first)
@@ -959,13 +1007,22 @@ def _route(
     states = {eligible[0][0]: (eligible[0][2], (eligible[0][0],), [eligible[0][1]])}
     for tick in range(1, 64):
         next_states = {}
-        bound = 0.5 * (speeds[tick - 1] + speeds[tick]) * DT + 1e-6
-        for index, s_value, distance in _candidates(positions[tick], segments):
+        bound = max(
+            0.5 * (speeds[tick - 1] + speeds[tick]) * DT,
+            float(np.linalg.norm(positions[tick] - positions[tick - 1])),
+        ) + ROUTE_EPS
+        candidates = _candidates(positions[tick], segments)
+        minimum_lateral = min(row[2] for row in candidates)
+        candidates = [
+            row for row in candidates if row[2] - minimum_lateral <= ROUTE_EPS
+        ]
+        for index, s_value, distance in candidates:
             options = []
             for previous_index, previous in states.items():
                 allowed = (
                     index == previous_index
                     or index in segments[previous_index]["next_indices"]
+                    or previous_index in segments[index]["next_indices"]
                 )
                 delta = s_value - previous[2][-1]
                 if allowed and -bound <= delta <= bound:
@@ -1002,18 +1059,6 @@ def _route(
     s_values = np.asarray(final[0][2])
     backwards = np.maximum(0, -np.diff(s_values))
     route_length = segments[-1]["arc_end_m"]
-    goal = np.asarray(geometry["goal_pose"], dtype=np.float64)
-    distances = np.linalg.norm(positions - goal[:2], axis=1)
-    reached = bool(np.any(distances <= float(spawn["goal_tolerance_m"])))
-    minimum_goal = math.inf
-    passed = False
-    for position, heading, distance in zip(positions, headings, distances, strict=True):
-        minimum_goal = min(minimum_goal, float(distance))
-        if float(
-            np.dot(goal[:2] - position, [math.cos(heading), math.sin(heading)])
-        ) < 0 and minimum_goal <= float(spawn["goal_pass_window_m"]):
-            passed = True
-            break
     return {
         "status": "benchmark_only",
         "substatus": "computed",
@@ -1027,21 +1072,55 @@ def _route(
             np.linalg.norm(np.diff(positions, axis=0), axis=1).sum()
         ),
         "route_length_m": float(route_length),
-        "completion_fraction": float(np.clip(s_values.max() / route_length, 0, 1)),
-        "goal": {
-            "status": "benchmark_only",
-            "goal_pose": goal.tolist(),
-            "goal_tolerance_m": float(spawn["goal_tolerance_m"]),
-            "goal_pass_window_m": float(spawn["goal_pass_window_m"]),
-            "minimum_goal_distance_m": float(distances.min()),
-            "goal_reached_by_literal_tolerance": reached,
-            "goal_passed_by_literal_heading_and_window": passed,
-            "reconstructed_goal_reached_or_passed": reached or passed,
-            "native_goal_reached": native_result["goal_reached"],
-            "native_reason": native_result["reason"],
-            "native_literal_semantics_bound": True,
-        },
+        "completion_fraction": float(
+            np.clip((s_values.max() - s_values[0]) / route_length, 0, 1)
+        ),
+        "travel_bound": (
+            "max(trapezoidal_speed_distance,sealed_position_displacement)+1e-6m"
+        ),
         "geometry_source_sha256": geometry["route_sha"],
+    }
+
+
+def _goal(
+    ticks: Sequence[dict[str, Any]],
+    geometry: dict[str, Any],
+    spawn: Mapping[str, Any],
+    native_result: Mapping[str, Any],
+) -> dict[str, Any]:
+    positions = np.asarray(
+        [tick["safety"]["position_xy"] for tick in ticks], dtype=np.float64
+    )
+    headings = np.asarray(
+        [tick["safety"]["ego_heading_rad"] for tick in ticks], dtype=np.float64
+    )
+    goal = np.asarray(geometry["goal_pose"], dtype=np.float64)
+    distances = np.linalg.norm(positions - goal[:2], axis=1)
+    tolerance = float(spawn["goal_tolerance_m"])
+    pass_window = float(spawn["goal_pass_window_m"])
+    reached = bool(np.any(distances <= tolerance))
+    passed = any(
+        float(np.dot(goal[:2] - position, [math.cos(heading), math.sin(heading)]))
+        < 0.0
+        and float(distance) <= pass_window
+        for position, heading, distance in zip(
+            positions, headings, distances, strict=True
+        )
+    )
+    return {
+        "status": "benchmark_only",
+        "goal_pose": goal.tolist(),
+        "goal_tolerance_m": tolerance,
+        "goal_pass_window_m": pass_window,
+        "minimum_goal_distance_m": float(distances.min()),
+        "goal_reached_by_literal_tolerance": reached,
+        "goal_passed_by_literal_heading_and_window": passed,
+        "goal_pass_uses_same_tick_distance_and_heading": True,
+        "historical_minimum_coupled_to_later_heading_used": False,
+        "reconstructed_goal_reached_or_passed": reached or passed,
+        "native_goal_reached": native_result["goal_reached"],
+        "native_reason": native_result["reason"],
+        "native_literal_semantics_bound": True,
     }
 
 
@@ -1162,13 +1241,15 @@ def _review_aggregates(
                     for pair in ordered
                 ]
                 _assert_equal(
-                    _cluster(deltas, clusters),
+                    _cluster(deltas, clusters, _direction(name, path)),
                     aggregate["paired_cluster_summaries"][method][path],
                     f"{name} {method} {path}",
                 )
 
 
-def _cluster(deltas: Sequence[float], clusters: Sequence[str]) -> dict[str, Any]:
+def _cluster(
+    deltas: Sequence[float], clusters: Sequence[str], direction: str
+) -> dict[str, Any]:
     groups: dict[str, list[float]] = defaultdict(list)
     for value, cluster in zip(deltas, clusters, strict=True):
         groups[cluster].append(float(value))
@@ -1179,7 +1260,9 @@ def _cluster(deltas: Sequence[float], clusters: Sequence[str]) -> dict[str, Any]
     mean = float(means.mean())
     se = float(means.std(ddof=1) / math.sqrt(100))
     critical = float(student_t.ppf(0.975, df=99))
-    return {
+    if direction not in {"lower", "higher", "descriptive_unclassified"}:
+        raise ValueError("independent scalar direction drifted")
+    result: dict[str, Any] = {
         "status": "benchmark_only",
         "estimator": "equal_mass_cluster_mean_student_t",
         "pair_count": 500,
@@ -1191,8 +1274,92 @@ def _cluster(deltas: Sequence[float], clusters: Sequence[str]) -> dict[str, Any]
         "within_variance": float(
             np.mean([np.var(groups[key], ddof=1) for key in sorted(groups)])
         ),
+        "variance_fields_are_not_better_tie_worse": True,
+        "direction": direction,
         "claim_authorized": False,
     }
+    if direction == "descriptive_unclassified":
+        result["better_tie_worse"] = {
+            "status": "descriptive_unclassified",
+            "reason": "no_outcome_independent_natural_direction",
+        }
+    else:
+        better = int(
+            np.count_nonzero(values < 0.0 if direction == "lower" else values > 0.0)
+        )
+        tie = int(np.count_nonzero(values == 0.0))
+        worse = int(values.size - better - tie)
+        result["better_tie_worse"] = {
+            "status": "benchmark_only",
+            "direction": direction,
+            "tie_rule": "exact_zero_delta",
+            "better": better,
+            "tie": tie,
+            "worse": worse,
+            "sum": better + tie + worse,
+        }
+    return result
+
+
+def _direction(endpoint: str, path: str) -> str:
+    unclassified = (
+        "opportunity_count",
+        "red_phase_interval_count",
+        "sample",
+        "padding_used",
+        "geom_eps",
+        "prediction_horizon",
+        "route_length_m",
+        "goal_tolerance_m",
+        "goal_pass_window_m",
+        "native_goal_reached",
+        "native_literal_semantics_bound",
+        "future_phase_consumed",
+        "five_point_proxy_used",
+        "stationary_proximity_is_dynamic_risk",
+        "point_cv_proxy_used_as_geometry_ttc",
+        "geometry_ttc_approach_required",
+        "historical_minimum_coupled_to_later_heading_used",
+        "goal_pass_uses_same_tick_distance_and_heading",
+        "is_severity",
+    )
+    if any(token in path for token in unclassified):
+        return "descriptive_unclassified"
+    if endpoint == "dynamic_proximity" and (
+        "min_clearance_m" in path or "min_finite_geometry_ttc_s" in path
+    ):
+        return "higher"
+    if endpoint == "route":
+        return "lower" if "backtracking" in path else "higher"
+    if endpoint == "goal":
+        if "minimum_goal_distance_m" in path:
+            return "lower"
+        if any(
+            token in path
+            for token in (
+                "goal_reached_by_literal_tolerance",
+                "goal_passed_by_literal_heading_and_window",
+                "reconstructed_goal_reached_or_passed",
+            )
+        ):
+            return "higher"
+        return "descriptive_unclassified"
+    if endpoint == "vehicle_body_planar_kinematic_proxy" and any(
+        token in path.rsplit("/", 1)[-1]
+        for token in ("signed_mean", "min", "max")
+    ):
+        return "descriptive_unclassified"
+    if endpoint in {
+        "collision",
+        "dynamic_proximity",
+        "road_containment",
+        "certified_red_crossing",
+        "speed",
+        "vehicle_body_planar_kinematic_proxy",
+        "latency",
+    }:
+        return "lower"
+    return "descriptive_unclassified"
 
 
 def _numeric_paths(value: Any, prefix: str = "") -> list[str]:
@@ -1268,7 +1435,15 @@ def _cross(
     start: np.ndarray, end: np.ndarray, stop: np.ndarray
 ) -> tuple[str, bool, float | None]:
     swept = np.asarray([start[0], start[1], end[1], end[0]], dtype=np.float64)
+    boundary_intersection = (
+        _segments_intersect(start[0], start[1], stop[0], stop[1])
+        or _segments_intersect(end[0], end[1], stop[0], stop[1])
+        or _segments_intersect(start[0], end[0], stop[0], stop[1])
+        or _segments_intersect(start[1], end[1], stop[0], stop[1])
+    )
     if _self_intersects(swept) or abs(_signed_area(swept)) <= EPS:
+        if not boundary_intersection:
+            return ("computed", False, None)
         return ("ambiguous", False, None)
     if not _segment_intersects_polygon(stop[0], stop[1], _ccw(swept)):
         return ("computed", False, None)
@@ -1636,7 +1811,7 @@ def _write_atomic(output: Path, report: dict[str, Any]) -> str:
         (staging / "HEADS.json").write_bytes(
             _bytes(
                 {
-                    "role": "independent_evaluation_v2_review",
+                    "role": "independent_evaluation_v2_corrected_review",
                     "reviewer_head": report["reviewer_head"],
                     "artifact_root_sha256": report["artifact_binding"]["root_sha256"],
                     "execution_root_sha256": EXECUTION_ROOT,
@@ -1646,9 +1821,13 @@ def _write_atomic(output: Path, report: dict[str, Any]) -> str:
         )
         (staging / "COMMAND").write_bytes((" ".join(sys.argv) + "\n").encode())
         (staging / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(staging, label="V25 independent Evaluation v2 review")
+        root = seal_artifact(
+            staging, label="V25 independent Evaluation v2 corrected review"
+        )
         os.replace(staging, output)
-        verify_complete_seal(output, root, label="V25 independent Evaluation v2 review")
+        verify_complete_seal(
+            output, root, label="V25 independent Evaluation v2 corrected review"
+        )
         return root
     except BaseException:
         if staging.exists():

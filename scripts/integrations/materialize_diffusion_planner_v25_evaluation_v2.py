@@ -33,13 +33,17 @@ from camp_core.integrations.diffusion_planner_v25_evaluation_v2 import (  # noqa
     EXECUTION_REVIEW_ROOT,
     EXECUTION_ROOT,
     FIXED_DP_HEAD,
+    SUPERSEDED_V2_CONTRACT_REVIEW_ROOT,
+    SUPERSEDED_V2_CONTRACT_ROOT,
+    SUPERSEDED_V2_MATERIALIZATION_ROOT,
+    SUPERSEDED_V2_REVIEW_ROOT,
     build_evaluation_v2_result,
     canonical_sha256,
     summarize_run_v2,
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_materialization_artifact_v1"
+SCHEMA_VERSION = "camp_dp_v25_evaluation_v2_materialization_artifact_v2"
 
 
 def materialize(
@@ -98,10 +102,14 @@ def materialize(
     contract_report = _object(contract / "report.json")
     contract_review_report = _object(contract_review / "report.json")
     if (
-        contract_report.get("status") != "sealed_outcome_free_evaluation_v2_contract"
+        contract_report.get("status")
+        != "sealed_outcome_free_evaluation_v2_corrected_contract"
         or contract_report.get("outcome_values_read") is not False
         or contract_review_report.get("status")
-        != "passed_independent_outcome_free_evaluation_v2_contract_review"
+        != (
+            "passed_independent_outcome_free_evaluation_v2_"
+            "corrected_contract_review"
+        )
         or contract_review_report.get("outcome_values_read") is not False
         or contract_review_report.get("contract_binding", {}).get("root_sha256")
         != contract_root
@@ -220,7 +228,7 @@ def materialize(
     )
     report = {
         "schema_version": SCHEMA_VERSION,
-        "status": "sealed_read_only_evaluation_v2_materialization",
+        "status": "sealed_read_only_evaluation_v2_corrected_materialization",
         "evaluation_v2": result,
         "implementation_head": _git_head(),
         "geometry_cache_entry_count": len(geometry_cache),
@@ -233,6 +241,13 @@ def materialize(
         "corrected_evaluation_rerun": False,
         "scientific_or_continuation_cas_written": False,
         "legacy_values_mutated": False,
+        "superseded_evaluation_v2_diagnostic": {
+            "contract_root_sha256": SUPERSEDED_V2_CONTRACT_ROOT,
+            "contract_review_root_sha256": SUPERSEDED_V2_CONTRACT_REVIEW_ROOT,
+            "materialization_root_sha256": SUPERSEDED_V2_MATERIALIZATION_ROOT,
+            "review_root_sha256": SUPERSEDED_V2_REVIEW_ROOT,
+            "preserved": True,
+        },
         "claim_authorized": False,
     }
     return _write_atomic(output, report)
@@ -354,7 +369,7 @@ def _write_atomic(output: Path, report: dict[str, Any]) -> str:
         (staging / "HEADS.json").write_bytes(
             _canonical_bytes(
                 {
-                    "role": "evaluation_v2_materialization",
+                    "role": "evaluation_v2_corrected_materialization",
                     "implementation_head": report["implementation_head"],
                     "execution_root_sha256": report["evaluation_v2"]["bindings"][
                         "execution"
@@ -371,9 +386,13 @@ def _write_atomic(output: Path, report: dict[str, Any]) -> str:
         )
         (staging / "COMMAND").write_bytes((" ".join(sys.argv) + "\n").encode())
         (staging / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(staging, label="V25 Evaluation v2 materialization")
+        root = seal_artifact(
+            staging, label="V25 Evaluation v2 corrected materialization"
+        )
         os.replace(staging, output)
-        verify_complete_seal(output, root, label="V25 Evaluation v2 materialization")
+        verify_complete_seal(
+            output, root, label="V25 Evaluation v2 corrected materialization"
+        )
         return root
     except BaseException:
         if staging.exists():
