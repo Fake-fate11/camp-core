@@ -523,7 +523,8 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_nonholdout_pool_adaptation_hard_stop_"
+        "v25_fair_nonholdout_overconservative_equivalence_contract_triggered_"
+        "functional_adaptation_risk_unresolved_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
@@ -532,8 +533,8 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_fair_nonholdout_hard_stop_package_review_"
-        "and_training_adaptation_contract_decision"
+        "high_fair_nonholdout_additive_adaptation_summary_review_"
+        "before_any_prospective_contract"
     )
 
 
@@ -639,7 +640,8 @@ def test_v25_fair_nonholdout_hard_stop_is_complete_and_fail_closed() -> None:
         _current_v25_section(STATUS.read_text(encoding="utf-8"))
     )
     assert pointer["current_v25_fair_nonholdout_status"] == (
-        "blocked_pool_adaptation_substantive_neighbor_tensor_drift"
+        "overconservative_equivalence_contract_triggered_"
+        "functional_adaptation_risk_unresolved"
     )
     assert pointer["current_v25_fair_nonholdout_state_count"] == "16"
     assert pointer["current_v25_fair_nonholdout_real_selector_receipt_count"] == "48"
@@ -653,6 +655,24 @@ def test_v25_fair_nonholdout_hard_stop_is_complete_and_fail_closed() -> None:
     assert pointer["current_v25_fair_nonholdout_closed_loop_arm_count"] == "0"
     assert pointer["current_v25_fair_nonholdout_closed_loop_tick_count"] == "0"
     assert pointer["current_v25_fair_nonholdout_training_executed"] == "false"
+    assert pointer["current_v25_fair_nonholdout_atom_exact_equal_count"] == "977"
+    assert pointer["current_v25_fair_nonholdout_atom_value_denominator"] == "1792"
+    assert (
+        pointer["current_v25_fair_nonholdout_primary_taxonomy_neighbor_tolerance_states"]
+        == "9"
+    )
+    assert pointer["current_v25_fair_nonholdout_primary_taxonomy_no_failure_states"] == "7"
+    assert pointer["current_v25_fair_nonholdout_primary_k8_valid_states"] == "16"
+    assert pointer["current_v25_fair_nonholdout_sequential_k8_valid_states"] == "16"
+    assert (
+        pointer["current_v25_fair_nonholdout_selector_functional_selection_drift_observed"]
+        == "false"
+    )
+    assert (
+        pointer["current_v25_fair_nonholdout_training_distribution_or_ood_drift_proven"]
+        == "false"
+    )
+    assert pointer["current_v25_fair_nonholdout_retraining_required_proven"] == "false"
     assert pointer["current_v25_fair_nonholdout_retraining_decision_authorized"] == "false"
     assert pointer["current_v25_fair_nonholdout_claim_authorized"] == "false"
     combined = "\n".join(
@@ -664,6 +684,8 @@ def test_v25_fair_nonholdout_hard_stop_is_complete_and_fail_closed() -> None:
         "114/128",
         "9/16",
         "0/192",
+        "overconservative_equivalence_contract_triggered",
+        "functional adaptation risk unresolved",
         "honest_no_claim_under_frozen_preregistered_all_gate",
     ):
         assert phrase in combined
@@ -698,8 +720,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_fair_nonholdout_hard_stop_package_review_"
-        "and_training_adaptation_contract_decision"
+        "high_fair_nonholdout_additive_adaptation_summary_review_"
+        "before_any_prospective_contract"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index

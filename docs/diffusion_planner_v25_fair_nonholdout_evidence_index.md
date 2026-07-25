@@ -5,7 +5,7 @@ Date: 2026-07-25 (Asia/Shanghai)
 ## Current classification
 
 - Machine state:
-  `v25_fair_nonholdout_pool_adaptation_hard_stop_scientific_contract_review_required`
+  `v25_fair_nonholdout_overconservative_equivalence_contract_triggered_functional_adaptation_risk_unresolved_scientific_contract_review_required`
 - Method result: state-matched real selector replay PASS; pool adaptation
   hard stop CONFIRMED; compute-matched closed-loop NOT STARTED.
 - Scientific result: no new claim; legacy
@@ -20,6 +20,9 @@ Date: 2026-07-25 (Asia/Shanghai)
 | Validation hard-stop artifact | `29688aa7ff4eb5edf43ca2379063f45228faedea80a7a3245e07aba297cc9dfd` | 16 pools, 48 real selector receipts, 128/128 ego rows, 114/128 neighbor rows, 9 drift states, 0 closed-loop ticks |
 | Independent hard-stop review | `0ea09a3330fbc8eaae74be3f30114d1f0a746cd8b13adee3d839b8ad17f086c8` | Independently reconstructed pools, scores/masks/selections, tolerances, zero calls, denominator and closed-loop exclusion |
 | Authoritative hard-stop focused | `2fc9cd4c5a86ab01afce93f4375c2362cc07b104d7cb1efabbf8a7e1f384a59c` | 136 tests; fixed-DP clean; hard-stop branch and no-action boundaries |
+| Additive adaptation summary | `d2bf378bb02976490c1527f6cc49e59ac26e521db9fb1b82792ecc04ea3cd228` | Sealed-preimage-only 1,792 atom values, 256 arm scores, K8 validity, masks, flips and exhaustive taxonomy |
+| Independent additive-summary review | `f54e03e0b3052d37ae9a353cad9182c2e5c85338d48485674a7da1b0c01ee1b9` | Reviewer-local literal reconstruction; no producer/fairness/selector oracle |
+| Additive-summary focused | `2c9c6238c8eb26eddd02efd2437a517f657daefad69d358b89cee958e4215ef2` | 143 tests; summary/review seals and no-action boundaries |
 
 Exact paths:
 
@@ -28,6 +31,9 @@ Exact paths:
 - `/root/autodl-tmp/camp_dp_v25_fair_nonholdout_validation_8d84e46c_8680c1b19ce0620b`
 - `/root/autodl-tmp/camp_dp_v25_fair_nonholdout_validation_hard_stop_review_3f440445_8680c1b19ce0620b`
 - `/root/autodl-tmp/camp_dp_v25_fair_nonholdout_hard_stop_focused_3f440445_8680c1b19ce0620b`
+- `/root/autodl-tmp/camp_dp_v25_fair_nonholdout_adaptation_summary_d74b012e_8680c1b19ce0620b`
+- `/root/autodl-tmp/camp_dp_v25_fair_nonholdout_adaptation_summary_review_d74b012e_8680c1b19ce0620b`
+- `/root/autodl-tmp/camp_dp_v25_fair_nonholdout_adaptation_summary_focused_d74b012e_8680c1b19ce0620b`
 
 ## Implementation evidence
 
@@ -69,6 +75,31 @@ parameters.
 | Closed-loop arms started | 0 |
 | Closed-loop ticks executed | 0 |
 
+## Additive adaptation evidence
+
+- Classification:
+  `overconservative_equivalence_contract_triggered; functional adaptation risk unresolved`.
+- Atoms: 977/1,792 exact; 815 nonexact; maximum absolute difference
+  `1.2076380426831292`.
+- Static14D scores: 0/128 exact; maximum absolute difference
+  `3.999504226261032e-06`; selected-index flips 0/16.
+- Scene14D scores: 0/128 exact; maximum absolute difference
+  `3.400720101572746e-05`; selected-index flips 0/16.
+- Primary and sequential K8 finite/diverse: 16/16 states each.
+- Mutually exclusive/exhaustive primary taxonomy: `neighbor_tolerance=9`,
+  `no_failure=7`; every other class is zero.
+- Nonexclusive indicator counts: 14 neighbor rows across 9 states; repeat,
+  trajectory, mask, flip, nonfinite/nondiverse, post-pool-call and mutation
+  indicators are all zero.
+
+These are descriptive sealed-preimage facts. The old HARD STOP proves only
+that the frozen neighbor-tolerance rule fired. It does not prove architecture
+or model failure, training-distribution/OOD drift, or a need to retrain. The
+reverse functional evidence is 128/128 trajectory rows, 16/16 mask-equal
+states and 16/16 selected-index equality for both Static14D and Scene14D.
+The legacy `possible_training_pool_adaptation_required=true` field remains
+preserved as an overconservative contract field, not a scientific conclusion.
+
 The stopped closed-loop denominator is reported as planned `3 arms x 64 ticks`
 and actual `0 arms / 0 ticks`; it is not silently shrunk or treated as an
 effect experiment.
@@ -94,7 +125,11 @@ None of those artifacts supports a target-architecture effect claim.
 
 ## Decision boundary
 
-The target architecture remains blocked before compute-matched closed-loop.
-The next authority decision is a training-pool adaptation/scientific-contract
-review. Retraining, a revised tolerance, additional closed-loop execution,
-Fresh/holdout work, and claim changes all require new explicit authority.
+The target architecture remains blocked before compute-matched closed-loop
+under the old frozen programmatic rule, while functional adaptation risk
+remains unresolved. A future prospective contract would need separate
+sequential-to-sequential and batch8-to-batch8 intrinsic-variation baselines
+and frozen distribution/rank/margin/mask/action coverage criteria. This
+package neither defines nor executes that contract. Retraining, a revised
+tolerance, additional closed-loop execution, Fresh/holdout work, and claim
+changes all require new explicit authority.
