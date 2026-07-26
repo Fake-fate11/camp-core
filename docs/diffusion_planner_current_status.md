@@ -25,10 +25,10 @@ Its independent review passed. One route is one cluster, so inference, Holm,
 NI, benefit and claim gates are not evaluable. No weighted total or SafetyCost
 was computed.
 
-Preserved engineering diagnostics include the transport timeout/fetch failure,
-the control-only forbidden-inventory reuse assertion, and an evaluation-only
-convex partition adapter for root-bound simple lanelet polygons. The sealed
-execution and execution review were not rerun or modified.
+Preserved superseded engineering diagnostic evidence includes the transport
+timeout/fetch failure, the control-only forbidden-inventory reuse assertion,
+and an evaluation-only convex partition adapter for root-bound simple lanelet
+polygons. The sealed execution and execution review were not rerun or modified.
 
 The earlier Fresh/evaluation, fair-pool, generator and selector chains remain
 immutable. SafetyCost remains only an immutable legacy exploratory diagnostic;
