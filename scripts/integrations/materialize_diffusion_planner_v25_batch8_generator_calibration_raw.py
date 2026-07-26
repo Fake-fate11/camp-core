@@ -88,6 +88,14 @@ def materialize(
     output: Path,
     device: str,
 ) -> str:
+    for import_root in (
+        repo,
+        repo / "camp_core",
+        fixed_dp_repo,
+        fixed_dp_repo / "diffusion_planner",
+    ):
+        if str(import_root) not in sys.path:
+            sys.path.insert(0, str(import_root))
     import torch
     from scripts.integrations.run_diffusion_planner_camp_replay import _load_model
 
