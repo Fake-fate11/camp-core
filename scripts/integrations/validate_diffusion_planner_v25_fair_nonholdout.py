@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 
@@ -111,6 +111,7 @@ class _FairPredictBatch:
         evaluate_all_arms: bool,
         adaptation_diagnostics: bool,
         causal_signal_chain: Mapping[str, Any],
+        latent_provider: Callable[[int], np.ndarray] | None = None,
     ) -> None:
         self.model = model
         self.model_args = model_args
@@ -128,6 +129,7 @@ class _FairPredictBatch:
         self.evaluate_all_arms = evaluate_all_arms
         self.adaptation_diagnostics = adaptation_diagnostics
         self.causal_signal_chain = dict(causal_signal_chain)
+        self.latent_provider = latent_provider
         self.primary_candidates: list[np.ndarray] = []
         self.sequential_candidates: list[np.ndarray] = []
         self.primary_neighbors: list[np.ndarray] = []
@@ -209,10 +211,21 @@ class _FairPredictBatch:
         ]
         ego_base = tensor_dicts[ego_index]
         source_input_sha = _tensor_dict_sha256(ego_base)
-        latent_np = candidate_latents(
-            candidate_seed(24001, self.route_sha256, tick),
-            noise_scale=1.0,
+        latent_seed = candidate_seed(24001, self.route_sha256, tick)
+        latent_np = (
+            candidate_latents(latent_seed, noise_scale=1.0)
+            if self.latent_provider is None
+            else np.asarray(self.latent_provider(tick))
         )
+        if (
+            latent_np.shape != (8, 321, 81, 4)
+            or latent_np.dtype != np.float32
+            or not np.all(np.isfinite(latent_np))
+        ):
+            raise ValueError("fair same-ego latent contract drifted")
+        latent_row_sha = [array_sha256(row) for row in latent_np]
+        if len(set(latent_row_sha)) != 8 or np.any(latent_np[0] != 0.0):
+            raise ValueError("fair same-ego latent rows are not unique row0-zero K8")
         expanded_ego = {
             key: value.expand(8, *value.shape[1:]).contiguous()
             for key, value in ego_base.items()
@@ -516,6 +529,30 @@ class _FairPredictBatch:
 
         selected = primary_eval["arms"][self.operational_arm]
         if selected.get("status") != "ok":
+            receipt.update(
+                {
+                    "status": "typed_selector_failure",
+                    "failure_class": "selector_functional_failure",
+                    "failure_reason": selected.get("failure_reason"),
+                    "state_sha256": state_sha,
+                    "input_sha256": expanded_input_sha,
+                    "source_input_sha256": source_input_sha,
+                    "latent_seed": latent_seed,
+                    "latent_shape": list(latent_np.shape),
+                    "latent_dtype": str(latent_np.dtype),
+                    "latent_tensor_sha256": array_sha256(latent_np),
+                    "latent_row_sha256": latent_row_sha,
+                    "candidate_tensor_sha256_before": before_sha,
+                    "candidate_tensor_sha256_after": after_sha,
+                    "candidate_row_sha256": row_sha,
+                    "candidate_neighbor_sha256": array_sha256(neighbors),
+                    "pool_id": pool_id,
+                    "forward_invocation_id": forward_id,
+                    "primary_pool_model_call_count": 1,
+                    "zero_call_receipt": zero_call,
+                    "real_selector_receipts": primary_eval["arms"],
+                }
+            )
             raise RuntimeError(
                 f"{self.operational_arm} selector failed: "
                 f"{selected.get('failure_reason')}"
@@ -549,10 +586,17 @@ class _FairPredictBatch:
                 "input_sha256": expanded_input_sha,
                 "source_input_sha256": source_input_sha,
                 "candidate_seed": candidate_seed(24001, self.route_sha256, tick),
+                "latent_seed": latent_seed,
+                "latent_shape": list(latent_np.shape),
+                "latent_dtype": str(latent_np.dtype),
+                "latent_tensor_sha256": array_sha256(latent_np),
+                "latent_row_sha256": latent_row_sha,
                 "candidate_tensor_sha256_before": before_sha,
                 "candidate_tensor_sha256_after": after_sha,
                 "candidate_row_sha256": row_sha,
                 "candidate_neighbor_sha256": array_sha256(neighbors),
+                "candidate_neighbor_shape": list(neighbors.shape),
+                "candidate_neighbor_dtype": str(neighbors.dtype),
                 "pool_id": pool_id,
                 "forward_invocation_id": forward_id,
                 "primary_pool_model_call_count": 1,
@@ -691,34 +735,40 @@ class _FairPredictBatch:
         atom_ms = _ms(atom_started)
         if array_sha256(candidates) != before:
             raise ValueError("atom materialization mutated frozen pool")
-        context_started = time.perf_counter_ns()
-        context_record = build_v25_raw_context(
-            causal_input=causal,
-            candidates=candidates,
-            source_valid_mask=np.asarray(
-                materialized["source_valid_mask"], dtype=bool
-            ),
-            causal_signal_atom_input=causal_signal_atom_input,
-            v2i_signal_timing=None,
-        )
-        context_payload = {
-            "schema_version": CONTEXT_SCHEMA_VERSION,
-            "raw_context": context_record.as_dict(),
-            "source_complete": {
-                name: bool(value)
-                for name, value in zip(
-                    RAW_FEATURE_NAMES, context_record.source_complete
-                )
-            },
-            "source_receipt": dict(context_record.source_receipt),
-        }
-        context_ms = _ms(context_started)
-        weight_started = time.perf_counter_ns()
-        scene_weight_receipt = self.assets.scene14d_weight_provider(context_payload)
-        scene_weights = np.asarray(
-            scene_weight_receipt["weights"], dtype=np.float64
-        )
-        weight_ms = _ms(weight_started)
+        context_payload = None
+        scene_weight_receipt = None
+        scene_weights = None
+        context_ms = None
+        weight_ms = None
+        if "Scene14D" in evaluate_arms:
+            context_started = time.perf_counter_ns()
+            context_record = build_v25_raw_context(
+                causal_input=causal,
+                candidates=candidates,
+                source_valid_mask=np.asarray(
+                    materialized["source_valid_mask"], dtype=bool
+                ),
+                causal_signal_atom_input=causal_signal_atom_input,
+                v2i_signal_timing=None,
+            )
+            context_payload = {
+                "schema_version": CONTEXT_SCHEMA_VERSION,
+                "raw_context": context_record.as_dict(),
+                "source_complete": {
+                    name: bool(value)
+                    for name, value in zip(
+                        RAW_FEATURE_NAMES, context_record.source_complete
+                    )
+                },
+                "source_receipt": dict(context_record.source_receipt),
+            }
+            context_ms = _ms(context_started)
+            weight_started = time.perf_counter_ns()
+            scene_weight_receipt = self.assets.scene14d_weight_provider(context_payload)
+            scene_weights = np.asarray(
+                scene_weight_receipt["weights"], dtype=np.float64
+            )
+            weight_ms = _ms(weight_started)
         arms: dict[str, dict[str, Any]] = {}
         if "pool_matched_candidate0" in evaluate_arms:
             arms["pool_matched_candidate0"] = {
@@ -751,6 +801,28 @@ class _FairPredictBatch:
                 simplex_nonnegative_atol=TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
             )
             selector_ms = _ms(selector_started)
+            raw_scores = selection.get("scores")
+            source_mask = np.asarray(
+                selection["source_valid_mask"], dtype=np.bool_
+            )
+            tie_set: list[int] | None = None
+            margin: float | None = None
+            if raw_scores is not None:
+                score_array = np.asarray(raw_scores, dtype=np.float64)
+                ordered = sorted(
+                    (float(score_array[index]), int(index))
+                    for index in np.flatnonzero(source_mask)
+                )
+                if ordered:
+                    best = ordered[0][0]
+                    tie_set = [
+                        index for score, index in ordered if score == best
+                    ]
+                    margin = (
+                        float(ordered[1][0] - best)
+                        if len(ordered) >= 2
+                        else None
+                    )
             receipt = {
                 "status": str(selection["status"]),
                 "failure_reason": selection.get("failure_reason"),
@@ -773,8 +845,18 @@ class _FairPredictBatch:
                 ).tolist(),
                 "weights_sha256": array_sha256(np.asarray(weights, dtype=np.float64)),
                 "selector_latency_ms": selector_ms,
+                "eligible_count": int(np.count_nonzero(source_mask)),
+                "margin_best_vs_runner_up": margin,
+                "exact_tie_set": tie_set,
+                "tie_break_contract": "lowest_eligible_candidate_index",
             }
             if arm == "Scene14D":
+                if (
+                    context_payload is None
+                    or scene_weight_receipt is None
+                    or scene_weights is None
+                ):
+                    raise ValueError("Scene14D context/weight path was not executed")
                 receipt["context"] = context_payload
                 receipt["scene_weight_receipt"] = {
                     key: value
@@ -814,8 +896,12 @@ class _FairPredictBatch:
                 "canonical_eligible": bool(materialized["canonical_eligible"]),
                 "exclusion_reason": materialized.get("exclusion_reason"),
                 "context": context_payload,
-                "scene_weights": scene_weights.tolist(),
-                "scene_weights_sha256": array_sha256(scene_weights),
+                "scene_weights": (
+                    None if scene_weights is None else scene_weights.tolist()
+                ),
+                "scene_weights_sha256": (
+                    None if scene_weights is None else array_sha256(scene_weights)
+                ),
             },
         }
 
@@ -1179,6 +1265,9 @@ def _run_one(
     evaluate_all_arms: bool,
     adaptation_diagnostics: bool,
     scratch_parent: Path,
+    latent_provider: Callable[[int], np.ndarray] | None = None,
+    post_safety_enricher: Callable[[dict[str, Any], Any], None] | None = None,
+    retain_runtime_failures: bool = False,
 ) -> dict[str, Any]:
     builder = builder_type(str(config["map"]["path"]))
     route_spec = config["routes"][0]
@@ -1213,10 +1302,13 @@ def _run_one(
         evaluate_all_arms=evaluate_all_arms,
         adaptation_diagnostics=adaptation_diagnostics,
         causal_signal_chain=causal_signal_chain,
+        latent_provider=latent_provider,
     )
 
     def after_tracker(receipt: dict[str, Any], scene: Any) -> None:
         _capture_post_safety(receipt, scene, builder, route_ids, replay)
+        if post_safety_enricher is not None:
+            post_safety_enricher(receipt, scene)
 
     scratch = Path(
         tempfile.mkdtemp(prefix=".v25_fair_nonholdout.", dir=str(scratch_parent))
@@ -1246,6 +1338,15 @@ def _run_one(
                 native_result = {
                     "reason": "requested_state_count_reached",
                     "goal_reached": False,
+                }
+            except Exception as exc:
+                if not retain_runtime_failures:
+                    raise
+                native_result = {
+                    "reason": "retained_typed_runtime_failure",
+                    "goal_reached": False,
+                    "failure_class": type(exc).__name__,
+                    "failure_reason": str(exc),
                 }
     finally:
         if prior_no_png is None:
