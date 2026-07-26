@@ -228,9 +228,9 @@ def _review_implementation(
     _git_head(head)
     if (
         implementation.get("head") != head
-        or tuple(implementation.get("exact_dirs", {}).keys()) != EXACT_DIR_KEYS
+        or set(implementation.get("exact_dirs", {})) != set(EXACT_DIR_KEYS)
         or implementation.get("exact_dirs") != dict(dirs)
-        or tuple(implementation.get("source_sha256", {}).keys()) != SOURCE_KEYS
+        or set(implementation.get("source_sha256", {})) != set(SOURCE_KEYS)
         or implementation.get("source_sha256") != dict(sources)
     ):
         raise ValueError("implementation binding drifted")

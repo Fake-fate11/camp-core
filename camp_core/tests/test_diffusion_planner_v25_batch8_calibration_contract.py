@@ -111,6 +111,15 @@ def test_contract_passes_both_oracles_without_runs() -> None:
     assert all(value == 0 for value in contract["run_counters"].values())
 
 
+def test_independent_review_accepts_canonical_json_key_order_roundtrip() -> None:
+    contract = _contract()
+    roundtripped = json.loads(
+        json.dumps(contract, sort_keys=True, separators=(",", ":"))
+    )
+    reviewed = _review(roundtripped)
+    assert reviewed["status"] == "passed_independent_literal_contract_review"
+
+
 def test_topology_is_exactly_320_runs_640_pairs_and_640_selector_receipts() -> None:
     contract = _contract()
     topology = contract["calibration_topology"]
