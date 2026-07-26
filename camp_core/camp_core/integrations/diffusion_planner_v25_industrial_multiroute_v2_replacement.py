@@ -218,9 +218,14 @@ def reconstruct_controlled_case(source_record: Mapping[str, Any]) -> dict[str, A
     ):
         raise ValueError("controlled scenario differs from sealed semantic block")
     source_class = source_record["cell"]["source_availability"]
+    case["raw_family_runner_eligible"] = bool(case["runner_eligible"])
     if source_class == "no_signal":
         case["signal"] = {"phase": "none", "mapped_source_required": False}
         case["phase_authority_mode"] = None
+        case["runner_eligible"] = True
+        case["formal_runtime_execution_scope"] = (
+            "execute_no_signal_source_case_with_red_leaves_typed_missing_v1"
+        )
         case["runtime_signal_transform"] = (
             "source_availability_no_signal_forces_formal_none_v1"
         )
@@ -234,6 +239,9 @@ def reconstruct_controlled_case(source_record: Mapping[str, Any]) -> dict[str, A
             "mapped_source_required": True,
         }
         case["phase_authority_mode"] = "controlled_same_tick_override"
+        case["formal_runtime_execution_scope"] = (
+            "execute_mapped_same_tick_certified_source_case_v1"
+        )
         case["runtime_signal_transform"] = (
             "source_availability_mapped_same_tick_phase_v1"
         )
@@ -495,6 +503,10 @@ def replacement_contract(
                 "mapped_source_required": False,
                 "phase_authority_mode": None,
                 "regulatory_light_bulb_stopline_future_counts": 0,
+                "formal_runner_eligible": True,
+                "red_leaves": (
+                    "typed_evidence_missing_or_scientifically_inapplicable"
+                ),
             },
             "mapped_signal": {
                 "phase_set": ["green", "yellow", "red"],

@@ -65,6 +65,8 @@ def test_red_family_no_signal_is_formally_none_after_source_equality() -> None:
         "mapped_source_required": False,
     }
     assert case["phase_authority_mode"] is None
+    assert case["raw_family_runner_eligible"] is False
+    assert case["runner_eligible"] is True
     mapped, absent = build_signal_authority(record, case)
     assert mapped is None
     assert absent is not None

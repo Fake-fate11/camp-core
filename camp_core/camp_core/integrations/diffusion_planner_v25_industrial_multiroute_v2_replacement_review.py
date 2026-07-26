@@ -131,6 +131,10 @@ def review_contract_semantics(value: Mapping[str, Any]) -> dict[str, Any]:
             "mapped_source_required": False,
             "phase_authority_mode": None,
             "regulatory_light_bulb_stopline_future_counts": 0,
+            "formal_runner_eligible": True,
+            "red_leaves": (
+                "typed_evidence_missing_or_scientifically_inapplicable"
+            ),
         }
         or row.get("exact_dirs")
         != literal_exact_dirs(
@@ -209,9 +213,14 @@ def _literal_case(source_record: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("reviewer raw family semantics mismatch")
     source_class = source_record["cell"]["source_availability"]
+    case["raw_family_runner_eligible"] = bool(case["runner_eligible"])
     if source_class == "no_signal":
         case["signal"] = {"phase": "none", "mapped_source_required": False}
         case["phase_authority_mode"] = None
+        case["runner_eligible"] = True
+        case["formal_runtime_execution_scope"] = (
+            "execute_no_signal_source_case_with_red_leaves_typed_missing_v1"
+        )
     elif source_class == "mapped_signal":
         phase = str(case["signal"]["phase"])
         case["signal"] = {
@@ -219,6 +228,9 @@ def _literal_case(source_record: Mapping[str, Any]) -> dict[str, Any]:
             "mapped_source_required": True,
         }
         case["phase_authority_mode"] = "controlled_same_tick_override"
+        case["formal_runtime_execution_scope"] = (
+            "execute_mapped_same_tick_certified_source_case_v1"
+        )
     else:
         raise ValueError("reviewer source availability unknown")
     case["signal_source_class"] = source_class

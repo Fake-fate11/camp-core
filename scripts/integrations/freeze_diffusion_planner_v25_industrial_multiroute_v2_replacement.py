@@ -197,6 +197,7 @@ def continuation_preimage(
         "formal_runtime_semantics": {
             "raw_family_signal_is_formal_authority": False,
             "no_signal_forces_none_false_absence": True,
+            "no_signal_case_execution_retained_with_red_leaves_typed_missing": True,
             "mapped_signal_requires_same_tick_certified_phase": True,
             "future_phase_or_schedule_consumed": False,
         },
