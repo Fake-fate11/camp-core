@@ -563,7 +563,21 @@ def _write_preflight(
                 ),
                 start_lanelet_id=route_ids[0],
                 goal_lanelet_id=route_ids[-1],
-                waypoints=centerline,
+                waypoint_poses=[
+                    np.asarray(
+                        [
+                            point[0],
+                            point[1],
+                            headings[min(index, len(headings) - 1)],
+                        ],
+                        dtype=np.float64,
+                    )
+                    for index, point in enumerate(centerline)
+                ],
+                waypoint_lanelet_ids=[
+                    route_ids[min(index, len(route_ids) - 1)]
+                    for index in range(len(centerline))
+                ],
                 route_lanelet_ids=route_ids,
             )
             route_path = cluster_dir / "route.pkl"

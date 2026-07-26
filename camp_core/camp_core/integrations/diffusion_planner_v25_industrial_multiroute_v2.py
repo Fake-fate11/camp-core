@@ -126,7 +126,7 @@ LATENT_DTYPE = np.dtype("<f4")
 
 EXACT_PREFIX = (
     "/root/autodl-tmp/"
-    "camp_dp_v25_industrial_v3_multiroute_v2_af33d4e6_89e716d0_"
+    "camp_dp_v25_industrial_v3_multiroute_v2_59b960df_89e716d0_"
 )
 EXACT_DIRS = {
     "contract": EXACT_PREFIX + "contract",

@@ -188,3 +188,15 @@ def test_final_docs_role_is_unique_and_not_a_scientific_gate() -> None:
     assert '"claim_authorized": False' in source
     assert '"weighted_total_present": False' in source
     assert "legacy_safetycost_computed" in source
+
+
+def test_preflight_uses_pinned_route_constructor_field_names() -> None:
+    source = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "freeze_diffusion_planner_v25_industrial_multiroute_v2.py"
+    ).read_text(encoding="utf-8")
+    assert "waypoint_poses=" in source
+    assert "waypoint_lanelet_ids=" in source
+    assert "waypoints=" not in source
