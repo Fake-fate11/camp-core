@@ -617,7 +617,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 837
+    assert len(status_pointer) == 845
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -714,6 +714,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     ] == "false"
     assert status_pointer[
         "current_v25_industrial_evaluation_claim_authorized"
+    ] == "false"
+    assert status_pointer[
+        "current_v25_industrial_evaluation_local_tracked_clean"
+    ] == "false_due_to_preserved_superseded_training_support_draft"
+    assert status_pointer[
+        "current_v25_industrial_evaluation_superseded_diagnostic_in_accepted_amendment_roots"
     ] == "false"
     assert (
         status_pointer["current_v25_batch8_first_state_diagnostic_taxonomy"]

@@ -193,6 +193,64 @@ future use:
 Old five-point, nearest-route, raw jerk, and latency aliases cannot be silently
 promoted to satisfy these gaps.
 
+## Superseded local diagnostic isolation
+
+The pre-model training-support replacement draft was already present in the
+shared worktree when this amendment began. It is preserved exactly as a
+superseded local diagnostic and was not deleted, reset, staged, committed, or
+included in any accepted amendment root. Consequently, local tracked-clean
+must be reported as
+`false_due_to_preserved_superseded_training_support_draft`, not `true`.
+
+The diagnostic inventory contains two tracked modified files and nine
+untracked files. Its canonical JSON inventory SHA256 is
+`6eba8cfa4c232fc7c70ebc85755caf8117917081956302953f6d6173b81fbd13`;
+the binary tracked diff SHA256 is
+`f95ce26ec2658bdbece28f09a5f3b6766fecbfcd0178b21743ee24a4b6a8d3d1`.
+The two tracked files are:
+
+- `scripts/integrations/materialize_diffusion_planner_v25_batch8_training_support_reference.py`,
+  SHA256 `085db0eb3984754f0655eca2daa4105f94fc36e6b0b192fee1cbb84c44cfac3f`,
+  27,050 bytes, `+28/-114`;
+- `scripts/integrations/review_diffusion_planner_v25_batch8_training_support_reference.py`,
+  SHA256 `3d67efa24ddbfbb6447542804d9460ef9826cc132b0c587d04b6f24ac392ca92`,
+  19,229 bytes, `+73/-7`.
+
+The nine untracked diagnostic files are:
+
+- `camp_core/camp_core/integrations/diffusion_planner_v25_batch8_training_support_replacement.py`,
+  SHA256 `af69b98945fd42c3e9e18b9ed5249a4e89d4ded9b9271834d76f53f1cf0bed50`,
+  18,097 bytes;
+- `camp_core/camp_core/integrations/diffusion_planner_v25_batch8_training_support_replacement_review.py`,
+  SHA256 `0957ede15ec2d06919cff4ce51cf7d664713668029f1968b261cb2b4c3f32be4`,
+  8,962 bytes;
+- `camp_core/tests/test_diffusion_planner_v25_batch8_training_support_replacement.py`,
+  SHA256 `c2c7897c37b9cc8462661987b2bf4677fe1665e5eaaa6abc9746930b7b5cbf9d`,
+  9,432 bytes;
+- `scripts/integrations/freeze_diffusion_planner_v25_batch8_training_support_failed_attempt_closeout.py`,
+  SHA256 `1947f8b91e2b122224de22e780050a64311ecd9c0783c1b59db18a1afeb3c61e`,
+  5,387 bytes;
+- `scripts/integrations/review_diffusion_planner_v25_batch8_training_support_failed_attempt_closeout.py`,
+  SHA256 `e368d43018765ada3b71962ac4febfe1f4270db3da853d94f8bf1da9ff44e4b5`,
+  5,028 bytes;
+- `scripts/integrations/freeze_diffusion_planner_v25_batch8_training_support_replacement_contract.py`,
+  SHA256 `1ea65c014b1df9c966a0ca74edf92d4442c4a6abd0f8cb97afd87afb5ec38a0d`,
+  5,029 bytes;
+- `scripts/integrations/review_diffusion_planner_v25_batch8_training_support_replacement_contract.py`,
+  SHA256 `be7bb22998510ddedfb7380e3b5717471bde6958f0603417e8b44104f65bb5df`,
+  3,322 bytes;
+- `scripts/integrations/materialize_diffusion_planner_v25_batch8_training_support_reference_envelope.py`,
+  SHA256 `dde14dc3be37de1895d29f3fc527917454fdd0492612590ed8f5c4e5ef93912b`,
+  4,912 bytes;
+- `scripts/integrations/review_diffusion_planner_v25_batch8_training_support_reference_envelope.py`,
+  SHA256 `6d7678ae3ecd2d322bfa03f01d54b2a395c213079cfaaea9c8436b61de511fd1`,
+  8,054 bytes.
+
+Its previously authorized synthetic pre-model diagnostic suite passed 39/39.
+Those tests were not rerun in this amendment stage. The diagnostic made zero
+model, pool, or selector calls and supplies no accepted endpoint or claim
+evidence.
+
 ## Independent review and adversarial closure
 
 The separate-role reviewer does not import the producer registry, formula,

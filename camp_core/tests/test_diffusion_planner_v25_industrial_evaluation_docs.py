@@ -36,7 +36,7 @@ def _tuple(text: str) -> dict[str, str]:
     return result
 
 
-def test_current_named_section_and_audit_eof_are_exact_837_field_twins() -> None:
+def test_current_named_section_and_audit_eof_are_exact_845_field_twins() -> None:
     status_text = STATUS.read_text(encoding="utf-8")
     audit_text = AUDIT.read_text(encoding="utf-8")
     assert status_text.count(CURRENT_HEADING) == 1
@@ -48,7 +48,7 @@ def test_current_named_section_and_audit_eof_are_exact_837_field_twins() -> None
     current_tuple = _tuple(current)
     audit_tuple = _tuple(audit_eof)
     assert current_tuple == audit_tuple
-    assert len(current_tuple) == 837
+    assert len(current_tuple) == 845
     assert current.count("current_v25_status=") == 1
     assert current_tuple["current_v25_status"] == (
         "industrial_oriented_evaluation_system_amendment_independently_"
@@ -149,3 +149,37 @@ def test_current_machine_zero_run_and_capability_counts() -> None:
         == "0"
     )
     assert status["current_v25_industrial_evaluation_claim_authorized"] == "false"
+    assert status["current_v25_industrial_evaluation_local_tracked_clean"] == (
+        "false_due_to_preserved_superseded_training_support_draft"
+    )
+    assert (
+        status[
+            "current_v25_industrial_evaluation_superseded_diagnostic_in_accepted_"
+            "amendment_roots"
+        ]
+        == "false"
+    )
+    assert (
+        status[
+            "current_v25_industrial_evaluation_superseded_diagnostic_"
+            "model_pool_selector_call_count"
+        ]
+        == "0"
+    )
+
+
+def test_superseded_local_diagnostic_is_exact_and_outside_accepted_roots() -> None:
+    report = REPORT.read_text(encoding="utf-8")
+    normalized_report = " ".join(report.split())
+    index = INDEX.read_text(encoding="utf-8")
+    expected = (
+        "6eba8cfa4c232fc7c70ebc85755caf8117917081956302953f6d6173b81fbd13",
+        "f95ce26ec2658bdbece28f09a5f3b6766fecbfcd0178b21743ee24a4b6a8d3d1",
+        "085db0eb3984754f0655eca2daa4105f94fc36e6b0b192fee1cbb84c44cfac3f",
+        "3d67efa24ddbfbb6447542804d9460ef9826cc132b0c587d04b6f24ac392ca92",
+    )
+    assert all(value in report and value in index for value in expected)
+    assert "two tracked modified files and nine untracked files" in normalized_report
+    assert "passed 39/39" in normalized_report
+    assert "not deleted, reset, staged, committed" in normalized_report
+    assert "Included in accepted amendment roots: `false`" in index
