@@ -231,7 +231,7 @@ def _capture_one(
                 arm="camp",
                 config=config,
                 output_dir=work,
-                max_steps=1,
+                max_steps=int(config["protocol"]["corpus_steps"]),
                 scene_adapter=proxy,
                 causal_input_sink=lambda tick, arrays: causal.update(
                     {

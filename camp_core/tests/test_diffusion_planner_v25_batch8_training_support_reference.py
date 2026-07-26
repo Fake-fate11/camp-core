@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from copy import deepcopy
 import hashlib
+import inspect
 
 import numpy as np
 import pytest
 
+from scripts.integrations import (
+    materialize_diffusion_planner_v25_batch8_training_support_reference_preflight
+    as preflight,
+)
 from camp_core.integrations import (
     diffusion_planner_v25_batch8_training_support_reference as reference,
 )
@@ -94,6 +99,12 @@ def test_authority_contract_and_independent_review() -> None:
         hashlib.sha256(reference.HIGH_AUTHORITY_JSON.encode("ascii")).hexdigest()
         == reference.HIGH_AUTHORITY_SHA256
     )
+
+
+def test_input_only_capture_uses_the_frozen_training_step_count() -> None:
+    source = inspect.getsource(preflight._capture_one)
+    assert 'max_steps=int(config["protocol"]["corpus_steps"])' in source
+    assert "max_steps=1" not in source
 
 
 def test_unique_latent_is_row0_zero_and_eight_unique() -> None:
