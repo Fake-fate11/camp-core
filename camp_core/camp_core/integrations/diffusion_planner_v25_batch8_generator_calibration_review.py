@@ -1,4 +1,4 @@
-"""Independent literal oracle for the V25 batch8 generator calibration.
+"""Independent oracle for corrected same-input/same-latent repeatability.
 
 This module deliberately does not import the producer calibration module.
 It independently rebuilds the state/latent topology, generator-only endpoint
@@ -21,9 +21,9 @@ from camp_core.integrations import (
 )
 
 
-SCHEMA = "camp_dp_v25_batch8_generator_calibration_contract_v1"
-AUTHORITY = "677c3792f52cd817871b6c9948360edced81198d4207cd59b22050080697ee21"
-BASE_HEAD = "989c9c75c6e90bf11aff92d1429f3daa9e6ee646"
+SCHEMA = "camp_dp_v25_batch8_generator_repeatability_corrected_contract_v1"
+AUTHORITY = "eba03c38f8eb6272c9cc31de464b88752a94e622ac352ffe349c70726bbe4f77"
+BASE_HEAD = "dc76fbc8ef9fe867cb2e05d7f0c7b44b74190685"
 DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 CHECKPOINT = "4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75"
 MODEL_SOURCE = "341c8f5798cae83fdee3ae7203243ab129458d8eab362e0c3a1c7daee08d502d"
@@ -126,30 +126,64 @@ def source_specs() -> list[dict[str, Any]]:
     return deepcopy(specs)
 
 
-def repeat_seed(state_spec_sha256: str, repeat_index: int) -> int:
-    _sha(state_spec_sha256)
-    if type(repeat_index) is not int or not 0 <= repeat_index < REPEATS:
-        raise ValueError("repeat index drifted")
+def canonical_seed(clone_key_sha256: str) -> int:
+    _sha(clone_key_sha256)
     digest = hashlib.sha256(
         canonical_bytes(
             {
                 "authority_sha256": AUTHORITY,
-                "purpose": "batch8_generator_calibration_unique_latent_v1",
-                "repeat_index": repeat_index,
-                "state_spec_sha256": state_spec_sha256,
+                "canonical_state_clone_key_sha256": clone_key_sha256,
+                "purpose": (
+                    "batch8_generator_repeatability_corrected_"
+                    "canonical_state_latent_v1"
+                ),
             }
         )
     ).digest()
     return int.from_bytes(digest[:8], "big", signed=False)
 
 
-def latent(state_spec_sha256: str, repeat_index: int) -> np.ndarray:
-    rng = np.random.Generator(np.random.PCG64(repeat_seed(
-        state_spec_sha256, repeat_index
+def latent(clone_key_sha256: str) -> np.ndarray:
+    rng = np.random.Generator(np.random.PCG64(canonical_seed(
+        clone_key_sha256
     )))
     value = np.zeros(LATENT_SHAPE, dtype=F32)
     value[1:] = rng.standard_normal(value[1:].shape).astype(F32)
     return np.ascontiguousarray(value)
+
+
+def review_canonical_expansion(
+    manifests: Sequence[Mapping[str, Any]],
+) -> None:
+    if len(manifests) != 320:
+        raise ValueError("review expansion denominator drifted")
+    for state_index in range(64):
+        rows = [
+            dict(row)
+            for row in manifests
+            if row.get("state_index") == state_index
+        ]
+        if len(rows) != 5 or {row.get("repeat_index") for row in rows} != {
+            0, 1, 2, 3, 4
+        }:
+            raise ValueError("review repeat topology drifted")
+        fields = (
+            "input_npz_sha256",
+            "canonical_record_sha256",
+            "canonical_state_clone_key_sha256",
+        )
+        for field in fields:
+            values = {row.get(field) for row in rows}
+            if len(values) != 1:
+                raise ValueError(f"review same-state {field} drifted")
+            _sha(next(iter(values)))
+        latent_shas = {
+            row.get("latent_manifest", {}).get("tensor_sha256")
+            for row in rows
+        }
+        if len(latent_shas) != 1:
+            raise ValueError("review same-state latent SHA drifted")
+        _sha(next(iter(latent_shas)))
 
 
 def endpoint_registry() -> list[dict[str, Any]]:
@@ -293,6 +327,22 @@ def review_contract(value: Mapping[str, Any]) -> dict[str, Any]:
         or boundary.get("claim_authorized") is not False
     ):
         raise ValueError("generator or denominator semantics drifted")
+    latent_policy = contract.get("latent_policy", {})
+    if (
+        latent_policy.get("canonical_state_latent_record_count") != 64
+        or latent_policy.get("expanded_run_manifest_count") != 320
+        or latent_policy.get(
+            "same_state_five_repeat_input_sha_cardinality"
+        ) != 1
+        or latent_policy.get(
+            "same_state_five_repeat_latent_tensor_sha_cardinality"
+        ) != 1
+        or "repeat_index" not in latent_policy.get("forbidden_seed_fields", [])
+        or "repeat_index" in latent_policy.get(
+            "canonical_state_seed_formula", ""
+        )
+    ):
+        raise ValueError("canonical latent reuse semantics drifted")
     threshold = contract.get("threshold_algorithm", {})
     if threshold != {
         "state_pair_count": 10,
@@ -308,14 +358,15 @@ def review_contract(value: Mapping[str, Any]) -> dict[str, Any]:
         "final_threshold": "max(bootstrap_ucb,resolution_floor)",
         "comparison": "pair_error <= threshold_is_within_envelope",
         "interpretation": (
-            "bounded_development_repeatability_envelope_not_validation_"
+            "bounded_development_corrected_same_input_same_latent_"
+            "generator_repeatability_envelope_not_validation_"
             "equivalence_or_effect_claim"
         ),
     }:
         raise ValueError("threshold semantics drifted")
     return {
         "schema_version": (
-            "camp_dp_v25_batch8_generator_calibration_contract_"
+            "camp_dp_v25_batch8_generator_repeatability_corrected_contract_"
             "independent_review_v1"
         ),
         "status": "PASS",
@@ -333,9 +384,11 @@ def review_contract(value: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def review_latent_manifest(
-    value: Mapping[str, Any], state_spec_sha256: str, repeat_index: int
+    value: Mapping[str, Any],
+    state_spec_sha256: str,
+    clone_key_sha256: str,
 ) -> None:
-    expected = latent(state_spec_sha256, repeat_index)
+    expected = latent(clone_key_sha256)
     rows = [
         sha256_bytes(np.ascontiguousarray(row).tobytes(order="C"))
         for row in expected
@@ -347,8 +400,9 @@ def review_latent_manifest(
     if (
         supplied.get("authority_sha256") != AUTHORITY
         or supplied.get("state_spec_sha256") != state_spec_sha256
-        or supplied.get("repeat_index") != repeat_index
-        or supplied.get("seed") != repeat_seed(state_spec_sha256, repeat_index)
+        or supplied.get("canonical_state_clone_key_sha256")
+        != clone_key_sha256
+        or supplied.get("seed") != canonical_seed(clone_key_sha256)
         or supplied.get("shape") != list(LATENT_SHAPE)
         or supplied.get("dtype") != F32.str
         or supplied.get("row0_all_zero") is not True
@@ -358,6 +412,7 @@ def review_latent_manifest(
         or supplied.get("row_sha256") != rows
         or supplied.get("unique_row_sha256_count") != 8
         or supplied.get("duplicate_groups") != []
+        or supplied.get("repeat_dependent_field_count") != 0
     ):
         raise ValueError("latent manifest semantic drifted")
 

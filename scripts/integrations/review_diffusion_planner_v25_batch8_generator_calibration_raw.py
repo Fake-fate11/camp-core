@@ -19,7 +19,7 @@ if str(PACKAGE) not in sys.path:
     sys.path.insert(0, str(PACKAGE))
 
 from camp_core.integrations.diffusion_planner_artifact_seal import seal_artifact, verify_complete_seal  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_batch8_generator_calibration import EXACT_DIRS  # noqa: E402
+from camp_core.integrations.diffusion_planner_v25_batch8_generator_calibration import AUTHORITY_SHA256, EXACT_DIRS  # noqa: E402
 from camp_core.integrations.diffusion_planner_v25_batch8_generator_calibration_review import (  # noqa: E402
     CANDIDATE_SHAPE, F32, NEIGHBOR_SHAPE, endpoint_registry, pair_errors,
     sha256_bytes, state_q99,
@@ -30,10 +30,13 @@ def review(raw_dir: Path, raw_root: str, preflight_dir: Path, preflight_root: st
     verify_complete_seal(raw_dir, raw_root, label="generator calibration raw")
     verify_complete_seal(preflight_dir, preflight_root, label="generator calibration preflight")
     raw = json.loads((raw_dir / "report.json").read_text("ascii"))
+    preflight = json.loads((preflight_dir / "receipt.json").read_text("ascii"))
     if raw["completed_run_count"] != 320 or raw["formal_model_call_count"] != 320:
         raise RuntimeError("raw denominator drifted")
     all_runs = {}
     failures = []
+    latent_by_state: dict[int, set[str]] = {}
+    input_by_state: dict[int, set[str]] = {}
     for slot in range(320):
         receipt = json.loads((raw_dir / "runs" / f"{slot:03d}" / "receipt.json").read_text("ascii"))
         if (
@@ -45,6 +48,10 @@ def review(raw_dir: Path, raw_root: str, preflight_dir: Path, preflight_root: st
             or receipt["expanded_batch_size"] != 8
             or receipt["source_ego_state_count"] != 1
             or receipt["agent_as_ego_batch"] is not False
+            or receipt["latent_manifest"]
+            != preflight["run_manifests"][slot]["latent_manifest"]
+            or receipt["input_npz_sha256"]
+            != preflight["run_manifests"][slot]["input_npz_sha256"]
         ):
             raise RuntimeError("run binding drifted")
         cpath = raw_dir / receipt["candidate_relpath"]
@@ -69,7 +76,19 @@ def review(raw_dir: Path, raw_root: str, preflight_dir: Path, preflight_root: st
             raise RuntimeError("typed failure taxonomy drifted")
         if actual_reasons:
             failures.append({"slot": slot, "reasons": actual_reasons})
+        latent_by_state.setdefault(receipt["state_index"], set()).add(
+            receipt["latent_manifest"]["tensor_sha256"]
+        )
+        input_by_state.setdefault(receipt["state_index"], set()).add(
+            receipt["input_npz_sha256"]
+        )
         all_runs[(receipt["state_index"], receipt["repeat_index"])] = (candidate, neighbor)
+    if (
+        raw["authority_sha256"] != AUTHORITY_SHA256
+        or any(len(values) != 1 for values in latent_by_state.values())
+        or any(len(values) != 1 for values in input_by_state.values())
+    ):
+        raise RuntimeError("same-input/same-latent raw binding drifted")
     pair_rows = []
     state_values = {row["endpoint_id"]: [] for row in endpoint_registry()}
     if not failures:
@@ -83,7 +102,7 @@ def review(raw_dir: Path, raw_root: str, preflight_dir: Path, preflight_root: st
             for key, values in per_endpoint.items():
                 state_values[key].append(state_q99(values))
     report = {
-        "schema_version": "camp_dp_v25_batch8_generator_calibration_raw_independent_review_v1",
+        "schema_version": "camp_dp_v25_batch8_generator_repeatability_corrected_raw_independent_review_v1",
         "status": "PASS" if not failures else "FAIL_TYPED_OUTPUTS_FULL_DENOMINATOR",
         "reviewed_raw_root_sha256": raw_root,
         "reviewed_preflight_root_sha256": preflight_root,
@@ -91,6 +110,8 @@ def review(raw_dir: Path, raw_root: str, preflight_dir: Path, preflight_root: st
         "formal_model_call_count": 320,
         "pair_receipt_count": len(pair_rows),
         "state_count": 64,
+        "same_state_input_sha_cardinality": 1,
+        "same_state_latent_tensor_sha_cardinality": 1,
         "typed_failure_count": len(failures),
         "typed_failures": failures,
         "hard_integrity_failure_count": 0,

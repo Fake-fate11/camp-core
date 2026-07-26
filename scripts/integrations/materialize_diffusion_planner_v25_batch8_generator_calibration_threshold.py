@@ -21,7 +21,7 @@ if str(PACKAGE) not in sys.path:
 from camp_core.integrations.diffusion_planner_artifact_seal import seal_artifact, verify_complete_seal  # noqa: E402
 from camp_core.integrations.diffusion_planner_v25_batch8_generator_calibration import (  # noqa: E402
     CANDIDATE_SHAPE, EXACT_DIRS, NEIGHBOR_SHAPE, OUTPUT_DTYPE, bootstrap_ucb,
-    endpoint_registry, pair_errors, state_q99_higher,
+    THRESHOLD_SCHEMA, endpoint_registry, pair_errors, state_q99_higher,
 )
 
 
@@ -72,7 +72,7 @@ def materialize(raw_dir: Path, raw_root: str, review_dir: Path, review_root: str
             "bootstrap_index_preimage_sha256": preimage_sha,
         }
     report = {
-        "schema_version": "camp_dp_v25_batch8_generator_calibration_threshold_v1",
+        "schema_version": THRESHOLD_SCHEMA,
         "status": "PASS",
         "raw_root_sha256": raw_root,
         "raw_review_root_sha256": review_root,
@@ -80,7 +80,11 @@ def materialize(raw_dir: Path, raw_root: str, review_dir: Path, review_root: str
         "pair_count": pair_count,
         "independent_state_count": 64,
         "thresholds": thresholds,
-        "interpretation": "bounded_development_repeatability_envelope_not_validation_or_effect_claim",
+        "interpretation": (
+            "bounded_development_corrected_same_input_same_latent_generator_"
+            "repeatability_envelope_not_validation_or_effect_claim"
+        ),
+        "superseded_dispersion_values_used": False,
         "selector_training_support_safetycost_claim_count": 0,
         "outcome_read": False,
     }

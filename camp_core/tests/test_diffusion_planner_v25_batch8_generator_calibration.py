@@ -43,7 +43,7 @@ def _contract() -> dict:
 
 def test_authority_and_state_manifest_are_exact() -> None:
     assert producer.AUTHORITY_SHA256 == (
-        "677c3792f52cd817871b6c9948360edced81198d4207cd59b22050080697ee21"
+        "eba03c38f8eb6272c9cc31de464b88752a94e622ac352ffe349c70726bbe4f77"
     )
     assert producer.sha256_json(producer.source_specs()) == (
         "569718077a1c6c7f5193074ba86e646da4a3a40a2fdc573c7bfa51f3cfaa722f"
@@ -93,30 +93,29 @@ def test_endpoint_registry_exact_and_generator_only() -> None:
     )
 
 
-def test_latents_are_deterministic_finite_unique_and_repeat_specific() -> None:
+def test_one_canonical_latent_is_deterministic_finite_unique_and_repeat_free() -> None:
     state_sha = producer.source_specs()[0]["state_spec_sha256"]
-    all_sha = []
-    for repeat in range(5):
-        left = producer.latent_tensor(state_sha, repeat)
-        right = reviewer.latent(state_sha, repeat)
-        assert np.array_equal(left, right)
-        summary = producer.tensor_summary(left)
-        assert summary["shape"] == [8, 321, 81, 4]
-        assert summary["dtype"] == "<f4"
-        assert summary["nonfinite_count"] == 0
-        assert summary["unique_row_sha256_count"] == 8
-        assert summary["duplicate_groups"] == []
-        assert np.count_nonzero(left[0]) == 0
-        all_sha.append(summary["tensor_sha256"])
-        reviewer.review_latent_manifest(
-            producer.latent_manifest(state_sha, repeat), state_sha, repeat
-        )
-    assert len(set(all_sha)) == 5
+    clone_key = "a" * 64
+    left = producer.latent_tensor(clone_key)
+    right = reviewer.latent(clone_key)
+    assert np.array_equal(left, right)
+    summary = producer.tensor_summary(left)
+    assert summary["shape"] == [8, 321, 81, 4]
+    assert summary["dtype"] == "<f4"
+    assert summary["nonfinite_count"] == 0
+    assert summary["unique_row_sha256_count"] == 8
+    assert summary["duplicate_groups"] == []
+    assert np.count_nonzero(left[0]) == 0
+    reviewer.review_latent_manifest(
+        producer.latent_manifest(state_sha, clone_key), state_sha, clone_key
+    )
+    assert "repeat_index" not in producer.latent_manifest(state_sha, clone_key)
 
 
 def test_latent_manifest_mutations_fail_closed() -> None:
     state_sha = producer.source_specs()[0]["state_spec_sha256"]
-    value = producer.latent_manifest(state_sha, 0)
+    clone_key = "b" * 64
+    value = producer.latent_manifest(state_sha, clone_key)
     for key, replacement in (
         ("unique_row_sha256_count", 2),
         ("duplicate_groups", [[1, 2, 3, 4, 5, 6, 7]]),
@@ -130,7 +129,67 @@ def test_latent_manifest_mutations_fail_closed() -> None:
         payload.pop("manifest_sha256")
         mutated["manifest_sha256"] = producer.sha256_json(payload)
         with pytest.raises(ValueError):
-            reviewer.review_latent_manifest(mutated, state_sha, 0)
+            reviewer.review_latent_manifest(mutated, state_sha, clone_key)
+
+
+def test_repeat_index_cannot_enter_canonical_seed_or_manifest() -> None:
+    clone_key = "c" * 64
+    seed = producer.canonical_latent_seed(clone_key)
+    assert seed == reviewer.canonical_seed(clone_key)
+    source = Path(producer.__file__).read_text(encoding="utf-8")
+    seed_body = source.split("def canonical_latent_seed", 1)[1].split(
+        "\ndef latent_tensor", 1
+    )[0]
+    assert "repeat_index" not in seed_body
+    value = _contract()["latent_policy"]
+    assert "repeat_index" in value["forbidden_seed_fields"]
+    assert value["same_state_five_repeat_latent_tensor_sha_cardinality"] == 1
+
+
+def _expansion() -> list[dict]:
+    rows = []
+    for state in range(64):
+        state_sha = hashlib.sha256(f"state:{state}".encode()).hexdigest()
+        input_sha = hashlib.sha256(f"input:{state}".encode()).hexdigest()
+        latent_sha = hashlib.sha256(f"latent:{state}".encode()).hexdigest()
+        record_sha = hashlib.sha256(f"record:{state}".encode()).hexdigest()
+        clone_sha = hashlib.sha256(f"clone:{state}".encode()).hexdigest()
+        for repeat in range(5):
+            rows.append(
+                {
+                    "state_index": state,
+                    "repeat_index": repeat,
+                    "input_npz_sha256": input_sha,
+                    "canonical_record_sha256": record_sha,
+                    "canonical_state_clone_key_sha256": clone_sha,
+                    "latent_manifest": {"tensor_sha256": latent_sha},
+                    "state_spec_sha256": state_sha,
+                }
+            )
+    return rows
+
+
+def test_canonical_expansion_requires_same_input_and_latent_for_five_repeats() -> None:
+    value = _expansion()
+    producer.validate_canonical_expansion(value)
+    reviewer.review_canonical_expansion(value)
+    for field in (
+        "input_npz_sha256",
+        "canonical_record_sha256",
+        "canonical_state_clone_key_sha256",
+    ):
+        mutated = deepcopy(value)
+        mutated[1][field] = "f" * 64
+        with pytest.raises(ValueError):
+            producer.validate_canonical_expansion(mutated)
+        with pytest.raises(ValueError):
+            reviewer.review_canonical_expansion(mutated)
+    mutated = deepcopy(value)
+    mutated[1]["latent_manifest"]["tensor_sha256"] = "e" * 64
+    with pytest.raises(ValueError):
+        producer.validate_canonical_expansion(mutated)
+    with pytest.raises(ValueError):
+        reviewer.review_canonical_expansion(mutated)
 
 
 def test_pair_errors_independent_rebuild() -> None:

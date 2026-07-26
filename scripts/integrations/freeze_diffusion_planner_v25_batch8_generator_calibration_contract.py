@@ -1,4 +1,4 @@
-"""Seal the outcome-independent batch8 generator calibration contract."""
+"""Seal corrected same-input/same-latent repeatability contract."""
 
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ def freeze(output: Path, fixed_dp_repo: Path) -> str:
         implementation_head=head, source_sha256=sources
     ))
     report = {
-        "schema_version": "camp_dp_v25_batch8_generator_calibration_contract_artifact_v1",
+        "schema_version": "camp_dp_v25_batch8_generator_repeatability_corrected_contract_artifact_v1",
         "status": "PASS",
         "contract": value,
         "source_paths": SOURCE_PATHS,
@@ -67,7 +67,9 @@ def freeze(output: Path, fixed_dp_repo: Path) -> str:
         "model_pool_selector_call_count": 0,
         "outcome_values_read": False,
     }
-    return _atomic(output, report, "V25 batch8 generator calibration contract")
+    return _atomic(
+        output, report, "V25 corrected batch8 generator repeatability contract"
+    )
 
 
 def _atomic(output: Path, report: dict, label: str) -> str:

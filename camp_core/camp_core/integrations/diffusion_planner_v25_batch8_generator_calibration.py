@@ -1,9 +1,9 @@
-"""Generator-only same-ego batch8 calibration contract and pure kernels.
+"""Corrected same-input/same-latent batch8 repeatability contract and kernels.
 
-This module is outcome-independent.  It defines the sole 64-state x 5-repeat
-batch8 generator calibration authorized by High decision 677c3792... .  It
-contains no selector, SafetyCost, scientific-effect, training-support or
-closed-loop endpoint.
+The former 677c3792 chain intentionally remains sealed as a latent-resampled
+candidate-pool dispersion diagnostic.  This source implements the replacement
+authorized by eba03c38...; one canonical latent is frozen per state and reused
+byte-for-byte across all five formal calls.
 """
 
 from __future__ import annotations
@@ -22,17 +22,24 @@ from camp_core.integrations import (
 )
 
 
-SCHEMA_VERSION = "camp_dp_v25_batch8_generator_calibration_contract_v1"
-PREFLIGHT_SCHEMA = "camp_dp_v25_batch8_generator_calibration_preflight_v1"
-RAW_SCHEMA = "camp_dp_v25_batch8_generator_calibration_raw_v1"
+SCHEMA_VERSION = (
+    "camp_dp_v25_batch8_generator_repeatability_corrected_contract_v1"
+)
+PREFLIGHT_SCHEMA = (
+    "camp_dp_v25_batch8_generator_repeatability_corrected_preflight_v1"
+)
+RAW_SCHEMA = "camp_dp_v25_batch8_generator_repeatability_corrected_raw_v1"
 RAW_REVIEW_SCHEMA = (
-    "camp_dp_v25_batch8_generator_calibration_raw_independent_review_v1"
+    "camp_dp_v25_batch8_generator_repeatability_corrected_raw_"
+    "independent_review_v1"
 )
-THRESHOLD_SCHEMA = "camp_dp_v25_batch8_generator_calibration_threshold_v1"
+THRESHOLD_SCHEMA = (
+    "camp_dp_v25_batch8_generator_repeatability_corrected_threshold_v1"
+)
 AUTHORITY_SHA256 = (
-    "677c3792f52cd817871b6c9948360edced81198d4207cd59b22050080697ee21"
+    "eba03c38f8eb6272c9cc31de464b88752a94e622ac352ffe349c70726bbe4f77"
 )
-BASE_POINTER_HEAD = "989c9c75c6e90bf11aff92d1429f3daa9e6ee646"
+BASE_POINTER_HEAD = "dc76fbc8ef9fe867cb2e05d7f0c7b44b74190685"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 CHECKPOINT_SHA256 = (
     "4ffaeea21cd29904da73349eea642e1d28f8ddbf02be363b7386e3a9b8ebcc75"
@@ -68,6 +75,12 @@ BATCH8_DESIGN_ROOTS = {
     "contract": "f4216e9e59d7cc81cf8d7ebd69e0bdd38b1399ec11d6fe95866994b309d53c1c",
     "review": "8f2b198be18ef01607f4e355e014f3de07f049981ee05c0c18b96017b9237457",
 }
+SUPERSEDED_DISPERSION_ROOTS = {
+    "raw": "1dc673dc99df411ccee571fe80a1261c08fba5b52ab87ff397bb2733c2868f82",
+    "raw_review": "8756b1d5aa32f666aaabe7cab6bdfddc3ced0ded638caed673f7a4d05f61b45b",
+    "threshold": "abc15b2cae990e8465aa2fd1a97a6f2903dda948c0606ba167867dcf1a1c0e5b",
+    "threshold_review": "0d3388f0d4821a09d4c7b0d90710a469a3042f2040c3d0d05865ff7f8c9cf519",
+}
 
 STATE_COUNT = 64
 REPEAT_COUNT = 5
@@ -85,46 +98,16 @@ BOOTSTRAP_UPPER_INDEX = 9500
 CAPACITY_FLOOR_BYTES = 10 * 1024**3
 
 EXACT_DIRS = {
-    "contract": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_contract_v1_989c9c75"
-    ),
-    "contract_review": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_contract_v1_review_989c9c75"
-    ),
-    "focused": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_focused_v1_989c9c75"
-    ),
-    "preflight": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_preflight_v1_989c9c75"
-    ),
-    "preflight_review": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_preflight_v1_review_989c9c75"
-    ),
-    "raw": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_raw_v1_989c9c75"
-    ),
-    "raw_review": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_raw_v1_review_989c9c75"
-    ),
-    "threshold": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_threshold_v1_989c9c75"
-    ),
-    "threshold_review": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_threshold_v1_review_989c9c75"
-    ),
-    "final_docs": (
-        "/root/autodl-tmp/"
-        "camp_dp_v25_batch8_generator_calibration_final_docs_v1_989c9c75"
-    ),
+    "contract": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_contract_v1_dc76fbc8",
+    "contract_review": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_contract_review_v1_dc76fbc8",
+    "focused": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_focused_v1_dc76fbc8",
+    "preflight": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_preflight_v1_dc76fbc8",
+    "preflight_review": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_preflight_review_v1_dc76fbc8",
+    "raw": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_raw_v1_dc76fbc8",
+    "raw_review": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_raw_review_v1_dc76fbc8",
+    "threshold": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_threshold_v1_dc76fbc8",
+    "threshold_review": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_threshold_review_v1_dc76fbc8",
+    "final_docs": "/root/autodl-tmp/camp_dp_v25_batch8_generator_repeatability_corrected_final_docs_v1_dc76fbc8",
 }
 
 
@@ -169,25 +152,25 @@ def source_specs() -> list[dict[str, Any]]:
     return deepcopy(result)
 
 
-def repeat_latent_seed(state_spec_sha256: str, repeat_index: int) -> int:
-    _sha(state_spec_sha256, "state spec SHA")
-    if type(repeat_index) is not int or not 0 <= repeat_index < REPEAT_COUNT:
-        raise ValueError("repeat index drifted")
+def canonical_latent_seed(clone_key_sha256: str) -> int:
+    _sha(clone_key_sha256, "canonical state clone key SHA")
     digest = hashlib.sha256(
         canonical_bytes(
             {
                 "authority_sha256": AUTHORITY_SHA256,
-                "purpose": "batch8_generator_calibration_unique_latent_v1",
-                "repeat_index": repeat_index,
-                "state_spec_sha256": state_spec_sha256,
+                "canonical_state_clone_key_sha256": clone_key_sha256,
+                "purpose": (
+                    "batch8_generator_repeatability_corrected_"
+                    "canonical_state_latent_v1"
+                ),
             }
         )
     ).digest()
     return int.from_bytes(digest[:8], byteorder="big", signed=False)
 
 
-def latent_tensor(state_spec_sha256: str, repeat_index: int) -> np.ndarray:
-    seed = repeat_latent_seed(state_spec_sha256, repeat_index)
+def latent_tensor(clone_key_sha256: str) -> np.ndarray:
+    seed = canonical_latent_seed(clone_key_sha256)
     rng = np.random.Generator(np.random.PCG64(seed))
     latent = np.zeros(LATENT_SHAPE, dtype=LATENT_DTYPE)
     latent[1:] = rng.standard_normal(latent[1:].shape).astype(LATENT_DTYPE)
@@ -221,17 +204,21 @@ def tensor_summary(value: np.ndarray) -> dict[str, Any]:
     }
 
 
-def latent_manifest(state_spec_sha256: str, repeat_index: int) -> dict[str, Any]:
-    latent = latent_tensor(state_spec_sha256, repeat_index)
+def latent_manifest(
+    state_spec_sha256: str, clone_key_sha256: str
+) -> dict[str, Any]:
+    _sha(state_spec_sha256, "state spec SHA")
+    latent = latent_tensor(clone_key_sha256)
     summary = tensor_summary(latent)
     result = {
         "schema_version": (
-            "camp_dp_v25_batch8_generator_calibration_latent_manifest_v1"
+            "camp_dp_v25_batch8_generator_repeatability_corrected_"
+            "canonical_latent_manifest_v1"
         ),
         "authority_sha256": AUTHORITY_SHA256,
         "state_spec_sha256": state_spec_sha256,
-        "repeat_index": repeat_index,
-        "seed": repeat_latent_seed(state_spec_sha256, repeat_index),
+        "canonical_state_clone_key_sha256": clone_key_sha256,
+        "seed": canonical_latent_seed(clone_key_sha256),
         "bit_generator": "numpy.random.PCG64",
         "policy": (
             "row0_zero_rows1_7_independent_pcg64_standard_normal_float32"
@@ -244,6 +231,7 @@ def latent_manifest(state_spec_sha256: str, repeat_index: int) -> dict[str, Any]
         "row_sha256": summary["row_sha256"],
         "unique_row_sha256_count": summary["unique_row_sha256_count"],
         "duplicate_groups": summary["duplicate_groups"],
+        "repeat_dependent_field_count": 0,
     }
     result["manifest_sha256"] = sha256_json(result)
     return result
@@ -266,6 +254,41 @@ def planned_run_ids() -> list[str]:
         for state_index in range(STATE_COUNT)
         for repeat_index in range(REPEAT_COUNT)
     ]
+
+
+def validate_canonical_expansion(
+    manifests: Sequence[Mapping[str, Any]],
+) -> None:
+    if len(manifests) != RUN_COUNT:
+        raise ValueError("canonical expansion denominator drifted")
+    for state_index in range(STATE_COUNT):
+        rows = [
+            dict(row)
+            for row in manifests
+            if row.get("state_index") == state_index
+        ]
+        if (
+            len(rows) != REPEAT_COUNT
+            or {row.get("repeat_index") for row in rows}
+            != set(range(REPEAT_COUNT))
+        ):
+            raise ValueError("canonical repeat topology drifted")
+        for field in (
+            "input_npz_sha256",
+            "canonical_record_sha256",
+            "canonical_state_clone_key_sha256",
+        ):
+            values = {row.get(field) for row in rows}
+            if len(values) != 1:
+                raise ValueError(f"same-state {field} drifted")
+            _sha(next(iter(values)), field)
+        latent_shas = {
+            row.get("latent_manifest", {}).get("tensor_sha256")
+            for row in rows
+        }
+        if len(latent_shas) != 1:
+            raise ValueError("same-state latent tensor SHA drifted")
+        _sha(next(iter(latent_shas)), "latent tensor SHA")
 
 
 def endpoint_registry() -> list[dict[str, Any]]:
@@ -495,6 +518,9 @@ def contract(
             "old_input_preflight": OLD_PREFLIGHT_ROOT,
             "old_input_preflight_review": OLD_PREFLIGHT_REVIEW_ROOT,
             "old_nonholdout": OLD_NONHOLDOUT_ROOT,
+            "superseded_latent_resampled_dispersion": (
+                SUPERSEDED_DISPERSION_ROOTS
+            ),
         },
         "source_sha256": sources,
         "exact_dirs": EXACT_DIRS,
@@ -538,11 +564,24 @@ def contract(
             "policy": (
                 "row0_zero_rows1_7_independent_pcg64_standard_normal_float32"
             ),
-            "repeat_seed_formula": (
-                "uint64_be(sha256(canonical({authority_sha256,purpose,"
-                "repeat_index,state_spec_sha256}))[0:8])"
+            "canonical_state_seed_formula": (
+                "uint64_be(sha256(canonical({authority_sha256,"
+                "canonical_state_clone_key_sha256,purpose}))[0:8])"
             ),
-            "all_320_preimages_sealed_before_model": True,
+            "forbidden_seed_fields": [
+                "repeat_index",
+                "repeat_ordinal",
+                "run_id",
+                "forward_id",
+                "wall_clock",
+                "process_id",
+                "call_order",
+            ],
+            "canonical_state_latent_record_count": 64,
+            "expanded_run_manifest_count": 320,
+            "same_state_five_repeat_input_sha_cardinality": 1,
+            "same_state_five_repeat_latent_tensor_sha_cardinality": 1,
+            "all_64_canonical_and_320_expanded_preimages_sealed_before_model": True,
             "finite_unique8_required": True,
         },
         "output_contract": {
@@ -569,7 +608,8 @@ def contract(
             "final_threshold": "max(bootstrap_ucb,resolution_floor)",
             "comparison": "pair_error <= threshold_is_within_envelope",
             "interpretation": (
-                "bounded_development_repeatability_envelope_not_validation_"
+                "bounded_development_corrected_same_input_same_latent_"
+                "generator_repeatability_envelope_not_validation_"
                 "equivalence_or_effect_claim"
             ),
         },
@@ -605,8 +645,13 @@ def contract(
             "old_artifact_or_cas_write_authorized": False,
             "claim_authorized": False,
             "pass_scope": (
-                "bounded_64_state_batch8_generator_calibration_full_"
-                "denominator_and_independently_reviewed_repeatability_envelope"
+                "bounded_development_corrected_same_input_same_latent_"
+                "generator_repeatability_calibration_full_denominator_and_"
+                "independently_reviewed_envelope"
+            ),
+            "superseded_chain_classification": (
+                "bounded_development_latent_resampled_candidate_pool_"
+                "dispersion_diagnostic"
             ),
         },
     }

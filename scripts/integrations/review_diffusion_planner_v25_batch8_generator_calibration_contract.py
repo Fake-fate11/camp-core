@@ -1,4 +1,4 @@
-"""Independent sealed review of the batch8 generator calibration contract."""
+"""Independent review of corrected same-input/same-latent contract."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def review(contract_dir: Path, contract_root: str, output: Path) -> str:
     source = json.loads((contract_dir / "report.json").read_text(encoding="ascii"))
     result = review_contract(source["contract"])
     report = {
-        "schema_version": "camp_dp_v25_batch8_generator_calibration_contract_independent_review_artifact_v1",
+        "schema_version": "camp_dp_v25_batch8_generator_repeatability_corrected_contract_independent_review_artifact_v1",
         "status": "PASS",
         "review": result,
         "reviewed_contract_root_sha256": contract_root,

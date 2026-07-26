@@ -31,11 +31,24 @@ def review(raw_dir: Path, raw_root: str, threshold_dir: Path, threshold_root: st
     verify_complete_seal(threshold_dir, threshold_root, label="generator calibration thresholds")
     supplied = json.loads((threshold_dir / "report.json").read_text("ascii"))
     runs = {}
+    latent_by_state = {}
+    input_by_state = {}
     for slot in range(320):
         receipt = json.loads((raw_dir / "runs" / f"{slot:03d}" / "receipt.json").read_text("ascii"))
         candidate = np.fromfile(raw_dir / receipt["candidate_relpath"], dtype=F32).reshape(CANDIDATE_SHAPE)
         neighbor = np.fromfile(raw_dir / receipt["neighbor_relpath"], dtype=F32).reshape(NEIGHBOR_SHAPE)
         runs[(receipt["state_index"], receipt["repeat_index"])] = (candidate, neighbor)
+        latent_by_state.setdefault(receipt["state_index"], set()).add(
+            receipt["latent_manifest"]["tensor_sha256"]
+        )
+        input_by_state.setdefault(receipt["state_index"], set()).add(
+            receipt["input_npz_sha256"]
+        )
+    if (
+        any(len(values) != 1 for values in latent_by_state.values())
+        or any(len(values) != 1 for values in input_by_state.values())
+    ):
+        raise RuntimeError("threshold input/latent reuse drifted")
     expected = {}
     for row in endpoint_registry():
         states = []
@@ -57,7 +70,7 @@ def review(raw_dir: Path, raw_root: str, threshold_dir: Path, threshold_root: st
     if supplied["thresholds"] != expected or supplied["pair_count"] != 640:
         raise RuntimeError("threshold independent reconstruction drifted")
     report = {
-        "schema_version": "camp_dp_v25_batch8_generator_calibration_threshold_independent_review_v1",
+        "schema_version": "camp_dp_v25_batch8_generator_repeatability_corrected_threshold_independent_review_v1",
         "status": "PASS",
         "reviewed_raw_root_sha256": raw_root,
         "reviewed_threshold_root_sha256": threshold_root,
@@ -66,6 +79,8 @@ def review(raw_dir: Path, raw_root: str, threshold_dir: Path, threshold_root: st
         "pair_count": 640,
         "state_count": 64,
         "bootstrap_preimage_rebuilt": True,
+        "same_state_input_sha_cardinality": 1,
+        "same_state_latent_tensor_sha_cardinality": 1,
         "producer_endpoint_threshold_oracle_imported": False,
         "selector_training_support_effect_claim_count": 0,
         "outcome_read": False,

@@ -30,12 +30,15 @@ from camp_core.integrations.diffusion_planner_artifact_seal import seal_artifact
 from camp_core.integrations.diffusion_planner_v25_batch8_generator_calibration import (  # noqa: E402
     AUTHORITY_SHA256, BASE_POINTER_HEAD, CANDIDATE_SHAPE, CAPACITY_FLOOR_BYTES,
     CHECKPOINT_SHA256, EXACT_DIRS, FIXED_DP_HEAD, MODEL_SOURCE_SHA256,
-    NEIGHBOR_SHAPE, OUTPUT_DTYPE, canonical_bytes, sha256_bytes, sha256_file,
-    tensor_summary,
+    NEIGHBOR_SHAPE, OUTPUT_DTYPE, RAW_SCHEMA, canonical_bytes, sha256_bytes,
+    sha256_file, tensor_summary,
 )
 
 CONFIG_PATH = Path("/root/autodl-tmp/camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_a53d6ee3_20260715T204719CST/prepared/probe_config.json")
-LOCK_PATH = Path("/root/autodl-tmp/.camp_dp_v25_batch8_generator_calibration.lock")
+LOCK_PATH = Path(
+    "/root/autodl-tmp/"
+    ".camp_dp_v25_batch8_generator_repeatability_corrected.lock"
+)
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -166,6 +169,25 @@ def materialize(
                 preflight_dir / manifest["input_npz_relpath"],
                 preflight_dir / manifest["latent_relpath"],
             )
+            latent_summary = tensor_summary(latent)
+            latent_manifest = manifest["latent_manifest"]
+            if (
+                sha256_file(preflight_dir / manifest["input_npz_relpath"])
+                != manifest["input_npz_sha256"]
+                or any(
+                    latent_summary[key] != latent_manifest[key]
+                    for key in (
+                        "shape",
+                        "dtype",
+                        "tensor_sha256",
+                        "row_sha256",
+                        "unique_row_sha256_count",
+                        "duplicate_groups",
+                    )
+                )
+                or latent_summary["nonfinite_count"] != 0
+            ):
+                raise RuntimeError("pre-forward canonical input/latent drifted")
             input_before = _input_summary(inputs)
             if any(not row["rows_exact_equal"] for name, row in input_before.items() if name != "sampled_trajectories"):
                 raise RuntimeError("same-ego input batch drifted")
@@ -210,7 +232,7 @@ def materialize(
                 "neighbor_tensor_sha256": nsum["tensor_sha256"],
             }))
             receipt = {
-                "schema_version": "camp_dp_v25_batch8_generator_calibration_run_receipt_v1",
+                "schema_version": "camp_dp_v25_batch8_generator_repeatability_corrected_run_receipt_v1",
                 "slot": slot,
                 "run_id": manifest["run_id"],
                 "state_index": manifest["state_index"],
@@ -247,7 +269,7 @@ def materialize(
         if model_calls != 320 or completed != 320:
             raise RuntimeError("full denominator not formed")
         report = {
-            "schema_version": "camp_dp_v25_batch8_generator_calibration_raw_v1",
+            "schema_version": RAW_SCHEMA,
             "status": "PASS_full_denominator" if not slot_failures else "FULL_DENOMINATOR_WITH_TYPED_FAILURES",
             "authority_sha256": AUTHORITY_SHA256,
             "implementation_head": implementation_head,
@@ -271,6 +293,8 @@ def materialize(
             "hard_integrity_failures": hard_failures,
             "outcome_read": False,
             "training_support_or_effect_endpoint_count": 0,
+            "same_input_same_latent_per_state_required": True,
+            "superseded_dispersion_raw_used": False,
         }
         (staging / "report.json").write_bytes(canonical_bytes(report))
         root_sha = seal_artifact(staging, label="V25 batch8 generator calibration raw")
