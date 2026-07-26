@@ -110,7 +110,8 @@ class _FairPredictBatch:
         operational_arm: str,
         evaluate_all_arms: bool,
         adaptation_diagnostics: bool,
-        causal_signal_chain: Mapping[str, Any],
+        causal_signal_chain: Mapping[str, Any] | None,
+        scene_adapter: Any | None = None,
         latent_provider: Callable[[int], np.ndarray] | None = None,
     ) -> None:
         self.model = model
@@ -128,13 +129,17 @@ class _FairPredictBatch:
         self.operational_arm = operational_arm
         self.evaluate_all_arms = evaluate_all_arms
         self.adaptation_diagnostics = adaptation_diagnostics
-        self.causal_signal_chain = dict(causal_signal_chain)
+        self.causal_signal_chain = (
+            None if causal_signal_chain is None else dict(causal_signal_chain)
+        )
+        self.scene_adapter = scene_adapter
         self.latent_provider = latent_provider
         self.primary_candidates: list[np.ndarray] = []
         self.sequential_candidates: list[np.ndarray] = []
         self.primary_neighbors: list[np.ndarray] = []
         self.sequential_neighbors: list[np.ndarray] = []
         self.primary_atoms: list[np.ndarray] = []
+        self.primary_causal_inputs: list[dict[str, np.ndarray]] = []
         self.sequential_atoms: list[np.ndarray] = []
         self.primary_source_masks: list[np.ndarray] = []
         self.sequential_source_masks: list[np.ndarray] = []
@@ -186,12 +191,41 @@ class _FairPredictBatch:
             "generator_name": GENERATOR_NAME,
         }
         self.state.receipts.append(receipt)
+        causal_signal_atom_input = None
+        if self.scene_adapter is not None:
+            forward_route_ids = self.builder.select_route_segment_indices(
+                self.route_ids,
+                scene.ego_agent.current_position,
+                max_segments=25,
+            ) or self.route_ids[:25]
+            forward_route_ids = [
+                lanelet_id
+                for lanelet_id in forward_route_ids
+                if lanelet_id in self.builder._cache
+            ][:25]
+            self.scene_adapter.bind_runtime_lanelet_ids(
+                route_lanelet_ids=forward_route_ids,
+                map_lanelet_ids=self.builder._last_map_data_ids,
+            )
+            receipt["controlled_scene"] = dict(self.scene_adapter(scene, tick))
+            receipt["controlled_scene"]["model_input_cache"] = dict(
+                self.scene_adapter.sync_model_input_map_cache(
+                    scene, map_cache, tick
+                )
+            )
+            causal_signal_atom_input = dict(
+                self.scene_adapter.causal_signal_atom_input(scene, tick)
+            )
+            receipt["causal_signal_atom_input_sha256"] = canonical_sha256(
+                causal_signal_atom_input
+            )
         _capture_pre_safety(
             receipt,
             scene,
             self.builder,
             self.route_ids,
             self.replay,
+            certified_signal_atom_input=causal_signal_atom_input,
         )
         if not agent_ids or scene.ego_agent_id not in agent_ids:
             raise ValueError("fair validation requires ego in agent batch")
@@ -362,6 +396,7 @@ class _FairPredictBatch:
                 source_observed_frames=_source_observed_frames(scene),
             )
             causal = boundary.causal_input
+            receipt["causal_input"] = dict(boundary.receipt)
             neighbor_valid = np.any(
                 np.abs(causal["neighbor_agents_past"]) > 1e-8, axis=(1, 2)
             )
@@ -377,19 +412,24 @@ class _FairPredictBatch:
                 ),
                 dtype=np.float64,
             )
-            runtime_signal_receipt = build_runtime_no_signal_receipt(
-                self.causal_signal_chain,
-                scenario_id=str(self.causal_signal_chain["scenario_id"]),
-                tick_index=tick,
-                decision_time_s=float(tick) * float(scene.dt),
-            )
-            causal_signal_atom_input = build_no_signal_causal_atom_input(
-                self.causal_signal_chain,
-                runtime_signal_receipt,
-            )
-            receipt["causal_signal_atom_input_sha256"] = canonical_sha256(
-                causal_signal_atom_input
-            )
+            if causal_signal_atom_input is None:
+                if self.causal_signal_chain is None:
+                    raise ValueError(
+                        "fair selector requires a certified signal source"
+                    )
+                runtime_signal_receipt = build_runtime_no_signal_receipt(
+                    self.causal_signal_chain,
+                    scenario_id=str(self.causal_signal_chain["scenario_id"]),
+                    tick_index=tick,
+                    decision_time_s=float(tick) * float(scene.dt),
+                )
+                causal_signal_atom_input = build_no_signal_causal_atom_input(
+                    self.causal_signal_chain,
+                    runtime_signal_receipt,
+                )
+                receipt["causal_signal_atom_input_sha256"] = canonical_sha256(
+                    causal_signal_atom_input
+                )
             receipt["latency_ms"]["causal_sources"] = _ms(causal_started)
         else:
             causal_signal_atom_input = None
@@ -622,6 +662,13 @@ class _FairPredictBatch:
         self.primary_candidates.append(candidates.copy())
         self.primary_neighbors.append(neighbors.copy())
         if primary_eval["materialized"] is not None:
+            assert causal is not None
+            self.primary_causal_inputs.append(
+                {
+                    key: np.asarray(value).copy()
+                    for key, value in causal.items()
+                }
+            )
             self.primary_atoms.append(
                 np.asarray(
                     primary_eval["materialized"]["atom_matrix"], dtype=np.float64
@@ -1265,6 +1312,7 @@ def _run_one(
     evaluate_all_arms: bool,
     adaptation_diagnostics: bool,
     scratch_parent: Path,
+    scene_adapter: Any | None = None,
     latent_provider: Callable[[int], np.ndarray] | None = None,
     post_safety_enricher: Callable[[dict[str, Any], Any], None] | None = None,
     retain_runtime_failures: bool = False,
@@ -1275,11 +1323,15 @@ def _run_one(
     route_ids = list(route.route_lanelet_ids or ())
     if not route_ids:
         raise ValueError("fair validation route is unresolved")
-    causal_signal_chain = _build_no_signal_chain(
-        builder=builder,
-        route_ids=route_ids,
-        map_sha256=str(config["map"]["sha256"]),
-        route_sha256=str(route_spec["sha256"]),
+    causal_signal_chain = (
+        _build_no_signal_chain(
+            builder=builder,
+            route_ids=route_ids,
+            map_sha256=str(config["map"]["sha256"]),
+            route_sha256=str(route_spec["sha256"]),
+        )
+        if scene_adapter is None
+        else None
     )
     spawn = replay.SpawnConfig(**dict(config["spawn_config"]))
     spawn.max_steps = max_ticks
@@ -1302,6 +1354,7 @@ def _run_one(
         evaluate_all_arms=evaluate_all_arms,
         adaptation_diagnostics=adaptation_diagnostics,
         causal_signal_chain=causal_signal_chain,
+        scene_adapter=scene_adapter,
         latent_provider=latent_provider,
     )
 
