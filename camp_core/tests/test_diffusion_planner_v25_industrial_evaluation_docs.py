@@ -8,17 +8,17 @@ import re
 ROOT = Path(__file__).resolve().parents[2]
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 AUDIT = ROOT / "docs" / "diffusion_planner_v25_iteration_audit.md"
-REPORT = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_amendment_report.md"
-INDEX = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_evidence_index.md"
-MIGRATION = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_migration_matrix.md"
-FUTURE = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan.md"
+REPORT = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_amendment_v2_report.md"
+INDEX = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_evidence_index_v2.md"
+MIGRATION = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_migration_matrix_v2.md"
+FUTURE = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan_v2.md"
 
 CURRENT_HEADING = (
-    "## Current V25 Status - Industrial-Oriented Evaluation-System Amendment "
+    "## Current V25 Status - Industrial-Oriented Evaluation-System Amendment v2 "
     "Independently Reviewed"
 )
 AUDIT_HEADING = (
-    "## 2026-07-26 - Industrial-Oriented Evaluation-System Amendment "
+    "## 2026-07-26 - Industrial-Oriented Evaluation-System Amendment v2 "
     "Independently Reviewed"
 )
 
@@ -36,7 +36,7 @@ def _tuple(text: str) -> dict[str, str]:
     return result
 
 
-def test_current_named_section_and_audit_eof_are_exact_845_field_twins() -> None:
+def test_current_named_section_and_audit_eof_are_exact_875_field_twins() -> None:
     status_text = STATUS.read_text(encoding="utf-8")
     audit_text = AUDIT.read_text(encoding="utf-8")
     assert status_text.count(CURRENT_HEADING) == 1
@@ -48,14 +48,14 @@ def test_current_named_section_and_audit_eof_are_exact_845_field_twins() -> None
     current_tuple = _tuple(current)
     audit_tuple = _tuple(audit_eof)
     assert current_tuple == audit_tuple
-    assert len(current_tuple) == 845
+    assert len(current_tuple) == 875
     assert current.count("current_v25_status=") == 1
     assert current_tuple["current_v25_status"] == (
-        "industrial_oriented_evaluation_system_amendment_independently_"
+        "industrial_oriented_evaluation_system_amendment_v2_independently_"
         "reviewed_scientific_contract_review_required"
     )
     assert audit_text.rstrip().endswith(
-        "next_work_target=high_control_review_of_industrial_evaluation_amendment_"
+        "next_work_target=high_control_review_of_industrial_evaluation_amendment_v2_"
         "before_any_training_support_or_batch8_calibration_decision"
     )
 
@@ -78,11 +78,11 @@ def test_document_hashes_and_sealed_roots_are_bound() -> None:
         "current_v25_industrial_evaluation_future_prereg_plan_sha256"
     ] == _sha(FUTURE)
     roots = (
-        "2e04cbfdd386ccb04a0efb0b818a1d481aea7ddfb3ad8ba580ecfbc0b91fb31e",
-        "9d82089ad6ce3b41789662c0d232c33c45a86103d1cd5348da54b51d5516335a",
-        "7736d35f5a33d47967b83ad3c5a236dd3d9e5d9d0d66450e8bf6dbe4109f9d31",
-        "6d252bd2a52eb974e77234ab0ed85104f0dbc068f08bc5d08204bc2c1024136a",
-        "0902230a0640622667c0fb79b1c9f8f069070010cf84abe894ac2e6f7afa26d2",
+        "663977da1d1fe5d594764478881729f10483d13453c22024329375954b9ba3bb",
+        "8ed937f521beb0f2163366b6999c8238eef173cdab67df7e5922e0f301a5b5f7",
+        "86ab14e231129da7ec72dd7d632dd05336e03772c4af83e3d8e2dbdaec3e3afe",
+        "0c6f25de790a48fb71001e94be31f0f56c92eb2c5f86c31fedc727f0a0b921cd",
+        "0bccb1326860e3c1f74c5012fc6e40160722817a308212c8ec10f75b5209e4ec",
     )
     index = INDEX.read_text(encoding="utf-8")
     assert all(root in index and root in text for root in roots)
@@ -92,15 +92,13 @@ def test_document_hashes_and_sealed_roots_are_bound() -> None:
 def test_report_preserves_vector_missing_and_no_claim_boundaries() -> None:
     report = " ".join(REPORT.read_text(encoding="utf-8").split())
     for phrase in (
-        "56-endpoint vector",
-        "No weighted total is allowed",
+        "161-scalar-leaf",
+        "no weighted total",
         "immutable_legacy_exploratory_diagnostic_only",
         "numeric_margin_not_authorized_until_future_preregistration",
-        "Missing is never converted to zero",
-        "0.4 m/s crossing remains a crossing",
-        "not ISO VDV",
-        "not occupant comfort",
-        "not_assessed",
+        "holm_bonferroni_step_down_within_exact_family",
+        "collision_onset_relative_closing_speed_kinematic_proxy_mps",
+        "not occupant/seat comfort",
         "honest_no_claim_under_frozen_preregistered_all_gate",
     ):
         assert phrase in report
@@ -113,10 +111,10 @@ def test_migration_and_future_plan_do_not_reauthorize_legacy_or_runs() -> None:
     future = " ".join(FUTURE.read_text(encoding="utf-8").split())
     assert "SafetyCost weighted sum" in migration
     assert "Never primary, PASS, claim, training support, or adaptation evidence" in migration
-    assert "Five-point is never a polygon substitute" in migration
-    assert "Stateless segment jumps forbidden" in migration
-    assert "No SafetyCost" in future
-    assert "authorizes no model, pool, selector, calibration, validation" in future
+    assert "exact sealed root/review root" in migration
+    assert "collision-onset relative-closing-speed" in migration
+    assert "Preserve SafetyCost" in future
+    assert "authorizes no model, pool, selector, training" in future
     assert "Never create a weighted total" in future
 
 
@@ -126,14 +124,15 @@ def test_current_machine_zero_run_and_capability_counts() -> None:
         .split(CURRENT_HEADING, 1)[1]
         .split("## Historical V25 Status Through A1.6.11", 1)[0]
     )
-    assert status["current_v25_industrial_evaluation_endpoint_count"] == "56"
+    assert status["current_v25_industrial_evaluation_parent_endpoint_count"] == "56"
+    assert status["current_v25_industrial_evaluation_scalar_leaf_count"] == "161"
     assert (
         status[
             "current_v25_industrial_evaluation_reconstructable_with_frozen_transform_count"
         ]
-        == "42"
+        == "119"
     )
-    assert status["current_v25_industrial_evaluation_evidence_missing_count"] == "13"
+    assert status["current_v25_industrial_evaluation_evidence_missing_count"] == "41"
     assert (
         status["current_v25_industrial_evaluation_scientifically_inapplicable_count"]
         == "1"
@@ -168,18 +167,18 @@ def test_current_machine_zero_run_and_capability_counts() -> None:
     )
 
 
-def test_superseded_local_diagnostic_is_exact_and_outside_accepted_roots() -> None:
+def test_superseded_v1_and_pre_capability_fixture_are_preserved() -> None:
     report = REPORT.read_text(encoding="utf-8")
-    normalized_report = " ".join(report.split())
     index = INDEX.read_text(encoding="utf-8")
     expected = (
-        "6eba8cfa4c232fc7c70ebc85755caf8117917081956302953f6d6173b81fbd13",
-        "f95ce26ec2658bdbece28f09a5f3b6766fecbfcd0178b21743ee24a4b6a8d3d1",
-        "085db0eb3984754f0655eca2daa4105f94fc36e6b0b192fee1cbb84c44cfac3f",
-        "3d67efa24ddbfbb6447542804d9460ef9826cc132b0c587d04b6f24ac392ca92",
+        "2e04cbfd",
+        "9d82089a",
+        "7736d35f",
+        "6d252bd2",
+        "0902230a",
+        "2981e632",
+        "c9b79252",
     )
-    assert all(value in report and value in index for value in expected)
-    assert "two tracked modified files and nine untracked files" in normalized_report
-    assert "passed 39/39" in normalized_report
-    assert "not deleted, reset, staged, committed" in normalized_report
-    assert "Included in accepted amendment roots: `false`" in index
+    assert all(value in index for value in expected)
+    assert "superseded v1 roots" in report
+    assert "pre-capability inventory-SHA fixture diagnostic" in index

@@ -100,16 +100,16 @@ BATCH8_CALIBRATION_CONTRACT_INDEX = (
     / "diffusion_planner_v25_batch8_calibration_contract_evidence_index.md"
 )
 INDUSTRIAL_EVALUATION_REPORT = (
-    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_amendment_report.md"
+    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_amendment_v2_report.md"
 )
 INDUSTRIAL_EVALUATION_INDEX = (
-    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_evidence_index.md"
+    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_evidence_index_v2.md"
 )
 INDUSTRIAL_EVALUATION_MIGRATION = (
-    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_migration_matrix.md"
+    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_migration_matrix_v2.md"
 )
 INDUSTRIAL_EVALUATION_FUTURE_PLAN = (
-    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan.md"
+    ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan_v2.md"
 )
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
@@ -574,7 +574,7 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Industrial-Oriented Evaluation-System Amendment "
+        "## Current V25 Status - Industrial-Oriented Evaluation-System Amendment v2 "
         "Independently Reviewed"
     )
     assert text.count("## Current V25 Status") == 1
@@ -586,7 +586,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-26 - Industrial-Oriented Evaluation-System Amendment "
+        "## 2026-07-26 - Industrial-Oriented Evaluation-System Amendment v2 "
         "Independently Reviewed"
     )
     assert text.count(heading) == 1
@@ -597,15 +597,15 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "industrial_oriented_evaluation_system_amendment_independently_reviewed_"
+        "industrial_oriented_evaluation_system_amendment_v2_independently_reviewed_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "industrial_oriented_evaluation_system_amendment_independently_reviewed"
+        "industrial_oriented_evaluation_system_amendment_v2_independently_reviewed"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_control_review_of_industrial_evaluation_amendment_before_any_"
+        "high_control_review_of_industrial_evaluation_amendment_v2_before_any_"
         "training_support_or_batch8_calibration_decision"
     )
 
@@ -617,7 +617,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 845
+    assert len(status_pointer) == 875
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -705,7 +705,8 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_industrial_evaluation_future_prereg_plan_sha256"
     ] == _sha256(INDUSTRIAL_EVALUATION_FUTURE_PLAN)
-    assert status_pointer["current_v25_industrial_evaluation_endpoint_count"] == "56"
+    assert status_pointer["current_v25_industrial_evaluation_parent_endpoint_count"] == "56"
+    assert status_pointer["current_v25_industrial_evaluation_scalar_leaf_count"] == "161"
     assert status_pointer[
         "current_v25_industrial_evaluation_new_weighted_total"
     ] == "false"
@@ -1160,7 +1161,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_control_review_of_industrial_evaluation_amendment_before_any_"
+            "high_control_review_of_industrial_evaluation_amendment_v2_before_any_"
         "training_support_or_batch8_calibration_decision"
     )
     assert "| 1 | 14D atom table |" in index
