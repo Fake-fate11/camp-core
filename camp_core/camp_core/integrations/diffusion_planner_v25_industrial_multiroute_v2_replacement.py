@@ -11,7 +11,6 @@ from __future__ import annotations
 from copy import deepcopy
 import hashlib
 import json
-import math
 from typing import Any, Mapping
 
 import numpy as np
@@ -154,33 +153,31 @@ def replacement_exact_dirs(
 
 
 def _route_record(source_record: Mapping[str, Any]) -> dict[str, Any]:
+    record = source_record
+    route = record["route"]
     geometry = source_record["route"]["geometry"]
-    points = np.asarray(geometry["centerline_points_m"], dtype=np.float64)
-    headings = []
-    for start, end in zip(points[:-1], points[1:], strict=True):
-        delta = end - start
-        headings.append(float(math.atan2(delta[1], delta[0])))
-    headings.append(headings[-1])
-    ordinal = int(source_record["ordinal"])
-    base = 3_000_000 + ordinal * 1_000
+    headings = geometry["segment_headings_rad"]
     return {
-        "schema_version": "camp_dp_v25_multiroute_runtime_route_v1",
-        "route_name": f"project_multiroute_{ordinal:03d}",
-        "route_sha256": source_record["route"]["route_lanelet_arc_sha256"],
-        "map_sha256": source_record["map"]["sha256"],
-        "source_map_path": source_record["map"]["relative_path"],
-        "source_map_sha256": source_record["map"]["sha256"],
+        "record_key": f"project_source:{int(record['ordinal']):03d}",
+        "map_family_id": "project_authored_multiroute_source_v1",
+        "identity_sha256": route["route_lanelet_arc_sha256"],
+        "route_serialization_sha256": route["route_lanelet_arc_sha256"],
+        "source_map_path": record["map"]["relative_path"],
+        "source_map_sha256": record["map"]["sha256"],
         "route_spec": {
-            "ordered_lanelet_ids": [base + 401 + index for index in range(4)],
+            "ordered_lanelet_ids": [
+                3_000_000 + int(record["ordinal"]) * 1_000 + 401 + index
+                for index in range(4)
+            ],
             "centerline_points_m": geometry["centerline_points_m"],
             "goal_tolerance_m": 2.0,
             "goal_pass_window_m": 5.0,
         },
         "source_stratum": {
             "traffic_light": (
-                source_record["cell"]["source_availability"] == "mapped_signal"
+                record["cell"]["source_availability"] == "mapped_signal"
             ),
-            "branch_intersection": source_record["cell"]["route_bin"]
+            "branch_intersection": record["cell"]["route_bin"]
             != "heading_change_abs_le_0_15rad",
         },
         "centerline_samples_m": geometry["centerline_points_m"],
