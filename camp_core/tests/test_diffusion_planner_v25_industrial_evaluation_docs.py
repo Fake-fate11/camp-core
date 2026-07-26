@@ -8,17 +8,17 @@ import re
 ROOT = Path(__file__).resolve().parents[2]
 STATUS = ROOT / "docs" / "diffusion_planner_current_status.md"
 AUDIT = ROOT / "docs" / "diffusion_planner_v25_iteration_audit.md"
-REPORT = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_amendment_v2_report.md"
-INDEX = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_evidence_index_v2.md"
-MIGRATION = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_migration_matrix_v2.md"
-FUTURE = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan_v2.md"
+REPORT = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_amendment_v3_report.md"
+INDEX = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_evidence_index_v3.md"
+MIGRATION = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_migration_matrix_v3.md"
+FUTURE = ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan_v3.md"
 
 CURRENT_HEADING = (
-    "## Current V25 Status - Industrial-Oriented Evaluation-System Amendment v2 "
+    "## Current V25 Status - Industrial-Oriented Evaluation-System Amendment v3 "
     "Independently Reviewed"
 )
 AUDIT_HEADING = (
-    "## 2026-07-26 - Industrial-Oriented Evaluation-System Amendment v2 "
+    "## 2026-07-26 - Industrial-Oriented Evaluation-System Amendment v3 "
     "Independently Reviewed"
 )
 
@@ -36,7 +36,7 @@ def _tuple(text: str) -> dict[str, str]:
     return result
 
 
-def test_current_named_section_and_audit_eof_are_exact_875_field_twins() -> None:
+def test_current_named_section_and_audit_eof_are_exact_904_field_twins() -> None:
     status_text = STATUS.read_text(encoding="utf-8")
     audit_text = AUDIT.read_text(encoding="utf-8")
     assert status_text.count(CURRENT_HEADING) == 1
@@ -48,14 +48,14 @@ def test_current_named_section_and_audit_eof_are_exact_875_field_twins() -> None
     current_tuple = _tuple(current)
     audit_tuple = _tuple(audit_eof)
     assert current_tuple == audit_tuple
-    assert len(current_tuple) == 875
+    assert len(current_tuple) == 904
     assert current.count("current_v25_status=") == 1
     assert current_tuple["current_v25_status"] == (
-        "industrial_oriented_evaluation_system_amendment_v2_independently_"
+        "industrial_oriented_evaluation_system_amendment_v3_independently_"
         "reviewed_scientific_contract_review_required"
     )
     assert audit_text.rstrip().endswith(
-        "next_work_target=high_control_review_of_industrial_evaluation_amendment_v2_"
+        "next_work_target=high_control_review_of_industrial_evaluation_amendment_v3_"
         "before_any_training_support_or_batch8_calibration_decision"
     )
 
@@ -78,11 +78,11 @@ def test_document_hashes_and_sealed_roots_are_bound() -> None:
         "current_v25_industrial_evaluation_future_prereg_plan_sha256"
     ] == _sha(FUTURE)
     roots = (
-        "663977da1d1fe5d594764478881729f10483d13453c22024329375954b9ba3bb",
-        "8ed937f521beb0f2163366b6999c8238eef173cdab67df7e5922e0f301a5b5f7",
-        "86ab14e231129da7ec72dd7d632dd05336e03772c4af83e3d8e2dbdaec3e3afe",
-        "0c6f25de790a48fb71001e94be31f0f56c92eb2c5f86c31fedc727f0a0b921cd",
-        "0bccb1326860e3c1f74c5012fc6e40160722817a308212c8ec10f75b5209e4ec",
+        "908fe1d57014e4932f71462d6d7e73ec58390f3296b3018df38092e4c0b128cb",
+        "23bb07ac537f9d53f7a2860b2314f55da4e2d468590d002c6cf25733f5e48556",
+        "fbcc8ab194520534c3b4986cccaf3d9a073b2cf975b6e3f006f61abe7791f20d",
+        "f32cb19b2c7bbd64e290f07a270f3e43462d31c86dc130a0c23a8b6eb363eec3",
+        "06f221f4cf8fc86ae19f632fcc2fa74080575966224090fc552db89a190abb5b",
     )
     index = INDEX.read_text(encoding="utf-8")
     assert all(root in index and root in text for root in roots)
@@ -93,12 +93,15 @@ def test_report_preserves_vector_missing_and_no_claim_boundaries() -> None:
     report = " ".join(REPORT.read_text(encoding="utf-8").split())
     for phrase in (
         "161-scalar-leaf",
-        "no weighted total",
+        "No weighted total",
         "immutable_legacy_exploratory_diagnostic_only",
         "numeric_margin_not_authorized_until_future_preregistration",
         "holm_bonferroni_step_down_within_exact_family",
         "collision_onset_relative_closing_speed_kinematic_proxy_mps",
-        "not occupant/seat comfort",
+        "max(0,-dot(r_tau,v_rel_tau)/max(norm(r_tau),1e-9))",
+        "(p_value,leaf_id)",
+        "ordinary 95% CI is descriptive only",
+        "distinct from occupant/seat comfort",
         "honest_no_claim_under_frozen_preregistered_all_gate",
     ):
         assert phrase in report
@@ -110,11 +113,11 @@ def test_migration_and_future_plan_do_not_reauthorize_legacy_or_runs() -> None:
     migration = " ".join(MIGRATION.read_text(encoding="utf-8").split())
     future = " ".join(FUTURE.read_text(encoding="utf-8").split())
     assert "SafetyCost weighted sum" in migration
-    assert "Never primary, PASS, claim, training support, or adaptation evidence" in migration
+    assert "Never primary, PASS, claim, training-support or adaptation evidence" in migration
     assert "exact sealed root/review root" in migration
-    assert "collision-onset relative-closing-speed" in migration
-    assert "Preserve SafetyCost" in future
-    assert "authorizes no model, pool, selector, training" in future
+    assert "Nonnegative closing-speed formula" in migration
+    assert "Keep SafetyCost" in future
+    assert "No model, pool, selector, training" in future
     assert "Never create a weighted total" in future
 
 
@@ -178,7 +181,13 @@ def test_superseded_v1_and_pre_capability_fixture_are_preserved() -> None:
         "0902230a",
         "2981e632",
         "c9b79252",
+        "663977da",
+        "8ed937f5",
+        "86ab14e2",
+        "0c6f25de",
+        "0bccb132",
     )
     assert all(value in index for value in expected)
     assert "superseded v1 roots" in report
+    assert "superseded v2 roots" in report
     assert "pre-capability inventory-SHA fixture diagnostic" in index
