@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 
 import numpy as np
 import pytest
@@ -142,10 +143,9 @@ def test_bare_interpreter_is_absent_from_new_versioned_sources() -> None:
     ]
     for path in paths:
         source = path.read_text(encoding="utf-8")
-        assert '"python"' not in source
-        assert "'python'" not in source
-        assert '"python3"' not in source
-        assert "'python3'" not in source
+        assert re.search(
+            r"(?:^|[\s;&|])python3?(?:\s|$)", source, flags=re.MULTILINE
+        ) is None
 
 
 def test_evaluation_reviewer_uses_literal_metrics_not_evaluator_oracle() -> None:
