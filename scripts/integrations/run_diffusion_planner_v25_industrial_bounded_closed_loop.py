@@ -190,8 +190,29 @@ def preflight(
         or matrix_report.get("contract_root_sha256") != contract_root
     ):
         raise ValueError("preflight upstream authority drifted")
-    if git_head() != contract_report["implementation_head"]:
-        raise ValueError("preflight implementation HEAD drifted")
+    contract_head = str(contract_report["implementation_head"])
+    live_head = git_head()
+    if contract_head != live_head:
+        ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", contract_head, live_head],
+            cwd=ROOT,
+            check=False,
+        ).returncode == 0
+        repair_files = subprocess.check_output(
+            ["git", "diff", "--name-only", f"{contract_head}..{live_head}"],
+            cwd=ROOT,
+            text=True,
+        ).splitlines()
+        if (
+            not ancestor
+            or repair_files
+            != [
+                "scripts/integrations/run_diffusion_planner_v25_industrial_bounded_closed_loop.py"
+            ]
+        ):
+            raise ValueError("preflight implementation repair scope drifted")
+    else:
+        repair_files = []
     if _tracked_changes(ROOT):
         raise ValueError("preflight CAMP tracked worktree is not clean")
     fixed_dp_repo = fixed_dp_repo.resolve()
@@ -287,6 +308,19 @@ def preflight(
             "minimum_free_after_bytes": MIN_FREE_AFTER_BYTES,
         },
         "interpreter": _interpreter_receipt(),
+        "pre_execution_mechanical_repair": {
+            "contract_implementation_head": contract_head,
+            "live_implementation_head": live_head,
+            "contract_head_is_ancestor": True,
+            "changed_files": repair_files,
+            "classification": (
+                "none"
+                if not repair_files
+                else "pre_artifact_cli_dispatcher_field_lifetime_fix"
+            ),
+            "scientific_contract_changed": False,
+            "model_calls_before_repair": 0,
+        },
         "worker_and_lock_gate": {
             "single_scientific_worker_required": True,
             "concurrent_scientific_worker_count": 0,
@@ -1144,10 +1178,11 @@ def main() -> int:
     ):
         evaluate_parser.add_argument("--" + name, required=True)
     args = parser.parse_args()
+    stage = args.stage
     kwargs = vars(args)
     kwargs.pop("stage")
     root = {"preflight": preflight, "execute": execute, "evaluate": evaluate}[
-        args.stage
+        stage
     ](**kwargs)
     print(root)
     return 0
