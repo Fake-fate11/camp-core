@@ -141,6 +141,8 @@ def closeout(*, repo: Path, output: Path = OUTPUT) -> str:
         "candidate_tensor_sha256",
         "neighbor_tensor_sha256",
         "candidate_row_sha256",
+        "candidate_relpath",
+        "neighbor_relpath",
         "candidate_tensor_sha256_before",
         "candidate_tensor_sha256_after",
         "neighbor_tensor_sha256_before",
