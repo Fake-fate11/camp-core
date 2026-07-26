@@ -111,6 +111,16 @@ INDUSTRIAL_EVALUATION_MIGRATION = (
 INDUSTRIAL_EVALUATION_FUTURE_PLAN = (
     ROOT / "docs" / "diffusion_planner_v25_industrial_evaluation_future_prereg_plan_v3.md"
 )
+SELECTOR_REPLACEMENT_REPORT = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_selector_after_pool_replay_replacement_report.md"
+)
+SELECTOR_REPLACEMENT_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_selector_after_pool_replay_replacement_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -574,8 +584,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Corrected Same-Input/Same-Latent Batch8 "
-        "Repeatability Independently Reviewed"
+        "## Current V25 Status - Selector-After-Pool Replacement "
+        "Independently Reviewed"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -586,7 +596,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## V25 Corrected Same-Input/Same-Latent Batch8 Repeatability Review"
+        "## V25 Selector-After-Pool Replacement Review"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -596,16 +606,16 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "batch8_generator_repeatability_corrected_full_denominator_threshold_"
-        "independently_reviewed_control_decision_required"
+        "selector_after_pool_replay_replacement_full_denominator_"
+        "independently_reviewed_high_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "bounded_development_corrected_same_input_same_latent_generator_"
-        "repeatability_calibration_full_denominator_and_independently_"
-        "reviewed_envelope"
+        "bounded_development_zero_model_selector_after_pool_replacement_"
+        "full_denominator_and_independently_reviewed_runtime_compatibility"
     )
     assert pointer["next_work_target"] == (
-        "high_control_decision_after_corrected_generator_repeatability_envelope"
+        "high_incremental_review_of_selector_replacement_before_future_"
+        "closed_loop_hardening_authority"
     )
 
 
@@ -616,7 +626,13 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 958
+    assert len(status_pointer) == 1008
+    assert status_pointer[
+        "current_v25_selector_replacement_report_sha256"
+    ] == _sha256(SELECTOR_REPLACEMENT_REPORT)
+    assert status_pointer[
+        "current_v25_selector_replacement_evidence_index_sha256"
+    ] == _sha256(SELECTOR_REPLACEMENT_INDEX)
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -1159,7 +1175,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert _machine_tuple(audit_eof)["next_work_target"] == (
-        "high_control_decision_after_corrected_generator_repeatability_envelope"
+        "high_incremental_review_of_selector_replacement_before_future_"
+        "closed_loop_hardening_authority"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
