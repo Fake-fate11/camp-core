@@ -165,15 +165,14 @@ def _source_cases(
     *, dp_repo: Path
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     plan, _formal_root = _load_formal_plan()
-    corpus = _json(TRAINING_CORPUS / "report.json")
+    census = _json(SOURCE_CENSUS / "route_signal_source_receipts.json")
     cases = _attach_semantic_clone_authority(
         [deepcopy(row) for row in plan["train"] if row["runner_eligible"]],
         dp_repo=dp_repo,
         r0_source_artifact=SOURCE_CENSUS,
-        expected_camp_source_head=str(corpus["implementation_source_head"]),
+        expected_camp_source_head=str(census["camp_source_head"]),
         r0_source_root_sha256=SOURCE_CENSUS_ROOT,
     )
-    census = _json(SOURCE_CENSUS / "route_signal_source_receipts.json")
     source_rows = [row for row in census["cases"] if row["runner_eligible"]]
     by_id = {str(row["scenario_id"]): row for row in source_rows}
     if (
