@@ -663,6 +663,113 @@ def _episodes(mask: list[bool]) -> int:
     return sum(value and (index == 0 or not mask[index - 1]) for index, value in enumerate(mask))
 
 
+def _signed_area(vertices: np.ndarray) -> float:
+    shifted = np.roll(vertices, -1, axis=0)
+    return float(
+        0.5
+        * np.sum(
+            vertices[:, 0] * shifted[:, 1]
+            - vertices[:, 1] * shifted[:, 0]
+        )
+    )
+
+
+def _simplify_simple_polygon(value: Any, *, eps: float = 1e-9) -> np.ndarray:
+    vertices = np.asarray(value, dtype=np.float64)
+    if (
+        vertices.ndim != 2
+        or vertices.shape[0] < 3
+        or vertices.shape[1] != 2
+        or not np.isfinite(vertices).all()
+    ):
+        raise ValueError("drivable lanelet polygon must be finite Nx2")
+    kept = [vertices[0]]
+    for point in vertices[1:]:
+        if float(np.linalg.norm(point - kept[-1])) > eps:
+            kept.append(point)
+    if len(kept) > 1 and float(np.linalg.norm(kept[0] - kept[-1])) <= eps:
+        kept.pop()
+    changed = True
+    while changed and len(kept) > 3:
+        changed = False
+        for index in range(len(kept)):
+            before = kept[index - 1]
+            current = kept[index]
+            after = kept[(index + 1) % len(kept)]
+            cross = float(np.cross(current - before, after - current))
+            if abs(cross) <= eps:
+                del kept[index]
+                changed = True
+                break
+    result = np.asarray(kept, dtype=np.float64)
+    area = _signed_area(result)
+    if result.shape[0] < 3 or abs(area) <= eps:
+        raise ValueError("drivable lanelet polygon is degenerate")
+    return result if area > 0.0 else result[::-1].copy()
+
+
+def _point_in_triangle(
+    point: np.ndarray, triangle: np.ndarray, *, eps: float = 1e-9
+) -> bool:
+    crosses = []
+    for index in range(3):
+        start = triangle[index]
+        end = triangle[(index + 1) % 3]
+        crosses.append(float(np.cross(end - start, point - start)))
+    return all(value >= -eps for value in crosses)
+
+
+def _convex_partition_drivable_polygons(
+    polygons: Any, *, eps: float = 1e-9
+) -> list[list[list[float]]]:
+    if type(polygons) is not list or not polygons:
+        raise ValueError("root-bound drivable polygon inventory is empty")
+    triangles: list[list[list[float]]] = []
+    for polygon_index, value in enumerate(polygons):
+        vertices = _simplify_simple_polygon(value, eps=eps)
+        original_area = _signed_area(vertices)
+        indices = list(range(vertices.shape[0]))
+        local: list[np.ndarray] = []
+        while len(indices) > 3:
+            clipped = False
+            for offset, current_index in enumerate(indices):
+                before_index = indices[offset - 1]
+                after_index = indices[(offset + 1) % len(indices)]
+                triangle = vertices[
+                    [before_index, current_index, after_index]
+                ]
+                if float(
+                    np.cross(
+                        triangle[1] - triangle[0],
+                        triangle[2] - triangle[1],
+                    )
+                ) <= eps:
+                    continue
+                if any(
+                    _point_in_triangle(vertices[index], triangle, eps=eps)
+                    for index in indices
+                    if index not in {before_index, current_index, after_index}
+                ):
+                    continue
+                local.append(triangle)
+                del indices[offset]
+                clipped = True
+                break
+            if not clipped:
+                raise ValueError(
+                    "root-bound drivable polygon cannot be deterministically "
+                    f"convex-partitioned: index={polygon_index}"
+                )
+        local.append(vertices[indices])
+        partition_area = sum(_signed_area(triangle) for triangle in local)
+        if not math.isclose(
+            partition_area, original_area, rel_tol=1e-10, abs_tol=1e-9
+        ):
+            raise ValueError("drivable convex partition does not preserve area")
+        triangles.extend(triangle.tolist() for triangle in local)
+    return triangles
+
+
 def _latency_distribution(values: list[float]) -> dict[str, float]:
     array = np.asarray(values, dtype=np.float64)
     if array.shape != (64,) or not np.all(np.isfinite(array)):
@@ -1021,6 +1128,13 @@ def evaluate(
         raise ValueError("evaluation requires complete bounded execution")
     config = object_from(probe_config)
     geometry = _load_root_bound_geometry(config)
+    geometry = dict(geometry)
+    geometry["drivable_polygons"] = _convex_partition_drivable_polygons(
+        geometry["drivable_polygons"]
+    )
+    geometry["drivable_polygon_transform"] = (
+        "deterministic_simple_polygon_ear_clipping_exact_union_v1"
+    )
     arm_summaries = {}
     arm_latencies = {}
     for arm in execution["arms"]:

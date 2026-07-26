@@ -27,6 +27,10 @@ from camp_core.integrations.diffusion_planner_v25_industrial_bounded_closed_loop
 from camp_core.integrations.diffusion_planner_v25_industrial_evaluation_contract_v3 import (
     evaluation_contract_v3,
 )
+from scripts.integrations.run_diffusion_planner_v25_industrial_bounded_closed_loop import (
+    _convex_partition_drivable_polygons,
+    _signed_area,
+)
 
 
 def test_contract_freezes_target_architecture_and_single_cluster_boundary() -> None:
@@ -119,6 +123,27 @@ def test_baseline_latency_n_a_is_not_zero() -> None:
     bad["selector_pure_incremental"] = 0.0
     with pytest.raises(ValueError):
         validate_latency_row("pool_matched_candidate0", bad)
+
+
+def test_drivable_polygon_convex_partition_preserves_concave_union_area() -> None:
+    concave = [
+        [0.0, 0.0],
+        [2.0, 0.0],
+        [2.0, 1.0],
+        [1.0, 1.0],
+        [1.0, 2.0],
+        [0.0, 2.0],
+    ]
+    triangles = _convex_partition_drivable_polygons([concave])
+    assert len(triangles) == 4
+    assert all(np.asarray(row).shape == (3, 2) for row in triangles)
+    assert sum(_signed_area(np.asarray(row)) for row in triangles) == pytest.approx(
+        3.0, abs=1e-12
+    )
+    with pytest.raises(ValueError):
+        _convex_partition_drivable_polygons(
+            [[[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]]]
+        )
 
 
 def test_industrial_leaf_topology_is_exact_161() -> None:
