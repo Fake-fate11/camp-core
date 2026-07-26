@@ -109,13 +109,10 @@ SEALED_SOURCES = {
         "review_root": v1.EXECUTION_REVIEW_ROOT,
         "required_inventory": {
             "artifact_report.json": (
-                "63483ab8e368e6281f1da63a913a6294e30ee2bd40af5d50a41e08362a95f5db"
+                "63483ab854859787839d4223eed944444cfdf00acdfa62f6dfb2c139557db5db"
             ),
             "report.json": (
-                "d7b8214f29b7cb7743876d2c87e2df0dc1e0a35ce6d0242186fb2ca1903bded2"
-            ),
-            "HEADS": (
-                "9623e17b06e35b065653c7b7d47f66c113b4a65a69be4adb7fd4309873fa4f81"
+                "d7b8214f06404791528f4132c296925548cdc8a6cdd7b43affa2e5a7022cded2"
             ),
         },
     },
@@ -124,10 +121,7 @@ SEALED_SOURCES = {
         "review_root": None,
         "required_inventory": {
             "report.json": (
-                "2f1e9f0288ac442110ae4f0ecf7c3a10bbdc5f29ebef008465427ec1a288e40a"
-            ),
-            "HEADS": (
-                "9623e17b06e35b065653c7b7d47f66c113b4a65a69be4adb7fd4309873fa4f81"
+                "2f1e9f02db78ab1f12da6f5597d369eefeb78659d443b6e6431a21f7349be40a"
             ),
         },
     },
@@ -136,10 +130,7 @@ SEALED_SOURCES = {
         "review_root": v1.EVALUATION_V2_REVIEW_ROOT,
         "required_inventory": {
             "report.json": (
-                "e193c5ac2014777ff8d78003ae798bf61151e53ea86b85f1abf6635f5676f8a2"
-            ),
-            "HEADS": (
-                "005c185d95c31df65b0bc7fc87e86add13b78026926780153958680bed3731ef"
+                "e193c5ac622e49fb983529734f4efd234445e26349ad2dfbc53c7b6719e3f8a2"
             ),
         },
     },
@@ -148,10 +139,7 @@ SEALED_SOURCES = {
         "review_root": None,
         "required_inventory": {
             "report.json": (
-                "2cd808e5f87e92c21219a887eab3eec9e5d13383599ffea8f032d76d901c6724"
-            ),
-            "HEADS": (
-                "80e6cedb9d321d67c4a9a6f44b682ab93648a55cbbe4e6a995db5a015c6ea360"
+                "2cd808e5f29c4520e79c68128e44d34b0e03c0d18049b617e475e9fe13f86724"
             ),
         },
     },
@@ -160,10 +148,7 @@ SEALED_SOURCES = {
         "review_root": v1.EVALUATION_V2_MATERIALIZATION_REVIEW_ROOT,
         "required_inventory": {
             "report.json": (
-                "26102e5908f4d4f9411dd76e4d89f92d0ab6b1b1da24eff46eb0393094251cbb"
-            ),
-            "HEADS": (
-                "95729027a5123e594d2d8c5df68c3375654852050284bf5817c2deff4091478d"
+                "26102e59bfe00ef9b4d9bf5e3eba80d7429cab79b771fa205756b05a50b64cbb"
             ),
         },
     },
@@ -172,10 +157,7 @@ SEALED_SOURCES = {
         "review_root": None,
         "required_inventory": {
             "report.json": (
-                "9a8534888416f88ed13343503461308b38c1a89e7df2679e23a12f537dfd5f4b"
-            ),
-            "HEADS": (
-                "34ed389b296dbeabdf7e98d9df93ea77645fbdf6fac7f9fc84826ed52a7158c1"
+                "9a85348897ac969d4022b3f30a3768b8981e4c724759037b271115d6d5175f4b"
             ),
         },
     },
@@ -184,10 +166,7 @@ SEALED_SOURCES = {
         "review_root": v1.METRIC_SEMANTICS_REVIEW_ROOT,
         "required_inventory": {
             "report.json": (
-                "bcb45030be87dd8e21e3d733cc93f8d5173275689743c302107e1fe31d075565"
-            ),
-            "HEADS": (
-                "78d07b6e7159e5a17df9ee16599024bad912282c4079626b700470ef7f835323"
+                "bcb45030ad8e08191a7347cc9667696e4d8bf0272c05a847cf53b0ffbfcb5565"
             ),
         },
     },
@@ -196,7 +175,7 @@ SEALED_SOURCES = {
         "review_root": None,
         "required_inventory": {
             "report.json": (
-                "56a270778b7f480464456083873f5732c0572bd49281cf107e1966dd9b6e4f03"
+                "56a270778ae7e0558e08056d1c9728b913d47c83567ddbf100e41d0416bf4f03"
             ),
         },
     },
