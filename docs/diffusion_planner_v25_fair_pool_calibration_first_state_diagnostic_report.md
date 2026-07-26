@@ -89,7 +89,19 @@ It does not by itself establish:
 - any threshold, validation, closed-loop, Fresh benefit, safety, comfort,
   promotion, deployment, or production-readiness conclusion.
 
+## High scientific-contract decision
+
+High accepted the closeout and diagnostic evidence chain but withheld a new
+0/640 calibration authority. The automatic replacement condition required the
+first-state K8 to be valid with the prior failure attributable only to the
+harness or receipt ordering. The tensor-byte diagnostic instead established
+the real frozen diversity-gate subcondition
+`candidate_row_sha256_not_unique_across_k8`.
+
 The current machine state is
-`failed_attempt_closed_diagnostic_authorized_scientific_contract_review_required`.
-High/control must decide whether a new 0/640 development-calibration authority
-is appropriate. The executor did not start one.
+`first_state_sequential_k8_nondiversity_resolved_new_calibration_authority_withheld_scientific_contract_review_required`.
+This decision does not broaden the bounded observation into failure of batch-8,
+all 64 states, the model generally, OOD, or a need to retrain. High/control or
+the user must separately decide whether to authorize an outcome-free
+latent-injection/source audit or change the target-generator contract. The
+executor did not start a replacement calibration.

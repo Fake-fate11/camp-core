@@ -67,6 +67,14 @@ CALIBRATION_FIRST_STATE_DIAGNOSTIC_INDEX = (
     / "docs"
     / "diffusion_planner_v25_fair_pool_calibration_first_state_diagnostic_evidence_index.md"
 )
+SEQUENTIAL_LATENT_SOURCE_AUDIT_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_sequential_latent_source_audit_report.md"
+)
+SEQUENTIAL_LATENT_SOURCE_AUDIT_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_sequential_latent_source_audit_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -530,8 +538,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Failed Calibration Attempt Closed, "
-        "First-State Diagnostic Complete"
+        "## Current V25 Status - Sequential Latent Source Audit Complete, "
+        "Requested Rows Repeated"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -542,8 +550,8 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-26 - Failed Calibration Attempt Closed, "
-        "First-State Diagnostic Complete"
+        "## 2026-07-26 - Sequential Latent Source Audit Complete, "
+        "Requested Rows Repeated"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -553,16 +561,15 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_pool_failed_attempt_closed_diagnostic_authorized_"
+        "sequential_latent_source_audit_latent_input_rows_repeated_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "fair_pool_failed_attempt_closeout_preserved_"
-        "first_state_diagnostic_independently_reviewed"
+        "zero_model_call_sequential_latent_source_audit_independently_reviewed"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_first_state_diagnostic_review_before_any_new_zero_of_640_"
+        "high_latent_source_audit_review_before_any_latent_policy_or_"
         "calibration_authority"
     )
 
@@ -574,7 +581,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 551
+    assert len(status_pointer) == 603
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -626,6 +633,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_calibration_first_state_diagnostic_evidence_index_sha256"
     ] == _sha256(CALIBRATION_FIRST_STATE_DIAGNOSTIC_INDEX)
+    assert status_pointer[
+        "current_v25_sequential_latent_source_audit_report_sha256"
+    ] == _sha256(SEQUENTIAL_LATENT_SOURCE_AUDIT_REPORT)
+    assert status_pointer[
+        "current_v25_sequential_latent_source_audit_evidence_index_sha256"
+    ] == _sha256(SEQUENTIAL_LATENT_SOURCE_AUDIT_INDEX)
 
 
 def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
@@ -851,6 +864,54 @@ def test_v25_first_state_diagnostic_pointer_is_exact_and_bounded() -> None:
         assert pointer[f"{prefix}{field}"] == "false"
 
 
+def test_v25_sequential_latent_source_audit_is_zero_call_and_fail_closed() -> None:
+    pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    prefix = "current_v25_sequential_latent_source_audit_"
+    assert pointer[f"{prefix}schema"] == (
+        "camp_dp_v25_sequential_latent_injection_source_audit_v1"
+    )
+    assert pointer[f"{prefix}authority_sha256"] == (
+        "f9a91cbeac8f004cbac8b87bf170e51d54a1a09f5bc25fb256c3abd9e5106ba4"
+    )
+    assert pointer[f"{prefix}classification"] == "latent_input_rows_repeated"
+    assert pointer[f"{prefix}state_spec_id"] == "development_calibration:000"
+    assert pointer[f"{prefix}mode"] == "sequential_batch1_x8"
+    assert pointer[f"{prefix}repeat_index"] == "0"
+    assert pointer[f"{prefix}latent_seed"] == "61000"
+    assert pointer[f"{prefix}latent_shape_dtype"] == "8x321x81x4_<f4"
+    assert pointer[f"{prefix}latent_tensor_sha256"] == (
+        "b995f83f083df0321b8a575e10065aac041c14c30830129963048b73b7ebfea0"
+    )
+    assert pointer[f"{prefix}latent_finite"] == "true"
+    assert pointer[f"{prefix}latent_row_unique_cardinality"] == "2"
+    assert pointer[f"{prefix}latent_duplicate_groups"] == "1,2,3,4,5,6,7"
+    assert pointer[f"{prefix}candidate_row_unique_cardinality"] == "2"
+    assert pointer[f"{prefix}neighbor_row_unique_cardinality"] == "2"
+    assert pointer[f"{prefix}row_binding_count"] == "8"
+    assert pointer[f"{prefix}source_count"] == "4"
+    assert pointer[f"{prefix}dataflow_binding_complete"] == "true"
+    for field in (
+        "new_model_call_count",
+        "new_pool_call_count",
+        "new_selector_call_count",
+        "calibration_640_run_count",
+        "threshold_validation_closed_loop_fresh_training_count",
+        "old_artifact_cas_write_count",
+    ):
+        assert pointer[f"{prefix}{field}"] == "0"
+    assert pointer[f"{prefix}raw_outcome_read"] == "false"
+    assert pointer[f"{prefix}single_invocation_batch8_runtime_conclusion"] == (
+        "not_authorized"
+    )
+    assert pointer[f"{prefix}minimal_fix_status"] == (
+        "proposal_only_requires_new_versioned_latent_policy_contract_"
+        "before_execution"
+    )
+    assert pointer[f"{prefix}claim_authorized"] == "false"
+
+
 def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() -> None:
     pointer = _machine_tuple(
         _current_v25_section(STATUS.read_text(encoding="utf-8"))
@@ -991,7 +1052,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_first_state_diagnostic_review_before_any_new_zero_of_640_"
+        "high_latent_source_audit_review_before_any_latent_policy_or_"
         "calibration_authority"
     )
     assert "| 1 | 14D atom table |" in index

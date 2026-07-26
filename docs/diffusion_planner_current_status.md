@@ -6,152 +6,42 @@ This file is the short current-state entry point. The authoritative audit for
 new writes is `docs/diffusion_planner_v25_iteration_audit.md`. V24 and earlier
 audits are historical evidence and remain frozen.
 
-## Current V25 Status - Failed Calibration Attempt Closed, First-State Diagnostic Complete
+## Current V25 Status - Sequential Latent Source Audit Complete, Requested Rows Repeated
 
 Reader contract: this named section is the only current V25 pointer source in
 this file. Its machine tuple must match the EOF tuple in
 `docs/diffusion_planner_v25_iteration_audit.md` field for field.
 
+The failed 0/640 attempt remains immutably closed, and the separately
+authorized first-state diagnostic remains sealed. High withheld a replacement
+calibration and authorized a versioned, outcome-free source and sealed-evidence
+audit with zero new model, pool, or selector calls.
 
-High authorized development calibration only under the sealed v5 contract.
-The unique 0/640 attempt stopped at its first planned raw run after eight
-sequential batch-1 model forwards and before selector execution. Its preserved
-evidence resolves only the compound K8-validity gate, not a specific
-subcondition. The outcome-blind closeout and independent review remain sealed;
-they terminate that failed attempt, not the project.
+Preserved superseded engineering diagnostic evidence, including the original
+Fresh B4 fatal/closeout history, remains immutable and non-current.
 
-High then authorized one versioned diagnostic replay of the exact same
-`development_calibration:000 / sequential_batch1_x8 / repeat0` identity.
-An outcome-independent tensor-byte contract and independent literal review
-sealed before replay. The diagnostic performed exactly eight model forwards,
-formed its receipt before applying the gate, and stopped before selector.
+Producer and independent reviewer reconstructed the requested PCG64 latent
+from sealed authority. The `[8,321,81,4] <f4` tensor was finite but contained
+only two unique rows: row 0 was zero and rows 1 through 7 shared one SHA256.
+The source assigns one `[321,81,4]` random draw to a `[7,321,81,4]` slice, so
+NumPy broadcasts that draw across the seven requested sequential calls.
 
-Producer and reviewer independently reconstructed finite candidate and
-neighbor tensors, candidate-row SHA256 cardinality `2/8`, and duplicate group
-`[[1,2,3,4,5,6,7]]`. The exact diagnostic subcondition is
-`candidate_row_sha256_not_unique_across_k8`. This is a bounded structural
-observation, not a model/architecture failure, OOD conclusion, or retraining
-decision.
+All eight latent-row to call-index to forward-ID to candidate/neighbor-output
+bindings close. The mutually exclusive classification is
+`latent_input_rows_repeated`. It is not model mapping collapse, batch-8
+failure, all-state failure, OOD, or a retraining decision.
 
-No replacement 0/640 calibration has started. The remaining 639 runs,
-threshold materialization, validation, closed-loop, Fresh/holdout, and
-training/retraining remain unauthorized and zero. Current state is
-`failed_attempt_closed_diagnostic_authorized_scientific_contract_review_required`;
-High/control must decide any new development-calibration authority.
-
-The fixed Diffusion Planner has now passed a development/nonholdout capability
-qualification: one actual `Diffusion_Planner.forward(inputs)` call generated a
-finite, diverse same-ego K=8 pool. The operational default remains
-`batch_size=1`; this is a newly qualified batched capability, not evidence that
-the prior operational path already supplied same-invocation K=8.
-
-The pool was frozen before a three-label structural selector gate. The
-pool-matched baseline, Static14D, and Scene14D receipts share the same pool,
-tensor, input, model, and forward invocation bindings. Model calls, latent
-replacement, and trajectory generation after pool freeze were each exactly
-zero. Row0 selection in this probe was an outcome-independent structural rule,
-not execution of CAMP scoring and not effect evidence.
+A future independent-rows construction would change the frozen latent policy
+and manifest SHA. It is proposal-only and requires a new versioned contract
+and High authority before any model execution. Calibration, threshold,
+validation, closed-loop, Fresh/holdout, training/retraining, old-artifact/CAS
+writes, and claims remain zero/false.
 
 The preserved corrected-evaluation review remains a separate-role sealed
 deterministic replay using the frozen canonical evaluation core; it is not
 claimed to be a reviewer-local independent statistical implementation.
 
-The unique Fresh B4 execution remains fixed at 500 paired units, 1,500 complete
-arms, and 96,000 ticks. Its preserved intervention is now classified as
-`compute_augmented_candidate_expansion_plus_reranking`: rows 1-7 were created
-by seven additional sequential model calls. The B4 execution/reviews,
-corrected evaluation, Evaluation v2, all endpoint values, and all
-scientific/continuation ledgers remain sealed and unchanged.
-The legacy corrected evaluation remains a separate-role sealed deterministic
-replay using the frozen canonical evaluation core.
-
-The outcome-free corrected contract and independent contract review were
-sealed before materialization. The separate result reviewer reconstructed all
-1,500 receipts, per-run endpoint values, 500 paired Better/Tie/Worse counts,
-and 100 cluster summaries without importing the producer metric oracle or
-direction/threshold tables.
-
-Collision, dynamic proximity, road containment, speed, goal, vehicle-body
-planar kinematic proxy, and latency have the complete 1,500-arm benchmark
-denominator. Certified red crossing remains `evidence_missing` for 437 runs.
-The corrected adjacent route state makes 929 runs available; 571 remain
-ambiguous, so route inference is still cancelled without complete-case
-shrinkage. Road outside fraction and signed external-union-boundary clearance/
-penetration are computed from the same root-bound polygons; internal
-overlap and adjacency seams are excluded.
-
-Evaluation v2 remains `exploratory_posthoc_not_claim_authorizing`: it produces no
-weighted total, has no prospectively defined scientific hard gate, and cannot
-reuse the legacy multiplicity/NI rule for a new claim. The legacy decision
-remains `honest_no_claim_under_frozen_preregistered_all_gate`. Better
-descriptive values are not Fresh benefit or industrial safety/comfort
-evidence.
-
-The outcome-independent fair contract and its independent review were sealed
-before real selector replay. On 16 bounded development/nonholdout states,
-candidate0, Static14D and Scene14D each consumed one shared immutable K=8 pool
-per state. All 48 real selector receipts passed the post-pool zero-call gate.
-
-The required pool-adaptation audit triggered its frozen programmatic hard
-stop. Same-ego trajectories were equivalent for 128/128 rows, while neighbor
-tensors were equivalent for 114/128 rows, affecting 9/16 states. The contract
-defined any neighbor row outside tolerance as a stop, so compute-matched
-closed-loop did not start: 0/3 arms and 0/192 ticks.
-
-The additive sealed-preimage summary and its independent literal review now
-close the omitted evidence contract. They quantify all 1,792 primary versus
-sequential atom values, 128 scores per CAMP arm, both K8 validity sets, masks,
-selection flips, and an exhaustive state taxonomy. Primary and sequential K8
-were finite/diverse in 16/16 states; Static and Scene each had 0/16
-selected-index flips. The primary taxonomy is `neighbor_tolerance=9` and
-`no_failure=7`; all other classes are zero.
-
-The scientific classification is
-`overconservative_equivalence_contract_triggered; functional adaptation risk
-unresolved`. The trigger proves only that the old neighbor-tolerance rule
-fired. It does not prove architecture/model failure, training-distribution or
-OOD drift, or a need to retrain. Reverse functional evidence remains 128/128
-trajectory rows, 16/16 mask-equal states and 16/16 selected-index equality for
-both arms. The old `possible_training_pool_adaptation_required=true` value is
-preserved only as a legacy overconservative contract field.
-
-The independent result reviewer reconstructed pools, score/mask decisions,
-selected rows, tolerance classifications, zero-call receipts, denominator and
-closed-loop exclusion, and sealed PASS for the hard-stop classification.
-Endpoints, statistics, claims, additional closed-loop work and any Fresh
-execution remain unauthorized pending scientific-contract review.
-
-The fail-closed v5 fair-pool adaptation contract and separate-role independent
-literal review are now sealed. v5 preserves the v4 external trust anchor,
-deterministic source-scene, exact preflight, threshold freeze and 83-key phase
-topology, then closes the numeric semantic-provenance gap. A future consumer
-must receive 640 raw semantic run receipts per split: all five repeats for both
-modes and all 64 states must carry reconstructable ego/neighbor candidate
-tensors, atom vectors, Static/Scene scores and masks, selected actions, and
-input/latent/model/checkpoint/forward/pool/selector bindings.
-
-Producer and reviewer independently decode and hash every raw array, derive the
-forward and pool identities, reconstruct all 73 numeric phase keys, and require
-exact float64 equality with the pair-value cache. Within-mode thresholds are
-reconstructed before normalized cross-mode endpoints. A fully re-sealed and
-re-trusted all-zero cache and separately re-sealed repeat1-4 tensor forgeries
-are rejected by both oracles. v5 accepts no numeric cache as authority and no
-non-empty forward/pool label as proof.
-
-The v5 contract scope remains explicitly one map, one route and four density
-tiers. Its pre-acquisition design roots, v1-v4 diagnostics, failed-attempt
-closeout, and later first-state diagnostic are additive and immutable. Across
-the failed attempt and diagnostic there were sixteen model forwards and zero
-selector calls. No completed calibration raw receipt, threshold, validation,
-closed-loop, Fresh/holdout, or training execution exists.
-
-### Preserved superseded engineering diagnostic
-
-The original v2 roots (`2a3c39...`/`0cd17b...`/`d1cfb2...`) and the first
-corrected roots (`ab99f674...`/`3a4575f3...`/`37255020...`) remain sealed
-and unchanged. Their superseded semantics are preserved rather than rewritten.
-
-current_v25_status=v25_fair_pool_failed_attempt_closed_diagnostic_authorized_scientific_contract_review_required
+current_v25_status=sequential_latent_source_audit_latent_input_rows_repeated_scientific_contract_review_required
 current_v25_execution_source_head=7be93df20deee03587b9898e8560909662df972c
 current_v25_execution_pointer_head=06d3a1f3a37061f93f5c9788312ae59d1356d126
 current_v25_correction_authority_head=dddca1c64f9e03ca515ffb4e06724b0842e33135
@@ -338,7 +228,7 @@ current_v25_evaluation_v2_migration_matrix=docs/diffusion_planner_v25_evaluation
 current_v25_evaluation_v2_migration_matrix_sha256=19f5ccd2db4d99414e2347decc9ee2745fcefe1d9571162b26abd7fe1c2bcba9
 current_v25_evaluation_v2_future_plan=docs/diffusion_planner_v25_evaluation_v2_future_nonholdout_acquisition_plan.md
 current_v25_evaluation_v2_future_plan_sha256=dde178f9335d02fbe635df76eb9545e403b454d79d2f22d57a73d24cda60dddb
-current_v25_phase=fair_pool_failed_attempt_closeout_preserved_first_state_diagnostic_independently_reviewed
+current_v25_phase=zero_model_call_sequential_latent_source_audit_independently_reviewed
 current_v25_evaluation_v2_artifact_schema=camp_dp_v25_evaluation_v2_artifact_v3
 current_v25_evaluation_v2_superseded_contract_root_sha256=2a3c39aea959a9e311859f8af2c4ea81e22ac093b4e62ea48cbca6f4808d5795
 current_v25_evaluation_v2_superseded_contract_review_root_sha256=a15edb5cad2279991dec2f091e134cd3a711a1b949eb38523a20125578500fed
@@ -694,14 +584,66 @@ current_v25_calibration_first_state_diagnostic_batch8_architecture_failure_claim
 current_v25_calibration_first_state_diagnostic_ood_drift_claimed=false
 current_v25_calibration_first_state_diagnostic_retraining_required_claimed=false
 current_v25_calibration_first_state_diagnostic_report=docs/diffusion_planner_v25_fair_pool_calibration_first_state_diagnostic_report.md
-current_v25_calibration_first_state_diagnostic_report_sha256=8bd3363bba8258ca7df3340f6edc8cedca4b5f62c1c6e5cbb3c68784f5cde74e
+current_v25_calibration_first_state_diagnostic_report_sha256=56eb2b2c249e136559c7c8cf18214cbbc5fbe5617a0a82d7b82f36e8392b115d
 current_v25_calibration_first_state_diagnostic_evidence_index=docs/diffusion_planner_v25_fair_pool_calibration_first_state_diagnostic_evidence_index.md
-current_v25_calibration_first_state_diagnostic_evidence_index_sha256=38daa2620217d44748caca95613bc261d44fe78edaa9e3a74e79a8e6cad18cb8
+current_v25_calibration_first_state_diagnostic_evidence_index_sha256=52c894817ef4cc8df12b9bec5597baaf686e21b7441f8cb828945da29c8037db
 current_v25_calibration_first_state_diagnostic_superseded_prerun_head=dff0fb745c92ccfa52a0afbae7f62544897adf63
 current_v25_calibration_first_state_diagnostic_superseded_contract_root_sha256=b42cfcac8a624a5a56bcb73df02567d6236bf8236dc9f13cd7799df89cc326ae
 current_v25_calibration_first_state_diagnostic_superseded_contract_review_root_sha256=0889d34303d28c263bffbe9470b1b2049a3e125f90a91b4d9de8f5060cb96839
 current_v25_calibration_first_state_diagnostic_superseded_focused_root_sha256=ed336c8e8591a9615399a560cfd2a27965fc5b7196448e49241a1c02c908aaac
-next_work_target=high_first_state_diagnostic_review_before_any_new_zero_of_640_calibration_authority
+current_v25_sequential_latent_source_audit_schema=camp_dp_v25_sequential_latent_injection_source_audit_v1
+current_v25_sequential_latent_source_audit_authority_sha256=f9a91cbeac8f004cbac8b87bf170e51d54a1a09f5bc25fb256c3abd9e5106ba4
+current_v25_sequential_latent_source_audit_pointer_head=c1c4a19a5d3e93605fb46f1a4fe529fac3458f8d
+current_v25_sequential_latent_source_audit_implementation_head=c33767307148e23397eaab28eae4c501ddadda29
+current_v25_sequential_latent_source_audit_fixed_dp_head=7a1d33da277a1992ec474b5383a0c963c72e04e4
+current_v25_sequential_latent_source_audit_contract=/root/autodl-tmp/camp_dp_v25_sequential_latent_source_audit_contract_c3376730_f9a91cbe
+current_v25_sequential_latent_source_audit_contract_root_sha256=34c49c2b5378475fce133d7e6a7e2353f3b9a6f864bc18777c015bcfa4e5812f
+current_v25_sequential_latent_source_audit_contract_review=/root/autodl-tmp/camp_dp_v25_sequential_latent_source_audit_contract_review_c3376730_f9a91cbe
+current_v25_sequential_latent_source_audit_contract_review_root_sha256=4c06f34630c9f979ae35eb735b8ba0de648fdddac99e4b853e83d3e20013b531
+current_v25_sequential_latent_source_audit_focused=/root/autodl-tmp/camp_dp_v25_sequential_latent_source_audit_focused_c3376730_f9a91cbe
+current_v25_sequential_latent_source_audit_focused_root_sha256=19baef92203fa39f589ab00a24f6363f933121eb671c81f4cc0a5bd98a5e0c07
+current_v25_sequential_latent_source_audit_focused_test_count=14
+current_v25_sequential_latent_source_audit=/root/autodl-tmp/camp_dp_v25_sequential_latent_source_audit_c3376730_f9a91cbe
+current_v25_sequential_latent_source_audit_root_sha256=ef7fed1d077aa2edcdfe4114daaf1904b936ead23d713fc4ba96acbcb8cedc3e
+current_v25_sequential_latent_source_audit_review=/root/autodl-tmp/camp_dp_v25_sequential_latent_source_audit_review_c3376730_f9a91cbe
+current_v25_sequential_latent_source_audit_review_root_sha256=bd81175f3088755e41f799854bcc84d09deca8da1e443b1e20ad7cbd3dd09ef6
+current_v25_sequential_latent_source_audit_classification=latent_input_rows_repeated
+current_v25_sequential_latent_source_audit_state_spec_id=development_calibration:000
+current_v25_sequential_latent_source_audit_mode=sequential_batch1_x8
+current_v25_sequential_latent_source_audit_repeat_index=0
+current_v25_sequential_latent_source_audit_latent_seed=61000
+current_v25_sequential_latent_source_audit_latent_shape_dtype=8x321x81x4_<f4
+current_v25_sequential_latent_source_audit_latent_tensor_sha256=b995f83f083df0321b8a575e10065aac041c14c30830129963048b73b7ebfea0
+current_v25_sequential_latent_source_audit_latent_finite=true
+current_v25_sequential_latent_source_audit_latent_row_unique_cardinality=2
+current_v25_sequential_latent_source_audit_latent_duplicate_groups=1,2,3,4,5,6,7
+current_v25_sequential_latent_source_audit_candidate_tensor_sha256=e3ebd9e0de7cad13d92b9479a0c2ed6286fb48e0649b103b249e163ef3598d84
+current_v25_sequential_latent_source_audit_candidate_row_unique_cardinality=2
+current_v25_sequential_latent_source_audit_neighbor_tensor_sha256=03a26f6dcd94f304d01e97a5deaae3fa9d1b85c3498b11efdf84b87f6269b860
+current_v25_sequential_latent_source_audit_neighbor_row_unique_cardinality=2
+current_v25_sequential_latent_source_audit_row_binding_count=8
+current_v25_sequential_latent_source_audit_source_count=4
+current_v25_sequential_latent_source_audit_materializer_source_sha256=b08ac9b56f844ab2b5d54e3cd4d96a7725c428271a598674b06a8a7dda3d18cd
+current_v25_sequential_latent_source_audit_manifest_source_sha256=e603e2236ae77f33cb02e9de4b7c8b54f5f9977a2dae49f4574a327004ad7a85
+current_v25_sequential_latent_source_audit_fixed_dp_model_source_sha256=341c8f5798cae83fdee3ae7203243ab129458d8eab362e0c3a1c7daee08d502d
+current_v25_sequential_latent_source_audit_fixed_dp_decoder_source_sha256=8e81d1e9aa879dd0c0762d623dbe7480786e2618ccb261d10fd72cc00192e7dd
+current_v25_sequential_latent_source_audit_dataflow_binding_complete=true
+current_v25_sequential_latent_source_audit_new_model_call_count=0
+current_v25_sequential_latent_source_audit_new_pool_call_count=0
+current_v25_sequential_latent_source_audit_new_selector_call_count=0
+current_v25_sequential_latent_source_audit_calibration_640_run_count=0
+current_v25_sequential_latent_source_audit_threshold_validation_closed_loop_fresh_training_count=0
+current_v25_sequential_latent_source_audit_raw_outcome_read=false
+current_v25_sequential_latent_source_audit_old_artifact_cas_write_count=0
+current_v25_sequential_latent_source_audit_single_invocation_batch8_runtime_conclusion=not_authorized
+current_v25_sequential_latent_source_audit_engineering_finding=sealed_v5_latent_constructor_draws_one_rows1_7_preimage_and_numpy_broadcasts_it_to_seven_sequential_calls
+current_v25_sequential_latent_source_audit_minimal_fix_status=proposal_only_requires_new_versioned_latent_policy_contract_before_execution
+current_v25_sequential_latent_source_audit_claim_authorized=false
+current_v25_sequential_latent_source_audit_report=docs/diffusion_planner_v25_sequential_latent_source_audit_report.md
+current_v25_sequential_latent_source_audit_report_sha256=46c3e3cd4fb6d53fd7dc5c3f5cb51e3fd3e2b3f53aeff4dd0100340ccf0d71cd
+current_v25_sequential_latent_source_audit_evidence_index=docs/diffusion_planner_v25_sequential_latent_source_audit_evidence_index.md
+current_v25_sequential_latent_source_audit_evidence_index_sha256=9f7c27d0b3d8ca75dcf30e117ef2bf10a1cd73185373c12023c56993fa5a1b7c
+next_work_target=high_latent_source_audit_review_before_any_latent_policy_or_calibration_authority
 
 
 ## Historical V25 Status Through A1.6.11

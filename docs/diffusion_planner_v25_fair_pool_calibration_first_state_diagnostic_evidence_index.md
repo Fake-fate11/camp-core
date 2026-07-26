@@ -76,3 +76,16 @@ model call. Those roots remain preserved as superseded pre-run diagnostics.
 
 No benefit, OOD, retraining, safety, comfort, promotion, deployment, or
 production-readiness conclusion is authorized.
+
+## High decision
+
+High accepted the evidence chain and withheld a new 0/640 calibration
+authority because the diagnostic resolved a real frozen K8 diversity-gate
+subcondition rather than a harness/receipt-order false failure. The bounded
+status is
+`first_state_sequential_k8_nondiversity_resolved_new_calibration_authority_withheld_scientific_contract_review_required`.
+
+This is not evidence that batch-8, all 64 states, or the model generally fails;
+it is not an OOD or retraining conclusion. Any outcome-free
+latent-injection/source audit or target-generator-contract change requires a
+separate control/user authority.
