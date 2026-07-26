@@ -27,6 +27,8 @@ selector, runtime, industrial-v3 effect or Fresh result.
 
 The earlier bounded single-route package remains accepted on its original
 scope. Its execution/evaluation roots were not rerun or modified.
+Preserved superseded engineering diagnostic evidence remains additive and
+immutable.
 
 The earlier Fresh/evaluation, fair-pool, generator and selector chains remain
 immutable. SafetyCost remains only an immutable legacy exploratory diagnostic;

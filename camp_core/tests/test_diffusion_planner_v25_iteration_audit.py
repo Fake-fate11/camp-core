@@ -1214,7 +1214,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert _machine_tuple(audit_eof)["next_work_target"] == (
-        "high_incremental_review_of_bounded_nonholdout_closed_loop_package"
+        "high_control_decision_for_new_nonoverlapping_route_source_authority"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
