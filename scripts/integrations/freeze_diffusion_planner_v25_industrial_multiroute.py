@@ -126,18 +126,40 @@ def freeze_contract(
     output: Path,
     industrial_contract_dir: Path,
     industrial_contract_root: str,
+    industrial_contract_review_dir: Path,
+    industrial_contract_review_root: str,
+    industrial_capability_dir: Path,
+    industrial_capability_root: str,
+    industrial_capability_review_dir: Path,
+    industrial_capability_review_root: str,
 ) -> str:
     _require_autodl_runtime()
-    if (
-        output != Path(EXACT_DIRS["contract"])
-        or industrial_contract_root != UPSTREAM_ROOTS["industrial_contract"]
-    ):
+    upstream = {
+        "industrial_contract": (
+            industrial_contract_dir,
+            industrial_contract_root,
+        ),
+        "industrial_contract_review": (
+            industrial_contract_review_dir,
+            industrial_contract_review_root,
+        ),
+        "industrial_capability": (
+            industrial_capability_dir,
+            industrial_capability_root,
+        ),
+        "industrial_capability_review": (
+            industrial_capability_review_dir,
+            industrial_capability_review_root,
+        ),
+    }
+    if output != Path(EXACT_DIRS["contract"]) or {
+        key: root for key, (_path, root) in upstream.items()
+    } != {
+        key: UPSTREAM_ROOTS[key] for key in upstream
+    }:
         raise ValueError("contract exact path or upstream root drifted")
-    verify_complete_seal(
-        industrial_contract_dir,
-        industrial_contract_root,
-        label="accepted industrial-v3 contract",
-    )
+    for key, (path, root) in upstream.items():
+        verify_complete_seal(path, root, label=f"accepted {key}")
     industrial = object_from(industrial_contract_dir / "report.json")["contract"]
     validate_evaluation_contract_v3(industrial)
     payload = contract()
@@ -150,9 +172,12 @@ def freeze_contract(
             "status": "sealed_outcome_independent_multiroute_contract",
             "authority_sha256": AUTHORITY_SHA256,
             "contract": payload,
-            "industrial_contract_binding": {
-                "path": str(industrial_contract_dir.resolve()),
-                "root_sha256": industrial_contract_root,
+            "industrial_upstream_bindings": {
+                key: {
+                    "path": str(path.resolve()),
+                    "root_sha256": root,
+                }
+                for key, (path, root) in upstream.items()
             },
             "implementation_head": git_head(),
             "interpreter": _interpreter_receipt(),
@@ -469,8 +494,20 @@ def main() -> int:
     subparsers = parser.add_subparsers(dest="stage", required=True)
     contract_parser = subparsers.add_parser("contract")
     contract_parser.add_argument("--output", type=Path, required=True)
-    contract_parser.add_argument("--industrial-contract-dir", type=Path, required=True)
-    contract_parser.add_argument("--industrial-contract-root", required=True)
+    for name in (
+        "industrial-contract-dir",
+        "industrial-contract-review-dir",
+        "industrial-capability-dir",
+        "industrial-capability-review-dir",
+    ):
+        contract_parser.add_argument("--" + name, type=Path, required=True)
+    for name in (
+        "industrial-contract-root",
+        "industrial-contract-review-root",
+        "industrial-capability-root",
+        "industrial-capability-review-root",
+    ):
+        contract_parser.add_argument("--" + name, required=True)
     manifest_parser = subparsers.add_parser("manifest")
     manifest_parser.add_argument("--output", type=Path, required=True)
     for name in ("contract-dir", "contract-review-dir"):
@@ -483,6 +520,12 @@ def main() -> int:
             args.output,
             args.industrial_contract_dir,
             args.industrial_contract_root,
+            args.industrial_contract_review_dir,
+            args.industrial_contract_review_root,
+            args.industrial_capability_dir,
+            args.industrial_capability_root,
+            args.industrial_capability_review_dir,
+            args.industrial_capability_review_root,
         )
     else:
         root = freeze_manifest_failure(

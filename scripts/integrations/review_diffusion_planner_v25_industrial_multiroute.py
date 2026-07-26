@@ -53,6 +53,20 @@ SOURCE_CENSUS = Path(
 SOURCE_CENSUS_ROOT = (
     "252862ea50a6f1be906403b136c170ef16dbb2246568821bcbba9283290b0dbb"
 )
+EXPECTED_UPSTREAM_ROOTS = {
+    "industrial_contract": (
+        "908fe1d57014e4932f71462d6d7e73ec58390f3296b3018df38092e4c0b128cb"
+    ),
+    "industrial_contract_review": (
+        "23bb07ac537f9d53f7a2860b2314f55da4e2d468590d002c6cf25733f5e48556"
+    ),
+    "industrial_capability": (
+        "fbcc8ab194520534c3b4986cccaf3d9a073b2cf975b6e3f006f61abe7791f20d"
+    ),
+    "industrial_capability_review": (
+        "f32cb19b2c7bbd64e290f07a270f3e43462d31c86dc130a0c23a8b6eb363eec3"
+    ),
+}
 
 
 def _json(path: Path) -> dict[str, Any]:
@@ -102,15 +116,50 @@ def review_contract_artifact(
     contract_root: str,
     industrial_contract_dir: Path,
     industrial_contract_root: str,
+    industrial_contract_review_dir: Path,
+    industrial_contract_review_root: str,
+    industrial_capability_dir: Path,
+    industrial_capability_root: str,
+    industrial_capability_review_dir: Path,
+    industrial_capability_review_root: str,
 ) -> str:
     _require_runtime()
+    upstream = {
+        "industrial_contract": (
+            industrial_contract_dir,
+            industrial_contract_root,
+        ),
+        "industrial_contract_review": (
+            industrial_contract_review_dir,
+            industrial_contract_review_root,
+        ),
+        "industrial_capability": (
+            industrial_capability_dir,
+            industrial_capability_root,
+        ),
+        "industrial_capability_review": (
+            industrial_capability_review_dir,
+            industrial_capability_review_root,
+        ),
+    }
+    if {
+        key: root for key, (_path, root) in upstream.items()
+    } != {
+        key: EXPECTED_UPSTREAM_ROOTS[key] for key in upstream
+    }:
+        raise ValueError("review upstream root authority drifted")
     verify_complete_seal(contract_dir, contract_root, label="multiroute contract")
-    verify_complete_seal(
-        industrial_contract_dir,
-        industrial_contract_root,
-        label="accepted industrial-v3 contract",
-    )
+    for key, (path, root) in upstream.items():
+        verify_complete_seal(path, root, label=f"accepted {key}")
     source = object_from(contract_dir / "report.json")
+    if source.get("industrial_upstream_bindings") != {
+        key: {
+            "path": str(path.resolve()),
+            "root_sha256": root,
+        }
+        for key, (path, root) in upstream.items()
+    }:
+        raise ValueError("review upstream path/root binding drifted")
     industrial = object_from(industrial_contract_dir / "report.json")["contract"]
     if output != Path(source["contract"]["exact_dirs"]["contract_review"]):
         raise ValueError("contract review exact path drifted")
@@ -327,9 +376,21 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="stage", required=True)
     contract_parser = subparsers.add_parser("contract")
-    for name in ("contract-dir", "industrial-contract-dir"):
+    for name in (
+        "contract-dir",
+        "industrial-contract-dir",
+        "industrial-contract-review-dir",
+        "industrial-capability-dir",
+        "industrial-capability-review-dir",
+    ):
         contract_parser.add_argument("--" + name, type=Path, required=True)
-    for name in ("contract-root", "industrial-contract-root"):
+    for name in (
+        "contract-root",
+        "industrial-contract-root",
+        "industrial-contract-review-root",
+        "industrial-capability-root",
+        "industrial-capability-review-root",
+    ):
         contract_parser.add_argument("--" + name, required=True)
     contract_parser.add_argument("--output", type=Path, required=True)
     manifest_parser = subparsers.add_parser("manifest")
@@ -354,6 +415,12 @@ def main() -> int:
             args.contract_root,
             args.industrial_contract_dir,
             args.industrial_contract_root,
+            args.industrial_contract_review_dir,
+            args.industrial_contract_review_root,
+            args.industrial_capability_dir,
+            args.industrial_capability_root,
+            args.industrial_capability_review_dir,
+            args.industrial_capability_review_root,
         )
     else:
         root = review_manifest_failure(

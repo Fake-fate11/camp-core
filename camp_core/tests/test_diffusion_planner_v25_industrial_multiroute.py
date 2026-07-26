@@ -6,6 +6,12 @@ import hashlib
 import numpy as np
 import pytest
 
+from scripts.integrations import (
+    freeze_diffusion_planner_v25_industrial_multiroute as freeze_artifact,
+)
+from scripts.integrations import (
+    review_diffusion_planner_v25_industrial_multiroute as review_artifact,
+)
 from camp_core.integrations.diffusion_planner_v25_industrial_evaluation_contract_v3 import (
     evaluation_contract_v3,
 )
@@ -130,6 +136,131 @@ def test_contract_and_independent_literal_review() -> None:
         value, accepted_industrial_contract=evaluation_contract_v3()
     )
     assert reviewed["capture_matrix"]["leaf_count"] == 161
+
+
+def test_artifact_roles_verify_all_four_industrial_upstream_seals(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    upstream = {
+        "industrial_contract": (
+            "/sealed/industrial-contract",
+            freeze_artifact.UPSTREAM_ROOTS["industrial_contract"],
+        ),
+        "industrial_contract_review": (
+            "/sealed/industrial-contract-review",
+            freeze_artifact.UPSTREAM_ROOTS["industrial_contract_review"],
+        ),
+        "industrial_capability": (
+            "/sealed/industrial-capability",
+            freeze_artifact.UPSTREAM_ROOTS["industrial_capability"],
+        ),
+        "industrial_capability_review": (
+            "/sealed/industrial-capability-review",
+            freeze_artifact.UPSTREAM_ROOTS["industrial_capability_review"],
+        ),
+    }
+    freeze_calls = []
+    monkeypatch.setattr(freeze_artifact, "_require_autodl_runtime", lambda: None)
+    monkeypatch.setattr(
+        freeze_artifact,
+        "verify_complete_seal",
+        lambda path, root, label: freeze_calls.append((str(path), root, label)),
+    )
+    monkeypatch.setattr(
+        freeze_artifact,
+        "object_from",
+        lambda _path: {"contract": evaluation_contract_v3()},
+    )
+    monkeypatch.setattr(freeze_artifact, "git_head", lambda: "a" * 40)
+    monkeypatch.setattr(
+        freeze_artifact,
+        "write_atomic",
+        lambda *_args, **_kwargs: "freeze-root",
+    )
+    assert (
+        freeze_artifact.freeze_contract(
+            freeze_artifact.Path(freeze_artifact.EXACT_DIRS["contract"]),
+            freeze_artifact.Path(upstream["industrial_contract"][0]),
+            upstream["industrial_contract"][1],
+            freeze_artifact.Path(upstream["industrial_contract_review"][0]),
+            upstream["industrial_contract_review"][1],
+            freeze_artifact.Path(upstream["industrial_capability"][0]),
+            upstream["industrial_capability"][1],
+            freeze_artifact.Path(upstream["industrial_capability_review"][0]),
+            upstream["industrial_capability_review"][1],
+        )
+        == "freeze-root"
+    )
+    assert len(freeze_calls) == 4
+    assert {label for _path, _root, label in freeze_calls} == {
+        "accepted industrial_contract",
+        "accepted industrial_contract_review",
+        "accepted industrial_capability",
+        "accepted industrial_capability_review",
+    }
+
+    review_calls = []
+    source_contract = contract()
+    source = {
+        "contract": source_contract,
+        "industrial_upstream_bindings": {
+            key: {
+                "path": str(review_artifact.Path(path).resolve()),
+                "root_sha256": root,
+            }
+            for key, (path, root) in upstream.items()
+        },
+    }
+    monkeypatch.setattr(review_artifact, "_require_runtime", lambda: None)
+    monkeypatch.setattr(
+        review_artifact,
+        "verify_complete_seal",
+        lambda path, root, label: review_calls.append((str(path), root, label)),
+    )
+
+    def _review_object(path):
+        if str(path).startswith(upstream["industrial_contract"][0]):
+            return {"contract": evaluation_contract_v3()}
+        return source
+
+    monkeypatch.setattr(review_artifact, "object_from", _review_object)
+    monkeypatch.setattr(review_artifact, "git_head", lambda: "a" * 40)
+    monkeypatch.setattr(
+        review_artifact,
+        "write_atomic",
+        lambda *_args, **_kwargs: "review-root",
+    )
+    assert (
+        review_artifact.review_contract_artifact(
+            review_artifact.Path(source_contract["exact_dirs"]["contract_review"]),
+            review_artifact.Path("/sealed/multiroute-contract"),
+            "b" * 64,
+            review_artifact.Path(upstream["industrial_contract"][0]),
+            upstream["industrial_contract"][1],
+            review_artifact.Path(upstream["industrial_contract_review"][0]),
+            upstream["industrial_contract_review"][1],
+            review_artifact.Path(upstream["industrial_capability"][0]),
+            upstream["industrial_capability"][1],
+            review_artifact.Path(upstream["industrial_capability_review"][0]),
+            upstream["industrial_capability_review"][1],
+        )
+        == "review-root"
+    )
+    assert len(review_calls) == 5
+    with pytest.raises(ValueError, match="authority"):
+        review_artifact.review_contract_artifact(
+            review_artifact.Path(source_contract["exact_dirs"]["contract_review"]),
+            review_artifact.Path("/sealed/multiroute-contract"),
+            "b" * 64,
+            review_artifact.Path(upstream["industrial_contract"][0]),
+            "0" * 64,
+            review_artifact.Path(upstream["industrial_contract_review"][0]),
+            upstream["industrial_contract_review"][1],
+            review_artifact.Path(upstream["industrial_capability"][0]),
+            upstream["industrial_capability"][1],
+            review_artifact.Path(upstream["industrial_capability_review"][0]),
+            upstream["industrial_capability_review"][1],
+        )
 
 
 def test_exact_feasible_selection_and_independent_margin_review() -> None:
