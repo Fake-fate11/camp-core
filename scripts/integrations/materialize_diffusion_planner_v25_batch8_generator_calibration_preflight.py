@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -85,8 +86,9 @@ def materialize(
                 raise RuntimeError("input tensor transport drifted")
             with np.load(target_npz, allow_pickle=False) as archive:
                 names = list(archive.files)
-            if names != old_manifest["actual_input_tensor_manifest"]["tensor_order"]:
-                raise RuntimeError("input tensor order drifted")
+            expected_names = old_manifest["actual_input_tensor_manifest"]["tensor_order"]
+            if set(names) != set(expected_names) or len(names) != len(expected_names):
+                raise RuntimeError("input tensor member set drifted")
             for repeat_index in range(5):
                 latent = latent_tensor(spec["state_spec_sha256"], repeat_index)
                 lm = latent_manifest(spec["state_spec_sha256"], repeat_index)
@@ -155,6 +157,16 @@ def materialize(
             "selector_call_count": 0,
             "outcome_read": False,
             "drop_replace_suffix_count": 0,
+            "pre_model_mechanical_correction": {
+                "classification": "npz_member_order_is_not_tensor_semantic_order",
+                "failed_implementation_head": "1de0817e8ae5d4e5f4b1c62f08deab865431ac76",
+                "active_implementation_head": subprocess.check_output(
+                    ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+                ).strip(),
+                "failed_preflight_artifact_formed": False,
+                "model_call_count_before_correction": 0,
+                "comparison": "exact_member_set_then_manifest_ordered_per_tensor_sha",
+            },
         }
         (staging / "receipt.json").write_bytes(canonical_bytes(receipt))
         root = seal_artifact(staging, label="V25 batch8 generator calibration preflight")

@@ -48,8 +48,9 @@ def review(preflight: Path, root_sha: str, output: Path) -> str:
             raise RuntimeError("latent file SHA drifted")
         input_path = preflight / row["input_npz_relpath"]
         with np.load(input_path, allow_pickle=False) as archive:
-            if list(archive.files) != row["old_input_manifest"]["actual_input_tensor_manifest"]["tensor_order"]:
-                raise RuntimeError("input tensor order drifted")
+            expected_names = row["old_input_manifest"]["actual_input_tensor_manifest"]["tensor_order"]
+            if set(archive.files) != set(expected_names) or len(archive.files) != len(expected_names):
+                raise RuntimeError("input tensor member set drifted")
             for tensor in row["old_input_manifest"]["actual_input_tensor_manifest"]["tensors"]:
                 value = np.ascontiguousarray(archive[tensor["name"]])
                 if list(value.shape) != tensor["shape"] or value.dtype.str != tensor["dtype"]:
