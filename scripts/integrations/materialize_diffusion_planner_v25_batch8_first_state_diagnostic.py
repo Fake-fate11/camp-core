@@ -141,6 +141,14 @@ def materialize(
 
     repo = repo.resolve()
     fixed_dp_repo = fixed_dp_repo.resolve()
+    for import_root in (
+        repo,
+        repo / "camp_core",
+        fixed_dp_repo,
+        fixed_dp_repo / "diffusion_planner",
+    ):
+        if str(import_root) not in sys.path:
+            sys.path.insert(0, str(import_root))
     if (
         output.exists()
         or _git(repo, "rev-parse", "HEAD") != implementation_head
