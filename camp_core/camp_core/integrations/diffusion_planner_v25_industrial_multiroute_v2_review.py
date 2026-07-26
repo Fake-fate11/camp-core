@@ -30,7 +30,7 @@ EXPECTED_LATENCY = [
 ]
 EXPECTED_EXACT_PREFIX = (
     "/root/autodl-tmp/"
-    "camp_dp_v25_industrial_v3_multiroute_v2_af33d4e6_89e716d0_"
+    "camp_dp_v25_industrial_v3_multiroute_v2_9bef998d_89e716d0_"
 )
 EXPECTED_ROLES = [
     "contract",
@@ -166,4 +166,3 @@ def review_contract_semantics(value: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("reviewer forbidden permission was enabled")
     restored = deepcopy(dict(value))
     return restored
-

@@ -25,6 +25,9 @@ from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2 impor
 from camp_core.integrations.diffusion_planner_v25_project_authored_multiroute_source import (
     build_source_record,
 )
+from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_review import (
+    review_contract_semantics,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -32,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_contract_has_exact_full_denominator_and_no_claim() -> None:
     value = validate_contract(contract())
+    review_contract_semantics(value)
     assert AUTHORITY_SHA256 == (
         "9315b09b33f80856e1bbdcf957f92542ccaeb495b4b00497231ef038909a20cb"
     )
