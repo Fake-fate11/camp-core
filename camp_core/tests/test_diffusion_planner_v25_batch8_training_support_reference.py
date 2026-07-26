@@ -107,6 +107,12 @@ def test_input_only_capture_uses_the_frozen_training_step_count() -> None:
     assert "max_steps=1" not in source
 
 
+def test_zero_overlap_reads_the_sealed_fresh_b4_runtime_manifest() -> None:
+    source = inspect.getsource(preflight._inventory_layers_from_b4)
+    assert "fresh_b4_prepared_runtime_cases.json" in source
+    assert 'B4_PREOPEN / "prepared_runtime_cases.json"' not in source
+
+
 def test_unique_latent_is_row0_zero_and_eight_unique() -> None:
     latent = reference.materialize_latent(12345)
     manifest = reference.latent_manifest(12345)

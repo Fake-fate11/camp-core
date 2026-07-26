@@ -292,7 +292,9 @@ def _inventory_layers_from_fair() -> dict[str, dict[str, set[str]]]:
 
 def _inventory_layers_from_b4() -> dict[str, set[str]]:
     cases = json.loads(
-        (B4_PREOPEN / "prepared_runtime_cases.json").read_text(encoding="utf-8")
+        (B4_PREOPEN / "fresh_b4_prepared_runtime_cases.json").read_text(
+            encoding="utf-8"
+        )
     )
     if type(cases) is not list or len(cases) != 100:
         raise RuntimeError("B4 prepared input denominator drifted")
