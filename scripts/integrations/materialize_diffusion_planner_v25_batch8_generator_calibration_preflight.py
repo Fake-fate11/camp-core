@@ -26,6 +26,10 @@ from camp_core.integrations.diffusion_planner_v25_batch8_generator_calibration i
 )
 
 OLD_PREFLIGHT = Path("/root/autodl-tmp/camp_dp_v25_fair_pool_calibration_preflight_67308ac0_ed0d298c")
+OLD_PREFLIGHT_REVIEW = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v25_fair_pool_calibration_preflight_review_67308ac0_ed0d298c"
+)
 
 
 def materialize(
@@ -39,6 +43,11 @@ def materialize(
         (contract_dir, contract_root, "generator calibration contract"),
         (review_dir, review_root, "generator calibration contract review"),
         (OLD_PREFLIGHT, OLD_PREFLIGHT_ROOT, "sealed source-input preflight"),
+        (
+            OLD_PREFLIGHT_REVIEW,
+            OLD_PREFLIGHT_REVIEW_ROOT,
+            "sealed source-input preflight independent review",
+        ),
     ):
         verify_complete_seal(path, root, label=label)
     if output.exists():
