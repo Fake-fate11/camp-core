@@ -156,8 +156,8 @@ def independent_receipt_review(
     if supplied.get("neighbor_summary") != neighbor_summary:
         raise ValueError("neighbor summary does not match raw bytes")
     base = supplied.get("base_bindings")
-    if type(base) is not dict or tuple(base) != BASE_KEYS:
-        raise ValueError("base binding order/keyset drifted")
+    if type(base) is not dict or set(base) != set(BASE_KEYS):
+        raise ValueError("base binding keyset drifted")
     for key, value in base.items():
         length = 40 if key == "fixed_dp_head" else 64
         if type(value) is not str or len(value) != length:

@@ -146,6 +146,20 @@ def test_valid_raw_receipt_passes_independent_byte_review() -> None:
     assert reviewed["selector_call_count"] == 0
 
 
+def test_canonical_json_roundtrip_key_order_does_not_change_receipt_semantics() -> None:
+    receipt, raw = _receipt()
+    roundtripped = json.loads(producer.canonical_bytes(receipt))
+    assert tuple(roundtripped["base_bindings"]) != producer.BASE_BINDING_KEYS
+    reviewed = reviewer.independent_receipt_review(
+        receipt=roundtripped,
+        latent=raw[0],
+        expanded_inputs=raw[1],
+        candidate=raw[2],
+        neighbor=raw[3],
+    )
+    assert reviewed["status"] == "passed_independent_raw_byte_review"
+
+
 def test_eight_calls_cannot_impersonate_single_invocation() -> None:
     receipt, raw = _receipt(model_calls=8)
     assert receipt["taxonomy"] == "output_batch_or_binding_invalid"

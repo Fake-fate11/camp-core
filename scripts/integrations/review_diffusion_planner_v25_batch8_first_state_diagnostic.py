@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 from typing import Any
@@ -141,6 +142,20 @@ def review(
         "status": "passed_independent_raw_byte_and_source_review",
         "source_root_sha256": source_root,
         "contract_root_sha256": contract_root,
+        "review_head": subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True
+        ).strip(),
+        "contract_reviewer_source_sha256": contract["source_sha256"]["reviewer"],
+        "reviewer_source_sha256": hashlib.sha256(
+            (
+                ROOT
+                / "camp_core"
+                / "camp_core"
+                / "integrations"
+                / "diffusion_planner_v25_batch8_first_state_diagnostic_review.py"
+            ).read_bytes()
+        ).hexdigest(),
+        "mechanical_json_key_order_repair": True,
         "outcome_read": False,
         "old_artifact_cas_write_count": 0,
     }
