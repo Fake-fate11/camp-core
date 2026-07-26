@@ -180,7 +180,7 @@ def test_causal_inverse_transform_is_exact_and_finite() -> None:
     assert result["version"].dtype == np.int64
 
 
-def test_causal_inverse_applies_frozen_normalizer_and_preserves_zero_rows() -> None:
+def test_causal_inverse_matches_frozen_row_mask_normalizer() -> None:
     arrays = {}
     for name in producer.MODEL_INPUT_TENSOR_ORDER:
         arrays[name] = np.zeros((1,), dtype=np.float32)
@@ -213,18 +213,23 @@ def test_causal_inverse_applies_frozen_normalizer_and_preserves_zero_rows() -> N
             "turn_indicators": np.zeros((1, 31), dtype=np.int64),
         }
     )
-    arrays["ego_current_state"][0, 0] = 2.0
     normalization = {
         "ego_current_state": {
             "mean": [1.0] * 10,
             "std": [3.0] * 10,
         }
     }
+    zero_result = producer.causal_input_from_model_input(
+        arrays, normalization=normalization
+    )
+    assert np.all(zero_result["ego_current_state"] == 0.0)
+
+    arrays["ego_current_state"][0, 0] = 2.0
     result = producer.causal_input_from_model_input(
         arrays, normalization=normalization
     )
     assert result["ego_current_state"][0] == 7.0
-    assert np.all(result["ego_current_state"][1:] == 0.0)
+    assert np.all(result["ego_current_state"][1:] == 1.0)
 
 
 def test_producer_and_reviewer_literal_selection_exact() -> None:
@@ -485,8 +490,12 @@ def test_explicit_runtime_policy_rejects_wrong_or_old_python() -> None:
 def test_new_stage_files_do_not_use_bare_python_invocation() -> None:
     root = Path(__file__).resolve().parents[2]
     names = [
-        root / ".codex_tmp_v25_selector_after_pool_source_audit.sh",
-        root / ".codex_tmp_v25_selector_tensor_converter_source.sh",
+        root
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_selector_after_pool_replay.py",
+        root
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_selector_after_pool_replay_review.py",
         root
         / "scripts/integrations/"
         "freeze_diffusion_planner_v25_selector_after_pool_replay_contract.py",
@@ -506,6 +515,9 @@ def test_new_stage_files_do_not_use_bare_python_invocation() -> None:
         / "scripts/integrations/"
         "review_diffusion_planner_v25_selector_after_pool_replay.py",
     ]
+    names.extend(
+        sorted(root.glob(".codex_tmp_v25_selector_after_pool*.sh"))
+    )
     for path in names:
         text = path.read_text("utf-8")
         for line in text.splitlines():

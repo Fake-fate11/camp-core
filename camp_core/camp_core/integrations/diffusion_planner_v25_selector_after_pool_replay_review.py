@@ -1120,7 +1120,11 @@ def literal_selection(
         raise ValueError("reviewer literal selection preimage invalid")
     scaled = atoms / scale[None, :]
     clipped = np.minimum(np.maximum(scaled, 0.0), 10.0)
-    scores = np.sum(clipped * coefficient[None, :], axis=1)
+    # The frozen production selector evaluates its affine score with the
+    # NumPy matrix-multiply operation.  Rebuild the operands independently,
+    # then use that exact numerical operation so the sealed float64 values are
+    # byte-for-byte comparable rather than merely tolerance-close.
+    scores = clipped @ coefficient
     eligible = np.flatnonzero(mask)
     ordered = sorted(eligible.tolist(), key=lambda i: (float(scores[i]), i))
     selected = int(ordered[0])
