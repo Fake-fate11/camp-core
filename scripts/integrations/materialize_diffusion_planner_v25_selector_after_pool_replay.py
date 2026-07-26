@@ -70,10 +70,10 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # n
 AUTODL = Path("/root/autodl-tmp")
 DP = AUTODL / "Diffusion-Planner"
 PREFLIGHT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_v1_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_preflight_v2_59874f4a"
 )
 PREFLIGHT_REVIEW = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_review_v1_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_preflight_review_v2_59874f4a"
 )
 CORRECTED_RAW = AUTODL / (
     "camp_dp_v25_batch8_generator_repeatability_corrected_raw_v1_dc76fbc8"
@@ -390,7 +390,7 @@ def materialize(
                 )
                 receipt = {
                     "schema_version": (
-                        "camp_dp_v25_selector_after_pool_replay_slot_v1"
+                        "camp_dp_v25_selector_after_pool_replay_slot_v2"
                     ),
                     **{
                         key: binding[key]
@@ -466,7 +466,7 @@ def materialize(
                 )
                 receipt = {
                     "schema_version": (
-                        "camp_dp_v25_selector_after_pool_replay_slot_v1"
+                        "camp_dp_v25_selector_after_pool_replay_slot_v2"
                     ),
                     **binding,
                     "candidate_tensor_sha256_before": before_candidate,
@@ -513,7 +513,7 @@ def materialize(
             except ValueError:
                 nondeterministic_states.append(state_index)
         report = {
-            "schema_version": "camp_dp_v25_selector_after_pool_replay_v1",
+            "schema_version": "camp_dp_v25_selector_after_pool_replay_v2",
             "status": (
                 "PASS_runtime_selector_compatibility"
                 if not typed_failures and not nondeterministic_states

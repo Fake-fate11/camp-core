@@ -205,6 +205,53 @@ RAW_FEATURE_NAMES = (
 ATOM_NAMES = tuple(row[0] for row in EXPECTED_ATOMS)
 NO_NEIGHBOR_DISTANCE_M = 100.0
 NO_NEIGHBOR_TTC_S = 30.0
+EXPECTED_SCHEMA_VERSION = (
+    "camp_dp_v25_selector_after_pool_replay_contract_v2"
+)
+EXPECTED_EXACT_DIRS = {
+    "contract": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
+    ),
+    "contract_review": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
+    ),
+    "focused": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_focused_v2_59874f4a"
+    ),
+    "preflight": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_preflight_v2_59874f4a"
+    ),
+    "preflight_review": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_preflight_review_v2_59874f4a"
+    ),
+    "replay": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_v2_59874f4a"
+    ),
+    "replay_review": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_review_v2_59874f4a"
+    ),
+    "final_docs": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_final_docs_v2_59874f4a"
+    ),
+}
+EXPECTED_SOURCE_KEYS = {
+    "contract_module",
+    "contract_reviewer",
+    "contract_freezer",
+    "contract_review_runner",
+    "preflight_producer",
+    "preflight_reviewer",
+    "replay_producer",
+    "replay_reviewer",
+}
 
 
 def _canonical_bytes(value: Any) -> bytes:
@@ -231,8 +278,23 @@ def review_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     supplied = payload.pop("contract_payload_sha256", None)
     if supplied != _sha256(_canonical_bytes(payload)):
         raise ValueError("reviewed contract digest mismatch")
+    implementation_head = payload.get("implementation_head")
+    source_hashes = payload.get("source_hashes")
     if (
-        payload.get("authority_sha256") != AUTHORITY_SHA256
+        payload.get("schema_version") != EXPECTED_SCHEMA_VERSION
+        or payload.get("exact_dirs") != EXPECTED_EXACT_DIRS
+        or type(implementation_head) is not str
+        or len(implementation_head) != 40
+        or set(implementation_head) - set("0123456789abcdef")
+        or type(source_hashes) is not dict
+        or set(source_hashes) != EXPECTED_SOURCE_KEYS
+        or any(
+            type(value) is not str
+            or len(value) != 64
+            or set(value) - set("0123456789abcdef")
+            for value in source_hashes.values()
+        )
+        or payload.get("authority_sha256") != AUTHORITY_SHA256
         or payload.get("base_pointer_head") != BASE_POINTER_HEAD
         or payload.get("fixed_dp_head") != FIXED_DP_HEAD
         or payload.get("sealed_inputs", {}).get(

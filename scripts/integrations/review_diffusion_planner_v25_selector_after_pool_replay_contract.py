@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -26,12 +28,46 @@ from camp_core.integrations.diffusion_planner_v25_selector_after_pool_replay_rev
 
 
 CONTRACT_DIR = Path(
-    "/root/autodl-tmp/camp_dp_v25_selector_after_pool_replay_contract_v1_59874f4a"
+    "/root/autodl-tmp/camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
 )
 OUTPUT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v25_selector_after_pool_replay_contract_review_v1_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
 )
+SOURCE_PATHS = {
+    "contract_module": (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_selector_after_pool_replay.py"
+    ),
+    "contract_reviewer": (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_selector_after_pool_replay_review.py"
+    ),
+    "contract_freezer": (
+        "scripts/integrations/"
+        "freeze_diffusion_planner_v25_selector_after_pool_replay_contract.py"
+    ),
+    "contract_review_runner": (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_selector_after_pool_replay_contract.py"
+    ),
+    "preflight_producer": (
+        "scripts/integrations/"
+        "materialize_diffusion_planner_v25_selector_after_pool_replay_preflight.py"
+    ),
+    "preflight_reviewer": (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_selector_after_pool_replay_preflight.py"
+    ),
+    "replay_producer": (
+        "scripts/integrations/"
+        "materialize_diffusion_planner_v25_selector_after_pool_replay.py"
+    ),
+    "replay_reviewer": (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_selector_after_pool_replay.py"
+    ),
+}
 
 
 def _canonical(value: object) -> bytes:
@@ -45,6 +81,20 @@ def _canonical(value: object) -> bytes:
         )
         + "\n"
     ).encode("ascii")
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _git(*args: str) -> str:
+    return subprocess.check_output(
+        ["git", "-C", str(ROOT), *args], text=True
+    ).strip()
 
 
 def review(*, contract_root: str, output: Path = OUTPUT) -> str:
@@ -63,13 +113,26 @@ def review(*, contract_root: str, output: Path = OUTPUT) -> str:
         raise RuntimeError("contract review exact output drifted")
     value = json.loads((CONTRACT_DIR / "contract.json").read_text("ascii"))
     reviewed = review_contract(value)
+    if (
+        reviewed["implementation_head"] != _git("rev-parse", "HEAD")
+        or reviewed["implementation_head"]
+        != _git("rev-parse", "refs/remotes/origin/main")
+        or _git("status", "--porcelain=v1", "--untracked-files=no")
+    ):
+        raise RuntimeError("contract reviewer live implementation drifted")
+    rebuilt_source_hashes = {
+        name: _file_sha256(ROOT / relative)
+        for name, relative in SOURCE_PATHS.items()
+    }
+    if rebuilt_source_hashes != reviewed["source_hashes"]:
+        raise RuntimeError("contract reviewer source hash reconstruction drifted")
     staging = Path(
         tempfile.mkdtemp(prefix=f".{output.name}.staging.", dir=output.parent)
     )
     try:
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_contract_review_v1"
+                "camp_dp_v25_selector_after_pool_replay_contract_review_v2"
             ),
             "status": "PASS_independent_literal_contract_review",
             "contract_root_sha256": contract_root,

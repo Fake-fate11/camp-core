@@ -14,6 +14,10 @@ from camp_core.integrations import (
 from camp_core.integrations import (
     diffusion_planner_v25_selector_after_pool_replay_review as reviewer,
 )
+from scripts.integrations import (
+    materialize_diffusion_planner_v25_selector_after_pool_replay_preflight
+    as preflight_materializer,
+)
 
 
 def _sources() -> dict[str, str]:
@@ -65,6 +69,7 @@ def test_contract_and_independent_review_pass() -> None:
     value = _contract()
     assert producer.validate_contract(value) == value
     assert reviewer.review_contract(value) == value
+    assert value["schema_version"].endswith("_v2")
     assert value["denominator"]["run_count"] == 320
     assert value["runtime_gates"]["model_calls"] == 0
     assert value["atoms"]["count"] == 14
@@ -116,6 +121,22 @@ def test_unknown_or_missing_atom_resealed_is_rejected() -> None:
                     "scale_source": "x",
                 }
             )
+        _rehash(value)
+        with pytest.raises(ValueError):
+            producer.validate_contract(value)
+        with pytest.raises(ValueError):
+            reviewer.review_contract(value)
+
+
+def test_schema_or_exact_directory_mutation_resealed_is_rejected() -> None:
+    for mutate in ("schema", "directory"):
+        value = deepcopy(_contract())
+        if mutate == "schema":
+            value["schema_version"] = (
+                "camp_dp_v25_selector_after_pool_replay_contract_v999"
+            )
+        else:
+            value["exact_dirs"]["preflight"] += "_forged"
         _rehash(value)
         with pytest.raises(ValueError):
             producer.validate_contract(value)
@@ -230,6 +251,31 @@ def test_causal_inverse_matches_frozen_row_mask_normalizer() -> None:
     )
     assert result["ego_current_state"][0] == 7.0
     assert np.all(result["ego_current_state"][1:] == 1.0)
+
+
+def test_preflight_roundtrip_uses_exact_consumed_neighbor_slice() -> None:
+    source = np.arange(1 * 320 * 31 * 11, dtype=np.float32).reshape(
+        1, 320, 31, 11
+    )
+    causal = np.ascontiguousarray(source[0, :32])
+    preflight_materializer._roundtrip(
+        {"neighbor_agents_past": source},
+        {"neighbor_agents_past": causal, "version": np.array(1)},
+        {},
+    )
+    drifted = causal.copy()
+    drifted[31, 30, 10] += 1.0
+    with pytest.raises(
+        RuntimeError, match="normalizer inverse roundtrip drifted"
+    ):
+        preflight_materializer._roundtrip(
+            {"neighbor_agents_past": source},
+            {
+                "neighbor_agents_past": drifted,
+                "version": np.array(1),
+            },
+            {},
+        )
 
 
 def test_producer_and_reviewer_literal_selection_exact() -> None:

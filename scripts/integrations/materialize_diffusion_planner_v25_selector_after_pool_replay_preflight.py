@@ -190,6 +190,13 @@ def _roundtrip(
     for name, expected in source.items():
         if name in {"delay", "sampled_trajectories"}:
             continue
+        if name == "neighbor_agents_past":
+            # CAMP's frozen selector evidence consumes only the first 32
+            # neighbors from the model's 320-row input tensor.  The causal
+            # inverse therefore has a deliberately narrower authority than
+            # the upstream model input and must be compared to that exact
+            # consumed slice.
+            expected = expected[:, :32]
         observed = reconstructed[name].astype(expected.dtype, copy=False)
         if not np.array_equal(observed, expected):
             raise RuntimeError(f"normalizer inverse roundtrip drifted: {name}")
@@ -424,7 +431,7 @@ def materialize(
         )
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_preflight_v1"
+                "camp_dp_v25_selector_after_pool_replay_preflight_v2"
             ),
             "status": "PASS_sealed_input_and_weight_preflight",
             "implementation_head": implementation_head,

@@ -64,43 +64,43 @@ NEIGHBOR_SHAPE = (8, 32, 80, 4)
 ATOM_COUNT = 14
 DT_S = 0.1
 
-SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_contract_v1"
-PREFLIGHT_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_preflight_v1"
-REPLAY_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_v1"
-REVIEW_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_review_v1"
+SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_contract_v2"
+PREFLIGHT_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_preflight_v2"
+REPLAY_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_v2"
+REVIEW_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_review_v2"
 
 EXACT_DIRS = {
     "contract": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
     ),
     "contract_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_review_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
     ),
     "focused": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_focused_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_focused_v2_59874f4a"
     ),
     "preflight": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_preflight_v2_59874f4a"
     ),
     "preflight_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_review_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_preflight_review_v2_59874f4a"
     ),
     "replay": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_v2_59874f4a"
     ),
     "replay_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_review_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_review_v2_59874f4a"
     ),
     "final_docs": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_final_docs_v1_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_final_docs_v2_59874f4a"
     ),
 }
 

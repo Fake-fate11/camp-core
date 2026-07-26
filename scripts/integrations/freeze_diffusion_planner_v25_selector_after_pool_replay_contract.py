@@ -110,7 +110,7 @@ def freeze(*, implementation_head: str, output: Path) -> str:
         (staging / "contract.json").write_bytes(canonical_bytes(payload))
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_contract_report_v1"
+                "camp_dp_v25_selector_after_pool_replay_contract_report_v2"
             ),
             "status": "PASS_contract_frozen_before_selector_replay",
             "implementation_head": implementation_head,
