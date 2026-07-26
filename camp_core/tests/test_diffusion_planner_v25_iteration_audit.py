@@ -574,8 +574,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Batch8 Generator-Only Calibration "
-        "Independently Reviewed"
+        "## Current V25 Status - Corrected Same-Input/Same-Latent Batch8 "
+        "Repeatability Independently Reviewed"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -586,8 +586,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## V25 Batch8 Generator-Only Calibration Full Denominator and "
-        "Threshold Review"
+        "## V25 Corrected Same-Input/Same-Latent Batch8 Repeatability Review"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -597,16 +596,16 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "batch8_generator_only_calibration_full_denominator_threshold_"
+        "batch8_generator_repeatability_corrected_full_denominator_threshold_"
         "independently_reviewed_control_decision_required"
     )
     assert pointer["current_v25_phase"] == (
-        "batch8_generator_only_calibration_full_denominator_threshold_"
-        "independently_reviewed"
+        "bounded_development_corrected_same_input_same_latent_generator_"
+        "repeatability_calibration_full_denominator_and_independently_"
+        "reviewed_envelope"
     )
     assert pointer["next_work_target"] == (
-        "high_control_decision_selector_adaptation_reference_or_versioned_v3_"
-        "closed_loop_design"
+        "high_control_decision_after_corrected_generator_repeatability_envelope"
     )
 
 
@@ -617,7 +616,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 949
+    assert len(status_pointer) == 958
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -1160,8 +1159,7 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in report
         assert phrase in index
     assert _machine_tuple(audit_eof)["next_work_target"] == (
-        "high_control_decision_selector_adaptation_reference_or_versioned_v3_"
-        "closed_loop_design"
+        "high_control_decision_after_corrected_generator_repeatability_envelope"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
