@@ -121,6 +121,16 @@ SELECTOR_REPLACEMENT_INDEX = (
     / "docs"
     / "diffusion_planner_v25_selector_after_pool_replay_replacement_evidence_index.md"
 )
+BOUNDED_CLOSED_LOOP_REPORT = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_industrial_v3_bounded_closed_loop_report.md"
+)
+BOUNDED_CLOSED_LOOP_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_industrial_v3_bounded_closed_loop_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -584,8 +594,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Selector-After-Pool Replacement "
-        "Independently Reviewed"
+        "## Current V25 Status - Industrial-v3 Bounded Nonholdout "
+        "Closed Loop Independently Reviewed"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -596,7 +606,7 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## V25 Selector-After-Pool Replacement Review"
+        "## V25 Industrial-v3 Bounded Nonholdout Closed-Loop Review"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -606,16 +616,15 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "selector_after_pool_replay_replacement_full_denominator_"
-        "independently_reviewed_high_review_required"
+        "industrial_v3_bounded_nonholdout_closed_loop_full_denominator_"
+        "independently_reviewed_high_incremental_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "bounded_development_zero_model_selector_after_pool_replacement_"
-        "full_denominator_and_independently_reviewed_runtime_compatibility"
+        "bounded_development_single_route_compute_matched_closed_loop_"
+        "descriptive_industrial_v3_vector"
     )
     assert pointer["next_work_target"] == (
-        "high_incremental_review_of_selector_replacement_before_future_"
-        "closed_loop_hardening_authority"
+        "high_incremental_review_of_bounded_nonholdout_closed_loop_package"
     )
 
 
@@ -626,13 +635,19 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 1008
+    assert len(status_pointer) == 1068
     assert status_pointer[
         "current_v25_selector_replacement_report_sha256"
     ] == _sha256(SELECTOR_REPLACEMENT_REPORT)
     assert status_pointer[
         "current_v25_selector_replacement_evidence_index_sha256"
     ] == _sha256(SELECTOR_REPLACEMENT_INDEX)
+    assert status_pointer[
+        "current_v25_bounded_closed_loop_report_sha256"
+    ] == _sha256(BOUNDED_CLOSED_LOOP_REPORT)
+    assert status_pointer[
+        "current_v25_bounded_closed_loop_evidence_index_sha256"
+    ] == _sha256(BOUNDED_CLOSED_LOOP_INDEX)
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
