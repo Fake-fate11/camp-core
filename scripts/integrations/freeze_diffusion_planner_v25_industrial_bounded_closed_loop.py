@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 from pathlib import Path
+import subprocess
 import sys
 from typing import Any
 
@@ -197,6 +198,84 @@ def freeze_matrix(output: Path, contract_dir: Path, contract_root: str) -> str:
     )
 
 
+def freeze_focused(
+    output: Path,
+    contract_dir: Path,
+    contract_root: str,
+    contract_review_dir: Path,
+    contract_review_root: str,
+    matrix_dir: Path,
+    matrix_root: str,
+    matrix_review_dir: Path,
+    matrix_review_root: str,
+) -> str:
+    for path, root, label in (
+        (contract_dir, contract_root, "bounded contract"),
+        (contract_review_dir, contract_review_root, "bounded contract review"),
+        (matrix_dir, matrix_root, "hardening matrix"),
+        (matrix_review_dir, matrix_review_root, "hardening matrix review"),
+    ):
+        verify_complete_seal(path, root, label=label)
+    tests = [
+        "camp_core/tests/test_diffusion_planner_v25_industrial_bounded_closed_loop.py",
+        "camp_core/tests/test_diffusion_planner_v25_fair_nonholdout.py",
+        "camp_core/tests/test_diffusion_planner_v25_selector_after_pool_replay.py",
+    ]
+    env = dict(__import__("os").environ)
+    env["PYTHONPATH"] = f"{ROOT / 'camp_core'}:{ROOT}"
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", *tests],
+        cwd=ROOT,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"hardening focused failed: exit={result.returncode}\n{result.stdout}\n{result.stderr}"
+        )
+    passed_token = next(
+        (
+            token
+            for token in result.stdout.replace("\n", " ").split()
+            if token.isdigit()
+        ),
+        None,
+    )
+    return write_atomic(
+        output,
+        {
+            "schema_version": (
+                "camp_dp_v25_industrial_v3_production_hardening_focused_v1"
+            ),
+            "status": "passed_zero_model_production_hardening_focused",
+            "test_files": tests,
+            "pytest_stdout": result.stdout,
+            "pytest_stderr": result.stderr,
+            "pytest_exit": result.returncode,
+            "reported_pass_count_token": passed_token,
+            "contract_root_sha256": contract_root,
+            "contract_review_root_sha256": contract_review_root,
+            "matrix_root_sha256": matrix_root,
+            "matrix_review_root_sha256": matrix_review_root,
+            "implementation_head": git_head(),
+            "interpreter": _interpreter_receipt(),
+            "model_pool_selector_calls": 0,
+            "outcome_values_read": False,
+            "old_artifact_or_cas_writes": 0,
+        },
+        {
+            "role": "industrial_v3_production_hardening_focused",
+            "implementation_head": git_head(),
+            "authority_sha256": AUTHORITY_SHA256,
+            "contract_root_sha256": contract_root,
+            "matrix_root_sha256": matrix_root,
+        },
+        label="V25 industrial-v3 production hardening focused",
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="stage", required=True)
@@ -208,6 +287,22 @@ def main() -> int:
     matrix_parser.add_argument("--output", type=Path, required=True)
     matrix_parser.add_argument("--contract-dir", type=Path, required=True)
     matrix_parser.add_argument("--contract-root", required=True)
+    focused_parser = subparsers.add_parser("focused")
+    focused_parser.add_argument("--output", type=Path, required=True)
+    for name in (
+        "contract-dir",
+        "contract-review-dir",
+        "matrix-dir",
+        "matrix-review-dir",
+    ):
+        focused_parser.add_argument("--" + name, type=Path, required=True)
+    for name in (
+        "contract-root",
+        "contract-review-root",
+        "matrix-root",
+        "matrix-review-root",
+    ):
+        focused_parser.add_argument("--" + name, required=True)
     args = parser.parse_args()
     if args.stage == "contract":
         root = freeze_contract(
@@ -215,8 +310,20 @@ def main() -> int:
             args.industrial_contract_dir,
             args.industrial_contract_root,
         )
-    else:
+    elif args.stage == "matrix":
         root = freeze_matrix(args.output, args.contract_dir, args.contract_root)
+    else:
+        root = freeze_focused(
+            args.output,
+            args.contract_dir,
+            args.contract_root,
+            args.contract_review_dir,
+            args.contract_review_root,
+            args.matrix_dir,
+            args.matrix_root,
+            args.matrix_review_dir,
+            args.matrix_review_root,
+        )
     print(root)
     return 0
 
