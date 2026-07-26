@@ -34,10 +34,12 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
 
 AUTODL = Path("/root/autodl-tmp")
 PREFLIGHT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1_"
+    "4c412870_e6579ca7"
 )
 OUTPUT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_review_v1_"
+    "4c412870_e6579ca7"
 )
 CORRECTED_PREFLIGHT = AUTODL / (
     "camp_dp_v25_batch8_generator_repeatability_corrected_preflight_v1_dc76fbc8"
@@ -298,7 +300,8 @@ def review(*, preflight_root: str, output: Path = OUTPUT) -> str:
     try:
         reviewed = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_preflight_review_v3"
+                "camp_dp_v25_selector_after_pool_replay_replacement_"
+                "preflight_review_v1"
             ),
             "status": "PASS_independent_raw_byte_preflight_review",
             "preflight_root_sha256": preflight_root,

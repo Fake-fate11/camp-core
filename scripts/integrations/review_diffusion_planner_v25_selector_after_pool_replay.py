@@ -39,20 +39,28 @@ from camp_core.integrations.diffusion_planner_v25_selector_after_pool_replay_rev
 AUTODL = Path("/root/autodl-tmp")
 DP = AUTODL / "Diffusion-Planner"
 CONTRACT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_contract_v1_"
+    "4c412870_e6579ca7"
 )
 CONTRACT_REVIEW = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_contract_review_v1_"
+    "4c412870_e6579ca7"
 )
 PREFLIGHT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1_"
+    "4c412870_e6579ca7"
 )
 PREFLIGHT_REVIEW = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_review_v1_"
+    "4c412870_e6579ca7"
 )
-REPLAY = AUTODL / "camp_dp_v25_selector_after_pool_replay_v3_59874f4a"
+REPLAY = AUTODL / (
+    "camp_dp_v25_selector_after_pool_replay_replacement_v1_"
+    "4c412870_e6579ca7"
+)
 OUTPUT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_review_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_review_v1_"
+    "4c412870_e6579ca7"
 )
 CORRECTED_RAW = AUTODL / (
     "camp_dp_v25_batch8_generator_repeatability_corrected_raw_v1_dc76fbc8"
@@ -205,7 +213,9 @@ def review(
         or produced.get("dp_call_count") != 0
         or produced.get("latent_generation_call_count") != 0
         or produced.get("candidate_generation_call_count") != 0
-        or produced.get("selector_call_count") != 640
+        or produced.get("selector_call_count")
+        != sum(int(row.get("selector_call_count", -1)) for row in receipts)
+        or not 0 <= produced.get("selector_call_count") <= 640
         or produced.get("tensor_mutation_count") != 0
         or produced.get("fresh_or_holdout_outcome_read") is not False
         or produced.get("old_artifact_or_cas_write") is not False
@@ -288,6 +298,7 @@ def review(
             scales=scales,
             weights=static_weights,
             eligibility_mask=atom["source_valid_mask"],
+            simplex_nonnegative_atol=1e-9,
         )
         scene_selection = literal_selection(
             candidates=candidate,
@@ -295,10 +306,16 @@ def review(
             scales=scales,
             weights=scene["weights"],
             eligibility_mask=atom["source_valid_mask"],
+            simplex_nonnegative_atol=1e-9,
         )
-        preimage = _arrays(
+        preimage_path = (
             REPLAY / "slots" / f"{slot:03d}" / "selector_preimage.npz"
         )
+        if receipt.get("status") == "typed_failure_retained" and not preimage_path.is_file():
+            reviewed.append(receipt)
+            by_state.setdefault(int(receipt["state_index"]), []).append(receipt)
+            continue
+        preimage = _arrays(preimage_path)
         _assert_array(preimage["raw_atoms"], atom["raw_atoms"], "raw atoms")
         _assert_array(
             preimage["scaled_atoms"],
@@ -377,6 +394,21 @@ def review(
             ("scene14d", scene_selection),
         ):
             produced_arm = receipt.get(arm)
+            if produced_arm is None:
+                expected_name = "Static14D" if arm == "static14d" else "Scene14D"
+                failures = receipt.get("arm_failures")
+                if (
+                    receipt.get("status") != "typed_failure_retained"
+                    or type(failures) is not list
+                    or not any(
+                        type(row) is dict and row.get("arm") == expected_name
+                        for row in failures
+                    )
+                ):
+                    raise ValueError(
+                        f"selector replay missing unclassified {arm}: {slot}"
+                    )
+                continue
             if (
                 type(produced_arm) is not dict
                 or produced_arm.get("arm")
@@ -420,21 +452,30 @@ def review(
         by_state.setdefault(int(receipt["state_index"]), []).append(receipt)
     if set(by_state) != set(range(64)):
         raise ValueError("selector replay state denominator drifted")
+    independently_nondeterministic = []
     for state_index, state_rows in by_state.items():
         try:
             verify_same_state(state_rows)
-        except ValueError as exc:
-            raise ValueError(
-                f"selector replay state nondeterminism: {state_index}"
-            ) from exc
+        except (KeyError, ValueError):
+            independently_nondeterministic.append(state_index)
+    typed_failure_count = sum(
+        1 for row in receipts if row.get("status") == "typed_failure_retained"
+    )
+    expected_status = (
+        "PASS_runtime_selector_compatibility"
+        if typed_failure_count == 0 and not independently_nondeterministic
+        else "FULL_DENOMINATOR_WITH_TYPED_FAILURES"
+    )
     if (
-        produced.get("status") != "PASS_runtime_selector_compatibility"
-        or produced.get("typed_failure_count") != 0
-        or produced.get("typed_failures") != []
-        or produced.get("nondeterministic_state_count") != 0
-        or produced.get("nondeterministic_states") != []
+        produced.get("status") != expected_status
+        or type(produced.get("typed_failures")) is not list
+        or produced.get("typed_failure_count") != len(produced["typed_failures"])
+        or produced.get("nondeterministic_state_count")
+        != len(independently_nondeterministic)
+        or produced.get("nondeterministic_states")
+        != independently_nondeterministic
     ):
-        raise ValueError("selector replay PASS boundary drifted")
+        raise ValueError("selector replay PASS/typed-failure boundary drifted")
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(
         tempfile.mkdtemp(prefix=f".{output.name}.staging.", dir=output.parent)
@@ -442,9 +483,13 @@ def review(
     try:
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_review_v3"
+                "camp_dp_v25_selector_after_pool_replay_replacement_review_v1"
             ),
-            "status": "PASS_independent_literal_selector_replay_review",
+            "status": (
+                "PASS_independent_literal_selector_replay_review"
+                if expected_status == "PASS_runtime_selector_compatibility"
+                else "PASS_independent_typed_failure_replay_review"
+            ),
             "reviewed_replay_root_sha256": replay_root,
             "reviewed_slot_count": len(reviewed),
             "reviewed_state_count": len(by_state),
@@ -460,10 +505,10 @@ def review(
             "dp_call_count": 0,
             "latent_generation_call_count": 0,
             "candidate_generation_call_count": 0,
-            "selector_receipt_count": 640,
+            "selector_receipt_count": produced["selector_call_count"],
             "tensor_mutation_count": 0,
-            "typed_failure_count": 0,
-            "nondeterministic_state_count": 0,
+            "typed_failure_count": produced["typed_failure_count"],
+            "nondeterministic_state_count": len(independently_nondeterministic),
             "fresh_or_holdout_outcome_read": False,
             "old_artifact_or_cas_write": False,
             "claim_authorized": False,

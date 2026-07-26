@@ -44,6 +44,9 @@ def _sources() -> dict[str, str]:
             "preflight_reviewer",
             "replay_producer",
             "replay_reviewer",
+            "failure_closeout_producer",
+            "failure_closeout_reviewer",
+            "scene_runtime",
         )
     }
 
@@ -52,6 +55,8 @@ def _contract() -> dict:
     return producer.contract(
         implementation_head="1" * 40,
         source_hashes=_sources(),
+        failure_closeout_root="2" * 64,
+        failure_closeout_review_root="3" * 64,
     )
 
 
@@ -74,6 +79,7 @@ def _selection_inputs() -> dict:
         "scales": scales,
         "weights": weights,
         "eligibility_mask": mask,
+        "simplex_nonnegative_atol": 1e-9,
     }
 
 
@@ -81,7 +87,7 @@ def test_contract_and_independent_review_pass() -> None:
     value = _contract()
     assert producer.validate_contract(value) == value
     assert reviewer.review_contract(value) == value
-    assert value["schema_version"].endswith("_v3")
+    assert value["schema_version"].endswith("_v1")
     assert value["denominator"]["run_count"] == 320
     assert value["runtime_gates"]["model_calls"] == 0
     assert value["atoms"]["count"] == 14
@@ -95,6 +101,7 @@ def test_contract_and_independent_review_pass() -> None:
         (("denominator", "run_count"), 319),
         (("runtime_gates", "model_calls"), 1),
         (("runtime_gates", "candidate0_is_row0"), False),
+        (("selection", "trained_simplex_nonnegative_atol"), 0.0),
         (
             (
                 "interpretation",
@@ -315,6 +322,52 @@ def test_producer_and_reviewer_literal_selection_exact() -> None:
     assert actual["selected_index"] == 0
     assert actual["tie_set"] == [0]
     assert actual["margin"]["value"] == 1.0
+
+
+def test_accepted_tiny_negative_simplex_residual_passes_both_literal_oracles() -> None:
+    inputs = _selection_inputs()
+    before = inputs["weights"].tobytes(order="C")
+    inputs["weights"][0] = -5.9639495628241106e-18
+    inputs["weights"][1] += (1.0 / 14.0) - inputs["weights"][0]
+    producer_result = producer.selection_from_preimages(**inputs)
+    reviewer_result = reviewer.literal_selection(**inputs)
+    assert producer_result == reviewer_result
+    assert inputs["weights"].tobytes(order="C") != before
+    frozen = inputs["weights"].copy()
+    producer.selection_from_preimages(**inputs)
+    reviewer.literal_selection(**inputs)
+    assert np.array_equal(inputs["weights"], frozen)
+
+
+def test_below_accepted_simplex_residual_and_tolerance_drift_fail_closed() -> None:
+    inputs = _selection_inputs()
+    inputs["weights"][0] = -1.0000001e-9
+    inputs["weights"][1] += (1.0 / 14.0) - inputs["weights"][0]
+    with pytest.raises(ValueError, match="weights must"):
+        producer.selection_from_preimages(**inputs)
+    with pytest.raises(ValueError, match="preimage invalid"):
+        reviewer.literal_selection(**inputs)
+    inputs = _selection_inputs()
+    inputs["simplex_nonnegative_atol"] = 0.0
+    with pytest.raises(ValueError, match="tolerance drifted"):
+        producer.selection_from_preimages(**inputs)
+    with pytest.raises(ValueError, match="tolerance drifted"):
+        reviewer.literal_selection(**inputs)
+
+
+def test_both_production_selector_calls_explicitly_use_frozen_tolerance() -> None:
+    source = Path(replay_materializer.__file__).read_text(encoding="utf-8")
+    assert source.count("static_prod = select_camp_candidate(") == 1
+    assert source.count("scene_prod = select_camp_candidate(") == 1
+    for marker in (
+        "static_prod = select_camp_candidate(",
+        "scene_prod = select_camp_candidate(",
+    ):
+        start = source.index(marker)
+        call = source[start : source.index("\n                    )", start)]
+        assert "simplex_nonnegative_atol=(" in call
+        assert "TRAINED_SIMPLEX_NONNEGATIVE_ATOL" in call
+    assert "simplex_nonnegative_atol=0.0" not in source
 
 
 @pytest.mark.parametrize(

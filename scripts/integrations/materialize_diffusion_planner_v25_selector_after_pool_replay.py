@@ -36,12 +36,15 @@ from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
     build_v25_raw_context,
 )
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa: E402
+    TRAINED_SIMPLEX_NONNEGATIVE_ATOL as RUNTIME_TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
     load_v25_runtime_selector_assets,
 )
 from camp_core.integrations.diffusion_planner_v25_selector_after_pool_replay import (  # noqa: E402
     CORRECTED_RAW_ROOT,
     EXACT_DIRS,
     FIXED_DP_HEAD,
+    REPLAY_SCHEMA_VERSION,
+    TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
     TRAINING_REVIEW_ROOT,
     TRAINING_ROOT,
     array_sha256,
@@ -70,10 +73,12 @@ from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # n
 AUTODL = Path("/root/autodl-tmp")
 DP = AUTODL / "Diffusion-Planner"
 PREFLIGHT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1_"
+    "4c412870_e6579ca7"
 )
 PREFLIGHT_REVIEW = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_review_v1_"
+    "4c412870_e6579ca7"
 )
 CORRECTED_RAW = AUTODL / (
     "camp_dp_v25_batch8_generator_repeatability_corrected_raw_v1_dc76fbc8"
@@ -121,6 +126,7 @@ def _selection_receipt(
         scales=scales,
         weights=weights,
         eligibility_mask=mask,
+        simplex_nonnegative_atol=TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
     )
     if (
         production.get("status") != "ok"
@@ -171,6 +177,11 @@ def materialize(
         expected_prefix="/root/autodl-tmp/dp312_venv",
         expected_exact_version=(3, 12, 3),
     )
+    if (
+        RUNTIME_TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+        != TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+    ):
+        raise RuntimeError("accepted runtime simplex tolerance authority drifted")
     if (
         output != Path(EXACT_DIRS["replay"])
         or output.exists()
@@ -287,23 +298,36 @@ def materialize(
                     )
                 )
                 static_started = time.perf_counter_ns()
-                selector_calls += 1
-                static_prod = select_camp_candidate(
-                    candidates=candidate,
-                    materialized=materialized,
-                    atom_scales=assets.atom_scales,
-                    weights=assets.static14d_weights,
-                    eligibility_mask_name="source_valid_mask",
-                )
-                static = _selection_receipt(
-                    arm="Static14D",
-                    candidates=candidate,
-                    atoms=atoms,
-                    scales=assets.atom_scales,
-                    weights=assets.static14d_weights,
-                    mask=source_mask,
-                    production=static_prod,
-                )
+                static = None
+                static_failure = None
+                try:
+                    selector_calls += 1
+                    static_prod = select_camp_candidate(
+                        candidates=candidate,
+                        materialized=materialized,
+                        atom_scales=assets.atom_scales,
+                        weights=assets.static14d_weights,
+                        eligibility_mask_name="source_valid_mask",
+                        simplex_nonnegative_atol=(
+                            TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+                        ),
+                    )
+                    static = _selection_receipt(
+                        arm="Static14D",
+                        candidates=candidate,
+                        atoms=atoms,
+                        scales=assets.atom_scales,
+                        weights=assets.static14d_weights,
+                        mask=source_mask,
+                        production=static_prod,
+                    )
+                except Exception as exc:
+                    static_failure = {
+                        "arm": "Static14D",
+                        "taxonomy": "selector_replay_typed_failure_retained",
+                        "exception_type": type(exc).__name__,
+                        "message": str(exc),
+                    }
                 static_ns = time.perf_counter_ns() - static_started
                 context_started = time.perf_counter_ns()
                 context = build_v25_raw_context(
@@ -339,24 +363,36 @@ def materialize(
                 )
                 context_ns = time.perf_counter_ns() - context_started
                 scene_started = time.perf_counter_ns()
-                selector_calls += 1
-                scene_prod = select_camp_candidate(
-                    candidates=candidate,
-                    materialized=materialized,
-                    atom_scales=assets.atom_scales,
-                    weights=scene_weights,
-                    eligibility_mask_name="source_valid_mask",
-                    simplex_nonnegative_atol=1e-9,
-                )
-                scene = _selection_receipt(
-                    arm="Scene14D",
-                    candidates=candidate,
-                    atoms=atoms,
-                    scales=assets.atom_scales,
-                    weights=scene_weights,
-                    mask=source_mask,
-                    production=scene_prod,
-                )
+                scene = None
+                scene_failure = None
+                try:
+                    selector_calls += 1
+                    scene_prod = select_camp_candidate(
+                        candidates=candidate,
+                        materialized=materialized,
+                        atom_scales=assets.atom_scales,
+                        weights=scene_weights,
+                        eligibility_mask_name="source_valid_mask",
+                        simplex_nonnegative_atol=(
+                            TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+                        ),
+                    )
+                    scene = _selection_receipt(
+                        arm="Scene14D",
+                        candidates=candidate,
+                        atoms=atoms,
+                        scales=assets.atom_scales,
+                        weights=scene_weights,
+                        mask=source_mask,
+                        production=scene_prod,
+                    )
+                except Exception as exc:
+                    scene_failure = {
+                        "arm": "Scene14D",
+                        "taxonomy": "selector_replay_typed_failure_retained",
+                        "exception_type": type(exc).__name__,
+                        "message": str(exc),
+                    }
                 scene_ns = time.perf_counter_ns() - scene_started
                 scaled = atoms / assets.atom_scales[None, :]
                 clipped = np.clip(scaled, 0.0, 10.0)
@@ -376,21 +412,38 @@ def materialize(
                     source_valid_mask=source_mask,
                     physical_feasible_mask=physical_mask,
                     static_weights=assets.static14d_weights,
-                    static_scores=np.asarray(static["scores"], dtype=np.float64),
+                    static_scores=(
+                        np.asarray(static["scores"], dtype=np.float64)
+                        if static is not None
+                        else np.empty(0, dtype=np.float64)
+                    ),
                     scene_context_raw=np.asarray(context.raw, dtype=np.float64),
                     scene_context_source_complete=np.asarray(
                         context.source_complete, dtype=np.bool_
                     ),
                     scene_phi=scene_phi,
                     scene_weights=scene_weights,
-                    scene_scores=np.asarray(scene["scores"], dtype=np.float64),
-                    static_selected_action=candidate[static["selected_index"]],
-                    scene_selected_action=candidate[scene["selected_index"]],
+                    scene_scores=(
+                        np.asarray(scene["scores"], dtype=np.float64)
+                        if scene is not None
+                        else np.empty(0, dtype=np.float64)
+                    ),
+                    static_selected_action=(
+                        candidate[static["selected_index"]]
+                        if static is not None
+                        else np.empty((0, 4), dtype="<f4")
+                    ),
+                    scene_selected_action=(
+                        candidate[scene["selected_index"]]
+                        if scene is not None
+                        else np.empty((0, 4), dtype="<f4")
+                    ),
                     candidate0_action=candidate[0],
                 )
                 receipt = {
                     "schema_version": (
-                        "camp_dp_v25_selector_after_pool_replay_slot_v3"
+                        "camp_dp_v25_selector_after_pool_replay_"
+                        "replacement_slot_v1"
                     ),
                     **{
                         key: binding[key]
@@ -433,6 +486,11 @@ def materialize(
                     "scene_weight_receipt": scene_weight_receipt,
                     "static14d": static,
                     "scene14d": scene,
+                    "arm_failures": [
+                        value
+                        for value in (static_failure, scene_failure)
+                        if value is not None
+                    ],
                     "latency_ns": {
                         "atoms": int(atom_ns),
                         "static_selector_increment": int(static_ns),
@@ -447,9 +505,35 @@ def materialize(
                     "latent_generation_call_count": 0,
                     "candidate_generation_call_count": 0,
                     "selector_call_count": selector_calls,
-                    "status": "computed",
-                    "failure": None,
+                    "status": (
+                        "computed"
+                        if static_failure is None and scene_failure is None
+                        else "typed_failure_retained"
+                    ),
+                    "failure": (
+                        None
+                        if static_failure is None and scene_failure is None
+                        else {
+                            "taxonomy": (
+                                "selector_replay_arm_failure_retained"
+                            ),
+                            "failed_arms": [
+                                value["arm"]
+                                for value in (static_failure, scene_failure)
+                                if value is not None
+                            ],
+                        }
+                    ),
                 }
+                for arm_failure in receipt["arm_failures"]:
+                    typed_failures.append(
+                        {
+                            "slot": slot,
+                            "state_index": binding["state_index"],
+                            "repeat_index": binding["repeat_index"],
+                            **arm_failure,
+                        }
+                    )
             except Exception as exc:
                 failure = {
                     "taxonomy": "selector_replay_typed_failure_retained",
@@ -466,7 +550,8 @@ def materialize(
                 )
                 receipt = {
                     "schema_version": (
-                        "camp_dp_v25_selector_after_pool_replay_slot_v3"
+                        "camp_dp_v25_selector_after_pool_replay_"
+                        "replacement_slot_v1"
                     ),
                     **binding,
                     "candidate_tensor_sha256_before": before_candidate,
@@ -488,16 +573,9 @@ def materialize(
                 hard_failure = True
                 raise RuntimeError("selector replay mutated sealed tensor")
             receipt["receipt_sha256"] = sha256_bytes(canonical_bytes(receipt))
-            if failure is None:
-                (staging / "slots" / f"{slot:03d}" / "receipt.json").write_bytes(
-                    canonical_bytes(receipt)
-                )
-            else:
-                failure_dir = staging / "slots" / f"{slot:03d}"
-                failure_dir.mkdir(exist_ok=True)
-                (failure_dir / "receipt.json").write_bytes(
-                    canonical_bytes(receipt)
-                )
+            receipt_dir = staging / "slots" / f"{slot:03d}"
+            receipt_dir.mkdir(exist_ok=True)
+            (receipt_dir / "receipt.json").write_bytes(canonical_bytes(receipt))
             receipts.append(receipt)
             completed += 1
         if completed != 320:
@@ -513,7 +591,7 @@ def materialize(
             except ValueError:
                 nondeterministic_states.append(state_index)
         report = {
-            "schema_version": "camp_dp_v25_selector_after_pool_replay_v3",
+            "schema_version": REPLAY_SCHEMA_VERSION,
             "status": (
                 "PASS_runtime_selector_compatibility"
                 if not typed_failures and not nondeterministic_states

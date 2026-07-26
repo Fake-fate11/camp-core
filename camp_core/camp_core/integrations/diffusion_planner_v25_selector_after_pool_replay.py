@@ -17,9 +17,12 @@ import numpy as np
 
 
 AUTHORITY_SHA256 = (
+    "e6579ca71ccfdd7e0a94d52450b2473d4b8c52c38e8b0504e0dcb8b35935ab3c"
+)
+PARENT_AUTHORITY_SHA256 = (
     "9caf4b809b5cba3a21659bea007152e4ed42e78a9f61965b4becdbafa7ee77ad"
 )
-BASE_POINTER_HEAD = "59874f4a5453f91c17f6575b6a13e7660e99790a"
+BASE_POINTER_HEAD = "4c412870118962ee49917bcc2090be18836fe709"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 CORRECTED_PREFLIGHT_ROOT = (
     "5be8831533f0a46ecc5439c3eafbff85118689f7696996d825c4b09838189fac"
@@ -63,44 +66,84 @@ CANDIDATE_SHAPE = (8, 80, 4)
 NEIGHBOR_SHAPE = (8, 32, 80, 4)
 ATOM_COUNT = 14
 DT_S = 0.1
+TRAINED_SIMPLEX_NONNEGATIVE_ATOL = 1e-9
+SIMPLEX_SUM_ATOL = 1e-8
 
-SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_contract_v3"
-PREFLIGHT_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_preflight_v3"
-REPLAY_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_v3"
-REVIEW_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_review_v3"
+FAILED_REPLAY_ROOT = (
+    "7a85ef00c10a79aa1b8e92729f51d9512e5e67d53d1ef44e00da55d19840109d"
+)
+PARENT_CONTRACT_ROOT = (
+    "53c6b6ca62f0ceb8193ff32dadcb793099c77674cfa4f36102f73141b786362c"
+)
+PARENT_CONTRACT_REVIEW_ROOT = (
+    "afd9ad2350594a0db41fa334ae64caaacfa3f857a414a3faf9405d3f2ebbfe37"
+)
+PARENT_PREFLIGHT_ROOT = (
+    "6b7bfc0edfa87e75a64dd82775d4ad8d427a11bdebe5fd24ba995b3ef7a45539"
+)
+PARENT_PREFLIGHT_REVIEW_ROOT = (
+    "0d73790f13fb99137a4e9cfdd67d3830469f71281e1a5b108797ab8894844cec"
+)
+
+SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_replacement_contract_v1"
+PREFLIGHT_SCHEMA_VERSION = (
+    "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1"
+)
+REPLAY_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_replacement_v1"
+REVIEW_SCHEMA_VERSION = (
+    "camp_dp_v25_selector_after_pool_replay_replacement_review_v1"
+)
 
 EXACT_DIRS = {
+    "failure_closeout": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_failure_closeout_v1_"
+        "4c412870_e6579ca7"
+    ),
+    "failure_closeout_review": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_failure_closeout_review_v1_"
+        "4c412870_e6579ca7"
+    ),
     "contract": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_contract_v1_"
+        "4c412870_e6579ca7"
     ),
     "contract_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_contract_review_v1_"
+        "4c412870_e6579ca7"
     ),
     "focused": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_focused_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_focused_v1_"
+        "4c412870_e6579ca7"
     ),
     "preflight": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1_"
+        "4c412870_e6579ca7"
     ),
     "preflight_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_preflight_review_v1_"
+        "4c412870_e6579ca7"
     ),
     "replay": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_v1_"
+        "4c412870_e6579ca7"
     ),
     "replay_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_review_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_review_v1_"
+        "4c412870_e6579ca7"
     ),
     "final_docs": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_final_docs_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_final_docs_focused_v1_"
+        "4c412870_e6579ca7"
     ),
 }
 
@@ -302,7 +345,13 @@ def atom_registry() -> list[dict[str, Any]]:
     ]
 
 
-def contract(*, implementation_head: str, source_hashes: Mapping[str, str]) -> dict[str, Any]:
+def contract(
+    *,
+    implementation_head: str,
+    source_hashes: Mapping[str, str],
+    failure_closeout_root: str,
+    failure_closeout_review_root: str,
+) -> dict[str, Any]:
     if len(implementation_head) != 40 or set(implementation_head) - set(
         "0123456789abcdef"
     ):
@@ -316,20 +365,38 @@ def contract(*, implementation_head: str, source_hashes: Mapping[str, str]) -> d
         "preflight_reviewer",
         "replay_producer",
         "replay_reviewer",
+        "failure_closeout_producer",
+        "failure_closeout_reviewer",
+        "scene_runtime",
     }
     if set(source_hashes) != required_sources or any(
         len(value) != 64 or set(value) - set("0123456789abcdef")
         for value in source_hashes.values()
     ):
         raise ValueError("source hash inventory drifted")
+    if any(
+        type(value) is not str
+        or len(value) != 64
+        or set(value) - set("0123456789abcdef")
+        for value in (failure_closeout_root, failure_closeout_review_root)
+    ):
+        raise ValueError("failure closeout root binding drifted")
     payload = {
         "schema_version": SCHEMA_VERSION,
         "authority_sha256": AUTHORITY_SHA256,
         "base_pointer_head": BASE_POINTER_HEAD,
+        "parent_authority_sha256": PARENT_AUTHORITY_SHA256,
         "implementation_head": implementation_head,
         "fixed_dp_head": FIXED_DP_HEAD,
         "exact_dirs": dict(EXACT_DIRS),
         "sealed_inputs": {
+            "failed_replay_root_sha256": FAILED_REPLAY_ROOT,
+            "parent_contract_root_sha256": PARENT_CONTRACT_ROOT,
+            "parent_contract_review_root_sha256": PARENT_CONTRACT_REVIEW_ROOT,
+            "parent_preflight_root_sha256": PARENT_PREFLIGHT_ROOT,
+            "parent_preflight_review_root_sha256": PARENT_PREFLIGHT_REVIEW_ROOT,
+            "failure_closeout_root_sha256": failure_closeout_root,
+            "failure_closeout_review_root_sha256": failure_closeout_review_root,
             "corrected_preflight_root_sha256": CORRECTED_PREFLIGHT_ROOT,
             "corrected_preflight_review_root_sha256": (
                 CORRECTED_PREFLIGHT_REVIEW_ROOT
@@ -418,6 +485,11 @@ def contract(*, implementation_head: str, source_hashes: Mapping[str, str]) -> d
             "tie_definition": "exact_float64_score_equality_at_best_score",
             "tie_break": "lowest_eligible_candidate_index",
             "selected_action_binding": "candidate[selected_index]_exact_bytes",
+            "trained_simplex_nonnegative_atol": (
+                TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+            ),
+            "simplex_sum_atol": SIMPLEX_SUM_ATOL,
+            "static_and_scene_explicitly_receive_accepted_atol": True,
         },
         "runtime_gates": {
             "candidate_shape_dtype": [list(CANDIDATE_SHAPE), "<f4"],
@@ -503,6 +575,12 @@ def validate_contract(value: Mapping[str, Any]) -> dict[str, Any]:
     expected = contract(
         implementation_head=implementation_head,
         source_hashes=source_hashes,
+        failure_closeout_root=payload.get("sealed_inputs", {}).get(
+            "failure_closeout_root_sha256"
+        ),
+        failure_closeout_review_root=payload.get("sealed_inputs", {}).get(
+            "failure_closeout_review_root_sha256"
+        ),
     )
     if dict(value) != expected:
         raise ValueError("contract semantic payload drifted")
@@ -653,6 +731,7 @@ def selection_from_preimages(
     scales: np.ndarray,
     weights: np.ndarray,
     eligibility_mask: np.ndarray,
+    simplex_nonnegative_atol: float,
 ) -> dict[str, Any]:
     candidate = np.ascontiguousarray(np.asarray(candidates))
     atoms = np.asarray(raw_atoms, dtype=np.float64)
@@ -670,10 +749,17 @@ def selection_from_preimages(
     if scale.shape != (14,) or not np.isfinite(scale).all() or np.any(scale <= 0):
         raise ValueError("scales must be finite positive [14]")
     if (
+        type(simplex_nonnegative_atol) is not float
+        or simplex_nonnegative_atol != TRAINED_SIMPLEX_NONNEGATIVE_ATOL
+    ):
+        raise ValueError("accepted simplex nonnegative tolerance drifted")
+    if (
         coefficient.shape != (14,)
         or not np.isfinite(coefficient).all()
-        or np.any(coefficient < -1e-9)
-        or not np.isclose(coefficient.sum(), 1.0, rtol=0.0, atol=1e-8)
+        or np.any(coefficient < -simplex_nonnegative_atol)
+        or not np.isclose(
+            coefficient.sum(), 1.0, rtol=0.0, atol=SIMPLEX_SUM_ATOL
+        )
     ):
         raise ValueError("weights must be a finite nonnegative simplex [14]")
     if raw_mask.shape != (8,) or raw_mask.dtype != np.bool_ or not raw_mask.any():

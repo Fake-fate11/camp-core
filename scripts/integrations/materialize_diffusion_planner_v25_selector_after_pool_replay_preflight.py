@@ -78,6 +78,14 @@ TRAINING = AUTODL / "camp_dp_v25_camp_training_863e28da_20260722T103219CST"
 TRAINING_REVIEW = AUTODL / (
     "camp_dp_v25_camp_training_review_8fecda47_20260722T122701CST"
 )
+FAILURE_CLOSEOUT = AUTODL / (
+    "camp_dp_v25_selector_after_pool_replay_failure_closeout_v1_"
+    "4c412870_e6579ca7"
+)
+FAILURE_CLOSEOUT_REVIEW = AUTODL / (
+    "camp_dp_v25_selector_after_pool_replay_failure_closeout_review_v1_"
+    "4c412870_e6579ca7"
+)
 PROBE_CONFIG = AUTODL / (
     "camp_dp_v24_fixed_dp_single_record_source_probe_preflight_retry_"
     "a53d6ee3_20260715T204719CST/prepared/probe_config.json"
@@ -246,6 +254,16 @@ def materialize(
     ):
         verify_complete_seal(path, root_sha, label=label)
     contract_value = validate_contract(_json(contract_dir / "contract.json"))
+    verify_complete_seal(
+        FAILURE_CLOSEOUT,
+        contract_value["sealed_inputs"]["failure_closeout_root_sha256"],
+        label="selector replay failure closeout",
+    )
+    verify_complete_seal(
+        FAILURE_CLOSEOUT_REVIEW,
+        contract_value["sealed_inputs"]["failure_closeout_review_root_sha256"],
+        label="selector replay failure closeout review",
+    )
     if (
         contract_value["implementation_head"] != implementation_head
         or contract_value["exact_dirs"]["preflight"] != str(output)
@@ -431,7 +449,7 @@ def materialize(
         )
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_preflight_v3"
+                "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1"
             ),
             "status": "PASS_sealed_input_and_weight_preflight",
             "implementation_head": implementation_head,

@@ -15,11 +15,29 @@ import numpy as np
 
 
 AUTHORITY_SHA256 = (
+    "e6579ca71ccfdd7e0a94d52450b2473d4b8c52c38e8b0504e0dcb8b35935ab3c"
+)
+PARENT_AUTHORITY_SHA256 = (
     "9caf4b809b5cba3a21659bea007152e4ed42e78a9f61965b4becdbafa7ee77ad"
 )
-BASE_POINTER_HEAD = "59874f4a5453f91c17f6575b6a13e7660e99790a"
+BASE_POINTER_HEAD = "4c412870118962ee49917bcc2090be18836fe709"
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 EXPECTED_ROOTS = {
+    "failed_replay_root_sha256": (
+        "7a85ef00c10a79aa1b8e92729f51d9512e5e67d53d1ef44e00da55d19840109d"
+    ),
+    "parent_contract_root_sha256": (
+        "53c6b6ca62f0ceb8193ff32dadcb793099c77674cfa4f36102f73141b786362c"
+    ),
+    "parent_contract_review_root_sha256": (
+        "afd9ad2350594a0db41fa334ae64caaacfa3f857a414a3faf9405d3f2ebbfe37"
+    ),
+    "parent_preflight_root_sha256": (
+        "6b7bfc0edfa87e75a64dd82775d4ad8d427a11bdebe5fd24ba995b3ef7a45539"
+    ),
+    "parent_preflight_review_root_sha256": (
+        "0d73790f13fb99137a4e9cfdd67d3830469f71281e1a5b108797ab8894844cec"
+    ),
     "corrected_preflight_root_sha256": (
         "5be8831533f0a46ecc5439c3eafbff85118689f7696996d825c4b09838189fac"
     ),
@@ -206,40 +224,58 @@ ATOM_NAMES = tuple(row[0] for row in EXPECTED_ATOMS)
 NO_NEIGHBOR_DISTANCE_M = 100.0
 NO_NEIGHBOR_TTC_S = 30.0
 EXPECTED_SCHEMA_VERSION = (
-    "camp_dp_v25_selector_after_pool_replay_contract_v3"
+    "camp_dp_v25_selector_after_pool_replay_replacement_contract_v1"
 )
 EXPECTED_EXACT_DIRS = {
+    "failure_closeout": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_failure_closeout_v1_"
+        "4c412870_e6579ca7"
+    ),
+    "failure_closeout_review": (
+        "/root/autodl-tmp/"
+        "camp_dp_v25_selector_after_pool_replay_failure_closeout_review_v1_"
+        "4c412870_e6579ca7"
+    ),
     "contract": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_contract_v1_"
+        "4c412870_e6579ca7"
     ),
     "contract_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_contract_review_v1_"
+        "4c412870_e6579ca7"
     ),
     "focused": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_focused_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_focused_v1_"
+        "4c412870_e6579ca7"
     ),
     "preflight": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_preflight_v1_"
+        "4c412870_e6579ca7"
     ),
     "preflight_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_preflight_review_v1_"
+        "4c412870_e6579ca7"
     ),
     "replay": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_v1_"
+        "4c412870_e6579ca7"
     ),
     "replay_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_review_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_review_v1_"
+        "4c412870_e6579ca7"
     ),
     "final_docs": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_final_docs_v3_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_replacement_final_docs_focused_v1_"
+        "4c412870_e6579ca7"
     ),
 }
 EXPECTED_SOURCE_KEYS = {
@@ -251,6 +287,9 @@ EXPECTED_SOURCE_KEYS = {
     "preflight_reviewer",
     "replay_producer",
     "replay_reviewer",
+    "failure_closeout_producer",
+    "failure_closeout_reviewer",
+    "scene_runtime",
 }
 
 
@@ -295,8 +334,35 @@ def review_contract(value: Mapping[str, Any]) -> dict[str, Any]:
             for value in source_hashes.values()
         )
         or payload.get("authority_sha256") != AUTHORITY_SHA256
+        or payload.get("parent_authority_sha256") != PARENT_AUTHORITY_SHA256
         or payload.get("base_pointer_head") != BASE_POINTER_HEAD
         or payload.get("fixed_dp_head") != FIXED_DP_HEAD
+        or payload.get("sealed_inputs", {}).get(
+            "failed_replay_root_sha256"
+        )
+        != EXPECTED_ROOTS["failed_replay_root_sha256"]
+        or payload.get("sealed_inputs", {}).get("parent_contract_root_sha256")
+        != EXPECTED_ROOTS["parent_contract_root_sha256"]
+        or payload.get("sealed_inputs", {}).get(
+            "parent_contract_review_root_sha256"
+        )
+        != EXPECTED_ROOTS["parent_contract_review_root_sha256"]
+        or payload.get("sealed_inputs", {}).get("parent_preflight_root_sha256")
+        != EXPECTED_ROOTS["parent_preflight_root_sha256"]
+        or payload.get("sealed_inputs", {}).get(
+            "parent_preflight_review_root_sha256"
+        )
+        != EXPECTED_ROOTS["parent_preflight_review_root_sha256"]
+        or any(
+            type(payload.get("sealed_inputs", {}).get(key)) is not str
+            or len(payload.get("sealed_inputs", {}).get(key)) != 64
+            or set(payload.get("sealed_inputs", {}).get(key))
+            - set("0123456789abcdef")
+            for key in (
+                "failure_closeout_root_sha256",
+                "failure_closeout_review_root_sha256",
+            )
+        )
         or payload.get("sealed_inputs", {}).get(
             "corrected_preflight_root_sha256"
         )
@@ -374,6 +440,9 @@ def review_contract(value: Mapping[str, Any]) -> dict[str, Any]:
         "tie_definition": "exact_float64_score_equality_at_best_score",
         "tie_break": "lowest_eligible_candidate_index",
         "selected_action_binding": "candidate[selected_index]_exact_bytes",
+        "trained_simplex_nonnegative_atol": 1e-9,
+        "simplex_sum_atol": 1e-8,
+        "static_and_scene_explicitly_receive_accepted_atol": True,
     }:
         raise ValueError("reviewed selection semantics drifted")
     runtime = payload.get("runtime_gates", {})
@@ -1124,7 +1193,7 @@ def validate_slot_authority(
         for index in range(8)
     ]
     if (
-        receipt.get("status") != "computed"
+        receipt.get("status") not in {"computed", "typed_failure_retained"}
         or receipt.get("slot") != binding.get("slot")
         or receipt.get("run_id") != binding.get("run_id")
         or receipt.get("state_index") != binding.get("state_index")
@@ -1143,7 +1212,8 @@ def validate_slot_authority(
         or receipt.get("dp_call_count") != 0
         or receipt.get("latent_generation_call_count") != 0
         or receipt.get("candidate_generation_call_count") != 0
-        or receipt.get("selector_call_count") != 2
+        or type(receipt.get("selector_call_count")) is not int
+        or not 0 <= receipt.get("selector_call_count") <= 2
     ):
         raise ValueError("reviewer slot authority/call/tensor binding drifted")
 
@@ -1155,12 +1225,15 @@ def literal_selection(
     scales: np.ndarray,
     weights: np.ndarray,
     eligibility_mask: np.ndarray,
+    simplex_nonnegative_atol: float,
 ) -> dict[str, Any]:
     candidate = np.ascontiguousarray(np.asarray(candidates))
     atoms = np.asarray(raw_atoms, dtype=np.float64)
     scale = np.asarray(scales, dtype=np.float64)
     coefficient = np.asarray(weights, dtype=np.float64)
     mask = np.asarray(eligibility_mask)
+    if type(simplex_nonnegative_atol) is not float or simplex_nonnegative_atol != 1e-9:
+        raise ValueError("reviewer accepted simplex tolerance drifted")
     if (
         candidate.shape != (8, 80, 4)
         or candidate.dtype != np.dtype("<f4")
@@ -1173,7 +1246,7 @@ def literal_selection(
         or np.any(scale <= 0)
         or coefficient.shape != (14,)
         or not np.isfinite(coefficient).all()
-        or np.any(coefficient < -1e-9)
+        or np.any(coefficient < -simplex_nonnegative_atol)
         or not np.isclose(coefficient.sum(), 1.0, rtol=0.0, atol=1e-8)
         or mask.shape != (8,)
         or mask.dtype != np.bool_

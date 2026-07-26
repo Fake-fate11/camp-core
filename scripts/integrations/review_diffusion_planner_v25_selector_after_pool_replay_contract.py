@@ -28,11 +28,24 @@ from camp_core.integrations.diffusion_planner_v25_selector_after_pool_replay_rev
 
 
 CONTRACT_DIR = Path(
-    "/root/autodl-tmp/camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
+    "/root/autodl-tmp/"
+    "camp_dp_v25_selector_after_pool_replay_replacement_contract_v1_"
+    "4c412870_e6579ca7"
 )
 OUTPUT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_replacement_contract_review_v1_"
+    "4c412870_e6579ca7"
+)
+FAILURE_CLOSEOUT = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v25_selector_after_pool_replay_failure_closeout_v1_"
+    "4c412870_e6579ca7"
+)
+FAILURE_CLOSEOUT_REVIEW = Path(
+    "/root/autodl-tmp/"
+    "camp_dp_v25_selector_after_pool_replay_failure_closeout_review_v1_"
+    "4c412870_e6579ca7"
 )
 SOURCE_PATHS = {
     "contract_module": (
@@ -66,6 +79,18 @@ SOURCE_PATHS = {
     "replay_reviewer": (
         "scripts/integrations/"
         "review_diffusion_planner_v25_selector_after_pool_replay.py"
+    ),
+    "failure_closeout_producer": (
+        "scripts/integrations/"
+        "freeze_diffusion_planner_v25_selector_after_pool_replay_failure_closeout.py"
+    ),
+    "failure_closeout_reviewer": (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_selector_after_pool_replay_failure_closeout.py"
+    ),
+    "scene_runtime": (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_scene_runtime.py"
     ),
 }
 
@@ -113,6 +138,16 @@ def review(*, contract_root: str, output: Path = OUTPUT) -> str:
         raise RuntimeError("contract review exact output drifted")
     value = json.loads((CONTRACT_DIR / "contract.json").read_text("ascii"))
     reviewed = review_contract(value)
+    verify_complete_seal(
+        FAILURE_CLOSEOUT,
+        reviewed["sealed_inputs"]["failure_closeout_root_sha256"],
+        label="V25 selector replay failure closeout",
+    )
+    verify_complete_seal(
+        FAILURE_CLOSEOUT_REVIEW,
+        reviewed["sealed_inputs"]["failure_closeout_review_root_sha256"],
+        label="V25 selector replay failure closeout review",
+    )
     if (
         reviewed["implementation_head"] != _git("rev-parse", "HEAD")
         or reviewed["implementation_head"]
@@ -132,7 +167,8 @@ def review(*, contract_root: str, output: Path = OUTPUT) -> str:
     try:
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_contract_review_v3"
+                "camp_dp_v25_selector_after_pool_replay_replacement_"
+                "contract_review_v1"
             ),
             "status": "PASS_independent_literal_contract_review",
             "contract_root_sha256": contract_root,

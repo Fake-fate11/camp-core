@@ -64,6 +64,18 @@ SOURCE_PATHS = {
         "scripts/integrations/"
         "review_diffusion_planner_v25_selector_after_pool_replay.py"
     ),
+    "failure_closeout_producer": (
+        "scripts/integrations/"
+        "freeze_diffusion_planner_v25_selector_after_pool_replay_failure_closeout.py"
+    ),
+    "failure_closeout_reviewer": (
+        "scripts/integrations/"
+        "review_diffusion_planner_v25_selector_after_pool_replay_failure_closeout.py"
+    ),
+    "scene_runtime": (
+        "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_scene_runtime.py"
+    ),
 }
 
 
@@ -73,7 +85,13 @@ def _git(*args: str) -> str:
     ).strip()
 
 
-def freeze(*, implementation_head: str, output: Path) -> str:
+def freeze(
+    *,
+    implementation_head: str,
+    failure_closeout_root: str,
+    failure_closeout_review_root: str,
+    output: Path,
+) -> str:
     assert_python_runtime(
         executable=sys.executable,
         version_info=sys.version_info[:3],
@@ -100,6 +118,8 @@ def freeze(*, implementation_head: str, output: Path) -> str:
         contract(
             implementation_head=implementation_head,
             source_hashes=source_hashes,
+            failure_closeout_root=failure_closeout_root,
+            failure_closeout_review_root=failure_closeout_review_root,
         )
     )
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -110,7 +130,8 @@ def freeze(*, implementation_head: str, output: Path) -> str:
         (staging / "contract.json").write_bytes(canonical_bytes(payload))
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_contract_report_v3"
+                "camp_dp_v25_selector_after_pool_replay_replacement_"
+                "contract_report_v1"
             ),
             "status": "PASS_contract_frozen_before_selector_replay",
             "implementation_head": implementation_head,
@@ -141,11 +162,20 @@ def freeze(*, implementation_head: str, output: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--implementation-head", required=True)
+    parser.add_argument("--failure-closeout-root", required=True)
+    parser.add_argument("--failure-closeout-review-root", required=True)
     parser.add_argument(
         "--output", type=Path, default=Path(EXACT_DIRS["contract"])
     )
     args = parser.parse_args()
-    print(freeze(implementation_head=args.implementation_head, output=args.output))
+    print(
+        freeze(
+            implementation_head=args.implementation_head,
+            failure_closeout_root=args.failure_closeout_root,
+            failure_closeout_review_root=args.failure_closeout_review_root,
+            output=args.output,
+        )
+    )
     return 0
 
 
