@@ -57,6 +57,16 @@ CALIBRATION_HARD_STOP_INDEX = (
     / "docs"
     / "diffusion_planner_v25_fair_pool_calibration_hard_stop_evidence_index.md"
 )
+CALIBRATION_FIRST_STATE_DIAGNOSTIC_REPORT = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_fair_pool_calibration_first_state_diagnostic_report.md"
+)
+CALIBRATION_FIRST_STATE_DIAGNOSTIC_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_fair_pool_calibration_first_state_diagnostic_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -519,7 +529,10 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 
 def _current_v25_section(text: str) -> str:
-    heading = "## Current V25 Status - Fair-Pool Development Calibration Hard Stop"
+    heading = (
+        "## Current V25 Status - Failed Calibration Attempt Closed, "
+        "First-State Diagnostic Complete"
+    )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
     return text.split(heading, 1)[1].split(
@@ -528,7 +541,10 @@ def _current_v25_section(text: str) -> str:
 
 
 def _audit_v25_eof(text: str) -> str:
-    heading = "## 2026-07-26 - Fair-Pool Development Calibration Hard Stop"
+    heading = (
+        "## 2026-07-26 - Failed Calibration Attempt Closed, "
+        "First-State Diagnostic Complete"
+    )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
 
@@ -537,16 +553,17 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "v25_fair_pool_development_calibration_hard_stop_"
+        "v25_fair_pool_failed_attempt_closed_diagnostic_authorized_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "fair_pool_development_calibration_hard_stop_closeout_"
-        "independently_reviewed"
+        "fair_pool_failed_attempt_closeout_preserved_"
+        "first_state_diagnostic_independently_reviewed"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_calibration_hard_stop_closeout_review_before_any_replacement_or_validation"
+        "high_first_state_diagnostic_review_before_any_new_zero_of_640_"
+        "calibration_authority"
     )
 
 
@@ -557,7 +574,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 500
+    assert len(status_pointer) == 551
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -603,6 +620,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_calibration_evidence_index_sha256"
     ] == _sha256(CALIBRATION_HARD_STOP_INDEX)
+    assert status_pointer[
+        "current_v25_calibration_first_state_diagnostic_report_sha256"
+    ] == _sha256(CALIBRATION_FIRST_STATE_DIAGNOSTIC_REPORT)
+    assert status_pointer[
+        "current_v25_calibration_first_state_diagnostic_evidence_index_sha256"
+    ] == _sha256(CALIBRATION_FIRST_STATE_DIAGNOSTIC_INDEX)
 
 
 def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
@@ -715,7 +738,7 @@ def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
     assert pointer[
         "current_v25_fair_pool_adaptation_v4_scope"
     ] == "superseded_preacquisition_diagnostic"
-    assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == "true"
+    assert pointer["current_v25_fair_pool_adaptation_acquisition_authorized"] == "false"
     assert pointer[
         "current_v25_fair_pool_adaptation_calibration_run_count"
     ] == "0"
@@ -780,6 +803,52 @@ def test_v25_calibration_hard_stop_pointer_is_outcome_blind_and_fail_closed() ->
         "retraining_required_claimed",
     ):
         assert pointer[f"current_v25_calibration_{field}"] == "false"
+
+
+def test_v25_first_state_diagnostic_pointer_is_exact_and_bounded() -> None:
+    pointer = _machine_tuple(
+        _current_v25_section(STATUS.read_text(encoding="utf-8"))
+    )
+    prefix = "current_v25_calibration_first_state_diagnostic_"
+    assert pointer[f"{prefix}schema"] == (
+        "camp_dp_v25_fair_pool_calibration_first_state_diagnostic_receipt_v1"
+    )
+    assert pointer[f"{prefix}authority_sha256"] == (
+        "3a72e639152b3416f7ef769f20dee05a2334d160b866ada4bd609c0c801277c8"
+    )
+    assert pointer[f"{prefix}state_spec_id"] == "development_calibration:000"
+    assert pointer[f"{prefix}mode"] == "sequential_batch1_x8"
+    assert pointer[f"{prefix}repeat_index"] == "0"
+    assert pointer[f"{prefix}candidate_shape_dtype"] == "8x80x4_<f4"
+    assert pointer[f"{prefix}neighbor_shape_dtype"] == "8x32x80x4_<f4"
+    assert pointer[f"{prefix}candidate_nonfinite_count"] == "0"
+    assert pointer[f"{prefix}neighbor_nonfinite_count"] == "0"
+    assert pointer[f"{prefix}candidate_row_unique_cardinality"] == "2"
+    assert pointer[f"{prefix}duplicate_groups"] == "1,2,3,4,5,6,7"
+    assert pointer[f"{prefix}resolved_subcondition"] == (
+        "candidate_row_sha256_not_unique_across_k8"
+    )
+    assert pointer[f"{prefix}model_call_count"] == "8"
+    assert pointer[f"{prefix}selector_call_count"] == "0"
+    for field in (
+        "remaining_639_run_count",
+        "replacement_640_run_count",
+        "threshold_materialization_count",
+        "validation_run_count",
+        "closed_loop_run_count",
+        "fresh_holdout_run_count",
+        "training_retraining_run_count",
+        "old_artifact_cas_write_count",
+    ):
+        assert pointer[f"{prefix}{field}"] == "0"
+    assert pointer[f"{prefix}raw_outcome_read"] == "false"
+    for field in (
+        "model_failure_claimed",
+        "batch8_architecture_failure_claimed",
+        "ood_drift_claimed",
+        "retraining_required_claimed",
+    ):
+        assert pointer[f"{prefix}{field}"] == "false"
 
 
 def test_v25_target_architecture_pointer_preserves_scope_and_zero_call_gate() -> None:
@@ -922,7 +991,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_calibration_hard_stop_closeout_review_before_any_replacement_or_validation"
+        "high_first_state_diagnostic_review_before_any_new_zero_of_640_"
+        "calibration_authority"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
