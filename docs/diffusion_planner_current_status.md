@@ -32,6 +32,8 @@ polygons. The sealed execution and execution review were not rerun or modified.
 
 The earlier Fresh/evaluation, fair-pool, generator and selector chains remain
 immutable. SafetyCost remains only an immutable legacy exploratory diagnostic;
+the corrected evaluation review remains a separate-role sealed deterministic
+replay using the frozen canonical evaluation core;
 the historical result remains
 `honest_no_claim_under_frozen_preregistered_all_gate`. This package authorizes
 no Fresh benefit, training-support/OOD conclusion, no-retraining conclusion,

@@ -13780,6 +13780,8 @@ current_v25_selector_replacement_high_review_required=true
 ## V25 Industrial-v3 Bounded Nonholdout Closed-Loop Review
 
 This EOF tuple records the one-route bounded development execution and descriptive industrial-v3 evaluation. It creates no Fresh, training, benefit, industrial-safety or deployment authority.
+The corrected evaluation review remains a separate-role sealed deterministic
+replay using the frozen canonical evaluation core.
 
 current_v25_status=industrial_v3_bounded_nonholdout_closed_loop_full_denominator_independently_reviewed_high_incremental_review_required
 current_v25_execution_source_head=7be93df20deee03587b9898e8560909662df972c
