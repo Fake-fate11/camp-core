@@ -39,20 +39,20 @@ from camp_core.integrations.diffusion_planner_v25_selector_after_pool_replay_rev
 AUTODL = Path("/root/autodl-tmp")
 DP = AUTODL / "Diffusion-Planner"
 CONTRACT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
 )
 CONTRACT_REVIEW = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
 )
 PREFLIGHT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_v2_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
 )
 PREFLIGHT_REVIEW = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_preflight_review_v2_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
 )
-REPLAY = AUTODL / "camp_dp_v25_selector_after_pool_replay_v2_59874f4a"
+REPLAY = AUTODL / "camp_dp_v25_selector_after_pool_replay_v3_59874f4a"
 OUTPUT = AUTODL / (
-    "camp_dp_v25_selector_after_pool_replay_review_v2_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_review_v3_59874f4a"
 )
 CORRECTED_RAW = AUTODL / (
     "camp_dp_v25_batch8_generator_repeatability_corrected_raw_v1_dc76fbc8"
@@ -123,7 +123,7 @@ def _json(path: Path) -> dict[str, Any]:
 def _arrays(path: Path) -> dict[str, np.ndarray]:
     with np.load(path, allow_pickle=False) as archive:
         return {
-            name: np.ascontiguousarray(np.array(archive[name], copy=True))
+            name: np.array(archive[name], copy=True, order="C")
             for name in archive.files
         }
 
@@ -442,7 +442,7 @@ def review(
     try:
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_review_v2"
+                "camp_dp_v25_selector_after_pool_replay_review_v3"
             ),
             "status": "PASS_independent_literal_selector_replay_review",
             "reviewed_replay_root_sha256": replay_root,

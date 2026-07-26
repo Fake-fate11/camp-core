@@ -206,40 +206,40 @@ ATOM_NAMES = tuple(row[0] for row in EXPECTED_ATOMS)
 NO_NEIGHBOR_DISTANCE_M = 100.0
 NO_NEIGHBOR_TTC_S = 30.0
 EXPECTED_SCHEMA_VERSION = (
-    "camp_dp_v25_selector_after_pool_replay_contract_v2"
+    "camp_dp_v25_selector_after_pool_replay_contract_v3"
 )
 EXPECTED_EXACT_DIRS = {
     "contract": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
     ),
     "contract_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
     ),
     "focused": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_focused_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_focused_v3_59874f4a"
     ),
     "preflight": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
     ),
     "preflight_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_review_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
     ),
     "replay": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_v3_59874f4a"
     ),
     "replay_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_review_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_review_v3_59874f4a"
     ),
     "final_docs": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_final_docs_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_final_docs_v3_59874f4a"
     ),
 }
 EXPECTED_SOURCE_KEYS = {

@@ -28,11 +28,11 @@ from camp_core.integrations.diffusion_planner_v25_selector_after_pool_replay_rev
 
 
 CONTRACT_DIR = Path(
-    "/root/autodl-tmp/camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
+    "/root/autodl-tmp/camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
 )
 OUTPUT = Path(
     "/root/autodl-tmp/"
-    "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
+    "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
 )
 SOURCE_PATHS = {
     "contract_module": (
@@ -132,7 +132,7 @@ def review(*, contract_root: str, output: Path = OUTPUT) -> str:
     try:
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_contract_review_v2"
+                "camp_dp_v25_selector_after_pool_replay_contract_review_v3"
             ),
             "status": "PASS_independent_literal_contract_review",
             "contract_root_sha256": contract_root,

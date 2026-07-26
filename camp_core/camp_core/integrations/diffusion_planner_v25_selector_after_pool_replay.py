@@ -64,43 +64,43 @@ NEIGHBOR_SHAPE = (8, 32, 80, 4)
 ATOM_COUNT = 14
 DT_S = 0.1
 
-SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_contract_v2"
-PREFLIGHT_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_preflight_v2"
-REPLAY_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_v2"
-REVIEW_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_review_v2"
+SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_contract_v3"
+PREFLIGHT_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_preflight_v3"
+REPLAY_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_v3"
+REVIEW_SCHEMA_VERSION = "camp_dp_v25_selector_after_pool_replay_review_v3"
 
 EXACT_DIRS = {
     "contract": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_contract_v3_59874f4a"
     ),
     "contract_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_contract_review_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_contract_review_v3_59874f4a"
     ),
     "focused": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_focused_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_focused_v3_59874f4a"
     ),
     "preflight": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_preflight_v3_59874f4a"
     ),
     "preflight_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_preflight_review_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_preflight_review_v3_59874f4a"
     ),
     "replay": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_v3_59874f4a"
     ),
     "replay_review": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_review_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_review_v3_59874f4a"
     ),
     "final_docs": (
         "/root/autodl-tmp/"
-        "camp_dp_v25_selector_after_pool_replay_final_docs_v2_59874f4a"
+        "camp_dp_v25_selector_after_pool_replay_final_docs_v3_59874f4a"
     ),
 }
 
@@ -626,7 +626,15 @@ def causal_input_from_model_input(
     }
     if any(not np.isfinite(value).all() for value in result.values()):
         raise ValueError("causal input contains nonfinite values")
-    return {key: np.ascontiguousarray(value) for key, value in result.items()}
+    finalized = {
+        key: np.ascontiguousarray(value) for key, value in result.items()
+    }
+    # np.ascontiguousarray promotes a NumPy scalar to shape (1,).  The frozen
+    # causal schema requires version to remain an int64 scalar with shape ().
+    finalized["version"] = np.asarray(
+        result["version"], dtype=np.int64
+    ).reshape(())
+    return finalized
 
 
 def tensor_receipt(value: np.ndarray) -> dict[str, Any]:

@@ -18,6 +18,18 @@ from scripts.integrations import (
     materialize_diffusion_planner_v25_selector_after_pool_replay_preflight
     as preflight_materializer,
 )
+from scripts.integrations import (
+    materialize_diffusion_planner_v25_selector_after_pool_replay
+    as replay_materializer,
+)
+from scripts.integrations import (
+    review_diffusion_planner_v25_selector_after_pool_replay
+    as replay_review_runner,
+)
+from scripts.integrations import (
+    review_diffusion_planner_v25_selector_after_pool_replay_preflight
+    as preflight_review_runner,
+)
 
 
 def _sources() -> dict[str, str]:
@@ -69,7 +81,7 @@ def test_contract_and_independent_review_pass() -> None:
     value = _contract()
     assert producer.validate_contract(value) == value
     assert reviewer.review_contract(value) == value
-    assert value["schema_version"].endswith("_v2")
+    assert value["schema_version"].endswith("_v3")
     assert value["denominator"]["run_count"] == 320
     assert value["runtime_gates"]["model_calls"] == 0
     assert value["atoms"]["count"] == 14
@@ -199,6 +211,8 @@ def test_causal_inverse_transform_is_exact_and_finite() -> None:
     assert result["neighbor_agents_past"].shape == (32, 31, 11)
     assert result["turn_indicators"].dtype == np.int32
     assert result["version"].dtype == np.int64
+    assert result["version"].shape == ()
+    assert int(result["version"]) == 1
 
 
 def test_causal_inverse_matches_frozen_row_mask_normalizer() -> None:
@@ -276,6 +290,21 @@ def test_preflight_roundtrip_uses_exact_consumed_neighbor_slice() -> None:
             },
             {},
         )
+
+
+def test_all_stage_npz_loaders_preserve_scalar_schema(tmp_path: Path) -> None:
+    path = tmp_path / "scalar.npz"
+    np.savez(path, version=np.asarray(1, dtype=np.int64))
+    for loader in (
+        preflight_materializer._arrays,
+        preflight_review_runner._arrays,
+        replay_materializer._arrays,
+        replay_review_runner._arrays,
+    ):
+        observed = loader(path)["version"]
+        assert observed.shape == ()
+        assert observed.dtype == np.int64
+        assert int(observed) == 1
 
 
 def test_producer_and_reviewer_literal_selection_exact() -> None:

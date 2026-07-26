@@ -100,7 +100,7 @@ def _json(path: Path) -> dict[str, Any]:
 def _arrays(path: Path) -> dict[str, np.ndarray]:
     with np.load(path, allow_pickle=False) as archive:
         return {
-            name: np.ascontiguousarray(np.array(archive[name], copy=True))
+            name: np.array(archive[name], copy=True, order="C")
             for name in archive.files
         }
 
@@ -431,7 +431,7 @@ def materialize(
         )
         report = {
             "schema_version": (
-                "camp_dp_v25_selector_after_pool_replay_preflight_v2"
+                "camp_dp_v25_selector_after_pool_replay_preflight_v3"
             ),
             "status": "PASS_sealed_input_and_weight_preflight",
             "implementation_head": implementation_head,
