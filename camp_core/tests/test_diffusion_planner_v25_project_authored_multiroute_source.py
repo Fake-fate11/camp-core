@@ -84,7 +84,7 @@ def test_seed_cell_license_and_source_sha_mutations_fail_even_when_resealed() ->
     built = producer.build_source_record(37)
     for mutate in (
         lambda row: row["seeds"].__setitem__("actor", row["seeds"]["actor"] + 1),
-        lambda row: row["cell"].__setitem__("risk_tier", "easy"),
+        lambda row: row["cell"].__setitem__("risk_tier", "borderline"),
         lambda row: row["map"].__setitem__("license_spdx", "UNKNOWN"),
         lambda row: row["route"]["geometry"].__setitem__("lane_width_m", 9.0),
     ):
@@ -210,4 +210,3 @@ def test_drop_replacement_overlap_and_nonminimal_selection_fail_closed() -> None
             contract_root_sha256=CONTRACT_ROOT,
             forbidden=overlap,
         )
-
