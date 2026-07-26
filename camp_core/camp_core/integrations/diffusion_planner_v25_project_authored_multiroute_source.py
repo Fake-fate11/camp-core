@@ -1055,6 +1055,14 @@ def validate_source_record(
         raise ValueError("project-authored source spec drifted")
     if bytes_sha256(map_bytes) != row["map"]["sha256"]:
         raise ValueError("project-authored map byte SHA drifted")
+    if (
+        row["map"].get("license_spdx") != "MIT"
+        or row["map"].get("license_sha256") != AUDITED_BASE_SHA256["license"]
+        or row["map"].get("third_party_payload_derived") is not False
+        or row["map"].get("logical_bytes") != len(map_bytes)
+        or row["map"].get("osm_version") != OSM_VERSION
+    ):
+        raise ValueError("project-authored map provenance drifted")
     geometry = row["route"]["geometry"]
     if canonical_sha256(geometry) != row["route"]["geometry_sha256"]:
         raise ValueError("project-authored geometry SHA drifted")
