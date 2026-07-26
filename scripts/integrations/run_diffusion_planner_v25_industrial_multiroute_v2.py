@@ -21,11 +21,10 @@ from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E4
     seal_artifact,
     verify_complete_seal,
 )
-from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2 import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_replacement import (  # noqa: E402
     ARMS,
     AUTHORITY_SHA256,
     CLUSTER_COUNT,
-    EXACT_DIRS,
     FIXED_DP_HEAD,
     PLANNED_TICKS,
     TICKS_PER_ARM,
@@ -92,7 +91,10 @@ def _cluster_payload(
     arrays: Mapping[str, np.ndarray],
 ) -> dict[str, Any]:
     return {
-        "schema_version": "camp_dp_v25_industrial_v3_multiroute_v2_cluster_execution_v1",
+        "schema_version": (
+            "camp_dp_v25_industrial_v3_multiroute_v2_"
+            "replacement_cluster_execution_v1"
+        ),
         "status": "complete_full_denominator"
         if all(row["unattempted_tick_count"] == 0 for row in arms)
         else "incomplete",
@@ -166,8 +168,6 @@ def execute(
     device: str,
 ) -> str:
     output = output.resolve()
-    if output != Path(EXACT_DIRS["execution"]):
-        raise ValueError("multiroute-v2 execution exact dir drifted")
     if output.exists():
         raise FileExistsError(output)
     preflight = _verify(preflight_dir, preflight_root, "multiroute-v2 preflight")
@@ -177,12 +177,18 @@ def execute(
         "multiroute-v2 preflight review",
     )
     if (
-        preflight.get("status") != "passed_before_first_model_call"
+        preflight.get("status")
+        != "passed_before_first_replacement_model_call"
+        or preflight.get("authority_sha256") != AUTHORITY_SHA256
+        or preflight.get("start_from_zero") is not True
+        or preflight.get("old_partial_reuse") is not False
         or preflight.get("cluster_count") != CLUSTER_COUNT
         or preflight.get("planned_tick_slots") != PLANNED_TICKS
         or preflight.get("model_pool_selector_calls") != 0
     ):
-        raise ValueError("multiroute-v2 execution preflight drifted")
+        raise ValueError("multiroute-v2 replacement execution preflight drifted")
+    if output != Path(preflight["exact_dirs"]["execution"]):
+        raise ValueError("multiroute-v2 replacement execution exact dir drifted")
     if (
         training_root != TRAINING_ROOT_SHA256
         or training_review_root != TRAINING_REVIEW_ROOT_SHA256
@@ -409,11 +415,20 @@ def execute(
         ):
             raise RuntimeError("multiroute-v2 global denominator or failure gate failed")
         report = {
-            "schema_version": "camp_dp_v25_industrial_v3_multiroute_v2_execution_v1",
+            "schema_version": (
+                "camp_dp_v25_industrial_v3_multiroute_v2_"
+                "replacement_execution_v1"
+            ),
             "status": "complete_full_denominator_hard_integrity_passed",
             "authority_sha256": AUTHORITY_SHA256,
             "preflight_root_sha256": preflight_root,
             "preflight_review_root_sha256": preflight_review_root,
+            "replacement_continuation_sha256": preflight[
+                "replacement_continuation_sha256"
+            ],
+            "exact_dirs": dict(preflight["exact_dirs"]),
+            "start_from_zero": True,
+            "old_partial_reuse": False,
             "cluster_count": CLUSTER_COUNT,
             "arm_run_count": CLUSTER_COUNT * len(ARMS),
             "planned_tick_slots": PLANNED_TICKS,
@@ -437,7 +452,7 @@ def execute(
         (control / "HEADS.json").write_bytes(
             canonical_bytes(
                 {
-                    "role": "industrial_v3_multiroute_v2_execution",
+                    "role": "industrial_v3_multiroute_v2_replacement_execution",
                     "authority_sha256": AUTHORITY_SHA256,
                     "implementation_head": git_head(),
                     "fixed_dp_head": FIXED_DP_HEAD,
@@ -445,10 +460,14 @@ def execute(
             )
         )
         (control / "run.exit").write_bytes(b"0\n")
-        root = seal_artifact(control, label="V25 industrial-v3 multiroute-v2 execution")
+        root = seal_artifact(
+            control, label="V25 industrial-v3 multiroute-v2 replacement execution"
+        )
         os.replace(control, output)
         verify_complete_seal(
-            output, root, label="V25 industrial-v3 multiroute-v2 execution"
+            output,
+            root,
+            label="V25 industrial-v3 multiroute-v2 replacement execution",
         )
         return root
     except BaseException:

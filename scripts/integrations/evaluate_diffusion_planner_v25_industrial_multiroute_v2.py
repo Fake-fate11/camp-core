@@ -17,11 +17,10 @@ for path in (ROOT / "camp_core", ROOT):
 from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
     verify_complete_seal,
 )
-from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2 import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_replacement import (  # noqa: E402
     ARMS,
     AUTHORITY_SHA256,
     CLUSTER_COUNT,
-    EXACT_DIRS,
     INDUSTRIAL_CONTRACT_ROOT_SHA256,
     canonical_sha256,
 )
@@ -121,9 +120,9 @@ def evaluate(
     industrial_contract_root: str,
 ) -> str:
     output = output.resolve()
-    if output != Path(EXACT_DIRS["evaluation"]):
-        raise ValueError("multiroute-v2 evaluation exact dir drifted")
     execution = _verify(execution_dir, execution_root, "multiroute-v2 execution")
+    if output != Path(execution["exact_dirs"]["evaluation"]):
+        raise ValueError("multiroute-v2 replacement evaluation exact dir drifted")
     _verify(
         execution_review_dir,
         execution_review_root,
@@ -137,6 +136,9 @@ def evaluate(
     )["contract"]
     if (
         industrial_contract_root != INDUSTRIAL_CONTRACT_ROOT_SHA256
+        or execution.get("authority_sha256") != AUTHORITY_SHA256
+        or execution.get("start_from_zero") is not True
+        or execution.get("old_partial_reuse") is not False
         or execution.get("status")
         != "complete_full_denominator_hard_integrity_passed"
         or execution.get("terminal_accounting", {}).get("unattempted") != 0
@@ -303,13 +305,22 @@ def evaluate(
         )
     }
     report = {
-        "schema_version": "camp_dp_v25_industrial_v3_multiroute_v2_evaluation_v1",
+        "schema_version": (
+            "camp_dp_v25_industrial_v3_multiroute_v2_"
+            "replacement_evaluation_v1"
+        ),
         "status": "sealed_exploratory_multiroute_industrial_v3_vector",
         "authority_sha256": AUTHORITY_SHA256,
         "execution_root_sha256": execution_root,
         "execution_review_root_sha256": execution_review_root,
         "preflight_root_sha256": preflight_root,
         "industrial_contract_root_sha256": industrial_contract_root,
+        "replacement_continuation_sha256": execution[
+            "replacement_continuation_sha256"
+        ],
+        "exact_dirs": dict(execution["exact_dirs"]),
+        "start_from_zero": True,
+        "old_partial_reuse": False,
         "parent_endpoint_count": 56,
         "scalar_leaf_count": 161,
         "independent_cluster_count": CLUSTER_COUNT,
@@ -376,4 +387,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

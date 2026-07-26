@@ -19,7 +19,7 @@ for path in (ROOT / "camp_core", ROOT):
 from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
     verify_complete_seal,
 )
-from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_review import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_replacement_review import (  # noqa: E402
     EXPECTED_AUTHORITY,
     EXPECTED_FIXED_DP,
     review_contract_semantics,
@@ -390,6 +390,9 @@ def review_execution(
     if (
         source.get("status")
         != "complete_full_denominator_hard_integrity_passed"
+        or source.get("authority_sha256") != EXPECTED_AUTHORITY
+        or source.get("start_from_zero") is not True
+        or source.get("old_partial_reuse") is not False
         or source.get("cluster_count") != 100
         or source.get("arm_run_count") != 300
         or source.get("planned_tick_slots") != 19_200
@@ -399,6 +402,7 @@ def review_execution(
         or source.get("post_pool_model_dp_latent_generation_calls") != 0
         or source.get("candidate_tensor_mutation_count") != 0
         or source.get("hard_integrity_failure_count") != 0
+        or output.resolve() != Path(source["exact_dirs"]["execution_review"])
     ):
         raise ValueError("reviewer execution authority or integrity drifted")
     terminal = source["terminal_accounting"]
@@ -538,7 +542,10 @@ def review_execution(
     }:
         raise ValueError("reviewer global call denominator drifted")
     report = {
-        "schema_version": "camp_dp_v25_industrial_v3_multiroute_v2_execution_review_v1",
+        "schema_version": (
+            "camp_dp_v25_industrial_v3_multiroute_v2_"
+            "replacement_execution_review_v1"
+        ),
         "status": "independent_raw_execution_review_passed",
         "authority_sha256": EXPECTED_AUTHORITY,
         "source_root_sha256": source_root,
@@ -1091,6 +1098,9 @@ def review_evaluation(
     leaves = industrial["scalar_leaf_registry"]
     if (
         len(leaves) != 161
+        or source.get("authority_sha256") != EXPECTED_AUTHORITY
+        or source.get("start_from_zero") is not True
+        or source.get("old_partial_reuse") is not False
         or source.get("scalar_leaf_count") != 161
         or source.get("independent_cluster_count") != 100
         or source.get("execution_root_sha256") != execution_root
@@ -1101,6 +1111,7 @@ def review_evaluation(
         or source.get("legacy_safetycost_computed") is not False
         or source.get("claim_authorized") is not False
         or execution.get("planned_tick_slots") != 19_200
+        or output.resolve() != Path(source["exact_dirs"]["evaluation_review"])
     ):
         raise ValueError("reviewer evaluation authority or topology drifted")
     source_vectors = source["cluster_vectors"]
@@ -1279,7 +1290,8 @@ def review_evaluation(
         raise ValueError("reviewer evaluation availability drifted")
     report = {
         "schema_version": (
-            "camp_dp_v25_industrial_v3_multiroute_v2_evaluation_review_v1"
+            "camp_dp_v25_industrial_v3_multiroute_v2_"
+            "replacement_evaluation_review_v1"
         ),
         "status": "independent_literal_evaluation_review_passed",
         "authority_sha256": EXPECTED_AUTHORITY,

@@ -515,6 +515,8 @@ def _write_preflight(
     source_dir: Path,
     probe_config: Mapping[str, Any],
     fixed_dp_repo: Path,
+    authority_sha256: str = AUTHORITY_SHA256,
+    role: str = "industrial_v3_multiroute_v2_preflight",
 ) -> str:
     import numpy as np
 
@@ -626,8 +628,8 @@ def _write_preflight(
         (staging / "HEADS.json").write_bytes(
             canonical_bytes(
                 {
-                    "role": "industrial_v3_multiroute_v2_preflight",
-                    "authority_sha256": AUTHORITY_SHA256,
+                    "role": role,
+                    "authority_sha256": authority_sha256,
                     "implementation_head": git_head(),
                     "fixed_dp_head": FIXED_DP_HEAD,
                 }

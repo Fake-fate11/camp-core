@@ -18,9 +18,8 @@ for path in (ROOT / "camp_core", ROOT):
 from camp_core.integrations.diffusion_planner_artifact_seal import (  # noqa: E402
     verify_complete_seal,
 )
-from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2 import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_replacement import (  # noqa: E402
     AUTHORITY_SHA256,
-    EXACT_DIRS,
     FIXED_DP_HEAD,
 )
 from scripts.integrations._diffusion_planner_v25_industrial_artifact_common import (  # noqa: E402
@@ -55,18 +54,34 @@ ALLOWED_TRACKED_DRAFTS = {
     "scripts/integrations/review_diffusion_planner_v25_batch8_training_support_reference.py",
 }
 EXPECTED_STATUSES = {
-    "contract": "sealed_outcome_independent_multiroute_v2_contract",
-    "contract_review": "independent_literal_contract_review_passed",
-    "hardening_matrix": "sealed_zero_model_pre_execution_hardening_matrix",
-    "hardening_matrix_review": (
-        "independent_literal_hardening_matrix_review_passed"
+    "old_attempt_closeout": (
+        "immutable_partial_attempt_closed_without_outcome_read"
     ),
-    "hardening_focused": (
-        "passed_zero_model_pre_execution_hardening_focused"
+    "old_attempt_closeout_review": (
+        "independent_outcome_blind_closeout_review_passed"
     ),
-    "preflight": "passed_before_first_model_call",
+    "contract": "sealed_outcome_independent_replacement_contract",
+    "contract_review": (
+        "independent_literal_contract_and_continuation_review_passed"
+    ),
+    "semantic_hardening_matrix": (
+        "outcome_independent_parameter_propagation_matrix_frozen"
+    ),
+    "semantic_hardening_matrix_review": (
+        "independent_parameter_propagation_review_passed"
+    ),
+    "semantic_hardening_focused": (
+        "passed_zero_model_semantic_hardening_focused"
+    ),
+    "semantic_adapter_dryrun": (
+        "passed_252_candidate_64_tick_zero_model_semantic_dryrun"
+    ),
+    "semantic_adapter_dryrun_review": (
+        "independent_16128_receipt_semantic_review_passed"
+    ),
+    "preflight": "passed_before_first_replacement_model_call",
     "preflight_review": (
-        "independent_preflight_review_passed_before_first_model_call"
+        "independent_preflight_review_passed_before_model"
     ),
     "execution": "complete_full_denominator_hard_integrity_passed",
     "execution_review": "independent_raw_execution_review_passed",
@@ -103,13 +118,19 @@ def _load_package(path: Path) -> dict[str, Any]:
         raise ValueError("final package must be an object")
     if value.get("authority_sha256") != AUTHORITY_SHA256:
         raise ValueError("final package authority drifted")
+    exact_dirs = value.get("exact_dirs")
+    if type(exact_dirs) is not dict or set(exact_dirs) != {
+        *EXPECTED_STATUSES,
+        "final_docs",
+    }:
+        raise ValueError("final package exact-dir role set drifted")
     artifacts = value.get("artifacts")
     if type(artifacts) is not dict or set(artifacts) != set(EXPECTED_STATUSES):
         raise ValueError("final package artifact role set drifted")
     for role, item in artifacts.items():
         if (
             type(item) is not dict
-            or item.get("path") != EXACT_DIRS[role]
+            or item.get("path") != exact_dirs[role]
             or type(item.get("root_sha256")) is not str
             or len(item["root_sha256"]) != 64
         ):
@@ -452,7 +473,7 @@ def seal_final(
     pointer_head: str,
     pointer_field_count: int,
 ) -> str:
-    if output.resolve() != Path(EXACT_DIRS["final_docs"]):
+    if output.resolve() != Path(package["exact_dirs"]["final_docs"]):
         raise ValueError("multiroute-v2 final docs exact dir drifted")
     verified = _verify_final_inputs(
         package,
