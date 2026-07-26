@@ -197,6 +197,70 @@ IMPLEMENTATION_FILES = {
         "test_diffusion_planner_v25_project_authored_multiroute_source.py"
     ),
 }
+AUDITED_BASE_FILES = {
+    "signal_complete_generator": (
+        ROOT
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_signal_complete_maps.py"
+    ),
+    "materializer": (
+        ROOT
+        / "scripts/integrations/"
+        "materialize_diffusion_planner_v25_signal_complete_maps.py"
+    ),
+    "controlled_scenario_semantics": (
+        ROOT
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_controlled_scenarios.py"
+    ),
+    "signal_plan": (
+        ROOT
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_signal_complete_plan.py"
+    ),
+    "signal_runtime": (
+        ROOT
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_signal_complete_runtime.py"
+    ),
+    "mapped_signal_authority": (
+        ROOT
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_route_signal_authority.py"
+    ),
+    "no_signal_authority": (
+        ROOT
+        / "camp_core/camp_core/integrations/"
+        "diffusion_planner_v25_semantic_authority.py"
+    ),
+    "license": ROOT / "LICENSE",
+}
+AUDITED_BASE_SHA256 = {
+    "signal_complete_generator": (
+        "9a0459bc2a7e9e498866afdd2dd0e8b6ae61599b8a83e6a2b646f4a04a818202"
+    ),
+    "materializer": (
+        "11f9b3935bdef61ec37038345e1dd70a1b3be85bcbd6e5b35217909f80f1f6a7"
+    ),
+    "controlled_scenario_semantics": (
+        "af401c128b7b462d821d0e0f6a871b901e39fc3a7de67904afe0f6c43628bb4d"
+    ),
+    "signal_plan": (
+        "c4f174616708c8d5d25cefd71b0df3330e3cd73ac7ee079e950cfe3cc1317fbd"
+    ),
+    "signal_runtime": (
+        "8136a10fa43b52e0cdf48b85304d47704cc1b36ea9091892e67f11831a307c83"
+    ),
+    "mapped_signal_authority": (
+        "72d27e686a18e325f99aa53a66e30f125db225c8799d9fb33e99bdb467a41266"
+    ),
+    "no_signal_authority": (
+        "82b363c53f8d53ce0e57e0cfcb93f7f9697807601b43f552c034cd0f338b6a5b"
+    ),
+    "license": (
+        "d3d79d2e0cab6a7a2369dc973482a3ace35d17d1f389422c81ea8bcc833bfb61"
+    ),
+}
 
 
 def _digest(value: Any) -> str:
@@ -205,6 +269,16 @@ def _digest(value: Any) -> str:
 
 def _file_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _audited_file_sha(name: str, path: Path) -> str:
+    raw = path.read_bytes()
+    if name != "license":
+        return hashlib.sha256(raw).hexdigest()
+    if b"\r" in raw.replace(b"\r\n", b""):
+        raise ValueError("review LICENSE contains unsupported lone CR bytes")
+    canonical = raw.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    return hashlib.sha256(canonical).hexdigest()
 
 
 def _interpreter() -> dict[str, Any]:
@@ -305,9 +379,20 @@ def review_contract_artifact(
     actual_files = {
         name: _file_sha(path) for name, path in IMPLEMENTATION_FILES.items()
     }
+    audited_files = {
+        name: _audited_file_sha(name, path)
+        for name, path in AUDITED_BASE_FILES.items()
+    }
+    audited_raw_files = {
+        name: _file_sha(path) for name, path in AUDITED_BASE_FILES.items()
+    }
     if (
         source.get("implementation_head") != git_head()
         or source.get("implementation_file_sha256") != actual_files
+        or audited_files != AUDITED_BASE_SHA256
+        or source.get("audited_base_file_sha256") != audited_files
+        or source.get("audited_base_raw_checkout_file_sha256")
+        != audited_raw_files
         or source.get("model_pool_selector_calls") != 0
         or source.get("outcome_values_read") is not False
     ):

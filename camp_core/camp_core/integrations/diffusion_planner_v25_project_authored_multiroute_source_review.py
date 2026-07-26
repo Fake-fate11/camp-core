@@ -188,6 +188,15 @@ def review_contract_literal(value: Mapping[str, Any]) -> dict[str, Any]:
         or row.get("audited_generator_base_sha256") != BASE_SHA
     ):
         raise ValueError("review source contract identity drifted")
+    if row.get("license") != {
+        "spdx": "MIT",
+        "sha256": BASE_SHA["license"],
+        "sha256_byte_policy": (
+            "utf8_text_canonical_crlf; checkout raw SHA recorded separately"
+        ),
+        "third_party_map_payload_derived": False,
+    }:
+        raise ValueError("review source license authority drifted")
     universe = row.get("universe", {})
     if universe != {
         "namespace": NAMESPACE,
@@ -1010,4 +1019,3 @@ def review_materialization_literal(
         "model_pool_selector_calls": 0,
         "outcome_values_read": False,
     }
-

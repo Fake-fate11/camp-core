@@ -210,6 +210,9 @@ def source_contract() -> dict[str, Any]:
         "license": {
             "spdx": "MIT",
             "sha256": AUDITED_BASE_SHA256["license"],
+            "sha256_byte_policy": (
+                "utf8_text_canonical_crlf; checkout raw SHA recorded separately"
+            ),
             "third_party_map_payload_derived": False,
         },
         "upstream_diagnostic_roots": dict(UPSTREAM_DIAGNOSTIC_ROOTS),

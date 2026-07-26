@@ -29,6 +29,9 @@ def test_contract_freezes_corrected_authority_and_zero_execution() -> None:
         contract["audited_generator_base_sha256"]["no_signal_authority"]
         == "82b363c53f8d53ce0e57e0cfcb93f7f9697807601b43f552c034cd0f338b6a5b"
     )
+    assert contract["license"]["sha256_byte_policy"].startswith(
+        "utf8_text_canonical_crlf"
+    )
     assert contract["universe"]["candidate_ceiling"] == 252
     assert contract["selection"]["selected_count"] == 100
     assert contract["execution_boundary"]["model_pool_selector_calls"] == 0

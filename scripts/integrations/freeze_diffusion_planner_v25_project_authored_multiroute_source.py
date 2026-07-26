@@ -238,6 +238,16 @@ def _file_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _audited_file_sha(name: str, path: Path) -> str:
+    raw = path.read_bytes()
+    if name != "license":
+        return hashlib.sha256(raw).hexdigest()
+    if b"\r" in raw.replace(b"\r\n", b""):
+        raise RuntimeError("LICENSE contains unsupported lone CR bytes")
+    canonical = raw.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _interpreter() -> dict[str, Any]:
     return {
         "sys_executable": sys.executable,
@@ -276,7 +286,10 @@ def _implementation_inventory() -> dict[str, str]:
 
 
 def _verify_audited_base() -> dict[str, str]:
-    actual = {name: _file_sha(path) for name, path in AUDITED_BASE_FILES.items()}
+    actual = {
+        name: _audited_file_sha(name, path)
+        for name, path in AUDITED_BASE_FILES.items()
+    }
     if actual != AUDITED_BASE_SHA256:
         raise RuntimeError("audited project-authored generator base drifted")
     return actual
@@ -302,6 +315,9 @@ def freeze_contract(output: Path) -> str:
         "fixed_dp_head": FIXED_DP_HEAD,
         "implementation_file_sha256": implementation_files,
         "audited_base_file_sha256": base_files,
+        "audited_base_raw_checkout_file_sha256": {
+            name: _file_sha(path) for name, path in AUDITED_BASE_FILES.items()
+        },
         "parent_diagnostic_bindings": {
             key: {"path": str(path), "root_sha256": root}
             for key, (path, root) in PARENT_ARTIFACTS.items()
