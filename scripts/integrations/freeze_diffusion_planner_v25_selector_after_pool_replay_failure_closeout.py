@@ -55,11 +55,6 @@ MATERIALIZER_PATH = (
     "scripts/integrations/materialize_diffusion_planner_v25_selector_after_pool_replay.py"
 )
 EXPECTED_MESSAGE = "weights must be a nonnegative simplex [14]"
-EXPECTED_STATIC_CALL = (
-    "select_camp_candidate(candidates=candidate,materialized=materialized,"
-    "atom_scales=assets.atom_scales,weights=assets.static14d_weights,"
-    'eligibility_mask_name="source_valid_mask")'
-)
 
 
 def _canonical(value: Any) -> bytes:
@@ -104,7 +99,20 @@ def _normalized_call(source: bytes) -> tuple[int, str]:
             if lines[cursor].strip() == ")":
                 break
         normalized = "".join(collected)
-        if normalized == EXPECTED_STATIC_CALL:
+        if (
+            all(
+                token in normalized
+                for token in (
+                    "select_camp_candidate(",
+                    "candidates=candidate,",
+                    "materialized=materialized,",
+                    "atom_scales=assets.atom_scales,",
+                    "weights=assets.static14d_weights,",
+                    'eligibility_mask_name="source_valid_mask",',
+                )
+            )
+            and "simplex_nonnegative_atol" not in normalized
+        ):
             return index + 1, normalized
     raise ValueError("pinned Static selector call site not found")
 
