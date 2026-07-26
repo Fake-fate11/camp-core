@@ -119,6 +119,26 @@ def test_bare_interpreter_is_absent_from_new_versioned_sources() -> None:
         / "scripts"
         / "integrations"
         / "validate_diffusion_planner_v25_fair_nonholdout.py",
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "freeze_diffusion_planner_v25_industrial_multiroute_v2.py",
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "run_diffusion_planner_v25_industrial_multiroute_v2.py",
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "review_diffusion_planner_v25_industrial_multiroute_v2.py",
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "evaluate_diffusion_planner_v25_industrial_multiroute_v2.py",
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "finalize_diffusion_planner_v25_industrial_multiroute_v2.py",
     ]
     for path in paths:
         source = path.read_text(encoding="utf-8")
@@ -127,3 +147,44 @@ def test_bare_interpreter_is_absent_from_new_versioned_sources() -> None:
         assert '"python3"' not in source
         assert "'python3'" not in source
 
+
+def test_evaluation_reviewer_uses_literal_metrics_not_evaluator_oracle() -> None:
+    source = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "review_diffusion_planner_v25_industrial_multiroute_v2.py"
+    ).read_text(encoding="utf-8")
+    assert (
+        "run_diffusion_planner_v25_industrial_bounded_closed_loop import"
+        not in source
+    )
+    assert (
+        "evaluate_diffusion_planner_v25_industrial_multiroute_v2 import"
+        not in source
+    )
+    for token in (
+        "_literal_collision_proximity",
+        "_literal_road",
+        "_literal_red",
+        "_literal_speed",
+        "_literal_route",
+        "_literal_goal",
+        "_literal_body",
+        "_literal_lookup_leaf",
+        "_literal_paired_summary",
+    ):
+        assert token in source
+
+
+def test_final_docs_role_is_unique_and_not_a_scientific_gate() -> None:
+    assert EXACT_DIRS["final_docs"].endswith("_final_docs")
+    source = (
+        ROOT
+        / "scripts"
+        / "integrations"
+        / "finalize_diffusion_planner_v25_industrial_multiroute_v2.py"
+    ).read_text(encoding="utf-8")
+    assert '"claim_authorized": False' in source
+    assert '"weighted_total_present": False' in source
+    assert "legacy_safetycost_computed" in source

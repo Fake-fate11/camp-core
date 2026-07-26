@@ -67,8 +67,11 @@ PRODUCTION_FILES = (
     "scripts/integrations/validate_diffusion_planner_v25_fair_nonholdout.py",
     "scripts/integrations/run_diffusion_planner_dp_camp_v21_native.py",
     "scripts/integrations/run_diffusion_planner_dp_camp_v19_worker.py",
+    "scripts/integrations/freeze_diffusion_planner_v25_industrial_multiroute_v2.py",
     "scripts/integrations/run_diffusion_planner_v25_industrial_multiroute_v2.py",
     "scripts/integrations/review_diffusion_planner_v25_industrial_multiroute_v2.py",
+    "scripts/integrations/evaluate_diffusion_planner_v25_industrial_multiroute_v2.py",
+    "scripts/integrations/finalize_diffusion_planner_v25_industrial_multiroute_v2.py",
 )
 AUTODL_INTERPRETER = "/root/autodl-tmp/dp312_venv/bin/python"
 
@@ -437,6 +440,73 @@ def _tree_size_and_files(path: Path) -> tuple[int, int]:
     return total, count
 
 
+def freeze_focused(
+    output: Path,
+    *,
+    contract_dir: Path,
+    contract_root: str,
+    contract_review_dir: Path,
+    contract_review_root: str,
+    matrix_dir: Path,
+    matrix_root: str,
+    matrix_review_dir: Path,
+    matrix_review_root: str,
+    test_count: int,
+    command_sha256: str,
+    stdout_sha256: str,
+) -> str:
+    if output.resolve() != Path(EXACT_DIRS["hardening_focused"]):
+        raise ValueError("multiroute-v2 focused exact dir drifted")
+    for path, root, label in (
+        (contract_dir, contract_root, "multiroute-v2 contract"),
+        (contract_review_dir, contract_review_root, "multiroute-v2 contract review"),
+        (matrix_dir, matrix_root, "multiroute-v2 hardening matrix"),
+        (matrix_review_dir, matrix_review_root, "multiroute-v2 matrix review"),
+    ):
+        _verify(path, root, label)
+    if test_count <= 0:
+        raise ValueError("focused test count must be positive")
+    for value, label in (
+        (command_sha256, "focused command SHA"),
+        (stdout_sha256, "focused stdout SHA"),
+    ):
+        if (
+            type(value) is not str
+            or len(value) != 64
+            or any(character not in "0123456789abcdef" for character in value)
+        ):
+            raise ValueError(f"{label} is invalid")
+    report = {
+        "schema_version": (
+            "camp_dp_v25_industrial_v3_multiroute_v2_hardening_focused_v1"
+        ),
+        "status": "passed_zero_model_pre_execution_hardening_focused",
+        "authority_sha256": AUTHORITY_SHA256,
+        "contract_root_sha256": contract_root,
+        "contract_review_root_sha256": contract_review_root,
+        "matrix_root_sha256": matrix_root,
+        "matrix_review_root_sha256": matrix_review_root,
+        "test_count": test_count,
+        "test_command_sha256": command_sha256,
+        "stdout_sha256": stdout_sha256,
+        "interpreter": _interpreter(require_runtime=True),
+        "model_pool_selector_calls": 0,
+        "outcome_values_read": False,
+    }
+    return write_atomic(
+        output,
+        report,
+        {
+            "role": "industrial_v3_multiroute_v2_hardening_focused",
+            "authority_sha256": AUTHORITY_SHA256,
+            "implementation_head": git_head(),
+            "contract_root_sha256": contract_root,
+            "matrix_root_sha256": matrix_root,
+        },
+        label="V25 industrial-v3 multiroute-v2 hardening focused",
+    )
+
+
 def _write_preflight(
     output: Path,
     report: Mapping[str, Any],
@@ -572,6 +642,8 @@ def freeze_preflight(
     matrix_root: str,
     matrix_review_dir: Path,
     matrix_review_root: str,
+    focused_dir: Path,
+    focused_root: str,
     source_dir: Path,
     source_root: str,
     source_review_dir: Path,
@@ -587,6 +659,7 @@ def freeze_preflight(
         (contract_review_dir, contract_review_root, "multiroute-v2 contract review"),
         (matrix_dir, matrix_root, "multiroute-v2 matrix"),
         (matrix_review_dir, matrix_review_root, "multiroute-v2 matrix review"),
+        (focused_dir, focused_root, "multiroute-v2 hardening focused"),
         (source_dir, source_root, "project source materialization"),
         (source_review_dir, source_review_root, "project source review"),
     ):
@@ -656,6 +729,7 @@ def freeze_preflight(
         "contract_review_root_sha256": contract_review_root,
         "matrix_root_sha256": matrix_root,
         "matrix_review_root_sha256": matrix_review_root,
+        "hardening_focused_root_sha256": focused_root,
         "source_root_sha256": source_root,
         "source_review_root_sha256": source_review_root,
         "selected_manifest_sha256": SOURCE_SELECTED_MANIFEST_SHA256,
@@ -719,6 +793,14 @@ def main() -> int:
     matrix_parser.add_argument("--contract-root", required=True)
     matrix_parser.add_argument("--capability-dir", type=Path, required=True)
     matrix_parser.add_argument("--capability-root", required=True)
+    focused_parser = sub.add_parser("focused")
+    focused_parser.add_argument("--output", type=Path, required=True)
+    for name in ("contract", "contract-review", "matrix", "matrix-review"):
+        focused_parser.add_argument(f"--{name}-dir", type=Path, required=True)
+        focused_parser.add_argument(f"--{name}-root", required=True)
+    focused_parser.add_argument("--test-count", type=int, required=True)
+    focused_parser.add_argument("--command-sha256", required=True)
+    focused_parser.add_argument("--stdout-sha256", required=True)
     preflight_parser = sub.add_parser("preflight")
     preflight_parser.add_argument("--output", type=Path, required=True)
     for name in (
@@ -726,6 +808,7 @@ def main() -> int:
         "contract-review",
         "matrix",
         "matrix-review",
+        "focused",
         "source",
         "source-review",
     ):
@@ -763,6 +846,21 @@ def main() -> int:
             capability_dir=args.capability_dir,
             capability_root=args.capability_root,
         )
+    elif args.command == "focused":
+        root = freeze_focused(
+            args.output,
+            contract_dir=args.contract_dir,
+            contract_root=args.contract_root,
+            contract_review_dir=args.contract_review_dir,
+            contract_review_root=args.contract_review_root,
+            matrix_dir=args.matrix_dir,
+            matrix_root=args.matrix_root,
+            matrix_review_dir=args.matrix_review_dir,
+            matrix_review_root=args.matrix_review_root,
+            test_count=args.test_count,
+            command_sha256=args.command_sha256,
+            stdout_sha256=args.stdout_sha256,
+        )
     else:
         root = freeze_preflight(
             args.output,
@@ -774,6 +872,8 @@ def main() -> int:
             matrix_root=args.matrix_root,
             matrix_review_dir=args.matrix_review_dir,
             matrix_review_root=args.matrix_review_root,
+            focused_dir=args.focused_dir,
+            focused_root=args.focused_root,
             source_dir=args.source_dir,
             source_root=args.source_root,
             source_review_dir=args.source_review_dir,
