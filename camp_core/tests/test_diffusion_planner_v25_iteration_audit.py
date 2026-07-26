@@ -75,6 +75,14 @@ SEQUENTIAL_LATENT_SOURCE_AUDIT_INDEX = (
     / "docs"
     / "diffusion_planner_v25_sequential_latent_source_audit_evidence_index.md"
 )
+BATCH8_PRIMARY_REPORT = (
+    ROOT / "docs" / "diffusion_planner_v25_batch8_primary_generator_contract_report.md"
+)
+BATCH8_PRIMARY_INDEX = (
+    ROOT
+    / "docs"
+    / "diffusion_planner_v25_batch8_primary_generator_contract_evidence_index.md"
+)
 V24_AUDIT = ROOT / "docs" / "diffusion_planner_v24_iteration_audit.md"
 V24_PAIRED_CONFIG = (
     ROOT / "configs" / "integrations" / "diffusion_planner_v24_paired_evaluation.json"
@@ -538,8 +546,8 @@ def _machine_tuple(section: str) -> dict[str, str]:
 
 def _current_v25_section(text: str) -> str:
     heading = (
-        "## Current V25 Status - Sequential Latent Source Audit Complete, "
-        "Requested Rows Repeated"
+        "## Current V25 Status - Batch8-Primary Generator Contract "
+        "Independently Reviewed"
     )
     assert text.count("## Current V25 Status") == 1
     assert text.count(heading) == 1
@@ -550,8 +558,8 @@ def _current_v25_section(text: str) -> str:
 
 def _audit_v25_eof(text: str) -> str:
     heading = (
-        "## 2026-07-26 - Sequential Latent Source Audit Complete, "
-        "Requested Rows Repeated"
+        "## 2026-07-26 - Batch8-Primary Generator Contract Independently "
+        "Reviewed"
     )
     assert text.count(heading) == 1
     return text.split(heading, 1)[1]
@@ -561,16 +569,17 @@ def test_v25_audit_ends_with_authoritative_pointer() -> None:
     text = AUDIT.read_text(encoding="utf-8")
     pointer = _machine_tuple(_audit_v25_eof(text))
     assert pointer["current_v25_status"] == (
-        "sequential_latent_source_audit_latent_input_rows_repeated_"
+        "single_invocation_batch8_primary_generator_contract_independently_reviewed_"
         "scientific_contract_review_required"
     )
     assert pointer["current_v25_phase"] == (
-        "zero_model_call_sequential_latent_source_audit_independently_reviewed"
+        "outcome_independent_batch8_primary_generator_contract_"
+        "independently_reviewed"
     )
     assert text.rstrip().endswith(
         "next_work_target="
-        "high_latent_source_audit_review_before_any_latent_policy_or_"
-        "calibration_authority"
+        "high_batch8_primary_contract_review_before_any_runtime_diagnostic_"
+        "authority"
     )
 
 
@@ -581,7 +590,7 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     status_pointer = _machine_tuple(current_section)
     audit_pointer = _machine_tuple(_audit_v25_eof(audit_text))
     assert status_pointer == audit_pointer
-    assert len(status_pointer) == 603
+    assert len(status_pointer) == 655
     assert current_section.count("current_v25_status=") == 1
     assert (
         "current_v25_status="
@@ -639,6 +648,12 @@ def test_current_status_has_one_v25_pointer_matching_audit() -> None:
     assert status_pointer[
         "current_v25_sequential_latent_source_audit_evidence_index_sha256"
     ] == _sha256(SEQUENTIAL_LATENT_SOURCE_AUDIT_INDEX)
+    assert status_pointer["current_v25_batch8_primary_report_sha256"] == _sha256(
+        BATCH8_PRIMARY_REPORT
+    )
+    assert status_pointer[
+        "current_v25_batch8_primary_evidence_index_sha256"
+    ] == _sha256(BATCH8_PRIMARY_INDEX)
 
 
 def test_v25_fair_pool_adaptation_contract_pointer_is_design_only() -> None:
@@ -1052,8 +1067,8 @@ def test_v25_corrected_evaluation_eof_and_reports_are_consistent() -> None:
         assert phrase in index
     assert audit.rstrip().endswith(
         "next_work_target="
-        "high_latent_source_audit_review_before_any_latent_policy_or_"
-        "calibration_authority"
+        "high_batch8_primary_contract_review_before_any_runtime_diagnostic_"
+        "authority"
     )
     assert "| 1 | 14D atom table |" in index
     assert "| 11 | Provenance, claim boundary, paper-grade report |" in index
