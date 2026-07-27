@@ -95,6 +95,36 @@ class _RequestedStateCountReached(RuntimeError):
     pass
 
 
+def _same_ego_batch_metadata(tensors: Mapping[str, Any]) -> dict[str, Any]:
+    """Describe, but never materialize, the V26 same-ego B8 model input."""
+
+    torch = sys.modules["torch"]
+    metadata: dict[str, dict[str, Any]] = {}
+    nonlatent_rows_identical = True
+    for key in sorted(tensors):
+        value = tensors[key]
+        if getattr(value, "ndim", 0) < 1 or int(value.shape[0]) != 8:
+            raise ValueError("fair same-ego B8 input batch drifted")
+        floating = bool(value.is_floating_point() or value.is_complex())
+        finite = bool(torch.isfinite(value).all().item()) if floating else True
+        if key != "sampled_trajectories":
+            nonlatent_rows_identical = nonlatent_rows_identical and bool(
+                torch.equal(value, value[0:1].expand_as(value))
+            )
+        metadata[key] = {
+            "shape": [int(size) for size in value.shape],
+            "dtype": str(value.dtype),
+            "finite": finite,
+        }
+    if not nonlatent_rows_identical:
+        raise ValueError("fair same-ego nonlatent input rows drifted")
+    return {
+        "same_ego_batch_size": 8,
+        "nonlatent_rows_identical": True,
+        "tensor_metadata": metadata,
+    }
+
+
 class _FairPredictBatch:
     def __init__(
         self,
@@ -309,6 +339,7 @@ class _FairPredictBatch:
             [expanded_ego, *[tensor_dicts[index] for index in other_indices]]
         )
         expanded_input_sha = _tensor_dict_sha256(expanded_ego)
+        same_ego_batch_metadata = _same_ego_batch_metadata(expanded_ego)
         state_sha = canonical_sha256(
             {
                 "tick_index": tick,
@@ -616,6 +647,9 @@ class _FairPredictBatch:
                 "candidate_tensor_sha256_before": before_sha,
                 "candidate_tensor_sha256_after": after_sha,
                 "candidate_row_sha256": row_sha,
+                "candidate_shape": list(candidates.shape),
+                "candidate_dtype": str(candidates.dtype),
+                "candidate_finite": bool(np.all(np.isfinite(candidates))),
                 "candidate_neighbor_sha256": array_sha256(neighbors),
                 "pool_id": pool_id,
                 "forward_invocation_id": forward_id,
@@ -690,6 +724,7 @@ class _FairPredictBatch:
                 "state_sha256": state_sha,
                 "input_sha256": expanded_input_sha,
                 "source_input_sha256": source_input_sha,
+                "same_ego_batch_metadata": same_ego_batch_metadata,
                 "candidate_seed": candidate_seed(24001, self.route_sha256, tick),
                 "latent_seed": latent_seed,
                 "latent_shape": list(latent_np.shape),
@@ -699,6 +734,9 @@ class _FairPredictBatch:
                 "candidate_tensor_sha256_before": before_sha,
                 "candidate_tensor_sha256_after": after_sha,
                 "candidate_row_sha256": row_sha,
+                "candidate_shape": list(candidates.shape),
+                "candidate_dtype": str(candidates.dtype),
+                "candidate_finite": bool(np.all(np.isfinite(candidates))),
                 "candidate_neighbor_sha256": array_sha256(neighbors),
                 "candidate_neighbor_shape": list(neighbors.shape),
                 "candidate_neighbor_dtype": str(neighbors.dtype),

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import copy
+import importlib
+import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -11,9 +14,11 @@ from camp_core.integrations.diffusion_planner_causal_atoms import (
 from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import (
     ACTION_STABILITY_NOT_EVALUATED,
     CLOSED_LOOP_COMPUTE_SCOPE,
+    DRY_RUN_RECEIPT_SCHEMA_VERSION,
     PRODUCTION_SURFACE_ID,
     SUPPORT_NOT_EVALUATED,
     V26_STAGE2_ALLOWED_CHANGED_FILES,
+    build_target_bounded_dry_run_receipt,
     build_target_bounded_tick_receipt,
     production_surface_manifest,
     validate_production_surface_manifest,
@@ -21,6 +26,7 @@ from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import 
     validate_prospective_action_stability_receipt,
     validate_prospective_support_ood_receipt,
     validate_v26_stage2_authority,
+    validate_target_bounded_dry_run_receipt,
     validate_target_bounded_tick_receipt,
 )
 
@@ -94,6 +100,138 @@ def test_production_manifest_rejects_diagnostic_and_extra_forward_options() -> N
                 production_surface_id=PRODUCTION_SURFACE_ID,
                 options=bad,
             )
+
+
+def test_dry_run_receipt_is_zero_call_and_non_executing() -> None:
+    receipt = build_target_bounded_dry_run_receipt(
+        manifest=production_surface_manifest(
+            production_surface_id=PRODUCTION_SURFACE_ID,
+            options=OPTIONS,
+        )
+    )
+    assert validate_target_bounded_dry_run_receipt(receipt) == receipt
+    assert receipt == {
+        "schema_version": DRY_RUN_RECEIPT_SCHEMA_VERSION,
+        "dry_run": True,
+        "execution_status": "dry_run_no_model_invocation",
+        "production_surface_id": PRODUCTION_SURFACE_ID,
+        "normalized_execution_options": OPTIONS,
+        "invocation_counts": {
+            "model": 0,
+            "dp": 0,
+            "latent": 0,
+            "generation": 0,
+            "simulator": 0,
+        },
+    }
+    assert not {
+        "selected_index",
+        "selected_row_sha256",
+        "support_status",
+        "ood_status",
+        "action_stability_status",
+        "claim_authorized",
+    } & set(receipt)
+    bad = copy.deepcopy(receipt)
+    bad["invocation_counts"]["model"] = 1
+    with pytest.raises(ValueError, match="zero runtime invocations"):
+        validate_target_bounded_dry_run_receipt(bad)
+
+
+def test_target_runner_dry_run_short_circuits_runtime_and_legacy_preflight(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v25_industrial_bounded_closed_loop"
+    )
+    manifest_path = tmp_path / "v26_target_manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            production_surface_manifest(
+                production_surface_id=PRODUCTION_SURFACE_ID,
+                options=OPTIONS,
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    def runtime_sentinel(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("dry-run reached a model, DP, simulator, or legacy-preflight adapter")
+
+    for name in (
+        "preflight",
+        "execute",
+        "evaluate",
+        "validate_v26_stage2_authority",
+        "_tracked_changes",
+        "_install_fixed_dp_annotation_compatibility",
+        "_run_one",
+        "load_v25_runtime_selector_assets",
+        "_interpreter_receipt",
+        "_write_with_arrays",
+    ):
+        monkeypatch.setattr(runner, name, runtime_sentinel)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["target-bounded-runner", "dry-run", "--manifest", str(manifest_path)],
+    )
+
+    assert runner.main() == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["execution_status"] == "dry_run_no_model_invocation"
+    assert receipt["invocation_counts"] == {
+        "model": 0,
+        "dp": 0,
+        "latent": 0,
+        "generation": 0,
+        "simulator": 0,
+    }
+
+
+def test_target_runner_dry_run_rejects_extra_forward_option(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v25_industrial_bounded_closed_loop"
+    )
+    options = dict(OPTIONS)
+    options["replay_extra_forward_enabled"] = True
+    manifest_path = tmp_path / "invalid_v26_target_manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            production_surface_manifest(
+                production_surface_id=PRODUCTION_SURFACE_ID,
+                options=OPTIONS,
+            )
+            | {"execution_options": options}
+        ),
+        encoding="utf-8",
+    )
+
+    def runtime_sentinel(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("rejected dry-run reached a model, DP, simulator, or legacy-preflight adapter")
+
+    for name in (
+        "preflight",
+        "execute",
+        "evaluate",
+        "validate_v26_stage2_authority",
+        "_tracked_changes",
+        "_install_fixed_dp_annotation_compatibility",
+        "_run_one",
+        "load_v25_runtime_selector_assets",
+        "_interpreter_receipt",
+        "_write_with_arrays",
+    ):
+        monkeypatch.setattr(runner, name, runtime_sentinel)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["target-bounded-runner", "dry-run", "--manifest", str(manifest_path)],
+    )
+    with pytest.raises(ValueError, match="rejects replay extra forwards"):
+        runner.main()
 
 
 def test_production_callback_rejects_actual_execution_flag_drift() -> None:

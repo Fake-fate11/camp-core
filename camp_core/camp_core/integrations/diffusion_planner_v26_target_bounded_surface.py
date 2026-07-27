@@ -22,6 +22,7 @@ PRODUCTION_SURFACE_ID = (
 )
 MANIFEST_SCHEMA_VERSION = "camp_dp_v26_target_bounded_production_manifest_v1"
 TICK_RECEIPT_SCHEMA_VERSION = "camp_dp_v26_target_bounded_tick_receipt_v1"
+DRY_RUN_RECEIPT_SCHEMA_VERSION = "camp_dp_v26_target_bounded_dry_run_receipt_v1"
 CLOSED_LOOP_COMPUTE_SCOPE = "per_arm_own_state_compute_matched"
 SUPPORT_NOT_EVALUATED = "not_evaluated_no_frozen_reference"
 ACTION_STABILITY_NOT_EVALUATED = "not_evaluated_no_preregistered_protocol"
@@ -238,6 +239,70 @@ def validate_production_surface_manifest(value: Mapping[str, Any]) -> dict[str, 
     )["prospective_claims"]
     if result["prospective_claims"] != expected_claims:
         raise ValueError("V26 prospective-claim boundary drifted")
+    return result
+
+
+def build_target_bounded_dry_run_receipt(
+    *,
+    manifest: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate only the V26 entry contract, without constructing runtime state."""
+
+    normalized_manifest = validate_production_surface_manifest(manifest)
+    return validate_target_bounded_dry_run_receipt(
+        {
+            "schema_version": DRY_RUN_RECEIPT_SCHEMA_VERSION,
+            "dry_run": True,
+            "execution_status": "dry_run_no_model_invocation",
+            "production_surface_id": normalized_manifest["production_surface_id"],
+            "normalized_execution_options": normalized_manifest["execution_options"],
+            "invocation_counts": {
+                "model": 0,
+                "dp": 0,
+                "latent": 0,
+                "generation": 0,
+                "simulator": 0,
+            },
+        }
+    )
+
+
+def validate_target_bounded_dry_run_receipt(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Keep a dry-run receipt explicitly distinct from any execution receipt."""
+
+    result = copy.deepcopy(dict(value))
+    expected = {
+        "schema_version",
+        "dry_run",
+        "execution_status",
+        "production_surface_id",
+        "normalized_execution_options",
+        "invocation_counts",
+    }
+    if set(result) != expected:
+        raise ValueError("V26 dry-run receipt field set drifted")
+    if result["schema_version"] != DRY_RUN_RECEIPT_SCHEMA_VERSION:
+        raise ValueError("V26 dry-run receipt schema drifted")
+    if result["dry_run"] is not True:
+        raise ValueError("V26 dry-run receipt must be explicitly non-executing")
+    if result["execution_status"] != "dry_run_no_model_invocation":
+        raise ValueError("V26 dry-run receipt execution status drifted")
+    normalized_options = validate_production_surface_options(
+        production_surface_id=result["production_surface_id"],
+        options=result["normalized_execution_options"],
+    )
+    expected_counts = {
+        "model": 0,
+        "dp": 0,
+        "latent": 0,
+        "generation": 0,
+        "simulator": 0,
+    }
+    if result["invocation_counts"] != expected_counts:
+        raise ValueError("V26 dry-run receipt must record zero runtime invocations")
+    result["normalized_execution_options"] = normalized_options
     return result
 
 

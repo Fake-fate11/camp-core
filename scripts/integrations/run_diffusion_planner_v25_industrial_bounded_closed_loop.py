@@ -57,6 +57,7 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa
 from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import (  # noqa: E402
     CLOSED_LOOP_COMPUTE_SCOPE,
     PRODUCTION_SURFACE_ID,
+    build_target_bounded_dry_run_receipt,
     production_surface_manifest,
     validate_production_surface_manifest,
     validate_v26_stage2_authority,
@@ -156,6 +157,15 @@ def _write_with_arrays(
 def _verify_artifact(path: Path, root: str, label: str) -> dict[str, Any]:
     verify_complete_seal(path, root, label=label)
     return object_from(path / "report.json")
+
+
+def dry_run(*, manifest: Path) -> dict[str, Any]:
+    """Exercise only the V26 production entry contract before runtime setup."""
+
+    value = object_from(manifest)
+    if type(value) is not dict:
+        raise ValueError("V26 dry-run manifest must be an object")
+    return build_target_bounded_dry_run_receipt(manifest=value)
 
 
 def preflight(
@@ -1288,6 +1298,8 @@ def evaluate(
 def main() -> int:
     parser = argparse.ArgumentParser()
     subs = parser.add_subparsers(dest="stage", required=True)
+    dry = subs.add_parser("dry-run")
+    dry.add_argument("--manifest", type=Path, required=True)
     pre = subs.add_parser("preflight")
     for name in (
         "contract-dir",
@@ -1351,10 +1363,13 @@ def main() -> int:
     stage = args.stage
     kwargs = vars(args)
     kwargs.pop("stage")
-    root = {"preflight": preflight, "execute": execute, "evaluate": evaluate}[
-        stage
-    ](**kwargs)
-    print(root)
+    root = {
+        "dry-run": dry_run,
+        "preflight": preflight,
+        "execute": execute,
+        "evaluate": evaluate,
+    }[stage](**kwargs)
+    print(json.dumps(root, sort_keys=True) if stage == "dry-run" else root)
     return 0
 
 
