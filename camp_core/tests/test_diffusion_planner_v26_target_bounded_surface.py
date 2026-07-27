@@ -264,6 +264,37 @@ def test_production_callback_rejects_actual_execution_flag_drift() -> None:
         )
 
 
+def test_production_callback_rejects_explicit_extra_selector_inventory() -> None:
+    from scripts.integrations.validate_diffusion_planner_v25_fair_nonholdout import (
+        _FairPredictBatch,
+    )
+
+    callback = object.__new__(_FairPredictBatch)
+    with pytest.raises(ValueError, match="rejects explicit selector arm inventories"):
+        _FairPredictBatch.__init__(
+            callback,
+            model=None,
+            model_args=None,
+            tensor_converter=None,
+            fixed_dp_repo=Path("."),
+            fixed_config={},
+            route_sha256="a" * 64,
+            builder=None,
+            route_ids=[],
+            replay=None,
+            assets=None,
+            state=None,
+            max_ticks=0,
+            operational_arm="Static14D",
+            evaluate_all_arms=False,
+            adaptation_diagnostics=False,
+            causal_signal_chain=None,
+            evaluation_arms=("Static14D", "Scene14D", "Static9D"),
+            production_surface_id=PRODUCTION_SURFACE_ID,
+            production_surface_options=OPTIONS,
+        )
+
+
 def test_target_tick_receipt_is_single_forward_per_arm_and_fail_closed() -> None:
     receipt = _tick_receipt()
     assert validate_target_bounded_tick_receipt(receipt) == receipt

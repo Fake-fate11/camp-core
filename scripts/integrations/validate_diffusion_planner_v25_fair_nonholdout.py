@@ -145,6 +145,8 @@ class _FairPredictBatch:
         evaluate_all_arms: bool,
         adaptation_diagnostics: bool,
         causal_signal_chain: Mapping[str, Any] | None,
+        evaluation_arms: tuple[str, ...] | None = None,
+        record_materialization_phases: bool = False,
         production_surface_id: str | None = None,
         production_surface_options: Mapping[str, Any] | None = None,
         scene_adapter: Any | None = None,
@@ -163,11 +165,27 @@ class _FairPredictBatch:
         self.state = state
         self.max_ticks = max_ticks
         self.operational_arm = operational_arm
+        self.has_explicit_evaluation_arms = evaluation_arms is not None
+        resolved_evaluation_arms = ARMS if evaluation_arms is None else evaluation_arms
+        if (
+            type(resolved_evaluation_arms) is not tuple
+            or not resolved_evaluation_arms
+            or any(type(arm) is not str or not arm for arm in resolved_evaluation_arms)
+            or len(set(resolved_evaluation_arms)) != len(resolved_evaluation_arms)
+            or operational_arm not in resolved_evaluation_arms
+        ):
+            raise ValueError("fair evaluation arm inventory drifted")
+        self.evaluation_arms = resolved_evaluation_arms
+        self.record_materialization_phases = record_materialization_phases
         if (production_surface_id is None) != (production_surface_options is None):
             raise ValueError("production surface id/options must be supplied together")
         if production_surface_id is None:
             normalized_production_surface_options = None
         else:
+            if evaluation_arms is not None:
+                raise ValueError(
+                    "V26 production surface rejects explicit selector arm inventories"
+                )
             normalized_production_surface_options = validate_production_surface_options(
                 production_surface_id=production_surface_id,
                 options=production_surface_options,
@@ -440,6 +458,7 @@ class _FairPredictBatch:
 
         needs_selector_inputs = (
             self.evaluate_all_arms
+            or self.has_explicit_evaluation_arms
             or self.operational_arm in ("Static14D", "Scene14D")
         )
         causal = None
@@ -506,7 +525,9 @@ class _FairPredictBatch:
             red_cost=red_cost,
             causal_signal_atom_input=causal_signal_atom_input,
             evaluate_arms=(
-                list(ARMS) if self.evaluate_all_arms else [self.operational_arm]
+                list(self.evaluation_arms)
+                if self.evaluate_all_arms or self.has_explicit_evaluation_arms
+                else [self.operational_arm]
             ),
         )
         if self.model_call_count != calls_at_pool_freeze:
@@ -912,7 +933,10 @@ class _FairPredictBatch:
             raise ValueError("selector inputs missing for Static14D/Scene14D")
         atom_started = time.perf_counter_ns()
         phase_receipt: dict[str, Any] | None = (
-            {} if self.production_surface_id is not None else None
+            {}
+            if self.production_surface_id is not None
+            or self.record_materialization_phases
+            else None
         )
         materialized = self.materialize(
             candidates=candidates,
@@ -1083,7 +1107,7 @@ class _FairPredictBatch:
                 None if scene_weights is None else array_sha256(scene_weights)
             ),
         }
-        if self.production_surface_id is not None:
+        if self.production_surface_id is not None or self.record_materialization_phases:
             assert phase_receipt is not None
             summary["atom_materialization_phase_receipt"] = phase_receipt
         return {
