@@ -90,8 +90,8 @@ def _require_single_nonholdout_config(config: Mapping[str, Any]) -> dict[str, An
     seeds = result.get("seeds")
     if type(protocol) is not dict or protocol.get("holdout_access_authorized") is not False:
         raise ValueError("V26 smoke rejects holdout identity")
-    if "holdout" in str(protocol.get("route_role", "")).lower():
-        raise ValueError("V26 smoke route role must be nonholdout")
+    if protocol.get("route_role") != "development_nonholdout":
+        raise ValueError("V26 smoke route role must be development_nonholdout")
     if type(routes) is not list or len(routes) != 1 or type(routes[0]) is not dict:
         raise ValueError("V26 smoke requires exactly one nonholdout route")
     if type(seeds) is not dict or type(seeds.get("scenario")) is not int:

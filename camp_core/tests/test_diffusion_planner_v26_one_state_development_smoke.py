@@ -281,6 +281,29 @@ def test_cli_has_one_explicit_static_arm_and_rejects_legacy_flags() -> None:
     assert "evaluate(" not in source
 
 
+def test_runner_accepts_only_the_explicit_development_nonholdout_role() -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v26_one_state_development_smoke"
+    )
+    config = {
+        "protocol": {
+            "holdout_access_authorized": False,
+            "route_role": "development_nonholdout",
+        },
+        "routes": [{"path": "/route", "sha256": _sha(1)}],
+        "seeds": {"scenario": 17},
+        "fixed_dp": {
+            "checkpoint": {"path": "/checkpoint", "sha256": _sha(2)},
+            "args_json": {"path": "/args", "sha256": _sha(3)},
+        },
+    }
+    assert runner._require_single_nonholdout_config(config) == config
+    holdout = copy.deepcopy(config)
+    holdout["protocol"]["route_role"] = "holdout"
+    with pytest.raises(ValueError, match="development_nonholdout"):
+        runner._require_single_nonholdout_config(holdout)
+
+
 def test_same_ego_batch_metadata_requires_identical_nonlatent_rows(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
