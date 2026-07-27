@@ -1,0 +1,43 @@
+{
+  "schema_version": "camp_dp_v26_selector_adaptation_config_v1",
+  "evidence_role": "development_train_only_selector_adaptation",
+  "adaptation_scope": "camp_selector_adaptation_layer_only",
+  "frozen_components": [
+    "fixed_dp",
+    "checkpoint",
+    "generator",
+    "same_ego_b8_pool_topology"
+  ],
+  "reference_role": "frozen_zero_shot_reference_arm",
+  "training_label_contract": "causal_policy_distillation_no_outcome",
+  "models": [
+    "CAMP-Static9D",
+    "CAMP-Scene9D",
+    "CAMP-Static14D",
+    "CAMP-Scene14D"
+  ],
+  "master": {
+    "alpha": 0.9,
+    "l2_reg": 0.0001,
+    "bt_anchor_reg": 0.0001,
+    "max_iter": 10,
+    "tolerance": 0.000001,
+    "solver": "CLARABEL",
+    "solver_options": {
+      "max_iter": 1000,
+      "tol_gap_abs": 1e-09,
+      "tol_gap_rel": 1e-09,
+      "tol_feas": 1e-09
+    },
+    "bt_iterations": 80,
+    "bt_learning_rate": 0.5,
+    "bt_l2_reg": 0.0001,
+    "bt_max_pairs": 800000
+  },
+  "comparison_protocol": {
+    "profiling_pools_are_training_and_route_selection_excluded": true,
+    "comparison_identities_must_be_new_and_prefixed_before_execution": true,
+    "closed_loop_if_executed": "each_arm_own_state_compute_matched",
+    "same_pool_profiling_is_not_effect_evaluation": true
+  }
+}
