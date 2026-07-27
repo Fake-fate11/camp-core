@@ -46,6 +46,10 @@ from camp_core.integrations.diffusion_planner_v26_diversified_route_plan import 
     canonical_json_sha256,
     validate_diversified_route_plan,
 )
+from camp_core.integrations.diffusion_planner_v26_diversified_plan_revision import (  # noqa: E402
+    PLAN_REVISION_SCHEMA_VERSION,
+    load_verified_revised_plan,
+)
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (  # noqa: E402
     FROZEN_SIMPLEX_TOLERANCE,
     V26_AUTOWARE_SIDECAR_SIGNAL_MODE,
@@ -264,6 +268,8 @@ def _require_pre_model_qualification(
         "path": str(receipt_path),
         "sha256": _file_sha256(receipt_path),
         "manifest_sha256": _file_sha256(manifest_path),
+        "status": "passed_1786_of_1786_zero_model",
+        "parent_plan_sha256": route_plan["route_plan_sha256"],
         "units": qualified,
     }
 
@@ -296,6 +302,15 @@ def _unit_id(*, route_plan_sha256: str, unit_index: int, route_id: str, scenario
             "state_topology": "fresh_own_state_one_tick_same_ego_b8",
         }
     )
+
+
+def _source_ordinal(schedule: Mapping[str, Any], unit_index: int) -> int:
+    """Keep the parent route identity/seed when a forward plan omits rows."""
+
+    value = schedule.get("parent_ordinal", unit_index)
+    if type(value) is not int or value < 0:
+        raise ValueError("V26 Stage8b route source ordinal is invalid")
+    return value
 
 
 def _route_asset(route_type: Any, record: Mapping[str, Any], path: Path) -> str:
@@ -488,6 +503,7 @@ def _completed_unit(
             "family_id": schedule["family_id"],
             "route_id": schedule["route_id"],
             "corridor_id": schedule["corridor_id"],
+            "parent_ordinal": _source_ordinal(schedule, unit_index),
             "route_identity_sha256": record["identity_sha256"],
             "map_sha256": record["source_map_sha256"],
             "source_artifact_sha256": schedule["source_artifact_sha256"],
@@ -577,6 +593,7 @@ def _typed_failure_unit(
             "family_id": schedule["family_id"],
             "route_id": schedule["route_id"],
             "corridor_id": schedule["corridor_id"],
+            "parent_ordinal": _source_ordinal(schedule, unit_index),
             "route_identity_sha256": record["identity_sha256"],
             "map_sha256": record["source_map_sha256"],
             "source_artifact_sha256": schedule["source_artifact_sha256"],
@@ -629,8 +646,8 @@ def _manifest(
         "evidence_role": EVIDENCE_ROLE,
         "camp_head": str(camp_head),
         "fixed_dp_head": FIXED_DP_HEAD,
-        "route_plan_schema_version": ROUTE_PLAN_SCHEMA_VERSION,
-        "route_plan_evidence_role": ROUTE_PLAN_EVIDENCE_ROLE,
+        "route_plan_schema_version": route_plan["schema_version"],
+        "route_plan_evidence_role": route_plan["evidence_role"],
         "route_plan_sha256": str(route_plan["route_plan_sha256"]),
         "planned_unit_count": int(route_plan["denominator"]["planned"]),
         "split": "development_nonholdout",
@@ -647,7 +664,10 @@ def _manifest(
             "path": pre_model_qualification["path"],
             "sha256": pre_model_qualification["sha256"],
             "manifest_sha256": pre_model_qualification["manifest_sha256"],
-            "status": "passed_1786_of_1786_zero_model",
+            "status": pre_model_qualification["status"],
+            "parent_plan_sha256": pre_model_qualification.get("parent_plan_sha256"),
+            "revision_review_path": pre_model_qualification.get("review_path"),
+            "revision_review_sha256": pre_model_qualification.get("review_sha256"),
         },
         "selector": {
             "reference_role": "v25_zero_shot_reference_read_only",
@@ -705,7 +725,7 @@ class _AcquisitionLedger:
                         unit_index=index,
                         route_plan_sha256=plan_sha,
                         schedule=routes[index],
-                        scenario_seed=SCENARIO_SEED_BASE + index,
+                        scenario_seed=SCENARIO_SEED_BASE + _source_ordinal(routes[index], index),
                     )
                 )
         finalized = [unit for unit in self.units if unit is not None]
@@ -788,6 +808,9 @@ class _AcquisitionLedger:
             corridor_ids = np.asarray([unit["route"]["corridor_id"] for unit in complete], dtype="U64")
             family_ids = np.asarray([unit["route"]["family_id"] for unit in complete], dtype="U128")
             seeds = np.asarray([unit["route"]["scenario_seed"] for unit in complete], dtype=np.int64)
+            parent_ordinals = np.asarray(
+                [unit["route"]["parent_ordinal"] for unit in complete], dtype=np.int64
+            )
             scenario_ids = np.asarray(
                 [unit["planned_unit_id_sha256"] for unit in complete], dtype="U64"
             )
@@ -831,6 +854,7 @@ class _AcquisitionLedger:
             corridor_ids = np.asarray([], dtype="U1")
             family_ids = np.asarray([], dtype="U1")
             seeds = np.asarray([], dtype=np.int64)
+            parent_ordinals = np.asarray([], dtype=np.int64)
             scenario_ids = np.asarray([], dtype="U1")
             raw_context = np.zeros((0, len(RAW_FEATURE_NAMES)), dtype=np.float64)
             context_source = np.zeros((0, len(RAW_FEATURE_NAMES)), dtype=np.bool_)
@@ -866,6 +890,7 @@ class _AcquisitionLedger:
             corridor_ids=corridor_ids,
             map_family_ids=family_ids,
             seeds=seeds,
+            parent_ordinals=parent_ordinals,
             scenario_ids=scenario_ids,
             source_manifest_sha256=np.asarray(self.manifest["route_plan_sha256"]),
             event_manifest_sha256=np.asarray(
@@ -903,6 +928,7 @@ def _prepare_route(
     family_by_id: Mapping[str, Mapping[str, Any]],
     base: Mapping[str, Any],
     qualified_unit: Mapping[str, Any],
+    source_ordinal: int,
 ) -> tuple[dict[str, Any] | None, str | None]:
     route_path = output_dir / "route_assets" / f"{unit_index:04d}.pkl"
     route_sha = _route_asset(route_type, schedule["route_record"], route_path)
@@ -926,7 +952,7 @@ def _prepare_route(
         )
     ):
         return None, "pre_model_qualification_source_binding_drifted"
-    seed = SCENARIO_SEED_BASE + unit_index
+    seed = SCENARIO_SEED_BASE + source_ordinal
     config = _route_probe_config(
         base=base,
         schedule=schedule,
@@ -951,7 +977,27 @@ def run(args: argparse.Namespace) -> Path:
     plan_path = args.route_plan.resolve()
     if not plan_path.is_file():
         raise FileNotFoundError(plan_path)
-    route_plan = validate_diversified_route_plan(json.loads(plan_path.read_text(encoding="utf-8")))
+    raw_plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    if raw_plan.get("schema_version") == PLAN_REVISION_SCHEMA_VERSION:
+        if args.parent_route_plan is None or args.route_plan_revision_review is None:
+            raise ValueError("V26 Stage8b revised plan requires parent plan and revision review")
+        authority = load_verified_revised_plan(
+            parent_plan_path=args.parent_route_plan,
+            revised_plan_path=plan_path,
+            revision_review_path=args.route_plan_revision_review,
+            qualification_receipt_path=args.pre_model_qualification,
+        )
+        route_plan = authority["route_plan"]
+        qualification = authority["qualification"]
+    else:
+        if args.parent_route_plan is not None or args.route_plan_revision_review is not None:
+            raise ValueError("V26 Stage8b original plan rejects revision authority arguments")
+        route_plan = validate_diversified_route_plan(raw_plan)
+        qualification = _require_pre_model_qualification(
+            args.pre_model_qualification,
+            route_plan=route_plan,
+            camp_head=args.expected_camp_head,
+        )
     if route_plan["fixed_dp_head"] != FIXED_DP_HEAD:
         raise ValueError("V26 Stage8b route plan fixed-DP identity drifted")
     base = _load_base_probe_config(args.base_probe_config)
@@ -960,11 +1006,6 @@ def run(args: argparse.Namespace) -> Path:
     fixed_dp_repo = args.fixed_dp_repo.resolve()
     if _tracked_changes(fixed_dp_repo) or _git_head(fixed_dp_repo) != FIXED_DP_HEAD:
         raise ValueError("V26 Stage8b requires an exact clean fixed-DP checkout")
-    qualification = _require_pre_model_qualification(
-        args.pre_model_qualification,
-        route_plan=route_plan,
-        camp_head=args.expected_camp_head,
-    )
     assets = _load_zero_shot_reference_selector_assets(args)
     manifest = _manifest(
         route_plan=route_plan,
@@ -1004,7 +1045,8 @@ def run(args: argparse.Namespace) -> Path:
             # loaded.  A missing traffic authority is therefore a typed
             # pre-forward failure rather than an implicit no-signal fallback.
             for index, schedule in enumerate(route_plan["routes"]):
-                seed = SCENARIO_SEED_BASE + index
+                source_ordinal = _source_ordinal(schedule, index)
+                seed = SCENARIO_SEED_BASE + source_ordinal
                 try:
                     prepared_item, failure = _prepare_route(
                         route_type=Route,
@@ -1014,6 +1056,7 @@ def run(args: argparse.Namespace) -> Path:
                         family_by_id=family_by_id,
                         base=base,
                         qualified_unit=qualification["units"][index],
+                        source_ordinal=source_ordinal,
                     )
                     if failure is not None:
                         ledger.record(
@@ -1121,6 +1164,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--fixed-dp-repo", type=Path, required=True)
     parser.add_argument("--expected-camp-head", required=True)
     parser.add_argument("--pre-model-qualification", type=Path, required=True)
+    parser.add_argument("--parent-route-plan", type=Path)
+    parser.add_argument("--route-plan-revision-review", type=Path)
     parser.add_argument("--device", choices=("cuda",), default="cuda")
     return parser.parse_args(argv)
 

@@ -307,3 +307,21 @@ def test_parser_and_source_keep_the_v26_native_boundary() -> None:
     assert "validate_diffusion_planner_v25_fair_nonholdout" not in source
     assert "run_diffusion_planner_v25_industrial_bounded_closed_loop" not in source
     assert "_build_no_signal_chain" not in source
+
+
+def test_revised_plan_preserves_parent_ordinal_for_seed_and_receipt() -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v26_diversified_training_acquisition"
+    )
+    schedule = _schedule()
+    schedule["parent_ordinal"] = 1187
+    assert runner._source_ordinal(schedule, 1185) == 1187
+    unit = runner._typed_failure_unit(
+        unit_index=1185,
+        route_plan_sha256=_sha(1),
+        schedule=schedule,
+        scenario_seed=46001 + 1187,
+        failure_class="fixture",
+        failure_reason="fixture",
+    )
+    assert unit["route"]["parent_ordinal"] == 1187
