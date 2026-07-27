@@ -96,6 +96,15 @@ def _from_frozen_census(*, family_id: str, census_path: Path) -> tuple[list[dict
     if before != FROZEN_ROUTE_CENSUS_SHA256:
         raise ValueError("V26 legacy route-census SHA drifted")
     census = json.loads(census_path.read_text(encoding="utf-8"))
+    corridor = census.get("corridor_groups")
+    if (
+        not isinstance(corridor, Mapping)
+        or corridor.get("source_only") is not True
+        or corridor.get("outcome_fields_consumed") != []
+        or not isinstance(corridor.get("groups"), list)
+        or not all(isinstance(item, Mapping) for item in corridor["groups"])
+    ):
+        raise ValueError("V26 frozen route-census corridor groups are malformed")
     rows = [
         dict(item)
         for item in census.get("retained_routes", [])
@@ -104,7 +113,7 @@ def _from_frozen_census(*, family_id: str, census_path: Path) -> tuple[list[dict
     keys = {str(item["record_key"]) for item in rows}
     groups = [
         item
-        for item in census.get("corridor_groups", [])
+        for item in corridor["groups"]
         if set(str(key) for key in item.get("route_record_keys", [])) and set(
             str(key) for key in item.get("route_record_keys", [])
         ).issubset(keys)

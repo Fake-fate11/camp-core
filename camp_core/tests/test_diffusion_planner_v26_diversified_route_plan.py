@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import importlib
+import json
 from pathlib import Path
 import sys
 
@@ -164,3 +165,48 @@ def test_route_projection_cli_is_family_bounded_and_zero_model() -> None:
     assert "route_census_one_map" in source
     assert "run_v26_native_same_ego_b8_replay" not in source
     assert "validate_diffusion_planner_v25_fair_nonholdout" not in source
+
+
+def test_census_projection_reads_nested_source_only_corridor_groups(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.prepare_diffusion_planner_v26_diversified_route_plan"
+    )
+    family_id = "legacy_simple_cross"
+    route_keys = [f"{family_id}/route-{index}" for index in range(2)]
+    census_path = tmp_path / "route_census.json"
+    census_path.write_text(
+        json.dumps(
+            {
+                "retained_routes": [
+                    {
+                        "record_key": key,
+                        "map_family_id": "map_family_f62e06cd1303",
+                    }
+                    for key in route_keys
+                ],
+                "corridor_groups": {
+                    "source_only": True,
+                    "outcome_fields_consumed": [],
+                    "groups": [
+                        {
+                            "group_sha256": _sha("nested-corridor"),
+                            "route_record_keys": route_keys,
+                            "route_record_count": 2,
+                        }
+                    ],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(runner, "FROZEN_ROUTE_CENSUS_SHA256", runner._file_sha256(census_path))
+
+    records, groups, source_unchanged = runner._from_frozen_census(
+        family_id=family_id, census_path=census_path
+    )
+
+    assert [record["record_key"] for record in records] == route_keys
+    assert groups == [{"group_sha256": _sha("nested-corridor"), "route_record_keys": route_keys}]
+    assert source_unchanged is True
