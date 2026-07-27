@@ -401,10 +401,12 @@ class V26AutowareSidecarSignalAdapter:
             "regulatory_element_id": record["regulatory_element_id"],
             "stop_line_id": record["stop_line_id"],
             "stop_line_geometry_world_m": stop_world.tolist(),
-            "stop_line_geometry_ego_m": (stop_world - position.reshape(1, 2)) @ rotation.T,
+            "stop_line_geometry_ego_m": (
+                (stop_world - position.reshape(1, 2)) @ rotation.T
+            ).tolist(),
             "stop_line_geometry_sha256": canonical_json_sha256(stop_world.tolist()),
             "route_tangent_world": record["route_tangent_world"].tolist(),
-            "route_tangent_ego": rotation @ record["route_tangent_world"],
+            "route_tangent_ego": (rotation @ record["route_tangent_world"]).tolist(),
             "route_geometry_sha256": record["route_graph_sha256"],
             "route_arc_m": 0.0,
             "source_chain_sha256": runtime["signal_chain_sha256"],
