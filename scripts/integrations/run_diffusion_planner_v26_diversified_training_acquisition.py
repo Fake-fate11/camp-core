@@ -519,6 +519,7 @@ def _completed_unit(
             "family_id": schedule["family_id"],
             "route_id": schedule["route_id"],
             "corridor_id": schedule["corridor_id"],
+            "revised_plan_ordinal": int(schedule.get("revised_plan_ordinal", unit_index)),
             "parent_ordinal": _source_ordinal(schedule, unit_index),
             "route_identity_sha256": record["identity_sha256"],
             "map_sha256": record["source_map_sha256"],
@@ -609,6 +610,7 @@ def _typed_failure_unit(
             "family_id": schedule["family_id"],
             "route_id": schedule["route_id"],
             "corridor_id": schedule["corridor_id"],
+            "revised_plan_ordinal": int(schedule.get("revised_plan_ordinal", unit_index)),
             "parent_ordinal": _source_ordinal(schedule, unit_index),
             "route_identity_sha256": record["identity_sha256"],
             "map_sha256": record["source_map_sha256"],
@@ -730,6 +732,48 @@ class _AcquisitionLedger:
         materialized = dict(unit)
         self.units[index] = materialized
         _atomic_write_json(self.output_dir / "units" / f"{index:04d}.json", materialized)
+
+    def record_parent_exception_boundary(
+        self,
+        *,
+        unit_index: int,
+        route_plan_sha256: str,
+        schedule: Mapping[str, Any],
+        scenario_seed: int,
+        phase: str,
+        exc: Exception,
+        callback: Any | None = None,
+        raw: Mapping[str, Any] | None = None,
+    ) -> bool:
+        """Atomically retain the first unrecorded boundary of an outer stop.
+
+        A parent-level exception must not leave only an aggregate terminal
+        error: the route at which execution stopped receives its own typed
+        receipt before ``finalize`` marks later routes unattempted.
+        """
+
+        if not 0 <= int(unit_index) < len(self.units):
+            raise ValueError("V26 Stage8b parent-exception boundary index is invalid")
+        if self.units[int(unit_index)] is not None:
+            return False
+        unit = _typed_failure_unit(
+            unit_index=int(unit_index),
+            route_plan_sha256=route_plan_sha256,
+            schedule=schedule,
+            scenario_seed=int(scenario_seed),
+            failure_class="ParentExecutionException",
+            failure_reason=f"{type(exc).__name__}: {exc}",
+            callback=callback,
+            raw=raw,
+        )
+        unit["parent_exception_boundary"] = {
+            "phase": str(phase),
+            "exception_class": type(exc).__name__,
+            "exception_message": str(exc),
+            "revised_plan_ordinal": int(schedule.get("revised_plan_ordinal", unit_index)),
+        }
+        self.record(unit)
+        return True
 
     def finalize(self, *, terminal_error: str | None = None) -> Path:
         routes = list(self.route_plan["routes"])
@@ -1071,6 +1115,7 @@ def run(args: argparse.Namespace) -> Path:
         }
         route_plan_sha = str(route_plan["route_plan_sha256"])
         terminal_error: str | None = None
+        active_boundary: tuple[int, Mapping[str, Any], int, str] | None = None
         try:
             # Every route and its signal binding is prepared before the model is
             # loaded.  A missing traffic authority is therefore a typed
@@ -1078,6 +1123,7 @@ def run(args: argparse.Namespace) -> Path:
             for index, schedule in enumerate(route_plan["routes"]):
                 source_ordinal = _source_ordinal(schedule, index)
                 seed = SCENARIO_SEED_BASE + source_ordinal
+                active_boundary = (index, schedule, seed, "pre_model_preparation")
                 try:
                     prepared_item, failure = _prepare_route(
                         route_type=Route,
@@ -1115,6 +1161,14 @@ def run(args: argparse.Namespace) -> Path:
                         )
                     )
             if prepared:
+                first_prepared = min(prepared)
+                first_schedule = route_plan["routes"][first_prepared]
+                active_boundary = (
+                    first_prepared,
+                    first_schedule,
+                    SCENARIO_SEED_BASE + _source_ordinal(first_schedule, first_prepared),
+                    "model_initialization",
+                )
                 _install_fixed_dp_annotation_compatibility(fixed_dp_repo)
                 model, model_args = _load_model(
                     Path(base["fixed_dp"]["checkpoint"]["path"]),
@@ -1127,6 +1181,7 @@ def run(args: argparse.Namespace) -> Path:
                         continue
                     schedule = route_plan["routes"][index]
                     seed = int(prepared_item["scenario_seed"])
+                    active_boundary = (index, schedule, seed, "native_same_ego_b8_replay")
                     callback_box: dict[str, Any] = {}
 
                     def on_completed(raw: Mapping[str, Any], callback: Any) -> None:
@@ -1179,6 +1234,16 @@ def run(args: argparse.Namespace) -> Path:
                         )
         except Exception as exc:
             terminal_error = f"{type(exc).__name__}: {exc}"
+            if active_boundary is not None:
+                index, schedule, seed, phase = active_boundary
+                ledger.record_parent_exception_boundary(
+                    unit_index=index,
+                    route_plan_sha256=route_plan_sha,
+                    schedule=schedule,
+                    scenario_seed=seed,
+                    phase=phase,
+                    exc=exc,
+                )
         return ledger.finalize(terminal_error=terminal_error)
 
 
