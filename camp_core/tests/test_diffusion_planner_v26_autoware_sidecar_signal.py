@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import importlib
 import json
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -147,6 +148,30 @@ def test_traffic_light_sidecar_route_is_accepted_and_receipt_is_bound(tmp_path: 
     assert causal["runtime_receipt"]["source_chain_sha256"] == causal["source_chain_sha256"]
     assert causal["runtime_receipt"]["route_geometry_sha256"] == causal["route_geometry_sha256"]
     json.dumps(causal, sort_keys=True)
+
+
+def test_sidecar_uses_frozen_route_order_when_two_real_authorities_are_ahead(
+    tmp_path: Path,
+) -> None:
+    config, manifest = _sidecar_config(tmp_path)
+    binding, loaded = load_autoware_sidecar_binding(config)
+    two = deepcopy(loaded)
+    second = deepcopy(two["regulatory_elements"][0])
+    second["id"] = 1347
+    two["regulatory_elements"].append(second)
+    two["lanelets"][0]["regulatory_element_ids"] = [1347]
+    builder = _Builder()
+    builder._ll_by_id[100] = _Lanelet([1347])
+    adapter = V26AutowareSidecarSignalAdapter(binding=binding, sidecar_manifest=two)
+    adapter.bind_builder(builder)
+    adapter.bind_runtime_lanelet_ids(route_lanelet_ids=[100, 443, 81], map_lanelet_ids=[100, 443, 81])
+    scene = _scene()
+    scene.ego_agent.route_lanes[0, 0, 8] = 1.0
+    scene.map_data.lanes[0, 0, 8] = 1.0
+    receipt = adapter(scene, 0)["signal_authority"]
+    assert receipt["route_traffic_authority_ids"] == [1347, 1346]
+    assert receipt["authority_selection_rule"] == "first_controlled_lanelet_in_frozen_route_order"
+    assert receipt["regulatory_element_id"] == 1347
 
 
 def test_target_scene_adapter_makes_legacy_no_signal_builder_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:

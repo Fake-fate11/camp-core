@@ -134,6 +134,7 @@ def _source_xml_inventory(source_map: Path, expected_sha256: str) -> dict[str, A
         members = [dict(member.attrib) for member in relation.findall("member")]
         if tags.get("type") == "regulatory_element" and tags.get("subtype") == "traffic_light":
             roles: list[dict[str, Any]] = []
+            missing_roles: list[str] = []
             for role in ("refers", "ref_line", "light_bulbs"):
                 primitives: list[dict[str, Any]] = []
                 for member in members:
@@ -150,9 +151,17 @@ def _source_xml_inventory(source_map: Path, expected_sha256: str) -> dict[str, A
                         primitive["points"] = [{"id": node_id} for node_id in ways[primitive_id]]
                     primitives.append(primitive)
                 if not primitives:
-                    raise ValueError(f"V26 source traffic authority lacks {role}")
+                    missing_roles.append(role)
                 roles.append({"role": role, "primitives": primitives})
-            traffic_by_id[relation_id] = {"id": relation_id, "roles": roles}
+            # A sidecar may be the authoritative traffic representation for a
+            # different route on the same map.  Retain an incomplete unrelated
+            # source relation for census purposes; only a route that elects the
+            # source-map adapter may be rejected for its missing primitive.
+            traffic_by_id[relation_id] = {
+                "id": relation_id,
+                "roles": roles,
+                "missing_roles": missing_roles,
+            }
         if tags.get("type") == "lanelet":
             lanelet_members[relation_id] = members
 
@@ -449,6 +458,12 @@ def build_v26_source_signal_config(
     regulatory = records.get(traffic_ids[0])
     if regulatory is None:
         raise ValueError("V26 source traffic authority inventory is incomplete")
+    if regulatory.get("missing_roles"):
+        raise ValueError(
+            "V26 source traffic authority lacks "
+            + ",".join(str(value) for value in regulatory["missing_roles"])
+        )
+    regulatory = {**regulatory, "runtime_type": "AutowareTrafficLight"}
     authority = {
         "schema_version": V26_SOURCE_SIGNAL_AUTHORITY_SCHEMA_VERSION,
         "route_sha256": _require_sha256(route_sha256, "V26 route SHA"),
@@ -576,6 +591,8 @@ class V26SourceMapTrafficSignalAdapter(V26AutowareSidecarSignalAdapter):
             "source_projection_sha256": self.source_authority["source_projection_sha256"],
             "route_lanelet_ids": list(self._route_lanelet_ids),
             "controlled_lanelet_ids": list(self._controlled_lanelet_ids),
+            "route_traffic_authority_ids": list(self._route_traffic_authority_ids),
+            "authority_selection_rule": "first_controlled_lanelet_in_frozen_route_order",
             "regulatory_element_id": record["regulatory_element_id"],
             "physical_light_ids": list(record["physical_light_ids"]),
             "bulb_ids": list(record["bulb_ids"]),

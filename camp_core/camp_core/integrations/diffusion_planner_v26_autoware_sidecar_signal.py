@@ -97,6 +97,8 @@ def validate_autoware_sidecar_signal_receipt(
         "binding",
         "route_lanelet_ids",
         "controlled_lanelet_ids",
+        "route_traffic_authority_ids",
+        "authority_selection_rule",
         "regulatory_element_id",
         "physical_light_ids",
         "bulb_ids",
@@ -125,8 +127,18 @@ def validate_autoware_sidecar_signal_receipt(
     )
     if not set(result["controlled_lanelet_ids"]).issubset(result["route_lanelet_ids"]):
         raise ValueError("V26 sidecar controlled lanelet escaped the route graph")
+    result["route_traffic_authority_ids"] = _require_int_list(
+        result["route_traffic_authority_ids"], "sidecar route traffic authority IDs", nonempty=True
+    )
+    if (
+        result["authority_selection_rule"]
+        != "first_controlled_lanelet_in_frozen_route_order"
+    ):
+        raise ValueError("V26 sidecar route authority selection rule drifted")
     if type(result["regulatory_element_id"]) is not int:
         raise ValueError("V26 sidecar regulatory element ID is invalid")
+    if result["regulatory_element_id"] != result["route_traffic_authority_ids"][0]:
+        raise ValueError("V26 sidecar selected traffic authority is not route-order first")
     result["physical_light_ids"] = _require_int_list(
         result["physical_light_ids"], "sidecar physical light IDs", nonempty=True
     )
@@ -253,6 +265,7 @@ class V26AutowareSidecarSignalAdapter:
         self._route_lanelet_ids: tuple[int, ...] = ()
         self._map_lanelet_ids: tuple[int, ...] = ()
         self._controlled_lanelet_ids: tuple[int, ...] = ()
+        self._route_traffic_authority_ids: tuple[int, ...] = ()
         self._signal_record: dict[str, Any] | None = None
         self._chain: dict[str, Any] | None = None
         self._last_runtime: dict[str, Any] | None = None
@@ -279,17 +292,23 @@ class V26AutowareSidecarSignalAdapter:
             or any(value not in self._lanelets for value in route)
         ):
             raise ValueError("V26 sidecar runtime route/map IDs are invalid")
-        candidates = {
-            regulatory_id
-            for lanelet_id in route
-            for regulatory_id in self._lanelets[lanelet_id].get("regulatory_element_ids", [])
-            if type(regulatory_id) is int
-            and self._regulatory.get(regulatory_id, {}).get("runtime_type")
-            == "AutowareTrafficLight"
-        }
-        if len(candidates) != 1:
-            raise ValueError("V26 sidecar route must bind exactly one traffic-light authority")
-        regulatory_id = next(iter(candidates))
+        candidates: list[int] = []
+        for lanelet_id in route:
+            for regulatory_id in self._lanelets[lanelet_id].get("regulatory_element_ids", []):
+                if (
+                    type(regulatory_id) is int
+                    and self._regulatory.get(regulatory_id, {}).get("runtime_type")
+                    == "AutowareTrafficLight"
+                    and regulatory_id not in candidates
+                ):
+                    candidates.append(regulatory_id)
+        if not candidates:
+            raise ValueError("V26 sidecar route has no traffic-light authority")
+        # A frozen route may cross more than one real traffic signal.  The
+        # current request is routed in source order, so the first controlled
+        # lanelet is the unique causal authority for this planning state; this
+        # is deterministic route semantics, not a result-driven choice.
+        regulatory_id = candidates[0]
         controlled = tuple(
             lanelet_id
             for lanelet_id in route
@@ -319,6 +338,8 @@ class V26AutowareSidecarSignalAdapter:
             "binding": self.binding,
             "route_lanelet_ids": list(route),
             "controlled_lanelet_ids": list(controlled),
+            "route_traffic_authority_ids": list(candidates),
+            "authority_selection_rule": "first_controlled_lanelet_in_frozen_route_order",
             "regulatory_element_id": regulatory_id,
             "physical_light_ids": physical_ids,
             "bulb_ids": bulb_ids,
@@ -330,6 +351,7 @@ class V26AutowareSidecarSignalAdapter:
         self._route_lanelet_ids = route
         self._map_lanelet_ids = mapped
         self._controlled_lanelet_ids = controlled
+        self._route_traffic_authority_ids = tuple(candidates)
         self._signal_record = {
             "regulatory_element_id": regulatory_id,
             "physical_light_ids": physical_ids,
@@ -470,6 +492,8 @@ class V26AutowareSidecarSignalAdapter:
                 "binding": self.binding,
                 "route_lanelet_ids": list(self._route_lanelet_ids),
                 "controlled_lanelet_ids": list(self._controlled_lanelet_ids),
+                "route_traffic_authority_ids": list(self._route_traffic_authority_ids),
+                "authority_selection_rule": "first_controlled_lanelet_in_frozen_route_order",
                 "regulatory_element_id": record["regulatory_element_id"],
                 "physical_light_ids": list(record["physical_light_ids"]),
                 "bulb_ids": list(record["bulb_ids"]),
