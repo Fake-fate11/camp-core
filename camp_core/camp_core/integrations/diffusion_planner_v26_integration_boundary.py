@@ -176,6 +176,15 @@ class V26CertifiedNoSignalAbsenceAdapter:
         declared = set(self.authority["route_lanelet_ids"])
         if not route or not mapped or not set(route).issubset(declared):
             raise ValueError("V26 no-signal runtime route escaped certified authority")
+        live_traffic_lights = {
+            int(element.id)
+            for lanelet_id in route
+            for element in self._builder._ll_by_id[int(lanelet_id)].trafficLights()
+        }
+        if live_traffic_lights:
+            raise ValueError(
+                "V26 certified no-signal authority conflicts with the live route graph"
+            )
         self._runtime_route_ids = route
 
     def __call__(self, scene: Any, tick_index: int) -> Mapping[str, Any]:

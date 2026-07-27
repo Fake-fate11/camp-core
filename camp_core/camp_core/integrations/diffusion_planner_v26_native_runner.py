@@ -583,6 +583,16 @@ class V26NativeSameEgoB8Callback:
                 "source_valid_mask": np.asarray(
                     materialized["source_valid_mask"], dtype=np.bool_
                 ).tolist(),
+                # Training-evidence consumers need the atom-level provenance,
+                # not a reconstructed approximation from a selector score.
+                # Retain these read-only masks exactly as materialized by the
+                # canonical causal-atom implementation.
+                "atom_source_valid_mask": np.asarray(
+                    materialized["atom_source_valid_mask"], dtype=np.bool_
+                ).tolist(),
+                "atom_applicable_mask": np.asarray(
+                    materialized["atom_applicable_mask"], dtype=np.bool_
+                ).tolist(),
                 "candidate_reasons": [list(value) for value in materialized["candidate_reasons"]],
                 "canonical_eligible": bool(materialized["canonical_eligible"]),
                 "exclusion_reason": materialized.get("exclusion_reason"),
