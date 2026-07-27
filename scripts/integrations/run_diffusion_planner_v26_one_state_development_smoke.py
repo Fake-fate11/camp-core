@@ -26,6 +26,7 @@ from camp_core.integrations.diffusion_planner_v26_one_state_development_smoke im
     build_development_smoke_manifest,
     build_development_smoke_receipt,
 )
+from camp_core.integrations.diffusion_planner_v21_native import array_sha256  # noqa: E402
 from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import (  # noqa: E402
     PRODUCTION_SURFACE_ID,
     validate_target_bounded_tick_receipt,
@@ -138,7 +139,6 @@ def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
         raise ValueError("V26 smoke requires an exact clean fixed-DP checkout")
     from camp_core.integrations.diffusion_planner_v25_fair_nonholdout import (
         FIXED_DP_HEAD,
-        array_sha256,
         load_v25_runtime_selector_assets,
     )
 

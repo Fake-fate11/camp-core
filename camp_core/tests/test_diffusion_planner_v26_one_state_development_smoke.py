@@ -285,6 +285,7 @@ def test_runner_accepts_only_the_explicit_development_nonholdout_role() -> None:
     runner = importlib.import_module(
         "scripts.integrations.run_diffusion_planner_v26_one_state_development_smoke"
     )
+    assert callable(runner.array_sha256)
     config = {
         "protocol": {
             "holdout_access_authorized": False,
