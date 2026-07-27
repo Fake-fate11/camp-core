@@ -66,6 +66,10 @@ EXPECTED_REVIEWER_STDERR_SHA256 = (
 EXPECTED_FIRST_REJECTION = (
     "cluster0/safety.collision_any/pool_matched_candidate0 reason type drifted"
 )
+EXPECTED_STDERR_REJECTION = (
+    "ValueError: cluster=0/leaf=safety.collision_any/"
+    "arm=pool_matched_candidate0/reason type drifted"
+)
 ARMS = EXPECTED_ARMS
 
 
@@ -209,7 +213,7 @@ def review_failure_closeout(
         or source.get("reviewer_stderr_sha256")
         != EXPECTED_REVIEWER_STDERR_SHA256
         or stderr_sha != EXPECTED_REVIEWER_STDERR_SHA256
-        or EXPECTED_FIRST_REJECTION not in stderr_text
+        or EXPECTED_STDERR_REJECTION not in stderr_text
         or source.get("execution_root_sha256") != EXPECTED_EXECUTION_ROOT
         or source.get("execution_review_root_sha256")
         != EXPECTED_EXECUTION_REVIEW_ROOT

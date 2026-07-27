@@ -41,6 +41,10 @@ EXPECTED_REVIEWER_STDERR_SHA256 = (
 EXPECTED_FIRST_REJECTION = (
     "cluster0/safety.collision_any/pool_matched_candidate0 reason type drifted"
 )
+EXPECTED_STDERR_REJECTION = (
+    "ValueError: cluster=0/leaf=safety.collision_any/"
+    "arm=pool_matched_candidate0/reason type drifted"
+)
 
 
 def _sha_file(path: Path) -> str:
@@ -76,7 +80,7 @@ def freeze_closeout(
     if stderr_sha != EXPECTED_REVIEWER_STDERR_SHA256:
         raise ValueError("failed reviewer stderr SHA drifted")
     stderr_text = reviewer_stderr.read_text(encoding="utf-8", errors="replace")
-    if EXPECTED_FIRST_REJECTION not in stderr_text:
+    if EXPECTED_STDERR_REJECTION not in stderr_text:
         raise ValueError("failed reviewer first rejection drifted")
     report = {
         "schema_version": (
