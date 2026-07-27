@@ -435,6 +435,9 @@ class V26AutowareSidecarSignalAdapter:
         runtime = {
             "schema_version": "camp_dp_v26_autoware_sidecar_runtime_signal_v1",
             "signal_chain_sha256": self._chain["signal_chain_sha256"],
+            # The frozen atom validator consumes this generic causal binding;
+            # retain the V26 chain ID under its established field name too.
+            "source_chain_sha256": self._chain["signal_chain_sha256"],
             "current_phase": phase,
             "decision_time_s": decision,
             "source_time_s": decision,
@@ -445,6 +448,7 @@ class V26AutowareSidecarSignalAdapter:
             "stop_line_id": record["stop_line_id"],
             "stop_line_geometry_sha256": canonical_json_sha256(record["stop_line_world"].tolist()),
             "route_graph_sha256": record["route_graph_sha256"],
+            "route_geometry_sha256": record["route_graph_sha256"],
             "route_signal_tensor_sha256": hashlib.sha256(
                 np.ascontiguousarray(route[:, :, 8:13], dtype=np.float32).tobytes()
             ).hexdigest(),

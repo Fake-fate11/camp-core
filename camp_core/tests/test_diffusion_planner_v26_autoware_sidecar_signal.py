@@ -142,6 +142,10 @@ def test_traffic_light_sidecar_route_is_accepted_and_receipt_is_bound(tmp_path: 
     assert receipt["phase_authority_mode"] == "observe_same_tick_request"
     assert receipt["current_phase"] == "green"
     assert receipt["future_schedule_consumed"] is False
+    causal = adapter.causal_signal_atom_input(_scene(), 0)
+    assert causal["current_phase"] == "green"
+    assert causal["runtime_receipt"]["source_chain_sha256"] == causal["source_chain_sha256"]
+    assert causal["runtime_receipt"]["route_geometry_sha256"] == causal["route_geometry_sha256"]
 
 
 def test_target_scene_adapter_makes_legacy_no_signal_builder_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
