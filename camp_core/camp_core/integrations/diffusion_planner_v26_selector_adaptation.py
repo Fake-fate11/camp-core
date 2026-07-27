@@ -29,6 +29,14 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
     FIXED_DP_HEAD,
     training_parameter_array_sha256,
 )
+from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
+    FROZEN_SIMPLEX_TOLERANCE,
+    V25_ZERO_SHOT_REFERENCE_READ_ONLY,
+    V26_GENERATOR_ID,
+    V26_TRAINING_ROWS_SCHEMA_VERSION,
+    V26_TRAINING_SOURCE_SCHEMA_VERSION,
+    v26_generator_topology,
+)
 if TYPE_CHECKING:
     from camp_core.integrations.diffusion_planner_v25_training import (
         V25TrainedSelector,
@@ -49,8 +57,8 @@ ADAPTATION_RECEIPT_SCHEMA_VERSION = "camp_dp_v26_selector_adaptation_receipt_v1"
 ADAPTATION_ROLE = "development_train_only_selector_adaptation"
 COMPARISON_PLAN_SCHEMA_VERSION = "camp_dp_v26_development_comparison_plan_v1"
 COMPARISON_PLAN_ROLE = "development_nonholdout_zero_shot_vs_adapted_plan"
-TRAINING_ROWS_SCHEMA_VERSION = "camp_dp_v25_fair_2x2_training_rows_v1"
-TRAINING_SOURCE_SCHEMA_VERSION = "camp_dp_v25_train_only_atom_audit_artifact_v1"
+TRAINING_ROWS_SCHEMA_VERSION = V26_TRAINING_ROWS_SCHEMA_VERSION
+TRAINING_SOURCE_SCHEMA_VERSION = V26_TRAINING_SOURCE_SCHEMA_VERSION
 REFERENCE_TRAINING_SCHEMA_VERSION = "camp_dp_v25_strict_convex_training_artifact_v1"
 SAME_EGO_BATCH_SIZE = 8
 
@@ -100,8 +108,11 @@ class TrainOnlySavedPools:
     record_weights: np.ndarray
     route_ids: np.ndarray
     corridor_ids: np.ndarray
+    map_family_ids: np.ndarray
     seeds: np.ndarray
     scenario_ids: np.ndarray
+    source_manifest_sha256: str
+    event_manifest_sha256: np.ndarray
     training_scales: np.ndarray
     source_snapshot_count: int
 
@@ -117,10 +128,15 @@ class TrainOnlySavedPools:
             "candidate_count_per_saved_pool": SAME_EGO_BATCH_SIZE,
             "unique_route_count": int(np.unique(self.route_ids).size),
             "unique_corridor_count": int(np.unique(self.corridor_ids).size),
+            "unique_map_family_count": int(np.unique(self.map_family_ids).size),
             "unique_scenario_count": int(np.unique(self.scenario_ids).size),
             "route_ids_sha256": _array_fingerprint(self.route_ids),
+            "map_family_ids_sha256": _array_fingerprint(self.map_family_ids),
             "scenario_ids_sha256": _array_fingerprint(self.scenario_ids),
             "seeds_sha256": _array_fingerprint(self.seeds),
+            "source_manifest_sha256": self.source_manifest_sha256,
+            "event_manifest_sha256": _array_fingerprint(self.event_manifest_sha256),
+            "training_source_schema": TRAINING_SOURCE_SCHEMA_VERSION,
         }
 
 
@@ -129,6 +145,7 @@ class ZeroShotReferenceAssets:
     """Read-only frozen zero-shot selector parameters and scaler."""
 
     source_dir: Path
+    reference_role: str
     fixed_dp_head: str
     model_parameters_sha256: str
     model_reports_sha256: str
@@ -278,8 +295,35 @@ def _archive_scalar_string(archive: Any, key: str, label: str) -> str:
     return result
 
 
+def _require_hash_vector(value: Any, size: int, label: str) -> np.ndarray:
+    result = _require_string_vector(value, size, label)
+    for item in result.tolist():
+        _require_sha256(str(item), label)
+    return result
+
+
+def _require_hash_matrix(value: Any, shape: tuple[int, int], label: str) -> np.ndarray:
+    array = np.asarray(value)
+    if array.shape != shape or array.dtype.kind not in "SU":
+        raise ValueError(f"{label} must be a native SHA256 matrix")
+    result = array.copy()
+    for row in result.tolist():
+        if len(set(str(item) for item in row)) != shape[1]:
+            raise ValueError(f"{label} rows must remain unique B8 identities")
+        for item in row:
+            _require_sha256(str(item), label)
+    return result
+
+
+def _require_constant_integer(value: Any, shape: tuple[int, ...], expected: int, label: str) -> np.ndarray:
+    result = _require_integer(value, shape, label)
+    if not np.all(result == expected):
+        raise ValueError(f"{label} must be exactly {expected}")
+    return result
+
+
 def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
-    """Load train-only B8 pools without consulting development trajectories."""
+    """Load only V26-proven same-ego single-invocation B8 training pools."""
 
     source = Path(source_dir).resolve()
     report_path = source / "report.json"
@@ -287,22 +331,39 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
     rows_path = source / "training_rows.npz"
     report = _json_object(report_path, "training source report")
     label = _json_object(label_path, "training label sidecar")
+    if report.get("schema_version") != TRAINING_SOURCE_SCHEMA_VERSION:
+        if type(report.get("schema_version")) is str and report["schema_version"].startswith("camp_dp_v25_"):
+            raise ValueError("V25 rows are zero-shot reference-only and cannot be V26 fit input")
+        raise ValueError("V26 adaptation requires the V26 same-ego B8 training-source schema")
     if (
-        report.get("schema_version") != TRAINING_SOURCE_SCHEMA_VERSION
-        or report.get("status") != "passed_train_only_atom_audit_projection"
+        report.get("evidence_role") != "development_training_same_ego_b8_acquisition"
+        or report.get("status") != "terminal_training_evidence"
         or report.get("fixed_dp_head") != FIXED_DP_HEAD
+        or report.get("generator_id") != V26_GENERATOR_ID
+        or report.get("generator_topology") != v26_generator_topology()
         or report.get("outcome_fields_consumed") != []
-        or report.get("fresh_b2_opened") is not False
-        or report.get("training_executed") is not False
-        or report.get("calibration_executed") is not False
+        or report.get("holdout_accessed") is not False
         or report.get("training_rows_schema_version") != TRAINING_ROWS_SCHEMA_VERSION
     ):
-        raise ValueError("V26 adaptation requires reviewed outcome-blind training-only pools")
+        raise ValueError("V26 adaptation requires outcome-blind same-ego B8 training evidence")
+    source_manifest_sha = _require_sha256(
+        report.get("source_manifest_sha256"), "V26 training source manifest"
+    )
+    denominator = report.get("denominator")
+    if (
+        type(denominator) is not dict
+        or set(denominator) != {"planned", "complete", "failed", "unattempted"}
+        or any(type(value) is not int or value < 0 for value in denominator.values())
+        or denominator["planned"]
+        != denominator["complete"] + denominator["failed"] + denominator["unattempted"]
+    ):
+        raise ValueError("V26 training source denominator is invalid")
     rows_sha256 = _sha256_file(rows_path)
     if report.get("training_rows_sha256") != rows_sha256:
         raise ValueError("V26 adaptation training rows SHA256 drifted")
     if (
-        label.get("label_contract") != "causal_policy_distillation_no_outcome"
+        label.get("training_source_schema") != TRAINING_SOURCE_SCHEMA_VERSION
+        or label.get("label_contract") != "causal_policy_distillation_no_outcome"
         or label.get("fresh_or_outcome_consumed") is not False
         or label.get("identity_fields_used_as_label_or_feature") is not False
     ):
@@ -366,13 +427,58 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
         corridor_ids = _require_string_vector(
             archive["corridor_ids"], count, "corridor_ids"
         )
+        map_family_ids = _require_string_vector(
+            archive["map_family_ids"], count, "map_family_ids"
+        )
         seeds = _require_integer(archive["seeds"], (count,), "seeds")
         scenario_ids = _require_string_vector(
             archive["scenario_ids"], count, "scenario_ids"
         )
+        archived_source_manifest_sha = _archive_scalar_string(
+            archive, "source_manifest_sha256", "V26 training source manifest"
+        )
+        _require_sha256(archived_source_manifest_sha, "V26 archived training source manifest")
+        event_manifest_sha = _require_hash_vector(
+            archive["event_manifest_sha256"], count, "event_manifest_sha256"
+        )
+        _require_constant_integer(
+            archive["model_call_count"], (count,), 1, "model_call_count"
+        )
+        _require_constant_integer(
+            archive["sequential_forward_count"], (count,), 0, "sequential_forward_count"
+        )
+        _require_constant_integer(
+            archive["candidate0_row"], (count,), 0, "candidate0_row"
+        )
+        _require_constant_integer(
+            archive["post_pool_model_dp_latent_generation_calls"],
+            (count,),
+            0,
+            "post_pool_model_dp_latent_generation_calls",
+        )
+        _require_constant_integer(
+            archive["candidate_pool_mutation_count"],
+            (count,),
+            0,
+            "candidate_pool_mutation_count",
+        )
+        _require_constant_integer(
+            archive["trajectory_regeneration_count"],
+            (count,),
+            0,
+            "trajectory_regeneration_count",
+        )
+        _require_hash_matrix(
+            archive["latent_row_sha256"], (count, SAME_EGO_BATCH_SIZE), "latent_row_sha256"
+        )
+        _require_hash_matrix(
+            archive["candidate_row_sha256"], (count, SAME_EGO_BATCH_SIZE), "candidate_row_sha256"
+        )
         scales = _require_finite_numeric(
             archive["training_scales"], (14,), "training_scales"
         )
+    if archived_source_manifest_sha != source_manifest_sha:
+        raise ValueError("V26 training source manifest binding drifted")
     if (
         np.any(record_weights <= 0.0)
         or np.any(scales <= 0.0)
@@ -391,6 +497,8 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
     if (
         report.get("snapshot_count") != count
         or report.get("candidate_count") != count * SAME_EGO_BATCH_SIZE
+        or denominator["complete"] != count
+        or denominator["planned"] < count
     ):
         raise ValueError("V26 adaptation training-source denominator drifted")
     return TrainOnlySavedPools(
@@ -410,8 +518,11 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
         record_weights=record_weights,
         route_ids=route_ids,
         corridor_ids=corridor_ids,
+        map_family_ids=map_family_ids,
         seeds=seeds,
         scenario_ids=scenario_ids,
+        source_manifest_sha256=source_manifest_sha,
+        event_manifest_sha256=event_manifest_sha,
         training_scales=scales,
         source_snapshot_count=count,
     )
@@ -425,7 +536,9 @@ def _theta_from_archive(archive: Any, key: str, atom_count: int) -> np.ndarray:
     )
     # Preserve the frozen solver bytes.  The existing runtime admits only its
     # established simplex tolerance; it must not clip or reproject theta.
-    return validate_column_simplex_theta(theta, num_atoms=atom_count, atol=1e-8).copy()
+    return validate_column_simplex_theta(
+        theta, num_atoms=atom_count, atol=FROZEN_SIMPLEX_TOLERANCE
+    ).copy()
 
 
 def load_zero_shot_reference_assets(reference_dir: Path) -> ZeroShotReferenceAssets:
@@ -484,6 +597,7 @@ def load_zero_shot_reference_assets(reference_dir: Path) -> ZeroShotReferenceAss
             raise ValueError(f"V26 adaptation zero-shot model report drifted: {name}")
     return ZeroShotReferenceAssets(
         source_dir=source,
+        reference_role=V25_ZERO_SHOT_REFERENCE_READ_ONLY,
         fixed_dp_head=FIXED_DP_HEAD,
         model_parameters_sha256=_sha256_file(parameter_path),
         model_reports_sha256=_sha256_file(model_reports_path),
@@ -653,6 +767,7 @@ def build_saved_pool_selection_diagnostic(
         },
         "zero_shot_reference": {
             "source_dir": str(reference.source_dir),
+            "compatibility_role": reference.reference_role,
             "fixed_dp_head": reference.fixed_dp_head,
             "model_parameters_sha256": reference.model_parameters_sha256,
             "model_reports_sha256": reference.model_reports_sha256,
@@ -821,7 +936,7 @@ def adapted_parameter_arrays(
         raise ValueError("V26 adaptation suite model set drifted")
     scene14 = suite["CAMP-Scene14D"]
     arrays: dict[str, np.ndarray] = {
-        "schema_version": np.asarray("camp_dp_v26_adapted_selector_parameters_v1"),
+        "schema_version": np.asarray(V26_ADAPTED_WEIGHTS_SCHEMA_VERSION),
         "training_rows_sha256": np.asarray(data.rows_sha256),
         "context_feature_names": np.asarray(RAW_FEATURE_NAMES),
         "context_q05": np.asarray(scene14.context_scaler.q05, dtype=np.float64),
@@ -887,6 +1002,8 @@ def build_adaptation_manifest(
 
     if data.fixed_dp_head != reference.fixed_dp_head:
         raise ValueError("training and zero-shot references have different fixed-DP heads")
+    if reference.reference_role != V25_ZERO_SHOT_REFERENCE_READ_ONLY:
+        raise ValueError("zero-shot compatibility weights must be reference-only")
     checkpoint_path = fixed_dp_checkpoint.get("path")
     args_path = fixed_dp_args.get("path")
     if type(checkpoint_path) is not str or type(args_path) is not str:
@@ -916,12 +1033,18 @@ def build_adaptation_manifest(
             "source_dir": str(data.source_dir),
             "pool_count": data.record_count,
             "same_ego_batch_size": SAME_EGO_BATCH_SIZE,
+            "training_source_schema": TRAINING_SOURCE_SCHEMA_VERSION,
+            "generator_id": V26_GENERATOR_ID,
+            "generator_topology": v26_generator_topology(),
+            "source_manifest_sha256": data.source_manifest_sha256,
+            "event_manifest_sha256": _array_fingerprint(data.event_manifest_sha256),
             "generator_invoked_by_stage7": False,
         },
         "training_identity": data.identity_summary(),
         "training_label_contract": "causal_policy_distillation_no_outcome",
         "reference": {
             "role": "frozen_zero_shot_reference_arm",
+            "compatibility_role": reference.reference_role,
             "source_dir": str(reference.source_dir),
             "model_parameters_sha256": reference.model_parameters_sha256,
             "model_reports_sha256": reference.model_reports_sha256,
@@ -981,6 +1104,14 @@ def build_adaptation_receipt(
         },
         "fitted_models": dict(fitted_models),
         "adapted_assets": dict(adapted_assets),
+        "weight_roles": {
+            "reference": V25_ZERO_SHOT_REFERENCE_READ_ONLY,
+            "adapted": (
+                V26_ADAPTED_WEIGHTS_SCHEMA_VERSION
+                if terminal_status == "complete"
+                else "not_written_typed_failure"
+            ),
+        },
         "claim_scope": (
             "development training capability/provenance only; no support/OOD, "
             "stability, safety, benefit, or comparison conclusion"

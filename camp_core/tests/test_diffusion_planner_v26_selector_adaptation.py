@@ -16,6 +16,13 @@ from camp_core.integrations.diffusion_planner_v25_context import (
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
     training_parameter_array_sha256,
 )
+from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
+    V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+    V26_CERTIFIED_NO_SIGNAL_MODE,
+    V26SignalAdapterBinding,
+    build_v26_integration_boundary,
+    v26_generator_topology,
+)
 from camp_core.integrations.diffusion_planner_v26_development_profiling import (
     build_development_profiling_manifest,
 )
@@ -64,7 +71,7 @@ def _fixture_assets(tmp_path: Path) -> tuple[Path, Path]:
     margins[2] = np.roll(margins[2], -2)
     np.savez_compressed(
         training / "training_rows.npz",
-        schema_version=np.asarray("camp_dp_v25_fair_2x2_training_rows_v1"),
+        schema_version=np.asarray("camp_dp_v26_same_ego_b8_training_rows_v1"),
         normalized_atoms_14d=atoms,
         raw_context=raw_context,
         context_source_complete=context_source,
@@ -83,6 +90,20 @@ def _fixture_assets(tmp_path: Path) -> tuple[Path, Path]:
         seeds=np.asarray([11, 12, 13], dtype=np.int64),
         ticks=np.asarray([0, 1, 2], dtype=np.int64),
         scenario_ids=np.asarray(["scenario-a", "scenario-b", "scenario-c"]),
+        source_manifest_sha256=np.asarray(_sha(900)),
+        event_manifest_sha256=np.asarray([_sha(910), _sha(911), _sha(912)]),
+        model_call_count=np.ones(count, dtype=np.int64),
+        sequential_forward_count=np.zeros(count, dtype=np.int64),
+        candidate0_row=np.zeros(count, dtype=np.int64),
+        post_pool_model_dp_latent_generation_calls=np.zeros(count, dtype=np.int64),
+        candidate_pool_mutation_count=np.zeros(count, dtype=np.int64),
+        trajectory_regeneration_count=np.zeros(count, dtype=np.int64),
+        latent_row_sha256=np.asarray(
+            [[_sha(1000 + row * 8 + column) for column in range(8)] for row in range(count)]
+        ),
+        candidate_row_sha256=np.asarray(
+            [[_sha(1100 + row * 8 + column) for column in range(8)] for row in range(count)]
+        ),
         training_scales=np.ones(14, dtype=np.float64),
         severity=np.ones(14, dtype=np.float64),
     )
@@ -90,15 +111,18 @@ def _fixture_assets(tmp_path: Path) -> tuple[Path, Path]:
     _write_json(
         training / "report.json",
         {
-            "schema_version": "camp_dp_v25_train_only_atom_audit_artifact_v1",
-            "status": "passed_train_only_atom_audit_projection",
+            "schema_version": "camp_dp_v26_same_ego_single_invocation_b8_training_source_v1",
+            "evidence_role": "development_training_same_ego_b8_acquisition",
+            "status": "terminal_training_evidence",
             "fixed_dp_head": "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+            "generator_id": "fixed_dp_same_ego_single_invocation_b8_v1",
+            "generator_topology": v26_generator_topology(),
             "outcome_fields_consumed": [],
-            "fresh_b2_opened": False,
-            "training_executed": False,
-            "calibration_executed": False,
-            "training_rows_schema_version": "camp_dp_v25_fair_2x2_training_rows_v1",
+            "holdout_accessed": False,
+            "training_rows_schema_version": "camp_dp_v26_same_ego_b8_training_rows_v1",
             "training_rows_sha256": rows_sha,
+            "source_manifest_sha256": _sha(900),
+            "denominator": {"planned": count, "complete": count, "failed": 0, "unattempted": 0},
             "snapshot_count": count,
             "candidate_count": count * 8,
         },
@@ -106,6 +130,7 @@ def _fixture_assets(tmp_path: Path) -> tuple[Path, Path]:
     _write_json(
         training / "label_sidecar.json",
         {
+            "training_source_schema": "camp_dp_v26_same_ego_single_invocation_b8_training_source_v1",
             "label_contract": "causal_policy_distillation_no_outcome",
             "fresh_or_outcome_consumed": False,
             "identity_fields_used_as_label_or_feature": False,
@@ -185,14 +210,23 @@ def _profiling_manifest() -> dict[str, object]:
         checkpoint_sha256=_sha(3),
         args_path="/fixed/args.json",
         args_sha256=_sha(4),
-        training_root_sha256=_sha(5),
-        training_review_root_sha256=_sha(6),
+        reference_weights_root_sha256=_sha(5),
+        reference_weights_review_root_sha256=_sha(6),
         atom_scales_sha256=_sha(7),
         static9d_weights_sha256=_sha(8),
         scene9d_theta_sha256=_sha(9),
         static14d_weights_sha256=_sha(10),
         scene14d_theta_sha256=_sha(11),
         context_scaler_sha256=_sha(12),
+        integration_boundary=build_v26_integration_boundary(
+            signal=V26SignalAdapterBinding(
+                mode=V26_CERTIFIED_NO_SIGNAL_MODE,
+                adapter_id=V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+                adapter=object(),
+                receipt={"fixture": True},
+            ),
+            reference_weights_root_sha256=_sha(5),
+        ),
     )
 
 
@@ -230,7 +264,20 @@ def test_train_only_data_rejects_outcome_contamination(tmp_path: Path) -> None:
     report["outcome_fields_consumed"] = ["forbidden"]
     _write_json(report_path, report)
 
-    with pytest.raises(ValueError, match="outcome-blind"):
+    with pytest.raises(ValueError, match="same-ego B8"):
+        load_train_only_saved_pools(training)
+
+
+def test_v26_fit_loader_rejects_a_v25_training_source_even_when_it_has_b8_rows(
+    tmp_path: Path,
+) -> None:
+    training, _reference = _fixture_assets(tmp_path)
+    report_path = training / "report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report["schema_version"] = "camp_dp_v25_train_only_atom_audit_artifact_v1"
+    _write_json(report_path, report)
+
+    with pytest.raises(ValueError, match="reference-only"):
         load_train_only_saved_pools(training)
 
 

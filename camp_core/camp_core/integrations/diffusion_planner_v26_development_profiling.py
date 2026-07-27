@@ -15,6 +15,11 @@ import math
 import statistics
 from typing import Any, Mapping
 
+from .diffusion_planner_v26_integration_boundary import (
+    V25_ZERO_SHOT_REFERENCE_READ_ONLY,
+    validate_v26_integration_boundary,
+)
+
 
 PROFILE_MANIFEST_SCHEMA_VERSION = "camp_dp_v26_development_profiling_manifest_v1"
 PROFILE_RECEIPT_SCHEMA_VERSION = "camp_dp_v26_development_profiling_receipt_v1"
@@ -126,14 +131,15 @@ def build_development_profiling_manifest(
     checkpoint_sha256: str,
     args_path: str,
     args_sha256: str,
-    training_root_sha256: str,
-    training_review_root_sha256: str,
+    reference_weights_root_sha256: str,
+    reference_weights_review_root_sha256: str,
     atom_scales_sha256: str,
     static9d_weights_sha256: str,
     scene9d_theta_sha256: str,
     static14d_weights_sha256: str,
     scene14d_theta_sha256: str,
     context_scaler_sha256: str,
+    integration_boundary: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Build the fixed 20-state, same-pool development profiling manifest."""
 
@@ -186,8 +192,9 @@ def build_development_profiling_manifest(
                 "args": {"path": args_path, "sha256": args_sha256},
             },
             "selector": {
-                "training_root_sha256": training_root_sha256,
-                "training_review_root_sha256": training_review_root_sha256,
+                "reference_weights_role": V25_ZERO_SHOT_REFERENCE_READ_ONLY,
+                "reference_weights_root_sha256": reference_weights_root_sha256,
+                "reference_weights_review_root_sha256": reference_weights_review_root_sha256,
                 "atom_scales_sha256": atom_scales_sha256,
                 "static9d_weights_sha256": static9d_weights_sha256,
                 "scene9d_theta_sha256": scene9d_theta_sha256,
@@ -195,6 +202,7 @@ def build_development_profiling_manifest(
                 "scene14d_theta_sha256": scene14d_theta_sha256,
                 "context_scaler_sha256": context_scaler_sha256,
             },
+            "integration_boundary": dict(integration_boundary),
         }
     )
 
@@ -216,6 +224,7 @@ def validate_development_profiling_manifest(value: Mapping[str, Any]) -> dict[st
         "probe_config_sha256",
         "fixed_dp",
         "selector",
+        "integration_boundary",
     }
     if set(result) != expected:
         raise ValueError("V26 profiling manifest field set drifted")
@@ -321,8 +330,9 @@ def validate_development_profiling_manifest(value: Mapping[str, Any]) -> dict[st
     selector = _exact_mapping(
         result["selector"],
         {
-            "training_root_sha256",
-            "training_review_root_sha256",
+            "reference_weights_role",
+            "reference_weights_root_sha256",
+            "reference_weights_review_root_sha256",
             "atom_scales_sha256",
             "static9d_weights_sha256",
             "scene9d_theta_sha256",
@@ -332,9 +342,15 @@ def validate_development_profiling_manifest(value: Mapping[str, Any]) -> dict[st
         },
         "V26 profiling selector",
     )
+    if selector.pop("reference_weights_role") != V25_ZERO_SHOT_REFERENCE_READ_ONLY:
+        raise ValueError("V26 profiling selector weights must be V25 reference-only")
     for key, item in selector.items():
         selector[key] = _require_sha256(item, f"selector.{key}")
+    selector["reference_weights_role"] = V25_ZERO_SHOT_REFERENCE_READ_ONLY
     result["selector"] = selector
+    result["integration_boundary"] = validate_v26_integration_boundary(
+        result["integration_boundary"]
+    )
     return result
 
 

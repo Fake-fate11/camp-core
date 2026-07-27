@@ -3,6 +3,8 @@
 This module deliberately adds no model, DP, selector, or support/OOD logic.
 It only constrains the already-authorized target bounded runner and projects
 its per-arm receipt into a zero-model contract that can be parser-tested.
+Historical V25 paths below are retained solely as the immutable Stage-2 audit
+allowlist.  They are not V26 runtime-critical consumer implementations.
 """
 
 from __future__ import annotations
@@ -10,6 +12,12 @@ from __future__ import annotations
 import copy
 import math
 from typing import Any, Mapping, Sequence
+
+from .diffusion_planner_v26_integration_boundary import (
+    V26_NATIVE_CALLBACK_ID,
+    V26_NATIVE_RUNNER_ID,
+    validate_v26_integration_boundary,
+)
 
 from camp_core.integrations.diffusion_planner_causal_atoms import (
     materialization_phase_receipt_not_available,
@@ -31,11 +39,16 @@ V26_STAGE2_AUTHORITY_SCHEMA_VERSION = "camp_dp_v26_stage2_exact_allowlist_v1"
 ARMS = ("pool_matched_candidate0", "Static14D", "Scene14D")
 SELECTOR_ARMS = ("Static14D", "Scene14D")
 
+# Historical provenance only; never use this tuple to select the V26 runner.
 V26_STAGE2_IMPLEMENTATION_FILES = (
     "camp_core/camp_core/integrations/diffusion_planner_causal_atoms.py",
     "camp_core/camp_core/integrations/diffusion_planner_v26_target_bounded_surface.py",
     "scripts/integrations/run_diffusion_planner_v25_industrial_bounded_closed_loop.py",
     "scripts/integrations/validate_diffusion_planner_v25_fair_nonholdout.py",
+)
+V26_RUNTIME_CRITICAL_IMPLEMENTATION_IDS = (
+    V26_NATIVE_RUNNER_ID,
+    V26_NATIVE_CALLBACK_ID,
 )
 V26_STAGE2_FOCUSED_TEST_FILES = (
     "camp_core/tests/test_diffusion_planner_v18_orchestrator.py",
@@ -137,6 +150,12 @@ def validate_production_surface_options(
     if normalized["evaluate_all_arms"] is not False:
         raise ValueError("V26 closed loop requires one operational arm per state")
     return normalized
+
+
+def validate_v26_runtime_boundary(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Reject V25 high-level consumers at the V26 runtime/reviewer boundary."""
+
+    return validate_v26_integration_boundary(value)
 
 
 def validate_v26_stage2_authority(

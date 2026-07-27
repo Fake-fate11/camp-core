@@ -36,8 +36,6 @@ from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
 )
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa: E402
     FIXED_DP_HEAD,
-    TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
-    TRAINED_SIMPLEX_SUM_ATOL,
     training_parameter_array_sha256,
 )
 from camp_core.integrations.diffusion_planner_v26_development_profiling import (  # noqa: E402
@@ -50,6 +48,14 @@ from camp_core.integrations.diffusion_planner_v26_development_profiling import (
     PROFILE_STATE_COUNT,
     build_development_profiling_manifest,
     build_development_profiling_receipt,
+)
+from camp_core.integrations.diffusion_planner_v26_integration_boundary import (  # noqa: E402
+    FROZEN_SIMPLEX_TOLERANCE,
+    build_v26_integration_boundary,
+    resolve_v26_signal_adapter,
+)
+from camp_core.integrations.diffusion_planner_v26_native_runner import (  # noqa: E402
+    run_v26_native_same_ego_b8_replay,
 )
 
 
@@ -135,8 +141,8 @@ def _require_simplex(value: Any, *, size: int, label: str):
     result = result.astype(np.float64, copy=False)
     if (
         not np.all(np.isfinite(result))
-        or np.any(result < -TRAINED_SIMPLEX_NONNEGATIVE_ATOL)
-        or not np.isclose(result.sum(), 1.0, rtol=0.0, atol=TRAINED_SIMPLEX_SUM_ATOL)
+        or np.any(result < -FROZEN_SIMPLEX_TOLERANCE)
+        or not np.isclose(result.sum(), 1.0, rtol=0.0, atol=FROZEN_SIMPLEX_TOLERANCE)
     ):
         raise ValueError(f"V26 profiling {label} violated its frozen simplex")
     return result.copy()
@@ -160,16 +166,16 @@ def _require_model_report(
 
 
 @dataclass(frozen=True)
-class _ProfilingSelectorAssets:
-    """Verified V25 selectors used only for the explicit 9D/14D description."""
+class _ZeroShotReferenceSelectorAssets:
+    """V25 compatibility weights, explicitly read-only zero-shot references."""
 
     atom_scales: Any
     static14d_weights: Any
     scene14d_weight_provider: Any
     static9d_weights: Any
     scene9d_theta: Any
-    training_root_sha256: str
-    training_review_root_sha256: str
+    reference_weights_root_sha256: str
+    reference_weights_review_root_sha256: str
     atom_scales_sha256: str
     static9d_weights_sha256: str
     scene9d_theta_sha256: str
@@ -193,17 +199,19 @@ class _ProfilingSelectorAssets:
         return _require_simplex(weights, size=9, label="Scene9D runtime weights")
 
 
-def _load_profiling_selector_assets(args: argparse.Namespace) -> _ProfilingSelectorAssets:
+def _load_zero_shot_reference_selector_assets(
+    args: argparse.Namespace,
+) -> _ZeroShotReferenceSelectorAssets:
     import numpy as np
     from camp_core.integrations import diffusion_planner_v25_scene_runtime as scene_runtime
 
     primary = scene_runtime.load_v25_runtime_selector_assets(
-        training_artifact=args.training.resolve(),
-        training_root_sha256=args.training_root,
-        training_review_artifact=args.training_review.resolve(),
-        training_review_root_sha256=args.training_review_root,
+        training_artifact=args.reference_weights.resolve(),
+        training_root_sha256=args.reference_weights_root,
+        training_review_artifact=args.reference_weights_review.resolve(),
+        training_review_root_sha256=args.reference_weights_review_root,
     )
-    parameter_path = args.training.resolve() / "model_parameters.npz"
+    parameter_path = args.reference_weights.resolve() / "model_parameters.npz"
     with np.load(parameter_path, allow_pickle=False) as archive:
         static9 = _require_simplex(
             archive["static9d_runtime_weights"], size=9, label="Static9D runtime weights"
@@ -214,10 +222,14 @@ def _load_profiling_selector_assets(args: argparse.Namespace) -> _ProfilingSelec
         raise ValueError("V26 profiling Static9D theta drifted")
     if not np.array_equal(static9, static9_theta[:, 0]):
         raise ValueError("V26 profiling Static9D runtime weights drifted from theta")
-    scene9_theta = validate_column_simplex_theta(scene9_theta, num_atoms=9, atol=1e-10)
+    scene9_theta = validate_column_simplex_theta(
+        scene9_theta, num_atoms=9, atol=FROZEN_SIMPLEX_TOLERANCE
+    )
     if np.any(scene9_theta < 0.0):
         raise ValueError("V26 profiling Scene9D theta must be exactly nonnegative")
-    reports = json.loads((args.training.resolve() / "model_reports.json").read_text(encoding="utf-8"))
+    reports = json.loads(
+        (args.reference_weights.resolve() / "model_reports.json").read_text(encoding="utf-8")
+    )
     if type(reports) is not dict:
         raise ValueError("V26 profiling model reports must be an object")
     _require_model_report(
@@ -235,14 +247,14 @@ def _load_profiling_selector_assets(args: argparse.Namespace) -> _ProfilingSelec
         theta=scene9_theta,
     )
     scene14_theta = np.asarray(primary.scene14d_weight_provider.theta, dtype=np.float64)
-    return _ProfilingSelectorAssets(
+    return _ZeroShotReferenceSelectorAssets(
         atom_scales=np.asarray(primary.atom_scales, dtype=np.float64).copy(),
         static14d_weights=np.asarray(primary.static14d_weights, dtype=np.float64).copy(),
         scene14d_weight_provider=primary.scene14d_weight_provider,
         static9d_weights=static9.copy(),
         scene9d_theta=scene9_theta.copy(),
-        training_root_sha256=primary.training_root_sha256,
-        training_review_root_sha256=primary.training_review_root_sha256,
+        reference_weights_root_sha256=primary.training_root_sha256,
+        reference_weights_review_root_sha256=primary.training_review_root_sha256,
         atom_scales_sha256=array_sha256(np.asarray(primary.atom_scales, dtype=np.float64)),
         static9d_weights_sha256=array_sha256(static9),
         scene9d_theta_sha256=array_sha256(scene9_theta),
@@ -252,7 +264,9 @@ def _load_profiling_selector_assets(args: argparse.Namespace) -> _ProfilingSelec
     )
 
 
-def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], _ProfilingSelectorAssets]:
+def _prepare_manifest(
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any], dict[str, Any], _ZeroShotReferenceSelectorAssets, Any]:
     if _tracked_changes(ROOT):
         raise ValueError("V26 profiling requires an exact clean CAMP checkout")
     config_path = args.probe_config.resolve()
@@ -275,7 +289,12 @@ def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
         raise ValueError("V26 profiling requires an exact clean fixed-DP checkout")
     if _git_head(fixed_dp_repo) != FIXED_DP_HEAD:
         raise ValueError("V26 profiling fixed-DP head drifted")
-    assets = _load_profiling_selector_assets(args)
+    signal = resolve_v26_signal_adapter(config)
+    assets = _load_zero_shot_reference_selector_assets(args)
+    integration_boundary = build_v26_integration_boundary(
+        signal=signal,
+        reference_weights_root_sha256=assets.reference_weights_root_sha256,
+    )
     manifest = build_development_profiling_manifest(
         camp_head=_git_head(ROOT),
         probe_config_sha256=_file_sha256(config_path),
@@ -287,16 +306,17 @@ def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
         checkpoint_sha256=str(fixed_dp["checkpoint"]["sha256"]),
         args_path=str(fixed_dp["args_json"]["path"]),
         args_sha256=str(fixed_dp["args_json"]["sha256"]),
-        training_root_sha256=assets.training_root_sha256,
-        training_review_root_sha256=assets.training_review_root_sha256,
+        reference_weights_root_sha256=assets.reference_weights_root_sha256,
+        reference_weights_review_root_sha256=assets.reference_weights_review_root_sha256,
         atom_scales_sha256=assets.atom_scales_sha256,
         static9d_weights_sha256=assets.static9d_weights_sha256,
         scene9d_theta_sha256=assets.scene9d_theta_sha256,
         static14d_weights_sha256=assets.static14d_weights_sha256,
         scene14d_theta_sha256=assets.scene14d_theta_sha256,
         context_scaler_sha256=assets.context_scaler_sha256,
+        integration_boundary=integration_boundary,
     )
-    return manifest, config, assets
+    return manifest, config, assets, signal
 
 
 def _resource_precheck(output_dir: Path, device: str, torch: Any) -> None:
@@ -394,149 +414,6 @@ def _arm_receipt(raw: Mapping[str, Any], arm_id: str, rows: list[str]) -> dict[s
         "exact_tie_set": source.get("exact_tie_set"),
         "weight_input_source_complete": source_complete,
     }
-
-
-class _ProfilingPredictBatch:
-    """Thin V26 profile adapter over the fixed-DP B8 callback."""
-
-    def __new__(cls, *args: Any, **kwargs: Any):
-        from scripts.integrations.validate_diffusion_planner_v25_fair_nonholdout import _FairPredictBatch
-
-        class Implementation(_FairPredictBatch):
-            def __init__(self, *inner_args: Any, profiling_assets: _ProfilingSelectorAssets, **inner_kwargs: Any) -> None:
-                self.profiling_assets = profiling_assets
-                super().__init__(*inner_args, **inner_kwargs)
-
-            @staticmethod
-            def _pad_9d(weights: Any):
-                import numpy as np
-
-                result = np.zeros(14, dtype=np.float64)
-                result[:9] = np.asarray(weights, dtype=np.float64)
-                return result
-
-            @staticmethod
-            def _tie_and_margin(scores: Any, source_mask: Any) -> tuple[list[int] | None, float | None]:
-                import numpy as np
-
-                if scores is None:
-                    return None, None
-                values = np.asarray(scores, dtype=np.float64)
-                mask = np.asarray(source_mask, dtype=np.bool_)
-                ordered = sorted((float(values[index]), int(index)) for index in np.flatnonzero(mask))
-                if not ordered:
-                    return None, None
-                best = ordered[0][0]
-                return (
-                    [index for score, index in ordered if score == best],
-                    None if len(ordered) < 2 else float(ordered[1][0] - best),
-                )
-
-            def _profile_selector(self, *, arm_id: str, candidates: Any, materialized: Mapping[str, Any], weights: Any, context: Mapping[str, Any] | None = None) -> dict[str, Any]:
-                import numpy as np
-
-                selection_started = time.perf_counter_ns()
-                selection = self.select_candidate(
-                    candidates=candidates,
-                    materialized=materialized,
-                    atom_scales=self.profiling_assets.atom_scales,
-                    weights=weights,
-                    eligibility_mask_name="source_valid_mask",
-                    simplex_nonnegative_atol=TRAINED_SIMPLEX_NONNEGATIVE_ATOL,
-                )
-                selector_latency_ms = (time.perf_counter_ns() - selection_started) / 1e6
-                source_mask = np.asarray(selection["source_valid_mask"], dtype=np.bool_)
-                tie_set, margin = self._tie_and_margin(selection.get("scores"), source_mask)
-                result = {
-                    "status": str(selection["status"]),
-                    "failure_reason": selection.get("failure_reason"),
-                    "selected_index": selection.get("selected_index"),
-                    "selected_row_sha256": None if selection.get("selected_index") is None else array_sha256(candidates[int(selection["selected_index"])]),
-                    "scores": None if selection.get("scores") is None else np.asarray(selection["scores"], dtype=np.float64).tolist(),
-                    "physical_feasible_mask": np.asarray(selection["physical_feasible_mask"], dtype=np.bool_).tolist(),
-                    "source_valid_mask": source_mask.tolist(),
-                    "weights_sha256": array_sha256(np.asarray(weights[:9], dtype=np.float64)),
-                    "scoring_weights_sha256": array_sha256(np.asarray(weights, dtype=np.float64)),
-                    "weight_parameter_sha256": (
-                        self.profiling_assets.static9d_weights_sha256
-                        if arm_id == "Static9D"
-                        else self.profiling_assets.scene9d_theta_sha256
-                    ),
-                    "selector_latency_ms": selector_latency_ms,
-                    "eligible_count": int(np.count_nonzero(source_mask)),
-                    "margin_best_vs_runner_up": margin,
-                    "exact_tie_set": tie_set,
-                    "tie_break_contract": "lowest_eligible_candidate_index",
-                    "atom_set": ATOM_SET_BY_ARM[arm_id],
-                    "active_atom_indices": ACTIVE_ATOM_INDICES_BY_ARM[arm_id],
-                }
-                if context is not None:
-                    result["context"] = dict(context)
-                return result
-
-            def _evaluate_pool(self, *, candidates: Any, neighbors: Any, causal: Mapping[str, Any] | None, neighbor_valid: Any, signals: Any, red_cost: Any, causal_signal_atom_input: Mapping[str, Any] | None, evaluate_arms: list[str]) -> dict[str, Any]:
-                import numpy as np
-
-                if tuple(evaluate_arms) != PROFILE_ARMS:
-                    raise ValueError("V26 profiling requires the exact five-arm inventory")
-                before = array_sha256(candidates)
-                result = super()._evaluate_pool(
-                    candidates=candidates,
-                    neighbors=neighbors,
-                    causal=causal,
-                    neighbor_valid=neighbor_valid,
-                    signals=signals,
-                    red_cost=red_cost,
-                    causal_signal_atom_input=causal_signal_atom_input,
-                    evaluate_arms=[OPERATIONAL_ARM, "Static14D", "Scene14D"],
-                )
-                materialized = result["materialized"]
-                if materialized is None:
-                    raise ValueError("V26 profiling requires canonical atom materialization")
-                context = result["summary"].get("context")
-                if type(context) is not dict:
-                    raise ValueError("V26 profiling requires one shared scene context")
-                static9 = self._pad_9d(self.profiling_assets.static9d_weights)
-                scene9 = self._pad_9d(self.profiling_assets.scene9d_weights(context))
-                result["arms"]["Static9D"] = self._profile_selector(
-                    arm_id="Static9D",
-                    candidates=candidates,
-                    materialized=materialized,
-                    weights=static9,
-                )
-                result["arms"]["Scene9D"] = self._profile_selector(
-                    arm_id="Scene9D",
-                    candidates=candidates,
-                    materialized=materialized,
-                    weights=scene9,
-                    context=context,
-                )
-                for arm_id in ("Static14D", "Scene14D"):
-                    arm = result["arms"][arm_id]
-                    arm["atom_set"] = ATOM_SET_BY_ARM[arm_id]
-                    arm["active_atom_indices"] = ACTIVE_ATOM_INDICES_BY_ARM[arm_id]
-                    arm["scoring_weights_sha256"] = arm["weights_sha256"]
-                    arm["weight_parameter_sha256"] = (
-                        self.profiling_assets.static14d_weights_sha256
-                        if arm_id == "Static14D"
-                        else self.profiling_assets.scene14d_theta_sha256
-                    )
-                    if arm_id == "Scene14D":
-                        arm["context"] = dict(context)
-                baseline = result["arms"][OPERATIONAL_ARM]
-                baseline["atom_set"] = ATOM_SET_BY_ARM[OPERATIONAL_ARM]
-                baseline["active_atom_indices"] = ACTIVE_ATOM_INDICES_BY_ARM[OPERATIONAL_ARM]
-                baseline["eligible_count"] = int(np.count_nonzero(baseline["source_valid_mask"]))
-                baseline["margin_best_vs_runner_up"] = None
-                baseline["exact_tie_set"] = [0]
-                result["latency_ms"]["selector_incremental"] = float(
-                    sum(arm.get("selector_latency_ms") or 0.0 for arm in result["arms"].values())
-                )
-                if array_sha256(candidates) != before:
-                    raise ValueError("V26 profiling selector mutated frozen pool")
-                return result
-
-        return Implementation(*args, **kwargs)
 
 
 def _completed_unit(raw: Mapping[str, Any], callback: Any, *, unit_index: int, manifest: Mapping[str, Any]) -> dict[str, Any]:
@@ -717,103 +594,44 @@ def _run_profiled_states(
     builder_type: Any,
     route_type: Any,
     fixed_dp_repo: Path,
-    assets: _ProfilingSelectorAssets,
+    assets: _ZeroShotReferenceSelectorAssets,
+    signal_adapter: Any,
+    integration_boundary: Mapping[str, Any],
     device: str,
     scratch_parent: Path,
     on_completed_unit: Callable[[Mapping[str, Any], Any], None],
 ) -> tuple[list[dict[str, Any]], Any, dict[str, Any]]:
-    from scripts.integrations.validate_diffusion_planner_v25_fair_nonholdout import (
-        NativeHookState,
-        _RequestedStateCountReached,
-        _build_no_signal_chain,
-        patched_native_replay,
-    )
-
-    builder = builder_type(str(config["map"]["path"]))
-    route_spec = config["routes"][0]
-    route = route_type.load(Path(route_spec["path"]))
-    route_ids = list(route.route_lanelet_ids or ())
-    if not route_ids:
-        raise ValueError("V26 profiling route is unresolved")
-    causal_signal_chain = _build_no_signal_chain(
-        builder=builder,
-        route_ids=route_ids,
-        map_sha256=str(config["map"]["sha256"]),
-        route_sha256=str(route_spec["sha256"]),
-    )
-    spawn = replay.SpawnConfig(**dict(config["spawn_config"]))
-    spawn.max_steps = PROFILE_STATE_COUNT
-    spawn.validate()
-    state = NativeHookState()
-    callback = _ProfilingPredictBatch(
-        model=model,
-        model_args=model_args,
-        tensor_converter=tensor_converter,
-        fixed_dp_repo=fixed_dp_repo,
-        fixed_config=config["fixed_dp"],
-        route_sha256=route_spec["sha256"],
-        builder=builder,
-        route_ids=route_ids,
-        replay=replay,
-        assets=assets,
-        state=state,
-        max_ticks=PROFILE_STATE_COUNT,
-        operational_arm=OPERATIONAL_ARM,
-        evaluate_all_arms=False,
-        adaptation_diagnostics=False,
-        causal_signal_chain=causal_signal_chain,
-        evaluation_arms=PROFILE_ARMS,
-        record_materialization_phases=True,
-        profiling_assets=assets,
-    )
-
-    def after_tracker(receipt: dict[str, Any], _scene: Any) -> None:
-        on_completed_unit(receipt, callback)
-
-    scratch = Path(tempfile.mkdtemp(prefix=".v26_profiling.", dir=str(scratch_parent)))
     prior_no_png = os.environ.get("REPLAY_NO_PNG")
     os.environ["REPLAY_NO_PNG"] = "1"
     try:
-        with patched_native_replay(
-            replay,
-            callback,
-            state,
-            dp_repo=fixed_dp_repo,
-            expected_source_hashes=config["fixed_dp"]["native_source_sha256"],
-            after_tracker=after_tracker,
-        ):
-            try:
-                native_result = replay.run_route_replay(
-                    model=model,
-                    model_args=model_args,
-                    builder=builder,
-                    route=route,
-                    output_dir=scratch,
-                    spawn_config=spawn,
-                    device=device,
-                )
-            except _RequestedStateCountReached:
-                native_result = {"reason": "requested_state_count_reached", "goal_reached": False}
-            except Exception as exc:
-                native_result = {
-                    "reason": "retained_typed_runtime_failure",
-                    "goal_reached": False,
-                    "failure_class": type(exc).__name__,
-                    "failure_reason": str(exc),
-                }
+        return run_v26_native_same_ego_b8_replay(
+            config=config,
+            model=model,
+            model_args=model_args,
+            tensor_converter=tensor_converter,
+            replay=replay,
+            builder_type=builder_type,
+            route_type=route_type,
+            fixed_dp_repo=fixed_dp_repo,
+            selector_assets=assets,
+            signal_adapter=signal_adapter,
+            integration_boundary=integration_boundary,
+            device=device,
+            max_ticks=PROFILE_STATE_COUNT,
+            scratch_parent=scratch_parent,
+            on_completed_unit=on_completed_unit,
+        )
     finally:
         if prior_no_png is None:
             os.environ.pop("REPLAY_NO_PNG", None)
         else:
             os.environ["REPLAY_NO_PNG"] = prior_no_png
-        shutil.rmtree(scratch, ignore_errors=True)
-    return state.receipts, callback, dict(native_result)
 
 
 def run(args: argparse.Namespace) -> Path:
     output_dir = args.output_dir.resolve()
     with _exclusive_worker_lock(args.worker_lock.resolve()):
-        manifest, config, assets = _prepare_manifest(args)
+        manifest, config, assets, signal = _prepare_manifest(args)
         ledger = _IncrementalLedger(output_dir=output_dir, manifest=manifest)
         import torch
 
@@ -866,6 +684,8 @@ def run(args: argparse.Namespace) -> Path:
             route_type=Route,
             fixed_dp_repo=fixed_dp_repo,
             assets=assets,
+            signal_adapter=signal.adapter,
+            integration_boundary=manifest["integration_boundary"],
             device=args.device,
             scratch_parent=output_dir.parent,
             on_completed_unit=on_completed,
@@ -892,10 +712,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--worker-lock", type=Path, required=True)
     parser.add_argument("--probe-config", type=Path, required=True)
-    parser.add_argument("--training", type=Path, required=True)
-    parser.add_argument("--training-root", required=True)
-    parser.add_argument("--training-review", type=Path, required=True)
-    parser.add_argument("--training-review-root", required=True)
+    parser.add_argument("--reference-weights", type=Path, required=True)
+    parser.add_argument("--reference-weights-root", required=True)
+    parser.add_argument("--reference-weights-review", type=Path, required=True)
+    parser.add_argument("--reference-weights-review-root", required=True)
     parser.add_argument("--fixed-dp-repo", type=Path, required=True)
     parser.add_argument("--device", choices=("cuda",), default="cuda")
     return parser.parse_args(argv)

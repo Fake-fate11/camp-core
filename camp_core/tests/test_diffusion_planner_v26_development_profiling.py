@@ -23,6 +23,12 @@ from camp_core.integrations.diffusion_planner_v26_development_profiling import (
     validate_development_profiling_manifest,
     validate_development_profiling_receipt,
 )
+from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
+    V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+    V26_CERTIFIED_NO_SIGNAL_MODE,
+    V26SignalAdapterBinding,
+    build_v26_integration_boundary,
+)
 
 
 def _sha(index: int) -> str:
@@ -41,14 +47,23 @@ def _manifest() -> dict[str, object]:
         checkpoint_sha256=_sha(3),
         args_path="/fixed/args.json",
         args_sha256=_sha(4),
-        training_root_sha256=_sha(5),
-        training_review_root_sha256=_sha(6),
+        reference_weights_root_sha256=_sha(5),
+        reference_weights_review_root_sha256=_sha(6),
         atom_scales_sha256=_sha(7),
         static9d_weights_sha256=_sha(8),
         scene9d_theta_sha256=_sha(9),
         static14d_weights_sha256=_sha(10),
         scene14d_theta_sha256=_sha(11),
         context_scaler_sha256=_sha(12),
+        integration_boundary=build_v26_integration_boundary(
+            signal=V26SignalAdapterBinding(
+                mode=V26_CERTIFIED_NO_SIGNAL_MODE,
+                adapter_id=V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+                adapter=object(),
+                receipt={"fixture": True},
+            ),
+            reference_weights_root_sha256=_sha(5),
+        ),
     )
 
 
@@ -345,8 +360,9 @@ def test_runner_projects_one_actual_same_pool_tick_without_model_or_legacy_entry
     assert receipt["units"][0]["simulator"]["selected_row_sha256"] == rows[0]
     assert receipt["units"][0]["arms"]["Scene9D"]["selected_row_sha256"] == rows[3]
     source = Path(runner.__file__).read_text(encoding="utf-8")
-    assert "evaluate_all_arms=False" in source
-    assert "evaluation_arms=PROFILE_ARMS" in source
+    assert "run_v26_native_same_ego_b8_replay" in source
+    assert "validate_diffusion_planner_v25_fair_nonholdout" not in source
+    assert "_build_no_signal_chain" not in source
     assert "preflight(" not in source
 
 
@@ -360,10 +376,10 @@ def test_runner_parser_and_prepare_manifest_are_nonholdout_and_no_model(
             "--output-dir", "out",
             "--worker-lock", "worker.lock",
             "--probe-config", "probe.json",
-            "--training", "training",
-            "--training-root", _sha(1),
-            "--training-review", "review",
-            "--training-review-root", _sha(2),
+            "--reference-weights", "training",
+            "--reference-weights-root", _sha(1),
+            "--reference-weights-review", "review",
+            "--reference-weights-review-root", _sha(2),
             "--fixed-dp-repo", "fixed-dp",
         ]
     )
@@ -395,8 +411,8 @@ def test_runner_parser_and_prepare_manifest_are_nonholdout_and_no_model(
         encoding="utf-8",
     )
     fake_assets = SimpleNamespace(
-        training_root_sha256=_sha(5),
-        training_review_root_sha256=_sha(6),
+        reference_weights_root_sha256=_sha(5),
+        reference_weights_review_root_sha256=_sha(6),
         atom_scales_sha256=_sha(7),
         static9d_weights_sha256=_sha(8),
         scene9d_theta_sha256=_sha(9),
@@ -406,21 +422,67 @@ def test_runner_parser_and_prepare_manifest_are_nonholdout_and_no_model(
     )
     monkeypatch.setattr(runner, "_tracked_changes", lambda _path: False)
     monkeypatch.setattr(runner, "_git_head", lambda _path: "7a1d33da277a1992ec474b5383a0c963c72e04e4")
-    monkeypatch.setattr(runner, "_load_profiling_selector_assets", lambda _args: fake_assets)
-    manifest, config, assets = runner._prepare_manifest(
+    monkeypatch.setattr(runner, "_load_zero_shot_reference_selector_assets", lambda _args: fake_assets)
+    signal = V26SignalAdapterBinding(
+        mode=V26_CERTIFIED_NO_SIGNAL_MODE,
+        adapter_id=V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+        adapter=object(),
+        receipt={"fixture": True},
+    )
+    monkeypatch.setattr(runner, "resolve_v26_signal_adapter", lambda _config: signal)
+    manifest, config, assets, prepared_signal = runner._prepare_manifest(
         argparse.Namespace(
             probe_config=config_path,
-            training=tmp_path / "training",
-            training_root=_sha(5),
-            training_review=tmp_path / "review",
-            training_review_root=_sha(6),
+            reference_weights=tmp_path / "training",
+            reference_weights_root=_sha(5),
+            reference_weights_review=tmp_path / "review",
+            reference_weights_review_root=_sha(6),
             fixed_dp_repo=tmp_path / "fixed_dp",
         )
     )
     assert assets is fake_assets
+    assert prepared_signal is signal
     assert config["protocol"]["route_role"] == "development_nonholdout"
     assert manifest["selector_arms"] == list(PROFILE_ARMS)
     holdout = copy.deepcopy(config)
     holdout["protocol"]["route_role"] = "holdout"
     with pytest.raises(ValueError, match="development_nonholdout"):
         runner._require_nonholdout_config(holdout)
+
+
+def test_v26_native_runner_path_does_not_call_v25_high_level_builder_or_runner(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    runner = importlib.import_module("scripts.integrations.run_diffusion_planner_v26_development_profiling")
+    legacy = importlib.import_module("scripts.integrations.validate_diffusion_planner_v25_fair_nonholdout")
+
+    def legacy_called(*_args: object, **_kwargs: object) -> object:
+        pytest.fail("V25 high-level implementation was reached")
+
+    monkeypatch.setattr(legacy, "_build_no_signal_chain", legacy_called)
+    monkeypatch.setattr(legacy, "_FairPredictBatch", legacy_called)
+    captured: dict[str, object] = {}
+
+    def native_runner(**kwargs: object) -> tuple[list[dict[str, object]], object, dict[str, object]]:
+        captured.update(kwargs)
+        return [], SimpleNamespace(model_call_count=0), {"reason": "fixture"}
+
+    monkeypatch.setattr(runner, "run_v26_native_same_ego_b8_replay", native_runner)
+    result = runner._run_profiled_states(
+        config={},
+        model=object(),
+        model_args=object(),
+        tensor_converter=object(),
+        replay=object(),
+        builder_type=object(),
+        route_type=object(),
+        fixed_dp_repo=Path("."),
+        assets=SimpleNamespace(),
+        signal_adapter=object(),
+        integration_boundary={"fixture": True},
+        device="cuda",
+        scratch_parent=Path("."),
+        on_completed_unit=lambda _raw, _callback: None,
+    )
+    assert result[2] == {"reason": "fixture"}
+    assert captured["signal_adapter"] is not None
