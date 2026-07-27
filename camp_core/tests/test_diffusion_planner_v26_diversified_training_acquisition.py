@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import hashlib
+import json
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -325,3 +326,52 @@ def test_revised_plan_preserves_parent_ordinal_for_seed_and_receipt() -> None:
         failure_reason="fixture",
     )
     assert unit["route"]["parent_ordinal"] == 1187
+
+
+def test_training_scales_receipt_is_converted_to_json_native_values() -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v26_diversified_training_acquisition"
+    )
+    receipt = {
+        "scales": np.asarray([1.0, 2.0], dtype=np.float64),
+        "count": np.int64(2),
+        "nested": {"mask": np.asarray([True, False], dtype=np.bool_)},
+    }
+    native = runner._json_native(receipt)
+    assert json.loads(json.dumps(native)) == {
+        "scales": [1.0, 2.0],
+        "count": 2,
+        "nested": {"mask": [True, False]},
+    }
+
+
+def test_atomic_training_artifact_writer_serializes_numpy_scale_receipt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v26_diversified_training_acquisition"
+    )
+    unit = runner._completed_unit(
+        _raw(),
+        SimpleNamespace(model_call_count=1),
+        unit_index=0,
+        route_plan_sha256=_sha(1),
+        schedule=_schedule(),
+        scenario_seed=46001,
+    )
+    monkeypatch.setattr(
+        runner,
+        "fit_train_only_atom_scales",
+        lambda *args, **kwargs: {
+            "scales": np.ones(14, dtype=np.float64),
+            "diagnostic": np.asarray([1, 2], dtype=np.int64),
+        },
+    )
+    runner._AcquisitionLedger.write_training_artifacts_from_atomic_units(
+        output_dir=tmp_path,
+        manifest={"route_plan_sha256": _sha(1)},
+        complete=[unit],
+    )
+    payload = json.loads((tmp_path / "training_scales.json").read_text(encoding="utf-8"))
+    assert payload["scales"] == [1.0] * 14
+    assert payload["diagnostic"] == [1, 2]

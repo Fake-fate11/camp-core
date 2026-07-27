@@ -119,6 +119,22 @@ def _atomic_write_json(path: Path, value: Mapping[str, Any]) -> None:
         staging.unlink(missing_ok=True)
 
 
+def _json_native(value: Any) -> Any:
+    """Convert numpy diagnostics to JSON-native values without changing data."""
+
+    import numpy as np
+
+    if isinstance(value, np.ndarray):
+        return [_json_native(item) for item in value.tolist()]
+    if isinstance(value, np.generic):
+        return _json_native(value.item())
+    if isinstance(value, Mapping):
+        return {str(key): _json_native(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_native(item) for item in value]
+    return value
+
+
 def _atomic_write_npz(path: Path, **arrays: Any) -> None:
     import numpy as np
 
@@ -872,7 +888,7 @@ class _AcquisitionLedger:
                 "scales": scales.tolist(),
                 "status": "not_evaluated_no_complete_pools",
             }
-        _atomic_write_json(scales_path, scale_receipt)
+        _atomic_write_json(scales_path, _json_native(scale_receipt))
         _atomic_write_npz(
             rows_path,
             schema_version=np.asarray(V26_TRAINING_ROWS_SCHEMA_VERSION),
@@ -917,6 +933,21 @@ class _AcquisitionLedger:
         }
         _atomic_write_json(label_path, label)
         return _file_sha256(rows_path), _file_sha256(scales_path), _file_sha256(label_path)
+
+    @classmethod
+    def write_training_artifacts_from_atomic_units(
+        cls,
+        *,
+        output_dir: Path,
+        manifest: Mapping[str, Any],
+        complete: Sequence[Mapping[str, Any]],
+    ) -> tuple[str, str, str]:
+        """Reuse the exact no-model artifact writer during a ledger-only recovery."""
+
+        writer = object.__new__(cls)
+        writer.output_dir = Path(output_dir).resolve()
+        writer.manifest = dict(manifest)
+        return cls._write_training_artifacts(writer, complete)
 
 
 def _prepare_route(
