@@ -52,6 +52,7 @@ from camp_core.integrations.diffusion_planner_v26_development_profiling import (
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (  # noqa: E402
     FROZEN_SIMPLEX_TOLERANCE,
     build_v26_integration_boundary,
+    enforce_v26_dp312_lanelet2_precedence,
     resolve_v26_signal_adapter,
 )
 from camp_core.integrations.diffusion_planner_v26_native_runner import (  # noqa: E402
@@ -650,6 +651,7 @@ def run(args: argparse.Namespace) -> Path:
         )
         import scenario_generation.replay as replay
         import scenario_generation.tensor_converter as tensor_converter
+        enforce_v26_dp312_lanelet2_precedence()
         from scenario_generation.gui.lanelet_scene_builder import LaneletSceneBuilder
         from scenario_generation.route import Route
 

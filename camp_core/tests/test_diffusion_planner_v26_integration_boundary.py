@@ -103,7 +103,23 @@ def test_launcher_config_is_fixed_to_dp312_and_no_human_shim() -> None:
     )
     config = boundary.load_v26_autodl_launcher_config(config_path)
     assert config["interpreter"] == "/root/autodl-tmp/dp312_venv/bin/python"
+    assert config["dp312_site_packages"] == (
+        "/root/autodl-tmp/dp312_venv/lib/python3.12/site-packages"
+    )
+    assert config["inherit_pythonpath"] is False
     assert config["human_shim_required"] is False
+    environment = boundary.v26_autodl_launcher_environment(
+        source_checkout="/root/autodl-tmp/v26_checkout",
+        fixed_dp_repo="/root/autodl-tmp/Diffusion-Planner",
+    )
+    assert environment == {
+        "PYTHONPATH": (
+            "/root/autodl-tmp/dp312_venv/lib/python3.12/site-packages:"
+            "/root/autodl-tmp/v26_checkout:/root/autodl-tmp/v26_checkout/camp_core:"
+            "/root/autodl-tmp/Diffusion-Planner"
+        ),
+        "PYTHONNOUSERSITE": "1",
+    }
 
 
 def test_every_real_static_scene_selector_call_receives_frozen_simplex_tolerance() -> None:

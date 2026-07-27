@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 import hashlib
 import json
 import math
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+import sys
 from typing import Any, Mapping, Sequence
 
 from .diffusion_planner_v25_semantic_authority import (
@@ -49,6 +50,7 @@ V26_CERTIFIED_NO_SIGNAL_SCHEMA_VERSION = "camp_dp_v26_certified_no_signal_author
 V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION = "camp_dp_v26_integration_boundary_v1"
 V26_AUTODL_LAUNCHER_SCHEMA_VERSION = "camp_dp_v26_autodl_launcher_v1"
 V26_AUTODL_INTERPRETER = "/root/autodl-tmp/dp312_venv/bin/python"
+V26_DP312_SITE_PACKAGES = "/root/autodl-tmp/dp312_venv/lib/python3.12/site-packages"
 V26_DP312_LANELET2_PRECEDENCE = "dp312_site_packages_before_system_lanelet2_v1"
 
 _SHA_CHARS = frozenset("0123456789abcdef")
@@ -437,6 +439,8 @@ def v26_autodl_launcher_config() -> dict[str, Any]:
         "schema_version": V26_AUTODL_LAUNCHER_SCHEMA_VERSION,
         "interpreter": V26_AUTODL_INTERPRETER,
         "lanelet2_precedence": V26_DP312_LANELET2_PRECEDENCE,
+        "dp312_site_packages": V26_DP312_SITE_PACKAGES,
+        "inherit_pythonpath": False,
         "human_shim_required": False,
     }
 
@@ -444,7 +448,14 @@ def v26_autodl_launcher_config() -> dict[str, Any]:
 def validate_v26_autodl_launcher_config(value: Mapping[str, Any]) -> dict[str, Any]:
     result = _require_exact_mapping(
         value,
-        {"schema_version", "interpreter", "lanelet2_precedence", "human_shim_required"},
+        {
+            "schema_version",
+            "interpreter",
+            "lanelet2_precedence",
+            "dp312_site_packages",
+            "inherit_pythonpath",
+            "human_shim_required",
+        },
         "V26 AutoDL launcher config",
     )
     if result != v26_autodl_launcher_config():
@@ -460,3 +471,43 @@ def load_v26_autodl_launcher_config(path: Path) -> dict[str, Any]:
     if type(value) is not dict:
         raise ValueError("V26 AutoDL launcher config must be an object")
     return validate_v26_autodl_launcher_config(value)
+
+
+def v26_autodl_launcher_environment(
+    *, source_checkout: str, fixed_dp_repo: str
+) -> dict[str, str]:
+    """Return the only supported dp312 import order for V26 remote launchers."""
+
+    source = PurePosixPath(source_checkout)
+    dp_repo = PurePosixPath(fixed_dp_repo)
+    if (
+        not source.is_absolute()
+        or not dp_repo.is_absolute()
+        or ".." in source.parts
+        or ".." in dp_repo.parts
+    ):
+        raise ValueError("V26 launcher paths must be absolute, normalized POSIX paths")
+    paths = (
+        V26_DP312_SITE_PACKAGES,
+        str(source),
+        str(source / "camp_core"),
+        str(dp_repo),
+    )
+    return {
+        "PYTHONPATH": ":".join(paths),
+        "PYTHONNOUSERSITE": "1",
+    }
+
+
+def enforce_v26_dp312_lanelet2_precedence() -> str:
+    """Pin the venv Lanelet2 module before importing V26 route-builder code."""
+
+    site = V26_DP312_SITE_PACKAGES
+    sys.path[:] = [path for path in sys.path if path != site]
+    sys.path.insert(0, site)
+    import lanelet2
+
+    module_path = str(getattr(lanelet2, "__file__", ""))
+    if not module_path.startswith(site + "/"):
+        raise RuntimeError("V26 launcher loaded Lanelet2 outside the fixed dp312 venv")
+    return module_path
