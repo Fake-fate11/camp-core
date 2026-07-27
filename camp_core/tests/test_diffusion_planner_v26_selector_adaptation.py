@@ -234,6 +234,31 @@ def test_train_only_data_rejects_outcome_contamination(tmp_path: Path) -> None:
         load_train_only_saved_pools(training)
 
 
+def test_zero_shot_loader_preserves_existing_simplex_tolerance_bytes(
+    tmp_path: Path,
+) -> None:
+    _training, reference = _fixture_assets(tmp_path)
+    parameter_path = reference / "model_parameters.npz"
+    with np.load(parameter_path, allow_pickle=False) as archive:
+        arrays = {name: archive[name].copy() for name in archive.files}
+    moved_mass = arrays["static14d_theta"][0, 0] + 1e-10
+    arrays["static14d_theta"][0, 0] = -1e-10
+    arrays["static14d_theta"][1, 0] += moved_mass
+    np.savez_compressed(parameter_path, **arrays)
+    report = json.loads((reference / "report.json").read_text(encoding="utf-8"))
+    report["model_parameters_sha256"] = hashlib.sha256(parameter_path.read_bytes()).hexdigest()
+    _write_json(reference / "report.json", report)
+    model_reports = json.loads((reference / "model_reports.json").read_text(encoding="utf-8"))
+    model_reports["CAMP-Static14D"]["theta_sha256"] = training_parameter_array_sha256(
+        arrays["static14d_theta"]
+    )
+    _write_json(reference / "model_reports.json", model_reports)
+
+    loaded = load_zero_shot_reference_assets(reference)
+
+    assert loaded.static14d_theta[0, 0] == pytest.approx(-1e-10)
+
+
 def test_adaptation_config_and_receipt_bind_selector_only_scope(tmp_path: Path) -> None:
     training, reference_dir = _fixture_assets(tmp_path)
     config = load_adaptation_config(_adaptation_config_path())

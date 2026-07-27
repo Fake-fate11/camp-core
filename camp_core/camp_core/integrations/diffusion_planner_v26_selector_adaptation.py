@@ -421,9 +421,11 @@ def _theta_from_archive(archive: Any, key: str, atom_count: int) -> np.ndarray:
     if key not in archive.files:
         raise ValueError(f"zero-shot reference {key} is missing")
     theta = _require_finite_numeric(
-        archive[key], (atom_count, PHI_DIMENSION), key, nonnegative=True
+        archive[key], (atom_count, PHI_DIMENSION), key
     )
-    return validate_column_simplex_theta(theta, num_atoms=atom_count, atol=1e-10).copy()
+    # Preserve the frozen solver bytes.  The existing runtime admits only its
+    # established simplex tolerance; it must not clip or reproject theta.
+    return validate_column_simplex_theta(theta, num_atoms=atom_count, atol=1e-8).copy()
 
 
 def load_zero_shot_reference_assets(reference_dir: Path) -> ZeroShotReferenceAssets:
