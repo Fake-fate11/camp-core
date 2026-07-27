@@ -25,7 +25,12 @@ from .diffusion_planner_v21_native import (
     candidate_seed,
     causal_input_receipt,
 )
-from .diffusion_planner_v25_context import RAW_FEATURE_NAMES, build_v25_raw_context, context_weights
+from .diffusion_planner_v25_context import (
+    CONTEXT_SCHEMA_VERSION,
+    RAW_FEATURE_NAMES,
+    build_v25_raw_context,
+    context_weights,
+)
 from .diffusion_planner_v26_development_profiling import (
     ACTIVE_ATOM_INDICES_BY_ARM,
     ATOM_SET_BY_ARM,
@@ -504,6 +509,11 @@ class V26NativeSameEgoB8Callback:
             v2i_signal_timing=None,
         )
         context = {
+            # The V26 adapter maps this outcome-blind current-state payload to
+            # the frozen reference schema.  Keeping the exact schema marker is
+            # essential: the provider must reject a structurally incomplete
+            # context rather than infer or repair one.
+            "schema_version": CONTEXT_SCHEMA_VERSION,
             "raw_context": context_record.as_dict(),
             "source_complete": {
                 name: bool(value)
@@ -518,7 +528,7 @@ class V26NativeSameEgoB8Callback:
         scene9 = np.zeros(14, dtype=np.float64)
         scene9[:9] = np.asarray(self.selector_assets.scene9d_weights(context), dtype=np.float64)
         static14 = np.asarray(self.selector_assets.static14d_weights, dtype=np.float64)
-        scene14_receipt = self.selector_assets.scene14d_weight_provider(context)
+        scene14_receipt = self.selector_assets.scene14d_weights(context)
         scene14 = np.asarray(scene14_receipt["weights"], dtype=np.float64)
         weights_ms = _elapsed_ms(weights_started)
         arms = {

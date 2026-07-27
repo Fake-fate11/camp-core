@@ -55,6 +55,9 @@ from camp_core.integrations.diffusion_planner_v26_integration_boundary import ( 
     enforce_v26_dp312_lanelet2_precedence,
     resolve_v26_signal_adapter,
 )
+from camp_core.integrations.diffusion_planner_v26_scene14d_adapter import (  # noqa: E402
+    V26FrozenScene14DAdapter,
+)
 from camp_core.integrations.diffusion_planner_v26_native_runner import (  # noqa: E402
     run_v26_native_same_ego_b8_replay,
 )
@@ -173,6 +176,7 @@ class _ZeroShotReferenceSelectorAssets:
     atom_scales: Any
     static14d_weights: Any
     scene14d_weight_provider: Any
+    scene14d_adapter: Any
     static9d_weights: Any
     scene9d_theta: Any
     reference_weights_root_sha256: str
@@ -198,6 +202,9 @@ class _ZeroShotReferenceSelectorAssets:
         )
         weights = context_weights(self.scene9d_theta, phi)
         return _require_simplex(weights, size=9, label="Scene9D runtime weights")
+
+    def scene14d_weights(self, context_payload: Mapping[str, Any]):
+        return self.scene14d_adapter(context_payload)
 
 
 def _load_zero_shot_reference_selector_assets(
@@ -248,10 +255,12 @@ def _load_zero_shot_reference_selector_assets(
         theta=scene9_theta,
     )
     scene14_theta = np.asarray(primary.scene14d_weight_provider.theta, dtype=np.float64)
+    scene14_adapter = V26FrozenScene14DAdapter(primary.scene14d_weight_provider)
     return _ZeroShotReferenceSelectorAssets(
         atom_scales=np.asarray(primary.atom_scales, dtype=np.float64).copy(),
         static14d_weights=np.asarray(primary.static14d_weights, dtype=np.float64).copy(),
         scene14d_weight_provider=primary.scene14d_weight_provider,
+        scene14d_adapter=scene14_adapter,
         static9d_weights=static9.copy(),
         scene9d_theta=scene9_theta.copy(),
         reference_weights_root_sha256=primary.training_root_sha256,

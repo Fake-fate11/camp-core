@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -11,6 +12,17 @@ from camp_core.integrations.diffusion_planner_v25_context import RAW_FEATURE_NAM
 from camp_core.integrations.diffusion_planner_v26_development_profiling import (
     OPERATIONAL_ARM,
     PROFILE_ARMS,
+)
+from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
+    V26CertifiedNoSignalAbsenceAdapter,
+)
+from camp_core.integrations.diffusion_planner_v26_scene14d_adapter import (
+    V26FrozenScene14DAdapter,
+    build_v26_scene14d_context,
+)
+from camp_core.integrations.diffusion_planner_v26_source_authority import (
+    V26_SOURCE_TRAFFIC_SIGNAL_MODE,
+    v26_source_projection_binding,
 )
 
 
@@ -23,7 +35,7 @@ def _sha(index: int) -> str:
     return f"{index:064x}"
 
 
-def _schedule() -> dict[str, object]:
+def _schedule(*, map_path: str = "/root/autodl-tmp/maps/simple.osm", map_sha256: str | None = None) -> dict[str, object]:
     return {
         "family_id": "legacy_simple_cross",
         "route_id": "legacy_simple_cross/route-0000",
@@ -32,7 +44,8 @@ def _schedule() -> dict[str, object]:
         "event_manifest_sha256": _sha(11),
         "route_record": {
             "identity_sha256": _sha(12),
-            "source_map_sha256": _sha(13),
+            "source_map_path": map_path,
+            "source_map_sha256": _sha(13) if map_sha256 is None else map_sha256,
             "source_geometry_sha256": _sha(14),
             "lanelet_ids": [1, 2],
             "source_stratum": {
@@ -42,7 +55,7 @@ def _schedule() -> dict[str, object]:
                 "short_progress_opportunity": False,
             },
             "route_spec": {
-                "map_path": "/root/autodl-tmp/maps/simple.osm",
+                "map_path": map_path,
                 "lanelet_ids": [1, 2],
                 "start_pose": [0.0, 0.0, 0.0],
                 "goal_pose": [1.0, 0.0, 0.0],
@@ -50,6 +63,34 @@ def _schedule() -> dict[str, object]:
             },
         },
     }
+
+
+def _write_source_map(path: Path, *, traffic: bool) -> str:
+    regulatory = "" if not traffic else """
+  <relation id=\"100\">
+    <member type=\"way\" ref=\"10\" role=\"refers\"/>
+    <member type=\"way\" ref=\"11\" role=\"ref_line\"/>
+    <member type=\"way\" ref=\"12\" role=\"light_bulbs\"/>
+    <tag k=\"type\" v=\"regulatory_element\"/>
+    <tag k=\"subtype\" v=\"traffic_light\"/>
+  </relation>"""
+    lanelet_reg = "" if not traffic else '<member type="relation" ref="100" role="regulatory_element"/>'
+    path.write_text(
+        f"""<osm version=\"0.6\">
+  <node id=\"1\" lat=\"0.665608\" lon=\"-0.559376\"/>
+  <node id=\"2\" lat=\"0.665609\" lon=\"-0.559375\"/>
+  <node id=\"3\" lat=\"0.665610\" lon=\"-0.559374\"/>
+  <way id=\"10\"><nd ref=\"1\"/><nd ref=\"2\"/></way>
+  <way id=\"11\"><nd ref=\"1\"/><nd ref=\"2\"/></way>
+  <way id=\"12\"><nd ref=\"2\"/><nd ref=\"3\"/></way>
+  <relation id=\"1\">
+    {lanelet_reg}
+    <tag k=\"type\" v=\"lanelet\"/>
+  </relation>{regulatory}
+</osm>""",
+        encoding="utf-8",
+    )
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _raw() -> dict[str, object]:
@@ -138,27 +179,107 @@ def test_completed_unit_retains_b8_masks_hashes_and_candidate0() -> None:
     assert np.asarray(unit["training_pool"]["atom_source_valid_mask"]).shape == (8, 14)
 
 
-def test_signal_route_without_sidecar_is_pre_model_failure_and_no_signal_is_explicit() -> None:
+def test_source_signal_authority_accepts_real_traffic_and_certifies_only_actual_absence(
+    tmp_path: Path,
+) -> None:
     runner = importlib.import_module(
         "scripts.integrations.run_diffusion_planner_v26_diversified_training_acquisition"
     )
-    schedule = _schedule()
-    traffic = dict(schedule)
-    traffic_record = dict(schedule["route_record"])
-    traffic_record["source_stratum"] = {**traffic_record["source_stratum"], "traffic_light": True}
-    traffic["route_record"] = traffic_record
+    traffic_map = tmp_path / "traffic.osm"
+    traffic_sha = _write_source_map(traffic_map, traffic=True)
+    traffic = _schedule(map_path=str(traffic_map), map_sha256=traffic_sha)
+    traffic["route_record"]["source_stratum"] = {
+        **traffic["route_record"]["source_stratum"],
+        "traffic_light": True,
+    }
     configuration, failure = runner._signal_config(
         schedule=traffic, family={"sidecar": None}, route_sha256=_sha(2)
     )
-    assert configuration is None
-    assert failure == "signal_authority_unavailable_for_traffic_route"
+    assert failure is None
+    assert configuration["signal_authority_mode"] == V26_SOURCE_TRAFFIC_SIGNAL_MODE
+    assert configuration["source_map_traffic_authority"]["traffic_light_regulatory_element_ids"] == [100]
 
+    no_signal_map = tmp_path / "no_signal.osm"
+    no_signal_sha = _write_source_map(no_signal_map, traffic=False)
+    schedule = _schedule(map_path=str(no_signal_map), map_sha256=no_signal_sha)
     configuration, failure = runner._signal_config(
         schedule=schedule, family={"sidecar": None}, route_sha256=_sha(2)
     )
     assert failure is None
     assert configuration["signal_authority_mode"] == "certified_no_signal"
     assert configuration["certified_no_signal_authority"]["traffic_light_regulatory_element_ids"] == []
+
+    false_absence = _schedule(map_path=str(traffic_map), map_sha256=traffic_sha)
+    configuration, failure = runner._signal_config(
+        schedule=false_absence, family={"sidecar": None}, route_sha256=_sha(2)
+    )
+    assert configuration is None
+    assert "conflicts with source traffic authority" in failure
+
+
+def test_source_projection_and_no_signal_causal_hash_use_the_frozen_schema(tmp_path: Path) -> None:
+    source = tmp_path / "simple.osm"
+    source_sha = _write_source_map(source, traffic=False)
+    projection = v26_source_projection_binding(source, source_sha)
+    assert projection["utm_zone"] == 30
+    assert projection["source_map_sha256"] == source_sha
+
+    authority = {
+        "schema_version": "camp_dp_v26_certified_no_signal_authority_v1",
+        "route_sha256": _sha(1),
+        "map_sha256": _sha(2),
+        "route_lanelet_ids": [1],
+        "route_geometry_sha256": _sha(3),
+        "source_chain_sha256": _sha(4),
+        "certification_sha256": _sha(5),
+        "traffic_light_regulatory_element_ids": [],
+    }
+
+    class _Lanelet:
+        def trafficLights(self):
+            return []
+
+    adapter = V26CertifiedNoSignalAbsenceAdapter(authority)
+    adapter.bind_builder(SimpleNamespace(_ll_by_id={1: _Lanelet()}))
+    adapter.bind_runtime_lanelet_ids(route_lanelet_ids=[1], map_lanelet_ids=[1])
+    payload = adapter.causal_signal_atom_input(SimpleNamespace(dt=0.1), 0)
+    assert payload["source_state"] == "not_applicable"
+
+
+def test_v26_scene14d_adapter_requires_exact_complete_finite_reference_payload() -> None:
+    class _Scaler:
+        q05 = np.zeros(26, dtype=np.float64)
+        q95 = np.ones(26, dtype=np.float64)
+
+    class _Provider:
+        theta = np.full((14, 53), 1.0 / 14.0, dtype=np.float64)
+        context_scaler = _Scaler()
+        context_scaler_sha256 = _sha(6)
+        theta_sha256 = _sha(7)
+
+        def __call__(self, payload):
+            assert payload["schema_version"] == "camp_dp_v25_causal_context_raw_v2"
+            return {
+                "weights": [1.0 / 14.0] * 14,
+                "context_scaler_sha256": self.context_scaler_sha256,
+                "theta_sha256": self.theta_sha256,
+                "runtime_projection": False,
+                "softmax": False,
+            }
+
+    raw = {name: float(index) for index, name in enumerate(RAW_FEATURE_NAMES)}
+    complete = {name: True for name in RAW_FEATURE_NAMES}
+    payload = build_v26_scene14d_context(
+        raw_context=raw,
+        source_complete=complete,
+        source_receipt={
+            "mode": "no_v2i",
+            "phase_remaining_available": False,
+            "regulatory_signal_mapped": False,
+        },
+    )
+    adapter = V26FrozenScene14DAdapter(_Provider())
+    assert adapter(payload)["runtime_projection"] is False
 
 
 def test_parser_and_source_keep_the_v26_native_boundary() -> None:
@@ -177,6 +298,7 @@ def test_parser_and_source_keep_the_v26_native_boundary() -> None:
             "--reference-weights-review-root", _sha(4),
             "--fixed-dp-repo", "fixed-dp",
             "--expected-camp-head", "a" * 40,
+            "--pre-model-qualification", "qualification.json",
         ]
     )
     assert args.device == "cuda"

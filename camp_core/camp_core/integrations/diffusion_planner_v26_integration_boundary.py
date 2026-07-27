@@ -17,11 +17,17 @@ from typing import Any, Mapping, Sequence
 
 from .diffusion_planner_v25_semantic_authority import (
     CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
+    canonical_json_sha256,
     validate_causal_signal_atom_input,
 )
 from .diffusion_planner_v26_autoware_sidecar_signal import (
     V26AutowareSidecarSignalAdapter,
     load_autoware_sidecar_binding,
+)
+from .diffusion_planner_v26_source_authority import (
+    V26_SOURCE_TRAFFIC_SIGNAL_ADAPTER_ID,
+    V26_SOURCE_TRAFFIC_SIGNAL_MODE,
+    V26SourceMapTrafficSignalAdapter,
 )
 
 
@@ -234,7 +240,10 @@ class V26CertifiedNoSignalAbsenceAdapter:
             "route_arc_m": None,
             "source_chain_sha256": self.authority["source_chain_sha256"],
             "runtime_receipt": runtime,
-            "runtime_receipt_sha256": _canonical_sha256(runtime),
+            # The fixed causal-atom schema defines this hash with its canonical
+            # newline-terminated encoding.  Keep the V26 adapter schema
+            # distinct, but bind this one field to the frozen causal contract.
+            "runtime_receipt_sha256": canonical_json_sha256(runtime),
         }
         return validate_causal_signal_atom_input(payload)
 
@@ -311,6 +320,28 @@ def resolve_v26_signal_adapter(probe_config: Mapping[str, Any]) -> V26SignalAdap
         return V26SignalAdapterBinding(
             mode=mode,
             adapter_id=V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+            adapter=adapter,
+            receipt=adapter.receipt(),
+        )
+    if mode == V26_SOURCE_TRAFFIC_SIGNAL_MODE:
+        authority = config.get("source_map_traffic_authority")
+        if type(authority) is not dict:
+            raise ValueError("V26 source-map traffic authority is required; no fallback is permitted")
+        adapter = V26SourceMapTrafficSignalAdapter(authority)
+        routes = config.get("routes")
+        map_binding = config.get("map")
+        if (
+            type(routes) is not list
+            or len(routes) != 1
+            or type(routes[0]) is not dict
+            or type(map_binding) is not dict
+            or adapter.source_authority["route_sha256"] != routes[0].get("sha256")
+            or adapter.source_authority["map_sha256"] != map_binding.get("sha256")
+        ):
+            raise ValueError("V26 source-map traffic authority does not bind map/route")
+        return V26SignalAdapterBinding(
+            mode=mode,
+            adapter_id=V26_SOURCE_TRAFFIC_SIGNAL_ADAPTER_ID,
             adapter=adapter,
             receipt=adapter.receipt(),
         )

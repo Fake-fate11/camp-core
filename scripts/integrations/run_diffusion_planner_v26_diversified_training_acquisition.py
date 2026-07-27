@@ -61,6 +61,11 @@ from camp_core.integrations.diffusion_planner_v26_integration_boundary import ( 
 from camp_core.integrations.diffusion_planner_v26_native_runner import (  # noqa: E402
     run_v26_native_same_ego_b8_replay,
 )
+from camp_core.integrations.diffusion_planner_v26_source_authority import (  # noqa: E402
+    build_v26_source_signal_config,
+    v26_source_bound_projection,
+    v26_source_projection_binding,
+)
 from scripts.integrations.run_diffusion_planner_v26_development_profiling import (  # noqa: E402
     _load_zero_shot_reference_selector_assets,
 )
@@ -194,6 +199,75 @@ def _load_base_probe_config(path: Path) -> dict[str, Any]:
     }
 
 
+def _require_pre_model_qualification(
+    path: Path, *, route_plan: Mapping[str, Any], camp_head: str
+) -> dict[str, Any]:
+    """Require the full V26-native zero-model qualification before CUDA import."""
+
+    receipt_path = path.resolve()
+    if not receipt_path.is_file():
+        raise FileNotFoundError(receipt_path)
+    root = receipt_path.parent
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    manifest_path = root / "manifest.json"
+    if not manifest_path.is_file():
+        raise ValueError("V26 Stage8b pre-model qualification manifest is missing")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    expected_zero = {
+        "model_forward_count": 0,
+        "dp_forward_count": 0,
+        "gpu_invocation_count": 0,
+        "latent_generation_count": 0,
+        "candidate_generation_count": 0,
+        "sequential_forward_count": 0,
+    }
+    if (
+        receipt.get("schema_version")
+        != "camp_dp_v26_stage8b_pre_model_qualification_receipt_v1"
+        or receipt.get("evidence_role")
+        != "development_training_same_ego_b8_pre_model_qualification"
+        or receipt.get("status") != "passed"
+        or receipt.get("route_plan_sha256") != route_plan["route_plan_sha256"]
+        or receipt.get("denominator")
+        != {"planned": 1786, "complete": 1786, "failed": 0, "unattempted": 0}
+        or receipt.get("identity") != {"family_count": 6, "corridor_count": 155, "route_count": 1786}
+        or receipt.get("zero_model_totals") != expected_zero
+        or receipt.get("acquisition_authorized") is not True
+        or manifest.get("camp_head") != camp_head
+        or manifest.get("route_plan_sha256") != route_plan["route_plan_sha256"]
+    ):
+        raise ValueError("V26 Stage8b pre-model qualification is not admissible")
+    qualified: dict[int, dict[str, Any]] = {}
+    for index, schedule in enumerate(route_plan["routes"]):
+        unit_path = root / "units" / f"{index:04d}.json"
+        if not unit_path.is_file():
+            raise ValueError("V26 Stage8b pre-model qualification unit is missing")
+        unit = json.loads(unit_path.read_text(encoding="utf-8"))
+        route = dict(unit.get("route", {}))
+        if (
+            unit.get("unit_index") != index
+            or unit.get("terminal", {}).get("status") != "qualified"
+            or route.get("route_id") != schedule["route_id"]
+            or route.get("corridor_id") != schedule["corridor_id"]
+            or route.get("route_identity_sha256")
+            != schedule["route_record"]["identity_sha256"]
+            or unit.get("forward_calls") != expected_zero
+            or not isinstance(unit.get("source_projection"), dict)
+            or not isinstance(unit.get("parsed_geometry"), dict)
+            or not isinstance(unit.get("signal", {}).get("source_provenance"), dict)
+            or unit.get("scene14d_reference", {}).get("simplex_tolerance")
+            != FROZEN_SIMPLEX_TOLERANCE
+        ):
+            raise ValueError("V26 Stage8b pre-model qualification unit drifted")
+        qualified[index] = unit
+    return {
+        "path": str(receipt_path),
+        "sha256": _file_sha256(receipt_path),
+        "manifest_sha256": _file_sha256(manifest_path),
+        "units": qualified,
+    }
+
+
 def _resource_precheck(output_dir: Path, device: str, torch: Any) -> None:
     if device != "cuda" or not torch.cuda.is_available():
         raise RuntimeError("V26 Stage8b requires an available CUDA GPU")
@@ -242,61 +316,15 @@ def _route_asset(route_type: Any, record: Mapping[str, Any], path: Path) -> str:
     return _file_sha256(path)
 
 
-def _certified_no_signal_authority(
-    *, schedule: Mapping[str, Any], route_sha256: str
-) -> dict[str, Any]:
-    record = dict(schedule["route_record"])
-    source_chain = canonical_json_sha256(
-        {
-            "schema_version": "camp_dp_v26_no_signal_source_chain_v1",
-            "route_id": schedule["route_id"],
-            "route_identity_sha256": record["identity_sha256"],
-            "source_artifact_sha256": schedule["source_artifact_sha256"],
-            "event_manifest_sha256": schedule["event_manifest_sha256"],
-            "source_stratum": record["source_stratum"],
-        }
-    )
-    payload = {
-        "schema_version": "camp_dp_v26_certified_no_signal_authority_v1",
-        "route_sha256": route_sha256,
-        "map_sha256": record["source_map_sha256"],
-        "route_lanelet_ids": list(record["lanelet_ids"]),
-        "route_geometry_sha256": record["source_geometry_sha256"],
-        "source_chain_sha256": source_chain,
-        "certification_sha256": None,
-        "traffic_light_regulatory_element_ids": [],
-    }
-    payload["certification_sha256"] = canonical_json_sha256(
-        {key: value for key, value in payload.items() if key != "certification_sha256"}
-    )
-    return payload
-
-
 def _signal_config(
     *, schedule: Mapping[str, Any], family: Mapping[str, Any], route_sha256: str
 ) -> tuple[dict[str, Any] | None, str | None]:
-    record = dict(schedule["route_record"])
-    if not bool(record["source_stratum"]["traffic_light"]):
-        return {
-            "signal_authority_mode": V26_CERTIFIED_NO_SIGNAL_MODE,
-            "certified_no_signal_authority": _certified_no_signal_authority(
-                schedule=schedule, route_sha256=route_sha256
-            ),
-        }, None
-    sidecar = family.get("sidecar")
-    if type(sidecar) is not dict:
-        return None, "signal_authority_unavailable_for_traffic_route"
-    return {
-        "signal_authority_mode": V26_AUTOWARE_SIDECAR_SIGNAL_MODE,
-        "regulatory_sidecar": {
-            "geometry_copy_sha256": record["source_map_sha256"],
-            "index_path": sidecar["index_path"],
-            "index_sha256": sidecar["index_sha256"],
-            "manifest_path": sidecar["manifest_path"],
-            "manifest_sha256": sidecar["manifest_sha256"],
-            "source_sha256": sidecar["source_sha256"],
-        },
-    }, None
+    try:
+        return build_v26_source_signal_config(
+            schedule=schedule, family=family, route_sha256=route_sha256
+        ), None
+    except ValueError as exc:
+        return None, str(exc)
 
 
 def _route_probe_config(
@@ -589,7 +617,12 @@ def _unattempted_unit(
 
 
 def _manifest(
-    *, route_plan: Mapping[str, Any], base: Mapping[str, Any], camp_head: str, assets: Any
+    *,
+    route_plan: Mapping[str, Any],
+    base: Mapping[str, Any],
+    camp_head: str,
+    assets: Any,
+    pre_model_qualification: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -609,6 +642,12 @@ def _manifest(
         "base_probe": {
             "path": base["source_path"],
             "sha256": base["source_sha256"],
+        },
+        "pre_model_qualification": {
+            "path": pre_model_qualification["path"],
+            "sha256": pre_model_qualification["sha256"],
+            "manifest_sha256": pre_model_qualification["manifest_sha256"],
+            "status": "passed_1786_of_1786_zero_model",
         },
         "selector": {
             "reference_role": "v25_zero_shot_reference_read_only",
@@ -863,9 +902,14 @@ def _prepare_route(
     schedule: Mapping[str, Any],
     family_by_id: Mapping[str, Mapping[str, Any]],
     base: Mapping[str, Any],
+    qualified_unit: Mapping[str, Any],
 ) -> tuple[dict[str, Any] | None, str | None]:
     route_path = output_dir / "route_assets" / f"{unit_index:04d}.pkl"
     route_sha = _route_asset(route_type, schedule["route_record"], route_path)
+    record = dict(schedule["route_record"])
+    projection = v26_source_projection_binding(
+        Path(str(record["source_map_path"])), str(record["source_map_sha256"])
+    )
     signal, failure = _signal_config(
         schedule=schedule,
         family=family_by_id[str(schedule["family_id"])],
@@ -873,6 +917,15 @@ def _prepare_route(
     )
     if failure is not None:
         return None, failure
+    if (
+        projection["projection_sha256"]
+        != qualified_unit["source_projection"].get("projection_sha256")
+        or signal["source_signal_authority"]["source_signal_authority_identity_sha256"]
+        != qualified_unit["signal"]["source_provenance"].get(
+            "source_signal_authority_identity_sha256"
+        )
+    ):
+        return None, "pre_model_qualification_source_binding_drifted"
     seed = SCENARIO_SEED_BASE + unit_index
     config = _route_probe_config(
         base=base,
@@ -882,9 +935,15 @@ def _prepare_route(
         scenario_seed=seed,
         signal=signal,
     )
+    config["source_projection"] = projection
     signal_binding = resolve_v26_signal_adapter(config)
     _atomic_write_json(output_dir / "route_configs" / f"{unit_index:04d}.json", config)
-    return {"config": config, "signal": signal_binding, "scenario_seed": seed}, None
+    return {
+        "config": config,
+        "signal": signal_binding,
+        "projection": projection,
+        "scenario_seed": seed,
+    }, None
 
 
 def run(args: argparse.Namespace) -> Path:
@@ -901,8 +960,19 @@ def run(args: argparse.Namespace) -> Path:
     fixed_dp_repo = args.fixed_dp_repo.resolve()
     if _tracked_changes(fixed_dp_repo) or _git_head(fixed_dp_repo) != FIXED_DP_HEAD:
         raise ValueError("V26 Stage8b requires an exact clean fixed-DP checkout")
+    qualification = _require_pre_model_qualification(
+        args.pre_model_qualification,
+        route_plan=route_plan,
+        camp_head=args.expected_camp_head,
+    )
     assets = _load_zero_shot_reference_selector_assets(args)
-    manifest = _manifest(route_plan=route_plan, base=base, camp_head=args.expected_camp_head, assets=assets)
+    manifest = _manifest(
+        route_plan=route_plan,
+        base=base,
+        camp_head=args.expected_camp_head,
+        assets=assets,
+        pre_model_qualification=qualification,
+    )
     if output_dir.exists():
         raise FileExistsError(f"V26 Stage8b output already exists: {output_dir}")
     with _exclusive_worker_lock(args.worker_lock.resolve()):
@@ -913,10 +983,6 @@ def run(args: argparse.Namespace) -> Path:
             if str(path) not in sys.path:
                 sys.path.insert(0, str(path))
         enforce_v26_dp312_lanelet2_precedence()
-        from camp_core.integrations.diffusion_planner import (  # noqa: PLC0415
-            install_lanelet2_projection_fallback,
-            require_source_preserving_lanelet2_regulatory_adapter,
-        )
         from scripts.integrations.run_diffusion_planner_camp_replay import _load_model  # noqa: PLC0415
         from scripts.integrations.run_diffusion_planner_dp_camp_v21_native import (  # noqa: PLC0415
             _install_fixed_dp_annotation_compatibility,
@@ -947,6 +1013,7 @@ def run(args: argparse.Namespace) -> Path:
                         schedule=schedule,
                         family_by_id=family_by_id,
                         base=base,
+                        qualified_unit=qualification["units"][index],
                     )
                     if failure is not None:
                         ledger.record(
@@ -975,17 +1042,6 @@ def run(args: argparse.Namespace) -> Path:
                     )
             if prepared:
                 _install_fixed_dp_annotation_compatibility(fixed_dp_repo)
-                # Each map source is rechecked before it reaches the native
-                # fixed-DP bridge; no V25 map/signal default is available.
-                for map_path in sorted(
-                    {
-                        str(item["route_record"]["source_map_path"])
-                        for item in route_plan["routes"]
-                    }
-                ):
-                    source_map = Path(map_path)
-                    require_source_preserving_lanelet2_regulatory_adapter(source_map)
-                    install_lanelet2_projection_fallback(source_map)
                 model, model_args = _load_model(
                     Path(base["fixed_dp"]["checkpoint"]["path"]),
                     Path(base["fixed_dp"]["args_json"]["path"]),
@@ -1012,26 +1068,27 @@ def run(args: argparse.Namespace) -> Path:
                             )
                         )
 
-                    receipts, callback, native_result = run_v26_native_same_ego_b8_replay(
-                        config=prepared_item["config"],
-                        model=model,
-                        model_args=model_args,
-                        tensor_converter=tensor_converter,
-                        replay=replay,
-                        builder_type=LaneletSceneBuilder,
-                        route_type=Route,
-                        fixed_dp_repo=fixed_dp_repo,
-                        selector_assets=assets,
-                        signal_adapter=prepared_item["signal"].adapter,
-                        integration_boundary=build_v26_integration_boundary(
-                            signal=prepared_item["signal"],
-                            reference_weights_root_sha256=assets.reference_weights_root_sha256,
-                        ),
-                        device=args.device,
-                        max_ticks=1,
-                        scratch_parent=output_dir.parent,
-                        on_completed_unit=on_completed,
-                    )
+                    with v26_source_bound_projection(prepared_item["projection"]):
+                        receipts, callback, native_result = run_v26_native_same_ego_b8_replay(
+                            config=prepared_item["config"],
+                            model=model,
+                            model_args=model_args,
+                            tensor_converter=tensor_converter,
+                            replay=replay,
+                            builder_type=LaneletSceneBuilder,
+                            route_type=Route,
+                            fixed_dp_repo=fixed_dp_repo,
+                            selector_assets=assets,
+                            signal_adapter=prepared_item["signal"].adapter,
+                            integration_boundary=build_v26_integration_boundary(
+                                signal=prepared_item["signal"],
+                                reference_weights_root_sha256=assets.reference_weights_root_sha256,
+                            ),
+                            device=args.device,
+                            max_ticks=1,
+                            scratch_parent=output_dir.parent,
+                            on_completed_unit=on_completed,
+                        )
                     if ledger.units[index] is None:
                         raw = receipts[0] if receipts else None
                         ledger.record(
@@ -1063,6 +1120,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--reference-weights-review-root", required=True)
     parser.add_argument("--fixed-dp-repo", type=Path, required=True)
     parser.add_argument("--expected-camp-head", required=True)
+    parser.add_argument("--pre-model-qualification", type=Path, required=True)
     parser.add_argument("--device", choices=("cuda",), default="cuda")
     return parser.parse_args(argv)
 
