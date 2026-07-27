@@ -31,6 +31,11 @@ from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import 
     PRODUCTION_SURFACE_ID,
     validate_target_bounded_tick_receipt,
 )
+from camp_core.integrations.diffusion_planner_v26_autoware_sidecar_signal import (  # noqa: E402
+    V26AutowareSidecarSignalAdapter,
+    load_autoware_sidecar_binding,
+    validate_autoware_sidecar_signal_receipt,
+)
 
 
 MIN_FREE_BYTES = 10 * 1024**3
@@ -154,6 +159,7 @@ def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
     )
     import numpy as np
 
+    signal_authority, _ = load_autoware_sidecar_binding(config)
     manifest = build_development_smoke_manifest(
         camp_head=_git_head(ROOT),
         probe_config_sha256=_file_sha256(config_path),
@@ -173,8 +179,20 @@ def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
         static14d_weights_sha256=array_sha256(
             np.asarray(assets.static14d_weights, dtype=np.float64)
         ),
+        signal_authority=signal_authority,
     )
     return manifest, config, assets
+
+
+def _sidecar_bound_builder_type(builder_type: type[Any], adapter: Any) -> type[Any]:
+    """Bind the live route graph to the V26 adapter without changing V25 code."""
+
+    class SidecarBoundBuilder(builder_type):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            super().__init__(*args, **kwargs)
+            adapter.bind_builder(self)
+
+    return SidecarBoundBuilder
 
 
 def _resource_precheck(output_dir: Path, device: str, torch: Any) -> None:
@@ -230,6 +248,12 @@ def _completed_unit(raw: Mapping[str, Any], callback: Any) -> dict[str, Any]:
     simulator = dict(v26_tick["simulator_selected_row"])
     metadata = dict(raw["same_ego_batch_metadata"])
     forward = dict(v26_tick["forward_topology"])
+    controlled = raw.get("controlled_scene")
+    if type(controlled) is not dict or type(controlled.get("signal_authority")) is not dict:
+        raise ValueError("V26 one-state smoke lacks the bound sidecar signal receipt")
+    signal_authority = validate_autoware_sidecar_signal_receipt(
+        controlled["signal_authority"]
+    )
     return {
         "unit_index": 0,
         "operational_arm": SMOKE_ARM,
@@ -288,6 +312,7 @@ def _completed_unit(raw: Mapping[str, Any], callback: Any) -> dict[str, Any]:
             "selected_row_sha256": str(selector["selected_row_sha256"]),
         },
         "simulator": {"selected_row_sha256": str(simulator["simulator_row_sha256"])},
+        "signal_authority": signal_authority,
         "terminal": {"status": "complete", "failure_class": None, "failure_reason": None},
     }
 
@@ -378,6 +403,11 @@ def run(args: argparse.Namespace) -> Path:
         map_path = Path(config["map"]["path"])
         require_source_preserving_lanelet2_regulatory_adapter(map_path)
         install_lanelet2_projection_fallback(map_path)
+        signal_binding, sidecar_manifest = load_autoware_sidecar_binding(config)
+        adapter = V26AutowareSidecarSignalAdapter(
+            binding=signal_binding,
+            sidecar_manifest=sidecar_manifest,
+        )
         model, model_args = _load_model(
             Path(config["fixed_dp"]["checkpoint"]["path"]),
             Path(config["fixed_dp"]["args_json"]["path"]),
@@ -390,7 +420,7 @@ def run(args: argparse.Namespace) -> Path:
             model_args=model_args,
             tensor_converter=tensor_converter,
             replay=replay,
-            builder_type=LaneletSceneBuilder,
+            builder_type=_sidecar_bound_builder_type(LaneletSceneBuilder, adapter),
             route_type=Route,
             fixed_dp_repo=fixed_dp_repo,
             assets=assets,
@@ -403,6 +433,7 @@ def run(args: argparse.Namespace) -> Path:
             production_surface_id=PRODUCTION_SURFACE_ID,
             production_surface_options=V26_TARGET_OPTIONS,
             retain_runtime_failures=True,
+            scene_adapter=adapter,
         )
         receipts = list(run_result["receipts"])
         if len(receipts) > 1:

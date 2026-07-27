@@ -49,6 +49,15 @@ def _manifest() -> dict[str, object]:
         training_review_root_sha256=_sha(6),
         atom_scales_sha256=_sha(7),
         static14d_weights_sha256=_sha(8),
+        signal_authority={
+            "schema_version": "camp_dp_v26_autoware_sidecar_binding_v1",
+            "route_sha256": _sha(2),
+            "map_sha256": _sha(70),
+            "geometry_copy_sha256": _sha(70),
+            "sidecar_index_sha256": _sha(71),
+            "sidecar_manifest_sha256": _sha(72),
+            "sidecar_source_sha256": _sha(73),
+        },
     )
 
 
@@ -101,6 +110,26 @@ def _completed_unit() -> dict[str, object]:
         },
         "selection": {"selected_index": 2, "selected_row_sha256": rows[2]},
         "simulator": {"selected_row_sha256": rows[2]},
+        "signal_authority": {
+            "schema_version": "camp_dp_v26_autoware_sidecar_signal_receipt_v1",
+            "binding": _manifest()["signal_authority"],
+            "route_lanelet_ids": [100, 443, 81],
+            "controlled_lanelet_ids": [443],
+            "regulatory_element_id": 1346,
+            "physical_light_ids": [1412, 1414, 1416],
+            "bulb_ids": [70101, 69969, 70219],
+            "stop_line_id": 1439,
+            "stop_line_geometry_sha256": _sha(74),
+            "route_graph_sha256": _sha(75),
+            "signal_chain_sha256": _sha(76),
+            "runtime_receipt_sha256": _sha(77),
+            "phase_authority_mode": "observe_same_tick_request",
+            "current_phase": "green",
+            "source_valid": True,
+            "future_schedule_consumed": False,
+            "candidate_tensor_consumed": False,
+            "selected_trajectory_consumed": False,
+        },
         "terminal": {"status": "complete", "failure_class": None, "failure_reason": None},
     }
 
@@ -139,6 +168,7 @@ def test_completed_receipt_binds_one_b8_pool_candidate0_and_simulator_row() -> N
     assert unit["candidate_pool"]["candidate0"]["index"] == 0
     assert unit["forward_calls"]["primary_forward_count"] == 1
     assert unit["forward_calls"]["post_pool_dp_forward_count"] == 0
+    assert unit["signal_authority"]["binding"] == receipt["manifest"]["signal_authority"]
     assert unit["selection"]["selected_row_sha256"] == unit["simulator"]["selected_row_sha256"]
     assert not {"support", "ood", "stability", "safety", "claim"} & set(receipt)
 
@@ -154,6 +184,7 @@ def test_completed_receipt_binds_one_b8_pool_candidate0_and_simulator_row() -> N
 
 def test_typed_failure_keeps_one_unit_denominator_without_action_claim() -> None:
     failed = _completed_unit()
+    failed.pop("signal_authority")
     failed["selection"] = None
     failed["simulator"] = None
     failed["terminal"] = {
@@ -222,6 +253,9 @@ def test_runner_projects_actual_v26_tick_binding_into_one_unit_ledger() -> None:
         "same_ego_batch_size": 8,
         "nonlatent_rows_identical": True,
         "tensor_metadata": _completed_unit()["input"]["tensor_metadata"],
+    }
+    raw["controlled_scene"] = {
+        "signal_authority": _completed_unit()["signal_authority"],
     }
     runner = importlib.import_module(
         "scripts.integrations.run_diffusion_planner_v26_one_state_development_smoke"
@@ -356,6 +390,15 @@ def test_prepare_manifest_loads_scene_runtime_selector_assets_without_model(
         atom_scales=np.arange(1, 15, dtype=np.float64),
         static14d_weights=np.full(14, 1.0 / 14.0, dtype=np.float64),
     )
+    signal_binding = {
+        "schema_version": "camp_dp_v26_autoware_sidecar_binding_v1",
+        "route_sha256": route["sha256"],
+        "map_sha256": map_binding["sha256"],
+        "geometry_copy_sha256": map_binding["sha256"],
+        "sidecar_index_sha256": _sha(62),
+        "sidecar_manifest_sha256": _sha(63),
+        "sidecar_source_sha256": _sha(64),
+    }
 
     def fake_loader(**kwargs: object) -> SimpleNamespace:
         loaded.update(kwargs)
@@ -370,6 +413,9 @@ def test_prepare_manifest_loads_scene_runtime_selector_assets_without_model(
     monkeypatch.setattr(
         scene_runtime, "load_v25_runtime_selector_assets", fake_loader
     )
+    monkeypatch.setattr(
+        runner, "load_autoware_sidecar_binding", lambda _config: (signal_binding, {})
+    )
     manifest, prepared_config, assets = runner._prepare_manifest(
         argparse.Namespace(
             probe_config=config_path,
@@ -382,6 +428,7 @@ def test_prepare_manifest_loads_scene_runtime_selector_assets_without_model(
     )
     assert assets is fake_assets
     assert prepared_config["protocol"]["route_role"] == "development_nonholdout"
+    assert manifest["signal_authority"] == signal_binding
     assert manifest["selector"]["training_root_sha256"] == _sha(60)
     assert loaded == {
         "training_artifact": training.resolve(),

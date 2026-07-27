@@ -12,6 +12,10 @@ from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import 
     production_surface_manifest,
     validate_production_surface_manifest,
 )
+from camp_core.integrations.diffusion_planner_v26_autoware_sidecar_signal import (
+    validate_autoware_sidecar_binding,
+    validate_autoware_sidecar_signal_receipt,
+)
 
 
 SMOKE_MANIFEST_SCHEMA_VERSION = "camp_dp_v26_one_state_development_smoke_manifest_v1"
@@ -88,6 +92,7 @@ def build_development_smoke_manifest(
     training_review_root_sha256: str,
     atom_scales_sha256: str,
     static14d_weights_sha256: str,
+    signal_authority: Mapping[str, Any],
 ) -> dict[str, Any]:
     """Create the exact, outcome-free manifest for one Static14D invocation."""
 
@@ -139,6 +144,7 @@ def build_development_smoke_manifest(
                 "atom_scales_sha256": atom_scales_sha256,
                 "static14d_weights_sha256": static14d_weights_sha256,
             },
+            "signal_authority": dict(signal_authority),
         }
     )
 
@@ -157,6 +163,7 @@ def validate_development_smoke_manifest(value: Mapping[str, Any]) -> dict[str, A
         "probe_config_sha256",
         "fixed_dp",
         "selector",
+        "signal_authority",
     }
     if set(result) != expected:
         raise ValueError("V26 one-state smoke manifest field set drifted")
@@ -239,6 +246,9 @@ def validate_development_smoke_manifest(value: Mapping[str, Any]) -> dict[str, A
     for key, item in selector.items():
         selector[key] = _require_sha256(item, f"selector.{key}")
     result["selector"] = selector
+    result["signal_authority"] = validate_autoware_sidecar_binding(
+        result["signal_authority"]
+    )
     return result
 
 
@@ -325,6 +335,7 @@ def _validate_completed_unit(value: Any, manifest: Mapping[str, Any]) -> dict[st
             "selection",
             "simulator",
             "terminal",
+            "signal_authority",
         },
         "V26 smoke completed unit",
     )
@@ -426,6 +437,17 @@ def _validate_completed_unit(value: Any, manifest: Mapping[str, Any]) -> dict[st
     unit["forward_calls"] = _validate_forward_calls(
         unit["forward_calls"], completed=True
     )
+    signal_authority = validate_autoware_sidecar_signal_receipt(
+        unit["signal_authority"]
+    )
+    binding = manifest["signal_authority"]
+    if (
+        signal_authority["binding"] != binding
+        or signal_authority["binding"]["route_sha256"]
+        != manifest["state"]["route_sha256"]
+    ):
+        raise ValueError("V26 smoke signal authority escaped the bound sidecar route")
+    unit["signal_authority"] = signal_authority
     selection = _require_exact_keys(
         unit["selection"], {"selected_index", "selected_row_sha256"}, "V26 smoke selection"
     )
