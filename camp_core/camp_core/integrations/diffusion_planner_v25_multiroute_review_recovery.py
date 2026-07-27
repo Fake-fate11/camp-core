@@ -133,7 +133,9 @@ def exact_dirs(implementation_head: str) -> dict[str, str]:
         for role in (
             "stage_authority",
             "stage_authority_review",
+            "stage_authority_operation",
             "orchestration_focused",
+            "evaluation_review_operation",
             "evaluation_review",
             "final_docs",
         )
