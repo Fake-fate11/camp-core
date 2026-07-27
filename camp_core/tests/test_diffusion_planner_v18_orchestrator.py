@@ -465,6 +465,103 @@ def test_materialize_canonical_14d_uses_real_sources_and_feasible_progress() -> 
     )
 
 
+def test_materialization_phase_receipt_is_telemetry_only_for_atom_and_selection_fixture() -> None:
+    from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+        build_no_signal_causal_atom_input,
+        build_runtime_no_signal_receipt,
+    )
+    from scripts.integrations.run_diffusion_planner_dp_camp_v19_worker import (
+        select_camp_candidate,
+    )
+    from scripts.integrations.validate_diffusion_planner_v25_fair_nonholdout import (
+        _build_no_signal_chain,
+    )
+
+    class _Lanelet:
+        @staticmethod
+        def trafficLights():
+            return []
+
+    class _CachedLanelet:
+        raw_centerline = np.asarray([[0.0, 0.0], [40.0, 0.0]])
+
+    class _Builder:
+        _ll_by_id = {1: _Lanelet()}
+        _cache = {1: _CachedLanelet()}
+
+    candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
+    candidates = candidates.astype(np.float32)
+    chain = _build_no_signal_chain(
+        builder=_Builder(),
+        route_ids=[1],
+        map_sha256="a" * 64,
+        route_sha256="b" * 64,
+    )
+    runtime_signal = build_runtime_no_signal_receipt(
+        chain,
+        scenario_id=chain["scenario_id"],
+        tick_index=0,
+        decision_time_s=0.0,
+    )
+    kwargs = {
+        "candidates": candidates,
+        "causal_input": causal_input,
+        "neighbor_predictions": neighbors,
+        "neighbor_valid_mask": valid,
+        "signal_mask": np.ones(8, dtype=bool),
+        "planned_red_light_cost": np.zeros(8, dtype=np.float64),
+        "causal_signal_atom_input": build_no_signal_causal_atom_input(
+            chain, runtime_signal
+        ),
+        "dt": np.float32(0.1),
+        "eligibility_policy": "v22_source_valid",
+    }
+    baseline = causal_atoms.materialize_canonical_14d(**kwargs)
+    phase_receipt: dict[str, object] = {}
+    instrumented = causal_atoms.materialize_canonical_14d(
+        **kwargs,
+        phase_receipt=phase_receipt,
+    )
+    assert causal_atoms.validate_materialization_phase_receipt(phase_receipt) == phase_receipt
+    assert all(row["status"] == "measured" for row in phase_receipt.values())
+    assert all(type(row["elapsed_ns"]) is int for row in phase_receipt.values())
+    assert all(row["elapsed_ns"] >= 0 for row in phase_receipt.values())
+    assert baseline["atom_matrix"].tobytes() == instrumented["atom_matrix"].tobytes()
+    np.testing.assert_array_equal(
+        baseline["physical_feasible_mask"], instrumented["physical_feasible_mask"]
+    )
+    np.testing.assert_array_equal(
+        baseline["source_valid_mask"], instrumented["source_valid_mask"]
+    )
+    scales = np.maximum(
+        np.max(np.asarray(baseline["atom_matrix"], dtype=np.float64), axis=0),
+        1.0,
+    )
+    weights = np.full(14, 1.0 / 14.0, dtype=np.float64)
+    baseline_selection = select_camp_candidate(
+        candidates=candidates,
+        materialized=baseline,
+        atom_scales=scales,
+        weights=weights,
+        eligibility_mask_name="source_valid_mask",
+        simplex_nonnegative_atol=1e-9,
+    )
+    instrumented_selection = select_camp_candidate(
+        candidates=candidates,
+        materialized=instrumented,
+        atom_scales=scales,
+        weights=weights,
+        eligibility_mask_name="source_valid_mask",
+        simplex_nonnegative_atol=1e-9,
+    )
+    assert baseline_selection["selected_index"] == instrumented_selection["selected_index"]
+    assert baseline_selection["scores"].tobytes() == instrumented_selection["scores"].tobytes()
+    assert (
+        baseline_selection["selected_trajectory"].tobytes()
+        == instrumented_selection["selected_trajectory"].tobytes()
+    )
+
+
 def test_materialize_canonical_14d_rejects_expert_future_at_causal_boundary() -> None:
     candidates, causal_input, neighbors, valid = _canonical_14d_fixture()
     causal_input["expert_ego_future"] = np.full((80, 3), 999.0)

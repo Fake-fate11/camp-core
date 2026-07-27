@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
-from typing import Any, Mapping
+import time
+from typing import Any, Mapping, MutableMapping
 
 import numpy as np
 
@@ -41,6 +42,12 @@ V22_SOURCE_VALID_ELIGIBILITY = "v22_source_valid"
 _ELIGIBILITY_POLICIES = frozenset(
     {V21_PHYSICAL_ELIGIBILITY, V22_SOURCE_VALID_ELIGIBILITY}
 )
+MATERIALIZATION_PHASE_NAMES = (
+    "projection",
+    "obb_build",
+    "candidate_tick_obstacle_feasibility",
+    "atom_arithmetic",
+)
 CANONICAL_NORMALIZED_ATOM_CLIP = 10.0
 V25_PLANNED_RED_LIGHT_SCALE_FLOOR = 1.0
 # Fixed DP directly regresses the two heading channels and consumes their angle
@@ -67,6 +74,62 @@ _FRESH_FAILURE_PAIR_AUTHORITY_FIELDS = frozenset(
         "initial_input_sha256",
     }
 )
+
+
+def materialization_phase_receipt_not_available() -> dict[str, dict[str, object]]:
+    """Return the explicit no-work receipt used by baseline/no-atom paths."""
+
+    return {
+        name: {"status": "not_available", "elapsed_ns": None}
+        for name in MATERIALIZATION_PHASE_NAMES
+    }
+
+
+def validate_materialization_phase_receipt(
+    value: Mapping[str, object],
+) -> dict[str, dict[str, object]]:
+    if type(value) is not dict or set(value) != set(MATERIALIZATION_PHASE_NAMES):
+        raise ValueError("materialization phase receipt field set drifted")
+    result: dict[str, dict[str, object]] = {}
+    for name in MATERIALIZATION_PHASE_NAMES:
+        row = value[name]
+        if type(row) is not dict or set(row) != {"status", "elapsed_ns"}:
+            raise ValueError("materialization phase receipt row drifted")
+        status = row["status"]
+        elapsed_ns = row["elapsed_ns"]
+        if status == "not_available":
+            if elapsed_ns is not None:
+                raise ValueError("unavailable materialization phase cannot have timing")
+        elif status == "measured":
+            if type(elapsed_ns) is not int or elapsed_ns < 0:
+                raise ValueError("measured materialization phase needs nonnegative ns")
+        else:
+            raise ValueError("materialization phase status drifted")
+        result[name] = {"status": status, "elapsed_ns": elapsed_ns}
+    return result
+
+
+def _initialize_materialization_phase_receipt(
+    phase_receipt: MutableMapping[str, object] | None,
+) -> None:
+    if phase_receipt is None:
+        return
+    phase_receipt.clear()
+    phase_receipt.update(materialization_phase_receipt_not_available())
+
+
+def _record_materialization_phase(
+    phase_receipt: MutableMapping[str, object] | None,
+    *,
+    name: str,
+    started_ns: int,
+) -> None:
+    if phase_receipt is None:
+        return
+    phase_receipt[name] = {
+        "status": "measured",
+        "elapsed_ns": int(time.perf_counter_ns() - started_ns),
+    }
 
 
 class FixedDpCandidateGenerationCapabilityFailure(ValueError):
@@ -1037,7 +1100,9 @@ def materialize_canonical_14d(
     dt: float,
     speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
     eligibility_policy: str = V21_PHYSICAL_ELIGIBILITY,
+    phase_receipt: MutableMapping[str, object] | None = None,
 ) -> dict[str, object]:
+    _initialize_materialization_phase_receipt(phase_receipt)
     if eligibility_policy not in _ELIGIBILITY_POLICIES:
         raise ValueError(
             f"eligibility_policy must be one of {sorted(_ELIGIBILITY_POLICIES)}"
@@ -1058,6 +1123,7 @@ def materialize_canonical_14d(
     ):
         raise ValueError("planned_red_light_cost must be finite nonnegative [8]")
 
+    projection_started_ns = time.perf_counter_ns()
     projection = project_candidates_to_route(
         trajectories,
         causal_input["route_lanes"],
@@ -1065,18 +1131,35 @@ def materialize_canonical_14d(
         causal_input["route_lanes_has_speed_limit"],
         speed_source_policy=speed_source_policy,
     )
+    _record_materialization_phase(
+        phase_receipt,
+        name="projection",
+        started_ns=projection_started_ns,
+    )
+    obb_build_started_ns = time.perf_counter_ns()
     obstacle_obbs = build_observable_obbs(
         neighbor_predictions,
         neighbor_valid_mask,
         causal_input["neighbor_agents_past"],
         causal_input["static_objects"],
     )
+    _record_materialization_phase(
+        phase_receipt,
+        name="obb_build",
+        started_ns=obb_build_started_ns,
+    )
+    feasibility_started_ns = time.perf_counter_ns()
     feasibility = observable_feasibility(
         trajectories,
         signal_mask,
         projection,
         obstacle_obbs,
         causal_input["ego_shape"],
+    )
+    _record_materialization_phase(
+        phase_receipt,
+        name="candidate_tick_obstacle_feasibility",
+        started_ns=feasibility_started_ns,
     )
     source_complete = np.asarray(
         projection["route_speed_source_eligible_mask"], dtype=bool
@@ -1155,6 +1238,7 @@ def materialize_canonical_14d(
             return result
         eligibility = source_valid
 
+    atom_arithmetic_started_ns = time.perf_counter_ns()
     xy = trajectories[:, :, :2]
     velocity = np.diff(xy, axis=1) / float(dt)
     acceleration = np.diff(velocity, axis=1) / float(dt)
@@ -1275,6 +1359,11 @@ def materialize_canonical_14d(
             "canonical_eligible": True,
             "progress_reference": progress_reference,
         }
+    )
+    _record_materialization_phase(
+        phase_receipt,
+        name="atom_arithmetic",
+        started_ns=atom_arithmetic_started_ns,
     )
     return result
 

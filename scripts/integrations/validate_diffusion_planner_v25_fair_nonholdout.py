@@ -71,6 +71,10 @@ from camp_core.integrations.diffusion_planner_v25_semantic_authority import (  #
     canonical_json_sha256,
     validate_no_signal_chain,
 )
+from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import (  # noqa: E402
+    build_target_bounded_tick_receipt,
+    validate_production_surface_options,
+)
 from scripts.integrations.materialize_diffusion_planner_v25_evaluation_v2 import (  # noqa: E402
     _load_root_bound_geometry,
 )
@@ -111,6 +115,8 @@ class _FairPredictBatch:
         evaluate_all_arms: bool,
         adaptation_diagnostics: bool,
         causal_signal_chain: Mapping[str, Any] | None,
+        production_surface_id: str | None = None,
+        production_surface_options: Mapping[str, Any] | None = None,
         scene_adapter: Any | None = None,
         latent_provider: Callable[[int], np.ndarray] | None = None,
     ) -> None:
@@ -127,8 +133,28 @@ class _FairPredictBatch:
         self.state = state
         self.max_ticks = max_ticks
         self.operational_arm = operational_arm
+        if (production_surface_id is None) != (production_surface_options is None):
+            raise ValueError("production surface id/options must be supplied together")
+        if production_surface_id is None:
+            normalized_production_surface_options = None
+        else:
+            normalized_production_surface_options = validate_production_surface_options(
+                production_surface_id=production_surface_id,
+                options=production_surface_options,
+            )
+            if (
+                evaluate_all_arms
+                is not normalized_production_surface_options["evaluate_all_arms"]
+                or adaptation_diagnostics
+                is not normalized_production_surface_options["adaptation_diagnostics"]
+            ):
+                raise ValueError(
+                    "V26 production options must exactly bind callback execution flags"
+                )
         self.evaluate_all_arms = evaluate_all_arms
         self.adaptation_diagnostics = adaptation_diagnostics
+        self.production_surface_id = production_surface_id
+        self.production_surface_options = normalized_production_surface_options
         self.causal_signal_chain = (
             None if causal_signal_chain is None else dict(causal_signal_chain)
         )
@@ -148,6 +174,7 @@ class _FairPredictBatch:
         self.model_call_count = 0
 
         from camp_core.integrations.diffusion_planner_causal_atoms import (
+            materialization_phase_receipt_not_available,
             materialize_canonical_14d,
             validate_fixed_k8_candidate_tensor,
         )
@@ -160,6 +187,9 @@ class _FairPredictBatch:
         )
 
         self.materialize = materialize_canonical_14d
+        self.materialization_phase_receipt_not_available = (
+            materialization_phase_receipt_not_available
+        )
         self.validate_candidates = validate_fixed_k8_candidate_tensor
         self.red_cost = _fixed_dp_red_cost
         self.signal_mask = candidate_signal_source_available_mask
@@ -296,7 +326,9 @@ class _FairPredictBatch:
 
         rng_before = _rng_sha256(torch)
         pool_started = time.perf_counter_ns()
+        model_calls_before_primary = self.model_call_count
         primary_outputs = self._forward(combined)
+        primary_forward_count = self.model_call_count - model_calls_before_primary
         primary_prediction = _prediction_array(
             primary_outputs, 8 + len(other_indices)
         )
@@ -569,30 +601,47 @@ class _FairPredictBatch:
 
         selected = primary_eval["arms"][self.operational_arm]
         if selected.get("status") != "ok":
-            receipt.update(
-                {
-                    "status": "typed_selector_failure",
-                    "failure_class": "selector_functional_failure",
-                    "failure_reason": selected.get("failure_reason"),
-                    "state_sha256": state_sha,
-                    "input_sha256": expanded_input_sha,
-                    "source_input_sha256": source_input_sha,
-                    "latent_seed": latent_seed,
-                    "latent_shape": list(latent_np.shape),
-                    "latent_dtype": str(latent_np.dtype),
-                    "latent_tensor_sha256": array_sha256(latent_np),
-                    "latent_row_sha256": latent_row_sha,
-                    "candidate_tensor_sha256_before": before_sha,
-                    "candidate_tensor_sha256_after": after_sha,
-                    "candidate_row_sha256": row_sha,
-                    "candidate_neighbor_sha256": array_sha256(neighbors),
-                    "pool_id": pool_id,
-                    "forward_invocation_id": forward_id,
-                    "primary_pool_model_call_count": 1,
-                    "zero_call_receipt": zero_call,
-                    "real_selector_receipts": primary_eval["arms"],
-                }
+            failure_fields = {
+                "status": "typed_selector_failure",
+                "failure_class": "selector_functional_failure",
+                "failure_reason": selected.get("failure_reason"),
+                "state_sha256": state_sha,
+                "input_sha256": expanded_input_sha,
+                "source_input_sha256": source_input_sha,
+                "latent_seed": latent_seed,
+                "latent_shape": list(latent_np.shape),
+                "latent_dtype": str(latent_np.dtype),
+                "latent_tensor_sha256": array_sha256(latent_np),
+                "latent_row_sha256": latent_row_sha,
+                "candidate_tensor_sha256_before": before_sha,
+                "candidate_tensor_sha256_after": after_sha,
+                "candidate_row_sha256": row_sha,
+                "candidate_neighbor_sha256": array_sha256(neighbors),
+                "pool_id": pool_id,
+                "forward_invocation_id": forward_id,
+                "primary_pool_model_call_count": primary_forward_count,
+                "zero_call_receipt": zero_call,
+                "real_selector_receipts": primary_eval["arms"],
+            }
+            v26_receipt = self._build_v26_production_receipt(
+                tick_index=tick,
+                state_sha256=state_sha,
+                candidate_pool_sha256_before=before_sha,
+                candidate_pool_sha256_after=after_sha,
+                primary_forward_count=primary_forward_count,
+                sequential_forward_count=(
+                    calls_after_adaptation - calls_before_adaptation
+                ),
+                zero_call_receipt=zero_call,
+                selector_receipt=selected,
+                simulator_selected_row_sha256=None,
+                materialization_phase_receipt=primary_eval["summary"].get(
+                    "atom_materialization_phase_receipt"
+                ),
             )
+            if v26_receipt is not None:
+                failure_fields["v26_production_surface_receipt"] = v26_receipt
+            receipt.update(failure_fields)
             raise RuntimeError(
                 f"{self.operational_arm} selector failed: "
                 f"{selected.get('failure_reason')}"
@@ -619,8 +668,24 @@ class _FairPredictBatch:
                 other_id = agent_ids[original_index]
                 turns[other_id] = expanded_turns[other_id]
 
-        receipt.update(
-            {
+        v26_receipt = self._build_v26_production_receipt(
+            tick_index=tick,
+            state_sha256=state_sha,
+            candidate_pool_sha256_before=before_sha,
+            candidate_pool_sha256_after=after_sha,
+            primary_forward_count=primary_forward_count,
+            sequential_forward_count=(
+                calls_after_adaptation - calls_before_adaptation
+            ),
+            zero_call_receipt=zero_call,
+            selector_receipt=selected,
+            simulator_selected_row_sha256=array_sha256(direct_predictions[ego_id]),
+            materialization_phase_receipt=primary_eval["summary"].get(
+                "atom_materialization_phase_receipt"
+            ),
+        )
+
+        success_fields = {
                 "status": "ok",
                 "state_sha256": state_sha,
                 "input_sha256": expanded_input_sha,
@@ -639,7 +704,7 @@ class _FairPredictBatch:
                 "candidate_neighbor_dtype": str(neighbors.dtype),
                 "pool_id": pool_id,
                 "forward_invocation_id": forward_id,
-                "primary_pool_model_call_count": 1,
+                "primary_pool_model_call_count": primary_forward_count,
                 "zero_call_receipt": zero_call,
                 "real_selector_receipts": primary_eval["arms"],
                 "materialized_summary": primary_eval["summary"],
@@ -651,7 +716,9 @@ class _FairPredictBatch:
                 "global_rng_sha256_before": rng_before,
                 "global_rng_sha256_after": rng_after,
             }
-        )
+        if v26_receipt is not None:
+            success_fields["v26_production_surface_receipt"] = v26_receipt
+        receipt.update(success_fields)
         for name, value in primary_eval["latency_ms"].items():
             receipt["latency_ms"][name] = value
         receipt["latency_ms"]["end_to_end"] = _ms(started_ns)
@@ -701,6 +768,39 @@ class _FairPredictBatch:
             outputs = dict(outputs)
         return outputs
 
+    def _build_v26_production_receipt(
+        self,
+        *,
+        tick_index: int,
+        state_sha256: str,
+        candidate_pool_sha256_before: str,
+        candidate_pool_sha256_after: str,
+        primary_forward_count: int,
+        sequential_forward_count: int,
+        zero_call_receipt: Mapping[str, Any],
+        selector_receipt: Mapping[str, Any],
+        simulator_selected_row_sha256: str | None,
+        materialization_phase_receipt: Mapping[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if self.production_surface_id is None:
+            return None
+        assert self.production_surface_options is not None
+        return build_target_bounded_tick_receipt(
+            production_surface_id=self.production_surface_id,
+            options=self.production_surface_options,
+            operational_arm=self.operational_arm,
+            tick_index=tick_index,
+            state_sha256=state_sha256,
+            candidate_pool_sha256_before=candidate_pool_sha256_before,
+            candidate_pool_sha256_after=candidate_pool_sha256_after,
+            primary_forward_count=primary_forward_count,
+            sequential_forward_count=sequential_forward_count,
+            zero_call_receipt=zero_call_receipt,
+            selector_receipt=selector_receipt,
+            simulator_selected_row_sha256=simulator_selected_row_sha256,
+            materialization_phase_receipt=materialization_phase_receipt,
+        )
+
     def _evaluate_pool(
         self,
         *,
@@ -720,6 +820,28 @@ class _FairPredictBatch:
         if not selector_arms:
             if evaluate_arms != ["pool_matched_candidate0"]:
                 raise ValueError("baseline-only selector arm inventory drifted")
+            summary = {
+                "atom_matrix": None,
+                "atom_matrix_sha256": None,
+                "physical_feasible_mask": None,
+                "source_valid_mask": None,
+                "candidate_reasons": None,
+                "canonical_eligible": None,
+                "exclusion_reason": None,
+                "context": None,
+                "scene_weights": None,
+                "scene_weights_sha256": None,
+                "uncalled_stages": [
+                    "atoms",
+                    "context",
+                    "weights",
+                    "selector_incremental",
+                ],
+            }
+            if self.production_surface_id is not None:
+                summary["atom_materialization_phase_receipt"] = (
+                    self.materialization_phase_receipt_not_available()
+                )
             return {
                 "materialized": None,
                 "arms": {
@@ -740,24 +862,7 @@ class _FairPredictBatch:
                     "weights": None,
                     "selector_incremental": None,
                 },
-                "summary": {
-                    "atom_matrix": None,
-                    "atom_matrix_sha256": None,
-                    "physical_feasible_mask": None,
-                    "source_valid_mask": None,
-                    "candidate_reasons": None,
-                    "canonical_eligible": None,
-                    "exclusion_reason": None,
-                    "context": None,
-                    "scene_weights": None,
-                    "scene_weights_sha256": None,
-                    "uncalled_stages": [
-                        "atoms",
-                        "context",
-                        "weights",
-                        "selector_incremental",
-                    ],
-                },
+                "summary": summary,
             }
         if (
             causal is None
@@ -768,6 +873,9 @@ class _FairPredictBatch:
         ):
             raise ValueError("selector inputs missing for Static14D/Scene14D")
         atom_started = time.perf_counter_ns()
+        phase_receipt: dict[str, Any] | None = (
+            {} if self.production_surface_id is not None else None
+        )
         materialized = self.materialize(
             candidates=candidates,
             causal_input=causal,
@@ -778,6 +886,7 @@ class _FairPredictBatch:
             causal_signal_atom_input=causal_signal_atom_input,
             dt=0.1,
             eligibility_policy="v22_source_valid",
+            phase_receipt=phase_receipt,
         )
         atom_ms = _ms(atom_started)
         if array_sha256(candidates) != before:
@@ -914,6 +1023,31 @@ class _FairPredictBatch:
         if array_sha256(candidates) != before:
             raise ValueError("real selector mutated frozen pool")
         atom_matrix = np.asarray(materialized["atom_matrix"], dtype=np.float64)
+        summary = {
+            "atom_matrix": atom_matrix.tolist(),
+            "atom_matrix_sha256": array_sha256(atom_matrix),
+            "physical_feasible_mask": np.asarray(
+                materialized["physical_feasible_mask"], dtype=np.bool_
+            ).tolist(),
+            "source_valid_mask": np.asarray(
+                materialized["source_valid_mask"], dtype=np.bool_
+            ).tolist(),
+            "candidate_reasons": [
+                list(value) for value in materialized["candidate_reasons"]
+            ],
+            "canonical_eligible": bool(materialized["canonical_eligible"]),
+            "exclusion_reason": materialized.get("exclusion_reason"),
+            "context": context_payload,
+            "scene_weights": (
+                None if scene_weights is None else scene_weights.tolist()
+            ),
+            "scene_weights_sha256": (
+                None if scene_weights is None else array_sha256(scene_weights)
+            ),
+        }
+        if self.production_surface_id is not None:
+            assert phase_receipt is not None
+            summary["atom_materialization_phase_receipt"] = phase_receipt
         return {
             "materialized": materialized,
             "arms": arms,
@@ -928,28 +1062,7 @@ class _FairPredictBatch:
                     )
                 ),
             },
-            "summary": {
-                "atom_matrix": atom_matrix.tolist(),
-                "atom_matrix_sha256": array_sha256(atom_matrix),
-                "physical_feasible_mask": np.asarray(
-                    materialized["physical_feasible_mask"], dtype=np.bool_
-                ).tolist(),
-                "source_valid_mask": np.asarray(
-                    materialized["source_valid_mask"], dtype=np.bool_
-                ).tolist(),
-                "candidate_reasons": [
-                    list(value) for value in materialized["candidate_reasons"]
-                ],
-                "canonical_eligible": bool(materialized["canonical_eligible"]),
-                "exclusion_reason": materialized.get("exclusion_reason"),
-                "context": context_payload,
-                "scene_weights": (
-                    None if scene_weights is None else scene_weights.tolist()
-                ),
-                "scene_weights_sha256": (
-                    None if scene_weights is None else array_sha256(scene_weights)
-                ),
-            },
+            "summary": summary,
         }
 
 
@@ -1312,6 +1425,8 @@ def _run_one(
     evaluate_all_arms: bool,
     adaptation_diagnostics: bool,
     scratch_parent: Path,
+    production_surface_id: str | None = None,
+    production_surface_options: Mapping[str, Any] | None = None,
     scene_adapter: Any | None = None,
     latent_provider: Callable[[int], np.ndarray] | None = None,
     post_safety_enricher: Callable[[dict[str, Any], Any], None] | None = None,
@@ -1354,6 +1469,8 @@ def _run_one(
         evaluate_all_arms=evaluate_all_arms,
         adaptation_diagnostics=adaptation_diagnostics,
         causal_signal_chain=causal_signal_chain,
+        production_surface_id=production_surface_id,
+        production_surface_options=production_surface_options,
         scene_adapter=scene_adapter,
         latent_provider=latent_provider,
     )

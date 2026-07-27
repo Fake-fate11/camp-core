@@ -54,6 +54,14 @@ from camp_core.integrations.diffusion_planner_v25_industrial_evaluation_contract
 from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa: E402
     load_v25_runtime_selector_assets,
 )
+from camp_core.integrations.diffusion_planner_v26_target_bounded_surface import (  # noqa: E402
+    CLOSED_LOOP_COMPUTE_SCOPE,
+    PRODUCTION_SURFACE_ID,
+    production_surface_manifest,
+    validate_production_surface_manifest,
+    validate_v26_stage2_authority,
+    validate_target_bounded_tick_receipt,
+)
 from scripts.integrations._diffusion_planner_v25_industrial_artifact_common import (  # noqa: E402
     git_head,
     object_from,
@@ -74,6 +82,16 @@ from scripts.integrations.validate_diffusion_planner_v25_fair_nonholdout import 
 
 MIN_FREE_AFTER_BYTES = 10 * 1024**3
 PROJECTED_EXECUTION_BYTES = 2 * 1024**3
+V26_TARGET_BOUNDED_PRODUCTION_OPTIONS = {
+    "adaptation_diagnostics": False,
+    "sequential_forward_enabled": False,
+    "replay_extra_forward_enabled": False,
+    "guidance_policy": "disabled",
+    "evaluate_all_arms": False,
+}
+LEGACY_V25_PRE_ARTIFACT_REPAIR_ALLOWLIST = (
+    "scripts/integrations/run_diffusion_planner_v25_industrial_bounded_closed_loop.py",
+)
 
 
 def _interpreter_receipt() -> dict[str, Any]:
@@ -161,6 +179,10 @@ def preflight(
     fixed_dp_repo: Path,
     forbidden_clone_inventory: Path,
 ) -> str:
+    production_manifest = production_surface_manifest(
+        production_surface_id=PRODUCTION_SURFACE_ID,
+        options=V26_TARGET_BOUNDED_PRODUCTION_OPTIONS,
+    )
     if output.resolve() != Path(EXACT_DIRS["preflight"]):
         raise ValueError("preflight exact dir drifted")
     contract_report = _verify_artifact(
@@ -192,27 +214,26 @@ def preflight(
         raise ValueError("preflight upstream authority drifted")
     contract_head = str(contract_report["implementation_head"])
     live_head = git_head()
-    if contract_head != live_head:
-        ancestor = subprocess.run(
-            ["git", "merge-base", "--is-ancestor", contract_head, live_head],
-            cwd=ROOT,
-            check=False,
-        ).returncode == 0
-        repair_files = subprocess.check_output(
-            ["git", "diff", "--name-only", f"{contract_head}..{live_head}"],
-            cwd=ROOT,
-            text=True,
-        ).splitlines()
-        if (
-            not ancestor
-            or repair_files
-            != [
-                "scripts/integrations/run_diffusion_planner_v25_industrial_bounded_closed_loop.py"
-            ]
-        ):
-            raise ValueError("preflight implementation repair scope drifted")
-    else:
-        repair_files = []
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", contract_head, live_head],
+        cwd=ROOT,
+        check=False,
+    ).returncode == 0
+    repair_files = subprocess.check_output(
+        ["git", "diff", "--name-only", f"{contract_head}..{live_head}"],
+        cwd=ROOT,
+        text=True,
+    ).splitlines()
+    if repair_files == list(LEGACY_V25_PRE_ARTIFACT_REPAIR_ALLOWLIST):
+        raise ValueError(
+            "legacy V25 pre-artifact repair authority cannot authorize V26 production"
+        )
+    v26_stage2_authority = validate_v26_stage2_authority(
+        baseline_implementation_head=contract_head,
+        live_implementation_head=live_head,
+        baseline_is_ancestor=ancestor,
+        changed_files=repair_files,
+    )
     if _tracked_changes(ROOT):
         raise ValueError("preflight CAMP tracked worktree is not clean")
     fixed_dp_repo = fixed_dp_repo.resolve()
@@ -274,6 +295,9 @@ def preflight(
     report = {
         "schema_version": "camp_dp_v25_industrial_v3_bounded_preflight_v1",
         "status": "passed_before_first_model_call",
+        "production_surface_id": PRODUCTION_SURFACE_ID,
+        "v26_production_surface_manifest": production_manifest,
+        "v26_stage2_authority": v26_stage2_authority,
         "authority_sha256": AUTHORITY_SHA256,
         "bindings": {
             "contract_root_sha256": contract_root,
@@ -313,11 +337,8 @@ def preflight(
             "live_implementation_head": live_head,
             "contract_head_is_ancestor": True,
             "changed_files": repair_files,
-            "classification": (
-                "none"
-                if not repair_files
-                else "pre_artifact_cli_dispatcher_field_lifetime_fix"
-            ),
+            "classification": "versioned_v26_stage2_authorized_engineering_package",
+            "legacy_v25_allowlist_used": False,
             "scientific_contract_changed": False,
             "model_calls_before_repair": 0,
         },
@@ -418,6 +439,11 @@ def execute(
         or preflight_report.get("selector_calls") != 0
     ):
         raise ValueError("execution preflight gate drifted")
+    production_manifest = validate_production_surface_manifest(
+        preflight_report.get("v26_production_surface_manifest", {})
+    )
+    if preflight_report.get("production_surface_id") != PRODUCTION_SURFACE_ID:
+        raise ValueError("execution V26 production surface binding drifted")
     config = object_from(probe_config)
     fixed_dp_repo = fixed_dp_repo.resolve()
     if _git_head(fixed_dp_repo) != FIXED_DP_HEAD or _tracked_changes(fixed_dp_repo):
@@ -491,6 +517,8 @@ def execute(
             evaluate_all_arms=False,
             adaptation_diagnostics=False,
             scratch_parent=output.parent,
+            production_surface_id=PRODUCTION_SURFACE_ID,
+            production_surface_options=V26_TARGET_BOUNDED_PRODUCTION_OPTIONS,
             latent_provider=tick_latent,
             post_safety_enricher=_post_safety_enricher,
             retain_runtime_failures=True,
@@ -533,6 +561,32 @@ def execute(
                         "arm": arm,
                         "tick_index": index,
                         "reason": "post_pool_call_or_tensor_mutation",
+                    }
+                )
+                break
+            try:
+                v26_tick = validate_target_bounded_tick_receipt(
+                    normalized.get("v26_production_surface_receipt", {})
+                )
+            except (TypeError, ValueError):
+                hard_integrity_failures.append(
+                    {
+                        "arm": arm,
+                        "tick_index": index,
+                        "reason": "v26_production_surface_receipt_drift",
+                    }
+                )
+                break
+            if (
+                v26_tick["production_surface_id"] != PRODUCTION_SURFACE_ID
+                or v26_tick["closed_loop_compute_scope"]
+                != CLOSED_LOOP_COMPUTE_SCOPE
+            ):
+                hard_integrity_failures.append(
+                    {
+                        "arm": arm,
+                        "tick_index": index,
+                        "reason": "v26_production_surface_binding_drift",
                     }
                 )
                 break
@@ -584,6 +638,9 @@ def execute(
             else "retained_bounded_execution_failure"
         ),
         "authority_sha256": AUTHORITY_SHA256,
+        "production_surface_id": PRODUCTION_SURFACE_ID,
+        "v26_production_surface_manifest": production_manifest,
+        "closed_loop_compute_scope": CLOSED_LOOP_COMPUTE_SCOPE,
         "implementation_head": git_head(),
         "fixed_dp_head": FIXED_DP_HEAD,
         "preflight_binding": {
@@ -601,7 +658,6 @@ def execute(
         "post_pool_model_dp_latent_generation_call_count": 0,
         "hard_integrity_failures": hard_integrity_failures,
         "full_denominator_shrinkage_used": False,
-        "post_divergence_cross_arm_input_or_pool_equality_claimed": False,
         "fresh_or_b4_outcome_values_read": False,
         "old_artifact_or_cas_writes": 0,
         "claim_authorized": False,
