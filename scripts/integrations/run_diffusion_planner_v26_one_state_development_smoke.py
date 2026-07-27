@@ -139,6 +139,8 @@ def _prepare_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], dict[st
         raise ValueError("V26 smoke requires an exact clean fixed-DP checkout")
     from camp_core.integrations.diffusion_planner_v25_fair_nonholdout import (
         FIXED_DP_HEAD,
+    )
+    from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
         load_v25_runtime_selector_assets,
     )
 

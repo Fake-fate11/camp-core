@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import argparse
 import copy
+import hashlib
 import importlib
+import json
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -303,6 +306,89 @@ def test_runner_accepts_only_the_explicit_development_nonholdout_role() -> None:
     holdout["protocol"]["route_role"] = "holdout"
     with pytest.raises(ValueError, match="development_nonholdout"):
         runner._require_single_nonholdout_config(holdout)
+
+
+def test_prepare_manifest_loads_scene_runtime_selector_assets_without_model(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runner = importlib.import_module(
+        "scripts.integrations.run_diffusion_planner_v26_one_state_development_smoke"
+    )
+    scene_runtime = importlib.import_module(
+        "camp_core.integrations.diffusion_planner_v25_scene_runtime"
+    )
+
+    def write_bound_file(name: str, payload: bytes) -> dict[str, str]:
+        path = tmp_path / name
+        path.write_bytes(payload)
+        return {
+            "path": str(path),
+            "sha256": hashlib.sha256(payload).hexdigest(),
+        }
+
+    route = write_bound_file("route.pkl", b"route")
+    map_binding = write_bound_file("map.osm", b"map")
+    checkpoint = write_bound_file("model.pth", b"checkpoint")
+    args_json = write_bound_file("args.json", b"{}")
+    config_path = tmp_path / "probe.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "protocol": {
+                    "holdout_access_authorized": False,
+                    "route_role": "development_nonholdout",
+                },
+                "routes": [{"name": "development", **route}],
+                "map": map_binding,
+                "seeds": {"scenario": 17},
+                "spawn_config": {"seed": 17},
+                "fixed_dp": {"checkpoint": checkpoint, "args_json": args_json},
+            }
+        ),
+        encoding="utf-8",
+    )
+    training = tmp_path / "training"
+    training_review = tmp_path / "training_review"
+    training.mkdir()
+    training_review.mkdir()
+    loaded: dict[str, object] = {}
+    fake_assets = SimpleNamespace(
+        atom_scales=np.arange(1, 15, dtype=np.float64),
+        static14d_weights=np.full(14, 1.0 / 14.0, dtype=np.float64),
+    )
+
+    def fake_loader(**kwargs: object) -> SimpleNamespace:
+        loaded.update(kwargs)
+        return fake_assets
+
+    monkeypatch.setattr(runner, "_tracked_changes", lambda _path: False)
+    monkeypatch.setattr(
+        runner,
+        "_git_head",
+        lambda _path: "7a1d33da277a1992ec474b5383a0c963c72e04e4",
+    )
+    monkeypatch.setattr(
+        scene_runtime, "load_v25_runtime_selector_assets", fake_loader
+    )
+    manifest, prepared_config, assets = runner._prepare_manifest(
+        argparse.Namespace(
+            probe_config=config_path,
+            training=training,
+            training_root=_sha(60),
+            training_review=training_review,
+            training_review_root=_sha(61),
+            fixed_dp_repo=tmp_path / "fixed_dp",
+        )
+    )
+    assert assets is fake_assets
+    assert prepared_config["protocol"]["route_role"] == "development_nonholdout"
+    assert manifest["selector"]["training_root_sha256"] == _sha(60)
+    assert loaded == {
+        "training_artifact": training.resolve(),
+        "training_root_sha256": _sha(60),
+        "training_review_artifact": training_review.resolve(),
+        "training_review_root_sha256": _sha(61),
+    }
 
 
 def test_same_ego_batch_metadata_requires_identical_nonlatent_rows(
