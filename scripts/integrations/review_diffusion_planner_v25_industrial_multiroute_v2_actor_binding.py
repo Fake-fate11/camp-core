@@ -33,6 +33,12 @@ from camp_core.integrations.diffusion_planner_v25_industrial_multiroute_v2_evalu
     rebuild_actor_binding_literal,
     review_contract_literal,
 )
+from camp_core.integrations.diffusion_planner_v25_multiroute_review_recovery_review import (  # noqa: E402
+    EXPECTED_AUTHORITY as RECOVERY_AUTHORITY,
+    EXPECTED_EVALUATION_ROOT as RECOVERY_EVALUATION_ROOT,
+    EXPECTED_PREFLIGHT_ROOT as RECOVERY_PREFLIGHT_ROOT,
+    review_stage_authority_literal,
+)
 from scripts.integrations._diffusion_planner_v25_industrial_artifact_common import (  # noqa: E402
     object_from,
     write_atomic,
@@ -341,6 +347,8 @@ def review_evaluation(
     preflight_root: str,
     industrial_contract_dir: Path,
     superseded_evaluation_dir: Path,
+    stage_authority_dir: Path | None = None,
+    stage_authority_root: str | None = None,
 ) -> str:
     source = _verify(source_dir, source_root, "actor-binding evaluation")
     execution = _verify(
@@ -362,6 +370,32 @@ def review_evaluation(
     affected = set(expected_affected_leaf_ids())
     all_ids = [str(row["leaf_id"]) for row in leaves]
     unaffected = set(all_ids) - affected
+    recovery_authority = None
+    if stage_authority_dir is not None or stage_authority_root is not None:
+        if stage_authority_dir is None or stage_authority_root is None:
+            raise ValueError("external stage authority binding is incomplete")
+        _verify(
+            stage_authority_dir,
+            stage_authority_root,
+            "merged review recovery stage authority",
+        )
+        recovery_authority = review_stage_authority_literal(
+            object_from(stage_authority_dir / "report.json")
+        )
+        if (
+            source_root != RECOVERY_EVALUATION_ROOT
+            or source.get("preflight_root_sha256") != RECOVERY_PREFLIGHT_ROOT
+            or preflight_root != RECOVERY_PREFLIGHT_ROOT
+            or source.get("implementation_head") != recovery_authority["base_head"]
+            or source.get("continuation_sha256")
+            != recovery_authority["correction_continuation"]
+        ):
+            raise ValueError("external stage authority does not bind evaluation")
+        expected_output = Path(
+            recovery_authority["exact_dirs"]["evaluation_review"]
+        )
+    else:
+        expected_output = Path(source["exact_dirs"]["evaluation_review"])
     if (
         len(leaves) != 161
         or len(unaffected) != 118
@@ -388,7 +422,7 @@ def review_evaluation(
         or source.get("legacy_safetycost_computed") is not False
         or source.get("claim_authorized") is not False
         or source.get("five_class_flow_policy") is not True
-        or output.resolve() != Path(source["exact_dirs"]["evaluation_review"])
+        or output.resolve() != expected_output
     ):
         raise ValueError("reviewer actor-binding evaluation authority drifted")
     source_vectors = source["cluster_vectors"]
@@ -630,6 +664,24 @@ def review_evaluation(
         "model_dp_latent_pool_selector_execution_rerun_calls": 0,
         "claim_authorized": False,
         "five_class_flow_policy": True,
+        "accepted_status": (
+            "accepted_exploratory_multiroute_nonholdout_evaluation_"
+            "via_external_complete_authority_chain"
+            if recovery_authority is not None
+            else None
+        ),
+        "external_stage_authority_sha256": (
+            RECOVERY_AUTHORITY if recovery_authority is not None else None
+        ),
+        "external_stage_authority_root_sha256": (
+            stage_authority_root if recovery_authority is not None else None
+        ),
+        "evaluation_source_preflight_root_verified_from_source": (
+            source.get("preflight_root_sha256") == RECOVERY_PREFLIGHT_ROOT
+            if recovery_authority is not None
+            else None
+        ),
+        "evaluation_artifact_modified": False,
     }
     return _write_review(
         output,
@@ -673,6 +725,8 @@ def main() -> int:
     evaluation.add_argument(
         "--superseded-evaluation-dir", type=Path, required=True
     )
+    evaluation.add_argument("--stage-authority-dir", type=Path)
+    evaluation.add_argument("--stage-authority-root")
     args = parser.parse_args()
     if args.command == "failure-closeout":
         root = review_failure_closeout(
@@ -702,6 +756,8 @@ def main() -> int:
             preflight_root=args.preflight_root,
             industrial_contract_dir=args.industrial_contract_dir,
             superseded_evaluation_dir=args.superseded_evaluation_dir,
+            stage_authority_dir=args.stage_authority_dir,
+            stage_authority_root=args.stage_authority_root,
         )
     print(root)
     return 0
