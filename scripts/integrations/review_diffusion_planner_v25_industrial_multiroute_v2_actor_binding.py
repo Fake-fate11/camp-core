@@ -149,15 +149,13 @@ def _write_review(
     report: Mapping[str, Any],
     *,
     source_root: str,
+    role: str,
 ) -> str:
     return write_atomic(
         output,
         dict(report),
         {
-            "role": (
-                "industrial_v3_multiroute_v2_actor_binding_"
-                "evaluation_review"
-            ),
+            "role": role,
             "authority_sha256": EXPECTED_AUTHORITY,
             "source_root_sha256": source_root,
         },
@@ -250,7 +248,12 @@ def review_failure_closeout(
         "five_class_flow_policy": True,
         "claim_authorized": False,
     }
-    return _write_review(output, report, source_root=source_root)
+    return _write_review(
+        output,
+        report,
+        source_root=source_root,
+        role="evaluation_actor_binding_failure_closeout_review",
+    )
 
 
 def review_correction_contract(
@@ -320,7 +323,12 @@ def review_correction_contract(
         "claim_authorized": False,
         "five_class_flow_policy": True,
     }
-    return _write_review(output, report, source_root=source_root)
+    return _write_review(
+        output,
+        report,
+        source_root=source_root,
+        role="evaluation_actor_binding_correction_contract_review",
+    )
 
 
 def review_evaluation(
@@ -623,7 +631,12 @@ def review_evaluation(
         "claim_authorized": False,
         "five_class_flow_policy": True,
     }
-    return _write_review(output, report, source_root=source_root)
+    return _write_review(
+        output,
+        report,
+        source_root=source_root,
+        role="industrial_v3_multiroute_v2_actor_binding_evaluation_review",
+    )
 
 
 def main() -> int:
