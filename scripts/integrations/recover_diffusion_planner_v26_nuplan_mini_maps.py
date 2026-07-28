@@ -202,6 +202,43 @@ def assemble_staged_archives(
     }
 
 
+def validate_official_mini_layout(dataset_root: Path) -> dict[str, Any]:
+    """Validate the layout actually supplied by the official mini archive.
+
+    nuPlan v1.1 mini stores its official mini DB membership under
+    ``data/cache/mini``.  It does not ship a ``nuplan-v1.1/splits/mini``
+    directory, so the archive layout itself is the source split identity.
+    """
+
+    mini_db_root = dataset_root / "data" / "cache" / "mini"
+    maps_root = dataset_root / "maps"
+    maps_manifest = maps_root / "nuplan-maps-v1.0.json"
+    if not mini_db_root.is_dir():
+        raise ValueError("official mini DB root missing: data/cache/mini")
+    if not maps_root.is_dir() or not maps_manifest.is_file():
+        raise ValueError("official maps root or manifest is missing")
+
+    db_paths = sorted(mini_db_root.glob("*.db"))
+    map_paths = sorted(maps_root.rglob("*.gpkg"))
+    if not db_paths:
+        raise ValueError("official mini DB root contains no databases")
+    if not map_paths:
+        raise ValueError("official maps root contains no GeoPackages")
+    if not maps_manifest.read_bytes().strip():
+        raise ValueError("official maps manifest is empty")
+    for path in [*db_paths, *map_paths]:
+        with path.open("rb") as stream:
+            if stream.read(16) != b"SQLite format 3\x00":
+                raise ValueError(f"official SQLite source is unreadable: {path}")
+
+    return {
+        "official_mini_db_layout": "data/cache/mini",
+        "official_mini_db_count": len(db_paths),
+        "map_gpkg_count": len(map_paths),
+        "maps_manifest_path": "maps/nuplan-maps-v1.0.json",
+    }
+
+
 def _scenario_builder_check(python_executable: Path) -> None:
     if not python_executable.is_file():
         raise FileNotFoundError(f"scenario-builder Python is missing: {python_executable}")
@@ -287,26 +324,17 @@ def recover(args: argparse.Namespace) -> dict[str, Any]:
         extract_archive_to_fresh_stage(maps_path, maps_stage)
         extract_archive_to_fresh_stage(mini_path, mini_stage)
         assembly = assemble_staged_archives(maps_stage, mini_stage, dataset_stage)
-        db_count = sum(1 for _ in dataset_stage.rglob("*.db"))
-        map_count = sum(1 for _ in dataset_stage.rglob("*.gpkg"))
-        split_paths = sorted(
-            path for path in dataset_stage.rglob("mini")
-            if path.is_dir() and path.as_posix().endswith("nuplan-v1.1/splits/mini")
-        )
-        if db_count <= 0:
-            raise ValueError("no mini DB after explicit assembly")
-        if map_count <= 0:
-            raise ValueError("no map GPKG after explicit assembly")
-        if not split_paths:
-            raise ValueError("official mini split path missing after explicit assembly")
+        layout = validate_official_mini_layout(dataset_stage)
         _scenario_builder_check(args.scenario_builder_python)
         dataset_stage.replace(output_root / "dataset")
         raw_inventory = {
             "schema": SCHEMA,
             "role": "raw_inventory",
-            "db_count": db_count,
-            "map_gpkg_count": map_count,
+            "db_count": layout["official_mini_db_count"],
+            "map_gpkg_count": layout["map_gpkg_count"],
             "official_mini_split_present": True,
+            "official_mini_db_layout": layout["official_mini_db_layout"],
+            "maps_manifest_path": layout["maps_manifest_path"],
             "scenario_builder_import": "ok",
             "assembly": assembly,
             "input_archive_integrity_sha256": hashlib.sha256(canonical_json_bytes(integrity)).hexdigest(),

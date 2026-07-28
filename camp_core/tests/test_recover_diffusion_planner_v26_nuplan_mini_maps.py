@@ -29,8 +29,22 @@ def test_separate_staging_explicitly_assembles_matching_shared_license(tmp_path:
     module = _module()
     maps = tmp_path / "maps.zip"
     mini = tmp_path / "mini.zip"
-    _zip(maps, {"LICENSE": b"same", "maps/sample.gpkg": b"map"})
-    _zip(mini, {"LICENSE": b"same", "nuplan-v1.1/splits/mini/x": b"split", "data/sample.db": b"db"})
+    sqlite_header = b"SQLite format 3\x00" + b"fixture"
+    _zip(
+        maps,
+        {
+            "LICENSE": b"same",
+            "maps/nuplan-maps-v1.0.json": b"{}",
+            "maps/sample.gpkg": sqlite_header,
+        },
+    )
+    _zip(
+        mini,
+        {
+            "LICENSE": b"same",
+            "data/cache/mini/mini.db": sqlite_header,
+        },
+    )
 
     maps_info = module.validate_archive(
         maps,
@@ -38,7 +52,7 @@ def test_separate_staging_explicitly_assembles_matching_shared_license(tmp_path:
         expected_sha256=module.sha256_path(maps),
         label="maps",
     )
-    assert maps_info["file_member_count"] == 2
+    assert maps_info["file_member_count"] == 3
     maps_stage = tmp_path / "maps.stage"
     mini_stage = tmp_path / "mini.stage"
     dataset_stage = tmp_path / "dataset.stage"
@@ -47,8 +61,22 @@ def test_separate_staging_explicitly_assembles_matching_shared_license(tmp_path:
     assembly = module.assemble_staged_archives(maps_stage, mini_stage, dataset_stage)
     assert assembly["shared_file_count"] == 1
     assert (dataset_stage / "LICENSE").read_bytes() == b"same"
-    assert (dataset_stage / "maps/sample.gpkg").read_bytes() == b"map"
-    assert (dataset_stage / "data/sample.db").read_bytes() == b"db"
+    assert (dataset_stage / "maps/sample.gpkg").read_bytes() == sqlite_header
+    layout = module.validate_official_mini_layout(dataset_stage)
+    assert layout == {
+        "official_mini_db_layout": "data/cache/mini",
+        "official_mini_db_count": 1,
+        "map_gpkg_count": 1,
+        "maps_manifest_path": "maps/nuplan-maps-v1.0.json",
+    }
+
+
+def test_official_mini_layout_rejects_placeholder_split_path(tmp_path: Path) -> None:
+    module = _module()
+    dataset = tmp_path / "dataset"
+    (dataset / "nuplan-v1.1/splits/mini").mkdir(parents=True)
+    with pytest.raises(ValueError, match="official mini DB root missing"):
+        module.validate_official_mini_layout(dataset)
 
 
 def test_explicit_assembly_rejects_mismatched_shared_member(tmp_path: Path) -> None:
