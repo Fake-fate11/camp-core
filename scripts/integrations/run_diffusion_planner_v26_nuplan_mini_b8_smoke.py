@@ -107,6 +107,18 @@ def _status(status: str, reason: str, **calls: int) -> dict[str, Any]:
     return {"schema": SCHEMA, "status": status, "reason": reason, **ZERO_CALLS, **calls}
 
 
+def _completed_smoke_status(model_calls: int) -> dict[str, Any]:
+    if isinstance(model_calls, bool) or not isinstance(model_calls, int) or model_calls < 0:
+        raise ValueError("completed smoke model call count is invalid")
+    return _status(
+        "complete",
+        "same_ego_b8",
+        model_calls=model_calls,
+        dp_calls=model_calls,
+        gpu_calls=int(model_calls > 0),
+    )
+
+
 def _map_path(data_root: Path, location: str, map_name: str) -> Path:
     """Resolve the actual official mini archive map layout without guessing.
 
@@ -789,7 +801,9 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             "terminal": {"status": "complete", "failure_class": None, "failure_reason": None},
         }
         _write_json_atomic(output_root / "smoke_receipt.json", receipt)
-        _write_json_atomic(output_root / "run.status.json", _status("complete", "same_ego_b8", model_calls=capture.calls, dp_calls=capture.calls))
+        _write_json_atomic(
+            output_root / "run.status.json", _completed_smoke_status(capture.calls)
+        )
         _write_json_atomic(output_root / "run.exit", {"schema": SCHEMA, "terminal_status": "complete", "model_calls": capture.calls, "dp_calls": capture.calls, "gpu_calls": 1})
         return receipt
     except Exception as error:

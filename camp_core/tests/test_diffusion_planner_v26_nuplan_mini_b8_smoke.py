@@ -167,3 +167,15 @@ def test_pre_forward_status_receipt_has_zero_execution_counts() -> None:
         "dp_calls": 0,
         "gpu_calls": 0,
     }
+
+
+def test_completed_smoke_status_records_the_single_gpu_invocation() -> None:
+    module = _module()
+    assert module._completed_smoke_status(1) == {
+        "schema": module.SCHEMA,
+        "status": "complete",
+        "reason": "same_ego_b8",
+        "model_calls": 1,
+        "dp_calls": 1,
+        "gpu_calls": 1,
+    }
