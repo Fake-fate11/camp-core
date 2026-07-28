@@ -32,6 +32,7 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
     FROZEN_SIMPLEX_TOLERANCE,
     V25_ZERO_SHOT_REFERENCE_READ_ONLY,
+    V26_ADAPTED_WEIGHTS_SCHEMA_VERSION,
     V26_GENERATOR_ID,
     V26_TRAINING_ROWS_SCHEMA_VERSION,
     V26_TRAINING_SOURCE_SCHEMA_VERSION,

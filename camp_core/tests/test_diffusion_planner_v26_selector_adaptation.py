@@ -5,6 +5,7 @@ import hashlib
 import importlib
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -19,6 +20,7 @@ from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
     V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
     V26_CERTIFIED_NO_SIGNAL_MODE,
+    V26_ADAPTED_WEIGHTS_SCHEMA_VERSION,
     V26SignalAdapterBinding,
     build_v26_integration_boundary,
     v26_generator_topology,
@@ -30,6 +32,7 @@ from camp_core.integrations.diffusion_planner_v26_selector_adaptation import (
     ADAPTATION_MODEL_IDS,
     ADAPTATION_ROLE,
     SAVED_POOL_DIAGNOSTIC_ROLE,
+    adapted_parameter_arrays,
     build_adaptation_manifest,
     build_adaptation_receipt,
     build_development_comparison_plan,
@@ -322,6 +325,33 @@ def test_zero_shot_loader_preserves_existing_simplex_tolerance_bytes(
     loaded = load_zero_shot_reference_assets(reference)
 
     assert loaded.static14d_theta[0, 0] == pytest.approx(-1e-10)
+
+
+def test_adapted_parameter_arrays_emit_v26_schema_version(tmp_path: Path) -> None:
+    training, _reference = _fixture_assets(tmp_path)
+    pools = load_train_only_saved_pools(training)
+    suite = {}
+    for name in ADAPTATION_MODEL_IDS:
+        atom_count = 9 if name.endswith("9D") else 14
+        suite[name] = SimpleNamespace(
+            active_atom_indices=tuple(range(atom_count)),
+            theta=np.full((atom_count, PHI_DIMENSION), 1.0 / atom_count),
+            context_scaler=SimpleNamespace(
+                q05=np.zeros(RAW_FEATURE_COUNT),
+                q95=np.ones(RAW_FEATURE_COUNT),
+            ),
+            selected_indices=np.arange(pools.record_count, dtype=np.int64),
+            selection_margins=np.ones(pools.record_count, dtype=np.float64),
+            result=SimpleNamespace(
+                train_violations=np.zeros(pools.record_count, dtype=np.float64)
+            ),
+        )
+
+    arrays = adapted_parameter_arrays(pools, suite)
+
+    assert arrays["schema_version"].item() == V26_ADAPTED_WEIGHTS_SCHEMA_VERSION
+    assert arrays["training_rows_sha256"].item() == pools.rows_sha256
+    assert arrays["scene14d_theta"].shape == (14, PHI_DIMENSION)
 
 
 def test_adaptation_config_and_receipt_bind_selector_only_scope(tmp_path: Path) -> None:
