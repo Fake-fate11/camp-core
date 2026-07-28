@@ -112,8 +112,8 @@ def _route_projection(value: Any, *, ordinal: int) -> dict[str, Any]:
     if type(value) is not dict:
         raise ValueError("V26 partial-source source unit route is missing")
     route = dict(value)
-    if route.get("parent_ordinal") != ordinal:
-        raise ValueError("V26 partial-source source unit route ordinal drifted")
+    if type(route.get("parent_ordinal")) is not int:
+        raise ValueError("V26 partial-source source unit parent ordinal drifted")
     for field in _ROUTE_FIELDS:
         if field not in route:
             raise ValueError("V26 partial-source source unit route field is missing")

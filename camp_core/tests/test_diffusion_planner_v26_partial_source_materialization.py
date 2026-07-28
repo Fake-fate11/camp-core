@@ -125,6 +125,24 @@ def test_collect_complete_units_rejects_atomic_byte_hash_drift(tmp_path: Path) -
         )
 
 
+def test_collect_complete_units_preserves_distinct_parent_ordinal_identity(tmp_path: Path) -> None:
+    module, union, selected, path485 = _fixture(tmp_path)
+    payload = json.loads(path485.read_text(encoding="utf-8"))
+    payload["route"]["parent_ordinal"] = 1454
+    _write_json(path485, payload)
+    hash485 = hashlib.sha256(path485.read_bytes()).hexdigest()
+    union["units"][485]["route"] = payload["route"]
+    union["units"][485]["unit_file_sha256"] = hash485
+    selected[485]["route"] = payload["route"]
+    selected[485]["unit_file_sha256"] = hash485
+
+    complete, _provenance = module._collect_complete_units(
+        union=union, selected_by_ordinal=selected, expected_count=2
+    )
+
+    assert complete[1]["route"]["parent_ordinal"] == 1454
+
+
 def test_materializer_cli_requires_final_population_receipt() -> None:
     cli = importlib.import_module(
         "scripts.integrations.materialize_diffusion_planner_v26_partial_source_training_rows"
