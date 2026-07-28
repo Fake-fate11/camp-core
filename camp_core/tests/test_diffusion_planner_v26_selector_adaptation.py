@@ -281,6 +281,24 @@ def test_v26_fit_loader_rejects_a_v25_training_source_even_when_it_has_b8_rows(
         load_train_only_saved_pools(training)
 
 
+def test_v26_fit_loader_accepts_repeated_event_stratum_hashes(tmp_path: Path) -> None:
+    training, _reference = _fixture_assets(tmp_path)
+    rows_path = training / "training_rows.npz"
+    with np.load(rows_path, allow_pickle=False) as archive:
+        payload = {name: np.asarray(archive[name]) for name in archive.files}
+    payload["event_manifest_sha256"] = np.asarray([_sha(910)] * 3)
+    np.savez_compressed(rows_path, **payload)
+    report_path = training / "report.json"
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report["training_rows_sha256"] = hashlib.sha256(rows_path.read_bytes()).hexdigest()
+    _write_json(report_path, report)
+
+    pools = load_train_only_saved_pools(training)
+
+    assert pools.record_count == 3
+    assert len(set(pools.event_manifest_sha256.tolist())) == 1
+
+
 def test_zero_shot_loader_preserves_existing_simplex_tolerance_bytes(
     tmp_path: Path,
 ) -> None:

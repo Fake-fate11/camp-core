@@ -330,14 +330,16 @@ def _require_hash_matrix(value: Any, shape: tuple[int, int], label: str) -> np.n
     return result
 
 
-def _require_hash_vector(value: Any, length: int, label: str) -> np.ndarray:
+def _require_hash_vector(
+    value: Any, length: int, label: str, *, require_unique: bool = True
+) -> np.ndarray:
     array = np.asarray(value)
     if array.shape != (length,) or array.dtype.kind not in "SU":
         raise ValueError(f"{label} must be a native SHA256 vector")
     result = array.copy()
     for item in result.tolist():
         _require_sha256(str(item), label)
-    if len(set(str(item) for item in result.tolist())) != length:
+    if require_unique and len(set(str(item) for item in result.tolist())) != length:
         raise ValueError(f"{label} identities must remain unique")
     return result
 
@@ -484,7 +486,10 @@ def load_train_only_saved_pools(
         )
         _require_sha256(archived_source_manifest_sha, "V26 archived training source manifest")
         event_manifest_sha = _require_hash_vector(
-            archive["event_manifest_sha256"], count, "event_manifest_sha256"
+            archive["event_manifest_sha256"],
+            count,
+            "event_manifest_sha256",
+            require_unique=False,
         )
         _require_constant_integer(
             archive["model_call_count"], (count,), 1, "model_call_count"
