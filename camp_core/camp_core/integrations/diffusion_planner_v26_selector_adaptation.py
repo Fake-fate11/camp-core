@@ -37,6 +37,11 @@ from camp_core.integrations.diffusion_planner_v26_integration_boundary import (
     V26_TRAINING_SOURCE_SCHEMA_VERSION,
     v26_generator_topology,
 )
+from camp_core.integrations.diffusion_planner_v26_partial_source_training import (
+    PARTIAL_SOURCE_ARTIFACT_ROLE,
+    load_final_training_population_receipt,
+    validate_final_training_population_source,
+)
 if TYPE_CHECKING:
     from camp_core.integrations.diffusion_planner_v25_training import (
         V25TrainedSelector,
@@ -115,13 +120,14 @@ class TrainOnlySavedPools:
     event_manifest_sha256: np.ndarray
     training_scales: np.ndarray
     source_snapshot_count: int
+    final_training_population: Mapping[str, Any] | None = None
 
     @property
     def record_count(self) -> int:
         return int(self.normalized_atoms_14d.shape[0])
 
     def identity_summary(self) -> dict[str, Any]:
-        return {
+        result = {
             "split": "training_only",
             "holdout_accessed": False,
             "saved_pool_record_count": self.record_count,
@@ -138,6 +144,15 @@ class TrainOnlySavedPools:
             "event_manifest_sha256": _array_fingerprint(self.event_manifest_sha256),
             "training_source_schema": TRAINING_SOURCE_SCHEMA_VERSION,
         }
+        if self.final_training_population is not None:
+            receipt = dict(self.final_training_population["receipt"])
+            result["final_training_population"] = {
+                "receipt_path": self.final_training_population["path"],
+                "receipt_sha256": self.final_training_population["sha256"],
+                "artifact_role": receipt["artifact_role"],
+                "denominator": dict(receipt["denominator"]),
+            }
+        return result
 
 
 @dataclass(frozen=True)
@@ -315,6 +330,18 @@ def _require_hash_matrix(value: Any, shape: tuple[int, int], label: str) -> np.n
     return result
 
 
+def _require_hash_vector(value: Any, length: int, label: str) -> np.ndarray:
+    array = np.asarray(value)
+    if array.shape != (length,) or array.dtype.kind not in "SU":
+        raise ValueError(f"{label} must be a native SHA256 vector")
+    result = array.copy()
+    for item in result.tolist():
+        _require_sha256(str(item), label)
+    if len(set(str(item) for item in result.tolist())) != length:
+        raise ValueError(f"{label} identities must remain unique")
+    return result
+
+
 def _require_constant_integer(value: Any, shape: tuple[int, ...], expected: int, label: str) -> np.ndarray:
     result = _require_integer(value, shape, label)
     if not np.all(result == expected):
@@ -322,13 +349,20 @@ def _require_constant_integer(value: Any, shape: tuple[int, ...], expected: int,
     return result
 
 
-def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
+def load_train_only_saved_pools(
+    source_dir: Path, *, final_population_receipt_path: Path | None = None
+) -> TrainOnlySavedPools:
     """Load only V26-proven same-ego single-invocation B8 training pools."""
 
     source = Path(source_dir).resolve()
     report_path = source / "report.json"
     label_path = source / "label_sidecar.json"
     rows_path = source / "training_rows.npz"
+    final_population = (
+        load_final_training_population_receipt(final_population_receipt_path)
+        if final_population_receipt_path is not None
+        else None
+    )
     report = _json_object(report_path, "training source report")
     label = _json_object(label_path, "training label sidecar")
     if report.get("schema_version") != TRAINING_SOURCE_SCHEMA_VERSION:
@@ -346,6 +380,17 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
         or report.get("training_rows_schema_version") != TRAINING_ROWS_SCHEMA_VERSION
     ):
         raise ValueError("V26 adaptation requires outcome-blind same-ego B8 training evidence")
+    if final_population is not None:
+        expected_population = {
+            "receipt_sha256": final_population["sha256"],
+            "artifact_role": PARTIAL_SOURCE_ARTIFACT_ROLE,
+            "planned": 1783,
+            "trainable_population": 1623,
+            "actual_selected": 1623,
+            "typed_failure_excluded": 160,
+        }
+        if report.get("final_training_population") != expected_population:
+            raise ValueError("V26 adaptation final population report binding drifted")
     source_manifest_sha = _require_sha256(
         report.get("source_manifest_sha256"), "V26 training source manifest"
     )
@@ -477,6 +522,18 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
         scales = _require_finite_numeric(
             archive["training_scales"], (14,), "training_scales"
         )
+        if final_population is not None:
+            final_ids = _require_hash_vector(
+                archive["planned_unit_id_sha256"], count, "planned_unit_id_sha256"
+            )
+            final_unit_hashes = _require_hash_vector(
+                archive["unit_file_sha256"], count, "unit_file_sha256"
+            )
+            validate_final_training_population_source(
+                final_population,
+                planned_unit_identities=(str(item) for item in final_ids.tolist()),
+                unit_file_hashes=(str(item) for item in final_unit_hashes.tolist()),
+            )
     if archived_source_manifest_sha != source_manifest_sha:
         raise ValueError("V26 training source manifest binding drifted")
     if (
@@ -501,6 +558,12 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
         or denominator["planned"] < count
     ):
         raise ValueError("V26 adaptation training-source denominator drifted")
+    if final_population is not None and (
+        count != 1623
+        or denominator
+        != {"planned": 1783, "complete": 1623, "failed": 160, "unattempted": 0}
+    ):
+        raise ValueError("V26 adaptation final population denominator binding drifted")
     return TrainOnlySavedPools(
         source_dir=source,
         rows_path=rows_path,
@@ -525,6 +588,7 @@ def load_train_only_saved_pools(source_dir: Path) -> TrainOnlySavedPools:
         event_manifest_sha256=event_manifest_sha,
         training_scales=scales,
         source_snapshot_count=count,
+        final_training_population=final_population,
     )
 
 
@@ -1002,6 +1066,22 @@ def build_adaptation_manifest(
 
     if data.fixed_dp_head != reference.fixed_dp_head:
         raise ValueError("training and zero-shot references have different fixed-DP heads")
+    if data.final_training_population is None:
+        raise ValueError("V26 adaptation final training consumer requires a final population receipt")
+    final_population = dict(data.final_training_population["receipt"])
+    if (
+        final_population["artifact_role"] != PARTIAL_SOURCE_ARTIFACT_ROLE
+        or final_population["denominator"]
+        != {
+            "planned": 1783,
+            "trainable_population": 1623,
+            "actual_selected": 1623,
+            "typed_failure_excluded": 160,
+            "unattempted": 0,
+        }
+        or data.record_count != 1623
+    ):
+        raise ValueError("V26 adaptation final population consumer binding drifted")
     if reference.reference_role != V25_ZERO_SHOT_REFERENCE_READ_ONLY:
         raise ValueError("zero-shot compatibility weights must be reference-only")
     checkpoint_path = fixed_dp_checkpoint.get("path")
@@ -1039,6 +1119,13 @@ def build_adaptation_manifest(
             "source_manifest_sha256": data.source_manifest_sha256,
             "event_manifest_sha256": _array_fingerprint(data.event_manifest_sha256),
             "generator_invoked_by_stage7": False,
+            "final_training_population": {
+                "receipt_path": data.final_training_population["path"],
+                "receipt_sha256": data.final_training_population["sha256"],
+                "artifact_role": final_population["artifact_role"],
+                "denominator": dict(final_population["denominator"]),
+                "coverage_counts": dict(final_population["coverage"]["counts"]),
+            },
         },
         "training_identity": data.identity_summary(),
         "training_label_contract": "causal_policy_distillation_no_outcome",

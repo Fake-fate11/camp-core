@@ -126,7 +126,9 @@ def _prepare(
     if _tracked_changes(fixed_dp_repo):
         raise ValueError("V26 adaptation requires an exact clean fixed-DP checkout")
     config = load_adaptation_config(args.config)
-    pools = load_train_only_saved_pools(args.training_source)
+    pools = load_train_only_saved_pools(
+        args.training_source, final_population_receipt_path=args.final_population_receipt
+    )
     reference = load_zero_shot_reference_assets(args.reference_training)
     if _git_head(fixed_dp_repo) != pools.fixed_dp_head:
         raise ValueError("V26 adaptation fixed-DP head drifted")
@@ -286,6 +288,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--worker-lock", type=Path, required=True)
     parser.add_argument("--training-source", type=Path, required=True)
+    parser.add_argument("--final-population-receipt", type=Path, required=True)
     parser.add_argument("--reference-training", type=Path, required=True)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--fixed-dp-repo", type=Path, required=True)

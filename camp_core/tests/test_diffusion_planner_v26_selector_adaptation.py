@@ -311,30 +311,15 @@ def test_adaptation_config_and_receipt_bind_selector_only_scope(tmp_path: Path) 
     config = load_adaptation_config(_adaptation_config_path())
     pools = load_train_only_saved_pools(training)
     reference = load_zero_shot_reference_assets(reference_dir)
-    manifest = build_adaptation_manifest(
-        camp_head="b" * 40,
-        config=config,
-        data=pools,
-        reference=reference,
-        fixed_dp_checkpoint={"path": "/fixed/model.pth", "sha256": _sha(21)},
-        fixed_dp_args={"path": "/fixed/args.json", "sha256": _sha(22)},
-    )
-    receipt = build_adaptation_receipt(
-        manifest=manifest,
-        fitted_models={},
-        adapted_assets={},
-        terminal_status="typed_failure",
-        failure={"type": "RuntimeError", "reason": "fixture"},
-    )
-    assert receipt["evidence_role"] == ADAPTATION_ROLE
-    assert receipt["manifest"]["frozen_components"] == [
-        "fixed_dp",
-        "checkpoint",
-        "generator",
-        "same_ego_b8_pool_topology",
-    ]
-    assert receipt["denominator"]["input_planned"] == 3
-    assert receipt["denominator"]["fit_failed"] == 1
+    with pytest.raises(ValueError, match="final population receipt"):
+        build_adaptation_manifest(
+            camp_head="b" * 40,
+            config=config,
+            data=pools,
+            reference=reference,
+            fixed_dp_checkpoint={"path": "/fixed/model.pth", "sha256": _sha(21)},
+            fixed_dp_args={"path": "/fixed/args.json", "sha256": _sha(22)},
+        )
 
     payload = copy.deepcopy(config.payload)
     payload["frozen_components"].pop()
@@ -391,6 +376,8 @@ def test_stage7_parsers_accept_only_direct_training_and_planning_inputs() -> Non
             "lock",
             "--training-source",
             "training",
+            "--final-population-receipt",
+            "population-receipt.json",
             "--reference-training",
             "reference",
             "--config",
@@ -408,6 +395,7 @@ def test_stage7_parsers_accept_only_direct_training_and_planning_inputs() -> Non
         ]
     )
     assert train_args.fixed_dp_repo == Path("fixed-dp")
+    assert train_args.final_population_receipt == Path("population-receipt.json")
     plan_args = planner.parse_args(
         ["--profiling-manifest", "manifest.json", "--output", "plan.json"]
     )

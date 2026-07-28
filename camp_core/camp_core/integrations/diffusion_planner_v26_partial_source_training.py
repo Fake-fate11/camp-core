@@ -14,7 +14,7 @@ import json
 import os
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 
 from camp_core.integrations.diffusion_planner_v26_diversified_route_plan import (
     FROZEN_FIXED_DP_HEAD,
@@ -48,6 +48,12 @@ PARTIAL_SOURCE_RECEIPT_EVIDENCE_ROLE = (
     "development_nonholdout_six_family_partial_source_manifest_materialization"
 )
 PARTIAL_SOURCE_ARTIFACT_ROLE = "partial-source"
+FINAL_TRAINING_POPULATION_SCHEMA_VERSION = (
+    "camp_dp_v26_six_family_partial_source_final_training_population_v1"
+)
+FINAL_TRAINING_POPULATION_EVIDENCE_ROLE = (
+    "development_nonholdout_six_family_partial_source_final_training_population"
+)
 
 EXPECTED_PLANNED = 1783
 EXPECTED_TRAINABLE = 1623
@@ -395,7 +401,8 @@ def build_partial_source_training_manifest(
             "typed_failure_identities_permitted": False,
             "v25_training_rows_permitted": False,
             "future_training_receipt_artifact_role": PARTIAL_SOURCE_ARTIFACT_ROLE,
-            "future_rows_scales_weights_identity_source": "complete_units",
+            "future_rows_scales_weights_identity_source": "final_training_population_receipt",
+            "final_population_receipt_required_for_final_rows_scales_weights": True,
             "candidate_label_trajectory_outcome_payloads_read_during_manifest_build": False,
         },
         "complete_units": [
@@ -414,7 +421,8 @@ def build_partial_source_training_manifest(
                 KASHI_SPEED_METADATA_ORDINALS
             ),
             "other_terminal_typed_failures_excluded": len(non_kashi_failures),
-            "full_denominator_complete": False,
+            "denominator_accounting_complete": True,
+            "all_planned_units_trainable": False,
             "imputation_or_route_substitution_permitted": False,
             "unseen_family_generalization_claim_permitted": False,
         },
@@ -455,6 +463,16 @@ def validate_partial_source_training_manifest(value: Mapping[str, Any]) -> dict[
     }:
         raise ValueError("V26 partial-source manifest denominator drifted")
     contract = manifest.get("training_input_contract")
+    current_population_consumer_contract = type(contract) is dict and (
+        contract.get("future_rows_scales_weights_identity_source")
+        == "final_training_population_receipt"
+        and contract.get("final_population_receipt_required_for_final_rows_scales_weights")
+        is True
+    )
+    legacy_population_consumer_contract = type(contract) is dict and (
+        contract.get("future_rows_scales_weights_identity_source") == "complete_units"
+        and "final_population_receipt_required_for_final_rows_scales_weights" not in contract
+    )
     if (
         type(contract) is not dict
         or contract.get("training_source_schema_version") != V26_TRAINING_SOURCE_SCHEMA_VERSION
@@ -464,7 +482,7 @@ def validate_partial_source_training_manifest(value: Mapping[str, Any]) -> dict[
         or contract.get("typed_failure_identities_permitted") is not False
         or contract.get("v25_training_rows_permitted") is not False
         or contract.get("future_training_receipt_artifact_role") != PARTIAL_SOURCE_ARTIFACT_ROLE
-        or contract.get("future_rows_scales_weights_identity_source") != "complete_units"
+        or not (current_population_consumer_contract or legacy_population_consumer_contract)
         or contract.get("candidate_label_trajectory_outcome_payloads_read_during_manifest_build")
         is not False
     ):
@@ -521,11 +539,21 @@ def validate_partial_source_training_manifest(value: Mapping[str, Any]) -> dict[
     ):
         raise ValueError("V26 partial-source typed-failure disclosure drifted")
     disclosure = manifest.get("partial_source_disclosure")
+    current_disclosure_semantics = type(disclosure) is dict and (
+        disclosure.get("denominator_accounting_complete") is True
+        and disclosure.get("all_planned_units_trainable") is False
+        and "full_denominator_complete" not in disclosure
+    )
+    legacy_disclosure_semantics = type(disclosure) is dict and (
+        disclosure.get("full_denominator_complete") is False
+        and "denominator_accounting_complete" not in disclosure
+        and "all_planned_units_trainable" not in disclosure
+    )
     if (
         type(disclosure) is not dict
         or disclosure.get("kashi_missing_authoritative_speed_metadata_excluded") != 153
         or disclosure.get("other_terminal_typed_failures_excluded") != 7
-        or disclosure.get("full_denominator_complete") is not False
+        or not (current_disclosure_semantics or legacy_disclosure_semantics)
         or disclosure.get("imputation_or_route_substitution_permitted") is not False
         or disclosure.get("unseen_family_generalization_claim_permitted") is not False
     ):
@@ -536,7 +564,7 @@ def validate_partial_source_training_manifest(value: Mapping[str, Any]) -> dict[
 def validate_training_identity_subset(
     manifest: Mapping[str, Any], candidate_unit_identities: Iterable[str]
 ) -> int:
-    """Reject any future row/scale/weight input outside manifest complete identities."""
+    """Validate a shard/stream subset without authorizing a final population."""
 
     checked = validate_partial_source_training_manifest(manifest)
     allowed = {
@@ -549,6 +577,407 @@ def validate_training_identity_subset(
     if len(set(supplied)) != len(supplied) or not set(supplied).issubset(allowed):
         raise ValueError("V26 partial-source training input includes a non-complete identity")
     return len(supplied)
+
+
+def _final_population_members(manifest: Mapping[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "revised_plan_ordinal": int(item["revised_plan_ordinal"]),
+            "planned_unit_id_sha256": str(item["planned_unit_id_sha256"]),
+            "unit_file_sha256": str(item["unit_file_sha256"]),
+        }
+        for item in manifest["complete_units"]
+    ]
+
+
+def _population_coverage(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    fields = {
+        "family": ("family_id",),
+        "corridor": ("corridor_id",),
+        "source": ("source_artifact_sha256",),
+        "source_event_stratum": ("source_artifact_sha256", "event_manifest_sha256"),
+    }
+    output: dict[str, list[dict[str, Any]]] = {}
+    for name, route_fields in fields.items():
+        counts: Counter[tuple[str, ...]] = Counter()
+        for item in manifest["complete_units"]:
+            route = dict(item["route"])
+            counts[tuple(str(route[field]) for field in route_fields)] += 1
+        rows: list[dict[str, Any]] = []
+        for key in sorted(counts):
+            row = {field: value for field, value in zip(route_fields, key)}
+            row["selected_complete_count"] = int(counts[key])
+            rows.append(row)
+        output[name] = rows
+    if (
+        len(output["family"]) != EXPECTED_FAMILY_COUNT
+        or len(output["corridor"]) != EXPECTED_CORRIDOR_COUNT
+        or any(row["selected_complete_count"] < 1 for row in output["source_event_stratum"])
+    ):
+        raise ValueError("V26 partial-source final population coverage drifted")
+    return {
+        "family": output["family"],
+        "corridor": output["corridor"],
+        "source": output["source"],
+        "source_event_stratum": output["source_event_stratum"],
+        "counts": {
+            "family_count": len(output["family"]),
+            "corridor_count": len(output["corridor"]),
+            "source_count": len(output["source"]),
+            "source_event_stratum_count": len(output["source_event_stratum"]),
+        },
+    }
+
+
+def _normalize_population_shards(
+    *,
+    shards: Sequence[Mapping[str, Any]] | None,
+    expected_members: Sequence[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    expected_by_id = {
+        str(item["planned_unit_id_sha256"]): str(item["unit_file_sha256"])
+        for item in expected_members
+    }
+    if shards is None:
+        shards = [
+            {
+                "shard_id": "all_complete_planned_ids",
+                "members": [
+                    {
+                        "planned_unit_id_sha256": item["planned_unit_id_sha256"],
+                        "unit_file_sha256": item["unit_file_sha256"],
+                    }
+                    for item in expected_members
+                ],
+            }
+        ]
+    if type(shards) not in {list, tuple} or not shards:
+        raise ValueError("V26 partial-source final population shards are missing")
+    seen_ids: set[str] = set()
+    shard_ids: set[str] = set()
+    normalized: list[dict[str, Any]] = []
+    for shard in shards:
+        if type(shard) is not dict or set(shard) != {"shard_id", "members"}:
+            raise ValueError("V26 partial-source final population shard schema drifted")
+        shard_id = shard.get("shard_id")
+        members = shard.get("members")
+        if type(shard_id) is not str or not shard_id or shard_id in shard_ids:
+            raise ValueError("V26 partial-source final population shard identity drifted")
+        if type(members) is not list or not members:
+            raise ValueError("V26 partial-source final population shard is empty")
+        shard_ids.add(shard_id)
+        normalized_members: list[dict[str, str]] = []
+        for member in members:
+            if type(member) is not dict or set(member) != {
+                "planned_unit_id_sha256",
+                "unit_file_sha256",
+            }:
+                raise ValueError("V26 partial-source final population member schema drifted")
+            planned_id = _require_sha256(
+                member.get("planned_unit_id_sha256"), "V26 final population planned unit"
+            )
+            unit_hash = _require_sha256(
+                member.get("unit_file_sha256"), "V26 final population unit file"
+            )
+            if planned_id not in expected_by_id:
+                raise ValueError("V26 partial-source final population has an extra identity")
+            if expected_by_id[planned_id] != unit_hash:
+                raise ValueError("V26 partial-source final population unit-file SHA mismatch")
+            if planned_id in seen_ids:
+                raise ValueError("V26 partial-source final population has a duplicate identity")
+            seen_ids.add(planned_id)
+            normalized_members.append(
+                {
+                    "planned_unit_id_sha256": planned_id,
+                    "unit_file_sha256": unit_hash,
+                }
+            )
+        normalized.append({"shard_id": shard_id, "members": normalized_members})
+    if seen_ids != set(expected_by_id):
+        raise ValueError("V26 partial-source final population shard union has missing identities")
+    return normalized
+
+
+def build_final_training_population_receipt(
+    *,
+    partial_source_manifest_path: Path,
+    shards: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Close the final 1623-ID training population without reading row payloads."""
+
+    manifest_path = Path(partial_source_manifest_path).resolve()
+    manifest = validate_partial_source_training_manifest(
+        _json_object(manifest_path, "V26 partial-source training manifest")
+    )
+    members = _final_population_members(manifest)
+    if len(members) != EXPECTED_TRAINABLE:
+        raise ValueError("V26 partial-source final population count drifted")
+    shards_value = _normalize_population_shards(shards=shards, expected_members=members)
+    coverage = _population_coverage(manifest)
+    receipt = {
+        "schema_version": FINAL_TRAINING_POPULATION_SCHEMA_VERSION,
+        "evidence_role": FINAL_TRAINING_POPULATION_EVIDENCE_ROLE,
+        "artifact_role": PARTIAL_SOURCE_ARTIFACT_ROLE,
+        "partial_source_manifest": {
+            "path": str(manifest_path),
+            "sha256": _file_sha256(manifest_path),
+            "schema_version": manifest["schema_version"],
+            "evidence_role": manifest["evidence_role"],
+            "artifact_role": manifest["artifact_role"],
+        },
+        "fixed_dp_head": manifest["fixed_dp_head"],
+        "split": manifest["split"],
+        "holdout_accessed": False,
+        "outcome_fields_consumed": [],
+        "denominator": {
+            "planned": EXPECTED_PLANNED,
+            "trainable_population": EXPECTED_TRAINABLE,
+            "actual_selected": EXPECTED_TRAINABLE,
+            "typed_failure_excluded": EXPECTED_TYPED_FAILURES,
+            "unattempted": 0,
+        },
+        "population_semantics": {
+            "denominator_accounting_complete": True,
+            "all_planned_units_trainable": False,
+            "final_population_is_all_complete_planned_ids": True,
+            "temporary_sample_population_permitted": False,
+        },
+        "selected_members": members,
+        "shards": shards_value,
+        "coverage": coverage,
+        "consumer_contract": {
+            "rows_scales_weights_require_final_population_receipt": True,
+            "artifact_role": PARTIAL_SOURCE_ARTIFACT_ROLE,
+            "expected_actual_selected": EXPECTED_TRAINABLE,
+            "exact_unit_file_sha256_binding_required": True,
+            "v25_training_rows_permitted": False,
+        },
+        "read_scope": {
+            "identity_and_terminal_fields_only": True,
+            "candidate_payloads_read": False,
+            "label_payloads_read": False,
+            "trajectory_payloads_read": False,
+            "outcome_payloads_read": False,
+        },
+        "invocation_counts": {
+            "model_forward_count": 0,
+            "dp_forward_count": 0,
+            "gpu_invocation_count": 0,
+            "latent_generation_count": 0,
+            "candidate_generation_count": 0,
+            "selector_invocation_count": 0,
+            "simulator_invocation_count": 0,
+        },
+    }
+    return validate_final_training_population_receipt(receipt)
+
+
+def validate_final_training_population_receipt(value: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate one exact, nonsecret final-population receipt."""
+
+    receipt = dict(value)
+    if (
+        receipt.get("schema_version") != FINAL_TRAINING_POPULATION_SCHEMA_VERSION
+        or receipt.get("evidence_role") != FINAL_TRAINING_POPULATION_EVIDENCE_ROLE
+        or receipt.get("artifact_role") != PARTIAL_SOURCE_ARTIFACT_ROLE
+        or receipt.get("fixed_dp_head") != FROZEN_FIXED_DP_HEAD
+        or receipt.get("split") != "development_nonholdout"
+        or receipt.get("holdout_accessed") is not False
+        or receipt.get("outcome_fields_consumed") != []
+    ):
+        raise ValueError("V26 partial-source final population receipt contract drifted")
+    source = receipt.get("partial_source_manifest")
+    if (
+        type(source) is not dict
+        or source.get("evidence_role") != PARTIAL_SOURCE_EVIDENCE_ROLE
+        or source.get("artifact_role") != PARTIAL_SOURCE_ARTIFACT_ROLE
+    ):
+        raise ValueError("V26 partial-source final population manifest binding drifted")
+    _require_sha256(source.get("sha256"), "V26 partial-source final population manifest")
+    if type(source.get("path")) is not str or not source["path"]:
+        raise ValueError("V26 partial-source final population manifest path drifted")
+    if receipt.get("denominator") != {
+        "planned": EXPECTED_PLANNED,
+        "trainable_population": EXPECTED_TRAINABLE,
+        "actual_selected": EXPECTED_TRAINABLE,
+        "typed_failure_excluded": EXPECTED_TYPED_FAILURES,
+        "unattempted": 0,
+    }:
+        raise ValueError("V26 partial-source final population denominator drifted")
+    if receipt.get("population_semantics") != {
+        "denominator_accounting_complete": True,
+        "all_planned_units_trainable": False,
+        "final_population_is_all_complete_planned_ids": True,
+        "temporary_sample_population_permitted": False,
+    }:
+        raise ValueError("V26 partial-source final population semantics drifted")
+    contract = receipt.get("consumer_contract")
+    if (
+        type(contract) is not dict
+        or contract.get("rows_scales_weights_require_final_population_receipt") is not True
+        or contract.get("artifact_role") != PARTIAL_SOURCE_ARTIFACT_ROLE
+        or contract.get("expected_actual_selected") != EXPECTED_TRAINABLE
+        or contract.get("exact_unit_file_sha256_binding_required") is not True
+        or contract.get("v25_training_rows_permitted") is not False
+    ):
+        raise ValueError("V26 partial-source final population consumer contract drifted")
+    members = receipt.get("selected_members")
+    if type(members) is not list or len(members) != EXPECTED_TRAINABLE:
+        raise ValueError("V26 partial-source final population members drifted")
+    selected_by_id: dict[str, str] = {}
+    for member in members:
+        if type(member) is not dict or set(member) != {
+            "revised_plan_ordinal",
+            "planned_unit_id_sha256",
+            "unit_file_sha256",
+        }:
+            raise ValueError("V26 partial-source final population member schema drifted")
+        if type(member.get("revised_plan_ordinal")) is not int:
+            raise ValueError("V26 partial-source final population member ordinal drifted")
+        planned_id = _require_sha256(
+            member.get("planned_unit_id_sha256"), "V26 final population selected id"
+        )
+        if planned_id in selected_by_id:
+            raise ValueError("V26 partial-source final population receipt has duplicate identities")
+        selected_by_id[planned_id] = _require_sha256(
+            member.get("unit_file_sha256"), "V26 final population selected unit file"
+        )
+    shards = receipt.get("shards")
+    if type(shards) is not list or not shards:
+        raise ValueError("V26 partial-source final population receipt shards drifted")
+    normalized = _normalize_population_shards(shards=shards, expected_members=members)
+    if normalized != shards:
+        raise ValueError("V26 partial-source final population shard serialization drifted")
+    coverage = receipt.get("coverage")
+    if (
+        type(coverage) is not dict
+        or type(coverage.get("counts")) is not dict
+        or coverage["counts"].get("family_count") != EXPECTED_FAMILY_COUNT
+        or coverage["counts"].get("corridor_count") != EXPECTED_CORRIDOR_COUNT
+        or any(
+            row.get("selected_complete_count", 0) < 1
+            for row in coverage.get("source_event_stratum", [])
+            if type(row) is dict
+        )
+    ):
+        raise ValueError("V26 partial-source final population coverage receipt drifted")
+    scope = receipt.get("read_scope")
+    if scope != {
+        "identity_and_terminal_fields_only": True,
+        "candidate_payloads_read": False,
+        "label_payloads_read": False,
+        "trajectory_payloads_read": False,
+        "outcome_payloads_read": False,
+    }:
+        raise ValueError("V26 partial-source final population read scope drifted")
+    calls = receipt.get("invocation_counts")
+    if type(calls) is not dict or any(value != 0 for value in calls.values()):
+        raise ValueError("V26 partial-source final population invocation count drifted")
+    return receipt
+
+
+def load_final_training_population_receipt(path: Path) -> dict[str, Any]:
+    """Load and cross-bind a final population receipt to its partial manifest."""
+
+    receipt_path = Path(path).resolve()
+    receipt = validate_final_training_population_receipt(
+        _json_object(receipt_path, "V26 final training population receipt")
+    )
+    source = dict(receipt["partial_source_manifest"])
+    manifest_path = Path(str(source["path"])).resolve()
+    if _file_sha256(manifest_path) != source["sha256"]:
+        raise ValueError("V26 partial-source final population manifest file SHA drifted")
+    manifest = validate_partial_source_training_manifest(
+        _json_object(manifest_path, "V26 final population partial manifest")
+    )
+    expected_members = _final_population_members(manifest)
+    expected_by_id = {
+        item["planned_unit_id_sha256"]: item["unit_file_sha256"] for item in expected_members
+    }
+    actual_by_id = {
+        item["planned_unit_id_sha256"]: item["unit_file_sha256"]
+        for item in receipt["selected_members"]
+    }
+    if actual_by_id != expected_by_id:
+        raise ValueError("V26 partial-source final population does not exactly bind manifest complete IDs")
+    return {
+        "path": str(receipt_path),
+        "sha256": _file_sha256(receipt_path),
+        "receipt": receipt,
+    }
+
+
+def validate_final_training_population_source(
+    final_population: Mapping[str, Any],
+    *,
+    planned_unit_identities: Iterable[str],
+    unit_file_hashes: Iterable[str],
+) -> int:
+    """Require final rows/scales/weights to cover the full receipt exactly once."""
+
+    receipt_value = final_population.get("receipt", final_population)
+    if type(receipt_value) is not dict:
+        raise ValueError("V26 partial-source final population source receipt is invalid")
+    receipt = validate_final_training_population_receipt(receipt_value)
+    planned = list(planned_unit_identities)
+    hashes = list(unit_file_hashes)
+    if len(planned) != EXPECTED_TRAINABLE or len(hashes) != EXPECTED_TRAINABLE:
+        raise ValueError("V26 partial-source final consumer has a missing population member")
+    expected = {
+        str(item["planned_unit_id_sha256"]): str(item["unit_file_sha256"])
+        for item in receipt["selected_members"]
+    }
+    observed: dict[str, str] = {}
+    for planned_id, unit_hash in zip(planned, hashes):
+        planned_id = _require_sha256(planned_id, "V26 final consumer planned unit")
+        unit_hash = _require_sha256(unit_hash, "V26 final consumer unit file")
+        if planned_id in observed:
+            raise ValueError("V26 partial-source final consumer has duplicate identities")
+        if planned_id not in expected:
+            raise ValueError("V26 partial-source final consumer has an extra identity")
+        if expected[planned_id] != unit_hash:
+            raise ValueError("V26 partial-source final consumer unit-file SHA mismatch")
+        observed[planned_id] = unit_hash
+    if observed != expected:
+        raise ValueError("V26 partial-source final consumer does not cover the full population")
+    return EXPECTED_TRAINABLE
+
+
+def materialize_final_training_population_receipt(
+    *,
+    partial_source_manifest_path: Path,
+    output_dir: Path,
+    camp_head: str,
+    shards: Sequence[Mapping[str, Any]] | None = None,
+) -> dict[str, Path]:
+    """Write a nonsecret receipt closing the final all-complete training population."""
+
+    _require_git_head(camp_head, "V26 final population CAMP head")
+    root = Path(output_dir).resolve()
+    if root.exists():
+        raise FileExistsError(f"V26 final population output already exists: {root}")
+    receipt = build_final_training_population_receipt(
+        partial_source_manifest_path=partial_source_manifest_path, shards=shards
+    )
+    root.mkdir(parents=True, exist_ok=False)
+    receipt_path = root / "final_training_population_receipt.json"
+    _atomic_write_json(receipt_path, receipt)
+    status_path = root / "run.status.json"
+    _atomic_write_json(
+        status_path,
+        {
+            "evidence_role": FINAL_TRAINING_POPULATION_EVIDENCE_ROLE,
+            "artifact_role": PARTIAL_SOURCE_ARTIFACT_ROLE,
+            "status": "terminal_identity_only_final_population_closed",
+            "camp_head": camp_head,
+            "final_training_population_receipt_sha256": _file_sha256(receipt_path),
+            "denominator": dict(receipt["denominator"]),
+            "invocation_counts": dict(receipt["invocation_counts"]),
+        },
+    )
+    exit_path = root / "run.exit"
+    exit_path.write_text("0\n", encoding="utf-8")
+    return {"receipt": receipt_path, "run_status": status_path, "run_exit": exit_path}
 
 
 def materialize_partial_source_training_manifest(

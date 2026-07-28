@@ -37,8 +37,14 @@ def _union_fixture(tmp_path: Path) -> tuple[object, Path]:
             failure_class = "ValueError"
             failure_reason = "route slot 0 requires a positive speed limit"
         else:
-            family = f"family_{ordinal % 5}"
-            corridor = _sha(20_001 + (ordinal % 154))
+            # Keep one completed Kashi-family unit so the fixture reflects the
+            # accepted union's six-family retained-coverage contract.
+            family = (
+                "legacy_kashiwanoha_cluster"
+                if ordinal == 0
+                else f"family_{ordinal % 5}"
+            )
+            corridor = _sha(20_000 if ordinal == 0 else 20_001 + (ordinal % 154))
             status = "typed_failure" if ordinal in other_failures else "complete"
             failure_class = "NativeReplayFailure" if status == "typed_failure" else None
             failure_reason = "goal_passed" if status == "typed_failure" else None
@@ -102,6 +108,9 @@ def test_partial_source_manifest_keeps_only_completed_identity_rows(tmp_path: Pa
     assert len(manifest["excluded_typed_failures"]) == 160
     assert manifest["training_input_contract"]["generator_topology"]["same_ego_batch_size"] == 8
     assert manifest["training_input_contract"]["generator_topology"]["primary_model_call_count"] == 1
+    assert manifest["partial_source_disclosure"]["denominator_accounting_complete"] is True
+    assert manifest["partial_source_disclosure"]["all_planned_units_trainable"] is False
+    assert "full_denominator_complete" not in manifest["partial_source_disclosure"]
     kashi = [
         row
         for row in manifest["excluded_typed_failures"]
@@ -119,6 +128,108 @@ def test_partial_source_manifest_keeps_only_completed_identity_rows(tmp_path: Pa
         module.validate_training_identity_subset(
             manifest,
             [manifest["excluded_typed_failures"][0]["planned_unit_id_sha256"]],
+        )
+
+
+def _partial_manifest_fixture(tmp_path: Path) -> tuple[object, Path, dict[str, object]]:
+    module, union_path = _union_fixture(tmp_path)
+    manifest, _coverage = module.build_partial_source_training_manifest(
+        immutable_union_manifest_path=union_path
+    )
+    path = tmp_path / "partial_source_training_manifest.json"
+    _write_json(path, manifest)
+    return module, path, manifest
+
+
+def test_final_population_is_the_exact_1623_complete_identity_set(tmp_path: Path) -> None:
+    module, manifest_path, manifest = _partial_manifest_fixture(tmp_path)
+    receipt = module.build_final_training_population_receipt(
+        partial_source_manifest_path=manifest_path
+    )
+
+    assert receipt["artifact_role"] == "partial-source"
+    assert receipt["denominator"] == {
+        "planned": 1783,
+        "trainable_population": 1623,
+        "actual_selected": 1623,
+        "typed_failure_excluded": 160,
+        "unattempted": 0,
+    }
+    assert receipt["population_semantics"] == {
+        "denominator_accounting_complete": True,
+        "all_planned_units_trainable": False,
+        "final_population_is_all_complete_planned_ids": True,
+        "temporary_sample_population_permitted": False,
+    }
+    assert len(receipt["selected_members"]) == 1623
+    assert len(receipt["shards"]) == 1
+    assert len(receipt["shards"][0]["members"]) == 1623
+    assert receipt["coverage"]["counts"] == {
+        "family_count": 6,
+        "corridor_count": 155,
+        "source_count": 6,
+        "source_event_stratum_count": 6,
+    }
+    assert module.validate_final_training_population_source(
+        receipt,
+        planned_unit_identities=[
+            member["planned_unit_id_sha256"] for member in receipt["selected_members"]
+        ],
+        unit_file_hashes=[member["unit_file_sha256"] for member in receipt["selected_members"]],
+    ) == 1623
+    assert receipt["read_scope"] == {
+        "identity_and_terminal_fields_only": True,
+        "candidate_payloads_read": False,
+        "label_payloads_read": False,
+        "trajectory_payloads_read": False,
+        "outcome_payloads_read": False,
+    }
+    assert all(value == 0 for value in receipt["invocation_counts"].values())
+    assert len(manifest["complete_units"]) == receipt["denominator"]["actual_selected"]
+
+
+def test_final_population_rejects_missing_extra_duplicate_and_hash_drift(tmp_path: Path) -> None:
+    module, manifest_path, _manifest = _partial_manifest_fixture(tmp_path)
+    baseline = module.build_final_training_population_receipt(
+        partial_source_manifest_path=manifest_path
+    )
+
+    missing = copy.deepcopy(baseline["shards"])
+    missing[0]["members"].pop()
+    with pytest.raises(ValueError, match="shard union has missing"):
+        module.build_final_training_population_receipt(
+            partial_source_manifest_path=manifest_path, shards=missing
+        )
+
+    extra = copy.deepcopy(baseline["shards"])
+    extra[0]["members"].append(
+        {"planned_unit_id_sha256": _sha(999_999), "unit_file_sha256": _sha(999_998)}
+    )
+    with pytest.raises(ValueError, match="extra identity"):
+        module.build_final_training_population_receipt(
+            partial_source_manifest_path=manifest_path, shards=extra
+        )
+
+    duplicate = copy.deepcopy(baseline["shards"])
+    duplicate[0]["members"].append(copy.deepcopy(duplicate[0]["members"][0]))
+    with pytest.raises(ValueError, match="duplicate identity"):
+        module.build_final_training_population_receipt(
+            partial_source_manifest_path=manifest_path, shards=duplicate
+        )
+
+    hash_drift = copy.deepcopy(baseline["shards"])
+    hash_drift[0]["members"][0]["unit_file_sha256"] = _sha(888_888)
+    with pytest.raises(ValueError, match="unit-file SHA mismatch"):
+        module.build_final_training_population_receipt(
+            partial_source_manifest_path=manifest_path, shards=hash_drift
+        )
+
+    final_source_missing = baseline["selected_members"][:-1]
+    with pytest.raises(ValueError, match="missing population member"):
+        module.validate_final_training_population_source(
+            baseline,
+            planned_unit_identities=[item["planned_unit_id_sha256"] for item in final_source_missing],
+            unit_file_hashes=[item["unit_file_sha256"] for item in final_source_missing],
         )
 
 
@@ -165,6 +276,23 @@ def test_partial_source_cli_materializes_identity_only_zero_call_receipt(tmp_pat
     with pytest.raises(ValueError, match="manifest contract"):
         module.validate_partial_source_training_manifest(invalid)
 
+    final_cli = importlib.import_module(
+        "scripts.integrations.build_diffusion_planner_v26_partial_source_final_population"
+    )
+    final_output = tmp_path / "final-population"
+    assert final_cli.main(
+        [
+            "--partial-source-manifest", str(output / "partial_source_training_manifest.json"),
+            "--output-dir", str(final_output),
+            "--expected-camp-head", "a" * 40,
+        ]
+    ) == 0
+    final_receipt = json.loads(
+        (final_output / "final_training_population_receipt.json").read_text()
+    )
+    assert final_receipt["denominator"]["actual_selected"] == 1623
+    assert (final_output / "run.exit").read_text(encoding="utf-8") == "0\n"
+
 
 def test_partial_source_cli_requires_exact_arguments() -> None:
     cli = importlib.import_module(
@@ -179,3 +307,14 @@ def test_partial_source_cli_requires_exact_arguments() -> None:
     )
     assert args.immutable_union_manifest == Path("union.json")
     assert args.output_dir == Path("out")
+    final_cli = importlib.import_module(
+        "scripts.integrations.build_diffusion_planner_v26_partial_source_final_population"
+    )
+    final_args = final_cli.parse_args(
+        [
+            "--partial-source-manifest", "manifest.json",
+            "--output-dir", "population",
+            "--expected-camp-head", "a" * 40,
+        ]
+    )
+    assert final_args.partial_source_manifest == Path("manifest.json")
