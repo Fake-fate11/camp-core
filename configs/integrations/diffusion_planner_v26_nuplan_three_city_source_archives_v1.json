@@ -1,0 +1,43 @@
+{
+  "city_archives": [
+    {
+      "city": "boston",
+      "map_family": "us-ma-boston",
+      "academic_role": "iid_grouped_source",
+      "archive_status": "official_identity_verified",
+      "archive_url": "https://motional-nuplan.s3.amazonaws.com/public/nuplan-v1.1/nuplan-v1.1_train_boston.zip",
+      "archive_filename": "nuplan-v1.1_train_boston.zip",
+      "content_length": 38161149300,
+      "etag": "\"99a4a5c487c1ffb8d2fdc3321cbea2c5-4550\"",
+      "last_modified": "2024-01-30T22:16:35Z",
+      "accept_ranges": "bytes",
+      "content_type": "application/zip"
+    },
+    {
+      "city": "pittsburgh",
+      "map_family": "us-pa-pittsburgh-hazelwood",
+      "academic_role": "iid_grouped_source",
+      "archive_status": "official_identity_verified",
+      "archive_url": "https://motional-nuplan.s3.amazonaws.com/public/nuplan-v1.1/nuplan-v1.1_train_pittsburgh.zip",
+      "archive_filename": "nuplan-v1.1_train_pittsburgh.zip",
+      "content_length": 30620248893,
+      "etag": "\"6d9100ba0b89c9b0e997cf99c1ef739e-3651\"",
+      "last_modified": "2024-01-30T22:14:06Z",
+      "accept_ranges": "bytes",
+      "content_type": "application/zip"
+    },
+    {
+      "city": "singapore",
+      "map_family": "sg-one-north",
+      "academic_role": "city_held_out_ood",
+      "archive_status": "official_identity_verified",
+      "archive_url": "https://motional-nuplan.s3.amazonaws.com/public/nuplan-v1.1/nuplan-v1.1_train_singapore.zip",
+      "archive_filename": "nuplan-v1.1_train_singapore.zip",
+      "content_length": 34959594178,
+      "etag": "\"fd44464d9ce2e3439b1124838f0f2890-4168\"",
+      "last_modified": "2024-01-30T22:15:54Z",
+      "accept_ranges": "bytes",
+      "content_type": "application/zip"
+    }
+  ]
+}

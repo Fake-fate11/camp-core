@@ -68,6 +68,112 @@ def _fixed_dp() -> dict[str, str]:
     }
 
 
+def _academic_city_archives() -> list[dict[str, object]]:
+    return [
+        {
+            "city": "boston",
+            "map_family": "us-ma-boston",
+            "academic_role": "iid_grouped_source",
+            "archive_status": "official_identity_verified",
+            "archive_url": "https://motional-nuplan.s3.amazonaws.com/public/nuplan-v1.1/nuplan-v1.1_train_boston.zip",
+            "archive_filename": "nuplan-v1.1_train_boston.zip",
+            "content_length": 38161149300,
+            "etag": '"99a4a5c487c1ffb8d2fdc3321cbea2c5-4550"',
+            "last_modified": "2024-01-30T22:16:35Z",
+            "accept_ranges": "bytes",
+            "content_type": "application/zip",
+        },
+        {
+            "city": "pittsburgh",
+            "map_family": "us-pa-pittsburgh-hazelwood",
+            "academic_role": "iid_grouped_source",
+            "archive_status": "official_identity_verified",
+            "archive_url": "https://motional-nuplan.s3.amazonaws.com/public/nuplan-v1.1/nuplan-v1.1_train_pittsburgh.zip",
+            "archive_filename": "nuplan-v1.1_train_pittsburgh.zip",
+            "content_length": 30620248893,
+            "etag": '"6d9100ba0b89c9b0e997cf99c1ef739e-3651"',
+            "last_modified": "2024-01-30T22:14:06Z",
+            "accept_ranges": "bytes",
+            "content_type": "application/zip",
+        },
+        {
+            "city": "singapore",
+            "map_family": "sg-one-north",
+            "academic_role": "city_held_out_ood",
+            "archive_status": "official_identity_verified",
+            "archive_url": "https://motional-nuplan.s3.amazonaws.com/public/nuplan-v1.1/nuplan-v1.1_train_singapore.zip",
+            "archive_filename": "nuplan-v1.1_train_singapore.zip",
+            "content_length": 34959594178,
+            "etag": '"fd44464d9ce2e3439b1124838f0f2890-4168"',
+            "last_modified": "2024-01-30T22:15:54Z",
+            "accept_ranges": "bytes",
+            "content_type": "application/zip",
+        },
+    ]
+
+
+def test_academic_city_source_plan_binds_exact_three_city_db_only_design() -> None:
+    plan = nuplan.build_v26_nuplan_academic_city_source_plan(
+        _academic_city_archives(),
+        fixed_dp=_fixed_dp(),
+        camp_source_head="a" * 40,
+    )
+    assert [entry["city"] for entry in plan["city_archives"]] == [
+        "boston",
+        "pittsburgh",
+        "singapore",
+    ]
+    assert sum(entry["content_length"] for entry in plan["city_archives"]) == 103740992371
+    assert plan["split_design"] == {
+        "kind": "outcome_independent_custom_academic_group_split",
+        "iid_source_cities": ["boston", "pittsburgh"],
+        "city_held_out_ood": "singapore",
+        "group_keys": [
+            "log_token",
+            "scenario_token",
+            "mission_route_roadblock_chain",
+            "corridor_id",
+            "geometry_clone_group",
+        ],
+        "cluster_unit": "log_token_plus_corridor_id",
+        "official_val_test": "future_expansion_not_downloaded",
+        "las_vegas": "future_expansion_not_downloaded",
+        "sensor_blobs": "not_requested_unless_adapter_proven_necessary",
+    }
+    assert nuplan.validate_v26_nuplan_academic_city_source_plan(plan) == plan
+
+
+def test_academic_city_source_plan_rejects_signed_urls_and_city_role_drift() -> None:
+    signed = _academic_city_archives()
+    signed[0]["archive_url"] = signed[0]["archive_url"] + "?X-Amz-Signature=secret"
+    with pytest.raises(ValueError, match="non-secret official object URL"):
+        nuplan.build_v26_nuplan_academic_city_source_plan(
+            signed,
+            fixed_dp=_fixed_dp(),
+            camp_source_head="a" * 40,
+        )
+    drifted = _academic_city_archives()
+    drifted[2]["academic_role"] = "iid_grouped_source"
+    with pytest.raises(ValueError, match="role drifted"):
+        nuplan.build_v26_nuplan_academic_city_source_plan(
+            drifted,
+            fixed_dp=_fixed_dp(),
+            camp_source_head="a" * 40,
+        )
+
+
+def test_checked_in_three_city_archive_config_matches_source_plan_contract() -> None:
+    path = ROOT / "configs/integrations/diffusion_planner_v26_nuplan_three_city_source_archives_v1.json"
+    archive_input = json.loads(path.read_text(encoding="utf-8"))
+    plan = nuplan.build_v26_nuplan_academic_city_source_plan(
+        archive_input["city_archives"],
+        fixed_dp=_fixed_dp(),
+        camp_source_head="a" * 40,
+    )
+    assert plan["source_plan_sha256"]
+    assert sum(item["content_length"] for item in plan["city_archives"]) == 103740992371
+
+
 def test_identity_only_manifest_keeps_official_groups_disjoint_and_ood_separate() -> None:
     records = [
         _record(1, split="train"),
@@ -236,3 +342,34 @@ def test_manifest_cli_binds_identity_only_inputs_without_legacy_k8_imports(tmp_p
     )
     assert "run_diffusion_planner_dp_camp_v18" not in source
     assert "diffusion_planner_v25" not in source
+
+
+def test_academic_city_plan_cli_keeps_archive_metadata_only(tmp_path: Path) -> None:
+    archives_path = tmp_path / "city_archives.json"
+    binding_path = tmp_path / "fixed_dp.json"
+    archives_path.write_text(
+        json.dumps({"city_archives": _academic_city_archives()}), encoding="utf-8"
+    )
+    binding_path.write_text(json.dumps(_fixed_dp()), encoding="utf-8")
+    script_path = (
+        ROOT / "scripts/integrations/prepare_diffusion_planner_v26_nuplan_academic_city_source_plan.py"
+    )
+    spec = importlib.util.spec_from_file_location("v26_nuplan_city_plan", script_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    args = module.parse_args(
+        [
+            "--city-archives",
+            str(archives_path),
+            "--fixed-dp-binding",
+            str(binding_path),
+            "--camp-source-head",
+            "a" * 40,
+            "--output",
+            str(tmp_path / "city_plan.json"),
+        ]
+    )
+    plan = module.build_plan(args)
+    assert plan["outcome_fields_consumed"] == []
+    assert all("?" not in entry["archive_url"] for entry in plan["city_archives"])

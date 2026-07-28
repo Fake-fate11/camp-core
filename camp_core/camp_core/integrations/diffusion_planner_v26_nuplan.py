@@ -11,6 +11,7 @@ from contextlib import nullcontext
 import hashlib
 import json
 from typing import Any, Iterable, Mapping, Sequence
+from urllib.parse import urlsplit
 
 import numpy as np
 
@@ -28,6 +29,9 @@ FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
 NUPLAN_SOURCE_SCHEMA_VERSION = "camp_dp_v26_official_nuplan_v11_source_v1"
 NUPLAN_SPLIT_MANIFEST_SCHEMA_VERSION = (
     "camp_dp_v26_official_nuplan_v11_group_split_manifest_v1"
+)
+NUPLAN_ACADEMIC_CITY_SOURCE_PLAN_SCHEMA_VERSION = (
+    "camp_dp_v26_nuplan_v11_academic_city_source_plan_v1"
 )
 NUPLAN_B8_TOPOLOGY_SCHEMA_VERSION = "camp_dp_v26_nuplan_same_ego_b8_v1"
 NUPLAN_V26_ADAPTER_ID = "camp_dp_v26_official_nuplan_input_adapter_v1"
@@ -71,6 +75,26 @@ _OUTCOME_FIELD_TOKENS = frozenset(
         "selected_index",
         "trajectory",
     }
+)
+_ACADEMIC_CITY_SOURCE_SPEC = {
+    "boston": {
+        "map_family": "us-ma-boston",
+        "academic_role": "iid_grouped_source",
+    },
+    "pittsburgh": {
+        "map_family": "us-pa-pittsburgh-hazelwood",
+        "academic_role": "iid_grouped_source",
+    },
+    "singapore": {
+        "map_family": "sg-one-north",
+        "academic_role": "city_held_out_ood",
+    },
+}
+_CITY_ARCHIVE_STATUSES = frozenset(
+    {"official_identity_verified", "external_authenticated_manifest_pending"}
+)
+_SENSITIVE_ACCESS_FIELD_TOKENS = frozenset(
+    {"cookie", "password", "secret", "signature", "signed_url", "token"}
 )
 
 
@@ -327,6 +351,85 @@ def validate_v26_nuplan_split_manifest(value: Mapping[str, Any]) -> dict[str, An
     return rebuilt
 
 
+def build_v26_nuplan_academic_city_source_plan(
+    sources: Iterable[Mapping[str, Any]],
+    *,
+    fixed_dp: Mapping[str, Any],
+    camp_source_head: str,
+) -> dict[str, Any]:
+    """Freeze the three-city, DB-only V26 source boundary before outcomes.
+
+    This deliberately does not repurpose official val/test as a local holdout:
+    Boston and Pittsburgh form the future IID grouped-validation source, while
+    Singapore is a whole-city OOD source.  Per-record group allocation happens
+    only after DB inventory and is therefore outside this archive-identity plan.
+    """
+
+    normalized = [_validate_academic_city_source(source) for source in sources]
+    normalized.sort(key=lambda source: source["city"])
+    cities = [source["city"] for source in normalized]
+    if cities != sorted(_ACADEMIC_CITY_SOURCE_SPEC):
+        raise ValueError("academic city source plan must contain Boston, Pittsburgh, Singapore")
+    if len(set(cities)) != len(cities):
+        raise ValueError("academic city source plan contains a duplicate city")
+    if any(
+        source["archive_status"] != "official_identity_verified"
+        for source in normalized
+    ):
+        raise ValueError("academic city source plan has an unverified archive identity")
+
+    dp = _validate_fixed_dp_binding(fixed_dp)
+    _require_commit(camp_source_head, "camp_source_head")
+    payload = {
+        "schema_version": NUPLAN_ACADEMIC_CITY_SOURCE_PLAN_SCHEMA_VERSION,
+        "evidence_role": "development_nonholdout_nuplan_academic_city_source_plan",
+        "outcome_fields_consumed": [],
+        "camp_source_head": camp_source_head,
+        "fixed_dp": dp,
+        "generator_topology": v26_nuplan_b8_topology(),
+        "split_design": {
+            "kind": "outcome_independent_custom_academic_group_split",
+            "iid_source_cities": ["boston", "pittsburgh"],
+            "city_held_out_ood": "singapore",
+            "group_keys": [
+                "log_token",
+                "scenario_token",
+                "mission_route_roadblock_chain",
+                "corridor_id",
+                "geometry_clone_group",
+            ],
+            "cluster_unit": "log_token_plus_corridor_id",
+            "official_val_test": "future_expansion_not_downloaded",
+            "las_vegas": "future_expansion_not_downloaded",
+            "sensor_blobs": "not_requested_unless_adapter_proven_necessary",
+        },
+        "city_archives": normalized,
+    }
+    payload["source_plan_sha256"] = canonical_json_sha256(payload)
+    return payload
+
+
+def validate_v26_nuplan_academic_city_source_plan(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Rebuild an academic city source plan without reading data payloads."""
+
+    if value.get("schema_version") != NUPLAN_ACADEMIC_CITY_SOURCE_PLAN_SCHEMA_VERSION:
+        raise ValueError("academic city source plan schema drifted")
+    if value.get("evidence_role") != "development_nonholdout_nuplan_academic_city_source_plan":
+        raise ValueError("academic city source plan role drifted")
+    if value.get("outcome_fields_consumed") != []:
+        raise ValueError("academic city source plan consumed outcomes")
+    rebuilt = build_v26_nuplan_academic_city_source_plan(
+        value.get("city_archives", []),
+        fixed_dp=value.get("fixed_dp", {}),
+        camp_source_head=value.get("camp_source_head"),
+    )
+    if rebuilt != dict(value):
+        raise ValueError("academic city source plan is not a deterministic rebuild")
+    return rebuilt
+
+
 def build_same_ego_b8_model_input(
     normalized_single_input: Mapping[str, Any],
     latent_rows: np.ndarray,
@@ -505,6 +608,78 @@ def _validate_fixed_dp_binding(value: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
+def _validate_academic_city_source(value: Mapping[str, Any]) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError("academic city archive must be a mapping")
+    _reject_sensitive_access_fields(value)
+    required = {
+        "city",
+        "map_family",
+        "academic_role",
+        "archive_status",
+        "archive_url",
+        "archive_filename",
+        "content_length",
+        "etag",
+        "last_modified",
+        "accept_ranges",
+        "content_type",
+    }
+    if set(value) != required:
+        raise ValueError("academic city archive fields drifted")
+    result = {
+        key: _nonempty_string(value[key], f"academic city archive.{key}")
+        for key in required
+        if key != "content_length"
+    }
+    content_length = value["content_length"]
+    if isinstance(content_length, bool) or not isinstance(content_length, int) or content_length <= 0:
+        raise ValueError("academic city archive.content_length must be a positive integer")
+    result["content_length"] = content_length
+    if result["city"] not in _ACADEMIC_CITY_SOURCE_SPEC:
+        raise ValueError("academic city archive city is not in the frozen three-city design")
+    expected = _ACADEMIC_CITY_SOURCE_SPEC[result["city"]]
+    if result["map_family"] != expected["map_family"]:
+        raise ValueError("academic city archive map_family drifted")
+    if result["academic_role"] != expected["academic_role"]:
+        raise ValueError("academic city archive role drifted")
+    if result["archive_status"] not in _CITY_ARCHIVE_STATUSES:
+        raise ValueError("academic city archive status is invalid")
+    if result["archive_status"] != "official_identity_verified":
+        raise ValueError("academic city archive must have verified official identity")
+    parts = urlsplit(result["archive_url"])
+    if (
+        parts.scheme != "https"
+        or parts.netloc != "motional-nuplan.s3.amazonaws.com"
+        or bool(parts.query)
+        or bool(parts.fragment)
+        or parts.username is not None
+        or parts.password is not None
+        or not parts.path.startswith("/public/nuplan-v1.1/")
+    ):
+        raise ValueError("academic city archive URL must be a non-secret official object URL")
+    filename = parts.path.rsplit("/", 1)[-1]
+    if filename != result["archive_filename"]:
+        raise ValueError("academic city archive filename does not bind its URL")
+    if result["content_type"] != "application/zip":
+        raise ValueError("academic city archive content_type must be application/zip")
+    if result["accept_ranges"] != "bytes":
+        raise ValueError("academic city archive must support byte-range resume")
+    return {
+        "city": result["city"],
+        "map_family": result["map_family"],
+        "academic_role": result["academic_role"],
+        "archive_status": result["archive_status"],
+        "archive_url": result["archive_url"],
+        "archive_filename": result["archive_filename"],
+        "content_length": result["content_length"],
+        "etag": result["etag"],
+        "last_modified": result["last_modified"],
+        "accept_ranges": result["accept_ranges"],
+        "content_type": result["content_type"],
+    }
+
+
 def _validate_group_disjointness(records: Sequence[Mapping[str, Any]]) -> None:
     for field in (
         "log_token",
@@ -633,6 +808,17 @@ def _reject_outcome_fields(value: Any) -> None:
     elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
         for item in value:
             _reject_outcome_fields(item)
+
+
+def _reject_sensitive_access_fields(value: Any) -> None:
+    if isinstance(value, Mapping):
+        for key, item in value.items():
+            if str(key).lower() in _SENSITIVE_ACCESS_FIELD_TOKENS:
+                raise ValueError("academic city source plan must not contain access credentials")
+            _reject_sensitive_access_fields(item)
+    elif isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
+        for item in value:
+            _reject_sensitive_access_fields(item)
 
 
 def _nonempty_string(value: Any, label: str) -> str:
