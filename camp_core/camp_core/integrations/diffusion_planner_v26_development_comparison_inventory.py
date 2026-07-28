@@ -838,6 +838,66 @@ def _external_candidate(candidate: Mapping[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in candidate.items() if not key.startswith("_")}
 
 
+COMPOSITE_IDENTITY_FIELDS = (
+    "route_id",
+    "corridor_id",
+    "physical_route_identity_sha256",
+    "source_event_identity_sha256",
+)
+
+
+def comparison_composite_identity(candidate: Mapping[str, Any]) -> tuple[str, str, str, str]:
+    """Return the one exact route-disjointness tuple used at every stage.
+
+    A route string or a simulator seed alone cannot create a new evaluation
+    identity.  The physical route identity is deliberately part of the tuple
+    in addition to the V26-native corridor and source-event bindings.
+    """
+
+    row = dict(candidate)
+    values = tuple(str(row.get(name, "")) for name in COMPOSITE_IDENTITY_FIELDS)
+    if any(not value for value in values):
+        raise ValueError("V26 development composite identity is incomplete")
+    return values
+
+
+def ordered_selected_cluster_bytes(value: Mapping[str, Any]) -> bytes:
+    """Canonical ordered selection bytes for a no-result rebuild comparison."""
+
+    rows = value.get("selected_clusters")
+    if type(rows) is not list:
+        raise ValueError("V26 development inventory selected clusters are unavailable")
+    return json.dumps(rows, sort_keys=True, separators=(",", ":"), allow_nan=False).encode(
+        "utf-8"
+    )
+
+
+def require_selection_rebuild_stability(
+    *, previous: Mapping[str, Any], rebuilt: Mapping[str, Any]
+) -> None:
+    """Reject a rebuild that changes the ordered selected identity set.
+
+    This compares only source/identity metadata, never candidate, label,
+    trajectory, or outcome payload.  It is intentionally usable across the
+    provenance-schema revision that motivated the rebuild.
+    """
+
+    if ordered_selected_cluster_bytes(previous) != ordered_selected_cluster_bytes(rebuilt):
+        raise ValueError("V26 development inventory selected identity bytes drifted")
+    if previous.get("selection_coverage") != rebuilt.get("selection_coverage"):
+        raise ValueError("V26 development inventory selected strata coverage drifted")
+    previous_pairs = [
+        (str(row.get("route_id")), str(row.get("corridor_id")))
+        for row in previous.get("selected_clusters", [])
+    ]
+    rebuilt_pairs = [
+        (str(row.get("route_id")), str(row.get("corridor_id")))
+        for row in rebuilt.get("selected_clusters", [])
+    ]
+    if previous_pairs != rebuilt_pairs:
+        raise ValueError("V26 development inventory ordered route/corridor set drifted")
+
+
 def build_development_comparison_inventory(
     *,
     source_collection: Mapping[str, Any],
@@ -845,6 +905,8 @@ def build_development_comparison_inventory(
     fixed_dp_checkpoint: Mapping[str, Any],
     adapted_selector: Mapping[str, Any],
     reference_selector: Mapping[str, Any],
+    final_training_population_sha256: str,
+    revision_plan_sha256: str,
 ) -> dict[str, Any]:
     """Freeze a route-disjoint development manifest from identity-only inputs."""
 
@@ -856,6 +918,12 @@ def build_development_comparison_inventory(
     _require_sha256(checkpoint["sha256"], "V26 development checkpoint SHA")
     if type(adapted_selector) is not dict or type(reference_selector) is not dict:
         raise ValueError("V26 development inventory selector identities are invalid")
+    final_training_population_sha256 = _require_sha256(
+        final_training_population_sha256, "V26 final training population input"
+    )
+    revision_plan_sha256 = _require_sha256(
+        revision_plan_sha256, "V26 revision plan input"
+    )
     if source_collection.get("zero_model_calls") != _zero_calls():
         raise ValueError("V26 source inventory crossed the zero-model boundary")
     raw_candidates = [dict(item) for item in source_collection.get("candidates", [])]
@@ -868,25 +936,8 @@ def build_development_comparison_inventory(
         for item in raw_candidates
         if item.get("eligibility", {}).get("status") == "passed_v26_native_source_preflight"
     ]
-    training_composites = {
-        (
-            str(item["route_id"]),
-            str(item["corridor_id"]),
-            str(item["derived_geometry_sha256"]),
-            str(item["source_event_identity_sha256"]),
-        )
-        for item in training
-    }
+    training_composites = {comparison_composite_identity(item) for item in training}
     training_physical = {str(item["physical_route_identity_sha256"]) for item in training}
-    candidate_composites = {
-        (
-            str(item["route_id"]),
-            str(item["provisional_corridor_id"]),
-            str(item["derived_geometry_sha256"]),
-            str(item["source_event_identity_sha256"]),
-        )
-        for item in eligible
-    }
     # The literal composite tuple is separately recorded below.  Physical
     # identity exclusion prevents a seed/route-id namespace from disguising an
     # already trained geometry as a new route.
@@ -899,20 +950,15 @@ def build_development_comparison_inventory(
     if not disjoint:
         raise ValueError("V26 development inventory has no source-authoritative route-disjoint candidate")
     corridor_ready = _assign_native_corridors(disjoint)
+    candidate_composites = {
+        comparison_composite_identity(item) for item in corridor_ready
+    }
     selected, selection = _select_candidates(corridor_ready)
     if len({str(item["route_id"]) for item in selected}) != len(selected) or len(
         {str(item["corridor_id"]) for item in selected}
     ) != len(selected):
         raise ValueError("V26 development inventory selected route/corridor identity is not exact-once")
-    selected_composites = {
-        (
-            str(item["route_id"]),
-            str(item["corridor_id"]),
-            str(item["physical_route_identity_sha256"]),
-            str(item["source_event_identity_sha256"]),
-        )
-        for item in selected
-    }
+    selected_composites = {comparison_composite_identity(item) for item in selected}
     if selected_composites.intersection(training_composites):
         raise ValueError("V26 development inventory composite identity intersects training")
     value = {
@@ -943,6 +989,10 @@ def build_development_comparison_inventory(
             "legacy_safetycost_role": V26_LEGACY_SAFETYCOST_ROLE,
         },
         "selectors": {"adapted": dict(adapted_selector), "reference": dict(reference_selector)},
+        "input_bindings": {
+            "final_training_population_sha256": final_training_population_sha256,
+            "revision_plan_sha256": revision_plan_sha256,
+        },
         "source_families": families,
         "training_population": {
             "planned": 1783,
@@ -951,7 +1001,7 @@ def build_development_comparison_inventory(
             "identity_record_count_on_available_native_maps": len(training),
         },
         "disjointness": {
-            "composite_fields": ["route_id", "corridor_id", "geometry_hash", "source_event_identity"],
+            "composite_fields": list(COMPOSITE_IDENTITY_FIELDS),
             "training_composite_count": len(training_composites),
             "candidate_composite_count_before_selection": len(candidate_composites),
             "candidate_exact_composite_intersection_count": len(candidate_composites.intersection(training_composites)),
@@ -1003,7 +1053,7 @@ def validate_development_comparison_inventory(value: Mapping[str, Any]) -> dict[
     required = {
         "schema_version", "evidence_role", "status", "camp_head", "fixed_dp", "split",
         "holdout_accessed", "outcome_fields_consumed", "payload_read", "generator_topology",
-        "arms", "closed_loop_topology", "endpoint_contract", "selectors", "source_families",
+        "arms", "closed_loop_topology", "endpoint_contract", "selectors", "input_bindings", "source_families",
         "training_population", "disjointness", "selection", "candidate_universe",
         "candidate_universe_records",
         "planned_denominator", "selected_clusters", "selection_coverage", "invocation_counts",
@@ -1027,6 +1077,12 @@ def validate_development_comparison_inventory(value: Mapping[str, Any]) -> dict[
     if result["fixed_dp"].get("head") != FROZEN_FIXED_DP_HEAD:
         raise ValueError("V26 development inventory fixed-DP head drifted")
     _require_sha256(result["fixed_dp"].get("checkpoint", {}).get("sha256"), "V26 comparison checkpoint")
+    inputs = dict(result["input_bindings"])
+    if set(inputs) != {"final_training_population_sha256", "revision_plan_sha256"}:
+        raise ValueError("V26 development inventory input bindings drifted")
+    for key, item in inputs.items():
+        inputs[key] = _require_sha256(item, f"V26 development {key}")
+    result["input_bindings"] = inputs
     if (
         result["endpoint_contract"].get("schema_version") != V26_FUTURE_EFFECT_SCHEMA
         or result["endpoint_contract"].get("weighted_total_score") is not False
@@ -1050,9 +1106,13 @@ def validate_development_comparison_inventory(value: Mapping[str, Any]) -> dict[
     corridor_ids = [str(item.get("corridor_id")) for item in selected]
     if len(route_ids) != len(set(route_ids)) or len(corridor_ids) != len(set(corridor_ids)):
         raise ValueError("V26 development inventory selected identities are not exact-once")
+    selected_composites = [comparison_composite_identity(item) for item in selected]
+    if len(selected_composites) != len(set(selected_composites)):
+        raise ValueError("V26 development inventory selected composite identities are not exact-once")
     disjointness = dict(result["disjointness"])
     if (
-        disjointness.get("candidate_exact_composite_intersection_count") != 0
+        disjointness.get("composite_fields") != list(COMPOSITE_IDENTITY_FIELDS)
+        or disjointness.get("candidate_exact_composite_intersection_count") != 0
         or disjointness.get("selected_composite_intersection_count") != 0
         or disjointness.get("different_seed_or_state_creates_new_route") is not False
     ):

@@ -121,6 +121,8 @@ def _build(candidates: list[dict[str, object]]) -> dict[str, object]:
         fixed_dp_checkpoint={"path": "/fixed/diffusion_planner.pth", "sha256": _sha(700)},
         adapted_selector={"artifact_role": "camp_dp_v26_adapted_selector_weights_v1", "assets": {}},
         reference_selector={"artifact_role": "v25_zero_shot_reference_read_only", "reference": {}},
+        final_training_population_sha256=_sha(701),
+        revision_plan_sha256=_sha(702),
     )
 
 
@@ -166,6 +168,44 @@ def test_no_disjoint_source_candidate_fails_closed_and_validator_rejects_payload
     )
     with pytest.raises(ValueError, match="identity-only contract"):
         inventory.validate_development_comparison_inventory(bad)
+
+
+def test_composite_tuple_is_uniform_and_rebuild_keeps_ordered_selection_bytes_stable() -> None:
+    manifest = _build([_candidate(index) for index in range(103)])
+    assert manifest["disjointness"]["composite_fields"] == list(
+        inventory.COMPOSITE_IDENTITY_FIELDS
+    )
+    selected = manifest["selected_clusters"]
+    assert inventory.comparison_composite_identity(selected[0]) == (
+        selected[0]["route_id"],
+        selected[0]["corridor_id"],
+        selected[0]["physical_route_identity_sha256"],
+        selected[0]["source_event_identity_sha256"],
+    )
+    rebuilt = _build([_candidate(index) for index in range(103)])
+    inventory.require_selection_rebuild_stability(previous=manifest, rebuilt=rebuilt)
+    changed = copy.deepcopy(rebuilt)
+    changed["selected_clusters"][0], changed["selected_clusters"][1] = (
+        changed["selected_clusters"][1],
+        changed["selected_clusters"][0],
+    )
+    with pytest.raises(ValueError, match="selected identity bytes drifted"):
+        inventory.require_selection_rebuild_stability(previous=manifest, rebuilt=changed)
+
+
+def test_input_sha_bindings_are_required_and_malformed_values_fail_closed() -> None:
+    manifest = _build([_candidate(index) for index in range(3)])
+    assert manifest["input_bindings"] == {
+        "final_training_population_sha256": _sha(701),
+        "revision_plan_sha256": _sha(702),
+    }
+    drifted = copy.deepcopy(manifest)
+    drifted["input_bindings"]["revision_plan_sha256"] = "not-a-sha"
+    drifted["inventory_sha256"] = inventory.canonical_json_sha256(
+        {key: value for key, value in drifted.items() if key != "inventory_sha256"}
+    )
+    with pytest.raises(ValueError, match="revision_plan_sha256"):
+        inventory.validate_development_comparison_inventory(drifted)
 
 
 def test_source_inventory_binding_reuses_exact_authoritative_map_without_signal_fallback(

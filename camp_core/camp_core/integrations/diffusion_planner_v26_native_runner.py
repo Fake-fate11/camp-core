@@ -49,6 +49,25 @@ class V26RequestedStateCountReached(RuntimeError):
     """Normal terminal for an exact V26 planned-state denominator."""
 
 
+_V26_ALLOWED_SELECTOR_ARM_SETS = (
+    PROFILE_ARMS,
+    (OPERATIONAL_ARM,),
+    (OPERATIONAL_ARM, "Static14D"),
+    (OPERATIONAL_ARM, "Scene14D"),
+)
+
+
+def _validate_selector_runtime_contract(
+    *, selector_arms: Sequence[str], operational_arm: str
+) -> tuple[str, ...]:
+    """Allow only the established profiling set or V26 three-arm subsets."""
+
+    arms = tuple(str(value) for value in selector_arms)
+    if arms not in _V26_ALLOWED_SELECTOR_ARM_SETS or operational_arm not in arms:
+        raise ValueError("V26 native runner selector-arm contract drifted")
+    return arms
+
+
 def _elapsed_ms(started_ns: int) -> float:
     return (time.perf_counter_ns() - started_ns) / 1e6
 
@@ -125,6 +144,8 @@ class V26NativeSameEgoB8Callback:
         signal_adapter: Any,
         integration_boundary: Mapping[str, Any],
         simplex_nonnegative_atol: float = FROZEN_SIMPLEX_TOLERANCE,
+        selector_arms: Sequence[str] = PROFILE_ARMS,
+        operational_arm: str = OPERATIONAL_ARM,
     ) -> None:
         if simplex_nonnegative_atol != FROZEN_SIMPLEX_TOLERANCE:
             raise ValueError("V26 callback requires frozen simplex tolerance 1e-9")
@@ -142,6 +163,10 @@ class V26NativeSameEgoB8Callback:
         self.signal_adapter = signal_adapter
         self.integration_boundary = dict(integration_boundary)
         self.simplex_nonnegative_atol = float(simplex_nonnegative_atol)
+        self.selector_arms = _validate_selector_runtime_contract(
+            selector_arms=selector_arms, operational_arm=operational_arm
+        )
+        self.operational_arm = str(operational_arm)
         self.model_call_count = 0
         self.primary_candidates: list[np.ndarray] = []
         self.signal_adapter.bind_builder(builder)
@@ -339,8 +364,24 @@ class V26NativeSameEgoB8Callback:
                 raise ValueError("V26 selector mutated the frozen candidate pool")
             if self.model_call_count != calls_before + 1:
                 raise ValueError("V26 selector made a forbidden post-pool model call")
-            selected_index = 0
-            direct_predictions: dict[str, np.ndarray] = {ego_id: candidates[0].copy()}
+            selected_arm_receipt = dict(evaluation["arms"][self.operational_arm])
+            selected_value = selected_arm_receipt.get("selected_index")
+            receipt.update(
+                {
+                    "real_selector_receipts": evaluation["arms"],
+                    "materialized_summary": evaluation["summary"],
+                    "selector_arms": list(self.selector_arms),
+                    "operational_arm": self.operational_arm,
+                }
+            )
+            if (
+                selected_arm_receipt.get("status") != "ok"
+                or not isinstance(selected_value, (int, np.integer))
+                or not 0 <= int(selected_value) < 8
+            ):
+                raise ValueError("V26 operational selector has no eligible selected row")
+            selected_index = int(selected_value)
+            direct_predictions: dict[str, np.ndarray] = {ego_id: candidates[selected_index].copy()}
             for offset, original_index in enumerate(other_indices):
                 direct_predictions[agent_ids[original_index]] = primary_prediction[8 + offset, 0].copy()
             expanded_ids = [
@@ -382,12 +423,10 @@ class V26NativeSameEgoB8Callback:
                     "candidate_neighbor_sha256": array_sha256(neighbors),
                     "primary_pool_model_call_count": primary_forward_count,
                     "zero_call_receipt": zero_call,
-                    "real_selector_receipts": evaluation["arms"],
-                    "materialized_summary": evaluation["summary"],
                     "selected_index": selected_index,
                     "selected_trajectory_sha256": row_sha[selected_index],
                     "default_output_sha256": row_sha[0],
-                    "selection_flip_vs_row0": False,
+                    "selection_flip_vs_row0": bool(selected_index != 0),
                 }
             )
             receipt["latency_ms"].update(evaluation["latency_ms"])
@@ -500,39 +539,59 @@ class V26NativeSameEgoB8Callback:
         atom_ms = _elapsed_ms(atom_started)
         if array_sha256(candidates) != before:
             raise ValueError("V26 atom materialization mutated the frozen pool")
-        context_started = time.perf_counter_ns()
-        context_record = build_v25_raw_context(
-            causal_input=causal,
-            candidates=candidates,
-            source_valid_mask=np.asarray(materialized["source_valid_mask"], dtype=bool),
-            causal_signal_atom_input=causal_signal_atom_input,
-            v2i_signal_timing=None,
-        )
-        context = {
-            # The V26 adapter maps this outcome-blind current-state payload to
-            # the frozen reference schema.  Keeping the exact schema marker is
-            # essential: the provider must reject a structurally incomplete
-            # context rather than infer or repair one.
-            "schema_version": CONTEXT_SCHEMA_VERSION,
-            "raw_context": context_record.as_dict(),
-            "source_complete": {
-                name: bool(value)
-                for name, value in zip(RAW_FEATURE_NAMES, context_record.source_complete)
-            },
-            "source_receipt": dict(context_record.source_receipt),
-        }
-        context_ms = _elapsed_ms(context_started)
+        context: Mapping[str, Any] | None = None
+        context_ms = 0.0
+        if any(arm_id.startswith("Scene") for arm_id in self.selector_arms):
+            context_started = time.perf_counter_ns()
+            context_record = build_v25_raw_context(
+                causal_input=causal,
+                candidates=candidates,
+                source_valid_mask=np.asarray(materialized["source_valid_mask"], dtype=bool),
+                causal_signal_atom_input=causal_signal_atom_input,
+                v2i_signal_timing=None,
+            )
+            context = {
+                # The V26 adapter maps this outcome-blind current-state payload to
+                # the frozen reference schema.  Keeping the exact schema marker is
+                # essential: the provider must reject a structurally incomplete
+                # context rather than infer or repair one.
+                "schema_version": CONTEXT_SCHEMA_VERSION,
+                "raw_context": context_record.as_dict(),
+                "source_complete": {
+                    name: bool(value)
+                    for name, value in zip(RAW_FEATURE_NAMES, context_record.source_complete)
+                },
+                "source_receipt": dict(context_record.source_receipt),
+            }
+            context_ms = _elapsed_ms(context_started)
         weights_started = time.perf_counter_ns()
-        static9 = np.zeros(14, dtype=np.float64)
-        static9[:9] = np.asarray(self.selector_assets.static9d_weights, dtype=np.float64)
-        scene9 = np.zeros(14, dtype=np.float64)
-        scene9[:9] = np.asarray(self.selector_assets.scene9d_weights(context), dtype=np.float64)
-        static14 = np.asarray(self.selector_assets.static14d_weights, dtype=np.float64)
-        scene14_receipt = self.selector_assets.scene14d_weights(context)
-        scene14 = np.asarray(scene14_receipt["weights"], dtype=np.float64)
+        weights: dict[str, np.ndarray] = {}
+        scene_receipts: dict[str, Mapping[str, Any]] = {}
+        if "Static9D" in self.selector_arms:
+            static9 = np.zeros(14, dtype=np.float64)
+            static9[:9] = np.asarray(self.selector_assets.static9d_weights, dtype=np.float64)
+            weights["Static9D"] = static9
+        if "Scene9D" in self.selector_arms:
+            if context is None:
+                raise AssertionError("V26 Scene9D context was not materialized")
+            scene9 = np.zeros(14, dtype=np.float64)
+            scene9[:9] = np.asarray(self.selector_assets.scene9d_weights(context), dtype=np.float64)
+            weights["Scene9D"] = scene9
+        if "Static14D" in self.selector_arms:
+            weights["Static14D"] = np.asarray(
+                self.selector_assets.static14d_weights, dtype=np.float64
+            )
+        if "Scene14D" in self.selector_arms:
+            if context is None:
+                raise AssertionError("V26 Scene14D context was not materialized")
+            scene_receipts["Scene14D"] = self.selector_assets.scene14d_weights(context)
+            weights["Scene14D"] = np.asarray(
+                scene_receipts["Scene14D"]["weights"], dtype=np.float64
+            )
         weights_ms = _elapsed_ms(weights_started)
-        arms = {
-            OPERATIONAL_ARM: {
+        arms: dict[str, dict[str, Any]] = {}
+        if OPERATIONAL_ARM in self.selector_arms:
+            arms[OPERATIONAL_ARM] = {
                 "status": "ok",
                 "failure_reason": None,
                 "selected_index": 0,
@@ -556,22 +615,21 @@ class V26NativeSameEgoB8Callback:
                 "tie_break_contract": "frozen_row0",
                 "atom_set": ATOM_SET_BY_ARM[OPERATIONAL_ARM],
                 "active_atom_indices": ACTIVE_ATOM_INDICES_BY_ARM[OPERATIONAL_ARM],
-            },
-            "Static9D": self._profile_selector(
-                arm_id="Static9D", candidates=candidates, materialized=materialized, weights=static9
-            ),
-            "Scene9D": self._profile_selector(
-                arm_id="Scene9D", candidates=candidates, materialized=materialized, weights=scene9, context=context
-            ),
-            "Static14D": self._profile_selector(
-                arm_id="Static14D", candidates=candidates, materialized=materialized, weights=static14
-            ),
-            "Scene14D": self._profile_selector(
-                arm_id="Scene14D", candidates=candidates, materialized=materialized, weights=scene14, context=context
-            ),
-        }
-        if tuple(arms) != PROFILE_ARMS or array_sha256(candidates) != before:
-            raise ValueError("V26 five-arm same-pool selector inventory drifted")
+            }
+        for arm_id in self.selector_arms:
+            if arm_id == OPERATIONAL_ARM:
+                continue
+            arms[arm_id] = self._profile_selector(
+                arm_id=arm_id,
+                candidates=candidates,
+                materialized=materialized,
+                weights=weights[arm_id],
+                context=context if arm_id.startswith("Scene") else None,
+            )
+        if tuple(arms) != self.selector_arms or array_sha256(candidates) != before:
+            raise ValueError("V26 same-pool selector inventory drifted")
+        scene14 = weights.get("Scene14D")
+        scene14_receipt = scene_receipts.get("Scene14D")
         return {
             "arms": arms,
             "latency_ms": {
@@ -606,12 +664,14 @@ class V26NativeSameEgoB8Callback:
                 "candidate_reasons": [list(value) for value in materialized["candidate_reasons"]],
                 "canonical_eligible": bool(materialized["canonical_eligible"]),
                 "exclusion_reason": materialized.get("exclusion_reason"),
-                "context": context,
-                "scene_weights": scene14.tolist(),
-                "scene_weights_sha256": array_sha256(scene14),
-                "scene14d_weight_receipt": {
-                    key: value for key, value in scene14_receipt.items() if key != "weights"
-                },
+                "context": None if context is None else dict(context),
+                "scene_weights": None if scene14 is None else scene14.tolist(),
+                "scene_weights_sha256": None if scene14 is None else array_sha256(scene14),
+                "scene14d_weight_receipt": (
+                    None
+                    if scene14_receipt is None
+                    else {key: value for key, value in scene14_receipt.items() if key != "weights"}
+                ),
                 "atom_materialization_phase_receipt": phase_receipt,
                 "simplex_nonnegative_atol": self.simplex_nonnegative_atol,
             },
@@ -635,6 +695,8 @@ def run_v26_native_same_ego_b8_replay(
     max_ticks: int,
     scratch_parent: Path,
     on_completed_unit: Callable[[Mapping[str, Any], V26NativeSameEgoB8Callback], None],
+    selector_arms: Sequence[str] = PROFILE_ARMS,
+    operational_arm: str = OPERATIONAL_ARM,
 ) -> tuple[list[dict[str, Any]], V26NativeSameEgoB8Callback, dict[str, Any]]:
     """Run only the V26 callback through the narrow fixed-DP replay bridge."""
 
@@ -664,6 +726,8 @@ def run_v26_native_same_ego_b8_replay(
         selector_assets=selector_assets,
         signal_adapter=signal_adapter,
         integration_boundary=integration_boundary,
+        selector_arms=selector_arms,
+        operational_arm=operational_arm,
     )
 
     def after_tracker(receipt: dict[str, Any], _scene: Any) -> None:

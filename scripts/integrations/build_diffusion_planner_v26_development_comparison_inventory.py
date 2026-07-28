@@ -26,6 +26,7 @@ for _path in (ROOT, ROOT / "camp_core"):
 from camp_core.integrations.diffusion_planner_v26_development_comparison_inventory import (  # noqa: E402
     build_development_comparison_inventory,
     collect_v26_source_authoritative_candidates,
+    require_selection_rebuild_stability,
 )
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (  # noqa: E402
     V25_ZERO_SHOT_REFERENCE_READ_ONLY,
@@ -129,8 +130,10 @@ def run(args: argparse.Namespace) -> Path:
         raise FileExistsError(output)
     if _git_head(ROOT) != args.expected_camp_head:
         raise ValueError("V26 development inventory CAMP head drifted")
-    training_population = _load_json(args.training_population.resolve(), "training population")
-    revision_plan = _load_json(args.revision_plan.resolve(), "revision plan")
+    training_population_path = args.training_population.resolve()
+    revision_plan_path = args.revision_plan.resolve()
+    training_population = _load_json(training_population_path, "training population")
+    revision_plan = _load_json(revision_plan_path, "revision plan")
     checkpoint = args.fixed_dp_checkpoint.resolve()
     if not checkpoint.is_file():
         raise FileNotFoundError(checkpoint)
@@ -146,7 +149,14 @@ def run(args: argparse.Namespace) -> Path:
         fixed_dp_checkpoint={"path": str(checkpoint), "sha256": _sha256_file(checkpoint)},
         adapted_selector=adapted,
         reference_selector=reference,
+        final_training_population_sha256=_sha256_file(training_population_path),
+        revision_plan_sha256=_sha256_file(revision_plan_path),
     )
+    if args.prior_inventory is not None:
+        require_selection_rebuild_stability(
+            previous=_load_json(args.prior_inventory.resolve(), "prior V26 inventory"),
+            rebuilt=manifest,
+        )
     _atomic_write_json(output, manifest)
     return output
 
@@ -160,6 +170,11 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--fixed-dp-repo", type=Path, required=True)
     parser.add_argument("--fixed-dp-checkpoint", type=Path, required=True)
     parser.add_argument("--expected-camp-head", required=True)
+    parser.add_argument(
+        "--prior-inventory",
+        type=Path,
+        help="identity-only prior inventory whose ordered selection must remain byte-stable",
+    )
     return parser.parse_args(argv)
 
 

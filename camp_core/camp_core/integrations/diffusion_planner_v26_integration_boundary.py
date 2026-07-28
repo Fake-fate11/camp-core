@@ -46,6 +46,9 @@ V26_ADAPTED_WEIGHTS_SCHEMA_VERSION = "camp_dp_v26_adapted_selector_weights_v1"
 V26_TRAINING_EVIDENCE_EVALUATION_SCHEMA = (
     "camp_dp_v26_training_evidence_only_no_formal_evaluation_v1"
 )
+V26_DEVELOPMENT_COMPARISON_EVALUATION_SCHEMA = (
+    "camp_dp_v26_development_nonholdout_industrial_v3_comparison_v1"
+)
 V26_FUTURE_EFFECT_SCHEMA = "camp_dp_v26_industrial_v3_vector_or_typed_missing_v1"
 V26_LEGACY_SAFETYCOST_ROLE = "legacy_only_not_v26_formal_endpoint"
 V26_AUTOWARE_SIDECAR_SIGNAL_MODE = "autoware_traffic_light_sidecar"
@@ -54,6 +57,10 @@ V26_AUTOWARE_SIDECAR_ADAPTER_ID = "camp_dp_v26_autoware_sidecar_signal_adapter_v
 V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID = "camp_dp_v26_certified_no_signal_absence_adapter_v1"
 V26_CERTIFIED_NO_SIGNAL_SCHEMA_VERSION = "camp_dp_v26_certified_no_signal_authority_v1"
 V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION = "camp_dp_v26_integration_boundary_v1"
+V26_ADAPTED_INTEGRATION_BOUNDARY_SCHEMA_VERSION = (
+    "camp_dp_v26_adapted_comparison_integration_boundary_v1"
+)
+V26_ADAPTED_SELECTOR_RUNTIME_ID = "camp_dp_v26_adapted_selector_runtime_v1"
 V26_AUTODL_LAUNCHER_SCHEMA_VERSION = "camp_dp_v26_autodl_launcher_v1"
 V26_AUTODL_INTERPRETER = "/root/autodl-tmp/dp312_venv/bin/python"
 V26_DP312_SITE_PACKAGES = "/root/autodl-tmp/dp312_venv/lib/python3.12/site-packages"
@@ -443,6 +450,59 @@ def build_v26_integration_boundary(
     )
 
 
+def build_v26_adapted_comparison_integration_boundary(
+    *,
+    signal: V26SignalAdapterBinding,
+    reference_manifest_sha256: str,
+    adaptation_receipt_sha256: str,
+    adapted_asset_manifest_sha256: str,
+) -> dict[str, Any]:
+    """Bind a V26 adapted selector runtime without promoting V25 consumers.
+
+    The zero-shot source remains a read-only compatibility reference.  The
+    exact fitted CAMP adaptation receipt and its asset manifest are separately
+    bound for the V26 development comparison runtime.
+    """
+
+    return validate_v26_integration_boundary(
+        {
+            "schema_version": V26_ADAPTED_INTEGRATION_BOUNDARY_SCHEMA_VERSION,
+            "runner_id": V26_NATIVE_RUNNER_ID,
+            "callback_id": V26_NATIVE_CALLBACK_ID,
+            "replay_bridge_id": V26_FIXED_DP_REPLAY_BRIDGE_ID,
+            "signal_authority_mode": signal.mode,
+            "signal_adapter_id": signal.adapter_id,
+            "signal_adapter_binding": signal.receipt,
+            "generator_id": V26_GENERATOR_ID,
+            "generator_topology": v26_generator_topology(),
+            "training_source_schema": V26_TRAINING_SOURCE_SCHEMA_VERSION,
+            "evaluation_schema": V26_DEVELOPMENT_COMPARISON_EVALUATION_SCHEMA,
+            "future_effect_schema": V26_FUTURE_EFFECT_SCHEMA,
+            "legacy_safetycost_role": V26_LEGACY_SAFETYCOST_ROLE,
+            "weight_sources": {
+                "reference": {
+                    "role": V25_ZERO_SHOT_REFERENCE_READ_ONLY,
+                    "data_eligible": False,
+                    "reference_manifest_sha256": reference_manifest_sha256,
+                },
+                "adapted": {
+                    "role": V26_ADAPTED_WEIGHTS_SCHEMA_VERSION,
+                    "data_eligible": False,
+                    "schema_version": V26_ADAPTED_WEIGHTS_SCHEMA_VERSION,
+                    "adaptation_receipt_sha256": adaptation_receipt_sha256,
+                    "asset_manifest_sha256": adapted_asset_manifest_sha256,
+                },
+            },
+            "consumer_ids": [
+                V26_NATIVE_RUNNER_ID,
+                V26_NATIVE_CALLBACK_ID,
+                signal.adapter_id,
+                V26_ADAPTED_SELECTOR_RUNTIME_ID,
+            ],
+        }
+    )
+
+
 def validate_v26_integration_boundary(value: Mapping[str, Any]) -> dict[str, Any]:
     result = _require_exact_mapping(
         value,
@@ -465,19 +525,30 @@ def validate_v26_integration_boundary(value: Mapping[str, Any]) -> dict[str, Any
         },
         "V26 integration boundary",
     )
+    schema_version = result["schema_version"]
     if (
-        result["schema_version"] != V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION
+        schema_version
+        not in {
+            V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION,
+            V26_ADAPTED_INTEGRATION_BOUNDARY_SCHEMA_VERSION,
+        }
         or result["runner_id"] != V26_NATIVE_RUNNER_ID
         or result["callback_id"] != V26_NATIVE_CALLBACK_ID
         or result["replay_bridge_id"] != V26_FIXED_DP_REPLAY_BRIDGE_ID
         or result["generator_id"] != V26_GENERATOR_ID
         or result["generator_topology"] != v26_generator_topology()
         or result["training_source_schema"] != V26_TRAINING_SOURCE_SCHEMA_VERSION
-        or result["evaluation_schema"] != V26_TRAINING_EVIDENCE_EVALUATION_SCHEMA
         or result["future_effect_schema"] != V26_FUTURE_EFFECT_SCHEMA
         or result["legacy_safetycost_role"] != V26_LEGACY_SAFETYCOST_ROLE
     ):
         raise ValueError("V26 integration boundary identity drifted")
+    expected_evaluation = (
+        V26_TRAINING_EVIDENCE_EVALUATION_SCHEMA
+        if schema_version == V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION
+        else V26_DEVELOPMENT_COMPARISON_EVALUATION_SCHEMA
+    )
+    if result["evaluation_schema"] != expected_evaluation:
+        raise ValueError("V26 integration boundary evaluation schema drifted")
     expected_adapter_ids = {
         V26_AUTOWARE_SIDECAR_SIGNAL_MODE: V26_AUTOWARE_SIDECAR_ADAPTER_ID,
         V26_CERTIFIED_NO_SIGNAL_MODE: V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
@@ -498,21 +569,56 @@ def validate_v26_integration_boundary(value: Mapping[str, Any]) -> dict[str, Any
     weights = _require_exact_mapping(
         result["weight_sources"], {"reference", "adapted"}, "V26 weight sources"
     )
+    reference_fields = (
+        {"role", "data_eligible", "root_sha256"}
+        if schema_version == V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION
+        else {"role", "data_eligible", "reference_manifest_sha256"}
+    )
     reference = _require_exact_mapping(
-        weights["reference"], {"role", "data_eligible", "root_sha256"}, "V26 reference weights"
+        weights["reference"], reference_fields, "V26 reference weights"
     )
     if reference["role"] != V25_ZERO_SHOT_REFERENCE_READ_ONLY or reference["data_eligible"] is not False:
         raise ValueError("V25 compatibility weights are reference-only, never V26 data")
-    reference["root_sha256"] = _sha256(reference["root_sha256"], "V26 reference root")
-    adapted = _require_exact_mapping(
-        weights["adapted"], {"role", "data_eligible", "schema_version"}, "V26 adapted weights"
-    )
-    if adapted != {
-        "role": "not_present_for_this_run",
-        "data_eligible": False,
-        "schema_version": None,
-    }:
-        raise ValueError("V26 reference run cannot mislabel adapted weights")
+    if schema_version == V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION:
+        reference["root_sha256"] = _sha256(reference["root_sha256"], "V26 reference root")
+    else:
+        reference["reference_manifest_sha256"] = _sha256(
+            reference["reference_manifest_sha256"], "V26 reference manifest"
+        )
+    if schema_version == V26_INTEGRATION_BOUNDARY_SCHEMA_VERSION:
+        adapted = _require_exact_mapping(
+            weights["adapted"], {"role", "data_eligible", "schema_version"}, "V26 adapted weights"
+        )
+        if adapted != {
+            "role": "not_present_for_this_run",
+            "data_eligible": False,
+            "schema_version": None,
+        }:
+            raise ValueError("V26 reference run cannot mislabel adapted weights")
+    else:
+        adapted = _require_exact_mapping(
+            weights["adapted"],
+            {
+                "role",
+                "data_eligible",
+                "schema_version",
+                "adaptation_receipt_sha256",
+                "asset_manifest_sha256",
+            },
+            "V26 adapted comparison weights",
+        )
+        if (
+            adapted["role"] != V26_ADAPTED_WEIGHTS_SCHEMA_VERSION
+            or adapted["data_eligible"] is not False
+            or adapted["schema_version"] != V26_ADAPTED_WEIGHTS_SCHEMA_VERSION
+        ):
+            raise ValueError("V26 adapted comparison weight role drifted")
+        adapted["adaptation_receipt_sha256"] = _sha256(
+            adapted["adaptation_receipt_sha256"], "V26 adaptation receipt"
+        )
+        adapted["asset_manifest_sha256"] = _sha256(
+            adapted["asset_manifest_sha256"], "V26 adapted asset manifest"
+        )
     result["weight_sources"] = {"reference": reference, "adapted": adapted}
     consumer_ids = result["consumer_ids"]
     if type(consumer_ids) is list and any(
@@ -521,11 +627,14 @@ def validate_v26_integration_boundary(value: Mapping[str, Any]) -> dict[str, Any
         for value in consumer_ids
     ):
         raise ValueError("V26 reviewer rejects V25 high-level consumer IDs")
-    if type(consumer_ids) is not list or consumer_ids != [
+    expected_consumers = [
         V26_NATIVE_RUNNER_ID,
         V26_NATIVE_CALLBACK_ID,
         result["signal_adapter_id"],
-    ]:
+    ]
+    if schema_version == V26_ADAPTED_INTEGRATION_BOUNDARY_SCHEMA_VERSION:
+        expected_consumers.append(V26_ADAPTED_SELECTOR_RUNTIME_ID)
+    if type(consumer_ids) is not list or consumer_ids != expected_consumers:
         raise ValueError("V26 integration boundary consumer IDs drifted")
     return result
 
