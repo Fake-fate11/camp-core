@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -73,6 +75,86 @@ def test_map_identity_uses_the_verified_official_archive_layout(tmp_path: Path) 
     assert module._map_path(
         tmp_path, "las_vegas", "us-nv-las-vegas-strip"
     ) == map_path
+
+
+def _source_identity() -> dict[str, object]:
+    digest = lambda text: hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return {
+        "record_id": "mini:log:scenario",
+        "official_split": "mini",
+        "log_token": "log",
+        "scenario_token": "scenario",
+        "scene_token": "scene",
+        "state_token": "state",
+        "mission_route_roadblock_chain_sha256": digest("route"),
+        "corridor_id": "corridor",
+        "geometry_clone_group_sha256": digest("geometry"),
+        "city": "las_vegas",
+        "map_family": "us-nv-las-vegas-strip",
+        "source_db_sha256": digest("db"),
+        "map_sha256": digest("map"),
+        "event_strata": ["scenario_type:source"],
+    }
+
+
+def test_official_empty_signal_source_maps_to_typed_missing_atom_authority() -> None:
+    module = _module()
+    authority = module._build_v26_no_signal_authority(
+        source=_source_identity(),
+        route_lanes=np.ones((4, 3, 2), dtype=np.float32),
+        traffic_light_data=[],
+        decision_time_s=12.5,
+    )
+
+    assert authority["source_state"] == "not_applicable"
+    assert authority["red_light_endpoint_status"] == "missing_or_inapplicable"
+    assert authority["typed_missing_atoms"] == [
+        "planned_red_light_cost",
+        "red_stopping_margin_cost",
+    ]
+    assert authority["causal_signal_atom_input"]["applicable"] is False
+    assert authority["causal_signal_atom_input"]["current_phase"] == "none"
+
+
+def test_signal_adapter_rejects_unknown_or_unmapped_signal_source_without_default() -> None:
+    module = _module()
+    args = {
+        "source": _source_identity(),
+        "route_lanes": np.ones((4, 3, 2), dtype=np.float32),
+        "decision_time_s": 12.5,
+    }
+    with pytest.raises(ValueError, match="explicit list"):
+        module._build_v26_no_signal_authority(traffic_light_data=None, **args)
+    with pytest.raises(ValueError, match="stop-line adapter"):
+        module._build_v26_no_signal_authority(traffic_light_data=[object()], **args)
+
+
+def test_inapplicable_atom_mask_excludes_only_legal_zero_values_without_weight_change() -> None:
+    module = _module()
+    atoms = np.ones((8, 14), dtype=np.float64)
+    atoms[:, [10, 12]] = 0.0
+    applicable = np.ones((8, 14), dtype=bool)
+    applicable[:, [10, 12]] = False
+    weights = np.zeros(14, dtype=np.float64)
+    weights[10] = 1.0
+
+    _normalized, scores = module._score_applicable_atoms(
+        atoms, np.ones(14), weights, applicable
+    )
+
+    assert np.array_equal(scores, np.zeros(8))
+    bad = atoms.copy()
+    bad[:, 10] = 1.0
+    with pytest.raises(ValueError, match="exact legal zero"):
+        module._score_applicable_atoms(bad, np.ones(14), weights, applicable)
+
+
+def test_v26_mini_smoke_does_not_reference_legacy_high_level_runner_or_no_signal_builder() -> None:
+    source = (
+        ROOT / "scripts/integrations/run_diffusion_planner_v26_nuplan_mini_b8_smoke.py"
+    ).read_text(encoding="utf-8")
+    assert "_build_no_signal_chain" not in source
+    assert "run_diffusion_planner_v25" not in source
 
 
 def test_pre_forward_status_receipt_has_zero_execution_counts() -> None:

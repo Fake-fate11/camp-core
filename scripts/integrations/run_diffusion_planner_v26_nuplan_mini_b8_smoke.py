@@ -28,6 +28,8 @@ for path in (ROOT, ROOT / "camp_core"):
         sys.path.insert(0, str(path))
 
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    DP_CAMP_ATOM_NAMES_V10,
+    V22_SOURCE_VALID_ELIGIBILITY,
     canonical_score_atoms,
     materialize_canonical_14d,
 )
@@ -55,6 +57,10 @@ from camp_core.integrations.diffusion_planner_v26_nuplan import (  # noqa: E402
 SCHEMA = "camp_dp_v26_official_nuplan_mini_same_ego_b8_smoke_v1"
 EVIDENCE_ROLE = "development_nonholdout_official_nuplan_mini_adapter_smoke"
 ZERO_CALLS = {"model_calls": 0, "dp_calls": 0, "gpu_calls": 0}
+V26_NUPLAN_NO_SIGNAL_ADAPTER_ID = (
+    "camp_dp_v26_official_nuplan_no_signal_adapter_v1"
+)
+FROZEN_CAUSAL_SIGNAL_INPUT_SCHEMA = "camp_dp_v25_causal_signal_atom_input_v2"
 _CITY_BY_MAP = {
     "us-ma-boston": "boston",
     "us-pa-pittsburgh-hazelwood": "pittsburgh",
@@ -117,6 +123,136 @@ def _map_path(data_root: Path, location: str, map_name: str) -> Path:
             f"location={location!r}, map_name={map_name!r}: {candidates}"
         )
     return candidates[0]
+
+
+def _decision_time_s(current_input: Any) -> float:
+    """Read the same-tick official planner time without a fallback/default."""
+
+    iteration = getattr(current_input, "iteration", None)
+    time_point = getattr(iteration, "time_point", None)
+    time_us = getattr(time_point, "time_us", None)
+    if isinstance(time_us, (int, float)) and not isinstance(time_us, bool):
+        decision_time_s = float(time_us) / 1e6
+        if np.isfinite(decision_time_s) and decision_time_s >= 0.0:
+            return decision_time_s
+    raise ValueError("official mini planner input lacks a finite same-tick time")
+
+
+def _build_v26_no_signal_authority(
+    *,
+    source: Mapping[str, Any],
+    route_lanes: np.ndarray,
+    traffic_light_data: Any,
+    decision_time_s: float,
+) -> dict[str, Any]:
+    """Bind an explicit official empty traffic-light list to the shared atom API.
+
+    No signal observation is represented as a source-valid, not-applicable
+    red-light atom.  ``None`` or a nonempty list is deliberately rejected: the
+    former is unknown and the latter requires the separate stop-line mapping.
+    """
+
+    if type(traffic_light_data) is not list:
+        raise ValueError("official traffic-light authority must be an explicit list")
+    if traffic_light_data:
+        raise ValueError(
+            "official nonempty traffic-light authority requires a V26 stop-line adapter"
+        )
+    if not np.isfinite(decision_time_s) or decision_time_s < 0.0:
+        raise ValueError("official no-signal decision time is invalid")
+    validated_source = validate_v26_nuplan_source_record(source)
+    route_geometry_sha256 = array_sha256(np.ascontiguousarray(route_lanes))
+    source_binding = {
+        "adapter_id": V26_NUPLAN_NO_SIGNAL_ADAPTER_ID,
+        "source_identity_sha256": validated_source["source_identity_sha256"],
+        "source_db_sha256": validated_source["source_db_sha256"],
+        "map_sha256": validated_source["map_sha256"],
+        "route_geometry_sha256": route_geometry_sha256,
+        "traffic_light_status_count": 0,
+        "source_state": "not_applicable",
+    }
+    source_chain_sha256 = hashlib.sha256(canonical_json_bytes(source_binding)).hexdigest()
+    runtime_receipt = {
+        "schema_version": "camp_dp_v26_nuplan_signal_runtime_receipt_v1",
+        "scenario_id": validated_source["scenario_token"],
+        "tick_index": 0,
+        "decision_time_s": float(decision_time_s),
+        "source_mode": "same_tick_no_signal_rule_no_v2i",
+        "current_phase": "none",
+        "route_geometry_sha256": route_geometry_sha256,
+        "source_chain_sha256": source_chain_sha256,
+        "source_valid": True,
+        "applicable": False,
+        "traffic_light_status_count": 0,
+        "adapter_id": V26_NUPLAN_NO_SIGNAL_ADAPTER_ID,
+    }
+    causal_signal_atom_input = {
+        "schema_version": FROZEN_CAUSAL_SIGNAL_INPUT_SCHEMA,
+        "source_state": "not_applicable",
+        "source_valid": True,
+        "applicable": False,
+        "current_phase": "none",
+        "decision_time_s": float(decision_time_s),
+        "ego_position_world_m": None,
+        "ego_heading_rad": None,
+        "regulatory_element_id": None,
+        "stop_line_id": None,
+        "stop_line_geometry_world_m": None,
+        "stop_line_geometry_ego_m": None,
+        "stop_line_geometry_sha256": None,
+        "route_tangent_world": None,
+        "route_tangent_ego": None,
+        "route_geometry_sha256": route_geometry_sha256,
+        "route_arc_m": None,
+        "source_chain_sha256": source_chain_sha256,
+        "runtime_receipt": runtime_receipt,
+        "runtime_receipt_sha256": hashlib.sha256(
+            canonical_json_bytes(runtime_receipt)
+        ).hexdigest(),
+    }
+    return {
+        **source_binding,
+        "typed_missing_atoms": [
+            "planned_red_light_cost",
+            "red_stopping_margin_cost",
+        ],
+        "red_light_endpoint_status": "missing_or_inapplicable",
+        "causal_signal_atom_input": causal_signal_atom_input,
+    }
+
+
+def _require_v26_no_signal_authority(
+    value: Mapping[str, Any], *, source: Mapping[str, Any]
+) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise ValueError("V26 mini signal authority must be a mapping")
+    required = {
+        "adapter_id",
+        "source_identity_sha256",
+        "source_db_sha256",
+        "map_sha256",
+        "route_geometry_sha256",
+        "traffic_light_status_count",
+        "source_state",
+        "typed_missing_atoms",
+        "red_light_endpoint_status",
+        "causal_signal_atom_input",
+    }
+    if set(value) != required:
+        raise ValueError("V26 mini signal authority field set drifted")
+    if (
+        value.get("adapter_id") != V26_NUPLAN_NO_SIGNAL_ADAPTER_ID
+        or value.get("source_identity_sha256") != source["source_identity_sha256"]
+        or value.get("source_db_sha256") != source["source_db_sha256"]
+        or value.get("map_sha256") != source["map_sha256"]
+        or value.get("traffic_light_status_count") != 0
+        or value.get("source_state") != "not_applicable"
+        or value.get("typed_missing_atoms")
+        != ["planned_red_light_cost", "red_stopping_margin_cost"]
+        or value.get("red_light_endpoint_status") != "missing_or_inapplicable"
+    ):
+        raise ValueError("V26 mini no-signal authority drifted")
+    return dict(value)
 
 
 def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]:
@@ -249,6 +385,12 @@ def run_adapter(args: argparse.Namespace) -> dict[str, Any]:
         errors = validate_causal_dp_input(arrays)
         if errors:
             raise ValueError("V26 mini adapter causal input invalid: " + "; ".join(errors))
+        signal_authority = _build_v26_no_signal_authority(
+            source=source,
+            route_lanes=arrays["route_lanes"],
+            traffic_light_data=getattr(current_input, "traffic_light_data", None),
+            decision_time_s=_decision_time_s(current_input),
+        )
         npz_path = output_root / "causal_input.npz"
         _write_npz_atomic(npz_path, arrays)
         receipt = {
@@ -264,6 +406,7 @@ def run_adapter(args: argparse.Namespace) -> dict[str, Any]:
             "causal_input_sha256": _sha256_arrays(arrays),
             "causal_input_relative_path": npz_path.name,
             "endpoint_applicability": dict(materialized["endpoint_applicability"]),
+            "signal_authority": signal_authority,
             "outcome_fields_consumed": [],
             **ZERO_CALLS,
         }
@@ -398,6 +541,54 @@ def _select(scores: np.ndarray, mask: np.ndarray, rows: Sequence[str]) -> dict[s
     }
 
 
+def _score_applicable_atoms(
+    atom_matrix: np.ndarray,
+    atom_scales: np.ndarray,
+    weights: np.ndarray,
+    atom_applicable_mask: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Score only source-applicable atom entries without altering weights."""
+
+    matrix = np.asarray(atom_matrix, dtype=np.float64)
+    applicable = np.asarray(atom_applicable_mask)
+    if matrix.shape != (8, 14) or applicable.dtype != np.bool_ or applicable.shape != (8, 14):
+        raise ValueError("V26 atom applicability mask must be strict bool [8,14]")
+    if np.any(np.abs(matrix[~applicable]) > 1e-12):
+        raise ValueError("inapplicable V26 atom values must be exact legal zero")
+    return canonical_score_atoms(
+        np.where(applicable, matrix, 0.0),
+        atom_scales,
+        weights,
+        simplex_nonnegative_atol=1e-9,
+    )
+
+
+def _atom_applicability_receipt(
+    atoms: Mapping[str, Any], signal_authority: Mapping[str, Any]
+) -> dict[str, Any]:
+    source = np.asarray(atoms["atom_source_valid_mask"])
+    applicable = np.asarray(atoms["atom_applicable_mask"])
+    if source.dtype != np.bool_ or applicable.dtype != np.bool_ or source.shape != (8, 14) or applicable.shape != (8, 14):
+        raise ValueError("V26 atom source/applicability masks drifted")
+    if np.any(applicable & ~source):
+        raise ValueError("V26 atom applicability exceeds source validity")
+    active = applicable.all(axis=0)
+    typed_missing = [
+        name for index, name in enumerate(DP_CAMP_ATOM_NAMES_V10) if not active[index]
+    ]
+    if typed_missing != list(signal_authority["typed_missing_atoms"]):
+        raise ValueError("V26 signal authority and atom applicability disagree")
+    return {
+        "atom_names": list(DP_CAMP_ATOM_NAMES_V10),
+        "availability": dict(atoms["availability"]),
+        "atom_source_valid_mask": source.tolist(),
+        "atom_applicable_mask": applicable.tolist(),
+        "scoring_active_atom_indices": np.flatnonzero(active).astype(int).tolist(),
+        "typed_missing_atoms": typed_missing,
+        "red_light_endpoint_status": signal_authority["red_light_endpoint_status"],
+    }
+
+
 def _selector_assets(
     root: Path,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, V25ContextScaler, dict[str, str]]:
@@ -444,6 +635,10 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
         if adapter_receipt.get("adapter_id") != NUPLAN_V26_ADAPTER_ID:
             raise ValueError("V26 mini adapter receipt drifted")
         source = validate_v26_nuplan_source_record(adapter_receipt.get("source_identity", {}))
+        signal_authority = _require_v26_no_signal_authority(
+            adapter_receipt.get("signal_authority", {}), source=source
+        )
+        causal_signal_atom_input = signal_authority["causal_signal_atom_input"]
         with np.load(adapter_root / "causal_input.npz", allow_pickle=False) as archive:
             causal_input = {key: np.asarray(archive[key]) for key in archive.files}
         errors = validate_causal_dp_input(causal_input)
@@ -482,14 +677,21 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             axis=tuple(range(1, np.asarray(causal_input["neighbor_agents_past"]).ndim)),
         )
         phase_receipt: dict[str, Any] = {}
+        planned_red_light_cost = (
+            np.zeros(8, dtype=np.float64)
+            if signal_authority["source_state"] == "not_applicable"
+            else _planned_red_cost(candidates, causal_input)
+        )
         atoms = materialize_canonical_14d(
             candidates=candidates,
             causal_input=causal_input,
             neighbor_predictions=np.asarray(capture.full_prediction[:, 1:33]),
             neighbor_valid_mask=neighbor_valid,
             signal_mask=np.ones(8, dtype=bool),
-            planned_red_light_cost=_planned_red_cost(candidates, causal_input),
+            planned_red_light_cost=planned_red_light_cost,
+            causal_signal_atom_input=causal_signal_atom_input,
             dt=0.1,
+            eligibility_policy=V22_SOURCE_VALID_ELIGIBILITY,
             phase_receipt=phase_receipt,
         )
         if atoms.get("atom_matrix") is None:
@@ -499,17 +701,20 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
         )
         atom_matrix = np.asarray(atoms["atom_matrix"], dtype=np.float64)
         eligible = np.asarray(atoms["physical_feasible_mask"], dtype=bool)
+        atom_applicability = _atom_applicability_receipt(atoms, signal_authority)
+        atom_applicable_mask = np.asarray(atoms["atom_applicable_mask"], dtype=bool)
         rows = [str(value) for value in pool["candidate_row_sha256"]]
-        _, static_scores = canonical_score_atoms(
+        _, static_scores = _score_applicable_atoms(
             atom_matrix,
             atom_scales,
             static,
-            simplex_nonnegative_atol=1e-9,
+            atom_applicable_mask,
         )
         context_record = build_v25_raw_context(
             causal_input=causal_input,
             candidates=candidates,
             source_valid_mask=np.asarray(atoms["source_valid_mask"], dtype=bool),
+            causal_signal_atom_input=causal_signal_atom_input,
         )
         scene_weights = context_weights(
             scene_theta,
@@ -518,11 +723,11 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
                 source_complete=np.asarray(context_record.source_complete, dtype=bool),
             ),
         )
-        _, scene_scores = canonical_score_atoms(
+        _, scene_scores = _score_applicable_atoms(
             atom_matrix,
             atom_scales,
             scene_weights,
-            simplex_nonnegative_atol=1e-9,
+            atom_applicable_mask,
         )
         selector_receipts = {
             "candidate0": {
@@ -553,6 +758,7 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
                 "adapter_receipt_sha256": _sha256_file(adapter_root / "adapter_receipt.json"),
                 "identity": source,
                 "endpoint_applicability": dict(adapter_receipt["endpoint_applicability"]),
+                "signal_authority": signal_authority,
             },
             "selector_assets": asset_hashes,
             "pool": {
@@ -575,6 +781,7 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             },
             "selectors": bound["selector_receipts"],
             "atom_phase_receipt": phase_receipt,
+            "atom_applicability": atom_applicability,
             "simulator": {"status": "not_invoked_open_loop_smoke"},
             "endpoint_capture": {"status": "applicability_only_no_endpoint_values"},
             "outcome_fields_consumed": [],
