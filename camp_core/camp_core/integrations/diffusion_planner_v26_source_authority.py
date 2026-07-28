@@ -26,6 +26,9 @@ from .diffusion_planner_v26_autoware_sidecar_signal import (
 
 
 V26_SOURCE_PROJECTION_SCHEMA_VERSION = "camp_dp_v26_source_bound_projection_v1"
+V26_SOURCE_INVENTORY_BINDING_SCHEMA_VERSION = (
+    "camp_dp_v26_source_inventory_binding_v1"
+)
 V26_SOURCE_SIGNAL_AUTHORITY_SCHEMA_VERSION = "camp_dp_v26_source_signal_authority_v1"
 V26_SOURCE_TRAFFIC_SIGNAL_MODE = "source_map_traffic_light"
 V26_SOURCE_TRAFFIC_SIGNAL_ADAPTER_ID = "camp_dp_v26_source_map_signal_adapter_v1"
@@ -202,10 +205,87 @@ def _source_xml_inventory(source_map: Path, expected_sha256: str) -> dict[str, A
     return {"projection": projection, "inventory": inventory}
 
 
+def v26_source_inventory_binding(source_map: Path, expected_sha256: str) -> dict[str, Any]:
+    """Read one authoritative map snapshot for a bounded V26 source pass.
+
+    The binding intentionally contains only source-map projection and traffic
+    inventory metadata.  It is not a route cache, does not construct a model,
+    and may be shared by multiple route eligibility checks only while callers
+    retain the source-byte before/after check for their bounded pass.
+    """
+
+    parsed = _source_xml_inventory(source_map, expected_sha256)
+    result = {
+        "schema_version": V26_SOURCE_INVENTORY_BINDING_SCHEMA_VERSION,
+        "source_map_path": str(parsed["projection"]["source_map_path"]),
+        "source_map_sha256": str(parsed["projection"]["source_map_sha256"]),
+        "source_projection": dict(parsed["projection"]),
+        "source_inventory": dict(parsed["inventory"]),
+        "binding_sha256": "",
+    }
+    result["binding_sha256"] = canonical_json_sha256(
+        {key: value for key, value in result.items() if key != "binding_sha256"}
+    )
+    return result
+
+
+def validate_v26_source_inventory_binding(
+    value: Mapping[str, Any], *, source_map: Path, expected_sha256: str
+) -> dict[str, Any]:
+    """Validate a source snapshot before reusing it for a route authority."""
+
+    result = dict(value)
+    expected = {
+        "schema_version",
+        "source_map_path",
+        "source_map_sha256",
+        "source_projection",
+        "source_inventory",
+        "binding_sha256",
+    }
+    if set(result) != expected or result["schema_version"] != V26_SOURCE_INVENTORY_BINDING_SCHEMA_VERSION:
+        raise ValueError("V26 source inventory binding schema drifted")
+    expected_path = str(Path(source_map).resolve())
+    expected_hash = _require_sha256(expected_sha256, "V26 source inventory map SHA")
+    if result["source_map_path"] != expected_path or result["source_map_sha256"] != expected_hash:
+        raise ValueError("V26 source inventory binding map identity drifted")
+    if result["binding_sha256"] != canonical_json_sha256(
+        {key: item for key, item in result.items() if key != "binding_sha256"}
+    ):
+        raise ValueError("V26 source inventory binding hash drifted")
+    projection = dict(result["source_projection"])
+    inventory = dict(result["source_inventory"])
+    if (
+        projection.get("schema_version") != V26_SOURCE_PROJECTION_SCHEMA_VERSION
+        or projection.get("source_map_path") != expected_path
+        or projection.get("source_map_sha256") != expected_hash
+        or projection.get("projection_sha256")
+        != canonical_json_sha256(
+            {key: item for key, item in projection.items() if key != "projection_sha256"}
+        )
+        or inventory.get("source_map_sha256") != expected_hash
+        or inventory.get("inventory_sha256")
+        != canonical_json_sha256(
+            {key: item for key, item in inventory.items() if key != "inventory_sha256"}
+        )
+    ):
+        raise ValueError("V26 source inventory binding content drifted")
+    return {
+        "schema_version": V26_SOURCE_INVENTORY_BINDING_SCHEMA_VERSION,
+        "source_map_path": expected_path,
+        "source_map_sha256": expected_hash,
+        "source_projection": projection,
+        "source_inventory": inventory,
+        "binding_sha256": result["binding_sha256"],
+    }
+
+
 def v26_source_projection_binding(source_map: Path, expected_sha256: str) -> dict[str, Any]:
     """Return a read-only, source-derived projection binding."""
 
-    return dict(_source_xml_inventory(source_map, expected_sha256)["projection"])
+    return dict(
+        v26_source_inventory_binding(source_map, expected_sha256)["source_projection"]
+    )
 
 
 @contextmanager
@@ -358,7 +438,11 @@ def _source_signal_identity(
 
 
 def build_v26_source_signal_config(
-    *, schedule: Mapping[str, Any], family: Mapping[str, Any], route_sha256: str
+    *,
+    schedule: Mapping[str, Any],
+    family: Mapping[str, Any],
+    route_sha256: str,
+    source_inventory_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Resolve V26 signal authority from a frozen route and its source map.
 
@@ -370,9 +454,19 @@ def build_v26_source_signal_config(
 
     record = dict(schedule["route_record"])
     source = Path(str(record["source_map_path"])).resolve()
-    parsed = _source_xml_inventory(source, str(record["source_map_sha256"]))
-    projection = dict(parsed["projection"])
-    inventory = dict(parsed["inventory"])
+    source_sha256 = str(record["source_map_sha256"])
+    if source_inventory_binding is None:
+        parsed = _source_xml_inventory(source, source_sha256)
+        projection = dict(parsed["projection"])
+        inventory = dict(parsed["inventory"])
+    else:
+        binding = validate_v26_source_inventory_binding(
+            source_inventory_binding,
+            source_map=source,
+            expected_sha256=source_sha256,
+        )
+        projection = dict(binding["source_projection"])
+        inventory = dict(binding["source_inventory"])
     lanelets = _require_route_lanelets(record["lanelet_ids"], "V26 source signal route lanelets")
     lanelet_mapping = {
         int(key): list(value)
