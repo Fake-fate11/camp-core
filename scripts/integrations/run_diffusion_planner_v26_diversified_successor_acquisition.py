@@ -28,6 +28,7 @@ from camp_core.integrations.diffusion_planner_v26_diversified_successor import (
     SUCCESSOR_START,
     load_verified_successor_plan,
     materialize_immutable_union_manifest,
+    read_prior_successor_attempt,
 )
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (  # noqa: E402
     FROZEN_SIMPLEX_TOLERANCE,
@@ -36,6 +37,7 @@ from camp_core.integrations.diffusion_planner_v26_integration_boundary import ( 
     V26_TRAINING_SOURCE_SCHEMA_VERSION,
     build_v26_integration_boundary,
     enforce_v26_dp312_lanelet2_precedence,
+    validate_v26_source_map_signal_binding,
     v26_generator_topology,
 )
 from camp_core.integrations.diffusion_planner_v26_native_runner import (  # noqa: E402
@@ -226,7 +228,11 @@ class _SuccessorLedger:
 
 
 def _require_successor_qualification(
-    *, path: Path, route_plan: Mapping[str, Any], camp_head: str
+    *,
+    path: Path,
+    route_plan: Mapping[str, Any],
+    camp_head: str,
+    prior_attempt: Mapping[str, Any],
 ) -> dict[str, Any]:
     receipt_path = path.resolve()
     manifest_path = receipt_path.parent / "manifest.json"
@@ -258,6 +264,12 @@ def _require_successor_qualification(
         or receipt.get("parent_revised_plan_sha256")
         != route_plan["parent_revised_plan"]["route_plan_sha256"]
         or manifest.get("camp_head") != camp_head
+        or manifest.get("recovery_identity")
+        != {
+            "kind": "successor_recovery",
+            "prior_attempt_history": dict(prior_attempt),
+            "scientific_route_identity_replayed": False,
+        }
     ):
         raise ValueError("V26 successor pre-model qualification receipt drifted")
     boundary = json.loads(boundary_path.read_text(encoding="utf-8"))
@@ -286,6 +298,73 @@ def _require_successor_qualification(
     }
 
 
+def _require_qualified_integration_boundary(
+    *,
+    qualified_unit: Mapping[str, Any],
+    prepared_item: Mapping[str, Any],
+    assets: Any,
+) -> dict[str, Any]:
+    """Require the pre-model boundary receipt to equal the prepared route.
+
+    Every tail route passes this check before model initialization.  It binds the
+    newly prepared source-map adapter back to the qualification receipt rather
+    than accepting a source-map, route, or inventory substitution.
+    """
+
+    config = dict(prepared_item["config"])
+    routes = config.get("routes")
+    map_binding = config.get("map")
+    if (
+        type(routes) is not list
+        or len(routes) != 1
+        or type(routes[0]) is not dict
+        or type(map_binding) is not dict
+        or qualified_unit.get("route_asset_sha256") != routes[0].get("sha256")
+        or qualified_unit.get("source_projection") != prepared_item.get("projection")
+    ):
+        raise ValueError("V26 prepared route/qualification identity drifted")
+    expected = build_v26_integration_boundary(
+        signal=prepared_item["signal"],
+        reference_weights_root_sha256=assets.reference_weights_root_sha256,
+    )
+    qualified_validation = qualified_unit.get("integration_boundary_validation")
+    if (
+        type(qualified_validation) is not dict
+        or qualified_validation.get("status") != "passed"
+        or qualified_validation.get("integration_boundary") != expected
+        or qualified_unit.get("signal", {}).get("adapter_binding")
+        != prepared_item["signal"].receipt
+    ):
+        raise ValueError("V26 prepared integration boundary drifted from qualification")
+    if prepared_item["signal"].mode == "source_map_traffic_light":
+        provenance = config.get("source_signal_authority")
+        qualified_signal = qualified_unit.get("signal")
+        projection = prepared_item["projection"]
+        if (
+            type(provenance) is not dict
+            or type(qualified_signal) is not dict
+            or qualified_signal.get("source_provenance") != provenance
+        ):
+            raise ValueError("V26 prepared source-map provenance drifted from qualification")
+        binding = validate_v26_source_map_signal_binding(
+            prepared_item["signal"].receipt,
+            route_sha256=str(routes[0].get("sha256")),
+            map_sha256=str(map_binding.get("sha256")),
+            route_geometry_sha256=str(qualified_unit["route"]["source_geometry_sha256"]),
+            source_projection_sha256=str(projection["projection_sha256"]),
+            source_inventory_sha256=str(provenance.get("source_inventory_sha256")),
+        )
+        authority = binding["source_authority"]
+        if (
+            authority["source_authority_sha256"]
+            != prepared_item["signal"].receipt["source_authority"]["source_authority_sha256"]
+            or authority["route_sha256"] != qualified_unit["route_asset_sha256"]
+            or authority["map_sha256"] != qualified_unit["route"]["source_map_sha256"]
+        ):
+            raise ValueError("V26 prepared source-map authority hash drifted")
+    return expected
+
+
 def _manifest(
     *,
     route_plan: Mapping[str, Any],
@@ -293,6 +372,7 @@ def _manifest(
     camp_head: str,
     assets: Any,
     qualification: Mapping[str, Any],
+    prior_attempt: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
         "schema_version": MANIFEST_SCHEMA_VERSION,
@@ -305,6 +385,11 @@ def _manifest(
         "route_plan_sha256": route_plan["route_plan_sha256"],
         "parent_revised_plan_sha256": route_plan["parent_revised_plan"]["route_plan_sha256"],
         "parent_recovered_root": route_plan["parent_recovered_root"],
+        "recovery_identity": {
+            "kind": "successor_recovery",
+            "prior_attempt_history": dict(prior_attempt),
+            "scientific_route_identity_replayed": False,
+        },
         "planned_unit_count": SUCCESSOR_COUNT,
         "revised_plan_ordinal_interval": [SUCCESSOR_START, SUCCESSOR_END],
         "split": "development_nonholdout",
@@ -354,6 +439,10 @@ def run(args: argparse.Namespace) -> Path:
         raise ValueError("V26 successor acquisition plan SHA drifted")
     if route_plan["fixed_dp_head"] != FIXED_DP_HEAD:
         raise ValueError("V26 successor acquisition fixed-DP identity drifted")
+    prior_attempt = read_prior_successor_attempt(
+        prior_attempt_root=args.prior_terminal_attempt_root,
+        route_plan=route_plan,
+    )
     if _tracked_changes(ROOT) or _git_head(ROOT) != args.expected_camp_head:
         raise ValueError("V26 successor acquisition requires an exact clean CAMP checkout")
     fixed_dp_repo = args.fixed_dp_repo.resolve()
@@ -362,7 +451,10 @@ def run(args: argparse.Namespace) -> Path:
     base = _load_base_probe_config(args.base_probe_config)
     assets = _load_zero_shot_reference_selector_assets(args)
     qualification = _require_successor_qualification(
-        path=args.pre_model_qualification, route_plan=route_plan, camp_head=args.expected_camp_head
+        path=args.pre_model_qualification,
+        route_plan=route_plan,
+        camp_head=args.expected_camp_head,
+        prior_attempt=prior_attempt,
     )
     manifest = _manifest(
         route_plan=route_plan,
@@ -370,6 +462,7 @@ def run(args: argparse.Namespace) -> Path:
         camp_head=args.expected_camp_head,
         assets=assets,
         qualification=qualification,
+        prior_attempt=prior_attempt,
     )
     with _exclusive_worker_lock(args.worker_lock.resolve()):
         import torch
@@ -401,7 +494,7 @@ def run(args: argparse.Namespace) -> Path:
                 ordinal = int(schedule["revised_plan_ordinal"])
                 source_ordinal = _source_ordinal(schedule, ordinal)
                 seed = SCENARIO_SEED_BASE + source_ordinal
-                active_boundary = (ordinal, schedule, seed, "pre_model_preparation")
+                active_boundary = (ordinal, schedule, seed, "integration_boundary_validation")
                 try:
                     qualified_path = qualified_units_root / f"{ordinal:04d}.json"
                     if not qualified_path.is_file():
@@ -420,30 +513,35 @@ def run(args: argparse.Namespace) -> Path:
                         source_ordinal=source_ordinal,
                     )
                     if failure is not None:
-                        ledger.record(
-                            _typed_failure_unit(
-                                unit_index=ordinal,
-                                route_plan_sha256=route_plan["route_plan_sha256"],
-                                schedule=schedule,
-                                scenario_seed=seed,
-                                failure_class="PreModelSignalAuthorityUnavailable",
-                                failure_reason=failure,
-                            )
-                        )
-                    else:
-                        assert prepared_item is not None
-                        prepared[ordinal] = prepared_item
-                except Exception as exc:
-                    ledger.record(
-                        _typed_failure_unit(
+                        unit = _typed_failure_unit(
                             unit_index=ordinal,
                             route_plan_sha256=route_plan["route_plan_sha256"],
                             schedule=schedule,
                             scenario_seed=seed,
-                            failure_class=type(exc).__name__,
-                            failure_reason=str(exc),
+                            failure_class="PreModelSignalAuthorityUnavailable",
+                            failure_reason=failure,
                         )
+                        unit["execution_phase"] = "integration_boundary_validation"
+                        ledger.record(unit)
+                    else:
+                        assert prepared_item is not None
+                        prepared_item["integration_boundary"] = _require_qualified_integration_boundary(
+                            qualified_unit=qualified_unit,
+                            prepared_item=prepared_item,
+                            assets=assets,
+                        )
+                        prepared[ordinal] = prepared_item
+                except Exception as exc:
+                    unit = _typed_failure_unit(
+                        unit_index=ordinal,
+                        route_plan_sha256=route_plan["route_plan_sha256"],
+                        schedule=schedule,
+                        scenario_seed=seed,
+                        failure_class=type(exc).__name__,
+                        failure_reason=str(exc),
                     )
+                    unit["execution_phase"] = "integration_boundary_validation"
+                    ledger.record(unit)
             if prepared:
                 first_ordinal = min(prepared)
                 first_schedule = next(
@@ -496,10 +594,7 @@ def run(args: argparse.Namespace) -> Path:
                             fixed_dp_repo=fixed_dp_repo,
                             selector_assets=assets,
                             signal_adapter=prepared_item["signal"].adapter,
-                            integration_boundary=build_v26_integration_boundary(
-                                signal=prepared_item["signal"],
-                                reference_weights_root_sha256=assets.reference_weights_root_sha256,
-                            ),
+                            integration_boundary=prepared_item["integration_boundary"],
                             device=args.device,
                             max_ticks=1,
                             scratch_parent=output_dir.parent,
@@ -541,6 +636,7 @@ def run(args: argparse.Namespace) -> Path:
         parent_recovered_root=args.parent_recovered_root,
         successor_acquisition_root=output_dir,
         output_dir=args.union_output_dir,
+        prior_attempt_root=args.prior_terminal_attempt_root,
     )
     return report
 
@@ -553,6 +649,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--successor-plan", type=Path, required=True)
     parser.add_argument("--parent-revised-plan", type=Path, required=True)
     parser.add_argument("--parent-recovered-root", type=Path, required=True)
+    parser.add_argument("--prior-terminal-attempt-root", type=Path, required=True)
     parser.add_argument("--expected-successor-plan-sha256", required=True)
     parser.add_argument("--base-probe-config", type=Path, required=True)
     parser.add_argument("--reference-weights", type=Path, required=True)

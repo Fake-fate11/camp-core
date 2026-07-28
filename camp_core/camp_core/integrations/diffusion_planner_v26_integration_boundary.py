@@ -99,6 +99,60 @@ def _require_exact_mapping(value: Any, expected: set[str], label: str) -> dict[s
     return dict(value)
 
 
+def validate_v26_source_map_signal_binding(
+    value: Mapping[str, Any],
+    *,
+    route_sha256: str | None = None,
+    map_sha256: str | None = None,
+    route_geometry_sha256: str | None = None,
+    source_projection_sha256: str | None = None,
+    source_inventory_sha256: str | None = None,
+) -> dict[str, Any]:
+    """Validate the native source-map traffic adapter without sidecar fallback.
+
+    The adapter's own constructor is the authority validator for the frozen
+    source-map payload.  Callers with a prepared route may additionally bind
+    every source-derived hash to that route's qualification receipt.
+    """
+
+    binding = _require_exact_mapping(
+        value,
+        {
+            "schema_version",
+            "signal_authority_mode",
+            "signal_adapter_id",
+            "source_authority",
+        },
+        "V26 source-map signal binding",
+    )
+    if (
+        binding["schema_version"]
+        != "camp_dp_v26_source_map_signal_adapter_binding_v1"
+        or binding["signal_authority_mode"] != V26_SOURCE_TRAFFIC_SIGNAL_MODE
+        or binding["signal_adapter_id"] != V26_SOURCE_TRAFFIC_SIGNAL_ADAPTER_ID
+        or type(binding["source_authority"]) is not dict
+    ):
+        raise ValueError("V26 source-map signal binding identity drifted")
+    adapter = V26SourceMapTrafficSignalAdapter(binding["source_authority"])
+    expected = adapter.receipt()
+    if binding != expected:
+        raise ValueError("V26 source-map signal binding receipt drifted")
+    authority = adapter.source_authority
+    expected_hashes = {
+        "route_sha256": route_sha256,
+        "map_sha256": map_sha256,
+        "route_geometry_sha256": route_geometry_sha256,
+        "source_projection_sha256": source_projection_sha256,
+        "source_inventory_sha256": source_inventory_sha256,
+    }
+    for key, expected_hash in expected_hashes.items():
+        if expected_hash is not None and authority[key] != _sha256(
+            expected_hash, f"V26 expected source-map {key}"
+        ):
+            raise ValueError(f"V26 source-map signal {key} drifted from prepared authority")
+    return expected
+
+
 def v26_generator_topology() -> dict[str, Any]:
     """The only generator topology accepted by the V26 acquisition boundary."""
 
@@ -343,7 +397,7 @@ def resolve_v26_signal_adapter(probe_config: Mapping[str, Any]) -> V26SignalAdap
             mode=mode,
             adapter_id=V26_SOURCE_TRAFFIC_SIGNAL_ADAPTER_ID,
             adapter=adapter,
-            receipt=adapter.receipt(),
+            receipt=validate_v26_source_map_signal_binding(adapter.receipt()),
         )
     raise ValueError("V26 signal_authority_mode has no certified adapter")
 
@@ -424,19 +478,23 @@ def validate_v26_integration_boundary(value: Mapping[str, Any]) -> dict[str, Any
         or result["legacy_safetycost_role"] != V26_LEGACY_SAFETYCOST_ROLE
     ):
         raise ValueError("V26 integration boundary identity drifted")
+    expected_adapter_ids = {
+        V26_AUTOWARE_SIDECAR_SIGNAL_MODE: V26_AUTOWARE_SIDECAR_ADAPTER_ID,
+        V26_CERTIFIED_NO_SIGNAL_MODE: V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID,
+        V26_SOURCE_TRAFFIC_SIGNAL_MODE: V26_SOURCE_TRAFFIC_SIGNAL_ADAPTER_ID,
+    }
     if (
-        result["signal_authority_mode"] == V26_AUTOWARE_SIDECAR_SIGNAL_MODE
-        and result["signal_adapter_id"] != V26_AUTOWARE_SIDECAR_ADAPTER_ID
-    ) or (
-        result["signal_authority_mode"] == V26_CERTIFIED_NO_SIGNAL_MODE
-        and result["signal_adapter_id"] != V26_CERTIFIED_NO_SIGNAL_ADAPTER_ID
-    ) or result["signal_authority_mode"] not in {
-        V26_AUTOWARE_SIDECAR_SIGNAL_MODE,
-        V26_CERTIFIED_NO_SIGNAL_MODE,
-    }:
+        result["signal_authority_mode"] not in expected_adapter_ids
+        or result["signal_adapter_id"]
+        != expected_adapter_ids[result["signal_authority_mode"]]
+    ):
         raise ValueError("V26 integration boundary signal adapter drifted")
     if type(result["signal_adapter_binding"]) is not dict:
         raise ValueError("V26 integration boundary signal binding is required")
+    if result["signal_authority_mode"] == V26_SOURCE_TRAFFIC_SIGNAL_MODE:
+        result["signal_adapter_binding"] = validate_v26_source_map_signal_binding(
+            result["signal_adapter_binding"]
+        )
     weights = _require_exact_mapping(
         result["weight_sources"], {"reference", "adapted"}, "V26 weight sources"
     )

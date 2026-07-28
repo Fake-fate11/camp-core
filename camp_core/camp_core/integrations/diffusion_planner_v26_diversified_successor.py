@@ -516,6 +516,71 @@ def load_verified_successor_plan(
     return expected
 
 
+def read_prior_successor_attempt(
+    *, prior_attempt_root: Path, route_plan: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Bind the failed first tail attempt as immutable history, never training data.
+
+    A recovery owns a fresh 485..1782 attempt.  The original ordinal-485
+    ParentExecutionException remains visible only as attempt provenance, so the
+    full scientific route identity remains represented exactly once in the new
+    union rather than being silently reclassified or replayed.
+    """
+
+    root = prior_attempt_root.resolve()
+    required = {
+        "manifest": root / "manifest.json",
+        "raw_receipt": root / "raw_receipt.json",
+        "report": root / "report.json",
+        "run_status": root / "run.status.json",
+        "run_exit": root / "run.exit",
+        "boundary_unit": root / "units" / f"{SUCCESSOR_START:04d}.json",
+    }
+    if not root.is_dir() or not all(path.is_file() for path in required.values()):
+        raise FileNotFoundError("V26 predecessor tail-attempt evidence is incomplete")
+    manifest = json.loads(required["manifest"].read_text(encoding="utf-8"))
+    raw = json.loads(required["raw_receipt"].read_text(encoding="utf-8"))
+    report = json.loads(required["report"].read_text(encoding="utf-8"))
+    status = json.loads(required["run_status"].read_text(encoding="utf-8"))
+    boundary = json.loads(required["boundary_unit"].read_text(encoding="utf-8"))
+    expected_denominator = {
+        "planned": SUCCESSOR_COUNT,
+        "complete": 0,
+        "failed": 1,
+        "unattempted": SUCCESSOR_COUNT - 1,
+    }
+    if (
+        manifest.get("successor_plan_sha256") != route_plan["route_plan_sha256"]
+        or raw.get("successor_plan_sha256") != route_plan["route_plan_sha256"]
+        or report.get("route_plan_sha256") != route_plan["route_plan_sha256"]
+        or report.get("denominator") != expected_denominator
+        or raw.get("denominator") != expected_denominator
+        or status.get("denominator") != expected_denominator
+        or report.get("status") != "terminal_no_trainable_pools"
+        or status.get("status") != "terminal"
+        or required["run_exit"].read_bytes() != b"0\n"
+        or boundary.get("unit_index") != SUCCESSOR_START
+        or boundary.get("terminal", {}).get("status") != "typed_failure"
+        or boundary.get("terminal", {}).get("failure_class") != "ParentExecutionException"
+        or boundary.get("parent_exception_boundary", {}).get("revised_plan_ordinal")
+        != SUCCESSOR_START
+    ):
+        raise ValueError("V26 predecessor tail-attempt provenance drifted")
+    return {
+        "role": "immutable_prior_attempt_history_only",
+        "root": str(root),
+        "manifest_sha256": _file_sha256(required["manifest"]),
+        "raw_receipt_sha256": _file_sha256(required["raw_receipt"]),
+        "report_sha256": _file_sha256(required["report"]),
+        "run_status_sha256": _file_sha256(required["run_status"]),
+        "boundary_unit_sha256": _file_sha256(required["boundary_unit"]),
+        "parent_exception_boundary": dict(boundary["parent_exception_boundary"]),
+        "prior_denominator": expected_denominator,
+        "scientific_route_identity_replayed": False,
+        "outcome_fields_consumed": [],
+    }
+
+
 def materialize_immutable_union_manifest(
     *,
     successor_plan_path: Path,
@@ -523,6 +588,7 @@ def materialize_immutable_union_manifest(
     parent_recovered_root: Path,
     successor_acquisition_root: Path,
     output_dir: Path,
+    prior_attempt_root: Path | None = None,
 ) -> Path:
     """Build a new immutable identity/denominator union after successor terminal."""
 
@@ -535,6 +601,11 @@ def materialize_immutable_union_manifest(
         parent_recovered_root=parent_recovered_root,
     )
     plan = expected["route_plan"]
+    prior_attempt = (
+        read_prior_successor_attempt(prior_attempt_root=prior_attempt_root, route_plan=plan)
+        if prior_attempt_root is not None
+        else None
+    )
     successor_root = successor_acquisition_root.resolve()
     required = ("manifest.json", "raw_receipt.json", "report.json", "run.status.json", "run.exit")
     if not successor_root.is_dir() or not all((successor_root / name).is_file() for name in required):
@@ -601,6 +672,7 @@ def materialize_immutable_union_manifest(
             "parent_revised_plan_sha256": plan["parent_revised_plan"]["route_plan_sha256"],
         },
         "parent_recovered_root": plan["parent_recovered_root"],
+        "prior_attempt_history": prior_attempt,
         "successor_acquisition_root": {
             "path": str(successor_root),
             "manifest_sha256": _file_sha256(successor_root / "manifest.json"),

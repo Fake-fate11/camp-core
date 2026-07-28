@@ -35,10 +35,13 @@ from camp_core.integrations.diffusion_planner_v26_diversified_successor import (
     SUCCESSOR_PLAN_SCHEMA_VERSION,
     SUCCESSOR_START,
     load_verified_successor_plan,
+    read_prior_successor_attempt,
 )
 from camp_core.integrations.diffusion_planner_v26_integration_boundary import (  # noqa: E402
+    build_v26_integration_boundary,
     enforce_v26_dp312_lanelet2_precedence,
     resolve_v26_signal_adapter,
+    validate_v26_source_map_signal_binding,
     v26_generator_topology,
 )
 from camp_core.integrations.diffusion_planner_v26_source_authority import (  # noqa: E402
@@ -168,6 +171,53 @@ def _route_projection(schedule: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _qualified_integration_boundary(
+    *,
+    schedule: Mapping[str, Any],
+    route_sha256: str,
+    projection: Mapping[str, Any],
+    signal: Mapping[str, Any],
+    signal_binding: Any,
+    reference_weights_root_sha256: str,
+) -> dict[str, Any]:
+    """Bind one prepared route to its V26-native integration boundary.
+
+    This is deliberately performed in zero-model qualification before any
+    fixed-DP model initialization.  Source-map traffic receipts must agree with
+    the route, map, projection, inventory and authority captured here.
+    """
+
+    boundary = build_v26_integration_boundary(
+        signal=signal_binding,
+        reference_weights_root_sha256=reference_weights_root_sha256,
+    )
+    if boundary["signal_adapter_binding"] != signal_binding.receipt:
+        raise ValueError("V26 qualified integration boundary binding drifted")
+    if signal_binding.mode == "source_map_traffic_light":
+        record = dict(schedule["route_record"])
+        provenance = dict(signal["source_signal_authority"])
+        binding = validate_v26_source_map_signal_binding(
+            signal_binding.receipt,
+            route_sha256=route_sha256,
+            map_sha256=str(record["source_map_sha256"]),
+            route_geometry_sha256=str(record["source_geometry_sha256"]),
+            source_projection_sha256=str(projection["projection_sha256"]),
+            source_inventory_sha256=str(provenance["source_inventory_sha256"]),
+        )
+        authority = binding["source_authority"]
+        if (
+            provenance.get("schema_version") != authority["schema_version"]
+            or provenance.get("source_projection_sha256")
+            != authority["source_projection_sha256"]
+            or provenance.get("source_inventory_sha256")
+            != authority["source_inventory_sha256"]
+            or provenance.get("source_map_sha256") != authority["map_sha256"]
+            or provenance.get("route_lanelet_ids") != authority["route_lanelet_ids"]
+        ):
+            raise ValueError("V26 source-map authority/provenance receipt drifted")
+    return boundary
+
+
 def _qualified_unit(
     *,
     ordinal: int,
@@ -178,6 +228,7 @@ def _qualified_unit(
     geometry: Mapping[str, Any],
     signal: Mapping[str, Any],
     signal_binding: Any,
+    integration_boundary: Mapping[str, Any],
     scene_reference: Mapping[str, Any],
 ) -> dict[str, Any]:
     return {
@@ -197,6 +248,10 @@ def _qualified_unit(
             "source_provenance": dict(signal["source_signal_authority"]),
             "adapter_binding": dict(signal_binding.receipt),
         },
+        "integration_boundary_validation": {
+            "status": "passed",
+            "integration_boundary": dict(integration_boundary),
+        },
         "scene14d_reference": dict(scene_reference),
         "scene_payload": {
             "schema_scaler_tolerance_verified": True,
@@ -210,7 +265,12 @@ def _qualified_unit(
 
 
 def _failed_unit(
-    *, ordinal: int, plan_sha256: str, schedule: Mapping[str, Any], exc: Exception
+    *,
+    ordinal: int,
+    plan_sha256: str,
+    schedule: Mapping[str, Any],
+    exc: Exception,
+    phase: str = "source_route_validation",
 ) -> dict[str, Any]:
     return {
         "schema_version": UNIT_SCHEMA_VERSION,
@@ -220,6 +280,7 @@ def _failed_unit(
             plan_sha256=plan_sha256, ordinal=ordinal, schedule=schedule
         ),
         "route": _route_projection(schedule),
+        "qualification_phase": str(phase),
         "forward_calls": _zero_calls(),
         "terminal": {
             "status": "failed",
@@ -245,6 +306,7 @@ def _boundary_diagnostic(*, unit: Mapping[str, Any], plan: Mapping[str, Any]) ->
         "source_projection": dict(unit["source_projection"]),
         "parsed_geometry": dict(unit["parsed_geometry"]),
         "signal": dict(unit["signal"]),
+        "integration_boundary_validation": dict(unit["integration_boundary_validation"]),
         "scene14d_reference": dict(unit["scene14d_reference"]),
         "generator_topology": dict(unit["generator_topology"]),
         "forward_calls": dict(unit["forward_calls"]),
@@ -315,6 +377,10 @@ def run(args: argparse.Namespace) -> Path:
         raise ValueError("V26 successor qualification plan identity drifted")
     if _tracked_changes(ROOT) or _git_head(ROOT) != args.expected_camp_head:
         raise ValueError("V26 successor qualification requires an exact clean CAMP checkout")
+    prior_attempt = read_prior_successor_attempt(
+        prior_attempt_root=args.prior_terminal_attempt_root,
+        route_plan=route_plan,
+    )
     fixed_dp_repo = args.fixed_dp_repo.resolve()
     if _tracked_changes(fixed_dp_repo) or _git_head(fixed_dp_repo) != FIXED_DP_HEAD:
         raise ValueError("V26 successor qualification requires an exact clean fixed-DP checkout")
@@ -330,6 +396,11 @@ def run(args: argparse.Namespace) -> Path:
         "successor_plan_sha256": route_plan["route_plan_sha256"],
         "parent_revised_plan_sha256": route_plan["parent_revised_plan"]["route_plan_sha256"],
         "parent_recovered_root": route_plan["parent_recovered_root"],
+        "recovery_identity": {
+            "kind": "successor_recovery",
+            "prior_attempt_history": prior_attempt,
+            "scientific_route_identity_replayed": False,
+        },
         "base_probe": base,
         "scene14d_reference": scene_reference,
         "generator_topology": v26_generator_topology(),
@@ -367,6 +438,7 @@ def run(args: argparse.Namespace) -> Path:
                     builder = LaneletSceneBuilder(map_path)
                     for schedule in schedules:
                         ordinal = int(schedule["revised_plan_ordinal"])
+                        phase = "source_route_validation"
                         try:
                             record = dict(schedule["route_record"])
                             route_path = output_dir / "route_assets" / f"{ordinal:04d}.pkl"
@@ -388,6 +460,16 @@ def run(args: argparse.Namespace) -> Path:
                                     signal=signal,
                                 )
                             )
+                            phase = "integration_boundary_validation"
+                            integration_boundary = _qualified_integration_boundary(
+                                schedule=schedule,
+                                route_sha256=route_sha256,
+                                projection=projection,
+                                signal=signal,
+                                signal_binding=binding,
+                                reference_weights_root_sha256=assets.reference_weights_root_sha256,
+                            )
+                            phase = "adapter_runtime_binding"
                             binding.adapter.bind_builder(builder)
                             binding.adapter.bind_runtime_lanelet_ids(
                                 route_lanelet_ids=record["lanelet_ids"],
@@ -402,6 +484,7 @@ def run(args: argparse.Namespace) -> Path:
                                 geometry=geometry,
                                 signal=signal,
                                 signal_binding=binding,
+                                integration_boundary=integration_boundary,
                                 scene_reference=scene_reference,
                             )
                         except Exception as exc:  # atomic typed per-route failure
@@ -410,6 +493,7 @@ def run(args: argparse.Namespace) -> Path:
                                 plan_sha256=route_plan["route_plan_sha256"],
                                 schedule=schedule,
                                 exc=exc,
+                                phase=phase,
                             )
                         units[ordinal] = unit
                         unit_path = output_dir / "units" / f"{ordinal:04d}.json"
@@ -430,6 +514,7 @@ def run(args: argparse.Namespace) -> Path:
                         plan_sha256=route_plan["route_plan_sha256"],
                         schedule=schedule,
                         exc=exc,
+                        phase="source_projection_initialization",
                     )
                     units[ordinal] = unit
                     _atomic_write_json(output_dir / "units" / f"{ordinal:04d}.json", unit)
@@ -444,6 +529,7 @@ def run(args: argparse.Namespace) -> Path:
                         plan_sha256=route_plan["route_plan_sha256"],
                         schedule=schedule,
                         exc=RuntimeError(terminal_error),
+                        phase="qualification_finalization",
                     )
                     units[ordinal] = failed
                     _atomic_write_json(output_dir / "units" / f"{ordinal:04d}.json", failed)
@@ -470,6 +556,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--successor-plan", type=Path, required=True)
     parser.add_argument("--parent-revised-plan", type=Path, required=True)
     parser.add_argument("--parent-recovered-root", type=Path, required=True)
+    parser.add_argument("--prior-terminal-attempt-root", type=Path, required=True)
     parser.add_argument("--expected-successor-plan-sha256", required=True)
     parser.add_argument("--base-probe-config", type=Path, required=True)
     parser.add_argument("--reference-weights", type=Path, required=True)

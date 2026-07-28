@@ -114,6 +114,42 @@ def _parent_fixture(tmp_path: Path):
     return successor, parent_plan_path, root
 
 
+def _prior_attempt_fixture(tmp_path: Path, plan: dict[str, object]) -> Path:
+    root = tmp_path / "prior-attempt"
+    denominator = {"planned": 1298, "complete": 0, "failed": 1, "unattempted": 1297}
+    _write_json(root / "manifest.json", {"successor_plan_sha256": plan["route_plan_sha256"]})
+    _write_json(
+        root / "raw_receipt.json",
+        {"successor_plan_sha256": plan["route_plan_sha256"], "denominator": denominator},
+    )
+    _write_json(
+        root / "report.json",
+        {
+            "route_plan_sha256": plan["route_plan_sha256"],
+            "status": "terminal_no_trainable_pools",
+            "denominator": denominator,
+        },
+    )
+    _write_json(root / "run.status.json", {"status": "terminal", "denominator": denominator})
+    (root / "run.exit").parent.mkdir(parents=True, exist_ok=True)
+    (root / "run.exit").write_bytes(b"0\n")
+    _write_json(
+        root / "units" / "0485.json",
+        {
+            "unit_index": 485,
+            "terminal": {
+                "status": "typed_failure",
+                "failure_class": "ParentExecutionException",
+            },
+            "parent_exception_boundary": {
+                "revised_plan_ordinal": 485,
+                "phase": "native_same_ego_b8_replay",
+            },
+        },
+    )
+    return root
+
+
 def test_successor_plan_retains_exact_tail_coverage_and_seed(tmp_path: Path) -> None:
     successor, parent_plan_path, recovered_root = _parent_fixture(tmp_path)
     material = successor.build_successor_plan(
@@ -208,6 +244,7 @@ def test_union_manifest_has_each_revised_ordinal_exactly_once(tmp_path: Path) ->
         camp_head="a" * 40,
     )
     plan = json.loads(paths["plan"].read_text())
+    prior_attempt = _prior_attempt_fixture(tmp_path, plan)
     acquisition = tmp_path / "successor-acquisition"
     acquisition.mkdir()
     for name in ("manifest.json", "raw_receipt.json", "report.json", "run.status.json"):
@@ -242,10 +279,13 @@ def test_union_manifest_has_each_revised_ordinal_exactly_once(tmp_path: Path) ->
         parent_recovered_root=recovered_root,
         successor_acquisition_root=acquisition,
         output_dir=tmp_path / "union",
+        prior_attempt_root=prior_attempt,
     )
     payload = json.loads(union.read_text())
     assert payload["denominator"] == {"planned": 1783, "complete": 1777, "failed": 6, "unattempted": 0}
     assert [item["revised_plan_ordinal"] for item in payload["units"]] == list(range(1783))
+    assert payload["prior_attempt_history"]["role"] == "immutable_prior_attempt_history_only"
+    assert payload["prior_attempt_history"]["scientific_route_identity_replayed"] is False
 
 
 def test_successor_qualification_aggregate_requires_exact_tail_and_zero_model() -> None:
@@ -307,6 +347,7 @@ def test_successor_parsers_require_explicit_parent_and_tail_bindings() -> None:
             "--successor-plan", "successor.json",
             "--parent-revised-plan", "parent.json",
             "--parent-recovered-root", "recovered",
+            "--prior-terminal-attempt-root", "prior-attempt",
             "--expected-successor-plan-sha256", "b" * 64,
             "--base-probe-config", "base.json",
             "--reference-weights", "weights",
@@ -326,6 +367,7 @@ def test_successor_parsers_require_explicit_parent_and_tail_bindings() -> None:
             "--successor-plan", "successor.json",
             "--parent-revised-plan", "parent.json",
             "--parent-recovered-root", "recovered",
+            "--prior-terminal-attempt-root", "prior-attempt",
             "--expected-successor-plan-sha256", "b" * 64,
             "--base-probe-config", "base.json",
             "--reference-weights", "weights",
