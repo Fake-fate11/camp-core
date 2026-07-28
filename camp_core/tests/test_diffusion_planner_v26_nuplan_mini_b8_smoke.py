@@ -64,6 +64,17 @@ def test_same_pool_selector_tie_is_deterministic_without_row_mutation() -> None:
     assert np.array_equal(mask, before_mask)
 
 
+def test_map_identity_uses_the_verified_official_archive_layout(tmp_path: Path) -> None:
+    module = _module()
+    map_path = tmp_path / "maps/us-nv-las-vegas-strip/9.15.1915/map.gpkg"
+    map_path.parent.mkdir(parents=True)
+    map_path.write_bytes(b"official-map")
+
+    assert module._map_path(
+        tmp_path, "las_vegas", "us-nv-las-vegas-strip"
+    ) == map_path
+
+
 def test_pre_forward_status_receipt_has_zero_execution_counts() -> None:
     module = _module()
     assert module._status("running", "scenario_builder") == {

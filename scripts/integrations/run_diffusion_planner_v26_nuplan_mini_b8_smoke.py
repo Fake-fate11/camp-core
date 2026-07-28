@@ -101,11 +101,22 @@ def _status(status: str, reason: str, **calls: int) -> dict[str, Any]:
     return {"schema": SCHEMA, "status": status, "reason": reason, **ZERO_CALLS, **calls}
 
 
-def _map_path(data_root: Path, location: str, map_version: str) -> Path:
-    path = data_root / "maps" / location / map_version / "map.gpkg"
-    if not path.is_file():
-        raise FileNotFoundError(f"official map is missing for source location: {path}")
-    return path
+def _map_path(data_root: Path, location: str, map_name: str) -> Path:
+    """Resolve the actual official mini archive map layout without guessing.
+
+    The DB ``location`` is a city label (for example ``las_vegas``), while the
+    assembled v1.1 archive is laid out as ``maps/<map_name>/<map_revision>``.
+    A source map must therefore have exactly one archive-provided revision.
+    """
+
+    directory = data_root / "maps" / map_name
+    candidates = sorted(directory.glob("*/map.gpkg"))
+    if len(candidates) != 1:
+        raise FileNotFoundError(
+            "official map layout must contain exactly one map.gpkg for "
+            f"location={location!r}, map_name={map_name!r}: {candidates}"
+        )
+    return candidates[0]
 
 
 def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]:
