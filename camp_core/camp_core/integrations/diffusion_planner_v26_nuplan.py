@@ -38,6 +38,8 @@ NUPLAN_V26_ADAPTER_ID = "camp_dp_v26_official_nuplan_input_adapter_v1"
 NUPLAN_V26_RUNNER_ID = "camp_dp_v26_official_nuplan_same_ego_b8_runner_v1"
 
 OFFICIAL_SPLITS = ("train", "val", "test")
+MINI_SMOKE_SPLIT = "mini"
+_SOURCE_SPLITS = frozenset((*OFFICIAL_SPLITS, MINI_SMOKE_SPLIT))
 SMOKE_ARMS = ("candidate0", "Static14D", "Scene14D")
 _SHA256_LENGTH = 64
 _SOURCE_REQUIRED_FIELDS = frozenset(
@@ -195,8 +197,8 @@ def validate_v26_nuplan_source_record(value: Mapping[str, Any]) -> dict[str, Any
     record: dict[str, Any] = {}
     for field in _SOURCE_REQUIRED_FIELDS - {"event_strata"}:
         record[field] = _nonempty_string(value[field], field)
-    if record["official_split"] not in OFFICIAL_SPLITS:
-        raise ValueError("official_split must be train, val, or test")
+    if record["official_split"] not in _SOURCE_SPLITS:
+        raise ValueError("official_split must be train, val, test, or mini")
     for field in (
         "mission_route_roadblock_chain_sha256",
         "geometry_clone_group_sha256",
@@ -250,6 +252,8 @@ def build_v26_nuplan_split_manifest(
     normalized = [validate_v26_nuplan_source_record(record) for record in records]
     if not normalized:
         raise ValueError("official nuPlan source inventory is empty")
+    if any(record["official_split"] not in OFFICIAL_SPLITS for record in normalized):
+        raise ValueError("formal nuPlan source manifest cannot include mini smoke records")
     normalized.sort(key=lambda record: record["record_id"])
     record_ids = [record["record_id"] for record in normalized]
     if len(set(record_ids)) != len(record_ids):

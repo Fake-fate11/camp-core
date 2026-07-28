@@ -210,6 +210,18 @@ def test_manifest_rejects_group_overlap_and_outcome_fields() -> None:
         nuplan.validate_v26_nuplan_source_record(outcome)
 
 
+def test_mini_source_identity_is_adapter_only_not_formal_manifest_input() -> None:
+    mini = _record(9, split="mini")
+    assert nuplan.validate_v26_nuplan_source_record(mini)["official_split"] == "mini"
+    with pytest.raises(ValueError, match="cannot include mini smoke"):
+        nuplan.build_v26_nuplan_split_manifest(
+            [mini],
+            raw_source=_raw_source(),
+            fixed_dp=_fixed_dp(),
+            camp_source_head="a" * 40,
+        )
+
+
 def test_same_ego_b8_single_forward_candidate0_and_postpool_zero() -> None:
     class FakeModel:
         def __init__(self) -> None:
