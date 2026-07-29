@@ -45,7 +45,9 @@ def _write_db(path: Path, *, location: str, index: int, signal_count: int) -> No
             CREATE TABLE traffic_light_status (token BLOB, lidar_pc_token BLOB);
             """
         )
-        database.execute("INSERT INTO log VALUES (?, ?, ?)", (log_token, location, "v1"))
+        # Real nuPlan train DBs commonly store the map family as map_version;
+        # the official maps manifest resolves it to the archive revision.
+        database.execute("INSERT INTO log VALUES (?, ?, ?)", (log_token, location, location))
         for scene_index in range(5):
             token_base = index * 32 + scene_index
             scene_token = bytes([token_base]) * 8

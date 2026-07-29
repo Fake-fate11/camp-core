@@ -152,11 +152,17 @@ def _maps_catalog(maps_root: Path, maps_archive_integrity: Path) -> dict[str, An
         path = maps_root / location / version / "map.gpkg"
         if path.is_file():
             paths[(location, version)] = path
+    paths_by_location: dict[str, Path] = {}
+    for (location, _version), path in paths.items():
+        if location in paths_by_location:
+            raise ValueError("nuPlan maps manifest has multiple official revisions per location")
+        paths_by_location[location] = path
     return {
         "root": maps_root,
         "manifest_sha256": _sha256_file(manifest_path),
         "archive_sha256": archive_sha,
         "paths": paths,
+        "paths_by_location": paths_by_location,
     }
 
 
@@ -278,13 +284,16 @@ def _records_for_scene(
     roadblocks = str(scene["roadblock_ids"])
     if not roadblocks:
         return [], [], {"reason": "missing_roadblock_chain", "scene_token": scene["scene_token"]}
-    map_path = maps["paths"].get((log["location"], log["map_version"]))
+    map_path = maps["paths"].get((log["location"], log["map_version"])) or maps[
+        "paths_by_location"
+    ].get(log["location"])
     if map_path is None:
         return [], [], {
             "reason": "missing_verified_map_asset",
             "scene_token": scene["scene_token"],
             "location": log["location"],
-            "map_version": log["map_version"],
+            "db_map_version": log["map_version"],
+            "resolved_map_revision": map_path.parent.name,
         }
     if log["location"] != city_config["map_family"]:
         return [], [], {
@@ -519,7 +528,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--maps-archive-integrity", type=Path, required=True)
     parser.add_argument("--source-manifest", type=Path, required=True)
     parser.add_argument("--source-config", type=Path, required=True)
-    parser.add_argument("--max-states-per-scene", type=int, default=10)
+    parser.add_argument("--max-states-per-scene", type=int, default=2)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.max_states_per_scene <= 0:
