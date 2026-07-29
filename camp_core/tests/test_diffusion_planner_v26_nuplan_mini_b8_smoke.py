@@ -41,6 +41,31 @@ def test_smoke_parser_requires_only_the_active_mode_inputs(tmp_path: Path) -> No
     )
     assert adapter.mode == "adapter"
     assert adapter.fixed_dp_repo is None
+    assert adapter.maps_root is None
+
+
+def test_adapter_parser_accepts_a_frozen_three_city_source_record_binding(tmp_path: Path) -> None:
+    module = _module()
+    adapter = module.parse_args(
+        [
+            "--mode",
+            "adapter",
+            "--data-root",
+            str(tmp_path / "dataset"),
+            "--maps-root",
+            str(tmp_path / "maps"),
+            "--db-file",
+            str(tmp_path / "boston.db"),
+            "--source-manifest",
+            str(tmp_path / "academic_split.json"),
+            "--source-record-id",
+            "boston:db:scene",
+            "--output-root",
+            str(tmp_path / "adapter"),
+        ]
+    )
+    assert adapter.source_record_id == "boston:db:scene"
+    assert adapter.maps_root == tmp_path / "maps"
 
 
 def test_same_pool_selector_tie_is_deterministic_without_row_mutation() -> None:

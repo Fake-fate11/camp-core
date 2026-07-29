@@ -33,6 +33,9 @@ NUPLAN_SPLIT_MANIFEST_SCHEMA_VERSION = (
 NUPLAN_ACADEMIC_CITY_SOURCE_PLAN_SCHEMA_VERSION = (
     "camp_dp_v26_nuplan_v11_academic_city_source_plan_v1"
 )
+NUPLAN_ACADEMIC_GROUP_SPLIT_MANIFEST_SCHEMA_VERSION = (
+    "camp_dp_v26_nuplan_v11_academic_group_split_manifest_v1"
+)
 NUPLAN_B8_TOPOLOGY_SCHEMA_VERSION = "camp_dp_v26_nuplan_same_ego_b8_v1"
 NUPLAN_V26_ADAPTER_ID = "camp_dp_v26_official_nuplan_input_adapter_v1"
 NUPLAN_V26_RUNNER_ID = "camp_dp_v26_official_nuplan_same_ego_b8_runner_v1"
@@ -98,6 +101,16 @@ _CITY_ARCHIVE_STATUSES = frozenset(
 _SENSITIVE_ACCESS_FIELD_TOKENS = frozenset(
     {"cookie", "password", "secret", "signature", "signed_url", "token"}
 )
+_ACADEMIC_GROUP_FIELDS = (
+    "log_token",
+    "scenario_token",
+    "scene_token",
+    "mission_route_roadblock_chain_sha256",
+    "corridor_id",
+    "geometry_clone_group_sha256",
+)
+_ACADEMIC_IID_CITIES = frozenset({"boston", "pittsburgh"})
+_ACADEMIC_OOD_CITY = "singapore"
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -434,6 +447,142 @@ def validate_v26_nuplan_academic_city_source_plan(
     return rebuilt
 
 
+def build_v26_nuplan_academic_group_split_manifest(
+    records: Iterable[Mapping[str, Any]],
+    *,
+    raw_source: Mapping[str, Any],
+    fixed_dp: Mapping[str, Any],
+    camp_source_head: str,
+    raw_acquisition_manifest_sha256: str,
+    allocation_seed: int = 3407,
+    iid_validation_fraction: float = 0.2,
+) -> dict[str, Any]:
+    """Freeze the three-city academic split from identity-only source records.
+
+    The official archives are all ``train`` sources.  Boston and Pittsburgh
+    are deterministically split at the *connected* leakage-group level, while
+    Singapore remains a whole-city OOD partition.  The connected-component
+    assignment prevents any of the five source identity layers from crossing
+    the final train/validation/OOD boundary.
+    """
+
+    if isinstance(allocation_seed, bool) or not isinstance(allocation_seed, int):
+        raise ValueError("academic group split allocation_seed must be an integer")
+    if not isinstance(iid_validation_fraction, (float, int)) or isinstance(
+        iid_validation_fraction, bool
+    ):
+        raise ValueError("academic group split iid_validation_fraction must be numeric")
+    validation_fraction = float(iid_validation_fraction)
+    if not 0.0 < validation_fraction < 0.5:
+        raise ValueError("academic group split iid_validation_fraction must be in (0, 0.5)")
+    _require_sha256(raw_acquisition_manifest_sha256, "raw_acquisition_manifest_sha256")
+
+    normalized = [validate_v26_nuplan_source_record(record) for record in records]
+    if not normalized:
+        raise ValueError("academic nuPlan source inventory is empty")
+    if any(record["official_split"] != "train" for record in normalized):
+        raise ValueError("academic three-city source records must originate from official train")
+    normalized.sort(key=lambda record: record["record_id"])
+    record_ids = [record["record_id"] for record in normalized]
+    identities = [record["source_identity_sha256"] for record in normalized]
+    if len(set(record_ids)) != len(record_ids):
+        raise ValueError("academic nuPlan source record_id values must be unique")
+    if len(set(identities)) != len(identities):
+        raise ValueError("academic nuPlan source identities must be unique")
+    for record in normalized:
+        expected = _ACADEMIC_CITY_SOURCE_SPEC.get(record["city"])
+        if expected is None or record["map_family"] != expected["map_family"]:
+            raise ValueError("academic source record city/map-family drifted")
+
+    raw = _validate_raw_source(raw_source)
+    dp = _validate_fixed_dp_binding(fixed_dp)
+    _require_commit(camp_source_head, "camp_source_head")
+    components = _academic_connected_components(normalized)
+    partition_by_index = _allocate_academic_group_partitions(
+        normalized,
+        components,
+        allocation_seed=allocation_seed,
+        iid_validation_fraction=validation_fraction,
+    )
+    partitions: dict[str, list[dict[str, Any]]] = {
+        "train_iid": [],
+        "val_iid": [],
+        "test_ood": [],
+    }
+    for index, record in enumerate(normalized):
+        partition = partition_by_index[index]
+        enriched = dict(record)
+        enriched["academic_partition"] = partition
+        enriched["leakage_group_sha256"] = canonical_json_sha256(
+            {field: record[field] for field in _ACADEMIC_GROUP_FIELDS}
+        )
+        enriched["cluster_id"] = canonical_json_sha256(
+            {"log_token": record["log_token"], "corridor_id": record["corridor_id"]}
+        )
+        partitions[partition].append(enriched)
+
+    _validate_academic_partition_disjointness(partitions)
+    payload = {
+        "schema_version": NUPLAN_ACADEMIC_GROUP_SPLIT_MANIFEST_SCHEMA_VERSION,
+        "evidence_role": "development_nonholdout_nuplan_academic_group_split",
+        "outcome_fields_consumed": [],
+        "raw_source": raw,
+        "raw_acquisition_manifest_sha256": raw_acquisition_manifest_sha256,
+        "fixed_dp": dp,
+        "camp_source_head": camp_source_head,
+        "generator_topology": v26_nuplan_b8_topology(),
+        "split_design": {
+            "kind": "outcome_independent_custom_academic_group_split",
+            "official_source_upper_layer": ["train"],
+            "iid_source_cities": sorted(_ACADEMIC_IID_CITIES),
+            "city_held_out_ood": _ACADEMIC_OOD_CITY,
+            "group_keys": list(_ACADEMIC_GROUP_FIELDS),
+            "cluster_unit": "log_token_plus_corridor_id",
+            "allocation_seed": allocation_seed,
+            "iid_validation_fraction": validation_fraction,
+            "official_val_test": "future_expansion_not_downloaded",
+        },
+        "partitions": {
+            name: _partition_summary(rows) for name, rows in partitions.items()
+        },
+        "records": [
+            record
+            for name in ("train_iid", "val_iid", "test_ood")
+            for record in partitions[name]
+        ],
+    }
+    payload["identity_manifest_sha256"] = canonical_json_sha256(payload)
+    return payload
+
+
+def validate_v26_nuplan_academic_group_split_manifest(
+    value: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Rebuild a three-city academic split without reading outcome payloads."""
+
+    if value.get("schema_version") != NUPLAN_ACADEMIC_GROUP_SPLIT_MANIFEST_SCHEMA_VERSION:
+        raise ValueError("academic nuPlan group split manifest schema drifted")
+    if value.get("evidence_role") != "development_nonholdout_nuplan_academic_group_split":
+        raise ValueError("academic nuPlan group split manifest role drifted")
+    if value.get("outcome_fields_consumed") != []:
+        raise ValueError("academic nuPlan group split manifest consumed outcomes")
+    split_design = value.get("split_design")
+    if not isinstance(split_design, Mapping):
+        raise ValueError("academic nuPlan group split design is missing")
+    rebuilt = build_v26_nuplan_academic_group_split_manifest(
+        value.get("records", []),
+        raw_source=value.get("raw_source", {}),
+        fixed_dp=value.get("fixed_dp", {}),
+        camp_source_head=value.get("camp_source_head"),
+        raw_acquisition_manifest_sha256=value.get("raw_acquisition_manifest_sha256"),
+        allocation_seed=split_design.get("allocation_seed"),
+        iid_validation_fraction=split_design.get("iid_validation_fraction"),
+    )
+    if rebuilt != dict(value):
+        raise ValueError("academic nuPlan group split manifest is not a deterministic rebuild")
+    return rebuilt
+
+
 def build_same_ego_b8_model_input(
     normalized_single_input: Mapping[str, Any],
     latent_rows: np.ndarray,
@@ -697,6 +846,133 @@ def _validate_group_disjointness(records: Sequence[Mapping[str, Any]]) -> None:
         conflicts = sorted(key for key, splits in membership.items() if len(splits) > 1)
         if conflicts:
             raise ValueError(f"official split group overlap for {field}: {conflicts[:3]}")
+
+
+def _academic_connected_components(
+    records: Sequence[Mapping[str, Any]],
+) -> list[list[int]]:
+    """Join records sharing any frozen leakage-layer identity."""
+
+    parents = list(range(len(records)))
+
+    def find(index: int) -> int:
+        while parents[index] != index:
+            parents[index] = parents[parents[index]]
+            index = parents[index]
+        return index
+
+    def union(left: int, right: int) -> None:
+        left_root, right_root = find(left), find(right)
+        if left_root != right_root:
+            parents[right_root] = left_root
+
+    for field in _ACADEMIC_GROUP_FIELDS:
+        owner: dict[str, int] = {}
+        for index, record in enumerate(records):
+            value = str(record[field])
+            previous = owner.setdefault(value, index)
+            union(previous, index)
+
+    grouped: dict[int, list[int]] = {}
+    for index in range(len(records)):
+        grouped.setdefault(find(index), []).append(index)
+    return sorted(
+        grouped.values(),
+        key=lambda indices: tuple(records[index]["record_id"] for index in indices),
+    )
+
+
+def _allocate_academic_group_partitions(
+    records: Sequence[Mapping[str, Any]],
+    components: Sequence[Sequence[int]],
+    *,
+    allocation_seed: int,
+    iid_validation_fraction: float,
+) -> dict[int, str]:
+    """Assign city-held-out and IID components without inspecting outcomes."""
+
+    assignments: dict[int, str] = {}
+    iid_components: dict[str, list[Sequence[int]]] = {
+        city: [] for city in sorted(_ACADEMIC_IID_CITIES)
+    }
+    for indices in components:
+        cities = {str(records[index]["city"]) for index in indices}
+        if len(cities) != 1:
+            raise ValueError("academic leakage component crosses city boundaries")
+        city = next(iter(cities))
+        if city == _ACADEMIC_OOD_CITY:
+            for index in indices:
+                assignments[index] = "test_ood"
+        elif city in iid_components:
+            iid_components[city].append(indices)
+        else:
+            raise ValueError("academic source component has an unknown city")
+
+    for city, city_components in iid_components.items():
+        ordered = sorted(
+            city_components,
+            key=lambda indices: canonical_json_sha256(
+                {
+                    "allocation_seed": allocation_seed,
+                    "city": city,
+                    "source_identity_sha256": sorted(
+                        str(records[index]["source_identity_sha256"]) for index in indices
+                    ),
+                }
+            ),
+        )
+        validation_count = 0
+        if len(ordered) > 1:
+            validation_count = min(
+                len(ordered) - 1,
+                max(1, int(round(len(ordered) * iid_validation_fraction))),
+            )
+        validation_components = {
+            tuple(indices) for indices in ordered[:validation_count]
+        }
+        for indices in ordered:
+            partition = (
+                "val_iid" if tuple(indices) in validation_components else "train_iid"
+            )
+            for index in indices:
+                assignments[index] = partition
+    if len(assignments) != len(records):
+        raise ValueError("academic group split did not assign every source record")
+    return assignments
+
+
+def _validate_academic_partition_disjointness(
+    partitions: Mapping[str, Sequence[Mapping[str, Any]]],
+) -> None:
+    if set(partitions) != {"train_iid", "val_iid", "test_ood"}:
+        raise ValueError("academic group split partitions drifted")
+    seen: dict[str, str] = {}
+    group_membership: dict[str, dict[str, set[str]]] = {
+        field: {} for field in _ACADEMIC_GROUP_FIELDS
+    }
+    for partition, rows in partitions.items():
+        for row in rows:
+            identity = str(row["source_identity_sha256"])
+            if identity in seen:
+                raise ValueError(
+                    f"academic source identity appears in both {seen[identity]} and {partition}"
+                )
+            seen[identity] = partition
+            for field in _ACADEMIC_GROUP_FIELDS:
+                memberships = group_membership[field].setdefault(str(row[field]), set())
+                memberships.add(partition)
+    for field, memberships in group_membership.items():
+        conflicts = sorted(value for value, parts in memberships.items() if len(parts) > 1)
+        if conflicts:
+            raise ValueError(
+                f"academic final split group overlap for {field}: {conflicts[:3]}"
+            )
+    for row in partitions["test_ood"]:
+        if row["city"] != _ACADEMIC_OOD_CITY:
+            raise ValueError("academic OOD partition contains a non-Singapore source")
+    for partition in ("train_iid", "val_iid"):
+        if any(row["city"] not in _ACADEMIC_IID_CITIES for row in partitions[partition]):
+            raise ValueError("academic IID partition contains a held-out city source")
 
 
 def _validate_partition_disjointness(partitions: Mapping[str, Sequence[Mapping[str, Any]]]) -> None:

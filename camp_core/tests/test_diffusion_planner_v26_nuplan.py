@@ -194,6 +194,77 @@ def test_identity_only_manifest_keeps_official_groups_disjoint_and_ood_separate(
     assert nuplan.validate_v26_nuplan_split_manifest(manifest) == manifest
 
 
+def test_three_city_academic_group_split_keeps_all_five_identity_layers_disjoint() -> None:
+    records = [
+        _record(1, split="train", city="boston", family="us-ma-boston"),
+        _record(2, split="train", city="boston", family="us-ma-boston"),
+        _record(3, split="train", city="pittsburgh", family="us-pa-pittsburgh-hazelwood"),
+        _record(4, split="train", city="pittsburgh", family="us-pa-pittsburgh-hazelwood"),
+        _record(5, split="train", city="singapore", family="sg-one-north"),
+    ]
+    manifest = nuplan.build_v26_nuplan_academic_group_split_manifest(
+        records,
+        raw_source=_raw_source(),
+        fixed_dp=_fixed_dp(),
+        camp_source_head="a" * 40,
+        raw_acquisition_manifest_sha256=_sha("three-city-raw"),
+    )
+    assert manifest["partitions"]["test_ood"]["record_count"] == 1
+    assert manifest["partitions"]["test_ood"]["city_map_family_counts"] == [
+        {"city": "singapore", "map_family": "sg-one-north", "count": 1}
+    ]
+    assert manifest["partitions"]["train_iid"]["record_count"] == 2
+    assert manifest["partitions"]["val_iid"]["record_count"] == 2
+    assert nuplan.validate_v26_nuplan_academic_group_split_manifest(manifest) == manifest
+
+
+def test_academic_group_split_assigns_connected_log_component_once() -> None:
+    first = _record(1, split="train", city="boston", family="us-ma-boston")
+    second = _record(2, split="train", city="boston", family="us-ma-boston")
+    second["log_token"] = first["log_token"]
+    records = [
+        first,
+        second,
+        _record(3, split="train", city="boston", family="us-ma-boston"),
+        _record(4, split="train", city="pittsburgh", family="us-pa-pittsburgh-hazelwood"),
+        _record(5, split="train", city="pittsburgh", family="us-pa-pittsburgh-hazelwood"),
+        _record(6, split="train", city="singapore", family="sg-one-north"),
+    ]
+    manifest = nuplan.build_v26_nuplan_academic_group_split_manifest(
+        records,
+        raw_source=_raw_source(),
+        fixed_dp=_fixed_dp(),
+        camp_source_head="a" * 40,
+        raw_acquisition_manifest_sha256=_sha("three-city-raw"),
+    )
+    partition_by_id = {
+        record["record_id"]: record["academic_partition"]
+        for record in manifest["records"]
+    }
+    assert partition_by_id[first["record_id"]] == partition_by_id[second["record_id"]]
+
+
+def test_academic_group_split_rejects_non_train_source_or_city_map_drift() -> None:
+    val_record = _record(1, split="val", city="boston", family="us-ma-boston")
+    with pytest.raises(ValueError, match="official train"):
+        nuplan.build_v26_nuplan_academic_group_split_manifest(
+            [val_record],
+            raw_source=_raw_source(),
+            fixed_dp=_fixed_dp(),
+            camp_source_head="a" * 40,
+            raw_acquisition_manifest_sha256=_sha("three-city-raw"),
+        )
+    bad_map = _record(2, split="train", city="singapore", family="us-ma-boston")
+    with pytest.raises(ValueError, match="city/map-family"):
+        nuplan.build_v26_nuplan_academic_group_split_manifest(
+            [bad_map],
+            raw_source=_raw_source(),
+            fixed_dp=_fixed_dp(),
+            camp_source_head="a" * 40,
+            raw_acquisition_manifest_sha256=_sha("three-city-raw"),
+        )
+
+
 def test_manifest_rejects_group_overlap_and_outcome_fields() -> None:
     first = _record(1, split="train", corridor="shared-corridor")
     second = _record(2, split="val", corridor="shared-corridor")
@@ -354,6 +425,51 @@ def test_manifest_cli_binds_identity_only_inputs_without_legacy_k8_imports(tmp_p
     )
     assert "run_diffusion_planner_dp_camp_v18" not in source
     assert "diffusion_planner_v25" not in source
+
+
+def test_academic_group_split_cli_binds_the_identity_only_inventory(tmp_path: Path) -> None:
+    inventory_path = tmp_path / "inventory.json"
+    binding_path = tmp_path / "fixed_dp.json"
+    records = [
+        _record(1, split="train", city="boston", family="us-ma-boston"),
+        _record(2, split="train", city="boston", family="us-ma-boston"),
+        _record(3, split="train", city="pittsburgh", family="us-pa-pittsburgh-hazelwood"),
+        _record(4, split="train", city="pittsburgh", family="us-pa-pittsburgh-hazelwood"),
+        _record(5, split="train", city="singapore", family="sg-one-north"),
+    ]
+    inventory = {
+        "schema_version": "camp_dp_v26_nuplan_three_city_identity_inventory_v1",
+        "evidence_role": "development_nonholdout_nuplan_identity_inventory",
+        "outcome_fields_consumed": [],
+        "raw_acquisition_manifest_sha256": _sha("raw-acquisition"),
+        "raw_source": _raw_source(),
+        "records": records,
+    }
+    inventory["identity_inventory_sha256"] = nuplan.canonical_json_sha256(inventory)
+    inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+    binding_path.write_text(json.dumps(_fixed_dp()), encoding="utf-8")
+    script_path = ROOT / "scripts/integrations/prepare_diffusion_planner_v26_nuplan_academic_group_split.py"
+    spec = importlib.util.spec_from_file_location("v26_nuplan_academic_group_split", script_path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    args = module.parse_args(
+        [
+            "--inventory",
+            str(inventory_path),
+            "--fixed-dp-binding",
+            str(binding_path),
+            "--camp-source-head",
+            "a" * 40,
+            "--output",
+            str(tmp_path / "manifest.json"),
+        ]
+    )
+    manifest = module.build_manifest(args)
+    assert manifest["input_bindings"]["identity_inventory_sha256"] == _sha(
+        inventory_path.read_text(encoding="utf-8")
+    )
+    assert manifest["partitions"]["test_ood"]["record_count"] == 1
 
 
 def test_academic_city_plan_cli_keeps_archive_metadata_only(tmp_path: Path) -> None:

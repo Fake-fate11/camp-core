@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the V26-native official-nuPlan-mini same-ego B8 adapter smoke.
+"""Run a V26-native official-nuPlan same-ego B8 adapter smoke.
 
 The adapter mode runs with the nuPlan devkit interpreter and serializes only
 the causal fixed-DP input.  The smoke mode runs with the fixed-DP interpreter,
@@ -54,8 +54,8 @@ from camp_core.integrations.diffusion_planner_v26_nuplan import (  # noqa: E402
 )
 
 
-SCHEMA = "camp_dp_v26_official_nuplan_mini_same_ego_b8_smoke_v1"
-EVIDENCE_ROLE = "development_nonholdout_official_nuplan_mini_adapter_smoke"
+SCHEMA = "camp_dp_v26_official_nuplan_same_ego_b8_smoke_v2"
+EVIDENCE_ROLE = "development_nonholdout_official_nuplan_adapter_smoke"
 ZERO_CALLS = {"model_calls": 0, "dp_calls": 0, "gpu_calls": 0}
 V26_NUPLAN_NO_SIGNAL_ADAPTER_ID = (
     "camp_dp_v26_official_nuplan_no_signal_adapter_v1"
@@ -119,7 +119,13 @@ def _completed_smoke_status(model_calls: int) -> dict[str, Any]:
     )
 
 
-def _map_path(data_root: Path, location: str, map_name: str) -> Path:
+def _map_path(
+    data_root: Path,
+    location: str,
+    map_name: str,
+    *,
+    maps_root: Path | None = None,
+) -> Path:
     """Resolve the actual official mini archive map layout without guessing.
 
     The DB ``location`` is a city label (for example ``las_vegas``), while the
@@ -127,7 +133,7 @@ def _map_path(data_root: Path, location: str, map_name: str) -> Path:
     A source map must therefore have exactly one archive-provided revision.
     """
 
-    directory = data_root / "maps" / map_name
+    directory = (maps_root if maps_root is not None else data_root / "maps") / map_name
     candidates = sorted(directory.glob("*/map.gpkg"))
     if len(candidates) != 1:
         raise FileNotFoundError(
@@ -267,7 +273,13 @@ def _require_v26_no_signal_authority(
     return dict(value)
 
 
-def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]:
+def _build_mini_scenario(
+    data_root: Path,
+    db_path: Path,
+    *,
+    maps_root: Path | None = None,
+    scenario_token: str | None = None,
+) -> tuple[Any, Any, Any]:
     """Use the official ScenarioBuilder and direct official simulation components."""
 
     from nuplan.planning.scenario_builder.nuplan_db.nuplan_scenario_builder import (
@@ -287,7 +299,7 @@ def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]
 
     builder = NuPlanScenarioBuilder(
         data_root=str(data_root),
-        map_root=str(data_root / "maps"),
+        map_root=str(maps_root if maps_root is not None else data_root / "maps"),
         sensor_root=str(data_root),
         db_files=[str(db_path)],
         map_version="nuplan-maps-v1.0",
@@ -297,7 +309,7 @@ def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]
     )
     scenario_filter = ScenarioFilter(
         scenario_types=None,
-        scenario_tokens=None,
+        scenario_tokens=None if scenario_token is None else [scenario_token],
         log_names=None,
         map_names=None,
         num_scenarios_per_type=None,
@@ -313,8 +325,10 @@ def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]
         SingleMachineParallelExecutor(use_process_pool=False, max_workers=1),
     )
     if len(scenarios) != 1:
-        raise ValueError("official mini ScenarioBuilder did not return one deterministic scenario")
+        raise ValueError("official ScenarioBuilder did not return one deterministic scenario")
     scenario = scenarios[0]
+    if scenario_token is not None and str(getattr(scenario, "token", "")).lower() != scenario_token.lower():
+        raise ValueError("official ScenarioBuilder source scenario token drifted")
     simulation = Simulation(
         SimulationSetup(
             time_controller=StepSimulationTimeController(scenario),
@@ -330,8 +344,14 @@ def _build_mini_scenario(data_root: Path, db_path: Path) -> tuple[Any, Any, Any]
 
 
 def _source_identity(
-    *, data_root: Path, db_path: Path, scenario: Any, initialization: Any
-) -> tuple[dict[str, Any], Path]:
+    *,
+    data_root: Path,
+    db_path: Path,
+    scenario: Any,
+    initialization: Any,
+    maps_root: Path | None = None,
+    expected_source: Mapping[str, Any] | None = None,
+) -> tuple[dict[str, Any], Path, dict[str, str]]:
     token = str(getattr(scenario, "token"))
     with sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True) as db:
         log = db.execute(
@@ -344,14 +364,14 @@ def _source_identity(
     if log is None or scene is None:
         raise ValueError("official mini source identity is incomplete")
     log_token, location, map_version = map(str, log)
-    map_path = _map_path(data_root, location, map_version)
+    map_path = _map_path(data_root, location, map_version, maps_root=maps_root)
     route = tuple(str(value) for value in initialization.route_roadblock_ids)
     if not route:
         raise ValueError("official mini scenario has no mission route")
     route_sha = hashlib.sha256("\0".join(route).encode("utf-8")).hexdigest()
     db_sha = _sha256_file(db_path)
     map_sha = _sha256_file(map_path)
-    source = {
+    derived = {
         "record_id": f"mini:{log_token}:{token}",
         "official_split": "mini",
         "log_token": log_token,
@@ -371,24 +391,90 @@ def _source_identity(
             f"scenario_type:{str(getattr(scenario, 'scenario_type', 'unknown'))}"
         ],
     }
-    return validate_v26_nuplan_source_record(source), map_path
+    runtime_assets = {
+        "runtime_source_db_sha256": db_sha,
+        "runtime_map_sha256": map_sha,
+        "runtime_map_relative_path": str(
+            map_path.relative_to(maps_root if maps_root is not None else data_root / "maps")
+        ),
+    }
+    if expected_source is None:
+        return validate_v26_nuplan_source_record(derived), map_path, runtime_assets
+    expected = validate_v26_nuplan_source_record(expected_source)
+    derived["official_split"] = expected["official_split"]
+    expected_fields = (
+        "official_split",
+        "log_token",
+        "scenario_token",
+        "scene_token",
+        "state_token",
+        "mission_route_roadblock_chain_sha256",
+        "corridor_id",
+        "geometry_clone_group_sha256",
+        "city",
+        "map_family",
+    )
+    for field in expected_fields:
+        if expected[field] != derived[field]:
+            raise ValueError(f"official source manifest binding drifted for {field}")
+    return expected, map_path, runtime_assets
+
+
+def _manifest_source_record(args: argparse.Namespace) -> tuple[dict[str, Any] | None, str | None]:
+    """Read one identity-only selected record from a frozen source manifest."""
+
+    if args.source_manifest is None and args.source_record_id is None:
+        return None, None
+    if args.source_manifest is None or args.source_record_id is None:
+        raise ValueError("official source manifest and source record id must be supplied together")
+    manifest_path = args.source_manifest.resolve(strict=True)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    records = manifest.get("records") if isinstance(manifest, Mapping) else None
+    if not isinstance(records, list):
+        raise ValueError("official source manifest records are missing")
+    matching = [
+        record
+        for record in records
+        if isinstance(record, Mapping) and record.get("record_id") == args.source_record_id
+    ]
+    if len(matching) != 1:
+        raise ValueError("official source record id does not select exactly one source record")
+    selected = dict(matching[0])
+    validate_v26_nuplan_source_record(selected)
+    return selected, _sha256_file(manifest_path)
 
 
 def run_adapter(args: argparse.Namespace) -> dict[str, Any]:
     data_root = args.data_root.resolve(strict=True)
     db_path = args.db_file.resolve(strict=True)
+    maps_root = (
+        args.maps_root.resolve(strict=True)
+        if args.maps_root is not None
+        else data_root / "maps"
+    )
     output_root = args.output_root.resolve(strict=False)
     if output_root.exists() or output_root.is_symlink():
         raise FileExistsError(output_root)
     output_root.mkdir(parents=True)
     try:
         _write_json_atomic(output_root / "run.status.json", _status("running", "scenario_builder"))
-        scenario, initialization, current_input = _build_mini_scenario(data_root, db_path)
-        source, map_path = _source_identity(
+        expected_source, source_manifest_sha256 = _manifest_source_record(args)
+        scenario_token = (
+            str(expected_source["scenario_token"]) if expected_source is not None else None
+        )
+        scenario, initialization, current_input = _build_mini_scenario(
+            data_root,
+            db_path,
+            maps_root=maps_root,
+            scenario_token=scenario_token,
+        )
+        source, map_path, runtime_assets = _source_identity(
             data_root=data_root,
             db_path=db_path,
             scenario=scenario,
             initialization=initialization,
+            maps_root=maps_root,
+            expected_source=expected_source,
         )
         materialized = materialize_v26_nuplan_planner_input(
             current_input, initialization, source_identity=source
@@ -414,6 +500,16 @@ def run_adapter(args: argparse.Namespace) -> dict[str, Any]:
             "source_identity": source,
             "source_db_path": str(db_path),
             "map_path": str(map_path),
+            "source_manifest_binding": (
+                None
+                if source_manifest_sha256 is None
+                else {
+                    "source_manifest_sha256": source_manifest_sha256,
+                    "source_record_id": source["record_id"],
+                    "partition": expected_source.get("academic_partition"),
+                }
+            ),
+            "runtime_asset_identity": runtime_assets,
             "route_roadblock_count": len(initialization.route_roadblock_ids),
             "causal_input_sha256": _sha256_arrays(arrays),
             "causal_input_relative_path": npz_path.name,
@@ -837,7 +933,10 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--mode", choices=("adapter", "smoke"), required=True)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--data-root", type=Path)
+    parser.add_argument("--maps-root", type=Path)
     parser.add_argument("--db-file", type=Path)
+    parser.add_argument("--source-manifest", type=Path)
+    parser.add_argument("--source-record-id")
     parser.add_argument("--adapter-root", type=Path)
     parser.add_argument("--fixed-dp-repo", type=Path)
     parser.add_argument("--checkpoint", type=Path)
