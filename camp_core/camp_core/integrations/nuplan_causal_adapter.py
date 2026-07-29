@@ -1316,8 +1316,8 @@ def encode_route_lane(
         raise NuPlanCausalSourceError("route speed_limit_mps must be positive")
 
     center = _resample_polyline(centerline)
-    left = _aligned_boundary(left_boundary, center[0])
-    right = _aligned_boundary(right_boundary, center[0])
+    left = _aligned_boundary(left_boundary, center)
+    right = _aligned_boundary(right_boundary, center)
     direction = np.empty_like(center)
     direction[:-1] = center[1:] - center[:-1]
     direction[-1] = direction[-2]
@@ -1380,13 +1380,34 @@ def _resample_polyline(points: np.ndarray) -> np.ndarray:
     )
 
 
-def _aligned_boundary(points: np.ndarray, center_start: np.ndarray) -> np.ndarray:
-    boundary = _resample_polyline(points)
-    if np.linalg.norm(boundary[-1] - center_start) < np.linalg.norm(
-        boundary[0] - center_start
+def _aligned_boundary(points: np.ndarray, center: np.ndarray) -> np.ndarray:
+    """Project each center sample onto the authoritative boundary geometry."""
+
+    boundary_points = np.asarray(points, dtype=np.float64)
+    center_points = np.asarray(center, dtype=np.float64)
+    if (
+        boundary_points.ndim != 2
+        or boundary_points.shape[1] != 2
+        or boundary_points.shape[0] < 2
+        or center_points.shape != (20, 2)
     ):
-        boundary = boundary[::-1].copy()
-    return boundary
+        raise NuPlanCausalSourceError("boundary and center geometry dimensions are invalid")
+    try:
+        from shapely import LineString, Point
+    except ImportError as exc:
+        raise NuPlanCausalSourceError(
+            "Shapely>=2.0 is required; install camp_core[nuplan]"
+        ) from exc
+    boundary = LineString(boundary_points)
+    if not boundary.is_valid or boundary.length <= 0.0:
+        raise NuPlanCausalSourceError("boundary must have positive valid length")
+    return np.asarray(
+        [
+            boundary.interpolate(boundary.project(Point(point))).coords[0]
+            for point in center_points
+        ],
+        dtype=np.float64,
+    )
 
 
 def _traffic_light_encoding(

@@ -265,6 +265,15 @@ def test_route_lane_mapping_preserves_missing_speed_without_defaulting(monkeypat
     assert collapsed == ("42", "43")
 
 
+def test_boundary_projection_uses_authoritative_geometry_at_each_center_sample() -> None:
+    center = np.column_stack((np.linspace(0.0, 19.0, 20), np.zeros(20)))
+    boundary = np.array([[19.0, 2.0], [0.0, 2.0]], dtype=np.float64)
+    projected = nuplan_causal_adapter._aligned_boundary(boundary, center)
+    assert projected.shape == (20, 2)
+    assert np.allclose(projected[:, 0], center[:, 0])
+    assert np.allclose(projected[:, 1], 2.0)
+
+
 def test_raw_context_receipt_serializes_positional_v25_context_by_frozen_names() -> None:
     raw = V25ContextRecord(
         raw=np.arange(len(RAW_FEATURE_NAMES), dtype=np.float64),
