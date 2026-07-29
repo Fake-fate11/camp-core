@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import hashlib
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -100,6 +101,52 @@ def test_map_identity_uses_the_verified_official_archive_layout(tmp_path: Path) 
     assert module._map_path(
         tmp_path, "las_vegas", "us-nv-las-vegas-strip"
     ) == map_path
+
+
+def test_source_identity_binds_authoritative_db_route_not_expanded_runtime_route(
+    tmp_path: Path,
+) -> None:
+    module = _module()
+    database = tmp_path / "city.db"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE log (token BLOB, location TEXT, map_version TEXT)")
+        connection.execute("CREATE TABLE lidar_pc (token BLOB, scene_token BLOB)")
+        connection.execute("CREATE TABLE scene (token BLOB, roadblock_ids TEXT)")
+        connection.execute(
+            "INSERT INTO log VALUES (?, ?, ?)",
+            (bytes.fromhex("01"), "us-ma-boston", "9.12.1817"),
+        )
+        connection.execute(
+            "INSERT INTO lidar_pc VALUES (?, ?)",
+            (bytes.fromhex("02"), bytes.fromhex("03")),
+        )
+        connection.execute(
+            "INSERT INTO scene VALUES (?, ?)",
+            (bytes.fromhex("03"), "raw-roadblock-chain"),
+        )
+    map_path = tmp_path / "maps/9.12.1817/revision/map.gpkg"
+    map_path.parent.mkdir(parents=True)
+    map_path.write_bytes(b"official-map")
+
+    scenario = type("Scenario", (), {"token": "02"})()
+    initialization = type(
+        "Initialization", (), {"route_roadblock_ids": ("runtime", "expanded")}
+    )()
+    source, _resolved_map, runtime_assets = module._source_identity(
+        data_root=tmp_path,
+        db_path=database,
+        scenario=scenario,
+        initialization=initialization,
+        maps_root=tmp_path / "maps",
+    )
+
+    source_hash = hashlib.sha256(b"raw-roadblock-chain").hexdigest()
+    runtime_hash = hashlib.sha256(b"runtime\0expanded").hexdigest()
+    assert source["mission_route_roadblock_chain_sha256"] == source_hash
+    assert source["corridor_id"] == f"us-ma-boston:{source_hash[:20]}"
+    assert runtime_assets["source_route_roadblock_chain_sha256"] == source_hash
+    assert runtime_assets["runtime_route_roadblock_chain_sha256"] == runtime_hash
+    assert source_hash != runtime_hash
 
 
 def _source_identity() -> dict[str, object]:

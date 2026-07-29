@@ -143,6 +143,38 @@ def _map_path(
     return candidates[0]
 
 
+def _source_route_identity(
+    *, location: str, map_version: str, roadblock_chain: str
+) -> dict[str, str]:
+    """Hash the authoritative DB roadblock-chain representation.
+
+    The three-city identity inventory and full-population sampling manifest use
+    ``scene.roadblock_ids`` as the source-authoritative route representation.
+    A ScenarioBuilder initialization may expand that route for runtime use, so
+    its generated lanelet sequence is recorded separately rather than being
+    substituted into the source identity.
+    """
+
+    normalized = str(roadblock_chain or "")
+    if not normalized:
+        raise ValueError("official source scene has no roadblock chain")
+    route_sha256 = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    geometry_clone_group_sha256 = hashlib.sha256(
+        canonical_json_bytes(
+            {
+                "location": str(location),
+                "map_version": str(map_version),
+                "roadblock_chain": normalized,
+            }
+        )
+    ).hexdigest()
+    return {
+        "mission_route_roadblock_chain_sha256": route_sha256,
+        "corridor_id": f"{location}:{route_sha256[:20]}",
+        "geometry_clone_group_sha256": geometry_clone_group_sha256,
+    }
+
+
 def _decision_time_s(current_input: Any) -> float:
     """Read the same-tick official planner time without a fallback/default."""
 
@@ -361,14 +393,29 @@ def _source_identity(
             "SELECT lower(hex(scene_token)) FROM lidar_pc WHERE lower(hex(token))=?",
             (token.lower(),),
         ).fetchone()
-    if log is None or scene is None:
+        source_route = (
+            None
+            if scene is None
+            else db.execute(
+                "SELECT roadblock_ids FROM scene WHERE lower(hex(token))=?",
+                (str(scene[0]).lower(),),
+            ).fetchone()
+        )
+    if log is None or scene is None or source_route is None:
         raise ValueError("official mini source identity is incomplete")
     log_token, location, map_version = map(str, log)
     map_path = _map_path(data_root, location, map_version, maps_root=maps_root)
-    route = tuple(str(value) for value in initialization.route_roadblock_ids)
-    if not route:
-        raise ValueError("official mini scenario has no mission route")
-    route_sha = hashlib.sha256("\0".join(route).encode("utf-8")).hexdigest()
+    source_route_identity = _source_route_identity(
+        location=location,
+        map_version=map_version,
+        roadblock_chain=str(source_route[0] or ""),
+    )
+    runtime_route = tuple(str(value) for value in initialization.route_roadblock_ids)
+    if not runtime_route:
+        raise ValueError("official mini scenario has no runtime route")
+    runtime_route_sha256 = hashlib.sha256(
+        "\0".join(runtime_route).encode("utf-8")
+    ).hexdigest()
     db_sha = _sha256_file(db_path)
     map_sha = _sha256_file(map_path)
     derived = {
@@ -378,11 +425,7 @@ def _source_identity(
         "scenario_token": token,
         "scene_token": str(scene[0]),
         "state_token": token,
-        "mission_route_roadblock_chain_sha256": route_sha,
-        "corridor_id": f"mini:{location}:{route_sha[:16]}",
-        "geometry_clone_group_sha256": hashlib.sha256(
-            f"{location}\0{map_sha}\0{route_sha}".encode("utf-8")
-        ).hexdigest(),
+        **source_route_identity,
         "city": _CITY_BY_MAP.get(location, location),
         "map_family": location,
         "source_db_sha256": db_sha,
@@ -397,6 +440,10 @@ def _source_identity(
         "runtime_map_relative_path": str(
             map_path.relative_to(maps_root if maps_root is not None else data_root / "maps")
         ),
+        "source_route_roadblock_chain_sha256": source_route_identity[
+            "mission_route_roadblock_chain_sha256"
+        ],
+        "runtime_route_roadblock_chain_sha256": runtime_route_sha256,
     }
     if expected_source is None:
         return validate_v26_nuplan_source_record(derived), map_path, runtime_assets
