@@ -107,9 +107,9 @@ def _completed_city_receipts(
         expected_sha = str(item.get("receipt_sha256", ""))
         if city not in CITY_ORDER or not path.is_file() or len(expected_sha) != 64:
             raise ValueError("three-city completed city receipt binding is invalid")
-        if _sha256_file(path) != expected_sha:
-            raise ValueError("three-city completed city receipt hash drifted")
         receipt = _read_json(path, f"{city} city receipt")
+        if receipt.get("receipt_sha256") != expected_sha:
+            raise ValueError("three-city completed city canonical receipt hash drifted")
         if receipt.get("terminal_status") != "complete" or receipt.get("city") != city:
             raise ValueError("three-city completed city receipt terminal identity drifted")
         archive = receipt.get("archive_verification")

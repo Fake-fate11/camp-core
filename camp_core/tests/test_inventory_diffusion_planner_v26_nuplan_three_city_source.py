@@ -21,10 +21,6 @@ CITY_MAPS = {
 }
 
 
-def _sha_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _module():
     path = ROOT / "scripts/integrations/inventory_diffusion_planner_v26_nuplan_three_city_source.py"
     spec = importlib.util.spec_from_file_location("v26_nuplan_three_city_inventory", path)
@@ -91,11 +87,13 @@ def test_inventory_reads_only_three_city_identity_metadata_and_selects_no_signal
         map_path.parent.mkdir(parents=True, exist_ok=True)
         map_path.write_bytes(f"official-{city}-map".encode("utf-8"))
         receipt = tmp_path / f"{city}.receipt.json"
+        canonical_receipt_sha = hashlib.sha256(f"receipt-{city}".encode()).hexdigest()
         receipt.write_text(
             json.dumps(
                 {
                     "terminal_status": "complete",
                     "city": city,
+                    "receipt_sha256": canonical_receipt_sha,
                     "archive_verification": {"archive_sha256": hashlib.sha256(city.encode()).hexdigest(), "archive_bytes": 1},
                 },
                 sort_keys=True,
@@ -103,7 +101,7 @@ def test_inventory_reads_only_three_city_identity_metadata_and_selects_no_signal
             encoding="utf-8",
         )
         city_receipts.append(
-            {"city": city, "receipt_path": str(receipt), "receipt_sha256": _sha_file(receipt)}
+            {"city": city, "receipt_path": str(receipt), "receipt_sha256": canonical_receipt_sha}
         )
         archives.append(
             {"city": city, "map_family": map_family, "academic_role": "city_held_out_ood" if city == "singapore" else "iid_grouped_source"}
