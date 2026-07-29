@@ -255,6 +255,7 @@ def test_route_lane_mapping_preserves_missing_speed_without_defaulting(monkeypat
         "speed_limit_source": "missing_or_invalid_authoritative",
         "speed_limit_available": False,
         "boundary_source": "official_boundaries_table",
+        "boundary_roles": {"left": 101, "right": 102},
     }
     assert candidates[1]["speed_limit_mps"] == 11.0
     assert candidates[1]["source_mapping"]["speed_limit_available"] is True

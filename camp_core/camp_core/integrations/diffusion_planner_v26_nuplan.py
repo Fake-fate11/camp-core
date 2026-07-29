@@ -24,6 +24,7 @@ from .diffusion_planner_v21_native import (
 from .diffusion_planner_causal_atoms import CANDIDATE_LOCAL_EXACT_SPEED
 from .diffusion_planner_v26_nuplan_signal import (
     NUPLAN_V26_SIGNAL_APPLICABILITY_ADAPTER_ID,
+    build_v26_nuplan_signal_authority as _build_signal_authority,
     build_v26_nuplan_unavailable_signal_authority as _build_unavailable_signal_authority,
 )
 from .nuplan_causal_adapter import (
@@ -235,7 +236,11 @@ def materialize_v26_nuplan_saved_state_input(
         "materialization_metadata": dict(materialized.metadata),
         "decision_timestamp_us": decision_timestamp_us,
         "endpoint_applicability": {
-            "red_light": "typed_missing_no_stopline_authority",
+            "red_light": (
+                "typed_missing_no_stopline_authority"
+                if bool(materialized.metadata.get("traffic_signal_present"))
+                else "not_applicable_no_authoritative_signal"
+            ),
             "speed_limit": "observed" if has_speed else "missing_or_inapplicable",
         },
         "outcome_fields_consumed": [],
@@ -256,6 +261,26 @@ def build_v26_nuplan_unavailable_signal_authority(
         route_lanes=route_lanes,
         decision_timestamp_us=decision_timestamp_us,
         traffic_light_state_available=traffic_light_state_available,
+    )
+
+
+def build_v26_nuplan_signal_authority(
+    *,
+    source_identity: Mapping[str, Any],
+    route_lanes: np.ndarray,
+    decision_timestamp_us: int,
+    signal_present: bool,
+    same_tick_phase_available: bool,
+) -> dict[str, Any]:
+    """Validate V26 source identity before building a presence-aware receipt."""
+
+    source = validate_v26_nuplan_source_record(source_identity)
+    return _build_signal_authority(
+        source_identity=source,
+        route_lanes=route_lanes,
+        decision_timestamp_us=decision_timestamp_us,
+        signal_present=signal_present,
+        same_tick_phase_available=same_tick_phase_available,
     )
 
 

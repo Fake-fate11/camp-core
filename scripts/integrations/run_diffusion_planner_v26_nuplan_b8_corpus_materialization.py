@@ -49,7 +49,7 @@ from camp_core.integrations.diffusion_planner_v26_nuplan import (  # noqa: E402
     FIXED_DP_HEAD,
     NUPLAN_V26_ADAPTER_ID,
     NUPLAN_V26_RUNNER_ID,
-    build_v26_nuplan_unavailable_signal_authority,
+    build_v26_nuplan_signal_authority,
     canonical_json_sha256,
     materialize_v26_nuplan_saved_state_input,
     run_v26_nuplan_single_invocation_b8,
@@ -903,12 +903,20 @@ def _process_anchor(
             source_identity=source,
         )
         causal_input = {key: np.asarray(value) for key, value in adapted["dp_input"].items()}
-        signal_authority = build_v26_nuplan_unavailable_signal_authority(
+        signal_authority = build_v26_nuplan_signal_authority(
             source_identity=source,
             route_lanes=np.asarray(causal_input["route_lanes"]),
             decision_timestamp_us=int(adapted["decision_timestamp_us"]),
-            traffic_light_state_available=bool(
-                adapted["materialization_metadata"]["traffic_light_state_available"]
+            signal_present=bool(
+                adapted["materialization_metadata"].get("traffic_signal_present")
+            ),
+            same_tick_phase_available=bool(
+                adapted["materialization_metadata"].get(
+                    "same_tick_traffic_light_phase_available",
+                    adapted["materialization_metadata"].get(
+                        "traffic_light_state_available", False
+                    ),
+                )
             ),
         )
         normalized = _normalized_single_input(causal_input, context)

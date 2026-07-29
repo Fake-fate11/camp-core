@@ -25,13 +25,12 @@ NUPLAN_V26_SIGNAL_APPLICABILITY_ADAPTER_ID = (
 )
 
 
-def build_v26_nuplan_unavailable_signal_authority(
+def _validate_signal_arguments(
     *,
     source_identity: Mapping[str, Any],
     route_lanes: np.ndarray,
     decision_timestamp_us: int,
-    traffic_light_state_available: bool,
-) -> dict[str, Any]:
+) -> tuple[np.ndarray, str, float]:
     required = {
         "source_identity_sha256",
         "source_db_sha256",
@@ -44,13 +43,129 @@ def build_v26_nuplan_unavailable_signal_authority(
         decision_timestamp_us, int
     ) or decision_timestamp_us < 0:
         raise ValueError("official signal decision timestamp is invalid")
-    if not isinstance(traffic_light_state_available, bool):
-        raise ValueError("official signal availability must be bool")
     route = np.ascontiguousarray(np.asarray(route_lanes, dtype=np.float64))
     if route.shape != (25, 20, 33) or not np.isfinite(route).all():
         raise ValueError("official signal route lanes must be finite [25,20,33]")
-    route_geometry_sha256 = array_sha256(route)
-    decision_time_s = float(decision_timestamp_us) / 1e6
+    return route, array_sha256(route), float(decision_timestamp_us) / 1e6
+
+
+def build_v26_nuplan_signal_authority(
+    *,
+    source_identity: Mapping[str, Any],
+    route_lanes: np.ndarray,
+    decision_timestamp_us: int,
+    signal_present: bool,
+    same_tick_phase_available: bool,
+) -> dict[str, Any]:
+    """Build a V26 signal receipt without conflating presence and phase state.
+
+    A route with no authoritative traffic signal is ``not_applicable``.  A
+    route with a signal but no same-tick phase (or no source-bound stop-line
+    geometry) remains ``unavailable`` and is masked; it is never recast as a
+    no-signal route.
+    """
+
+    if not isinstance(signal_present, bool) or not isinstance(
+        same_tick_phase_available, bool
+    ):
+        raise ValueError("official signal presence and phase availability must be bool")
+    if signal_present:
+        authority = build_v26_nuplan_unavailable_signal_authority(
+            source_identity=source_identity,
+            route_lanes=route_lanes,
+            decision_timestamp_us=decision_timestamp_us,
+            traffic_light_state_available=same_tick_phase_available,
+        )
+        return {
+            **authority,
+            "signal_presence": "present",
+            "same_tick_phase_availability": (
+                "available" if same_tick_phase_available else "unavailable"
+            ),
+        }
+
+    route, route_geometry_sha256, decision_time_s = _validate_signal_arguments(
+        source_identity=source_identity,
+        route_lanes=route_lanes,
+        decision_timestamp_us=decision_timestamp_us,
+    )
+    del route  # The digest above is the only geometry value carried into this receipt.
+    source_binding = {
+        "adapter_id": NUPLAN_V26_SIGNAL_APPLICABILITY_ADAPTER_ID,
+        "source_identity_sha256": str(source_identity["source_identity_sha256"]),
+        "source_db_sha256": str(source_identity["source_db_sha256"]),
+        "map_sha256": str(source_identity["map_sha256"]),
+        "route_identity_sha256": str(
+            source_identity["mission_route_roadblock_chain_sha256"]
+        ),
+        "route_geometry_sha256": route_geometry_sha256,
+        "signal_presence": "absent",
+        "same_tick_phase_availability": "not_applicable",
+        "reason": "official_route_has_no_authoritative_traffic_signal",
+    }
+    source_chain_sha256 = canonical_json_sha256(source_binding)
+    runtime_receipt = {
+        "schema_version": "camp_dp_v26_nuplan_signal_applicability_runtime_v1",
+        "source_mode": "same_tick_no_signal_rule_no_v2i",
+        "source_state": "not_applicable",
+        "current_phase": "none",
+        "decision_time_s": decision_time_s,
+        "route_geometry_sha256": route_geometry_sha256,
+        "source_chain_sha256": source_chain_sha256,
+        "source_valid": True,
+        "applicable": False,
+    }
+    causal_input = {
+        "schema_version": CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
+        "source_state": "not_applicable",
+        "source_valid": True,
+        "applicable": False,
+        "current_phase": "none",
+        "decision_time_s": decision_time_s,
+        "ego_position_world_m": None,
+        "ego_heading_rad": None,
+        "regulatory_element_id": None,
+        "stop_line_id": None,
+        "stop_line_geometry_world_m": None,
+        "stop_line_geometry_ego_m": None,
+        "stop_line_geometry_sha256": None,
+        "route_tangent_world": None,
+        "route_tangent_ego": None,
+        "route_geometry_sha256": route_geometry_sha256,
+        "route_arc_m": None,
+        "source_chain_sha256": source_chain_sha256,
+        "runtime_receipt": runtime_receipt,
+        "runtime_receipt_sha256": canonical_json_sha256(runtime_receipt),
+    }
+    return {
+        **source_binding,
+        "source_state": "not_applicable",
+        "typed_missing_atoms": [
+            "planned_red_light_cost",
+            "red_stopping_margin_cost",
+        ],
+        "red_light_endpoint_status": "not_applicable_no_authoritative_signal",
+        "causal_signal_atom_input": validate_causal_signal_atom_input(
+            causal_input,
+            permitted_source_states=("not_applicable",),
+        ),
+    }
+
+
+def build_v26_nuplan_unavailable_signal_authority(
+    *,
+    source_identity: Mapping[str, Any],
+    route_lanes: np.ndarray,
+    decision_timestamp_us: int,
+    traffic_light_state_available: bool,
+) -> dict[str, Any]:
+    if not isinstance(traffic_light_state_available, bool):
+        raise ValueError("official signal availability must be bool")
+    _, route_geometry_sha256, decision_time_s = _validate_signal_arguments(
+        source_identity=source_identity,
+        route_lanes=route_lanes,
+        decision_timestamp_us=decision_timestamp_us,
+    )
     source_binding = {
         "adapter_id": NUPLAN_V26_SIGNAL_APPLICABILITY_ADAPTER_ID,
         "source_identity_sha256": str(source_identity["source_identity_sha256"]),

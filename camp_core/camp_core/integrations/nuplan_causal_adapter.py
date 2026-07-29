@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import math
 from pathlib import Path
 import sqlite3
@@ -46,9 +46,12 @@ class NuPlanRouteSnapshot:
     route_has_speed_limit: np.ndarray
     route_speed_limit: np.ndarray
     traffic_light_state_available: bool
+    traffic_signal_present: bool = False
+    same_tick_traffic_light_phase_available: bool = False
     raw_route_roadblock_ids: tuple[str, ...] = ()
     collapsed_consecutive_roadblock_ids: tuple[str, ...] = ()
     route_lane_mapping: tuple[Mapping[str, object], ...] = ()
+    legacy_constraint_diagnostics: Mapping[str, object] = field(default_factory=dict)
 
 
 def decode_projected_gpkg_geometry(blob: bytes, projected_crs: str):
@@ -143,7 +146,7 @@ def load_nuplan_route_snapshot(
         if projected_crs_row is None or not projected_crs_row[0]:
             raise NuPlanCausalSourceError("map projectedCoordSystem is missing")
         projected_crs = str(projected_crs_row[0])
-        current_roadblock = _current_route_roadblock(
+        current_roadblock, current_roadblock_distance_m = _current_route_roadblock(
             map_db,
             route,
             float(ego_x),
@@ -176,12 +179,15 @@ def load_nuplan_route_snapshot(
         route_lanes = np.zeros((25, 20, 33), dtype=np.float64)
         route_has_speed = np.zeros((25, 1), dtype=bool)
         route_speed = np.zeros((25, 1), dtype=np.float32)
+        traffic_signal_present = any(bool(candidate["controlled"]) for candidate in selected)
+        same_tick_phase_available = any(
+            bool(candidate["controlled"]) and int(candidate["fid"]) in traffic
+            for candidate in selected
+        )
         for index, candidate in enumerate(selected):
             status = None
             if candidate["kind"] == "connector":
                 status = traffic.get(int(candidate["fid"]))
-                if candidate["controlled"] and status is None:
-                    status = "unknown"
             encoded = encode_route_lane(
                 centerline=np.asarray(candidate["center"].coords),
                 left_boundary=np.asarray(candidate["left"].coords),
@@ -201,10 +207,7 @@ def load_nuplan_route_snapshot(
             - route_lanes[1 : len(selected), 0, :2],
             axis=1,
         )
-        if gaps.size and np.max(gaps) > 8.0:
-            raise NuPlanCausalSourceError(
-                f"selected mission route is disconnected: max gap={np.max(gaps):.3f}m"
-            )
+        max_route_gap_m = float(np.max(gaps)) if gaps.size else 0.0
         return NuPlanRouteSnapshot(
             decision_id=f"{bytes(scene_token).hex()}:{token.hex()}",
             decision_timestamp_us=int(decision_timestamp),
@@ -215,12 +218,24 @@ def load_nuplan_route_snapshot(
             route_lanes=route_lanes,
             route_has_speed_limit=route_has_speed,
             route_speed_limit=route_speed,
-            traffic_light_state_available=bool(traffic),
+            traffic_light_state_available=same_tick_phase_available,
+            traffic_signal_present=traffic_signal_present,
+            same_tick_traffic_light_phase_available=same_tick_phase_available,
             raw_route_roadblock_ids=raw_route,
             collapsed_consecutive_roadblock_ids=collapsed_roadblocks,
             route_lane_mapping=tuple(
                 dict(candidate["source_mapping"]) for candidate in selected
             ),
+            legacy_constraint_diagnostics={
+                "legacy_current_roadblock_distance_threshold_m": 8.0,
+                "legacy_current_roadblock_distance_m": current_roadblock_distance_m,
+                "legacy_current_roadblock_distance_triggered": (
+                    current_roadblock_distance_m > 8.0
+                ),
+                "legacy_route_gap_threshold_m": 8.0,
+                "legacy_max_route_gap_m": max_route_gap_m,
+                "legacy_route_gap_triggered": max_route_gap_m > 8.0,
+            },
         )
     finally:
         db.close()
@@ -278,12 +293,19 @@ def materialize_nuplan_decision(
             "source": "official_nuplan_saved_state_input",
             "decision_timestamp_us": snapshot.decision_timestamp_us,
             "traffic_light_state_available": snapshot.traffic_light_state_available,
+            "traffic_signal_present": snapshot.traffic_signal_present,
+            "same_tick_traffic_light_phase_available": (
+                snapshot.same_tick_traffic_light_phase_available
+            ),
             "route_roadblock_ids": list(snapshot.route_roadblock_ids),
             "raw_route_roadblock_ids": list(snapshot.raw_route_roadblock_ids),
             "collapsed_consecutive_roadblock_ids": list(
                 snapshot.collapsed_consecutive_roadblock_ids
             ),
             "route_lane_mapping": [dict(item) for item in snapshot.route_lane_mapping],
+            "legacy_constraint_diagnostics": dict(
+                snapshot.legacy_constraint_diagnostics
+            ),
         },
     )
 
@@ -1016,7 +1038,7 @@ def _current_route_roadblock(
     ego_x: float,
     ego_y: float,
     projected_crs: str,
-) -> str:
+) -> tuple[str, float]:
     from shapely import Point
 
     ego = Point(ego_x, ego_y)
@@ -1038,11 +1060,10 @@ def _current_route_roadblock(
         geometry = decode_projected_gpkg_geometry(row[0], projected_crs)
         distances.append((float(geometry.distance(ego)), index, roadblock_id))
     distance, _, roadblock_id = min(distances)
-    if distance > 8.0:
-        raise NuPlanCausalSourceError(
-            f"ego is {distance:.3f}m from the closest mission roadblock"
-        )
-    return roadblock_id
+    # The historical 8 m distance threshold is retained as a V17 diagnostic,
+    # not a raw nuPlan eligibility gate.  V26 separately qualifies the
+    # authoritative mission-roadblock chain and lane geometry.
+    return str(roadblock_id), float(distance)
 
 
 def _validated_route_successors(
@@ -1171,7 +1192,7 @@ def _roadblock_lane_candidates(
                 "speed_limit_mps": (float(speed) if has_speed_limit else None),
                 "exit_lane_fid": (None if exit_fid is None else int(exit_fid)),
                 "entry_lane_fid": (None if entry_fid is None else int(entry_fid)),
-                "controlled": bool(lights),
+                "controlled": _has_authoritative_signal_stop_line_reference(lights),
                 "source_mapping": {
                     "roadblock_id": str(roadblock_id),
                     "lane_fid": int(fid),
@@ -1183,6 +1204,10 @@ def _roadblock_lane_candidates(
                     ),
                     "speed_limit_available": has_speed_limit,
                     "boundary_source": "official_boundaries_table",
+                    "boundary_roles": {
+                        "left": int(left_fid),
+                        "right": int(right_fid),
+                    },
                 },
             }
         )
@@ -1191,6 +1216,25 @@ def _roadblock_lane_candidates(
             f"roadblock {roadblock_id} has no source-complete lanes; rejected={rejected}"
         )
     return candidates
+
+
+def _has_authoritative_signal_stop_line_reference(value: object) -> bool:
+    """Interpret the official connector field without turning ``[]`` into a signal.
+
+    SQLite exports of the nuPlan stop-line list are commonly textual.  Its
+    explicit empty encoding is an authoritative no-signal fact; a non-empty
+    reference is only signal *presence*, not proof of a same-tick phase.
+    """
+
+    if value is None:
+        return False
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="strict")
+    if isinstance(value, str):
+        return value.strip().lower() not in {"", "[]", "null", "none"}
+    if isinstance(value, (tuple, list, set, frozenset)):
+        return bool(value)
+    return bool(value)
 
 
 def _connected_lane_path(
