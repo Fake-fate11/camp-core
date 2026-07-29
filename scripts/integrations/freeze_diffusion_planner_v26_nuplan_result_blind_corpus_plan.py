@@ -4,9 +4,11 @@
 The input is the full-population V26 sampling manifest.  Its selected-anchor
 array can be several gigabytes, so this entrypoint streams it rather than
 loading it into memory.  It never reads a nuPlan DB, candidate, trajectory,
-label, endpoint value, selector score, or outcome.  The output freezes a
-city-balanced 50k training population, a 5k IID validation population, and a
-5k Singapore city-held-out identity population before any values are exposed.
+label, endpoint value, selector score, or outcome.  It first projects the
+mandatory identity-only rare-event and stratum-coverage set for every
+partition, then uses ``max(target, mandatory_lower_bound)`` for each effective
+quota.  This preserves rare anchors rather than silently dropping them when a
+target is too small.
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ from camp_core.integrations.diffusion_planner_v26_nuplan import (  # noqa: E402
 )
 
 
-SCHEMA_VERSION = "camp_dp_v26_nuplan_result_blind_corpus_plan_v1"
+SCHEMA_VERSION = "camp_dp_v26_nuplan_result_blind_corpus_plan_v2"
 EVIDENCE_ROLE = "development_nonholdout_nuplan_result_blind_corpus_plan"
 INPUT_SCHEMA_VERSION = "camp_dp_v26_nuplan_full_population_sampling_manifest_v1"
 INPUT_EVIDENCE_ROLE = "development_nonholdout_nuplan_full_population_sampling"
@@ -181,6 +183,30 @@ def _quota_key(city: str, partition: str) -> tuple[str, str]:
     return (city, partition)
 
 
+def _target_quotas(args: argparse.Namespace) -> dict[tuple[str, str], int]:
+    return {
+        ("boston", "train_iid"): int(args.train_per_city),
+        ("pittsburgh", "train_iid"): int(args.train_per_city),
+        ("boston", "val_iid"): int(args.validation_per_city),
+        ("pittsburgh", "val_iid"): int(args.validation_per_city),
+        ("singapore", "test_ood"): int(args.ood_test_count),
+    }
+
+
+def _quota_nested(quotas: Mapping[tuple[str, str], int]) -> dict[str, dict[str, int]]:
+    return {
+        "train_iid": {
+            "boston": quotas[("boston", "train_iid")],
+            "pittsburgh": quotas[("pittsburgh", "train_iid")],
+        },
+        "val_iid": {
+            "boston": quotas[("boston", "val_iid")],
+            "pittsburgh": quotas[("pittsburgh", "val_iid")],
+        },
+        "test_ood": {"singapore": quotas[("singapore", "test_ood")]},
+    }
+
+
 def _load_groups(path: Path) -> dict[str, dict[str, str]]:
     groups: dict[str, dict[str, str]] = {}
     required = (
@@ -290,6 +316,7 @@ def _selected_anchor_pass(
     seed: int,
     rare_keys: set[tuple[str, str, str, str]],
     coverage_keys: set[tuple[str, str, str, str]],
+    enforce_quota: bool = True,
 ) -> tuple[
     dict[tuple[str, str], dict[str, dict[str, Any]]],
     dict[tuple[tuple[str, str], str], set[str]],
@@ -329,13 +356,47 @@ def _selected_anchor_pass(
         reasons[(quota_key, anchor_id)].add(
             f"retain_stratum_phase_coverage:{key[2]}:{key[3]}"
         )
-    for quota_key, anchors in retained.items():
-        if len(anchors) > quotas[quota_key]:
-            raise ValueError(
-                "predeclared rare-event and coverage retention exceeds the city quota: "
-                f"{quota_key} retained={len(anchors)} quota={quotas[quota_key]}"
-            )
+    if enforce_quota:
+        for quota_key, anchors in retained.items():
+            if len(anchors) > quotas[quota_key]:
+                raise ValueError(
+                    "predeclared rare-event and coverage retention exceeds the city quota: "
+                    f"{quota_key} retained={len(anchors)} quota={quotas[quota_key]}"
+                )
     return retained, reasons, coverage_best
+
+
+def _resolve_effective_quotas(
+    path: Path,
+    *,
+    groups: Mapping[str, Mapping[str, str]],
+    target_quotas: Mapping[tuple[str, str], int],
+    seed: int,
+    rare_keys: set[tuple[str, str, str, str]],
+    coverage_keys: set[tuple[str, str, str, str]],
+) -> tuple[
+    dict[tuple[str, str], int],
+    dict[tuple[str, str], int],
+    dict[tuple[str, str], dict[str, dict[str, Any]]],
+    dict[tuple[tuple[str, str], str], set[str]],
+]:
+    """Project mandatory identity-only anchors before resolving any quota."""
+
+    projection_quotas = {key: sys.maxsize for key in target_quotas}
+    retained, reasons, _coverage_best = _selected_anchor_pass(
+        path,
+        groups=groups,
+        quotas=projection_quotas,
+        seed=seed,
+        rare_keys=rare_keys,
+        coverage_keys=coverage_keys,
+        enforce_quota=False,
+    )
+    lower_bounds = {key: len(retained[key]) for key in target_quotas}
+    effective_quotas = {
+        key: max(target_quotas[key], lower_bounds[key]) for key in target_quotas
+    }
+    return lower_bounds, effective_quotas, retained, reasons
 
 
 def _fill_quotas(
@@ -500,14 +561,8 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
     manifest_path = args.sampling_manifest.resolve(strict=True)
     if int(args.plan_seed) != args.plan_seed:
         raise ValueError("plan seed must be an integer")
-    quotas = {
-        ("boston", "train_iid"): int(args.train_per_city),
-        ("pittsburgh", "train_iid"): int(args.train_per_city),
-        ("boston", "val_iid"): int(args.validation_per_city),
-        ("pittsburgh", "val_iid"): int(args.validation_per_city),
-        ("singapore", "test_ood"): int(args.ood_test_count),
-    }
-    if any(value <= 0 for value in quotas.values()):
+    target_quotas = _target_quotas(args)
+    if any(value <= 0 for value in target_quotas.values()):
         raise ValueError("all predeclared city quotas must be positive")
     if args.rare_stratum_max_unique_anchors <= 0:
         raise ValueError("rare stratum threshold must be positive")
@@ -533,19 +588,20 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
     coverage_keys = {
         (row["city"], row["partition"], row["tag"], row["phase"])
         for row in strata
-        if (row["city"], row["partition"]) in quotas and row["population_count"] > 0
+        if (row["city"], row["partition"]) in target_quotas
+        and row["population_count"] > 0
     }
     rare_keys = {
         (row["city"], row["partition"], row["tag"], row["phase"])
         for row in strata
-        if (row["city"], row["partition"]) in quotas
+        if (row["city"], row["partition"]) in target_quotas
         and _is_event_stratum(row["tag"])
         and 0 < row["population_count"] <= args.rare_stratum_max_unique_anchors
     }
-    retained, reasons, _coverage_best = _selected_anchor_pass(
+    mandatory_lower_bounds, quotas, retained, reasons = _resolve_effective_quotas(
         manifest_path,
         groups=groups,
-        quotas=quotas,
+        target_quotas=target_quotas,
         seed=args.plan_seed,
         rare_keys=rare_keys,
         coverage_keys=coverage_keys,
@@ -573,7 +629,11 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "city": key[0],
                 "partition": key[1],
+                "predeclared_target_quota": target_quotas[key],
+                "mandatory_coverage_lower_bound": mandatory_lower_bounds[key],
                 "quota": quotas[key],
+                "quota_expanded_for_mandatory_coverage": quotas[key]
+                > target_quotas[key],
                 **_group_summary(anchors),
             }
         )
@@ -639,11 +699,24 @@ def build_plan(args: argparse.Namespace) -> dict[str, Any]:
             "coverage_policy": "retain one deterministic identity-only anchor for every observed city/partition/tag/phase before common-anchor filling",
             "common_event_policy": "deterministic SHA256 identity rank after rare-event and coverage retention; no outcome, endpoint, candidate, trajectory, label, SafetyCost, or selector input",
         },
-        "quotas": {
-            "train_iid": {"boston": args.train_per_city, "pittsburgh": args.train_per_city},
-            "val_iid": {"boston": args.validation_per_city, "pittsburgh": args.validation_per_city},
-            "test_ood": {"singapore": args.ood_test_count},
+        "quota_resolution": {
+            "projected_before_effective_quota_resolution": True,
+            "rule": "effective_quota=max(predeclared_target_quota, mandatory_identity_only_coverage_lower_bound)",
+            "mandatory_set": "rare source-event anchors plus one deterministic anchor for every observed city/partition/tag/phase",
+            "partitions": [
+                {
+                    "city": key[0],
+                    "partition": key[1],
+                    "predeclared_target_quota": target_quotas[key],
+                    "mandatory_coverage_lower_bound": mandatory_lower_bounds[key],
+                    "effective_quota": quotas[key],
+                    "quota_expanded_for_mandatory_coverage": quotas[key]
+                    > target_quotas[key],
+                }
+                for key in sorted(quotas)
+            ],
         },
+        "quotas": _quota_nested(quotas),
         "analysis_freeze": {
             "validation_values_read": False,
             "singapore_ood_status": "identity_frozen_city_held_out_not_evaluated",

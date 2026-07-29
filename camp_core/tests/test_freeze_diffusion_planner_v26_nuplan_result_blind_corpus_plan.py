@@ -151,3 +151,91 @@ def test_result_blind_plan_freezes_balanced_quotas_weights_and_cluster_ci(tmp_pa
     assert "membership_requests" in plan["selection_contract"]["forbidden_denominators"]
     assert all("membership_requests" not in row for row in plan["planned_anchors"])
     assert plan["learning_curve"] == []
+
+
+def test_mandatory_identity_only_coverage_expands_a_too_small_city_quota(tmp_path: Path) -> None:
+    module = _module()
+    input_manifest = tmp_path / "sampling_manifest.json"
+    _write_manifest(input_manifest)
+    manifest = json.loads(input_manifest.read_text(encoding="utf-8"))
+    boston_val = next(
+        group
+        for group in manifest["population_groups"]
+        if group["population_id"] == "boston:population:2"
+    )
+    for anchor in manifest["selected_anchors"]:
+        if anchor["anchor_id"] == "boston:population:2:anchor:1":
+            anchor["event_memberships"].append(
+                {"stratum": "scenario_tag:rare", "phase": "core"}
+            )
+    manifest["selected_anchors"].extend(
+        [
+            _anchor(
+                boston_val,
+                "val_iid",
+                index,
+                [
+                    ("baseline:deterministic_time", "time_start"),
+                    ("scenario_tag:rare", "core"),
+                ],
+            )
+            for index in (2, 3)
+        ]
+    )
+    for row in manifest["city_partition_tag_phase"]:
+        if (row["city"], row["partition"], row["tag"], row["phase"]) == (
+            "boston",
+            "val_iid",
+            "baseline:deterministic_time",
+            "time_start",
+        ):
+            row["population_count"] = 3
+    manifest["city_partition_tag_phase"].append(
+        {
+            "city": "boston",
+            "partition": "val_iid",
+            "tag": "scenario_tag:rare",
+            "phase": "core",
+            "population_count": 3,
+        }
+    )
+    input_manifest.write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")), encoding="utf-8"
+    )
+
+    plan = module.build_plan(
+        module.parse_args(
+            [
+                "--sampling-manifest",
+                str(input_manifest),
+                "--output",
+                str(tmp_path / "plan.json"),
+                "--train-per-city",
+                "2",
+                "--validation-per-city",
+                "1",
+                "--ood-test-count",
+                "1",
+                "--rare-stratum-max-unique-anchors",
+                "3",
+            ]
+        )
+    )
+
+    boston_val_resolution = next(
+        row
+        for row in plan["quota_resolution"]["partitions"]
+        if (row["city"], row["partition"]) == ("boston", "val_iid")
+    )
+    assert boston_val_resolution == {
+        "city": "boston",
+        "partition": "val_iid",
+        "predeclared_target_quota": 1,
+        "mandatory_coverage_lower_bound": 3,
+        "effective_quota": 3,
+        "quota_expanded_for_mandatory_coverage": True,
+    }
+    assert plan["quotas"]["val_iid"]["boston"] == 3
+    assert plan["capacity_estimate"]["planned_unique_pool_count"] == 9
+    assert plan["payload_read"] is False
+    assert plan["outcome_fields_consumed"] == []
