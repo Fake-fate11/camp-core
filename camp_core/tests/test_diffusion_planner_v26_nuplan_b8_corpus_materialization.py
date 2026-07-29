@@ -16,6 +16,10 @@ from camp_core.integrations.diffusion_planner_causal_materializer import (
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     validate_causal_signal_atom_input,
 )
+from camp_core.integrations.diffusion_planner_v25_context import (
+    RAW_FEATURE_NAMES,
+    V25ContextRecord,
+)
 from camp_core.integrations.diffusion_planner_v26_nuplan import (
     build_v26_nuplan_unavailable_signal_authority,
 )
@@ -256,6 +260,19 @@ def test_route_lane_mapping_skips_incomplete_rows_without_defaulting(monkeypatch
     )
     assert normalized == ("42", "43", "44")
     assert collapsed == ("42", "43")
+
+
+def test_raw_context_receipt_serializes_positional_v25_context_by_frozen_names() -> None:
+    raw = V25ContextRecord(
+        raw=np.arange(len(RAW_FEATURE_NAMES), dtype=np.float64),
+        source_complete=tuple(index % 2 == 0 for index in range(len(RAW_FEATURE_NAMES))),
+        source_receipt={},
+    )
+    values, completeness = MODULE._raw_context_receipt(raw)
+    assert tuple(values) == RAW_FEATURE_NAMES
+    assert values[RAW_FEATURE_NAMES[3]] == 3.0
+    assert completeness[RAW_FEATURE_NAMES[0]] is True
+    assert completeness[RAW_FEATURE_NAMES[1]] is False
 
 
 def test_reporting_contract_freezes_coverage_balanced_log_cluster_rule() -> None:

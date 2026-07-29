@@ -648,6 +648,16 @@ def _typed_failure_unit(
     }
 
 
+def _raw_context_receipt(raw_context: Any) -> tuple[dict[str, float], dict[str, bool]]:
+    raw_values = raw_context.as_dict()
+    if tuple(raw_values) != RAW_FEATURE_NAMES:
+        raise ValueError("raw-context feature order drifted")
+    source_complete = tuple(bool(value) for value in raw_context.source_complete)
+    if len(source_complete) != len(RAW_FEATURE_NAMES):
+        raise ValueError("raw-context completeness dimension drifted")
+    return raw_values, dict(zip(RAW_FEATURE_NAMES, source_complete))
+
+
 def _complete_unit(
     *,
     index: int,
@@ -661,6 +671,7 @@ def _complete_unit(
     seed: int,
 ) -> dict[str, Any]:
     atom_matrix = np.asarray(atoms["atom_matrix"], dtype=np.float64)
+    raw_values, source_complete = _raw_context_receipt(raw_context)
     return {
         "schema_version": UNIT_SCHEMA_VERSION,
         "unit_index": index,
@@ -718,10 +729,8 @@ def _complete_unit(
             "atom_applicable_mask": np.asarray(atoms["atom_applicable_mask"], dtype=bool).tolist(),
             "source_valid_mask": np.asarray(atoms["source_valid_mask"], dtype=bool).tolist(),
             "physical_feasible_mask": np.asarray(atoms["physical_feasible_mask"], dtype=bool).tolist(),
-            "raw_context": {name: float(raw_context.raw[name]) for name in RAW_FEATURE_NAMES},
-            "context_source_complete": {
-                name: bool(raw_context.source_complete[name]) for name in RAW_FEATURE_NAMES
-            },
+            "raw_context": raw_values,
+            "context_source_complete": source_complete,
             "event_manifest_sha256": canonical_json_sha256(
                 {"event_memberships": anchor["event_memberships"]}
             ),
