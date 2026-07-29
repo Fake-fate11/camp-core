@@ -15,6 +15,10 @@ for path in (ROOT, ROOT / "camp_core"):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
+from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    build_v25_atom_source_masks,
+)
+
 
 def _module():
     path = ROOT / "scripts/integrations/run_diffusion_planner_v26_nuplan_mini_b8_smoke.py"
@@ -219,6 +223,44 @@ def test_inapplicable_atom_mask_excludes_only_legal_zero_values_without_weight_c
     bad[:, 10] = 1.0
     with pytest.raises(ValueError, match="exact legal zero"):
         module._score_applicable_atoms(bad, np.ones(14), weights, applicable)
+
+
+def test_missing_speed_source_is_masked_without_defaulting_or_scene_drop() -> None:
+    module = _module()
+    source, applicable = build_v25_atom_source_masks(
+        route_speed_source_valid=np.zeros(8, dtype=bool),
+        signal_source_state="not_applicable",
+        current_phase="none",
+        allow_inapplicable_speed_atoms=True,
+    )
+    assert not source[:, 4:7].any()
+    assert not applicable[:, 4:7].any()
+    assert not applicable[:, [10, 12]].any()
+
+    atoms = {
+        "atom_source_valid_mask": source,
+        "atom_applicable_mask": applicable,
+        "route_speed_source_eligible_mask": np.zeros(8, dtype=bool),
+        "availability": {name: True for name in module.DP_CAMP_ATOM_NAMES_V10},
+    }
+    receipt = module._atom_applicability_receipt(
+        atoms,
+        {
+            "typed_missing_atoms": [
+                "planned_red_light_cost",
+                "red_stopping_margin_cost",
+            ],
+            "red_light_endpoint_status": "missing_or_inapplicable",
+        },
+    )
+    assert receipt["typed_missing_atoms"] == [
+        "speed_limit_margin_0_0",
+        "speed_limit_margin_0_5",
+        "speed_limit_margin_1_0",
+        "planned_red_light_cost",
+        "red_stopping_margin_cost",
+    ]
+    assert receipt["speed_limit_endpoint_status"] == "missing_or_inapplicable"
 
 
 def test_v26_mini_smoke_does_not_reference_legacy_high_level_runner_or_no_signal_builder() -> None:

@@ -751,11 +751,14 @@ def build_v25_atom_source_masks(
     route_speed_source_valid: np.ndarray,
     signal_source_state: str,
     current_phase: str,
+    allow_inapplicable_speed_atoms: bool = False,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Return strict [K=8,14] source-valid and applicability masks."""
     raw_speed = np.asarray(route_speed_source_valid)
     if raw_speed.dtype != np.bool_ or raw_speed.shape != (8,):
         raise ValueError("route speed source mask must be strict bool [8]")
+    if not isinstance(allow_inapplicable_speed_atoms, bool):
+        raise ValueError("allow_inapplicable_speed_atoms must be bool")
     if signal_source_state not in {"available", "not_applicable", "unavailable"}:
         raise ValueError("unknown signal source state")
     if current_phase not in {"none", "green", "yellow", "red"}:
@@ -769,6 +772,8 @@ def build_v25_atom_source_masks(
     source = np.ones((8, 14), dtype=bool)
     applicable = np.ones((8, 14), dtype=bool)
     source[:, 4:7] = raw_speed[:, None]
+    if allow_inapplicable_speed_atoms:
+        applicable[:, 4:7] = raw_speed[:, None]
     signal_applicable = signal_source_state == "available" and current_phase == "red"
     applicable[:, 10] = signal_applicable
     applicable[:, 12] = signal_applicable
@@ -1100,12 +1105,19 @@ def materialize_canonical_14d(
     dt: float,
     speed_source_policy: str = FULL_WINDOW_EXACT_SPEED,
     eligibility_policy: str = V21_PHYSICAL_ELIGIBILITY,
+    allow_inapplicable_speed_atoms: bool = False,
     phase_receipt: MutableMapping[str, object] | None = None,
 ) -> dict[str, object]:
     _initialize_materialization_phase_receipt(phase_receipt)
     if eligibility_policy not in _ELIGIBILITY_POLICIES:
         raise ValueError(
             f"eligibility_policy must be one of {sorted(_ELIGIBILITY_POLICIES)}"
+        )
+    if not isinstance(allow_inapplicable_speed_atoms, bool):
+        raise ValueError("allow_inapplicable_speed_atoms must be bool")
+    if allow_inapplicable_speed_atoms and speed_source_policy != CANDIDATE_LOCAL_EXACT_SPEED:
+        raise ValueError(
+            "inapplicable speed atoms require candidate-local exact-speed policy"
         )
     errors = validate_causal_dp_input(causal_input)
     if errors:
@@ -1180,8 +1192,13 @@ def materialize_canonical_14d(
             route_speed_source_valid=source_complete,
             signal_source_state=str(signal_input["source_state"]),
             current_phase=str(signal_input["current_phase"]),
+            allow_inapplicable_speed_atoms=allow_inapplicable_speed_atoms,
         )
-        source_valid = atom_source_valid_mask.all(axis=1)
+        source_valid = (
+            np.logical_or(atom_source_valid_mask, ~atom_applicable_mask).all(axis=1)
+            if allow_inapplicable_speed_atoms
+            else atom_source_valid_mask.all(axis=1)
+        )
     else:
         source_valid = signal & source_complete
         atom_source_valid_mask = np.broadcast_to(
@@ -1218,6 +1235,8 @@ def materialize_canonical_14d(
         "progress_reference": None,
         "all_k_high_risk": bool(source_valid.all() and not physical.any()),
         "eligibility_policy": eligibility_policy,
+        "speed_source_policy": speed_source_policy,
+        "allow_inapplicable_speed_atoms": allow_inapplicable_speed_atoms,
     }
     if eligibility_policy == V21_PHYSICAL_ELIGIBILITY:
         if not signal.all():

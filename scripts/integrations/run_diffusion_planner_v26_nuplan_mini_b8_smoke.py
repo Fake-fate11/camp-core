@@ -28,6 +28,7 @@ for path in (ROOT, ROOT / "camp_core"):
         sys.path.insert(0, str(path))
 
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
+    CANDIDATE_LOCAL_EXACT_SPEED,
     DP_CAMP_ATOM_NAMES_V10,
     V22_SOURCE_VALID_ELIGIBILITY,
     canonical_score_atoms,
@@ -731,8 +732,17 @@ def _atom_applicability_receipt(
     typed_missing = [
         name for index, name in enumerate(DP_CAMP_ATOM_NAMES_V10) if not active[index]
     ]
-    if typed_missing != list(signal_authority["typed_missing_atoms"]):
-        raise ValueError("V26 signal authority and atom applicability disagree")
+    route_speed_source = np.asarray(atoms["route_speed_source_eligible_mask"])
+    if route_speed_source.dtype != np.bool_ or route_speed_source.shape != (8,):
+        raise ValueError("V26 route-speed source mask drifted")
+    speed_missing = (
+        []
+        if route_speed_source.all()
+        else list(DP_CAMP_ATOM_NAMES_V10[4:7])
+    )
+    expected_missing = speed_missing + list(signal_authority["typed_missing_atoms"])
+    if typed_missing != expected_missing:
+        raise ValueError("V26 source applicability and typed-missing atoms disagree")
     return {
         "atom_names": list(DP_CAMP_ATOM_NAMES_V10),
         "availability": dict(atoms["availability"]),
@@ -740,6 +750,9 @@ def _atom_applicability_receipt(
         "atom_applicable_mask": applicable.tolist(),
         "scoring_active_atom_indices": np.flatnonzero(active).astype(int).tolist(),
         "typed_missing_atoms": typed_missing,
+        "speed_limit_endpoint_status": (
+            "available" if not speed_missing else "missing_or_inapplicable"
+        ),
         "red_light_endpoint_status": signal_authority["red_light_endpoint_status"],
     }
 
@@ -846,7 +859,9 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             planned_red_light_cost=planned_red_light_cost,
             causal_signal_atom_input=causal_signal_atom_input,
             dt=0.1,
+            speed_source_policy=CANDIDATE_LOCAL_EXACT_SPEED,
             eligibility_policy=V22_SOURCE_VALID_ELIGIBILITY,
+            allow_inapplicable_speed_atoms=True,
             phase_receipt=phase_receipt,
         )
         if atoms.get("atom_matrix") is None:
