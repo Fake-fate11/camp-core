@@ -160,3 +160,42 @@ def test_inventory_reads_only_three_city_identity_metadata_and_selects_no_signal
     assert inventory["representative_smoke_selection"]["status"] == "selected"
     assert inventory["representative_smoke_selection"]["record_id"].startswith("boston:")
     assert all(record["official_split"] == "train" for record in inventory["records"])
+
+
+def test_inventory_stratified_selection_merges_multiple_tags_for_one_lidar_state() -> None:
+    module = _module()
+    selected = module._deterministic_stratified_states(
+        [
+            {
+                "state_token": "state-1",
+                "scenario_token": "tag-b",
+                "scenario_type": "stationary",
+                "traffic_light_status_count": 0,
+            },
+            {
+                "state_token": "state-1",
+                "scenario_token": "tag-a",
+                "scenario_type": "on_intersection",
+                "traffic_light_status_count": 0,
+            },
+            {
+                "state_token": "state-2",
+                "scenario_token": "tag-c",
+                "scenario_type": "accelerating",
+                "traffic_light_status_count": 1,
+            },
+            {
+                "state_token": "state-3",
+                "scenario_token": "tag-d",
+                "scenario_type": "stationary",
+                "traffic_light_status_count": 0,
+            },
+        ],
+        max_states=2,
+    )
+
+    assert len(selected) == 2
+    assert len({state["state_token"] for state in selected}) == 2
+    first = next(state for state in selected if state["state_token"] == "state-1")
+    assert first["scenario_types"] == ["on_intersection", "stationary"]
+    assert first["scenario_token"] == "tag-a"

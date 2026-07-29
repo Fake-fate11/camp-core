@@ -246,10 +246,45 @@ def _db_scene_rows(db_path: Path) -> tuple[dict[str, Any], list[dict[str, Any]],
 def _deterministic_stratified_states(
     tagged_states: Sequence[Mapping[str, Any]], max_states: int
 ) -> list[dict[str, Any]]:
-    """Take a bounded, source-label-stratified state sample without outcomes."""
+    """Take a bounded, source-label-stratified *unique-state* sample.
+
+    nuPlan may attach more than one source scenario tag to the same lidar_pc.
+    Tags are source metadata rather than independent planning states, so merge
+    them before applying the per-scene bound.  This keeps record identity tied
+    to one physical anchor while retaining every source stratum on that anchor.
+    """
+
+    unique_by_state: dict[str, dict[str, Any]] = {}
+    for raw_state in tagged_states:
+        state = dict(raw_state)
+        state_token = str(state["state_token"])
+        scenario_type = str(state["scenario_type"])
+        scenario_token = str(state["scenario_token"])
+        existing = unique_by_state.get(state_token)
+        if existing is None:
+            state["scenario_types"] = {scenario_type}
+            state["scenario_tokens"] = {scenario_token}
+            unique_by_state[state_token] = state
+            continue
+        if int(existing["traffic_light_status_count"]) != int(
+            state["traffic_light_status_count"]
+        ):
+            raise ValueError("one lidar_pc has inconsistent traffic-light metadata")
+        existing["scenario_types"].add(scenario_type)
+        existing["scenario_tokens"].add(scenario_token)
+
+    unique_states: list[dict[str, Any]] = []
+    for state_token in sorted(unique_by_state):
+        state = unique_by_state[state_token]
+        scenario_types = sorted(str(value) for value in state.pop("scenario_types"))
+        scenario_tokens = sorted(str(value) for value in state.pop("scenario_tokens"))
+        state["scenario_type"] = scenario_types[0]
+        state["scenario_token"] = scenario_tokens[0]
+        state["scenario_types"] = scenario_types
+        unique_states.append(state)
 
     by_type: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for state in tagged_states:
+    for state in unique_states:
         by_type[str(state["scenario_type"])].append(dict(state))
     for rows in by_type.values():
         rows.sort(key=lambda row: (str(row["state_token"]), str(row["scenario_token"])))
@@ -345,7 +380,10 @@ def _records_for_scene(
             "map_family": city_config["map_family"],
             "source_db_sha256": source_db_sha,
             "map_sha256": map_sha,
-            "event_strata": [f"scenario_type:{state['scenario_type']}"],
+            "event_strata": [
+                f"scenario_type:{scenario_type}"
+                for scenario_type in state["scenario_types"]
+            ],
         }
         validated = validate_v26_nuplan_source_record(record)
         records.append(validated)
