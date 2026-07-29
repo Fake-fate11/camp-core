@@ -46,6 +46,9 @@ class NuPlanRouteSnapshot:
     route_has_speed_limit: np.ndarray
     route_speed_limit: np.ndarray
     traffic_light_state_available: bool
+    raw_route_roadblock_ids: tuple[str, ...] = ()
+    collapsed_consecutive_roadblock_ids: tuple[str, ...] = ()
+    route_lane_mapping: tuple[Mapping[str, object], ...] = ()
 
 
 def decode_projected_gpkg_geometry(blob: bytes, projected_crs: str):
@@ -104,7 +107,8 @@ def load_nuplan_route_snapshot(
         ).fetchone()
         if scene is None or scene[0] is None or not scene[1]:
             raise NuPlanCausalSourceError("scene requires a mission goal and route")
-        route = tuple(str(value) for value in str(scene[1]).split())
+        raw_route = tuple(str(value) for value in str(scene[1]).split())
+        route, collapsed_roadblocks = _collapse_consecutive_route_roadblocks(raw_route)
         goal = db.execute(
             """
             SELECT x, y, qw, qx, qy, qz
@@ -210,6 +214,11 @@ def load_nuplan_route_snapshot(
             route_has_speed_limit=route_has_speed,
             route_speed_limit=route_speed,
             traffic_light_state_available=bool(traffic),
+            raw_route_roadblock_ids=raw_route,
+            collapsed_consecutive_roadblock_ids=collapsed_roadblocks,
+            route_lane_mapping=tuple(
+                dict(candidate["source_mapping"]) for candidate in selected
+            ),
         )
     finally:
         db.close()
@@ -268,6 +277,11 @@ def materialize_nuplan_decision(
             "decision_timestamp_us": snapshot.decision_timestamp_us,
             "traffic_light_state_available": snapshot.traffic_light_state_available,
             "route_roadblock_ids": list(snapshot.route_roadblock_ids),
+            "raw_route_roadblock_ids": list(snapshot.raw_route_roadblock_ids),
+            "collapsed_consecutive_roadblock_ids": list(
+                snapshot.collapsed_consecutive_roadblock_ids
+            ),
+            "route_lane_mapping": [dict(item) for item in snapshot.route_lane_mapping],
         },
     )
 
@@ -1067,6 +1081,23 @@ def _validated_route_successors(
     return successors
 
 
+def _collapse_consecutive_route_roadblocks(
+    route: tuple[str, ...],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Normalize only duplicate adjacent source IDs before map-edge lookup."""
+
+    if not route:
+        raise NuPlanCausalSourceError("mission route is empty")
+    normalized: list[str] = []
+    collapsed: list[str] = []
+    for roadblock_id in route:
+        if normalized and roadblock_id == normalized[-1]:
+            collapsed.append(roadblock_id)
+            continue
+        normalized.append(roadblock_id)
+    return tuple(normalized), tuple(collapsed)
+
+
 def _roadblock_lane_candidates(
     map_db: sqlite3.Connection,
     roadblock_id: str,
@@ -1105,16 +1136,24 @@ def _roadblock_lane_candidates(
         ).fetchall()
         kind = "connector"
     candidates = []
+    rejected: list[tuple[int, tuple[str, ...]]] = []
     for fid, center, speed, left_fid, right_fid, exit_fid, entry_fid, lights in rows:
+        missing: list[str] = []
+        if speed is None:
+            missing.append("speed_limit_mps")
+        if left_fid is None or right_fid is None:
+            missing.append("boundary_fid")
+        if missing:
+            rejected.append((int(fid), tuple(missing)))
+            continue
         boundaries = map_db.execute(
             "SELECT fid, geom FROM boundaries WHERE fid IN (?, ?)",
             (left_fid, right_fid),
         ).fetchall()
         by_id = {row[0]: row[1] for row in boundaries}
-        if speed is None or left_fid not in by_id or right_fid not in by_id:
-            raise NuPlanCausalSourceError(
-                f"roadblock {roadblock_id} lane {fid} lacks speed or boundaries"
-            )
+        if left_fid not in by_id or right_fid not in by_id:
+            rejected.append((int(fid), ("boundary_geometry",)))
+            continue
         candidates.append(
             {
                 "kind": kind,
@@ -1130,10 +1169,19 @@ def _roadblock_lane_candidates(
                 "exit_lane_fid": (None if exit_fid is None else int(exit_fid)),
                 "entry_lane_fid": (None if entry_fid is None else int(entry_fid)),
                 "controlled": bool(lights),
+                "source_mapping": {
+                    "roadblock_id": str(roadblock_id),
+                    "lane_fid": int(fid),
+                    "kind": kind,
+                    "speed_limit_source": "official_lane_table",
+                    "boundary_source": "official_boundaries_table",
+                },
             }
         )
     if not candidates:
-        raise NuPlanCausalSourceError(f"roadblock {roadblock_id} has no lanes")
+        raise NuPlanCausalSourceError(
+            f"roadblock {roadblock_id} has no source-complete lanes; rejected={rejected}"
+        )
     return candidates
 
 

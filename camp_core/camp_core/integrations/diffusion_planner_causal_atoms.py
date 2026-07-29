@@ -1387,14 +1387,25 @@ def materialize_canonical_14d(
         # deterministic/MAP equivalence evidence.
         dp_top1_semantic_verified=True,
     )
+    allowed_unavailable_atoms = (
+        ("planned_red_light_cost", "red_stopping_margin_cost")
+        if signal_input is not None
+        and signal_input["source_state"] == "unavailable"
+        and allow_unavailable_signal_atoms
+        else ()
+    )
     result.update(
         {
             "atom_matrix": validate_canonical_atom_matrix(
-                "dp_camp_v10_14d", availability, matrix
+                "dp_camp_v10_14d",
+                availability,
+                matrix,
+                allowed_unavailable_atom_names=allowed_unavailable_atoms,
             ),
             "availability": availability,
             "canonical_eligible": True,
             "progress_reference": progress_reference,
+            "masked_unavailable_atom_names": allowed_unavailable_atoms,
         }
     )
     _record_materialization_phase(
@@ -1470,6 +1481,8 @@ def canonical_atom_availability(
 def require_canonical_schema(
     schema_version: str,
     availability: Mapping[str, bool],
+    *,
+    allowed_unavailable_atom_names: tuple[str, ...] = (),
 ) -> tuple[str, ...]:
     try:
         names = _SCHEMAS[schema_version]
@@ -1486,8 +1499,15 @@ def require_canonical_schema(
     invalid = [name for name, value in availability.items() if not isinstance(value, bool)]
     if invalid:
         raise ValueError(f"availability values must be bool: {sorted(invalid)}")
+    if len(set(allowed_unavailable_atom_names)) != len(allowed_unavailable_atom_names):
+        raise ValueError("allowed unavailable atom names must be unique")
+    unknown_allowed = set(allowed_unavailable_atom_names) - expected
+    if unknown_allowed:
+        raise ValueError(
+            f"allowed unavailable atom names are unknown: {sorted(unknown_allowed)}"
+        )
     unavailable = tuple(name for name in names if not availability[name])
-    if unavailable:
+    if unavailable and set(unavailable) != set(allowed_unavailable_atom_names):
         raise UnavailableAtomInputsError(
             f"{schema_version} has unavailable causal atoms: {', '.join(unavailable)}"
         )
@@ -1498,8 +1518,14 @@ def validate_canonical_atom_matrix(
     schema_version: str,
     availability: Mapping[str, bool],
     atom_matrix: np.ndarray,
+    *,
+    allowed_unavailable_atom_names: tuple[str, ...] = (),
 ) -> np.ndarray:
-    names = require_canonical_schema(schema_version, availability)
+    names = require_canonical_schema(
+        schema_version,
+        availability,
+        allowed_unavailable_atom_names=allowed_unavailable_atom_names,
+    )
     matrix = np.asarray(atom_matrix, dtype=np.float64)
     expected_shape = (8, len(names))
     if matrix.shape != expected_shape:
@@ -1510,4 +1536,10 @@ def validate_canonical_atom_matrix(
         raise ValueError("atom_matrix must contain only finite values")
     if np.any(matrix < 0.0):
         raise ValueError("atom_matrix must be nonnegative")
+    if allowed_unavailable_atom_names:
+        unavailable_indices = [
+            names.index(atom_name) for atom_name in allowed_unavailable_atom_names
+        ]
+        if np.any(matrix[:, unavailable_indices] != 0.0):
+            raise ValueError("unavailable atom matrix columns must be legal zero")
     return matrix

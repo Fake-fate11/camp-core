@@ -7,7 +7,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from camp_core.integrations import diffusion_planner_causal_atoms as causal_atoms
+from camp_core.integrations import nuplan_causal_adapter
 from camp_core.integrations.diffusion_planner_causal_atoms import build_v25_atom_source_masks
+from camp_core.integrations.diffusion_planner_causal_materializer import (
+    CAUSAL_DP_INPUT_SCHEMA,
+)
 from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
     validate_causal_signal_atom_input,
 )
@@ -62,6 +67,32 @@ def _reporting_plan() -> dict[str, object]:
     }
 
 
+def _unavailable_signal_materialization_fixture() -> tuple[
+    np.ndarray, dict[str, np.ndarray], np.ndarray, np.ndarray
+]:
+    causal_input = {
+        key: np.zeros(shape, dtype=dtype)
+        for key, (shape, dtype) in CAUSAL_DP_INPUT_SCHEMA.items()
+    }
+    candidates = np.zeros((8, 80, 4), dtype=np.float64)
+    candidates[:, :, 2] = 1.0
+    for index in range(8):
+        candidates[index, :, 0] = np.linspace(0.25, 35.0 + index * 0.1, 80)
+    route = np.zeros((25, 20, 33), dtype=np.float32)
+    route[0, :, 0] = np.linspace(0.0, 19.5, 20)
+    route[1, :, 0] = np.linspace(20.0, 39.5, 20)
+    route[:2, :, 2] = 1.0
+    route[:2, :, 5] = 2.0
+    route[:2, :, 7] = -2.0
+    causal_input["route_lanes"] = route
+    causal_input["route_lanes_speed_limit"][:2, 0] = 12.0
+    causal_input["route_lanes_has_speed_limit"][:2, 0] = True
+    causal_input["ego_shape"] = np.array([2.925, 4.5, 1.9], dtype=np.float32)
+    neighbors = np.zeros((8, 32, 80, 4), dtype=np.float64)
+    neighbor_valid = np.zeros(32, dtype=bool)
+    return candidates, causal_input, neighbors, neighbor_valid
+
+
 def test_unavailable_official_signal_is_opt_in_mask_not_false_no_signal() -> None:
     authority = build_v26_nuplan_unavailable_signal_authority(
         source_identity=_source(),
@@ -89,6 +120,142 @@ def test_unavailable_official_signal_is_opt_in_mask_not_false_no_signal() -> Non
     assert not source[:, [10, 12]].any()
     assert not applicable[:, [10, 12]].any()
     assert applicable[:, :10].all()
+
+
+def test_v26_unavailable_signal_materializes_with_exact_mask_and_no_pool_mutation() -> None:
+    candidates, causal_input, neighbors, neighbor_valid = _unavailable_signal_materialization_fixture()
+    authority = build_v26_nuplan_unavailable_signal_authority(
+        source_identity=_source(),
+        route_lanes=np.asarray(causal_input["route_lanes"], dtype=np.float64),
+        decision_timestamp_us=100_000,
+        traffic_light_state_available=False,
+    )
+    before = candidates.tobytes()
+    result = causal_atoms.materialize_canonical_14d(
+        candidates=candidates,
+        causal_input=causal_input,
+        neighbor_predictions=neighbors,
+        neighbor_valid_mask=neighbor_valid,
+        signal_mask=np.ones(8, dtype=bool),
+        planned_red_light_cost=np.zeros(8, dtype=np.float64),
+        causal_signal_atom_input=authority["causal_signal_atom_input"],
+        dt=0.1,
+        speed_source_policy=causal_atoms.CANDIDATE_LOCAL_EXACT_SPEED,
+        eligibility_policy=causal_atoms.V22_SOURCE_VALID_ELIGIBILITY,
+        allow_inapplicable_speed_atoms=True,
+        allow_unavailable_signal_atoms=True,
+    )
+    assert candidates.tobytes() == before
+    assert result["canonical_eligible"] is True
+    assert result["masked_unavailable_atom_names"] == (
+        "planned_red_light_cost",
+        "red_stopping_margin_cost",
+    )
+    assert not np.asarray(result["atom_source_valid_mask"])[:, [10, 12]].any()
+    assert not np.asarray(result["atom_applicable_mask"])[:, [10, 12]].any()
+    assert np.asarray(result["atom_matrix"]).shape == (8, 14)
+
+
+def test_unavailable_signal_columns_must_be_legal_zero() -> None:
+    availability = {name: True for name in causal_atoms.DP_CAMP_ATOM_NAMES_V10}
+    availability["planned_red_light_cost"] = False
+    availability["red_stopping_margin_cost"] = False
+    matrix = np.zeros((8, 14), dtype=np.float64)
+    matrix[:, 10] = 1.0
+    with pytest.raises(ValueError, match="unavailable atom matrix columns must be legal zero"):
+        causal_atoms.validate_canonical_atom_matrix(
+            "dp_camp_v10_14d",
+            availability,
+            matrix,
+            allowed_unavailable_atom_names=(
+                "planned_red_light_cost",
+                "red_stopping_margin_cost",
+            ),
+        )
+
+
+def test_signal_and_speed_mask_semantics_are_exact() -> None:
+    speeds = np.array([True] * 7 + [False], dtype=np.bool_)
+    mapped_source, mapped_applicable = build_v25_atom_source_masks(
+        route_speed_source_valid=speeds,
+        signal_source_state="available",
+        current_phase="red",
+        allow_inapplicable_speed_atoms=True,
+    )
+    no_signal_source, no_signal_applicable = build_v25_atom_source_masks(
+        route_speed_source_valid=speeds,
+        signal_source_state="not_applicable",
+        current_phase="none",
+        allow_inapplicable_speed_atoms=True,
+    )
+    unavailable_source, unavailable_applicable = build_v25_atom_source_masks(
+        route_speed_source_valid=speeds,
+        signal_source_state="unavailable",
+        current_phase="none",
+        allow_inapplicable_speed_atoms=True,
+        allow_unavailable_signal_atoms=True,
+    )
+    assert mapped_source[:, [10, 12]].all()
+    assert mapped_applicable[:, [10, 12]].all()
+    assert no_signal_source[:, [10, 12]].all()
+    assert not no_signal_applicable[:, [10, 12]].any()
+    assert not unavailable_source[:, [10, 12]].any()
+    assert not unavailable_applicable[:, [10, 12]].any()
+    assert not mapped_source[7, 4:7].any()
+    assert not mapped_applicable[7, 4:7].any()
+
+
+class _Rows:
+    def __init__(self, rows: list[tuple[object, ...]]) -> None:
+        self._rows = rows
+
+    def fetchone(self) -> tuple[object, ...] | None:
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self) -> list[tuple[object, ...]]:
+        return list(self._rows)
+
+
+class _RouteLaneMapDb:
+    def execute(self, query: str, params: tuple[object, ...] = ()) -> _Rows:
+        if "SELECT 1 FROM lane_groups_polygons" in query:
+            return _Rows([(1,)])
+        if "FROM lanes_polygons AS l" in query:
+            return _Rows(
+                [
+                    (11, b"center-missing-speed", None, 101, 102, None, None, None),
+                    (12, b"center-complete", 11.0, 201, 202, None, None, None),
+                ]
+            )
+        if "FROM boundaries" in query:
+            assert params == (201, 202)
+            return _Rows([(201, b"left"), (202, b"right")])
+        raise AssertionError(query)
+
+
+def test_route_lane_mapping_skips_incomplete_rows_without_defaulting(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        nuplan_causal_adapter,
+        "decode_projected_gpkg_geometry",
+        lambda blob, _: ("official", blob),
+    )
+    candidates = nuplan_causal_adapter._roadblock_lane_candidates(
+        _RouteLaneMapDb(), "42", "EPSG:26986"
+    )
+    assert [candidate["fid"] for candidate in candidates] == [12]
+    assert candidates[0]["speed_limit_mps"] == 11.0
+    assert candidates[0]["source_mapping"] == {
+        "roadblock_id": "42",
+        "lane_fid": 12,
+        "kind": "lane",
+        "speed_limit_source": "official_lane_table",
+        "boundary_source": "official_boundaries_table",
+    }
+    normalized, collapsed = nuplan_causal_adapter._collapse_consecutive_route_roadblocks(
+        ("42", "42", "43", "43", "44")
+    )
+    assert normalized == ("42", "43", "44")
+    assert collapsed == ("42", "43")
 
 
 def test_reporting_contract_freezes_coverage_balanced_log_cluster_rule() -> None:
