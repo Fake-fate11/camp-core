@@ -112,6 +112,7 @@ def build_v25_raw_context(
     causal_signal_atom_input: Mapping[str, Any] | None = None,
     v2i_signal_timing: Mapping[str, Any] | None = None,
     allow_missing_route_speed_limit_context: bool = False,
+    allow_unavailable_signal_context: bool = False,
 ) -> V25ContextRecord:
     """Build the frozen V25 context from current request/state and fixed K=8.
 
@@ -182,6 +183,7 @@ def build_v25_raw_context(
         route_rows,
         route_arc,
         causal_signal_atom_input=causal_signal_atom_input,
+        allow_unavailable_signal_context=allow_unavailable_signal_context,
     )
     phase_remaining, timing_known, timing_receipt = _v2i_timing_context(
         v2i_signal_timing,
@@ -590,11 +592,19 @@ def _resolved_signal_context(
     route_arc: np.ndarray,
     *,
     causal_signal_atom_input: Mapping[str, Any] | None,
+    allow_unavailable_signal_context: bool = False,
 ) -> tuple[str, float, bool]:
     phase, distance, known = _route_signal_context(route_rows, route_arc)
     if causal_signal_atom_input is None:
         return phase, distance, known
-    signal = validate_causal_signal_atom_input(causal_signal_atom_input)
+    if not isinstance(allow_unavailable_signal_context, bool):
+        raise ValueError("allow_unavailable_signal_context must be bool")
+    signal = validate_causal_signal_atom_input(
+        causal_signal_atom_input,
+        allow_unavailable=allow_unavailable_signal_context,
+    )
+    if signal["source_state"] == "unavailable":
+        return "unknown", float(route_arc[-1]), False
     if signal["source_state"] == "not_applicable":
         if known:
             raise ValueError("no-signal authority conflicts with route signal rows")

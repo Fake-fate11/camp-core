@@ -222,6 +222,7 @@ def materialize_nuplan_decision(
     lidar_pc_token: str | bytes,
 ):
     from camp_core.integrations.diffusion_planner_causal_materializer import (
+        CausalDPMaterialization,
         materialize_causal_dp_input,
     )
 
@@ -258,7 +259,17 @@ def materialize_nuplan_decision(
         "traffic_light_state_available": snapshot.traffic_light_state_available,
         "ego_wheelbase_m": 3.089,
     }
-    return materialize_causal_dp_input(batch, context)
+    materialized = materialize_causal_dp_input(batch, context)
+    return CausalDPMaterialization(
+        dp_input=materialized.dp_input,
+        metadata={
+            **materialized.metadata,
+            "source": "official_nuplan_saved_state_input",
+            "decision_timestamp_us": snapshot.decision_timestamp_us,
+            "traffic_light_state_available": snapshot.traffic_light_state_available,
+            "route_roadblock_ids": list(snapshot.route_roadblock_ids),
+        },
+    )
 
 
 def materialize_nuplan_planner_input(

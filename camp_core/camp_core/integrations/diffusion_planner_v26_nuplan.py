@@ -22,7 +22,14 @@ from .diffusion_planner_v21_native import (
     verify_default_candidate0_identity,
 )
 from .diffusion_planner_causal_atoms import CANDIDATE_LOCAL_EXACT_SPEED
-from .nuplan_causal_adapter import materialize_nuplan_planner_input
+from .diffusion_planner_v26_nuplan_signal import (
+    NUPLAN_V26_SIGNAL_APPLICABILITY_ADAPTER_ID,
+    build_v26_nuplan_unavailable_signal_authority as _build_unavailable_signal_authority,
+)
+from .nuplan_causal_adapter import (
+    materialize_nuplan_decision,
+    materialize_nuplan_planner_input,
+)
 
 
 FIXED_DP_HEAD = "7a1d33da277a1992ec474b5383a0c963c72e04e4"
@@ -195,6 +202,61 @@ def materialize_v26_nuplan_planner_input(
         },
         "outcome_fields_consumed": [],
     }
+
+
+def materialize_v26_nuplan_saved_state_input(
+    *,
+    db_path: str,
+    map_path: str,
+    state_token: str,
+    source_identity: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Adapt one official saved lidar state without a scenario/outcome channel."""
+
+    identity = validate_v26_nuplan_source_record(source_identity)
+    materialized = materialize_nuplan_decision(db_path, map_path, state_token)
+    has_speed = bool(
+        np.any(
+            np.asarray(
+                materialized.dp_input.get("route_lanes_has_speed_limit", ()), dtype=bool
+            )
+        )
+    )
+    decision_timestamp_us = materialized.metadata.get("decision_timestamp_us")
+    if isinstance(decision_timestamp_us, bool) or not isinstance(
+        decision_timestamp_us, int
+    ):
+        raise ValueError("official saved nuPlan state lacks a decision timestamp")
+    return {
+        "adapter_id": NUPLAN_V26_ADAPTER_ID,
+        "source_schema_version": NUPLAN_SOURCE_SCHEMA_VERSION,
+        "source_identity": identity,
+        "dp_input": materialized.dp_input,
+        "materialization_metadata": dict(materialized.metadata),
+        "decision_timestamp_us": decision_timestamp_us,
+        "endpoint_applicability": {
+            "red_light": "typed_missing_no_stopline_authority",
+            "speed_limit": "observed" if has_speed else "missing_or_inapplicable",
+        },
+        "outcome_fields_consumed": [],
+    }
+
+
+def build_v26_nuplan_unavailable_signal_authority(
+    *,
+    source_identity: Mapping[str, Any],
+    route_lanes: np.ndarray,
+    decision_timestamp_us: int,
+    traffic_light_state_available: bool,
+) -> dict[str, Any]:
+    """Validate source identity before delegating the V26 signal receipt."""
+    source = validate_v26_nuplan_source_record(source_identity)
+    return _build_unavailable_signal_authority(
+        source_identity=source,
+        route_lanes=route_lanes,
+        decision_timestamp_us=decision_timestamp_us,
+        traffic_light_state_available=traffic_light_state_available,
+    )
 
 
 def validate_v26_nuplan_source_record(value: Mapping[str, Any]) -> dict[str, Any]:

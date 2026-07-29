@@ -836,6 +836,8 @@ def validate_causal_signal_atom_input(
     payload: Mapping[str, Any],
     chain: Mapping[str, Any] | None = None,
     runtime_receipt: Mapping[str, Any] | None = None,
+    *,
+    allow_unavailable: bool = False,
 ) -> dict[str, Any]:
     required = {
         "schema_version",
@@ -863,6 +865,46 @@ def validate_causal_signal_atom_input(
         raise ValueError("causal signal atom input field set drifted")
     if payload.get("schema_version") != CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION:
         raise ValueError("causal signal atom input schema drifted")
+    if not isinstance(allow_unavailable, bool):
+        raise ValueError("allow_unavailable must be bool")
+    if payload.get("source_state") == "unavailable":
+        null_fields = {
+            "ego_position_world_m",
+            "ego_heading_rad",
+            "regulatory_element_id",
+            "stop_line_id",
+            "stop_line_geometry_world_m",
+            "stop_line_geometry_ego_m",
+            "stop_line_geometry_sha256",
+            "route_tangent_world",
+            "route_tangent_ego",
+            "route_arc_m",
+        }
+        receipt = payload.get("runtime_receipt")
+        if (
+            not allow_unavailable
+            or payload.get("source_valid") is not False
+            or payload.get("applicable") is not False
+            or payload.get("current_phase") != "none"
+            or any(payload.get(key) is not None for key in null_fields)
+            or not isinstance(receipt, Mapping)
+            or payload.get("runtime_receipt_sha256")
+            != canonical_json_sha256(receipt)
+            or receipt.get("source_mode")
+            != "same_tick_signal_authority_unavailable_no_stopline_mapping"
+            or receipt.get("source_state") != "unavailable"
+            or receipt.get("current_phase") != "none"
+            or receipt.get("source_chain_sha256")
+            != payload.get("source_chain_sha256")
+            or receipt.get("route_geometry_sha256")
+            != payload.get("route_geometry_sha256")
+            or float(receipt.get("decision_time_s", -1.0))
+            != float(payload.get("decision_time_s"))
+        ):
+            raise ValueError("causal unavailable-signal atom source state is invalid")
+        if chain is not None or runtime_receipt is not None:
+            raise ValueError("unavailable signal input cannot bind a certified chain")
+        return dict(payload)
     if payload.get("source_state") == "not_applicable":
         null_fields = {
             "ego_position_world_m",
