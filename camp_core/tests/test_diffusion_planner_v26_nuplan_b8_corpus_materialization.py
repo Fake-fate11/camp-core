@@ -232,12 +232,12 @@ class _RouteLaneMapDb:
                 ]
             )
         if "FROM boundaries" in query:
-            assert params == (201, 202)
-            return _Rows([(201, b"left"), (202, b"right")])
+            assert params in {(101, 102), (201, 202)}
+            return _Rows([(params[0], b"left"), (params[1], b"right")])
         raise AssertionError(query)
 
 
-def test_route_lane_mapping_skips_incomplete_rows_without_defaulting(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_route_lane_mapping_preserves_missing_speed_without_defaulting(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         nuplan_causal_adapter,
         "decode_projected_gpkg_geometry",
@@ -246,15 +246,18 @@ def test_route_lane_mapping_skips_incomplete_rows_without_defaulting(monkeypatch
     candidates = nuplan_causal_adapter._roadblock_lane_candidates(
         _RouteLaneMapDb(), "42", "EPSG:26986"
     )
-    assert [candidate["fid"] for candidate in candidates] == [12]
-    assert candidates[0]["speed_limit_mps"] == 11.0
+    assert [candidate["fid"] for candidate in candidates] == [11, 12]
+    assert candidates[0]["speed_limit_mps"] is None
     assert candidates[0]["source_mapping"] == {
         "roadblock_id": "42",
-        "lane_fid": 12,
+        "lane_fid": 11,
         "kind": "lane",
-        "speed_limit_source": "official_lane_table",
+        "speed_limit_source": "missing_or_invalid_authoritative",
+        "speed_limit_available": False,
         "boundary_source": "official_boundaries_table",
     }
+    assert candidates[1]["speed_limit_mps"] == 11.0
+    assert candidates[1]["source_mapping"]["speed_limit_available"] is True
     normalized, collapsed = nuplan_causal_adapter._collapse_consecutive_route_roadblocks(
         ("42", "42", "43", "43", "44")
     )

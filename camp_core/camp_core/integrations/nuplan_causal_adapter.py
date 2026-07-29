@@ -190,10 +190,12 @@ def load_nuplan_route_snapshot(
                 traffic_light_status=status,
                 traffic_timestamp_us=(decision_timestamp if status else None),
                 decision_timestamp_us=(decision_timestamp if status else None),
+                require_speed_limit=False,
             )
             route_lanes[index] = encoded.tensor
-            route_has_speed[index, 0] = True
-            route_speed[index, 0] = encoded.speed_limit_mps
+            if encoded.speed_limit_mps is not None:
+                route_has_speed[index, 0] = True
+                route_speed[index, 0] = encoded.speed_limit_mps
         gaps = np.linalg.norm(
             route_lanes[: len(selected) - 1, -1, :2]
             - route_lanes[1 : len(selected), 0, :2],
@@ -1139,8 +1141,6 @@ def _roadblock_lane_candidates(
     rejected: list[tuple[int, tuple[str, ...]]] = []
     for fid, center, speed, left_fid, right_fid, exit_fid, entry_fid, lights in rows:
         missing: list[str] = []
-        if speed is None:
-            missing.append("speed_limit_mps")
         if left_fid is None or right_fid is None:
             missing.append("boundary_fid")
         if missing:
@@ -1154,6 +1154,9 @@ def _roadblock_lane_candidates(
         if left_fid not in by_id or right_fid not in by_id:
             rejected.append((int(fid), ("boundary_geometry",)))
             continue
+        has_speed_limit = bool(
+            speed is not None and np.isfinite(speed) and float(speed) > 0.0
+        )
         candidates.append(
             {
                 "kind": kind,
@@ -1165,7 +1168,7 @@ def _roadblock_lane_candidates(
                 "right": decode_projected_gpkg_geometry(
                     by_id[right_fid], projected_crs
                 ),
-                "speed_limit_mps": float(speed),
+                "speed_limit_mps": (float(speed) if has_speed_limit else None),
                 "exit_lane_fid": (None if exit_fid is None else int(exit_fid)),
                 "entry_lane_fid": (None if entry_fid is None else int(entry_fid)),
                 "controlled": bool(lights),
@@ -1173,7 +1176,12 @@ def _roadblock_lane_candidates(
                     "roadblock_id": str(roadblock_id),
                     "lane_fid": int(fid),
                     "kind": kind,
-                    "speed_limit_source": "official_lane_table",
+                    "speed_limit_source": (
+                        "official_lane_table"
+                        if has_speed_limit
+                        else "missing_or_invalid_authoritative"
+                    ),
+                    "speed_limit_available": has_speed_limit,
                     "boundary_source": "official_boundaries_table",
                 },
             }
