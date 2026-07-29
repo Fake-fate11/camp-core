@@ -14,7 +14,7 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from .diffusion_planner_v25_semantic_authority import (
+from .diffusion_planner_camp_signal_contract import (
     CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
     canonical_json_sha256,
     validate_causal_signal_atom_input,

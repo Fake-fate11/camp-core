@@ -1076,3 +1076,14 @@ def _strict_ints(values: Sequence[int], name: str) -> tuple[int, ...]:
     if any(type(value) is not int for value in values):
         raise ValueError(f"{name} must contain native integers")
     return tuple(values)
+
+
+# Preserve the V25 public entry points while sharing the exact CAMP math with
+# V26.  The audit/report policy above remains historical-only.
+from camp_core.integrations.diffusion_planner_camp_training_math import (  # noqa: E402
+    DEFAULT_LABEL_SEVERITY,
+    build_train_only_causal_labels,
+    fit_train_only_atom_scales,
+    hierarchical_snapshot_weights,
+    weighted_quantile,
+)

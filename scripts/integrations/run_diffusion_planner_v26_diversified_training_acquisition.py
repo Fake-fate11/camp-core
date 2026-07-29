@@ -28,9 +28,9 @@ for _path in (ROOT, ROOT / "camp_core"):
         sys.path.insert(0, str(_path))
 
 from camp_core.integrations.diffusion_planner_v21_native import array_sha256  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_context import RAW_FEATURE_NAMES  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_scene_runtime import FIXED_DP_HEAD  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_train_atom_audit import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_camp_context_math import RAW_FEATURE_NAMES  # noqa: E402
+from camp_core.integrations.diffusion_planner_fixed_dp_reference import FIXED_DP_HEAD  # noqa: E402
+from camp_core.integrations.diffusion_planner_camp_training_math import (  # noqa: E402
     build_train_only_causal_labels,
     fit_train_only_atom_scales,
     hierarchical_snapshot_weights,

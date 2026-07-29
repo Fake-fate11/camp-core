@@ -13,7 +13,7 @@ from typing import Any, Mapping
 import numpy as np
 
 from .diffusion_planner_v21_native import array_sha256
-from .diffusion_planner_v25_semantic_authority import (
+from .diffusion_planner_camp_signal_contract import (
     CAUSAL_SIGNAL_ATOM_INPUT_SCHEMA_VERSION,
     canonical_json_sha256,
     validate_causal_signal_atom_input,
@@ -108,6 +108,6 @@ def build_v26_nuplan_unavailable_signal_authority(
         "red_light_endpoint_status": "typed_missing_no_stopline_authority",
         "causal_signal_atom_input": validate_causal_signal_atom_input(
             causal_input,
-            allow_unavailable=True,
+            permitted_source_states=("unavailable",),
         ),
     }

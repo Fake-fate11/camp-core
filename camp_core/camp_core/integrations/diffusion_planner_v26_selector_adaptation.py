@@ -17,15 +17,15 @@ from typing import TYPE_CHECKING, Any, Mapping, Sequence
 
 import numpy as np
 
-from camp_core.integrations.diffusion_planner_v25_context import (
+from camp_core.integrations.diffusion_planner_camp_context_math import (
     PHI_DIMENSION,
     RAW_FEATURE_COUNT,
     RAW_FEATURE_NAMES,
-    V25ContextScaler,
+    CAMPContextScaler,
     context_weights,
     validate_column_simplex_theta,
 )
-from camp_core.integrations.diffusion_planner_v25_scene_runtime import (
+from camp_core.integrations.diffusion_planner_fixed_dp_reference import (
     FIXED_DP_HEAD,
     training_parameter_array_sha256,
 )
@@ -44,11 +44,9 @@ from camp_core.integrations.diffusion_planner_v26_partial_source_training import
     validate_final_training_population_source,
 )
 if TYPE_CHECKING:
-    from camp_core.integrations.diffusion_planner_v25_training import (
-        V25TrainedSelector,
-    )
-    from camp_core.outer_master.parametric_cvxpy_master import (
-        V25ParametricMasterConfig,
+    from camp_core.integrations.diffusion_planner_camp_selector_training import (
+        CAMPParametricMasterConfig,
+        CAMPTrainedSelector,
     )
 
 
@@ -170,7 +168,7 @@ class ZeroShotReferenceAssets:
     scene9d_theta: np.ndarray
     static14d_theta: np.ndarray
     scene14d_theta: np.ndarray
-    context_scaler: V25ContextScaler
+    context_scaler: CAMPContextScaler
     atom_scales: np.ndarray
 
     def parameter_hashes(self) -> dict[str, str]:
@@ -645,7 +643,7 @@ def load_zero_shot_reference_assets(reference_dir: Path) -> ZeroShotReferenceAss
         scene9 = _theta_from_archive(archive, "scene9d_theta", 9)
         static14 = _theta_from_archive(archive, "static14d_theta", 14)
         scene14 = _theta_from_archive(archive, "scene14d_theta", 14)
-    scaler = V25ContextScaler(q05=q05, q95=q95)
+    scaler = CAMPContextScaler(q05=q05, q95=q95)
     scales = _require_finite_numeric(
         scales_payload.get("scales"), (14,), "zero-shot runtime scales"
     )
@@ -681,7 +679,7 @@ def load_zero_shot_reference_assets(reference_dir: Path) -> ZeroShotReferenceAss
     )
 
 
-def _context_scaler_sha256(scaler: V25ContextScaler) -> str:
+def _context_scaler_sha256(scaler: CAMPContextScaler) -> str:
     return _canonical_json_sha256(
         {
             "q05": scaler.q05.tolist(),
@@ -974,17 +972,15 @@ def load_adaptation_config(path: Path) -> AdaptationConfig:
 
 def train_selector_adaptation(
     data: TrainOnlySavedPools, config: AdaptationConfig
-) -> dict[str, V25TrainedSelector]:
+) -> dict[str, CAMPTrainedSelector]:
     """Fit only CAMP Static/Scene 9D/14D selector parameters."""
 
-    from camp_core.integrations.diffusion_planner_v25_training import (
-        train_v25_selector_suite,
-    )
-    from camp_core.outer_master.parametric_cvxpy_master import (
-        V25ParametricMasterConfig,
+    from camp_core.integrations.diffusion_planner_camp_selector_training import (
+        CAMPParametricMasterConfig,
+        train_camp_selector_suite,
     )
 
-    return train_v25_selector_suite(
+    return train_camp_selector_suite(
         data.normalized_atoms_14d,
         data.raw_context,
         data.context_source_complete,
@@ -993,12 +989,12 @@ def train_selector_adaptation(
         data.source_valid_mask,
         data.record_weights,
         stability_cluster_ids=tuple(str(item) for item in data.corridor_ids.tolist()),
-        config=V25ParametricMasterConfig(**config.master),
+        config=CAMPParametricMasterConfig(**config.master),
     )
 
 
 def adapted_parameter_arrays(
-    data: TrainOnlySavedPools, suite: Mapping[str, V25TrainedSelector]
+    data: TrainOnlySavedPools, suite: Mapping[str, CAMPTrainedSelector]
 ) -> dict[str, np.ndarray]:
     """Serialize fitted selector parameters without modifying frozen references."""
 
@@ -1037,7 +1033,7 @@ def adapted_parameter_arrays(
 
 
 def adapted_model_summary(
-    suite: Mapping[str, V25TrainedSelector]
+    suite: Mapping[str, CAMPTrainedSelector]
 ) -> dict[str, dict[str, Any]]:
     """Return compact fitted-parameter provenance without outcome metrics."""
 

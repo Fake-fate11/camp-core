@@ -21,7 +21,7 @@ from camp_core.integrations.diffusion_planner import (
     compute_lateral_comfort_shadow_costs,
     compute_red_stopping_margin_costs,
 )
-from camp_core.integrations.diffusion_planner_v25_semantic_authority import (
+from camp_core.integrations.diffusion_planner_camp_signal_contract import (
     validate_causal_signal_atom_input,
 )
 from camp_core.integrations.diffusion_planner_causal_materializer import (
@@ -1195,7 +1195,11 @@ def materialize_canonical_14d(
             )
         signal_input = validate_causal_signal_atom_input(
             causal_signal_atom_input,
-            allow_unavailable=allow_unavailable_signal_atoms,
+            permitted_source_states=(
+                ("available", "not_applicable", "unavailable")
+                if allow_unavailable_signal_atoms
+                else ("available", "not_applicable")
+            ),
         )
         if not signal.all():
             raise ValueError("mapped signal source mask is incomplete")

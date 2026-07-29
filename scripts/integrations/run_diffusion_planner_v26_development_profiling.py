@@ -28,15 +28,18 @@ for path in (ROOT, ROOT / "camp_core"):
         sys.path.insert(0, str(path))
 
 from camp_core.integrations.diffusion_planner_v21_native import array_sha256  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_camp_context_math import (  # noqa: E402
     PHI_DIMENSION,
     RAW_FEATURE_NAMES,
     context_weights,
     validate_column_simplex_theta,
 )
-from camp_core.integrations.diffusion_planner_v25_scene_runtime import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_fixed_dp_reference import (  # noqa: E402
     FIXED_DP_HEAD,
     training_parameter_array_sha256,
+)
+from camp_core.integrations.diffusion_planner_camp_reference_runtime import (  # noqa: E402
+    load_camp_zero_shot_reference_assets,
 )
 from camp_core.integrations.diffusion_planner_v26_development_profiling import (  # noqa: E402
     ACTIVE_ATOM_INDICES_BY_ARM,
@@ -211,9 +214,7 @@ def _load_zero_shot_reference_selector_assets(
     args: argparse.Namespace,
 ) -> _ZeroShotReferenceSelectorAssets:
     import numpy as np
-    from camp_core.integrations import diffusion_planner_v25_scene_runtime as scene_runtime
-
-    primary = scene_runtime.load_v25_runtime_selector_assets(
+    primary = load_camp_zero_shot_reference_assets(
         training_artifact=args.reference_weights.resolve(),
         training_root_sha256=args.reference_weights_root,
         training_review_artifact=args.reference_weights_review.resolve(),

@@ -21,7 +21,7 @@ for _path in (ROOT, ROOT / "camp_core"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from camp_core.integrations.diffusion_planner_v25_scene_runtime import FIXED_DP_HEAD  # noqa: E402
+from camp_core.integrations.diffusion_planner_fixed_dp_reference import FIXED_DP_HEAD  # noqa: E402
 from camp_core.integrations.diffusion_planner_v26_diversified_successor import (  # noqa: E402
     SUCCESSOR_COUNT,
     SUCCESSOR_END,

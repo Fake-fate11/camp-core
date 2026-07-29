@@ -27,17 +27,9 @@ for _path in (ROOT, ROOT / "camp_core"):
     if str(_path) not in sys.path:
         sys.path.insert(0, str(_path))
 
-from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
-    CANDIDATE_LOCAL_EXACT_SPEED,
-    V22_SOURCE_VALID_ELIGIBILITY,
-    materialize_canonical_14d,
-)
 from camp_core.integrations.diffusion_planner_v21_native import array_sha256  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
-    RAW_FEATURE_NAMES,
-    build_v25_raw_context,
-)
-from camp_core.integrations.diffusion_planner_v25_train_atom_audit import (  # noqa: E402
+from camp_core.integrations.diffusion_planner_camp_context_math import RAW_FEATURE_NAMES  # noqa: E402
+from camp_core.integrations.diffusion_planner_camp_training_math import (  # noqa: E402
     build_train_only_causal_labels,
     fit_train_only_atom_scales,
     hierarchical_snapshot_weights,
@@ -47,6 +39,11 @@ from camp_core.integrations.diffusion_planner_v26_integration_boundary import ( 
     V26_TRAINING_ROWS_SCHEMA_VERSION,
     V26_TRAINING_SOURCE_SCHEMA_VERSION,
     v26_generator_topology,
+)
+from camp_core.integrations.diffusion_planner_v26_source_capabilities import (  # noqa: E402
+    build_v26_camp_raw_context,
+    materialize_v26_camp_atoms,
+    v26_source_capabilities,
 )
 from camp_core.integrations.diffusion_planner_v26_nuplan import (  # noqa: E402
     FIXED_DP_HEAD,
@@ -939,33 +936,33 @@ def _process_anchor(
             axis=tuple(range(1, np.asarray(causal_input["neighbor_agents_past"]).ndim)),
         )
         phase_receipt: dict[str, Any] = {}
-        atoms = materialize_canonical_14d(
+        capabilities = v26_source_capabilities(
+            speed_limit_status="typed_missing",
+            signal_authority=signal_authority,
+        )
+        atoms = materialize_v26_camp_atoms(
             candidates=candidates,
             causal_input=causal_input,
             neighbor_predictions=np.asarray(capture.full_prediction[:, 1:33]),
             neighbor_valid_mask=neighbor_valid,
             signal_mask=np.ones(8, dtype=bool),
             planned_red_light_cost=np.zeros(8, dtype=np.float64),
-            causal_signal_atom_input=signal_authority["causal_signal_atom_input"],
+            signal_authority=signal_authority,
+            capabilities=capabilities,
             dt=0.1,
-            speed_source_policy=CANDIDATE_LOCAL_EXACT_SPEED,
-            eligibility_policy=V22_SOURCE_VALID_ELIGIBILITY,
-            allow_inapplicable_speed_atoms=True,
-            allow_unavailable_signal_atoms=True,
             phase_receipt=phase_receipt,
         )
         if atoms.get("atom_matrix") is None:
             raise ValueError(f"official corpus atom materialization unavailable: {atoms.get('exclusion_reason')}")
         if array_sha256(candidates) != before:
             raise ValueError("official corpus atom materialization mutated the B8 pool")
-        raw_context = build_v25_raw_context(
+        raw_context = build_v26_camp_raw_context(
             causal_input=causal_input,
             candidates=candidates,
-        source_valid_mask=np.asarray(atoms["source_valid_mask"], dtype=bool),
-        causal_signal_atom_input=signal_authority["causal_signal_atom_input"],
-        allow_missing_route_speed_limit_context=True,
-        allow_unavailable_signal_context=True,
-    )
+            source_valid_mask=np.asarray(atoms["source_valid_mask"], dtype=bool),
+            signal_authority=signal_authority,
+            capabilities=capabilities,
+        )
         seed = _anchor_seed(plan_sha256, source["record_id"])
         return (
             _complete_unit(

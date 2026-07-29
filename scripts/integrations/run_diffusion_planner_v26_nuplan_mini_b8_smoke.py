@@ -28,20 +28,21 @@ for path in (ROOT, ROOT / "camp_core"):
         sys.path.insert(0, str(path))
 
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
-    CANDIDATE_LOCAL_EXACT_SPEED,
     DP_CAMP_ATOM_NAMES_V10,
-    V22_SOURCE_VALID_ELIGIBILITY,
     canonical_score_atoms,
-    materialize_canonical_14d,
 )
 from camp_core.integrations.diffusion_planner_causal_materializer import (  # noqa: E402
     validate_causal_dp_input,
 )
 from camp_core.integrations.diffusion_planner_v21_native import array_sha256  # noqa: E402
-from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
-    V25ContextScaler,
-    build_v25_raw_context,
+from camp_core.integrations.diffusion_planner_camp_context_math import (  # noqa: E402
+    CAMPContextScaler,
     context_weights,
+)
+from camp_core.integrations.diffusion_planner_v26_source_capabilities import (  # noqa: E402
+    build_v26_camp_raw_context,
+    materialize_v26_camp_atoms,
+    v26_source_capabilities,
 )
 from camp_core.integrations.diffusion_planner_v26_nuplan import (  # noqa: E402
     FIXED_DP_HEAD,
@@ -759,7 +760,7 @@ def _atom_applicability_receipt(
 
 def _selector_assets(
     root: Path,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, V25ContextScaler, dict[str, str]]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, CAMPContextScaler, dict[str, str]]:
     receipt_path = root / "receipt.json"
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     if receipt.get("weight_roles", {}).get("adapted") != "camp_dp_v26_adapted_selector_weights_v1":
@@ -774,7 +775,7 @@ def _selector_assets(
     with np.load(parameters, allow_pickle=False) as archive:
         static = np.asarray(archive["static14d_runtime_weights"], dtype=np.float64)
         scene_theta = np.asarray(archive["scene14d_theta"], dtype=np.float64)
-        scaler = V25ContextScaler(
+        scaler = CAMPContextScaler(
             np.asarray(archive["context_q05"], dtype=np.float64),
             np.asarray(archive["context_q95"], dtype=np.float64),
         )
@@ -806,7 +807,6 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
         signal_authority = _require_v26_no_signal_authority(
             adapter_receipt.get("signal_authority", {}), source=source
         )
-        causal_signal_atom_input = signal_authority["causal_signal_atom_input"]
         with np.load(adapter_root / "causal_input.npz", allow_pickle=False) as archive:
             causal_input = {key: np.asarray(archive[key]) for key in archive.files}
         errors = validate_causal_dp_input(causal_input)
@@ -850,18 +850,20 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             if signal_authority["source_state"] == "not_applicable"
             else _planned_red_cost(candidates, causal_input)
         )
-        atoms = materialize_canonical_14d(
+        capabilities = v26_source_capabilities(
+            speed_limit_status="typed_missing",
+            signal_authority=signal_authority,
+        )
+        atoms = materialize_v26_camp_atoms(
             candidates=candidates,
             causal_input=causal_input,
             neighbor_predictions=np.asarray(capture.full_prediction[:, 1:33]),
             neighbor_valid_mask=neighbor_valid,
             signal_mask=np.ones(8, dtype=bool),
             planned_red_light_cost=planned_red_light_cost,
-            causal_signal_atom_input=causal_signal_atom_input,
+            signal_authority=signal_authority,
+            capabilities=capabilities,
             dt=0.1,
-            speed_source_policy=CANDIDATE_LOCAL_EXACT_SPEED,
-            eligibility_policy=V22_SOURCE_VALID_ELIGIBILITY,
-            allow_inapplicable_speed_atoms=True,
             phase_receipt=phase_receipt,
         )
         if atoms.get("atom_matrix") is None:
@@ -880,12 +882,12 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             static,
             atom_applicable_mask,
         )
-        context_record = build_v25_raw_context(
+        context_record = build_v26_camp_raw_context(
             causal_input=causal_input,
             candidates=candidates,
             source_valid_mask=np.asarray(atoms["source_valid_mask"], dtype=bool),
-            causal_signal_atom_input=causal_signal_atom_input,
-            allow_missing_route_speed_limit_context=True,
+            signal_authority=signal_authority,
+            capabilities=capabilities,
         )
         scene_weights = context_weights(
             scene_theta,

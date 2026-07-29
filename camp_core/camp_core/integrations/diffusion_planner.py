@@ -30,11 +30,11 @@ from camp_core.integrations.diffusion_planner_progress_support import (
     PROGRESS_SUPPORT_LOGGING_SCHEMA_VERSION,
     build_progress_support_logging_payload,
 )
-from camp_core.integrations.diffusion_planner_v25_context import (
+from camp_core.integrations.diffusion_planner_camp_context_math import (
     CONTEXT_SCHEMA_VERSION as V25_CONTEXT_SCHEMA_VERSION,
     PHI_DIMENSION as V25_PHI_DIMENSION,
     RAW_FEATURE_NAMES as V25_RAW_FEATURE_NAMES,
-    V25ContextScaler,
+    CAMPContextScaler as V25ContextScaler,
     context_weights as v25_context_weights,
     validate_column_simplex_theta,
 )

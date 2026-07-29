@@ -12,7 +12,7 @@ from typing import Any, Mapping
 
 import numpy as np
 
-from .diffusion_planner_v25_context import CONTEXT_SCHEMA_VERSION, RAW_FEATURE_NAMES
+from .diffusion_planner_camp_context_math import CONTEXT_SCHEMA_VERSION, RAW_FEATURE_NAMES
 
 
 V26_SCENE14D_ADAPTER_SCHEMA_VERSION = "camp_dp_v26_scene14d_reference_adapter_v1"

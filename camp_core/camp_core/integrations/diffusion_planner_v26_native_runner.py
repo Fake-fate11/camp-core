@@ -25,10 +25,11 @@ from .diffusion_planner_v21_native import (
     candidate_seed,
     causal_input_receipt,
 )
-from .diffusion_planner_v25_context import (
+from .diffusion_planner_camp_context_math import (
+    CAMPContextSourceCapabilities,
     CONTEXT_SCHEMA_VERSION,
     RAW_FEATURE_NAMES,
-    build_v25_raw_context,
+    build_camp_raw_context,
     context_weights,
 )
 from .diffusion_planner_v26_development_profiling import (
@@ -543,12 +544,16 @@ class V26NativeSameEgoB8Callback:
         context_ms = 0.0
         if any(arm_id.startswith("Scene") for arm_id in self.selector_arms):
             context_started = time.perf_counter_ns()
-            context_record = build_v25_raw_context(
+            context_record = build_camp_raw_context(
                 causal_input=causal,
                 candidates=candidates,
                 source_valid_mask=np.asarray(materialized["source_valid_mask"], dtype=bool),
                 causal_signal_atom_input=causal_signal_atom_input,
                 v2i_signal_timing=None,
+                source_capabilities=CAMPContextSourceCapabilities(
+                    speed_limit_status="available",
+                    signal_source_state=str(causal_signal_atom_input["source_state"]),
+                ),
             )
             context = {
                 # The V26 adapter maps this outcome-blind current-state payload to

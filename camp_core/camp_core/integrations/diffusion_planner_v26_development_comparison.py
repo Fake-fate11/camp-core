@@ -16,11 +16,11 @@ from typing import Any, Mapping, Sequence
 
 import numpy as np
 
-from .diffusion_planner_v25_context import (
+from .diffusion_planner_camp_context_math import (
     PHI_DIMENSION,
     RAW_FEATURE_COUNT,
     RAW_FEATURE_NAMES,
-    V25ContextScaler,
+    CAMPContextScaler,
     context_weights,
     validate_column_simplex_theta,
 )
@@ -105,7 +105,7 @@ def _theta_sha256(value: np.ndarray) -> str:
     return digest.hexdigest()
 
 
-def _context_scaler_sha256(scaler: V25ContextScaler) -> str:
+def _context_scaler_sha256(scaler: CAMPContextScaler) -> str:
     return canonical_json_sha256(
         {
             "q05": scaler.q05.tolist(),
@@ -163,7 +163,7 @@ class V26AdaptedSelectorAssets:
     atom_scales: np.ndarray
     static14d_weights: np.ndarray
     scene14d_theta: np.ndarray
-    context_scaler: V25ContextScaler
+    context_scaler: CAMPContextScaler
     atom_scales_sha256: str
     static14d_weights_sha256: str
     scene14d_theta_sha256: str
@@ -324,7 +324,7 @@ def load_v26_adapted_selector_assets(receipt_path: Path) -> V26AdaptedSelectorAs
         )
     ):
         raise ValueError("V26 adapted runtime atom scale receipt drifted")
-    scaler = V25ContextScaler(q05=q05, q95=q95)
+    scaler = CAMPContextScaler(q05=q05, q95=q95)
     asset_manifest = {
         key: {"relative_path": str(value["relative_path"]), "sha256": str(value["sha256"])}
         for key, value in sorted(assets.items())
