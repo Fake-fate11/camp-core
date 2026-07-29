@@ -133,8 +133,13 @@ def _maps_catalog(maps_root: Path, maps_archive_integrity: Path) -> dict[str, An
     if not isinstance(manifest, Mapping):
         raise ValueError("nuPlan maps manifest is invalid")
     integrity = _read_json(maps_archive_integrity, "nuPlan maps archive integrity")
-    archive = integrity.get("maps", {}).get("archive", {}) if isinstance(integrity, Mapping) else {}
-    archive_sha = archive.get("sha256") if isinstance(archive, Mapping) else None
+    maps_receipt = integrity.get("maps", {}) if isinstance(integrity, Mapping) else {}
+    archive = maps_receipt.get("archive", {}) if isinstance(maps_receipt, Mapping) else {}
+    archive_sha = (
+        maps_receipt.get("sha256")
+        if isinstance(maps_receipt, Mapping)
+        else None
+    ) or (archive.get("sha256") if isinstance(archive, Mapping) else None)
     if not isinstance(archive_sha, str) or len(archive_sha) != 64:
         raise ValueError("nuPlan maps archive integrity hash is missing")
     paths: dict[tuple[str, str], Path] = {}

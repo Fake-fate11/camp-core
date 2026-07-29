@@ -112,7 +112,7 @@ def test_inventory_reads_only_three_city_identity_metadata_and_selects_no_signal
     )
     maps_integrity = tmp_path / "maps_integrity.json"
     maps_integrity.write_text(
-        json.dumps({"maps": {"archive": {"sha256": "a" * 64}}}), encoding="utf-8"
+        json.dumps({"maps": {"sha256": "a" * 64}}), encoding="utf-8"
     )
     source_manifest = tmp_path / "source_manifest.json"
     source_manifest.write_text(
