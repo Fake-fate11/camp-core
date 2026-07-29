@@ -111,6 +111,7 @@ def build_v25_raw_context(
     source_valid_mask: np.ndarray,
     causal_signal_atom_input: Mapping[str, Any] | None = None,
     v2i_signal_timing: Mapping[str, Any] | None = None,
+    allow_missing_route_speed_limit_context: bool = False,
 ) -> V25ContextRecord:
     """Build the frozen V25 context from current request/state and fixed K=8.
 
@@ -158,8 +159,24 @@ def build_v25_raw_context(
         causal_input["route_lanes_has_speed_limit"], dtype=bool
     ).reshape(-1)
     available_limits = route_limits[route_has_limits]
-    if available_limits.size == 0 or np.any(available_limits <= 0.0):
-        raise ValueError("V25 context requires a current positive route speed limit.")
+    if available_limits.size:
+        if not np.all(np.isfinite(available_limits)):
+            raise ValueError("route speed-limit source marked available but is non-finite.")
+        if np.any(available_limits <= 0.0):
+            raise ValueError("route speed-limit source marked available but is non-positive.")
+        speed_limit_context_complete = True
+        route_speed_limit_min = float(np.min(available_limits))
+        route_speed_limit_current = float(available_limits[0])
+    else:
+        if not allow_missing_route_speed_limit_context:
+            raise ValueError("V25 context requires a current positive route speed limit.")
+        # The finite placeholders are never consumed by masked_complement_lift:
+        # both source-completeness bits below are false.  They are not a speed
+        # default or an imputation, and the opt-in is reserved for source-bound
+        # V26 endpoint-inapplicability handling.
+        speed_limit_context_complete = False
+        route_speed_limit_min = 0.0
+        route_speed_limit_current = 0.0
 
     phase, signal_distance, phase_known = _resolved_signal_context(
         route_rows,
@@ -202,8 +219,8 @@ def build_v25_raw_context(
             float(np.max(curvature)),
             float(np.min(lane_widths)),
             float(np.median(lane_widths)),
-            float(np.min(available_limits)),
-            float(available_limits[0]),
+            route_speed_limit_min,
+            route_speed_limit_current,
             *phase_values,
             signal_distance,
             phase_remaining,
@@ -219,7 +236,9 @@ def build_v25_raw_context(
     if raw.shape != (RAW_FEATURE_COUNT,) or not np.all(np.isfinite(raw)):
         raise ValueError("V25 raw context violated its finite 26D contract.")
     complete = (
-        *(True for _ in range(10)),
+        *(True for _ in range(8)),
+        speed_limit_context_complete,
+        speed_limit_context_complete,
         *(phase_known for _ in range(5)),
         timing_known,
         *(neighbor_complete for _ in range(5)),

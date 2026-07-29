@@ -885,6 +885,7 @@ def run_smoke(args: argparse.Namespace) -> dict[str, Any]:
             candidates=candidates,
             source_valid_mask=np.asarray(atoms["source_valid_mask"], dtype=bool),
             causal_signal_atom_input=causal_signal_atom_input,
+            allow_missing_route_speed_limit_context=True,
         )
         scene_weights = context_weights(
             scene_theta,

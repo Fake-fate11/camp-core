@@ -18,6 +18,13 @@ for path in (ROOT, ROOT / "camp_core"):
 from camp_core.integrations.diffusion_planner_causal_atoms import (  # noqa: E402
     build_v25_atom_source_masks,
 )
+from camp_core.integrations.diffusion_planner_causal_materializer import (  # noqa: E402
+    CAUSAL_DP_INPUT_SCHEMA,
+)
+from camp_core.integrations.diffusion_planner_v25_context import (  # noqa: E402
+    RAW_FEATURE_NAMES,
+    build_v25_raw_context,
+)
 
 
 def _module():
@@ -171,6 +178,71 @@ def _source_identity() -> dict[str, object]:
         "map_sha256": digest("map"),
         "event_strata": ["scenario_type:source"],
     }
+
+
+def _causal_input_without_speed_limits() -> dict[str, np.ndarray]:
+    data = {
+        key: np.zeros(shape, dtype=dtype)
+        for key, (shape, dtype) in CAUSAL_DP_INPUT_SCHEMA.items()
+    }
+    data["version"] = np.array(1, dtype=np.int64)
+    data["ego_current_state"] = np.array(
+        [0.0, 0.0, 1.0, 0.0, 8.0, 0.0, -1.5, 0.0, 0.1, 0.2],
+        dtype=np.float32,
+    )
+    route = np.zeros((25, 20, 33), dtype=np.float32)
+    route[0, :, 0] = np.linspace(0.0, 19.0, 20)
+    route[0, :, 2] = 1.0
+    route[0, :, 5] = 2.0
+    route[0, :, 7] = -2.0
+    route[0, :, 12] = 1.0
+    route[0, :, 13] = 1.0
+    route[0, :, 23] = 1.0
+    data["route_lanes"] = route
+    data["lanes"][:1] = route[:1]
+    return data
+
+
+def _context_candidates() -> np.ndarray:
+    candidates = np.zeros((8, 80, 4), dtype=np.float64)
+    for index in range(8):
+        candidates[index, :, 0] = np.linspace(0.1, 30.0 + index, 80)
+        candidates[index, :, 2] = 1.0
+    return candidates
+
+
+def test_missing_speed_context_is_masked_only_with_explicit_v26_opt_in() -> None:
+    causal = _causal_input_without_speed_limits()
+    candidates = _context_candidates()
+
+    with pytest.raises(ValueError, match="requires a current positive route speed limit"):
+        build_v25_raw_context(
+            causal_input=causal,
+            candidates=candidates,
+            source_valid_mask=np.ones(8, dtype=bool),
+        )
+
+    record = build_v25_raw_context(
+        causal_input=causal,
+        candidates=candidates,
+        source_valid_mask=np.ones(8, dtype=bool),
+        allow_missing_route_speed_limit_context=True,
+    )
+    speed_indices = [
+        RAW_FEATURE_NAMES.index("route_speed_limit_min_mps"),
+        RAW_FEATURE_NAMES.index("route_speed_limit_current_mps"),
+    ]
+    assert record.raw[speed_indices].tolist() == [0.0, 0.0]
+    assert [record.source_complete[index] for index in speed_indices] == [False, False]
+
+    causal["route_lanes_has_speed_limit"][0] = True
+    with pytest.raises(ValueError, match="marked available but is non-positive"):
+        build_v25_raw_context(
+            causal_input=causal,
+            candidates=candidates,
+            source_valid_mask=np.ones(8, dtype=bool),
+            allow_missing_route_speed_limit_context=True,
+        )
 
 
 def test_official_empty_signal_source_maps_to_typed_missing_atom_authority() -> None:
