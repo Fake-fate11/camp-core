@@ -40,6 +40,9 @@ nusc_cache_trajdata/
 /models/
 /logs/
 /results/
+/output/
+/tmp/
+/manuscript/
 /plots/
 /figures/
 /analysis_bundles/
@@ -90,6 +93,18 @@ adaptive-prediction/experiments/nuScenes/figures/
 /codex-session-exporter/
 /camp-dp-session-*/
 /camp-dp-session-*-HANDOFF.md
+
+# Local research notes, role handoffs, and manuscript workspaces
+/docs/*
+!/docs/diffusion_planner_v26_camp_reranker.md
+/INFORMS-IJOC-Template-*/
+/main.tex
+/refs.bib
+/AGENTS.md
+/AGENTS.md.bak.*
+/.tools/
+/.codex_*
+/CAMP_v5_slide_talking_points.md
 
 # Slurm and shell run outputs
 *.out

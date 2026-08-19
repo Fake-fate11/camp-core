@@ -1,8 +1,0 @@
-{
-  "schema_version": "camp_dp_v26_autodl_launcher_v1",
-  "interpreter": "/root/autodl-tmp/dp312_venv/bin/python",
-  "lanelet2_precedence": "dp312_site_packages_before_system_lanelet2_v1",
-  "dp312_site_packages": "/root/autodl-tmp/dp312_venv/lib/python3.12/site-packages",
-  "inherit_pythonpath": false,
-  "human_shim_required": false
-}

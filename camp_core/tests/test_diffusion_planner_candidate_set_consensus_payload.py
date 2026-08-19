@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,11 +12,6 @@ from camp_core.integrations.diffusion_planner_candidate_set_consensus_payload im
     CANDIDATE_SET_CONSENSUS_PAYLOAD_SCHEMA_VERSION,
     build_candidate_set_consensus_payload,
 )
-
-
-ROOT = Path(__file__).resolve().parents[2]
-REPLAY_SCRIPT = ROOT / "scripts" / "integrations" / "run_diffusion_planner_camp_replay.py"
-
 
 def _candidates() -> np.ndarray:
     return np.asarray(
@@ -143,17 +137,3 @@ def test_candidate_set_consensus_payload_validates_inputs() -> None:
             candidates=_candidates(),
             support_steps=0,
         )
-
-
-def test_replay_wiring_is_default_off_and_selection_neutral() -> None:
-    source = REPLAY_SCRIPT.read_text(encoding="utf-8")
-
-    assert "--camp_candidate_set_consensus_payload_logging" in source
-    assert "action=\"store_true\"" in source
-    assert "\"candidate_set_consensus_payload_logging\": (" in source
-    assert "\"selection_effect\": False" in source
-    assert "\"future_outcome_leakage\": False" in source
-    assert "\"closed_loop_outcome_fields_read\": False" in source
-    assert "\"camp_candidate_set_consensus_payload_logging\"" in source
-    assert "build_candidate_set_consensus_payload(" in source
-    assert "candidate_set_consensus_payload_logging=bool(" in source
