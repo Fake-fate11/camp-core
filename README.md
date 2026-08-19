@@ -116,6 +116,13 @@ Check the printed `Map source counts`; `vector_map` should dominate. Rebuilding 
 
 ## Pipeline Overview
 
+The deployable Diffusion Planner K=8 reranker and the final 50k CAMP parameter
+bundle are documented in
+[`docs/diffusion_planner_v26_camp_reranker.md`](docs/diffusion_planner_v26_camp_reranker.md).
+It loads Fixed-weight CAMP or Scene-conditioned CAMP, scores the unchanged DP
+candidate pool from the 16 online atoms, and returns the selected row without
+using the offline Teacher at inference time.
+
 The CAMP-Select computational graph is summarized in [`docs/camp_computational_graph.md`](docs/camp_computational_graph.md). The diagram separates the shared Trajectron++ / atom-extraction path, the offline training-time Benders optimization loop, and the one-shot inference-time selector.
 
 The current fixed TiERIV Diffusion Planner integration status is summarized in

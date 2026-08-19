@@ -1,0 +1,173 @@
+{
+  "atom_rows": [
+    {
+      "atom_name": "predicted_obb_collision_exposure_fraction",
+      "global_atom_index": 0,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "dimensionless"
+    },
+    {
+      "atom_name": "ttc_deficit_0_95s",
+      "global_atom_index": 1,
+      "scale": 0.857375,
+      "status": "identified",
+      "unit": "seconds_cubed"
+    },
+    {
+      "atom_name": "dynamic_clearance_buffer_deficit",
+      "global_atom_index": 2,
+      "scale": 0.857375,
+      "status": "identified",
+      "unit": "metres_squared_seconds"
+    },
+    {
+      "atom_name": "overspeed_integral_m2_per_s",
+      "global_atom_index": 3,
+      "scale": 8.195791334718084,
+      "scale_source": "max(old_physical_scale,train_iid_Q0.99_raw/5)",
+      "status": "identified",
+      "unit": "metres_squared_per_second"
+    },
+    {
+      "atom_name": "full_footprint_road_exit_severity_s",
+      "global_atom_index": 4,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "reverse_progress_severity_m",
+      "global_atom_index": 5,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "metres"
+    },
+    {
+      "atom_name": "red_light_crossing_exposure_fraction",
+      "global_atom_index": 6,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "red_stopping_margin_m2_s",
+      "global_atom_index": 7,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "metres_squared_seconds"
+    },
+    {
+      "atom_name": "route_progress_shortfall_m",
+      "global_atom_index": 8,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "metres"
+    },
+    {
+      "atom_name": "longitudinal_acceleration_energy_s",
+      "global_atom_index": 9,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "lateral_acceleration_energy_s",
+      "global_atom_index": 10,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "yaw_rate_energy_s",
+      "global_atom_index": 11,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "yaw_acceleration_energy_s",
+      "global_atom_index": 12,
+      "scale": 1.0,
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "longitudinal_jerk_energy_s",
+      "global_atom_index": 13,
+      "scale": 108.90650127911071,
+      "scale_source": "max(old_physical_scale,train_iid_Q0.99_raw/5)",
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "jerk_magnitude_energy_s",
+      "global_atom_index": 14,
+      "scale": 59.703102173038225,
+      "scale_source": "max(old_physical_scale,train_iid_Q0.99_raw/5)",
+      "status": "identified",
+      "unit": "seconds"
+    },
+    {
+      "atom_name": "previous_plan_execution_transition_rms",
+      "global_atom_index": 15,
+      "scale": 1.0,
+      "scale_source": "coefficient_already_normalized_by_B/P_train_fit_positive_q95_components",
+      "status": "identified",
+      "unit": "dimensionless"
+    }
+  ],
+  "global_atom_names": [
+    "predicted_obb_collision_exposure_fraction",
+    "ttc_deficit_0_95s",
+    "dynamic_clearance_buffer_deficit",
+    "overspeed_integral_m2_per_s",
+    "full_footprint_road_exit_severity_s",
+    "reverse_progress_severity_m",
+    "red_light_crossing_exposure_fraction",
+    "red_stopping_margin_m2_s",
+    "route_progress_shortfall_m",
+    "longitudinal_acceleration_energy_s",
+    "lateral_acceleration_energy_s",
+    "yaw_rate_energy_s",
+    "yaw_acceleration_energy_s",
+    "longitudinal_jerk_energy_s",
+    "jerk_magnitude_energy_s",
+    "previous_plan_execution_transition_rms"
+  ],
+  "normalization": "clip(observed_raw_atom/scorer_scale,0,10)",
+  "runner_q95_role": "descriptive_only_not_a_training_input_or_scale",
+  "scale_source": "fixed_physical_scales_except_three_train_iid_Q0.99_over_5_saturation_repairs",
+  "train_only_scale_diagnostics": [
+    {
+      "atom_name": "overspeed_integral_m2_per_s",
+      "new_saturation_rate": 0.0027542070735881346,
+      "new_scale": 8.195791334718084,
+      "observed_candidate_rows": 224384,
+      "old_saturation_rate": 0.03202099971477467,
+      "old_scale": 1.0,
+      "possible_candidate_rows": 400000,
+      "train_iid_raw_q99": 40.97895667359042
+    },
+    {
+      "atom_name": "longitudinal_jerk_energy_s",
+      "new_saturation_rate": 0.005725,
+      "new_scale": 108.90650127911071,
+      "observed_candidate_rows": 400000,
+      "old_saturation_rate": 0.7500975,
+      "old_scale": 1.0,
+      "possible_candidate_rows": 400000,
+      "train_iid_raw_q99": 544.5325063955536
+    },
+    {
+      "atom_name": "jerk_magnitude_energy_s",
+      "new_saturation_rate": 0.0048325,
+      "new_scale": 59.703102173038225,
+      "observed_candidate_rows": 400000,
+      "old_saturation_rate": 0.6855275,
+      "old_scale": 1.0,
+      "possible_candidate_rows": 400000,
+      "train_iid_raw_q99": 298.5155108651911
+    }
+  ]
+}
