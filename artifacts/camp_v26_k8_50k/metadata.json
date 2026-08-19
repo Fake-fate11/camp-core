@@ -1,0 +1,40 @@
+{
+  "model": "CAMP",
+  "candidate_pool_k": 8,
+  "training_population": {
+    "cities": [
+      "Boston",
+      "Pittsburgh"
+    ],
+    "scene_count": 50000
+  },
+  "atom_count": 16,
+  "scene_embedding": "masked_mean256",
+  "files": [
+    {
+      "name": "fixed_weight_camp.npz",
+      "source_path": "/root/autodl-tmp/camp_dp_v26_k8_demonstration_calibrated_camp_019ffa25_20260817T050000Z/fixed_weight_CAMP_training/scene_conditioned_parameters.npz",
+      "source_sha256": "cfb2cf17be29d9d1db171df723014acf3da06efd744e0cbecbdf093bfbff8b0c"
+    },
+    {
+      "name": "scene_conditioned_camp.npz",
+      "source_path": "/root/autodl-tmp/camp_dp_v26_k8_demonstration_calibrated_camp_019ffa25_20260817T050000Z/scene_conditioned_CAMP_training/scene_conditioned_parameters.npz",
+      "source_sha256": "839aa6ecb1daf894490a690103c53228d5ad30f4bebc2735767287d9d89ce479"
+    },
+    {
+      "name": "atom_scales.json",
+      "source_path": "/root/autodl-tmp/camp_dp_v26_k8_demonstration_calibrated_camp_019ffa25_20260817T050000Z/scene_conditioned_CAMP_training/atom_scales.json",
+      "source_sha256": "02f7c3a9145fd6ff495c2fd125a8eb6de017fa76126df67f9fd3d5308f363710"
+    },
+    {
+      "name": "fixed_weight_camp.json",
+      "source_path": "/root/autodl-tmp/camp_dp_v26_k8_demonstration_calibrated_camp_019ffa25_20260817T050000Z/fixed_weight_CAMP_training/best_primal_feasible_checkpoint.json",
+      "source_sha256": "2ee480578dc1f21d14aed665ebc19483dd804de49665f64ec18b23043f852864"
+    },
+    {
+      "name": "scene_conditioned_camp.json",
+      "source_path": "/root/autodl-tmp/camp_dp_v26_k8_demonstration_calibrated_camp_019ffa25_20260817T050000Z/scene_conditioned_CAMP_training/best_primal_feasible_checkpoint.json",
+      "source_sha256": "9f75cadf9979a3fb075de21be1b7f62f16f5a978bf816d4dcb6ab34c8b4ed359"
+    }
+  ]
+}

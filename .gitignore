@@ -60,6 +60,9 @@ adaptive-prediction/experiments/nuScenes/figures/
 *.npz
 *.zarr/
 
+# Small, deployment-only CAMP parameter bundles are versioned intentionally.
+!/artifacts/camp_v26_k8_50k/*.npz
+
 # Presentation, report, and generated media artifacts
 *.pptx
 *.pdf
