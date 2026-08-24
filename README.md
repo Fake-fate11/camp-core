@@ -57,46 +57,68 @@ The compact bundle is stored in
 is not duplicated: scene-conditioned CAMP reuses the encoder representation
 from the planner's existing forward pass.
 
-## Direct DP reranking
+## CAMP selector for Diffusion Planner
+
+CAMP is designed to occupy Diffusion Planner's candidate-selection stage:
+
+```text
+DP candidate generation -> CAMP selector -> selected DP trajectory
+```
+
+A complete DP adapter should pass one planning tick to the selector. The
+selector then extracts the ordered K=8 ego candidates and candidate-aligned
+actor predictions, materializes the observable CAMP atoms and endpoint states,
+reuses the masked DP encoder representation when scene conditioning is enabled,
+and returns one original DP candidate unchanged.
+
+`DiffusionPlannerCAMPSelector` owns atom materialization, masked scene pooling,
+weight loading, scoring, and previous-plan continuity. The DP node supplies its
+native prediction tensors and current map/planner context once per tick; it
+does not construct CAMP atom vectors itself.
 
 ```python
-from camp_core.integrations.diffusion_planner_v26_camp_reranker import (
-    CAMPDPRerankingPipeline,
-    build_camp_atom_artifact,
-    masked_mean_scene_embedding,
+from camp_core.integrations.diffusion_planner_v26_selector import (
+    DiffusionPlannerCAMPSelector,
+    DiffusionPlannerCAMPTick,
 )
 
-pipeline = CAMPDPRerankingPipeline.from_directory(
+selector = DiffusionPlannerCAMPSelector.from_directory(
     "artifacts/camp_v26_k8_50k"
 )
 
-# `candidate_atom_values` contains one K=8 vector for each observed atom.
-# Unavailable endpoints remain statuses and are not assigned numeric values.
-artifact = build_camp_atom_artifact(
-    candidate_atom_values,
-    endpoint_status,
+tick = DiffusionPlannerCAMPTick(
+    identity=planning_tick_identity,
+    prediction=out["prediction"],
+    encoder_tokens=encoding,
+    token_masks=encoder_token_masks,
+    neighbor_history=raw_inputs["neighbor_agents_past"][0],
+    static_objects=raw_inputs["static_objects"][0],
+    ego_shape=raw_inputs["ego_shape"][0],
+    route_lanes=raw_inputs["route_lanes"][0],
+    route_speed_limits=raw_inputs["route_lanes_speed_limit"][0],
+    route_has_speed_limits=raw_inputs["route_lanes_has_speed_limit"][0],
+    route_atom_context=map_context.route_atom_context,
+    signal_authority=map_context.signal_authority,
+    drivable_area_geometry=map_context.drivable_area_geometry,
+    drivable_area_source_authority=map_context.drivable_area_source_authority,
+    origin_seconds=planning_time_seconds,
+    ego_x=ego_state.x,
+    ego_y=ego_state.y,
+    ego_yaw=ego_state.yaw,
+    current_speed_mps=ego_state.speed,
 )
 
-selected_trajectory, result = pipeline.select(
-    mode="fixed",
-    candidates=dp_candidates,
-    artifact=artifact,
-)
-
-# Scene-conditioned CAMP uses valid tokens from the same frozen DP encoder pass.
-phi = masked_mean_scene_embedding(encoder_tokens, token_masks)
-selected_scene_trajectory, scene_result = pipeline.select(
-    mode="scene",
-    candidates=dp_candidates,
-    artifact=artifact,
-    scene_embedding=phi,
-)
+decision = selector.select(tick, mode="scene")
+selected_trajectory = decision.selected_trajectory
 ```
 
-Both calls return an unchanged copy of the selected DP trajectory together with
-its selected row, candidate scores, active weights, active atoms, and status
-pattern. The offline preference labels and actual-future trajectories are never
-read by this inference interface.
+Use `mode="fixed"` for fixed-weight CAMP; its tick may omit encoder tokens and
+masks. Both modes return an unchanged copy of the selected DP trajectory
+together with its selected row, candidate scores, active weights, active atoms,
+and status pattern. The selector retains only the previous selected plan needed
+by the continuity atom; call `selector.reset()` when a route or planning episode
+ends. Offline preference labels and future trajectories are never read by this
+interface.
 
 Full interface details are in
 [`docs/diffusion_planner_v26_camp_reranker.md`](docs/diffusion_planner_v26_camp_reranker.md).
@@ -137,36 +159,52 @@ candidate and scene features.
 Large datasets, generated candidate pools, experiment logs, and intermediate
 checkpoints are not part of the repository.
 
-## Installation
+## Environments
 
-CAMP requires Python 3.9 or newer. For the core package and the included
-reranker:
+The Diffusion Planner and Trajectron++ paths use separate environments. Do not
+install the repository-level Trajectron++ requirements into the DP environment.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ./camp_core
-```
+### Diffusion Planner environment
 
-Install the nuPlan geometry dependencies when rebuilding DP atoms:
+Keep the Python, PyTorch, CUDA, and planner dependencies required by the
+upstream DP checkout. From this repository, add only the CAMP package to that
+environment:
 
 ```bash
-pip install -e "./camp_core[nuplan]"
+conda activate <your-dp-environment>
+python -m pip install --no-deps -e ./camp_core
 ```
 
-The full Trajectron++ experiment stack retains its older dependency set. Follow
-[`adaptive-prediction/README.md`](adaptive-prediction/README.md) and install the
-root [`requirements.txt`](requirements.txt) only when reproducing that path or
-the full training environment.
+The checked-in reranker uses NumPy and SciPy already present in the DP
+environment. Add `pyproj>=3.6` and `Shapely>=2.0` only when the DP-side atom
+materializer needs the nuPlan geometry utilities. The repository-level
+[`requirements.txt`](requirements.txt) is not used by this environment.
+
+### Trajectron++ environment
+
+Use a separate Python 3.9 environment for the original Trajectron++ experiments
+and their older dependency versions:
+
+```bash
+conda create --name camp-trajectron python=3.9 -y
+conda activate camp-trajectron
+python -m pip install -r requirements.txt
+```
+
+Then follow the submodule and editable-install steps in
+[`adaptive-prediction/README.md`](adaptive-prediction/README.md). This
+environment is for Trajectron++ reproduction and is not required to load the DP
+deployment bundle.
 
 ## Tests
 
-The deployable reranker and sparse endpoint schema can be checked with:
+The DP selector, reranker, and sparse endpoint schema can be checked with:
 
 ```bash
 cd camp_core
 python -m pytest \
   tests/test_diffusion_planner_v26_camp_reranker.py \
+  tests/test_diffusion_planner_v26_selector.py \
   tests/test_diffusion_planner_v26_sparse_schema.py
 ```
 

@@ -12,6 +12,9 @@
   "scene_embedding": "masked_mean256",
   "files": [
     {
+      "name": "transition_scales.json"
+    },
+    {
       "name": "fixed_weight_camp.npz",
       "source_path": "/root/autodl-tmp/camp_dp_v26_k8_demonstration_calibrated_camp_019ffa25_20260817T050000Z/fixed_weight_CAMP_training/scene_conditioned_parameters.npz",
       "source_sha256": "cfb2cf17be29d9d1db171df723014acf3da06efd744e0cbecbdf093bfbff8b0c"

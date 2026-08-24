@@ -29,8 +29,9 @@ nuplan = [
   "Shapely>=2.0",
 ]
 
-[tool.setuptools]
-packages = ["camp_core"]
-
 [tool.setuptools.package-dir]
 camp_core = "camp_core"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["camp_core*"]
