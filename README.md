@@ -66,7 +66,7 @@ DP candidate generation -> CAMP selector -> selected DP trajectory
 ```
 
 A complete DP adapter should pass one planning tick to the selector. The
-selector then extracts the ordered K=8 ego candidates and candidate-aligned
+selector then extracts the ordered K ego candidates and candidate-aligned
 actor predictions, materializes the observable CAMP atoms and endpoint states,
 reuses the masked DP encoder representation when scene conditioning is enabled,
 and returns one original DP candidate unchanged.
@@ -122,6 +122,16 @@ interface.
 
 Full interface details are in
 [`docs/diffusion_planner_v26_camp_reranker.md`](docs/diffusion_planner_v26_camp_reranker.md).
+The installable `camp_core.dp` API exposes `fit`, `point_targets`, `train`,
+`evaluate`, `load`, and deployment `export`; the selector supports a complete
+variable-K pool while the checked-in weights remain the original K8-trained
+models. See [Python library examples](docs/camp_python_library.md).
+
+For a self-contained scoring example, run
+`python examples/camp_library/score_demo.py`. To select from a caller-supplied
+saved planning tick without training or downloading data, use
+`python examples/camp_library/select_npz.py --help`. The synthetic scoring
+example is an API check, not a driving-performance evaluation.
 
 ## Diffusion Planner training and evaluation flow
 
@@ -179,6 +189,8 @@ The checked-in reranker uses NumPy and SciPy already present in the DP
 environment. Add `pyproj>=3.6` and `Shapely>=2.0` only when the DP-side atom
 materializer needs the nuPlan geometry utilities. The repository-level
 [`requirements.txt`](requirements.txt) is not used by this environment.
+Training-only dependencies are in `camp_core[training]`; loading CAMP weights
+does not import the optimizer or install it into a C++ planning node.
 
 ### Trajectron++ environment
 
@@ -205,7 +217,9 @@ cd camp_core
 python -m pytest \
   tests/test_diffusion_planner_v26_camp_reranker.py \
   tests/test_diffusion_planner_v26_selector.py \
-  tests/test_diffusion_planner_v26_sparse_schema.py
+  tests/test_diffusion_planner_v26_sparse_schema.py \
+  tests/test_camp_dp_library.py \
+  tests/test_diffusion_planner_tier4_npz.py
 ```
 
 ## License

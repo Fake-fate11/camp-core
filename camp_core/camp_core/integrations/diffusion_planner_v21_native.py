@@ -153,15 +153,24 @@ def candidate_seed(root_seed: int, route_sha256: str, tick_index: int) -> int:
     return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") % 2**63
 
 
-def candidate_latents(seed: int, *, noise_scale: float) -> np.ndarray:
+def candidate_latents(
+    seed: int, *, noise_scale: float, candidate_count: int = 8
+) -> np.ndarray:
     if isinstance(seed, bool) or not isinstance(seed, (int, np.integer)) or seed < 0:
         raise ValueError("seed must be a nonnegative integer")
     if not np.isfinite(noise_scale) or noise_scale <= 0.0:
         raise ValueError("noise_scale must be finite and positive")
+    if (
+        isinstance(candidate_count, bool)
+        or not isinstance(candidate_count, (int, np.integer))
+        or int(candidate_count) < 1
+    ):
+        raise ValueError("candidate_count must be a positive integer")
+    candidate_count = int(candidate_count)
     rng = np.random.default_rng(int(seed))
-    latents = np.zeros((8, *_LATENT_SHAPE), dtype=np.float32)
+    latents = np.zeros((candidate_count, *_LATENT_SHAPE), dtype=np.float32)
     latents[1:] = (
-        rng.standard_normal((7, *_LATENT_SHAPE)).astype(np.float32)
+        rng.standard_normal((candidate_count - 1, *_LATENT_SHAPE)).astype(np.float32)
         * np.float32(noise_scale)
     )
     return latents

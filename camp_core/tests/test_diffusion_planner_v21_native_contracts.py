@@ -190,6 +190,18 @@ def test_candidate_latents_are_fixed_k8_float32_and_rng_isolated() -> None:
     _assert_numpy_rng_equal(np.random.get_state(), numpy_before)
 
 
+def test_candidate_latents_generate_true_k16_with_native_zero_row0() -> None:
+    module = _native()
+
+    latents = module.candidate_latents(
+        123456, noise_scale=1.0, candidate_count=16
+    )
+
+    assert latents.shape == (16, 321, 81, 4)
+    assert np.count_nonzero(latents[0]) == 0
+    assert len({module.array_sha256(row) for row in latents}) == 16
+
+
 def test_default_candidate0_identity_is_exact_and_fails_closed() -> None:
     module = _native()
     default = np.arange(80 * 4, dtype=np.float32).reshape(80, 4)
