@@ -97,6 +97,8 @@ def masked_mean_scene_embedding(
 def build_camp_atom_artifact(
     candidate_atom_values: Mapping[str, np.ndarray],
     endpoint_status: Mapping[str, str],
+    *,
+    candidate_count: int | None = None,
 ) -> dict[str, Any]:
     """Pack per-atom DP outputs without assigning numbers to unavailable atoms."""
 
@@ -113,17 +115,19 @@ def build_camp_atom_artifact(
         np.asarray(candidate_atom_values[name], dtype=np.float64).reshape(-1)
         for name in observed_names
     ]
-    if any(column.shape != (V26_CAMP_CANDIDATE_COUNT,) for column in columns):
-        raise ValueError("each observed CAMP atom must contain eight candidate values")
+    if candidate_count is None:
+        candidate_count = len(columns[0]) if columns else V26_CAMP_CANDIDATE_COUNT
+    if candidate_count < 1 or any(column.shape != (candidate_count,) for column in columns):
+        raise ValueError("all observed CAMP atoms must share the same positive K")
     raw = (
         np.column_stack(columns)
         if columns
-        else np.empty((V26_CAMP_CANDIDATE_COUNT, 0), dtype=np.float64)
+        else np.empty((candidate_count, 0), dtype=np.float64)
     )
     if not np.all(np.isfinite(raw)) or np.any(raw < 0.0):
         raise ValueError("observed CAMP atom values must be finite and nonnegative")
     return {
-        "K": V26_CAMP_CANDIDATE_COUNT,
+        "K": candidate_count,
         "bank_atom_names": list(V26_CAMP_ATOM_NAMES),
         "atom_states": [
             {"name": name, "status": status}
@@ -173,7 +177,7 @@ class _PatternHead:
 
 
 class CAMPReranker:
-    """Load one fixed-weight or scene-conditioned CAMP checkpoint and rerank K8."""
+    """Load one fixed-weight or scene-conditioned CAMP checkpoint and rerank a pool."""
 
     def __init__(
         self,
@@ -212,8 +216,8 @@ class CAMPReranker:
                     raise ValueError("CAMP checkpoint contains non-finite weights")
                 heads[pattern] = _PatternHead(active, theta.copy(), int(suffix))
                 feature_dimensions.add(int(theta.shape[1]))
-        if len(heads) != V26_CAMP_STATUS_PATTERN_COUNT:
-            raise ValueError("CAMP checkpoint must contain the frozen 24 status heads")
+        if not heads:
+            raise ValueError("CAMP checkpoint contains no status heads")
         if len(feature_dimensions) != 1:
             raise ValueError("CAMP checkpoint heads disagree on feature dimension")
         self._heads = heads
@@ -256,8 +260,10 @@ class CAMPReranker:
         if names != expected_names:
             raise ValueError("CAMP artifact observed atom names changed")
         raw = np.asarray(artifact.get("candidate_atoms_raw"), dtype=np.float64)
-        if raw.shape != (V26_CAMP_CANDIDATE_COUNT, len(active)):
-            raise ValueError("CAMP candidate atoms must have shape [8,Q_observed]")
+        if raw.ndim != 2 or raw.shape[0] < 1 or raw.shape[1] != len(active):
+            raise ValueError("CAMP candidate atoms must have shape [K,Q_observed], K>=1")
+        if int(artifact.get("K", raw.shape[0])) != raw.shape[0]:
+            raise ValueError("CAMP artifact K disagrees with its atom rows")
         if not np.all(np.isfinite(raw)) or np.any(raw < 0.0):
             raise ValueError("CAMP candidate atoms must be finite and nonnegative")
         head = self._heads.get(pattern)
@@ -315,9 +321,11 @@ class CAMPReranker:
         """Return an untouched copy of the selected DP candidate and its diagnostics."""
 
         values = np.asarray(candidates)
-        if values.ndim < 1 or values.shape[0] != V26_CAMP_CANDIDATE_COUNT:
-            raise ValueError("Diffusion Planner candidates must have K=8 on axis zero")
+        if values.ndim < 1 or values.shape[0] < 1:
+            raise ValueError("Diffusion Planner candidates must have positive K on axis zero")
         result = self.rerank_artifact(artifact, scene_embedding)
+        if values.shape[0] != len(result.candidate_scores):
+            raise ValueError("candidate trajectories and atom rows must share K")
         return values[result.selected_row].copy(), result
 
 

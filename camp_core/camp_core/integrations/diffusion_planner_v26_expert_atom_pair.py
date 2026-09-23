@@ -367,13 +367,17 @@ def _ttc_lateral_relevance_mask(
     fully_in_one_route_object = np.zeros(flat_count, dtype=bool)
     fully_in_one_route_object[covered_pairs[0]] = True
 
-    connector_geometries = [
-        item["geometry"] for item in route_objects if item["kind"] == "connector"
+    # nuPlan supplies connectors; the native TIER IV exporter explicitly
+    # supplies intersection_area polygons. Preserve the source type rather
+    # than inventing connector identities; both feed this intersection test.
+    intersection_geometries = [
+        item["geometry"] for item in route_objects
+        if item["kind"] in {"connector", "intersection_area"}
     ]
     in_intersection = np.zeros(flat_count, dtype=bool)
-    if connector_geometries:
+    if intersection_geometries:
         center_points = points(trajectories[..., :2].reshape(flat_count, 2))
-        connector_pairs = STRtree(connector_geometries).query(
+        connector_pairs = STRtree(intersection_geometries).query(
             center_points, predicate="covered_by"
         )
         in_intersection[connector_pairs[0]] = True

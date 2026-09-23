@@ -75,8 +75,8 @@ def _candidate_world_trajectories(
     """Convert DP local ``x,y,cos,sin`` candidates to world ``xyhvas``."""
 
     values = np.asarray(candidates, dtype=np.float64)
-    if values.shape != (V26_CAMP_CANDIDATE_COUNT, _HORIZON_STEPS, 4):
-        raise ValueError("DP ego candidates must have shape [8,80,4]")
+    if values.ndim != 3 or values.shape[0] < 1 or values.shape[1:] != (_HORIZON_STEPS, 4):
+        raise ValueError("DP ego candidates must have shape [K,80,4], K>=1")
     if not np.all(np.isfinite(values)):
         raise ValueError("DP ego candidates must be finite")
     local_heading = np.unwrap(np.arctan2(values[:, :, 3], values[:, :, 2]), axis=1)
@@ -255,11 +255,11 @@ class DiffusionPlannerCAMPSelector:
         prediction = np.asarray(_as_numpy(tick.prediction), dtype=np.float64)
         if (
             prediction.ndim != 4
-            or prediction.shape[0] != V26_CAMP_CANDIDATE_COUNT
+            or prediction.shape[0] < 1
             or prediction.shape[1] < _DP_ACTOR_COUNT + 1
             or prediction.shape[2:] != (_HORIZON_STEPS, 4)
         ):
-            raise ValueError("DP prediction must have shape [8,1+N,80,4], N>=32")
+            raise ValueError("DP prediction must have shape [K,1+N,80,4], K>=1, N>=32")
         candidates = prediction[:, 0]
 
         history = np.asarray(_as_numpy(tick.neighbor_history), dtype=np.float64)
@@ -342,7 +342,7 @@ class DiffusionPlannerCAMPSelector:
         else:
             statuses[V26_TRANSITION_ATOM_NAME] = "observed"
             values[V26_TRANSITION_ATOM_NAME] = transition
-        artifact = build_camp_atom_artifact(values, statuses)
+        artifact = build_camp_atom_artifact(values, statuses, candidate_count=len(candidates))
         artifact["transition_overlap_sample_count"] = overlap
 
         scene_embedding = None

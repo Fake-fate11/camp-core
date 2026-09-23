@@ -96,6 +96,7 @@ adaptive-prediction/experiments/nuScenes/figures/
 
 # Local research notes, role handoffs, and manuscript workspaces
 /docs/*
+!/docs/camp_python_library.md
 !/docs/diffusion_planner_v26_camp_reranker.md
 /INFORMS-IJOC-Template-*/
 /main.tex
